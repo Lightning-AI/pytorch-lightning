@@ -235,7 +235,7 @@ class EpochResultStore:
         """
         This function provides necessary parameters to properly configure HookResultStore obj
         """
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         return {
             "batch_idx": self.trainer.batch_idx,
             "fx_name": model_ref._current_hook_fx_name or model_ref._current_fx_name,
@@ -252,7 +252,7 @@ class EpochResultStore:
         """
         This function is used to reset model state at the end of the capture
         """
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         model_ref._results = Result()
         model_ref._current_hook_fx_name = None
         model_ref._current_fx_name = ''
@@ -263,7 +263,7 @@ class EpochResultStore:
         and store the result object
         """
         with self.trainer.profiler.profile("cache_result"):
-            model_ref = self.trainer.get_model()
+            model_ref = self.trainer.lightning_module
 
             # extract hook results
             hook_result = model_ref._results
@@ -281,11 +281,11 @@ class EpochResultStore:
             # attach capture batch_size
             Result.attach_batch_size(self._batch_size, hook_result)
 
-            hook_result.detach()
+            hook_result = hook_result.detach()
             if self.trainer.move_metrics_to_cpu:
-                hook_result.cpu()
+                hook_result = hook_result.cpu()
             elif self.trainer._distrib_type == DistributedType.DP:
-                hook_result.to(torch.device("cuda", self.trainer.root_gpu))
+                hook_result = hook_result.to(torch.device("cuda", self.trainer.root_gpu))
 
             self._internals[fx_name].append(hook_result, info)
 

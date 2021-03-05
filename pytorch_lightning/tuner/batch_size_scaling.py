@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+import logging
 import os
 from typing import Optional, Tuple
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
@@ -23,6 +23,8 @@ from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
+
+log = logging.getLogger(__name__)
 
 
 def scale_batch_size(
@@ -63,13 +65,20 @@ def scale_batch_size(
             It is expected that the user has provided a model or datamodule that has a hyperparameter
             with that name. We will look for this attribute name in the following places
 
-            - `model`
-            - `model.hparams`
-            - `model.datamodule`
-            - `trainer.datamodule` (the datamodule passed to the tune method)
+            - ``model``
+            - ``model.hparams``
+            - ``model.datamodule``
+            - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
         **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
             or datamodule.
+
+    Raises:
+        MisconfigurationException:
+            If field ``batch_arg_name`` is not found in ``model`` and ``model.hparams``, or
+            if batch scaling feature is used with dataloaders passed directly to ``.fit()``.
+        ValueError:
+            If mode in method ``scale_batch_size`` is neither ``power`` nor ``binsearch``.
     """
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping batch size scaler since fast_dev_run is enabled.', UserWarning)
@@ -268,7 +277,7 @@ def _adjust_batch_size(
         The new batch size for the next trial and a bool that signals whether the
         new value is different than the previous batch size.
     """
-    model = trainer.get_model()
+    model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
     new_size = value if value is not None else int(batch_size * factor)
     if desc:

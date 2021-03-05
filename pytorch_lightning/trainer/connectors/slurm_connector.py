@@ -1,8 +1,9 @@
+import logging
 import os
 import signal
 from subprocess import call
 
-from pytorch_lightning import _logger as log
+log = logging.getLogger(__name__)
 
 
 class SLURMConnector:
@@ -27,8 +28,6 @@ class SLURMConnector:
             signal.signal(signal.SIGTERM, self.term_handler)
 
     def sig_handler(self, signum, frame):  # pragma: no-cover
-        # Todo: required argument `signum` is not used
-        # Todo: required argument `frame` is not used
         if self.trainer.is_global_zero:
             # save weights
             log.info('handling SIGUSR1')
@@ -40,7 +39,14 @@ class SLURMConnector:
 
             # requeue job
             log.info(f'requeing job {job_id}...')
-            result = call(cmd)
+            try:
+                result = call(cmd)
+            except FileNotFoundError:
+                # This can occur if a subprocess call to `scontrol` is run outside a shell context
+                # Re-attempt call (now with shell context). If any error is raised, propagate to user.
+                # When running a shell command, it should be passed as a single string.
+                joint_cmd = [str(x) for x in cmd]
+                result = call(' '.join(joint_cmd), shell=True)
 
             # print result text
             if result == 0:
@@ -51,7 +57,5 @@ class SLURMConnector:
             # close experiment to avoid issues
             self.trainer.logger.close()
 
-    def term_handler(self, signum, frame):
-        # Todo: required argument `signum` is not used
-        # Todo: required argument `frame` is not used
+    def term_handler(self, signum, frame):  # pragma: no-cover
         log.info("bypassing sigterm")

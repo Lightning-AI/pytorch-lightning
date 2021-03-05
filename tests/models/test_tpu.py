@@ -26,8 +26,10 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
 
 if _TPU_AVAILABLE:
@@ -52,7 +54,7 @@ class SerialLoaderBoringModel(BoringModel):
         return DataLoader(RandomDataset(32, 2000), batch_size=32)
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_model_tpu_cores_1(tmpdir):
     """Make sure model trains on TPU."""
@@ -71,7 +73,7 @@ def test_model_tpu_cores_1(tmpdir):
 
 
 @pytest.mark.parametrize('tpu_core', [1, 5])
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_model_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
@@ -90,7 +92,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
     assert torch_xla._XLAC._xla_get_default_device() == f'xla:{tpu_core}'
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_model_tpu_cores_8(tmpdir):
     """Make sure model trains on TPU."""
@@ -109,7 +111,7 @@ def test_model_tpu_cores_8(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_model_16bit_tpu_cores_1(tmpdir):
     """Make sure model trains on TPU."""
@@ -130,7 +132,7 @@ def test_model_16bit_tpu_cores_1(tmpdir):
 
 
 @pytest.mark.parametrize('tpu_core', [1, 5])
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
@@ -151,7 +153,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_model_16bit_tpu_cores_8(tmpdir):
     """Make sure model trains on TPU."""
@@ -171,12 +173,10 @@ def test_model_16bit_tpu_cores_8(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_model_tpu_early_stop(tmpdir):
     """Test if single TPU core training works"""
-
-    # todo: Test on 8 cores - hanging.
 
     class CustomBoringModel(BoringModel):
 
@@ -194,12 +194,13 @@ def test_model_tpu_early_stop(tmpdir):
         max_epochs=2,
         limit_train_batches=2,
         limit_val_batches=2,
-        tpu_cores=[1],
+        tpu_cores=8,
     )
     trainer.fit(model)
+    trainer.test(test_dataloaders=DataLoader(RandomDataset(32, 2000), batch_size=32))
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
@@ -218,16 +219,23 @@ def test_tpu_grad_norm(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
-
     tutils.reset_seed()
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, tpu_cores=8)
-    trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        tpu_cores=8,
+    )
+    trainer.fit(
+        model,
+        train_dataloader=model.train_dataloader(),
+        val_dataloaders=model.val_dataloader(),
+    )
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
@@ -236,7 +244,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     [pytest.param(1, None), pytest.param(8, None),
      pytest.param([1], 1), pytest.param([8], 8)],
 )
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires missing TPU")
+@RunIf(tpu=True)
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected"""
     assert Trainer(tpu_cores=tpu_cores).accelerator_connector.tpu_id == expected_tpu_id
@@ -257,23 +265,20 @@ def test_exception_when_no_tpu_found(tmpdir):
 
 
 @pytest.mark.parametrize('tpu_cores', [1, 8, [1]])
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
     assert Trainer(tpu_cores=tpu_cores).distributed_backend == "tpu"
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_broadcast_on_tpu():
     """ Checks if an object from the master process is broadcasted to other processes correctly"""
 
     def test_broadcast(rank):
         trainer = Trainer(tpu_cores=8)
-        assert isinstance(trainer.accelerator_backend, TPUAccelerator)
+        assert isinstance(trainer.accelerator, TPUAccelerator)
         assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
         obj = ("ver_0.5", "logger_name", rank)
         result = trainer.training_type_plugin.broadcast(obj)
@@ -298,7 +303,7 @@ def test_broadcast_on_tpu():
         pytest.param(10, None, True),
     ],
 )
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     if error_expected:
@@ -314,7 +319,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     [pytest.param('--tpu_cores=8', {'tpu_cores': 8}),
      pytest.param("--tpu_cores=1,", {'tpu_cores': '1,'})]
 )
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_cores_with_argparse(cli_args, expected):
     """Test passing tpu_cores in command line"""
@@ -327,3 +332,26 @@ def test_tpu_cores_with_argparse(cli_args, expected):
     for k, v in expected.items():
         assert getattr(args, k) == v
     assert Trainer.from_argparse_args(args)
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_reduce():
+    """Test tpu spawn reduce operation """
+
+    def test_reduce(rank):
+        trainer = Trainer(tpu_cores=8)
+        # faster this way
+        reduce_ops = ["mean", "AVG", "undefined", "sum", ReduceOp.SUM, ReduceOp.MAX]
+        for reduce_op in reduce_ops:
+            if reduce_op == "undefined" or reduce_op == ReduceOp.MAX:
+                with pytest.raises(MisconfigurationException, match="TPUSpawn TrainingTypePlugin only support"):
+                    result = trainer.training_type_plugin.reduce(1, reduce_op)
+            else:
+                result = trainer.training_type_plugin.reduce(1, reduce_op)
+            if isinstance(reduce_op, str) and reduce_op.lower() in ("mean", "avg"):
+                assert result.item() == 1
+            else:
+                assert result.item() == 8
+
+    xmp.spawn(test_reduce, nprocs=8, start_method='fork')

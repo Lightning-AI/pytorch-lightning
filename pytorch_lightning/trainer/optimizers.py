@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 from torch import optim
@@ -98,15 +98,7 @@ class TrainerOptimizersMixin(ABC):
     def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
         # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
-        default_config = {
-            'scheduler': None,
-            'name': None,  # no custom name
-            'interval': 'epoch',  # after epoch is over
-            'frequency': 1,  # every epoch/batch
-            'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-            'monitor': monitor,  # value to monitor for ReduceLROnPlateau
-            'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
-        }
+        default_config = _get_default_scheduler_config()
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 # check provided keys
@@ -185,3 +177,15 @@ def _validate_scheduler_optimizer(optimizers, lr_schedulers):
         raise MisconfigurationException(
             "Some schedulers are attatched with an optimizer that wasn't returned from `configure_optimizers`."
         )
+
+
+def _get_default_scheduler_config() -> Dict[str, Any]:
+    return {
+        'scheduler': None,
+        'name': None,  # no custom name
+        'interval': 'epoch',  # after epoch is over
+        'frequency': 1,  # every epoch/batch
+        'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
+        'monitor': None,  # value to monitor for ReduceLROnPlateau
+        'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
+    }

@@ -23,7 +23,7 @@ provided input.
 .. warning::
     From v1.2 onward ``compute()`` will no longer automatically call ``reset()``,
     and it is up to the user to reset metrics between epochs, except in the case where the
-    metric is directly passed to ``LightningModule``s ``self.log``.
+    metric is directly passed to ``LightningModule``'s ``self.log``.
 
 These metrics work with DDP in PyTorch and PyTorch Lightning by default. When ``.compute()`` is called in
 distributed mode, the internal state of each metric is synced and reduced across each process, so that the
@@ -258,6 +258,50 @@ In practise this means that:
     val = metric(pred, target) # this value can be backpropagated
     val = metric.compute() # this value cannot be backpropagated
 
+
+Metric API
+----------
+
+.. autoclass:: pytorch_lightning.metrics.Metric
+    :noindex:
+
+Internal implementation details
+-------------------------------
+
+This section briefly describe how metrics work internally. We encourage looking at the source code for more info.
+Internally, Lightning wraps the user defined ``update()`` and ``compute()`` method. We do this to automatically
+synchronize and reduce metric states across multiple devices. More precisely, calling ``update()`` does the
+following internally:
+
+1. Clears computed cache
+2. Calls user-defined ``update()``
+
+Simiarly, calling ``compute()`` does the following internally
+
+1. Syncs metric states between processes
+2. Reduce gathered metric states
+3. Calls the user defined ``compute()`` method on the gathered metric states
+4. Cache computed result
+
+From a user's standpoint this has one important side-effect: computed results are cached. This means that no
+matter how many times ``compute`` is called after one and another, it will continue to return the same result.
+The cache is first emptied on the next call to ``update``.
+
+``forward`` serves the dual purpose of both returning the metric on the current data and updating the internal
+metric state for accumulating over multiple batches. The ``forward()`` method achives this by combining calls
+to ``update`` and ``compute`` in the following way (assuming metric is initialized with ``compute_on_step=True``):
+
+1. Calls ``update()`` to update the global metric states (for accumulation over multiple batches)
+2. Caches the global state
+3. Calls ``reset()`` to clear global metric state
+4. Calls ``update()`` to update local metric state
+5. Calls ``compute()`` to calculate metric for current batch
+6. Restores the global state
+
+This procedure has the consequence of calling the user defined ``update`` **twice** during a single
+forward call (one to update global statistics and one for getting the batch statistics).
+
+
 ******************
 Metric Arithmetics
 ******************
@@ -367,12 +411,6 @@ inside your LightningModule
 .. autoclass:: pytorch_lightning.metrics.MetricCollection
     :noindex:
 
-**********
-Metric API
-**********
-
-.. autoclass:: pytorch_lightning.metrics.Metric
-    :noindex:
 
 ***************************
 Class vs Functional Metrics
@@ -440,7 +478,7 @@ binary/multi-label inputs as 2-class (multi-dimensional) multi-class inputs.
 
 For these cases, the metrics where this distinction would make a difference, expose the
 ``is_multiclass`` argument. Let's see how this is used on the example of 
-:class:`~pytorch_lightning.metrics.classification.StatScores` metric.
+:class:`~pytorch_lightning.metrics.StatScores` metric.
 
 First, let's consider the case with label predictions with 2 classes, which we want to
 treat as binary.
@@ -492,86 +530,86 @@ Class Metrics (Classification)
 Accuracy
 ~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.Accuracy
+.. autoclass:: pytorch_lightning.metrics.Accuracy
     :noindex:
 
 AveragePrecision
 ~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
+.. autoclass:: pytorch_lightning.metrics.AveragePrecision
     :noindex:
 
 AUC
 ~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.AUC
+.. autoclass:: pytorch_lightning.metrics.AUC
     :noindex:
 
 AUROC
 ~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.AUROC
+.. autoclass:: pytorch_lightning.metrics.AUROC
     :noindex:
 
 ConfusionMatrix
 ~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
+.. autoclass:: pytorch_lightning.metrics.ConfusionMatrix
     :noindex:
 
 F1
 ~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.F1
+.. autoclass:: pytorch_lightning.metrics.F1
     :noindex:
 
 FBeta
 ~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+.. autoclass:: pytorch_lightning.metrics.FBeta
     :noindex:
     
 IoU
 ~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.IoU
+.. autoclass:: pytorch_lightning.metrics.IoU
     :noindex:
 
 Hamming Distance
 ~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.HammingDistance
+.. autoclass:: pytorch_lightning.metrics.HammingDistance
     :noindex:
 
 Precision
 ~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.Precision
+.. autoclass:: pytorch_lightning.metrics.Precision
     :noindex:
 
 PrecisionRecallCurve
 ~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecallCurve
+.. autoclass:: pytorch_lightning.metrics.PrecisionRecallCurve
     :noindex:
 
 Recall
 ~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.Recall
+.. autoclass:: pytorch_lightning.metrics.Recall
     :noindex:
 
 ROC
 ~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.ROC
+.. autoclass:: pytorch_lightning.metrics.ROC
     :noindex:
 
 
 StatScores
 ~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.classification.StatScores
+.. autoclass:: pytorch_lightning.metrics.StatScores
     :noindex:
 
 
@@ -616,7 +654,7 @@ confusion_matrix [func]
 dice_score [func]
 ~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.dice_score
+.. autofunction:: pytorch_lightning.metrics.functional.dice_score
     :noindex:
 
 
@@ -697,7 +735,7 @@ stat_scores [func]
 stat_scores_multiple_classes [func]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.metrics.functional.classification.stat_scores_multiple_classes
+.. autofunction:: pytorch_lightning.metrics.functional.stat_scores_multiple_classes
     :noindex:
 
 
@@ -724,49 +762,49 @@ Class Metrics (Regression)
 ExplainedVariance
 ~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.regression.ExplainedVariance
+.. autoclass:: pytorch_lightning.metrics.ExplainedVariance
     :noindex:
 
 
 MeanAbsoluteError
 ~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.regression.MeanAbsoluteError
+.. autoclass:: pytorch_lightning.metrics.MeanAbsoluteError
     :noindex:
 
 
 MeanSquaredError
 ~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredError
+.. autoclass:: pytorch_lightning.metrics.MeanSquaredError
     :noindex:
 
 
 MeanSquaredLogError
 ~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.regression.MeanSquaredLogError
+.. autoclass:: pytorch_lightning.metrics.MeanSquaredLogError
     :noindex:
 
 
 PSNR
 ~~~~
 
-.. autoclass:: pytorch_lightning.metrics.regression.PSNR
+.. autoclass:: pytorch_lightning.metrics.PSNR
     :noindex:
 
 
 SSIM
 ~~~~
 
-.. autoclass:: pytorch_lightning.metrics.regression.SSIM
+.. autoclass:: pytorch_lightning.metrics.SSIM
     :noindex:
 
 
 R2Score
 ~~~~~~~
 
-.. autoclass:: pytorch_lightning.metrics.regression.R2Score
+.. autoclass:: pytorch_lightning.metrics.R2Score
     :noindex:
 
 Functional Metrics (Regression)
@@ -835,7 +873,7 @@ NLP
 bleu_score [func]
 -----------------
 
-.. autofunction:: pytorch_lightning.metrics.functional.nlp.bleu_score
+.. autofunction:: pytorch_lightning.metrics.functional.bleu_score
     :noindex:
 
 ********
@@ -845,5 +883,5 @@ Pairwise
 embedding_similarity [func]
 ---------------------------
 
-.. autofunction:: pytorch_lightning.metrics.functional.self_supervised.embedding_similarity
+.. autofunction:: pytorch_lightning.metrics.functional.embedding_similarity
     :noindex:

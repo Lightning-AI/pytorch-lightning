@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from abc import ABC, abstractmethod
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union, Dict
 
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
@@ -35,9 +35,9 @@ class TrainingTypePlugin(Plugin, ABC):
         self._results = None
         self.global_rank = 0
 
-    @property
-    def should_finalize(self):
-        return True
+    @abstractmethod
+    def connect(self, model: 'Module') -> None:
+        """Called by the accelerator to connect it with this plugin"""
 
     @property
     @abstractmethod
@@ -59,8 +59,15 @@ class TrainingTypePlugin(Plugin, ABC):
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
     @abstractmethod
-    def reduce(self, output: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
-        """Reduces the given output (e.g. across GPUs/Processes)"""
+    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
+        """
+        Reduces the given tensor (e.g. across GPUs/processes).
+
+        Args:
+            tensor: the tensor to sync and reduce
+            *args: plugin-specific positional arguments
+            **kwargs: plugin-specific keyword arguments
+        """
 
     @abstractmethod
     def barrier(self, name: Optional[str] = None) -> None:
@@ -93,7 +100,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> Optional[LightningModule]:
+    def lightning_module(self) -> LightningModule:
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 
@@ -112,11 +119,15 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def start_training(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the training loop
-        self._results = trainer.train()
+        self._results = trainer.run_train()
 
     def start_testing(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_test()
+
+    def start_predicting(self, trainer: 'Trainer') -> None:
+        # double dispatch to initiate the predicting loop
+        self._results = trainer.run_predict()
 
     def training_step(self, *args, **kwargs):
         return self.lightning_module.training_step(*args, **kwargs)
@@ -142,5 +153,19 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step_end(self, output):
         return output
 
-    def on_save(self, checkpoint: dict) -> dict:
+    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
         return checkpoint
+
+    def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Wraps the dataloader if necessary
+
+        Args:
+            dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
+        """
+        return dataloader
+
+    def init_optimizers(self, trainer: "Trainer", model: LightningModule):
+        return trainer.init_optimizers(model)
+
+    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
+        optimizer.step(closure=lambda_closure, **kwargs)

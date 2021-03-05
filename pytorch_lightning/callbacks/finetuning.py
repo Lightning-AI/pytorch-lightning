@@ -16,6 +16,7 @@ Finetuning Callback
 ^^^^^^^^^^^^^^^^^^^^
 Freeze and unfreeze models for finetuning purposes
 """
+import logging
 from typing import Callable, Generator, Iterable, List, Optional, Union
 
 import torch
@@ -24,11 +25,12 @@ from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.modules.container import Container, ModuleDict, ModuleList, Sequential
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
 
 
 def multiplicative(epoch):
@@ -318,8 +320,12 @@ class BackboneFinetuning(BaseFinetuning):
         self.verbose = verbose
 
     def on_fit_start(self, trainer, pl_module):
-        if hasattr(pl_module, "backbone") and \
-           (isinstance(pl_module.backbone, Module) or isinstance(pl_module.backbone, Sequential)):
+        """
+        Raises:
+            MisconfigurationException:
+                If LightningModule has no nn.Module `backbone` attribute.
+        """
+        if hasattr(pl_module, "backbone") and isinstance(pl_module.backbone, Module):
             return
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 

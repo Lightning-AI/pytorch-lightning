@@ -17,6 +17,7 @@ export PL_RUNNING_SPECIAL_TESTS=1
 DEFAULTS="-m coverage run --source pytorch_lightning -a -m pytest --verbose --capture=no"
 python ${DEFAULTS} tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_with_different_frequencies_ddp
 python ${DEFAULTS} tests/models/test_sync_batchnorm.py::test_sync_batchnorm_ddp
+python ${DEFAULTS} tests/plugins/test_deepspeed_plugin.py::test_deepspeed_multigpu
 python ${DEFAULTS} tests/plugins/test_rpc_plugin.py::test_rpc_function_calls_ddp
 python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_manual
 python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_manual_amp
@@ -30,3 +31,4 @@ python ${DEFAULTS} tests/callbacks/test_pruning.py::test_pruning_callback_ddp
 python ${DEFAULTS} tests/trainer/test_trainer.py::test_pytorch_profiler_trainer_ddp
 python ${DEFAULTS} tests/models/test_hooks.py::test_transfer_batch_hook_ddp
 python ${DEFAULTS} tests/trainer/test_data_loading.py::test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler
+python ${DEFAULTS} tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model

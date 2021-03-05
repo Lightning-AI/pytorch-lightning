@@ -1,16 +1,31 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import io
 import os
 import re
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
 if _TPU_AVAILABLE:
@@ -25,7 +40,12 @@ else:
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
 
-    def __init__(self, parallel_devices: Sequence[int], num_nodes: int = 1, **kwargs: Dict[str, Any]) -> None:
+    def __init__(
+        self,
+        parallel_devices: Optional[List[torch.device]] = None,
+        num_nodes: int = 1,
+        **kwargs: Dict[str, Any]
+    ) -> None:
         super().__init__(
             parallel_devices, num_nodes=num_nodes, cluster_environment=None, sync_batchnorm=False, **kwargs
         )
@@ -45,10 +65,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @property
     def distributed_sampler_kwargs(self) -> dict:
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
-
-    @property
-    def should_finalize(self):
-        return self.world_size == 1
 
     @property
     def is_distributed(self):
@@ -88,17 +104,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             trainer.progress_bar_callback.disable()
 
         self.model_to_device()
-        trainer.accelerator_backend.setup_optimizers(trainer)
+        trainer.accelerator.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
 
         # replace trainer save_checkpoint to use `xm.save`
         trainer.save_checkpoint = self.save_checkpoint
         self.barrier()
 
-        if trainer.testing:
-            results = trainer.run_test()
-        else:
-            results = trainer.train()
+        results = trainer.train_or_test_or_predict()
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
@@ -113,7 +126,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._model.to(xm.xla_device())
 
     def barrier(self, name: Optional[str] = None) -> None:
-        rendezvous(f"pl.Trainer.{name}")
+        if torch_distrib.is_initialized():
+            rendezvous(f"pl.Trainer.{name}")
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         # TODO: is there a better way than accessing callback through model -> trainer -> callback?
@@ -127,13 +141,25 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             # TODO: is there a better way than accessing trainer through model -> trainer?
             if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
-                xm.save(self.lightning_module.state_dict(), last_path)
+                self.save(self.lightning_module.state_dict(), last_path)
 
             if self.global_rank == 0:
                 # todo, pass complete checkpoint as state dictionary
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
+
+    def save(self, state_dict: Dict, path: str) -> None:
+        """
+        Saving with ``xm.save`` can be unstable and miss the rendez-vous after ``torch.save``.
+        The rendez-vous doesn't affect directly saving.
+        We can ignore the ``RuntimeError`` to reduce friction with TPUs.
+        """
+        try:
+            xm.save(state_dict, path)
+        except RuntimeError as e:
+            if "Failed to meet rendezvous" not in str(e):
+                raise e
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
@@ -182,14 +208,32 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         should_stop = int(stop.item()) == self.world_size
         return should_stop
 
-    def post_training(self) -> None:
+    def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
+        if not isinstance(output, torch.Tensor):
+            output = torch.tensor(output, device=self.device)
+
+        _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
+        _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
+        if _invalid_reduce_op or _invalid_reduce_op_str:
+            raise MisconfigurationException(
+                "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
+            )
+
+        output = xm.mesh_reduce('reduce', output, sum)
+
+        if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
+            output = output / self.world_size
+
+        return output
+
+    def post_dispatch(self) -> None:
         # TODO: Check if trainer references can be resolved otherwise
         model = self.lightning_module
 
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
-        results = self.mp_queue.get()
+        self._results = self.mp_queue.get()
 
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback is not None:
@@ -216,6 +260,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self._model = model
 
+    def _close_logger(self, trainer) -> None:
+        if hasattr(trainer, "logger"):
+            trainer.logger.finalize("success")
+
     @property
     def xmp_spawn_kwargs(self):
         return {
@@ -228,9 +276,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo: precision pluging is call in accelerator setup and should be moved
         if 'XLA_USE_BF16' in os.environ:
             del os.environ["XLA_USE_BF16"]
+        self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def start_testing(self, trainer) -> None:
+        self._close_logger(trainer)
+        xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
+
+    def start_predicting(self, trainer) -> None:
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def training_step(self, *args, **kwargs):
@@ -255,4 +308,4 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # dump states as a checkpoint dictionary object
         _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
-        xm.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
+        self.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)

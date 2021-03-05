@@ -120,6 +120,11 @@ class Metric(nn.Module, ABC):
             When passing a custom function to ``dist_reduce_fx``, expect the synchronized metric state to follow
             the format discussed in the above note.
 
+        Raises:
+            ValueError:
+                If ``default`` is not a ``tensor`` or an ``empty list``.
+            ValueError:
+                If ``dist_reduce_fx`` is not callable or one of ``"mean"``, ``"sum"``, ``"cat"``, ``None``.
         """
         if (
             not isinstance(default, torch.Tensor) and not isinstance(default, list)  # noqa: W503
@@ -333,7 +338,13 @@ class Metric(nn.Module, ABC):
         hash_vals = [self.__class__.__name__]
 
         for key in self._defaults.keys():
-            hash_vals.append(getattr(self, key))
+            val = getattr(self, key)
+            # Special case: allow list values, so long
+            # as their elements are hashable
+            if hasattr(val, '__iter__') and not isinstance(val, torch.Tensor):
+                hash_vals.extend(val)
+            else:
+                hash_vals.append(val)
 
         return hash(tuple(hash_vals))
 
@@ -521,6 +532,14 @@ class MetricCollection(nn.ModuleDict):
             * dict: if metrics are passed in as a dict, will use each key in the
               dict as key for output dict. Use this format if you want to chain
               together multiple of the same metric with different parameters.
+
+    Raises:
+        ValueError:
+            If one of the elements of ``metrics`` is not an instance of ``pl.metrics.Metric``.
+        ValueError:
+            If two elements in ``metrics`` have the same ``name``.
+        ValueError:
+            If ``metrics`` is not a ``list``, ``tuple`` or a ``dict``.
 
     Example (input as list):
 

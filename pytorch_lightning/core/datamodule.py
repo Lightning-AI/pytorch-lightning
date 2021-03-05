@@ -19,11 +19,11 @@ from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
-import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
-from pytorch_lightning.utilities import parsing, rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str
 
 
 class _DataModuleWrapper(type):
@@ -95,7 +95,7 @@ def track_data_hook_calls(fn):
     return wrapped_fn
 
 
-class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapper):
+class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapper):
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits, data preparation and transforms across models.
@@ -248,22 +248,6 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
     def setup(self, stage: Optional[str] = None):
         pass
 
-    @abstractmethod
-    def train_dataloader(self, *args, **kwargs) -> DataLoader:
-        pass
-
-    @abstractmethod
-    def val_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
-        pass
-
-    @abstractmethod
-    def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
-        pass
-
-    @abstractmethod
-    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
-        pass
-
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         r"""Extends existing argparse by default `LightningDataModule` attributes."""
@@ -289,10 +273,10 @@ class LightningDataModule(DataHooks, CheckpointHooks, metaclass=_DataModuleWrapp
                 arg_kwargs.update(nargs="?", const=True)
                 # if the only arg type is bool
                 if len(arg_types) == 1:
-                    use_type = parsing.str_to_bool
+                    use_type = str_to_bool
                 # if only two args (str, bool)
                 elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
-                    use_type = parsing.str_to_bool_or_str
+                    use_type = str_to_bool_or_str
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]

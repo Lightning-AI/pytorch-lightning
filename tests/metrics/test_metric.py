@@ -9,6 +9,7 @@ import torch
 from torch import nn
 
 from pytorch_lightning.metrics.metric import Metric, MetricCollection
+from tests.helpers.runif import RunIf
 
 torch.manual_seed(42)
 
@@ -154,6 +155,32 @@ def test_compute():
     assert a.compute() == 5
 
 
+def test_hash():
+
+    class A(Dummy):
+        pass
+
+    class B(DummyList):
+        pass
+
+    a1 = A()
+    a2 = A()
+    assert hash(a1) != hash(a2)
+
+    b1 = B()
+    b2 = B()
+    assert hash(b1) == hash(b2)
+    assert isinstance(b1.x, list) and len(b1.x) == 0
+    b1.x.append(torch.tensor(5))
+    assert isinstance(hash(b1), int)  # <- check that nothing crashes
+    assert isinstance(b1.x, list) and len(b1.x) == 1
+    b2.x.append(torch.tensor(5))
+    # Sanity:
+    assert isinstance(b2.x, list) and len(b2.x) == 1
+    # Now that they have tensor contents, they should have different hashes:
+    assert hash(b1) != hash(b2)
+
+
 def test_forward():
 
     class A(Dummy):
@@ -242,7 +269,7 @@ def test_child_metric_state_dict():
     assert module.state_dict() == expected_state_dict
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
+@RunIf(min_gpus=1)
 def test_device_and_dtype_transfer(tmpdir):
     metric = DummyMetric1()
     assert metric.x.is_cuda is False
@@ -295,7 +322,7 @@ def test_metric_collection(tmpdir):
     assert isinstance(metric_loaded, MetricCollection)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
+@RunIf(min_gpus=1)
 def test_device_and_dtype_transfer_metriccollection(tmpdir):
     m1 = DummyMetric1()
     m2 = DummyMetric2()

@@ -42,7 +42,7 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def __init__(
         self,
-        balance: List[int],
+        balance: Optional[List[int]] = None,
         microbatches: int = 8,
         checkpoint: str = 'except_last',
         balance_mode: str = "balance_by_size",
@@ -266,17 +266,17 @@ class RPCSequentialPlugin(RPCPlugin):
             self._model.require_backward_grad_sync = False
 
     @rank_zero_only
-    def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
+    def rpc_save_model(self, save_model_fn, last_filepath, trainer) -> None:
         model = self.lightning_module
         if not hasattr(model.sequential_module, "foreach_worker"):
             return
-        current_layers = pl_module.sequential_module
+        current_layers = model.sequential_module
         model.sequential_module.foreach_worker(
             save_layers_on_all_rank_zero_workers, {"gpus_per_model": self.gpus_per_model}, include_self=True
         )
-        pl_module.sequential_module = load_sequential_from_saved_layers(self.gpus_per_model)
-        save_model_fn(last_filepath, trainer, pl_module)
-        pl_module.sequential_module = current_layers
+        model.sequential_module = load_sequential_from_saved_layers(self.gpus_per_model)
+        save_model_fn(last_filepath, trainer)
+        model.sequential_module = current_layers
 
     def worker_optimizer_step(self, model: LightningModule, opt_idx: int, *args, **kwargs) -> None:
         model.sequential_module.foreach_worker(
@@ -325,15 +325,15 @@ class RPCSequentialPlugin(RPCPlugin):
             # Initialize optimizer step on main process
             self.worker_optimizer_step(model=self.lightning_module, opt_idx=optimizer_idx, **kwargs)
 
-    def post_training(self):
+    def post_training_step(self):
         if self.main_rpc_process:
-            super().post_training()
+            super().post_training_step()
 
-    def start_training(self, trainer: 'Trainer') -> None:
+    def start_training(self, trainer) -> None:
         if self.main_rpc_process:
             super().start_training(trainer)
 
-    def start_testing(self, trainer: 'Trainer') -> None:
+    def start_testing(self, trainer) -> None:
         if self.main_rpc_process:
             super().start_testing(trainer)
 

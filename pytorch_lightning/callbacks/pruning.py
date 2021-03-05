@@ -16,9 +16,10 @@ ModelPruning
 ^^^^^^^^^^^^
 """
 import inspect
+import logging
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union, Dict
 
 import torch
 import torch.nn.utils.prune as pytorch_prune
@@ -26,8 +27,10 @@ from torch import nn
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_debug
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
 
 _PYTORCH_PRUNING_FUNCTIONS = {
     "ln_structured": pytorch_prune.ln_structured,
@@ -135,6 +138,14 @@ class ModelPruning(Callback):
 
             verbose: Verbosity level. 0 to disable, 1 to log overall sparsity, 2 to log per-layer sparsity
 
+        Raises:
+            MisconfigurationException:
+                If ``parameter_names`` is neither ``"weight"`` nor ``"bias"``,
+                if the provided ``pruning_fn`` is not supported,
+                if ``pruning_dim`` is not provided when ``"unstructured"``,
+                if ``pruning_norm`` is not provided when ``"ln_structured"``,
+                if ``pruning_fn`` is neither ``str`` nor :class:`torch.nn.utils.prune.BasePruningMethod`, or
+                if ``amount`` is none of ``int``, ``float`` and ``Callable``.
         """
 
         self._use_global_unstructured = use_global_unstructured
@@ -144,6 +155,7 @@ class ModelPruning(Callback):
         self._parameter_names = parameter_names or self.PARAMETER_NAMES
         self._global_kwargs = {}
         self._original_layers = None
+        self._pruning_fn_name = None
 
         for name in self._parameter_names:
             if name not in self.PARAMETER_NAMES:
@@ -223,21 +235,31 @@ class ModelPruning(Callback):
         if self._use_global_unstructured:
             pruning_fn = _PYTORCH_PRUNING_METHOD[pruning_fn]
             self._global_kwargs = kwargs
+        else:
+            pruning_fn = _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]
+        # save the function __name__ now because partial does not include it
+        # and there are issues setting the attribute manually in ddp.
+        self._pruning_fn_name = pruning_fn.__name__
+        if self._use_global_unstructured:
             return pruning_fn
-        return ModelPruning._wrap_pruning_fn(_PYTORCH_PRUNING_FUNCTIONS[pruning_fn], **kwargs)
+        return ModelPruning._wrap_pruning_fn(pruning_fn, **kwargs)
 
     @staticmethod
     def _wrap_pruning_fn(pruning_fn, **kwargs):
         return partial(pruning_fn, **kwargs)
 
-    def make_pruning_permanent(self):
-        """ Makes ``parameters_to_prune`` current pruning permanent. """
-        for module, param_name in self._parameters_to_prune:
-            try:
-                pytorch_prune.remove(module, param_name)
-            except ValueError:
-                # pruning already made permanent
-                pass
+    def make_pruning_permanent(self, pl_module: LightningModule):
+        """
+        Removes pruning buffers from any pruned modules
+
+        Adapted from https://github.com/pytorch/pytorch/blob/1.7.1/torch/nn/utils/prune.py#L1176-L1180
+        """
+        for _, module in pl_module.named_modules():
+            for k in list(module._forward_pre_hooks):
+                hook = module._forward_pre_hooks[k]
+                if isinstance(hook, pytorch_prune.BasePruningMethod):
+                    hook.remove(module)
+                    del module._forward_pre_hooks[k]
 
     def _restore_original_weights(self, module: nn.Module, orig_module: nn.Module, tensor_name: str):
         trained = getattr(module, tensor_name)
@@ -313,15 +335,15 @@ class ModelPruning(Callback):
             curr_stats = [self._get_pruned_stats(m, n) for m, n in self._parameters_to_prune]
             self._log_sparsity_stats(prev_stats, curr_stats, amount=amount)
 
+    @rank_zero_only
     def _log_sparsity_stats(
         self, prev: List[Tuple[int, int]], curr: List[Tuple[int, int]], amount: Union[int, float] = 0
     ):
         total_params = sum(p.numel() for layer, _ in self._parameters_to_prune for p in layer.parameters())
         prev_total_zeros = sum(zeros for zeros, _ in prev)
         curr_total_zeros = sum(zeros for zeros, _ in curr)
-        pruning_fn_name = self.pruning_fn.__name__
-        rank_zero_info(
-            f"Applied `{pruning_fn_name}`. Pruned:"
+        log.info(
+            f"Applied `{self._pruning_fn_name}`. Pruned:"
             f" {prev_total_zeros}/{total_params} ({prev_total_zeros / total_params:.2%}) ->"
             f" {curr_total_zeros}/{total_params} ({curr_total_zeros / total_params:.2%})"
         )
@@ -329,13 +351,13 @@ class ModelPruning(Callback):
             for i, (module, name) in enumerate(self._parameters_to_prune):
                 prev_mask_zeros, prev_mask_size = prev[i]
                 curr_mask_zeros, curr_mask_size = curr[i]
-                rank_zero_info(
-                    f"Applied `{pruning_fn_name}` to `{module!r}.{name}` with amount={amount}. Pruned:"
+                log.info(
+                    f"Applied `{self._pruning_fn_name}` to `{module!r}.{name}` with amount={amount}. Pruned:"
                     f" {prev_mask_zeros} ({prev_mask_zeros / prev_mask_size:.2%}) ->"
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
-    def on_before_accelerator_backend_setup(self, trainer, pl_module):
+    def on_before_accelerator_backend_setup(self, trainer, pl_module: LightningModule):
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
         )
@@ -351,7 +373,7 @@ class ModelPruning(Callback):
                 self._original_layers.setdefault(id_, {"data": deepcopy(module), "names": []})
                 self._original_layers[id_]["names"].append((i, name))
 
-    def on_train_epoch_end(self, trainer, pl_module, *args):
+    def on_train_epoch_end(self, trainer, pl_module: LightningModule, outputs):
         current_epoch = trainer.current_epoch
         prune = self._apply_pruning(current_epoch) if isinstance(self._apply_pruning, Callable) else self._apply_pruning
         amount = self.amount(current_epoch) if isinstance(self.amount, Callable) else self.amount
@@ -365,13 +387,20 @@ class ModelPruning(Callback):
         ):
             self.apply_lottery_ticket_hypothesis()
 
-    def on_train_end(self, *args):
+    def on_train_end(self, trainer, pl_module: LightningModule):
         if self._make_pruning_permanent:
-            self.make_pruning_permanent()
+            rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint.")
+            self.make_pruning_permanent(pl_module)
 
-    def on_save_checkpoint(self, *args):
+    def on_save_checkpoint(self, trainer, pl_module: LightningModule, checkpoint: Dict[str, Any]):
         if self._make_pruning_permanent:
-            self.make_pruning_permanent()
+            rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint.")
+            prev_device = pl_module.device
+            # prune a copy so training can continue with the same buffers
+            copy = deepcopy(pl_module.to("cpu"))
+            self.make_pruning_permanent(copy)
+            checkpoint["state_dict"] = copy.state_dict()
+            pl_module.to(prev_device)
 
     @staticmethod
     def sanitize_parameters_to_prune(
@@ -382,6 +411,11 @@ class ModelPruning(Callback):
         """
         This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``.
         If ``parameters_to_prune is None``, it will be generated with all parameters of the model.
+
+        Raises:
+            MisconfigurationException:
+                If ``parameters_to_prune`` doesn't exist in the model, or
+                if ``parameters_to_prune`` is neither a list of tuple nor ``None``.
         """
         parameters = parameter_names or ModelPruning.PARAMETER_NAMES
 

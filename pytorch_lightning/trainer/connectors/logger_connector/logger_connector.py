@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, Optional, Union
 
 import torch
 
@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 class LoggerConnector:
 
-    def __init__(self, trainer, log_gpu_memory: bool):
+    def __init__(self, trainer, log_gpu_memory: Optional[str] = None):
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self._callback_metrics = MetricsHolder()
@@ -82,7 +82,7 @@ class LoggerConnector:
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder = getattr(self, f"_{key}", None)
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         metrics_holder.convert(
             self.trainer._device_type == DeviceType.TPU,
             model_ref.device if model_ref is not None else model_ref,
@@ -101,9 +101,8 @@ class LoggerConnector:
             current_hook_fx_name=hook_fx_name, on_step=on_step, on_epoch=on_epoch
         )
 
-    def on_evaluation_batch_start(self, testing, batch, dataloader_idx, num_dataloaders):
-        # Todo: required argument `testing` is not used
-        model = self.trainer.get_model()
+    def on_evaluation_batch_start(self, batch, dataloader_idx, num_dataloaders):
+        model = self.trainer.lightning_module
         # set dataloader_idx only if multiple ones
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
         # track batch_size
@@ -260,10 +259,9 @@ class LoggerConnector:
         self._track_callback_metrics(deprecated_eval_results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results)
 
-    def evaluation_epoch_end(self, testing):
-        # Todo: required argument `testing` is not used
+    def evaluation_epoch_end(self):
         # reset dataloader idx
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         model_ref._current_dataloader_idx = None
 
         # setting `has_batch_loop_finished` to True
@@ -408,7 +406,7 @@ class LoggerConnector:
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
 
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         epoch_callback_metrics = {}
 

@@ -26,7 +26,7 @@ from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -58,7 +58,6 @@ class TrainLoop:
         max_steps,
         min_steps,
         num_sanity_val_steps,
-        automatic_optimization,
         weights_summary,
     ):
         self.trainer.global_step = 0
@@ -71,7 +70,6 @@ class TrainLoop:
         self.trainer.batch_idx = 0
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
-        self.automatic_optimization = automatic_optimization
 
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.trainer.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
@@ -140,7 +138,7 @@ class TrainLoop:
         # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
         # It might be related to xla tensors blocked when moving the cpu
         # kill loggers
-        if self.trainer.logger is not None and self.trainer.training_type_plugin.should_finalize:
+        if self.trainer.logger is not None:
             self.trainer.logger.finalize("success")
 
         # summarize profile results
@@ -148,13 +146,7 @@ class TrainLoop:
             self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
-        self.trainer.accelerator_backend.on_train_end()
-
-        # clear mem
-        if self.trainer._device_type == DeviceType.GPU:
-            model = self.trainer.get_model()
-            model.cpu()
-            torch.cuda.empty_cache()
+        self.trainer.accelerator.on_train_end()
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -164,7 +156,7 @@ class TrainLoop:
             if is_last and any(cb.save_last for cb in callbacks):
                 rank_zero_info("Saving latest checkpoint...")
 
-            model = self.trainer.get_model()
+            model = self.trainer.lightning_module
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
@@ -173,7 +165,7 @@ class TrainLoop:
         # TODO bake this logic into the EarlyStopping callback
         if should_update and self.trainer.checkpoint_connector.has_trained:
             callbacks = [c for c in self.trainer.callbacks if isinstance(c, EarlyStopping)]
-            model = self.trainer.get_model()
+            model = self.trainer.lightning_module
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
@@ -183,7 +175,7 @@ class TrainLoop:
         # update training progress in trainer
         self.trainer.current_epoch = epoch
 
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # reset train dataloader
         if epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
@@ -195,7 +187,7 @@ class TrainLoop:
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
 
         # changing gradient according accumulation_scheduler
-        self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
+        self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
         self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
@@ -235,8 +227,8 @@ class TrainLoop:
             # decide if we need to reduce at the end of the epoch automatically
             auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
             hook_overridden = (
-                is_overridden("training_epoch_end", model=self.trainer.get_model())
-                or is_overridden("on_train_epoch_end", model=self.trainer.get_model())
+                is_overridden("training_epoch_end", model=self.trainer.lightning_module)
+                or is_overridden("on_train_epoch_end", model=self.trainer.lightning_module)
             )
 
             # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
@@ -269,7 +261,7 @@ class TrainLoop:
         is_result_obj = isinstance(training_step_output, Result)
 
         if is_result_obj:
-            training_step_output.detach()
+            training_step_output = training_step_output.detach()
         else:
             training_step_output.batch_loss = training_step_output.batch_loss.detach()
 
@@ -287,7 +279,7 @@ class TrainLoop:
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
@@ -296,8 +288,8 @@ class TrainLoop:
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator_backend.training_step(args)
-                self.trainer.accelerator_backend.post_training_step()
+                training_step_output = self.trainer.accelerator.training_step(args)
+                self.trainer.accelerator.post_training_step()
 
             self.trainer.logger_connector.cache_logged_metrics()
 
@@ -348,13 +340,6 @@ class TrainLoop:
             return None, None
 
         # -----------------------------------------
-        # process result return (DEPRECATE in 1.0)
-        # -----------------------------------------
-        if isinstance(training_step_output, Result):
-            training_step_output_for_epoch_end = self._process_result(training_step_output, split_batch)
-            return training_step_output_for_epoch_end, training_step_output
-
-        # -----------------------------------------
         # process hybrid (1.0)
         # -----------------------------------------
         # no need for these checks in 1.0.0
@@ -385,7 +370,7 @@ class TrainLoop:
         return training_step_output_for_epoch_end, training_step_output
 
     def _process_training_step_output_1_0(self, training_step_output, split_batch):
-        result = self.trainer.get_model()._results
+        result = self.trainer.lightning_module._results
 
         loss = None
         hiddens = None
@@ -410,40 +395,17 @@ class TrainLoop:
 
         # track metrics without grads for epoch reduction
         training_step_output_for_epoch_end = copy(result)
-        training_step_output_for_epoch_end.detach()
+        training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
         if self.trainer.move_metrics_to_cpu:
-            training_step_output_for_epoch_end.cpu()
+            training_step_output_for_epoch_end = training_step_output_for_epoch_end.cpu()
 
         # what flows back into the system
         training_step_output = result
 
         return training_step_output_for_epoch_end, training_step_output
 
-    def _process_result(self, training_step_output, split_batch):
-        training_step_output.track_batch_size(len(split_batch))
-        m = """
-        TrainResult and EvalResult were deprecated in 0.9.1 and support will drop in 1.0.0.
-        Use self.log and .write from the LightningModule to log metrics and write predictions.
-        training_step can now only return a scalar (for the loss) or a dictionary with anything you want.
-
-        Option 1:
-        return loss
-
-        Option 2:
-        return {'loss': loss, 'anything_else': ...}
-
-        Option 3:
-        return {'loss': loss, 'hiddens': hiddens, 'anything_else': ...}
-            """
-        rank_zero_warn(m)
-
-        training_step_output_for_epoch_end = copy(training_step_output)
-        training_step_output_for_epoch_end.detach()
-
-        return training_step_output_for_epoch_end
-
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
         using_native_amp = self.trainer.amp_backend == AMPType.NATIVE
@@ -474,21 +436,21 @@ class TrainLoop:
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
-        self.trainer.accelerator_backend.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
+        self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
     def track_and_norm_grad(self, optimizer):
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
-        self.trainer.accelerator_backend.clip_gradients(optimizer, self.trainer.gradient_clip_val)
+        self.trainer.accelerator.clip_gradients(optimizer, self.trainer.gradient_clip_val)
         self._cur_grad_norm_dict = grad_norm_dic
 
     def _track_gradient_norm(self):
         grad_norm_dict = {}
         if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
             if float(self.trainer.track_grad_norm) > 0:
-                model = self.trainer.get_model()
+                model = self.trainer.lightning_module
                 grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
         return grad_norm_dict
 
@@ -501,14 +463,14 @@ class TrainLoop:
     def tbptt_split_batch(self, batch):
         splits = [batch]
         if self.trainer.truncated_bptt_steps is not None:
-            model_ref = self.trainer.get_model()
+            model_ref = self.trainer.lightning_module
             with self.trainer.profiler.profile("tbptt_split_batch"):
                 splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
         return splits
 
     def run_training_epoch(self):
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
+        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
         epoch_output = [[] for _ in range(self.num_optimizers)]
@@ -516,6 +478,7 @@ class TrainLoop:
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
         should_check_val = False
+        val_loop_called = False
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
@@ -551,9 +514,10 @@ class TrainLoop:
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation()
+                val_loop_called = True
 
                 # reset stage to train
-                self.trainer._set_wide_running_stage(RunningStage.TRAINING)
+                self.trainer._running_stage = RunningStage.TRAINING
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -596,20 +560,22 @@ class TrainLoop:
         )
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
+        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
+        should_train_only = self.trainer.disable_validation or should_skip_eval
+
+        # update epoch level lr_schedulers if no val loop outside train loop is triggered
+        if (val_loop_called and not should_check_val) or should_train_only:
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
+        if should_train_only:
+            self.check_checkpoint_callback(True)
+            self.check_early_stopping_callback(True)
+
         if should_check_val:
             self.trainer.run_evaluation(on_epoch=True)
 
             # reset stage to train
-            self.trainer._set_wide_running_stage(RunningStage.TRAINING)
-
-        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
-        should_train_only = self.trainer.disable_validation or should_skip_eval
-
-        if should_train_only:
-            # update epoch level lr_schedulers
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
-            self.check_checkpoint_callback(True)
-            self.check_early_stopping_callback(True)
+            self.trainer._running_stage = RunningStage.TRAINING
 
         # increment the global step once
         # progress global step according to grads progress
@@ -774,28 +740,33 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if result is None:
-                if self.automatic_optimization:
-                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
-                return None
+            if not self._skip_backward and self.automatic_optimization:
+                is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
 
-            if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
+                if is_first_batch_to_accumulate:
+                    self.on_before_zero_grad(optimizer)
+                    self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+
                 # backward pass
-                with self.trainer.profiler.profile("model_backward"):
-                    self.backward(result, optimizer, opt_idx)
+                if result is not None:
+                    with self.trainer.profiler.profile("model_backward"):
+                        self.backward(result, optimizer, opt_idx)
 
-                # hook - call this hook only
-                # when gradients have finished to accumulate
-                if not self.should_accumulate():
-                    self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+                    # hook - call this hook only
+                    # when gradients have finished to accumulate
+                    if not self.should_accumulate():
+                        self.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
-                # check if loss or model weights are nan
-                if self.trainer.terminate_on_nan:
-                    self.trainer.detect_nan_tensors(result.loss)
+                    # check if loss or model weights are nan
+                    if self.trainer.terminate_on_nan:
+                        self.trainer.detect_nan_tensors(result.loss)
+
+                else:
+                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
 
                 if len(self.trainer.optimizers) > 1:
                     # revert back to previous state
-                    self.trainer.get_model().untoggle_optimizer(opt_idx)
+                    self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
         return result
 
@@ -806,9 +777,9 @@ class TrainLoop:
 
         # backward can be called manually in the training loop
         if isinstance(result, torch.Tensor):
-            self.trainer.accelerator_backend.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
+            self.trainer.accelerator.backward(result, optimizer, opt_idx, should_accumulate, *args, **kwargs)
         else:
-            result.closure_loss = self.trainer.accelerator_backend.backward(
+            result.closure_loss = self.trainer.accelerator.backward(
                 result.closure_loss, optimizer, opt_idx, should_accumulate, *args, **kwargs
             )
 
@@ -857,7 +828,7 @@ class TrainLoop:
         is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         can_check_val = self.trainer.enable_validation and is_val_check_epoch
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
-        epoch_end_val_check = self.trainer.val_check_batch == self.trainer.num_training_batches
+        epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
 
         should_check_val = ((is_val_check_batch and epoch_end_val_check) or self.trainer.should_stop
                             or is_last_batch_for_infinite_dataset
@@ -932,7 +903,7 @@ class TrainLoop:
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if self.automatic_optimization and len(self.trainer.optimizers) > 1:
-            model = self.trainer.get_model()
+            model = self.trainer.lightning_module
             model.toggle_optimizer(optimizer, opt_idx)
 
         # use to track metrics internally

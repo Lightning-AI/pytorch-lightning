@@ -94,7 +94,7 @@ class CheckpointConnector:
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # acquire the model
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # restore model and datamodule state
         self.restore_model_state(model, checkpoint)
@@ -214,13 +214,12 @@ class CheckpointConnector:
         filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
 
         # give model a chance to do something on hpc_save
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
         checkpoint = self.dump_checkpoint()
 
         model.on_hpc_save(checkpoint)
 
-        if self.trainer.accelerator_backend:
-            checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+        checkpoint = self.trainer.accelerator.on_save(checkpoint)
 
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
@@ -271,22 +270,23 @@ class CheckpointConnector:
         if not has_reached_max_steps:
             current_epoch += 1
 
+        model = self.trainer.lightning_module
+
         checkpoint = {
             'epoch': current_epoch,
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
+            'state_dict': model.state_dict(),
         }
 
         if not weights_only:
-
             # dump callbacks
-            callback_states = self.trainer.on_save_checkpoint()
-            checkpoint['callbacks'] = callback_states
+            checkpoint['callbacks'] = self.trainer.on_save_checkpoint(checkpoint)
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
                 # Rely on accelerator to dump optimizer state
-                optimizer_state = self.trainer.accelerator_backend.optimizer_state(optimizer)
+                optimizer_state = self.trainer.accelerator.optimizer_state(optimizer)
                 optimizer_states.append(optimizer_state)
 
             checkpoint['optimizer_states'] = optimizer_states
@@ -306,12 +306,7 @@ class CheckpointConnector:
             elif self.trainer.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
 
-        # add the hyper_parameters and state_dict from the model
-        model = self.trainer.get_model()
-
-        # dump the module_arguments and state_dict from the model
-        checkpoint['state_dict'] = model.state_dict()
-
+        # dump hyper-parameters
         if model.hparams:
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
@@ -339,7 +334,7 @@ class CheckpointConnector:
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # acquire the model
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # restore model and datamodule state
         self.restore_model_state(model, checkpoint)

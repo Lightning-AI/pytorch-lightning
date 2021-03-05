@@ -13,11 +13,10 @@
 # limitations under the License.
 import os
 from contextlib import suppress
-from typing import Optional, Sequence
+from typing import List, Optional
 
 import torch
 
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _RPC_AVAILABLE
@@ -42,7 +41,7 @@ class RPCPlugin(DDPPlugin):
     def __init__(
         self,
         rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC,
-        parallel_devices: Sequence[int] = (),
+        parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: Optional[int] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         sync_batchnorm: Optional[bool] = None,
@@ -64,7 +63,7 @@ class RPCPlugin(DDPPlugin):
         rpc._set_rpc_timeout(self.rpc_timeout_sec)
         self._is_rpc_initialized = True
 
-    def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
+    def rpc_save_model(self, save_model_fn, last_filepath, trainer) -> None:
         """
         Override to save model to disk.
         This is required as the main process will be required to handle aggregating model states from RPC processes.
@@ -73,7 +72,6 @@ class RPCPlugin(DDPPlugin):
             save_model_fn: The saving function to save final model.
             last_filepath: The filepath to save the model to.
             trainer: The trainer object.
-            pl_module: The LightningModule.
         """
         raise NotImplementedError
 

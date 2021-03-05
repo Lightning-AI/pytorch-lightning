@@ -16,6 +16,7 @@ TensorBoard Logger
 ------------------
 """
 
+import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
@@ -24,12 +25,13 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+
+log = logging.getLogger(__name__)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
@@ -211,7 +213,7 @@ class TensorBoardLogger(LightningLoggerBase):
                 input_array = model.example_input_array
 
             if input_array is not None:
-                input_array = model.transfer_batch_to_device(input_array, model.device)
+                input_array = model._apply_batch_transfer_handler(input_array)
                 self.experiment.add_graph(model, input_array)
             else:
                 rank_zero_warn(
@@ -224,14 +226,12 @@ class TensorBoardLogger(LightningLoggerBase):
     def save(self) -> None:
         super().save()
         dir_path = self.log_dir
-        if not self._fs.isdir(dir_path):
-            dir_path = self.save_dir
 
         # prepare the file path
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
-        # save the metatags file if it doesn't exist
-        if not self._fs.isfile(hparams_file):
+        # save the metatags file if it doesn't exist and the log directory exists
+        if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only

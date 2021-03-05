@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 from typing import List, Optional, Sequence, Union
 
 import torch
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
@@ -30,6 +30,8 @@ from pytorch_lightning.plugins import (
     DDPShardedPlugin,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
+    DeepSpeedPlugin,
+    DeepSpeedPrecisionPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
@@ -40,7 +42,12 @@ from pytorch_lightning.plugins import (
     TPUSpawnPlugin,
     TrainingTypePlugin,
 )
-from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import (
+    ClusterEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
@@ -59,8 +66,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
+log = logging.getLogger(__name__)
 
-class BackendConnector(object):
+
+class AcceleratorConnector(object):
 
     def __init__(
         self,
@@ -144,7 +153,9 @@ class BackendConnector(object):
 
         self.replace_sampler_ddp = replace_sampler_ddp
 
-    def handle_given_plugins(self, plugins: Optional[Sequence]):
+    def handle_given_plugins(
+        self, plugins: Optional[Union[ClusterEnvironment, TrainingTypePlugin, PrecisionPlugin, Sequence]]
+    ):
         plugins = plugins if plugins is not None else []
 
         if isinstance(plugins, str):
@@ -159,6 +170,9 @@ class BackendConnector(object):
 
         for plug in plugins:
             if isinstance(plug, str):
+                # Reset the distributed type as the user has overridden training type
+                # via the plugins argument
+                self._distrib_type = None
                 self.set_distributed_mode(plug)
 
             elif isinstance(plug, TrainingTypePlugin):
@@ -192,7 +206,6 @@ class BackendConnector(object):
                 )
 
         self._training_type_plugin = training_type
-        self._training_type_plugin = self.training_type_plugin
         self._precision_plugin = precision
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
@@ -243,7 +256,7 @@ class BackendConnector(object):
     def use_ddp(self) -> bool:
         return self._distrib_type in (
             DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN
+            DistributedType.DDP_SHARDED_SPAWN, DistributedType.DEEPSPEED
         )
 
     @property
@@ -253,6 +266,10 @@ class BackendConnector(object):
     @property
     def use_horovod(self) -> bool:
         return self._distrib_type == DistributedType.HOROVOD
+
+    @property
+    def use_deepspeed(self) -> bool:
+        return self._distrib_type == DistributedType.DEEPSPEED
 
     @property
     def is_distributed(self) -> bool:
@@ -269,7 +286,7 @@ class BackendConnector(object):
         return len(gpus)
 
     @property
-    def parallel_devices(self) -> Union[List[torch.device], int]:
+    def parallel_devices(self) -> List[Union[torch.device, int]]:
         if self.on_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
         elif self.on_tpu:
@@ -290,58 +307,64 @@ class BackendConnector(object):
         return te_flags_passed
 
     def select_precision_plugin(self) -> PrecisionPlugin:
+        # set precision type
+        self.amp_type = AMPType.from_str(self.amp_type)
+
+        if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
+            return DeepSpeedPrecisionPlugin(self.precision)
+
         if self.precision == 32:
-            self.amp_type = None
             return PrecisionPlugin()
 
         elif self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
 
-            if self.amp_type == "native":
-                if not _NATIVE_AMP_AVAILABLE:
-                    rank_zero_warn(
-                        "You have asked for native AMP but your PyTorch version does not support it."
-                        " Consider upgrading with `pip install torch>=1.6`."
-                        " We will attempt to use NVIDIA Apex for this session."
-                    )
-                    if not _APEX_AVAILABLE and self.on_cpu:
-                        raise MisconfigurationException(
-                            "You have asked for native AMP on CPU, but AMP is only available on GPU."
-                        )
-                    self.amp_type = "apex"
-                elif self.on_cpu:
+            if self.amp_type == AMPType.NATIVE:
+                if self.on_cpu:
                     raise MisconfigurationException(
                         "You have asked for native AMP on CPU, but AMP is only available on GPU."
                     )
+                elif not _NATIVE_AMP_AVAILABLE:
+                    msg = "You have asked for native AMP but your PyTorch version does not support it." \
+                          " Consider upgrading with `pip install torch>=1.6`."
+                    if _APEX_AVAILABLE:
+                        self.amp_type = AMPType.APEX
+                        msg += " We will attempt to use NVIDIA Apex for this session."
+                        rank_zero_warn(msg)
+                    else:
+                        raise MisconfigurationException(msg)
                 else:
                     log.info("Using native 16bit precision.")
                     if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
                         return ShardedNativeMixedPrecisionPlugin()
-                    self.amp_type = AMPType.NATIVE
                     return NativeMixedPrecisionPlugin()
 
-            if self.amp_type == "apex":
+            if self.amp_type == AMPType.APEX:
                 if not _APEX_AVAILABLE:
-                    rank_zero_warn(
+                    raise MisconfigurationException(
                         "You have asked for Apex AMP but you have not installed it yet."
                         " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
                     )
-                else:
-                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
-                        raise MisconfigurationException(
-                            "Sharded Plugin is not supported with Apex AMP, "
-                            "please using native AMP for 16-bit precision."
-                        )
-                    log.info("Using APEX 16bit precision.")
-                    self.amp_type = AMPType.APEX
-                    return ApexMixedPrecisionPlugin(self.amp_level)
-        else:
-            raise NotImplementedError("We only support precisions 32 and 16!")
+                if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                    raise MisconfigurationException(
+                        "Sharded Plugin is not supported with Apex AMP,"
+                        " please using native AMP for 16-bit precision."
+                    )
+                log.info("Using APEX 16bit precision.")
+                return ApexMixedPrecisionPlugin(self.amp_level)
+
+        raise NotImplementedError("We only support precisions 32 and 16!")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
             plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+        elif self.use_ddp and self.use_deepspeed:
+            plugin = DeepSpeedPlugin(
+                num_nodes=self.num_nodes,
+                cluster_environment=self.select_cluster_environment(),
+                parallel_devices=self.parallel_devices
+            )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
@@ -391,7 +414,7 @@ class BackendConnector(object):
         return plugin
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
-        # necessary for RPC, when user has to provide balance
+        # necessary for when the user has passed in a plugin
         if hasattr(training_type, 'parallel_devices') and not getattr(training_type, 'parallel_devices'):
             training_type.parallel_devices = self.parallel_devices
             if hasattr(training_type, 'num_processes'):
@@ -433,17 +456,10 @@ class BackendConnector(object):
             return self._cluster_environment
         if self.is_slurm_managing_tasks:
             env = SLURMEnvironment()
-            # TODO: decouple DDP from SLURM
-            #   refactor and let generic cluster env hold the information about who spawns the processes
-            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
         elif self.is_using_torchelastic:
             env = TorchElasticEnvironment()
-            # TODO: decouple DDP from TE
-            #   refactor and let generic cluster env hold the information about who spawns the processes
-            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
         else:
-            # TODO: maybe introduce a DefaultEnvironment?
-            env = TorchElasticEnvironment()
+            env = LightningEnvironment()
         return env
 
     def set_distributed_mode(self, distributed_backend: Optional[str] = None):
@@ -478,7 +494,7 @@ class BackendConnector(object):
                 # define the max CPU available
                 self.num_processes = os.cpu_count()
         # special case with TPUs
-        elif self.distributed_backend == 'tpu':
+        elif self.distributed_backend == 'tpu' or self.tpu_cores is not None:
             self._device_type = DeviceType.TPU
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
@@ -501,6 +517,9 @@ class BackendConnector(object):
                 rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
                 self._distrib_type = None
 
+        # finished configuring self._distrib_type, check ipython environment
+        self.check_interactive_compatibility()
+
         # for DDP overwrite nb processes by requested GPUs
         if (
             self._device_type == DeviceType.GPU
@@ -515,12 +534,12 @@ class BackendConnector(object):
         if self.distributed_backend == "horovod":
             self._set_horovod_backend()
 
-        # throw error to force user ddp or ddp2 choice
-        _ddp = (DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
-        if (self.num_nodes > 1 and self._distrib_type not in _ddp):
+        using_valid_distributed = self.use_ddp or self.use_ddp2
+        if self.num_nodes > 1 and not using_valid_distributed:
+            # throw error to force user to choose a supported distributed type such as ddp or ddp2
             raise MisconfigurationException(
-                'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set `accelerator="ddp"` or `accelerator="ddp2"`'
+                'Your chosen distributed type does not support num_nodes > 1. '
+                'Please set accelerator=ddp or accelerator=ddp2.'
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
@@ -528,7 +547,10 @@ class BackendConnector(object):
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
-            rank_zero_warn("GPU available but not used. Set the --gpus flag when calling the script.")
+            rank_zero_warn(
+                "GPU available but not used. Set the gpus flag in your trainer"
+                " `Trainer(gpus=1)` or script `--gpus=1`."
+            )
 
     def _set_horovod_backend(self):
         self.check_horovod()
@@ -541,6 +563,19 @@ class BackendConnector(object):
             self.parallel_device_ids = list(range(hvd.local_size()))
         else:
             self.num_processes = hvd.local_size()
+
+    def check_interactive_compatibility(self):
+        """
+        Raises a `MisconfigurationException` if the accelerator and/or plugin
+        is not compatible with an interactive environment
+        """
+        from pytorch_lightning.utilities import _IS_INTERACTIVE
+        if _IS_INTERACTIVE and self._distrib_type is not None and not self._distrib_type.is_interactive_compatible():
+            raise MisconfigurationException(
+                f"Selected distributed backend {self._distrib_type} is not compatible with an interactive"
+                " environment. Run your code as a script, or choose one of the compatible backends:"
+                f" {', '.join(DistributedType.interactive_compatible_types())}"
+            )
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""

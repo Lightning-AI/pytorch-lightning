@@ -1,4 +1,16 @@
-import io
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import os
 from typing import Optional, Union
 
@@ -11,7 +23,6 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 if _TPU_AVAILABLE:
-    import torch_xla
     import torch_xla.core.xla_model as xm
 
 
@@ -36,14 +47,14 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def model_to_device(self) -> None:
         self._model.to(self.root_device)
 
-    def pre_training(self) -> None:
+    def pre_dispatch(self) -> None:
         if isinstance(self.device, int):
             self.device = xm.xla_device(self.device)
 
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
 
-    def post_training(self) -> None:
+    def post_dispatch(self) -> None:
         model = self.lightning_module
 
         if on_colab_kaggle():

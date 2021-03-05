@@ -25,12 +25,10 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
-    reason="Minimal PT version is set to 1.5",
-)
+@RunIf(min_torch="1.5.0")
 def test_tensorboard_hparams_reload(tmpdir):
 
     class CustomModel(BoringModel):
@@ -291,3 +289,15 @@ def test_tensorboard_finalize(summary_writer, tmpdir):
     logger.finalize("any")
     summary_writer().flush.assert_called()
     summary_writer().close.assert_called()
+
+
+def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
+    model = BoringModel()
+    logger = TensorBoardLogger(save_dir=tmpdir, default_hp_metric=False)
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    assert trainer.log_dir == trainer.logger.log_dir
+    trainer.fit(model)
+
+    hparams_file = "hparams.yaml"
+    assert os.path.isfile(os.path.join(trainer.log_dir, hparams_file))
+    assert not os.path.isfile(os.path.join(tmpdir, hparams_file))

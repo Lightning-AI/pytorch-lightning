@@ -13,16 +13,15 @@
 # limitations under the License.
 import inspect
 import pickle
-import sys
 from argparse import ArgumentParser, Namespace
 from unittest import mock
 
 import pytest
-import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import argparse
+from tests.helpers.runif import RunIf
 
 
 @mock.patch('argparse.ArgumentParser.parse_args')
@@ -65,6 +64,15 @@ def test_add_argparse_args_redefined(cli_args):
     pickle.dumps(trainer)
 
     assert isinstance(trainer, Trainer)
+
+
+@pytest.mark.parametrize('cli_args', [['--accumulate_grad_batches=22'], ['--weights_save_path=./'], []])
+def test_add_argparse_via_argument_group(cli_args):
+    """Simple test ensuring that passing an argument group still works"""
+    parser = ArgumentParser(add_help=False)
+    parser = Trainer.add_argparse_args(parser.add_argument_group(title="pl.Trainer args"))
+    args = parser.parse_args(cli_args)
+    assert Trainer.from_argparse_args(args)
 
 
 def test_get_init_arguments_and_types():
@@ -166,7 +174,7 @@ def test_argparse_args_parsing(cli_args, expected):
     pytest.param('--gpus 1', [0]),
     pytest.param('--gpus 0,', [0]),
 ])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_argparse_args_parsing_gpus(cli_args, expected_gpu):
     """Test multi type argument with bool."""
     cli_args = cli_args.split(' ') if cli_args else []
@@ -179,10 +187,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_gpu):
     assert trainer.data_parallel_device_ids == expected_gpu
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 7),
-    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec"
-)
+@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(['cli_args', 'extra_args'], [
     pytest.param({}, {}),
     pytest.param({'logger': False}, {}),
