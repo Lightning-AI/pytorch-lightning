@@ -16,7 +16,6 @@ from unittest.mock import patch
 
 import pytest
 import torch
-from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
@@ -24,6 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.imports import Batch, Dataset, Example, Field, LabelField
 
 PRETEND_N_OF_GPUS = 16
 

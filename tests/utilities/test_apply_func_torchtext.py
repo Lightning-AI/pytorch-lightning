@@ -13,14 +13,13 @@
 # limitations under the License.
 import pytest
 import torch
-import torchtext
-from torchtext.data.example import Example
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
+from tests.helpers.imports import Dataset, Example, Field, Iterator
 
 
 def _get_torchtext_data_iterator(include_lengths=False):
-    text_field = torchtext.data.Field(
+    text_field = Field(
         sequential=True,
         pad_first=False,  # nosec
         init_token="<s>",
@@ -32,13 +31,13 @@ def _get_torchtext_data_iterator(include_lengths=False):
     example2 = Example.fromdict({"text": "b c a a"}, {"text": ("text", text_field)})
     example3 = Example.fromdict({"text": "c b a"}, {"text": ("text", text_field)})
 
-    dataset = torchtext.data.Dataset(
+    dataset = Dataset(
         [example1, example2, example3],
         {"text": text_field},
     )
     text_field.build_vocab(dataset)
 
-    iterator = torchtext.data.Iterator(
+    iterator = Iterator(
         dataset,
         batch_size=3,
         sort_key=None,
