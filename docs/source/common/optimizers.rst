@@ -35,12 +35,6 @@ to manually manage the optimization process. To do so, do the following:
             # Important: This property activate ``manual optimization`` for your model
             self.automatic_optimization = False
 
-.. testcode:: python
-
-    from pytorch_lightning import LightningModule
-
-    class MyModel(LightningModule):
-
         def training_step(batch, batch_idx):
             opt = self.optimizers()
             loss = self.compute_loss(batch)
