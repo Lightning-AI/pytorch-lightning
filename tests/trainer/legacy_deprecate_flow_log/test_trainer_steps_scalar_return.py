@@ -75,7 +75,7 @@ def training_step_scalar_with_step_end(tmpdir):
     model.training_step_end = model.training_step_end__scalar
     model.val_dataloader = None
 
-    trainer = Trainer(fast_dev_run=True, weights_summary=None)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, weights_summary=None)
     trainer.fit(model)
 
     # make sure correct steps were called
@@ -165,7 +165,11 @@ def test_train_step_epoch_end_scalar(tmpdir):
     model.training_epoch_end = model.training_epoch_end__scalar
     model.val_dataloader = None
 
-    trainer = Trainer(max_epochs=1, weights_summary=None)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        weights_summary=None,
+    )
     trainer.fit(model)
 
     # make sure correct steps were called
@@ -222,13 +226,13 @@ def test_dpp_reduce_mean_pbar(tmpdir):
 
     trainer = Trainer(
         max_epochs=1,
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=10,
         limit_test_batches=2,
         limit_val_batches=2,
         accelerator=distributed_backend,
         gpus=2,
-        precision=32
+        precision=32,
     )
 
     trainer.fit(model)

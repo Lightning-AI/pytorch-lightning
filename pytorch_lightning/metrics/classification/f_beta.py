@@ -64,6 +64,10 @@ class FBeta(Metric):
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
 
+    Raises:
+        ValueError:
+            If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"none"``, ``None``.
+
     Example:
 
         >>> from pytorch_lightning.metrics import FBeta

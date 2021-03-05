@@ -167,10 +167,7 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
-            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[
-                checkpoint,
-                callback_capture,
-            ]
+            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[checkpoint, callback_capture]
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None

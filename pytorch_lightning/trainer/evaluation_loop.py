@@ -181,7 +181,7 @@ class EvaluationLoop(object):
 
     def evaluation_epoch_end(self):
         # unset dataloder_idx in model
-        self.trainer.logger_connector.evaluation_epoch_end(self.trainer.testing)
+        self.trainer.logger_connector.evaluation_epoch_end()
 
         # call the model epoch end
         deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders)
@@ -283,9 +283,7 @@ class EvaluationLoop(object):
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # set dataloader_idx to model and track batch_size
-        self.trainer.logger_connector.on_evaluation_batch_start(
-            self.trainer.testing, batch, dataloader_idx, self.num_dataloaders
-        )
+        self.trainer.logger_connector.on_evaluation_batch_start(batch, dataloader_idx, self.num_dataloaders)
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)

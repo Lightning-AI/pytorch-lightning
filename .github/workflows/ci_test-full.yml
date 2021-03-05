@@ -112,6 +112,12 @@ jobs:
         pip list
       shell: bash
 
+    # todo: require proper fix in docker image
+    - name: Hotfix dependency
+      run: |
+        pip install torchtext==0.6.0 -U
+      shell: bash
+
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows'
       env:
@@ -135,7 +141,12 @@ jobs:
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+
+    # todo: put this back just when TorchVision can download datasets
+    #- name: Examples
+    #  run: |
+    #    python -m pytest pl_examples -v --durations=10
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2
