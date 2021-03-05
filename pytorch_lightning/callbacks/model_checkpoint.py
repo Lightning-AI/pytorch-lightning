@@ -216,13 +216,9 @@ class ModelCheckpoint(Callback):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
         if self._should_skip_saving_checkpoint(trainer):
-            log.critical("in train batch end, not saving checkpoint after trainer check")
             return
         step = trainer.total_batch_idx
         skip_batch = self.every_n_batches < 1 or ((step + 1) % self.every_n_batches != 0)
-        log.critical(
-            f"in train batch end, every_n_batches={self.every_n_batches}, step={step}, skip_batch? {skip_batch}"
-        )
         if skip_batch:
             return
         self.save_checkpoint(trainer, pl_module)
@@ -234,6 +230,9 @@ class ModelCheckpoint(Callback):
         skip = (
             self._should_skip_saving_checkpoint(trainer) or self.every_n_epochs < 1
             or (trainer.current_epoch + 1) % self.every_n_epochs != 0
+        )
+        log.critical(
+            f"in validation end, every_n_epochs={self.every_n_epochs}, period={self.period}, step={step}, skip? {skip}"
         )
         if skip:
             return
