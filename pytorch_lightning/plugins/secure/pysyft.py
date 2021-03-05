@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict
+from typing import Dict, Generator
 
 import torch
 from torch.nn import Module
@@ -103,13 +103,13 @@ if _PYSYFT_AVAILABLE:
         def get_model(self) -> type(Module):  # type: ignore
             return self.remote_model.get(request_block=True)
 
-        def parameters(self):
+        def parameters(self) -> Generator:
             return self.module.parameters()
 
-        def state_dict(self):
+        def state_dict(self) -> Dict:
             return self.module.state_dict()
 
-        def load_state_dict(self, state_dict, strict: bool = True):
+        def load_state_dict(self, state_dict: Dict, strict: bool = True) -> None:
             return self.module.load_state_dict(state_dict)
 
         def forward(self, x: SyTensorProxyType) -> SyTensorProxyType:
