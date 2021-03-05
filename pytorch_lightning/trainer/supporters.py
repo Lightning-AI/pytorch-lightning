@@ -96,26 +96,29 @@ class TensorRunningAccum(object):
         if self.current_idx == 0:
             self.rotated = True
 
-    def mean(self):
+    def mean(self) -> Optional[torch.Tensor]:
         """Get mean value from stored elements."""
         return self._agg_memory('mean')
 
-    def max(self):
+    def max(self) -> Optional[torch.Tensor]:
         """Get maximal value from stored elements."""
         return self._agg_memory('max')
 
-    def min(self):
+    def min(self) -> Optional[torch.Tensor]:
         """Get minimal value from stored elements."""
         return self._agg_memory('min')
 
-    def _agg_memory(self, how: str):
+    def _agg_memory(self, how: str) -> Optional[torch.Tensor]:
         if self.last_idx is not None:
             if self.rotated:
-                return getattr(self.memory, how)()
+                t = self.memory
             else:
                 if is_syft_initialized():
-                    return getattr(self.memory[list(range(0, self.current_idx))], how)()
-                return getattr(self.memory[:self.current_idx], how)()
+                    t = self.memory[list(range(0, self.current_idx))]
+                else:
+                    t = self.memory[:self.current_idx]
+            op = getattr(t, how)
+            return op()
 
 
 class Accumulator(object):

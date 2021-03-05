@@ -62,8 +62,6 @@ if _PYSYFT_AVAILABLE:
             super().__init__()
             """
             This class is used to wrap the ``sy.Module`` and simplify the interface with Pytorch LightningModule
-
-
             """
             # Those are helpers to easily work with `sy.Module`
             self.module = module
@@ -90,10 +88,9 @@ if _PYSYFT_AVAILABLE:
         def model(self) -> SyModelProxyType:
             if self.is_remote():
                 return self.remote_model
-            else:
-                if self.request_parameters:
-                    return self.get_model()
-                return self.module
+            if self.request_parameters:
+                return self.get_model()
+            return self.module
 
         def send_model(self) -> None:
             self.remote_model = self.module.send(self.duet)
