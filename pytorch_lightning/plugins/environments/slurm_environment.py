@@ -26,7 +26,10 @@ class SLURMEnvironment(ClusterEnvironment):
     def __init__(self):
         super().__init__()
 
-    def master_address(self):
+    def creates_children(self) -> bool:
+        return True
+
+    def master_address(self) -> str:
         # figure out the root node addr
         slurm_nodelist = os.environ.get("SLURM_NODELIST")
         if slurm_nodelist:
@@ -39,7 +42,7 @@ class SLURMEnvironment(ClusterEnvironment):
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         return root_node
 
-    def master_port(self):
+    def master_port(self) -> int:
         # -----------------------
         # SLURM JOB = PORT number
         # -----------------------
@@ -64,18 +67,18 @@ class SLURMEnvironment(ClusterEnvironment):
 
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-        return default_port
+        return int(default_port)
 
     def world_size(self):
-        return self._world_size
+        return None
 
-    def local_rank(self):
+    def local_rank(self) -> int:
         return int(os.environ['SLURM_LOCALID'])
 
-    def node_rank(self):
+    def node_rank(self) -> int:
         return int(os.environ['SLURM_NODEID'])
 
-    def resolve_root_node_address(self, root_node):
+    def resolve_root_node_address(self, root_node: str) -> str:
         if '[' in root_node:
             name, numbers = root_node.split('[', maxsplit=1)
             number = numbers.split(',', maxsplit=1)[0]
