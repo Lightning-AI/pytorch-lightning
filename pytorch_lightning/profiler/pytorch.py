@@ -297,7 +297,10 @@ class PyTorchProfiler(BaseProfiler):
         if self.output_file:
             self.output_file.flush()
 
-    def __del__(self):
+    def teardown(self) -> None:
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
+
+    def __del__(self):
+        self.teardown()

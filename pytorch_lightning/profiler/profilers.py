@@ -55,6 +55,10 @@ class BaseProfiler(ABC):
     def stop(self, action_name: str) -> None:
         """Defines how to record the duration once an action is complete."""
 
+    @abstractmethod
+    def teardown(self) -> None:
+        """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
+
     @contextmanager
     def profile(self, action_name: str) -> None:
         """
@@ -112,6 +116,9 @@ class PassThroughProfiler(BaseProfiler):
         pass
 
     def stop(self, action_name: str) -> None:
+        pass
+
+    def teardown(self) -> None:
         pass
 
     def summary(self) -> str:
@@ -214,10 +221,13 @@ class SimpleProfiler(BaseProfiler):
         if self.output_file:
             self.output_file.flush()
 
-    def __del__(self):
+    def teardown(self) -> None:
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
+
+    def __del__(self):
+        self.teardown()
 
 
 class AdvancedProfiler(BaseProfiler):
@@ -286,7 +296,10 @@ class AdvancedProfiler(BaseProfiler):
         if self.output_file:
             self.output_file.flush()
 
-    def __del__(self):
+    def teardown(self) -> None:
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
+
+    def __del__(self):
+        self.teardown()
