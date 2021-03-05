@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType, LightningEnum
 
 
