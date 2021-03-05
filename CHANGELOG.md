@@ -25,6 +25,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 
+- Fixed PyTorch Profiler with `emit_nvtx` ([#6260](https://github.com/PyTorchLightning/pytorch-lightning/pull/6260))
+
+
+- Fixed `trainer.test` from `best_path` hangs after calling `trainer.fit`  ([#6272](https://github.com/PyTorchLightning/pytorch-lightning/pull/6272))
+
+
 ## [1.2.2] - 2021-03-02
 
 ### Added
