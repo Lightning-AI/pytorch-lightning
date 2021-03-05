@@ -34,7 +34,12 @@ def test_num_training_batches(tmpdir):
     """
     # when we have fewer batches in the dataloader we should use those instead of the limit
     model = EvalModelTemplate()
-    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1)
+    trainer = Trainer(
+        limit_val_batches=100,
+        limit_train_batches=100,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 10
@@ -45,7 +50,12 @@ def test_num_training_batches(tmpdir):
 
     # when we have more batches in the dataloader we should limit them
     model = EvalModelTemplate()
-    trainer = Trainer(limit_val_batches=7, limit_train_batches=7, max_epochs=1)
+    trainer = Trainer(
+        limit_val_batches=7,
+        limit_train_batches=7,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 10

@@ -133,7 +133,11 @@ def test_deepspeed_precision_choice(amp_backend, tmpdir):
     """
 
     trainer = Trainer(
-        fast_dev_run=True, default_root_dir=tmpdir, plugins='deepspeed', amp_backend=amp_backend, precision=16
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+        plugins='deepspeed',
+        amp_backend=amp_backend,
+        precision=16,
     )
 
     assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
@@ -178,13 +182,11 @@ def test_deepspeed_defaults(tmpdir):
 
 @RunIf(deepspeed=True)
 def test_invalid_deepspeed_defaults_no_precision(tmpdir):
-    """
-        Test to ensure that using defaults, if precision is not set to 16, we throw an exception.
-    """
+    """Test to ensure that using defaults, if precision is not set to 16, we throw an exception."""
     model = BoringModel()
     trainer = Trainer(
-        fast_dev_run=True,
         default_root_dir=tmpdir,
+        fast_dev_run=True,
         plugins='deepspeed',
     )
     with pytest.raises(
@@ -195,9 +197,7 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
 
 @RunIf(min_gpus=1, deepspeed=True)
 def test_warn_deepspeed_override_backward(tmpdir):
-    """
-        Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning.
-    """
+    """Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning."""
 
     class TestModel(BoringModel):
 
@@ -205,17 +205,21 @@ def test_warn_deepspeed_override_backward(tmpdir):
             return loss.backward()
 
     model = TestModel()
-    trainer = Trainer(fast_dev_run=True, default_root_dir=tmpdir, plugins=DeepSpeedPlugin(), gpus=1, precision=16)
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+        plugins=DeepSpeedPlugin(),
+        gpus=1,
+        precision=16,
+    )
     with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
         trainer.fit(model)
 
 
 @RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_run_configure_optimizers(tmpdir):
-    """
-        Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
-        whilst using configure_optimizers for optimizers and schedulers.
-    """
+    """Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
+        whilst using configure_optimizers for optimizers and schedulers."""
 
     class TestModel(BoringModel):
 
@@ -234,7 +238,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
-        precision=16
+        precision=16,
     )
 
     trainer.fit(model)
@@ -267,7 +271,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
         default_root_dir=tmpdir,
         gpus=1,
         fast_dev_run=True,
-        precision=16
+        precision=16,
     )
 
     trainer.fit(model)
@@ -278,9 +282,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
 
 @RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_custom_precision_params(tmpdir):
-    """
-        Ensure if we modify the FP16 parameters via the DeepSpeedPlugin, the deepspeed config contains these changes.
-    """
+    """Ensure if we modify the FP16 parameters via the DeepSpeedPlugin, the deepspeed config contains these changes."""
 
     class TestModel(BoringModel):
 
@@ -293,24 +295,15 @@ def test_deepspeed_custom_precision_params(tmpdir):
             raise SystemExit()
 
     model = TestModel()
-    trainer = Trainer(
-        plugins=[
-            DeepSpeedPlugin(
-                loss_scale=10, initial_scale_power=10, loss_scale_window=10, hysteresis=10, min_loss_scale=10
-            )
-        ],
-        precision=16,
-        gpus=1
-    )
+    ds = DeepSpeedPlugin(loss_scale=10, initial_scale_power=10, loss_scale_window=10, hysteresis=10, min_loss_scale=10)
+    trainer = Trainer(default_root_dir=tmpdir, plugins=[ds], precision=16, gpus=1)
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
 
 @RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
-    """
-        Ensure if we use a config and turn off cpu_offload, that this is set to False within the config.
-    """
+    """Ensure if we use a config and turn off cpu_offload, that this is set to False within the config."""
 
     deepspeed_zero_config['zero_optimization']['cpu_offload'] = False
 
@@ -321,7 +314,12 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
             raise SystemExit()
 
     model = TestModel()
-    trainer = Trainer(plugins=[DeepSpeedPlugin(config=deepspeed_zero_config)], precision=16, gpus=1)
+    trainer = Trainer(
+        plugins=[DeepSpeedPlugin(config=deepspeed_zero_config)],
+        precision=16,
+        gpus=1,
+        default_root_dir=tmpdir,
+    )
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
