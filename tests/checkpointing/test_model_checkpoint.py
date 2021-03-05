@@ -515,20 +515,6 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
 
 
-def test_invalid_every_n_epoch(tmpdir):
-    """ Test different configurations for every_n_epochs. """
-    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=0, every_n_batches=1)
-    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=3)
-    ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-1, every_n_batches=1)
-
-
-def test_invalid_every_n_batches(tmpdir):
-    """ Test different configurations for every_n_batches. """
-    ModelCheckpoint(dirpath=tmpdir, every_n_batches=0)
-    ModelCheckpoint(dirpath=tmpdir, every_n_batches=3)
-    ModelCheckpoint(dirpath=tmpdir, every_n_batches=-1, every_n_epochs=2)
-
-
 def test_none_monitor_save_last(tmpdir):
     """ Test that a warning appears for save_last=True with monitor=None. """
     with pytest.warns(UserWarning, match=r'ModelCheckpoint.*is a redundant.*'):
@@ -615,11 +601,12 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
 
 
 @pytest.mark.parametrize("every_n_epochs", list(range(4)))
-def test_model_checkpoint_every_n_epochs_and_no_period(tmpdir, every_n_epochs):
+def test_model_checkpoint_every_n_epochs_and_period(tmpdir, every_n_epochs):
+    """ Tests that if period is set, it takes precedence over every_n_epochs for backwards compatibility. """
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=every_n_epochs, period=None
+        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=(2 * every_n_epochs), period=every_n_epochs
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -662,32 +649,33 @@ def test_ckpt_every_n_batches(tmpdir):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir):
+@pytest.mark.parametrize("every_n_epochs", [1, 3])
+def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir, every_n_epochs):
     """ Tests that checkpoints are taken every 30 steps and every epochs """
     model = LogInTwoMethods()
     checkpoint_callback = ModelCheckpoint(
-        every_n_epochs=1,
+        every_n_epochs=every_n_epochs,
         every_n_batches=30,
         dirpath=tmpdir,
         save_top_k=-1,
         save_last=False,
+        filename="{step}",
     )
+    max_epochs = 3
+    epoch_step_length = 64
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
+        max_epochs=max_epochs,
         callbacks=[checkpoint_callback],
         logger=False,
     )
     trainer.fit(model)
-    expected = [
-        "epoch=0-step=29.ckpt",
-        "epoch=0-step=59.ckpt",
-        "epoch=0-step=63.ckpt",
-        "epoch=1-step=89.ckpt",
-        "epoch=1-step=119.ckpt",
-        "epoch=1-step=127.ckpt",
+    expected_steps_for_ckpt = [
+        i for i in range(epoch_step_length * max_epochs)
+        if (i % every_n_batches) == 0 or (i * epoch_step_length % every_n_epochs == 0)
     ]
-    assert set(os.listdir(tmpdir)) == set(expected)
+    expected_ckpt_files = [f"step={step}.ckpt" for step in step]
+    assert set(os.listdir(tmpdir)) == set(expected_ckpt_files)
 
 
 def test_model_checkpoint_topk_zero(tmpdir):
