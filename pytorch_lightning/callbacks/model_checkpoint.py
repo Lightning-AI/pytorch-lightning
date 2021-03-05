@@ -232,7 +232,7 @@ class ModelCheckpoint(Callback):
             or (trainer.current_epoch + 1) % self.every_n_epochs != 0
         )
         log.critical(
-            f"in validation end, every_n_epochs={self.every_n_epochs}, period={self.period}, step={step}, skip? {skip}"
+            f"in validation end, every_n_epochs={self.every_n_epochs}, period={self.period}, epoch={trainer.current_epoch}, skip? {skip}"
         )
         if skip:
             return

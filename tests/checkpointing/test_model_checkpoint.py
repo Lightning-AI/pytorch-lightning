@@ -581,9 +581,8 @@ def test_model_checkpoint_period(tmpdir, period: int):
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
         max_epochs=epochs,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        val_check_interval=1.0,
+        limit_train_batches=1,
+        limit_val_batches=1,
         logger=False,
     )
     trainer.fit(model)
