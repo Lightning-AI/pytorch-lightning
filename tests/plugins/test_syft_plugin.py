@@ -78,5 +78,5 @@ def test_syft(tmpdir):
     trainer.test()
     trainer.test(model)
 
-    LiftSyLightningModule.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, module=module)
+    model = LiftSyLightningModule.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, module=module)
     trainer.fit(model)
