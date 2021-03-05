@@ -26,6 +26,7 @@ def main(path_req: str, torch_version: str = None) -> None:
     if not torch_version:
         import torch
         torch_version = torch.__version__
+    assert torch_version, f"Torch: {torch_version}"
 
     dep_versions = VERSIONS_LUT.get(torch_version, VERSIONS_NONE)
     dep_versions["torch"] = torch_version
