@@ -1,11 +1,26 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pickle
 
 import torch
 from torch.distributed.distributed_c10d import _rank_not_in_group, Backend, broadcast, get_backend, get_rank
 
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 
-# This part is used to provide broadcast support for PyTorch 1.5 and lower.
+# The code below is a copy / paste from Pytorch Codebase and provide broadcast support for PyTorch 1.6 and lower.
+# Credit to the PyTorch Team.
+# The original source are at: https://github.com/pytorch/pytorch/blob/1.7/torch/distributed/distributed_c10d.py
 
 
 # Taken from https://github.com/pytorch/pytorch/blob/1.7/torch/distributed/distributed_c10d.py#L1164
@@ -70,7 +85,7 @@ def _broadcast_object_list(object_list, src=0, group=None):
             object_list[i] = _tensor_to_object(obj_view, obj_size)
 
 
-if _TORCH_GREATER_EQUAL_1_6:
+if _TORCH_GREATER_EQUAL_1_7:
     from torch.distributed.distributed_c10d import broadcast_object_list
 else:
     broadcast_object_list = _broadcast_object_list
