@@ -33,7 +33,7 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
     SingleDevicePlugin,
 )
-from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
@@ -55,7 +55,7 @@ def test_accelerator_choice_ddp_cpu(tmpdir):
     )
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
@@ -69,7 +69,7 @@ def test_accelerator_choice_ddp(cuda_available_mock, device_count_mock):
     )
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
-    assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
@@ -83,7 +83,7 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     )
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
-    assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, LightningEnvironment)
 
 
 @RunIf(min_gpus=2)
@@ -297,7 +297,7 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock):
     Test that we choose the custom cluster even when SLURM or TE flags are around
     """
 
-    class CustomCluster(ClusterEnvironment):
+    class CustomCluster(LightningEnvironment):
 
         def master_address(self):
             return 'asdf'

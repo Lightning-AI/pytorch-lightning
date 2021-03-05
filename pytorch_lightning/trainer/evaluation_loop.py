@@ -203,6 +203,10 @@ class EvaluationLoop(object):
 
         # with a single dataloader don't pass an array
         outputs = self.outputs
+
+        # free memory
+        self.outputs = []
+
         eval_results = outputs
         if num_dataloaders == 1:
             eval_results = outputs[0]

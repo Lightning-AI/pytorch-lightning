@@ -30,13 +30,7 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import (
-    find_free_network_port,
-    rank_zero_only,
-    rank_zero_warn,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
 
 log = logging.getLogger(__name__)
@@ -84,7 +78,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def setup(self, model):
         self._model = model
 
-        os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", str(find_free_network_port()))
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
 
         # pass in a state q
         smp = mp.get_context("spawn")
@@ -93,7 +87,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def set_world_ranks(self, process_idx):
         self.local_rank = process_idx
         self.node_rank = self.cluster_environment.node_rank()
-        self.task_idx = self.cluster_local_rank
+        self.task_idx = self.cluster_environment.local_rank()
         self.global_rank = self.node_rank * self.num_processes + self.local_rank
         self.world_size = self.num_nodes * self.num_processes
 
