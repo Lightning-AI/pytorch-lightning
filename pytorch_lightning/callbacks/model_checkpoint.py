@@ -94,7 +94,7 @@ class ModelCheckpoint(Callback):
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         every_n_epochs: Interval (number of epochs) between checkpoints.
-        every_n_batches: Interval (number of batches) between checkpoints.
+        every_n_batches: Interval (number of training batches) between checkpoints.
         period: Interval (number of epochs) between checkpoints.
 
             .. warning::
