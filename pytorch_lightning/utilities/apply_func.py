@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import operator
 from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
@@ -22,7 +22,15 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.torchtext_batch import Batch
+from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE, _compare_version
+
+if _TORCHTEXT_AVAILABLE:
+    if _compare_version("torch", operator.ge, "0.9.0"):
+        from torchtext.legacy.data import Batch
+    else:
+        from torchtext.data import Batch
+else:
+    Batch = type(None)
 
 
 def to_dtype_tensor(value, dtype: torch.dtype = None, device: torch.device = None):
@@ -134,19 +142,22 @@ def move_data_to_device(batch: Any, device: torch.device):
     """
 
     def batch_to(data):
-        # Shallow copy because each Batch has a reference to Dataset which contains all examples
-        device_data = copy(data)
-        for field, field_value in data.dataset.fields.items():
-            if field_value is None:
-                continue
-            device_field = move_data_to_device(getattr(data, field), device)
-            setattr(device_data, field, device_field)
-        return device_data
+        # try to move torchtext data first
+        if _TORCHTEXT_AVAILABLE and isinstance(data, Batch):
+
+            # Shallow copy because each Batch has a reference to Dataset which contains all examples
+            device_data = copy(data)
+            for field, field_value in data.dataset.fields.items():
+                if field_value is None:
+                    continue
+                device_field = move_data_to_device(getattr(data, field), device)
+                setattr(device_data, field, device_field)
+            return device_data
 
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
         return data.to(device, **kwargs)
 
-    dtype = (TransferableDataType, Batch)
+    dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 

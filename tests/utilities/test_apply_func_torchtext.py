@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from tests.helpers.imports import Batch, Dataset, Example, Field, Iterator
+from tests.helpers.imports import Dataset, Example, Field, Iterator
 from tests.helpers.runif import RunIf
 
 

@@ -68,5 +68,6 @@ _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cu
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _RPC_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.rpc')
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != 'none'])
+_TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
 _XLA_AVAILABLE = _module_available("torch_xla")
