@@ -105,7 +105,7 @@ jobs:
         python setup.py install --user --quiet
         bash pl_examples/run_ddp-example.sh
         cd pl_examples/basic_examples
-        bash submit_ddp2_job.sh
+        bash submit_ddp_job.sh
         bash submit_ddp2_job.sh
         pip uninstall -y pytorch-lightning
       displayName: 'Examples'
