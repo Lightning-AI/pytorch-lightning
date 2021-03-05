@@ -653,9 +653,10 @@ def test_ckpt_every_n_batches(tmpdir):
 def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir, every_n_epochs):
     """ Tests that checkpoints are taken every 30 steps and every epochs """
     model = LogInTwoMethods()
+    every_n_batches = 30
     checkpoint_callback = ModelCheckpoint(
         every_n_epochs=every_n_epochs,
-        every_n_batches=30,
+        every_n_batches=every_n_batches,
         dirpath=tmpdir,
         save_top_k=-1,
         save_last=False,
@@ -674,7 +675,7 @@ def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir, every_n_epochs):
         i for i in range(epoch_step_length * max_epochs)
         if (i % every_n_batches) == 0 or (i * epoch_step_length % every_n_epochs == 0)
     ]
-    expected_ckpt_files = [f"step={step}.ckpt" for step in step]
+    expected_ckpt_files = [f"step={step}.ckpt" for step in expected_steps_for_ckpt]
     assert set(os.listdir(tmpdir)) == set(expected_ckpt_files)
 
 
