@@ -70,7 +70,6 @@ class TrainLoop:
         self.trainer.batch_idx = 0
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
-        self.automatic_optimization = automatic_optimization
         self.trainer.current_val_epoch = 0
 
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000

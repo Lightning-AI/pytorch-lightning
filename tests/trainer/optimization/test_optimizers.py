@@ -469,22 +469,22 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
         trainer.fit(model)
 
 
-
 @pytest.mark.parametrize("interval, expected_updates", [
     ("epoch", 1), ("step", 5), ("val", 2)]
 )
 def test_interval_scheduler(tmpdir, interval, expected_updates):
     """ check interval parameter for schedulers works as expected """
     init_lr = 1
+
     class IntervalOptimizerModel(BoringModel):
-        
+
         def configure_optimizers(self):
             opt = torch.optim.SGD(self.layer.parameters(), lr=init_lr)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(opt)
             return [opt], [{'scheduler': lr_scheduler, 'interval': interval}]
 
     model = IntervalOptimizerModel()
-    
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -495,7 +495,7 @@ def test_interval_scheduler(tmpdir, interval, expected_updates):
     )
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    
+
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     assert adjusted_lr == init_lr**expected_updates, \
         f'Lr not adjusted correctly, expected {init_lr**expected_updates} but got {adjusted_lr}'
