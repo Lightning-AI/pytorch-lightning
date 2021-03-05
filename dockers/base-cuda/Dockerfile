@@ -94,14 +94,14 @@ RUN \
     # eventualy use pre-release
     #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
     # set particular PyTorch version
-    python adjust_versions.py requirements.txt ${PYTORCH_VERSION} && \
-    python adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
-    python adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust_versions.py requirements.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements
     # todo: find a way how to install nightly PT version
     #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
     pip install -r requirements/devel.txt --no-cache-dir && \
-    rm -rf requirements*
+    rm -rf requirements.* requirements/
 
 RUN \
     # install DALI, needed for examples
