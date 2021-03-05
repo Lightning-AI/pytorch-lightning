@@ -22,7 +22,7 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE, _compare_version
+from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
     if _compare_version("torch", operator.ge, "0.9.0"):
