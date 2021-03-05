@@ -22,7 +22,7 @@ import pickle
 import torch
 from torch.distributed.distributed_c10d import _rank_not_in_group, Backend, broadcast, get_backend, get_rank
 
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_6
 
 import torch
 

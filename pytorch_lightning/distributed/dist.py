@@ -22,7 +22,7 @@ class LightningDistributed:
         self.rank = rank
         self.device = device
 
-    def broadcast(self, obj: Any, group=None):
+    def broadcast(self, obj: Any, group=group.WORLD):
         is_list = isinstance(obj, list)
 
         if not is_list:
