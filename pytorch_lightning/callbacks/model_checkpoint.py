@@ -220,7 +220,9 @@ class ModelCheckpoint(Callback):
             return
         step = trainer.total_batch_idx
         skip_batch = self.every_n_batches < 1 or ((step + 1) % self.every_n_batches != 0)
-        log.critical(f"in train batch end, every_n_batches={self.every_n_batches}, step={step}, skip_batch? {skip_batch}")
+        log.critical(
+            f"in train batch end, every_n_batches={self.every_n_batches}, step={step}, skip_batch? {skip_batch}"
+        )
         if skip_batch:
             return
         self.save_checkpoint(trainer, pl_module)

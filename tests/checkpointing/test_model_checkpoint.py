@@ -642,18 +642,19 @@ def test_ckpt_every_n_batches(tmpdir):
 
     model = LogInTwoMethods()
     every_n_batches = 16
+    checkpoint_callback = ModelCheckpoint(
+        filename="{step}",
+        every_n_epochs=0,
+        every_n_batches=every_n_batches,
+        dirpath=tmpdir,
+        save_top_k=-1,
+        save_last=False,
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
         progress_bar_refresh_rate=0,
-        checkpoint_callback=ModelCheckpoint(
-            filename="{step}",
-            every_n_epochs=0,
-            every_n_batches=every_n_batches,
-            dirpath=tmpdir,
-            save_top_k=-1,
-            save_last=False,
-        ),
+        callbacks=[checkpoint_callback],
         logger=False,
     )
 
@@ -665,16 +666,17 @@ def test_ckpt_every_n_batches(tmpdir):
 def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir):
     """ Tests that checkpoints are taken every 30 steps and every epochs """
     model = LogInTwoMethods()
+    checkpoint_callback = ModelCheckpoint(
+        every_n_epochs=1,
+        every_n_batches=30,
+        dirpath=tmpdir,
+        save_top_k=-1,
+        save_last=False,
+    ),
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        checkpoint_callback=ModelCheckpoint(
-            every_n_epochs=1,
-            every_n_batches=30,
-            dirpath=tmpdir,
-            save_top_k=-1,
-            save_last=False,
-        ),
+        callbacks=[checkpoint_callback],
         logger=False,
     )
     trainer.fit(model)
