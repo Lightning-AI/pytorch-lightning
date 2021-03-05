@@ -16,7 +16,11 @@ VERSIONS_LUT: Dict[str, Dict[str, Any]] = {
     "1.8.0": dict(torchvision="0.9.0", torchtext="0.9"),
 }
 
-system = platform.system()
+
+def find_latest(ver: str, versions_all: list):
+    options = [v for v in versions_all if v.startswith(ver)]
+    assert options, f"missing {ver} among {versions_all}"
+    return sorted(options)[-1]
 
 
 def main(path_req: str, torch_version: str = None) -> None:
@@ -26,9 +30,10 @@ def main(path_req: str, torch_version: str = None) -> None:
     if not torch_version:
         import torch
         torch_version = torch.__version__
-    assert torch_version, f"Torch: {torch_version}"
+    assert torch_version, f"invalid/missing Torch: {torch_version}"
 
-    dep_versions = VERSIONS_LUT.get(torch_version, VERSIONS_NONE)
+    torch_version = find_latest(torch_version, list(VERSIONS_LUT.keys()))
+    dep_versions = VERSIONS_LUT[torch_version]
     dep_versions["torch"] = torch_version
     for lib in dep_versions:
         version = dep_versions[lib]
