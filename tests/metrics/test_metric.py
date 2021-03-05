@@ -9,6 +9,7 @@ import torch
 from torch import nn
 
 from pytorch_lightning.metrics.metric import Metric, MetricCollection
+from tests.helpers.runif import RunIf
 
 torch.manual_seed(42)
 
@@ -268,7 +269,7 @@ def test_child_metric_state_dict():
     assert module.state_dict() == expected_state_dict
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
+@RunIf(min_gpus=1)
 def test_device_and_dtype_transfer(tmpdir):
     metric = DummyMetric1()
     assert metric.x.is_cuda is False
@@ -321,7 +322,7 @@ def test_metric_collection(tmpdir):
     assert isinstance(metric_loaded, MetricCollection)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
+@RunIf(min_gpus=1)
 def test_device_and_dtype_transfer_metriccollection(tmpdir):
     m1 = DummyMetric1()
     m2 = DummyMetric2()

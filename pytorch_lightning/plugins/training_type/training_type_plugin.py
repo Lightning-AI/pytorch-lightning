@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union, Dict
 
 import torch
 from torch.nn import Module
@@ -35,6 +35,10 @@ class TrainingTypePlugin(Plugin, ABC):
         self._results = None
         self.global_rank = 0
 
+    @abstractmethod
+    def connect(self, model: 'Module') -> None:
+        """Called by the accelerator to connect it with this plugin"""
+
     @property
     @abstractmethod
     def on_gpu(self) -> bool:
@@ -55,8 +59,15 @@ class TrainingTypePlugin(Plugin, ABC):
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
     @abstractmethod
-    def reduce(self, output: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
-        """Reduces the given output (e.g. across GPUs/Processes)"""
+    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
+        """
+        Reduces the given tensor (e.g. across GPUs/processes).
+
+        Args:
+            tensor: the tensor to sync and reduce
+            *args: plugin-specific positional arguments
+            **kwargs: plugin-specific keyword arguments
+        """
 
     @abstractmethod
     def barrier(self, name: Optional[str] = None) -> None:
@@ -89,7 +100,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> Optional[LightningModule]:
+    def lightning_module(self) -> LightningModule:
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 
@@ -142,7 +153,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step_end(self, output):
         return output
 
-    def on_save(self, checkpoint: dict) -> dict:
+    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
         return checkpoint
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:

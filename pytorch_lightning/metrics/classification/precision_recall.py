@@ -105,6 +105,10 @@ class Precision(StatScores):
             Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the allgather.
 
+    Raises:
+        ValueError:
+            If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"samples"``, ``"none"``, ``None``.
+
     Example:
 
         >>> from pytorch_lightning.metrics import Precision
@@ -255,6 +259,10 @@ class Recall(StatScores):
         dist_sync_fn:
             Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the allgather.
+
+    Raises:
+        ValueError:
+            If ``average`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"samples"``, ``"none"``, ``None``.
 
     Example:
 

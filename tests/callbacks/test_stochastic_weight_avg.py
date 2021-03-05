@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
 from unittest import mock
 
 import pytest
@@ -24,6 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_6:
     from pytorch_lightning.callbacks import StochasticWeightAveraging
@@ -114,40 +114,33 @@ def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_proc
     assert trainer.lightning_module == model
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_6, reason="SWA available from PyTorch 1.6.0")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, min_torch="1.6.0", special=True)
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp", gpus=2)
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_6, reason="SWA available from PyTorch 1.6.0")
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2, min_torch="1.6.0")
 def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_spawn", gpus=2)
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_6, reason="SWA available from PyTorch 1.6.0")
-@pytest.mark.skipif(platform.system() == "Windows", reason="ddp_cpu is not available on Windows")
+@RunIf(min_torch="1.6.0", skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, accelerator="ddp_cpu", num_processes=2)
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_6, reason="SWA available from PyTorch 1.6.0")
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires a GPU machine")
+@RunIf(min_gpus=1, min_torch="1.6.0")
 def test_swa_callback_1_gpu(tmpdir):
     train_with_swa(tmpdir, gpus=1)
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_6, reason="SWA available from PyTorch 1.6.0")
+@RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
 def test_swa_callback(tmpdir, batchnorm):
     train_with_swa(tmpdir, batchnorm=batchnorm)
 
 
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_6, reason="SWA available from PyTorch 1.6.0")
+@RunIf(min_torch="1.6.0")
 def test_swa_raises():
     with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=0, swa_lrs=0.1)
@@ -161,7 +154,7 @@ def test_swa_raises():
 
 @pytest.mark.parametrize('stochastic_weight_avg', [False, True])
 @pytest.mark.parametrize('use_callbacks', [False, True])
-@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_6, reason="SWA available from PyTorch 1.6.0")
+@RunIf(min_torch="1.6.0")
 def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks, stochastic_weight_avg):
     """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer"""
 

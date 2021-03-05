@@ -19,6 +19,7 @@ from torch.nn import DataParallel
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class DataParallelPlugin(ParallelPlugin):
@@ -31,14 +32,30 @@ class DataParallelPlugin(ParallelPlugin):
         model.to(self.root_device)
         self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
 
-    def reduce(self, output, *args, **kwargs):
-        if isinstance(output, Result):
-            output.dp_reduce()
+    def reduce(self, tensor, *args, **kwargs):
+        """
+        Reduces a tensor from all parallel processes to one aggregated tensor.
 
-        elif isinstance(output, torch.Tensor):
-            output = output.mean()
+        Args:
+            tensor: the tensor to sync and reduce
+            *args: ignored for DP
+            **kwargs: ignored for DP
 
-        return output
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
+        if isinstance(tensor, Result):
+            tensor.dp_reduce()
+
+        else:
+
+            def _reduce(tensor: torch.Tensor):
+                dtype_tensor = tensor.dtype
+                return tensor.float().mean().type(dtype_tensor)
+
+            tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
+
+        return tensor
 
     @property
     def root_device(self):

@@ -690,9 +690,9 @@ DeepSpeed
 .. note::
     The DeepSpeed plugin is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
 
-`DeepSpeed <https://github.com/microsoft/DeepSpeed>`_ offers additional CUDA deep learning training optimizations, similar to `FairScale <https://github.com/facebookresearch/fairscale>`_. DeepSpeed offers lower level training optimizations, and useful efficient optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_.
-Using the plugin, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the DeepSpeed `docs <https://www.deepspeed.ai/tutorials/megatron/>`_.
-We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models). In addition, we recommend trying :ref:`sharded` first before trying DeepSpeed's further optimizations, primarily due to FairScale Sharded ease of use in scenarios such as multiple optimizers/schedulers.
+`DeepSpeed <https://github.com/microsoft/DeepSpeed>`_ is a deep learning training optimization library, providing the means to train massive billion parameter models at scale.
+Using the DeepSpeed plugin, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the DeepSpeed `docs <https://www.deepspeed.ai/tutorials/megatron/>`_.
+DeepSpeed also offers lower level training optimizations, and efficient optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_. We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models).
 
 To use DeepSpeed, you first need to install DeepSpeed using the commands below.
 
@@ -706,7 +706,7 @@ Additionally if you run into any issues installing m4py, ensure you have openmpi
 .. note::
     Currently ``resume_from_checkpoint`` and manual optimization are not supported.
 
-    DeepSpeed only supports single optimizer, single scheduler.
+    DeepSpeed currently only supports single optimizer, single scheduler within the training loop.
 
 ZeRO-Offload
 """"""""""""

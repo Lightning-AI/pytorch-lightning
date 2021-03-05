@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import List, Optional, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 from torch import optim
