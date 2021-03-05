@@ -22,15 +22,7 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _module_available, _TORCHTEXT_AVAILABLE
-
-if _TORCHTEXT_AVAILABLE:
-    if _module_available("torchtext.legacy.data"):
-        from torchtext.legacy.data import Batch
-    else:
-        from torchtext.data import Batch
-else:
-    Batch = type(None)
+from pytorch_lightning.utilities.torchtext_batch import Batch
 
 
 def to_dtype_tensor(value, dtype: torch.dtype = None, device: torch.device = None):
@@ -142,22 +134,19 @@ def move_data_to_device(batch: Any, device: torch.device):
     """
 
     def batch_to(data):
-        # try to move torchtext data first
-        if _TORCHTEXT_AVAILABLE and isinstance(data, Batch):
-
-            # Shallow copy because each Batch has a reference to Dataset which contains all examples
-            device_data = copy(data)
-            for field, field_value in data.dataset.fields.items():
-                if field_value is None:
-                    continue
-                device_field = move_data_to_device(getattr(data, field), device)
-                setattr(device_data, field, device_field)
-            return device_data
+        # Shallow copy because each Batch has a reference to Dataset which contains all examples
+        device_data = copy(data)
+        for field, field_value in data.dataset.fields.items():
+            if field_value is None:
+                continue
+            device_field = move_data_to_device(getattr(data, field), device)
+            setattr(device_data, field, device_field)
+        return device_data
 
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
         return data.to(device, **kwargs)
 
-    dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
+    dtype = (TransferableDataType, Batch)
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
