@@ -143,10 +143,9 @@ jobs:
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
         coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
-    # todo: put this back just when TorchVision can download datasets
-    #- name: Examples
-    #  run: |
-    #    python -m pytest pl_examples -v --durations=10
+    - name: Examples
+      run: |
+        python -m pytest pl_examples -v --durations=10
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2

@@ -11,24 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 import inspect
+
+import pytest
 
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     clean_namespace,
+    collect_init_args,
     flatten_dict,
+    get_init_args,
     is_picklable,
     lightning_getattr,
     lightning_hasattr,
     lightning_setattr,
     parse_class_init_keys,
-    get_init_args,
-    collect_init_args,
     str_to_bool,
     str_to_bool_or_str,
 )
-
 
 unpicklable_function = lambda: None
 
