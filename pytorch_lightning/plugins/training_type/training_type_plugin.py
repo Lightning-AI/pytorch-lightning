@@ -81,13 +81,9 @@ class TrainingTypePlugin(Plugin, ABC):
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """Perform a all_gather on all processes """
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool) -> bool:
         """Reduce the early stopping decision across all processes"""
-        return should_stop
-
-    def reduce_model_checkpoint_decision(self, should_update_best_and_save: bool) -> bool:
-        """Reduce the model checkpoint decision across all processes"""
-        return should_update_best_and_save
+        return decision
 
     def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""

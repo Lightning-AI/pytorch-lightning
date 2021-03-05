@@ -13,9 +13,7 @@
 # limitations under the License.
 from typing import Any
 
-from torch.distributed.distributed_c10d import GroupMember
-
-from pytorch_lightning.distributed.dist_utils import broadcast_object_list
+from pytorch_lightning.utilities.distributed import broadcast_object_list, group
 
 
 class LightningDistributed:
@@ -33,7 +31,7 @@ class LightningDistributed:
         if self.rank != 0:
             obj = [None for _ in range(len(obj))]
 
-        broadcast_object_list(obj, 0, group=group or GroupMember.WORLD)
+        broadcast_object_list(obj, 0, group=group or group.WORLD)
 
         if not is_list:
             obj = obj[0]

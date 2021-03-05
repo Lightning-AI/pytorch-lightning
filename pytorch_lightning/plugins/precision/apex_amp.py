@@ -45,8 +45,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             return model, optimizers, lr_schedulers
         model, optimizers = self.configure_apex(amp, model, list(optimizers), self.amp_level)
         self.reinit_scheduler_properties(optimizers, lr_schedulers)
-        for opt in optimizers:
-            opt.zero_grad()
         return model, optimizers, lr_schedulers
 
     def backward(

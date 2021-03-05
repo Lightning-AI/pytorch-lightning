@@ -207,12 +207,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         decision = bool(decision == self.world_size)
         return decision
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        return self.reduce_decision(should_stop)
-
-    def reduce_model_checkpoint_decision(self, should_update_best_and_save: bool) -> bool:
-        return self.reduce_decision(should_update_best_and_save)
-
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
             output = torch.tensor(output, device=self.device)

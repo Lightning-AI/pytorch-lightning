@@ -135,7 +135,7 @@ class HookResultStore:
                             f"The value associated to the key {non_metric_key}: {metric.cpu().tolist()} "
                             "doesn't appear to be the same accross all processes. "
                             "HINT: One could either do: `self.log(..., sync_dist=True, sync_fn=torch.mean)`"
-                            " to force mean reduction across processes which can be unaccurate or implement"
+                            " to force mean reduction across processes which can be inaccurate or implement"
                             " a `pytorch_lightning.metrics.Metric`"
                         )
                     warning_cache.warned_metrics.append(non_metric_key)

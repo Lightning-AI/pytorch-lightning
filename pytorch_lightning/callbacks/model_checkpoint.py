@@ -328,8 +328,7 @@ class ModelCheckpoint(Callback):
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
         # If using multiple devices, make sure all processes are unimanious on the decision.
-        reduce_model_checkpoint_decision_fn = trainer.training_type_plugin.reduce_model_checkpoint_decision
-        should_update_best_and_save = reduce_model_checkpoint_decision_fn(should_update_best_and_save)
+        should_update_best_and_save = trainer.training_type_plugin.reduce_boolean_decision(should_update_best_and_save)
 
         return should_update_best_and_save
 

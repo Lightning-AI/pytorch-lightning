@@ -74,17 +74,11 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         """Perform a all_gather on all processes """
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
-    def reduce_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool) -> bool:
         decision = torch.tensor(int(decision), device=self.lightning_module.device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
-
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        return self.reduce_decision(should_stop)
-
-    def reduce_model_checkpoint_decision(self, should_update_best_and_save: bool) -> bool:
-        return self.reduce_decision(should_update_best_and_save)
 
     @property
     def torch_distributed_backend(self):

@@ -71,11 +71,8 @@ class DataParallelPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        return should_stop
-
-    def reduce_model_checkpoint_decision(self, should_update_best_and_save: bool) -> bool:
-        return should_update_best_and_save
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        return decision
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)

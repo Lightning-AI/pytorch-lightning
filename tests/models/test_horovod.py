@@ -334,7 +334,7 @@ def test_accuracy_metric_horovod():
     horovod.run(_compute_batch, np=2)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 
     class TestModel(BoringModel):
@@ -355,8 +355,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     num_workers = 8
     init_lr = 0.1 * num_workers
 
-    with patch('horovod.torch.size') as mock_hvd_size:
-        mock_hvd_size.return_value = 8
+    with patch('horovod.torch.size', return_value=8) as mock_hvd_size:
 
         # fit model
         trainer = Trainer(
@@ -364,7 +363,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
             max_epochs=1,
             limit_val_batches=0.5,
             limit_train_batches=0.2,
-            distributed_backend='horovod'
+            accelerator='horovod'
         )
         results = trainer.fit(model)
         assert results == 1
