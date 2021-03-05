@@ -1,9 +1,10 @@
 import pytest
+from torch.utils.data import DataLoader
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.tuning import Tuner
-from tests.helpers import BoringModel, BoringDataModule
+from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
-from torch.utils.data import DataLoader
 
 
 class BatchSizeDataModule(BoringDataModule):
@@ -26,12 +27,14 @@ class BatchSizeModel(BoringModel):
 
 
 @RunIf(min_gpus=1)
-@pytest.mark.parametrize("model,datamodule", [
-    (BatchSizeModel(2), None),
-    (BatchSizeModel(2), BatchSizeDataModule(2)),
-    (BatchSizeModel(2), BatchSizeDataModule(None)),
-    (BatchSizeModel(None), BatchSizeDataModule(2)),
-])
+@pytest.mark.parametrize(
+    "model,datamodule", [
+        (BatchSizeModel(2), None),
+        (BatchSizeModel(2), BatchSizeDataModule(2)),
+        (BatchSizeModel(2), BatchSizeDataModule(None)),
+        (BatchSizeModel(None), BatchSizeDataModule(2)),
+    ]
+)
 def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model, datamodule):
     """ Test the tuner method `Tuner.scale_batch_size` with a datamodule. """
     trainer = Trainer(
@@ -43,11 +46,7 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model, datamod
     )
     tuner = Tuner(trainer)
     new_batch_size = tuner.scale_batch_size(
-        model=model,
-        mode="binsearch",
-        init_val=4,
-        max_trials=2,
-        datamodule=datamodule
+        model=model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule
     )
     assert new_batch_size == 16
     if hasattr(model, "batch_size"):
