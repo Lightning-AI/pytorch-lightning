@@ -126,6 +126,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         def validation_epoch_end(self, outputs):
             self.log('g', torch.tensor(2, device=self.device), on_epoch=True)
             self.validation_epoch_end_called = True
+            assert len(self.trainer.evaluation_loop.outputs) == 0
 
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
