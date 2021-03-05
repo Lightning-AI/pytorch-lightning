@@ -85,7 +85,7 @@ def test_syft():
             self.remote_model = self.local_model.send(duet)
 
         def get_model(self) -> type(nn.Module):  # type: ignore
-            return self.remote_model.get()
+            return self.remote_model.get(request_block=True)
 
         def forward(self, x: SyTensorProxyType) -> SyTensorProxyType:
             return self.model(x)

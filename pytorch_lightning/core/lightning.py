@@ -1536,7 +1536,7 @@ class LightningModule(
         """
         # call .item() only once but store elements without graphs
         if _PYSYFT_AVAILABLE:
-            running_train_loss = self.trainer.train_loop.running_loss.mean().get(delete_obj=False)
+            running_train_loss = self.trainer.train_loop.running_loss.mean().get(request_block=True, delete_obj=False)
         else:
             running_train_loss = self.trainer.train_loop.running_loss.mean()
 

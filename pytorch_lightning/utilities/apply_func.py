@@ -160,7 +160,7 @@ def move_data_to_device(batch: Any, device: torch.device):
             from syft.core.pointer.pointer import Pointer
             from syft import client_cache
             if isinstance(data, Pointer):
-                data = data.get(delete_obj=False)
+                data = data.get(request_block=True, delete_obj=False)
                 data = data.send(client_cache["duet"])
                 return data
         return data.to(device, **kwargs)

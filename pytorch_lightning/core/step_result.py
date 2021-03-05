@@ -470,7 +470,7 @@ class Result(Dict):
         elif isinstance(sample, str):
             return len(sample)
         elif _PYSYFT_AVAILABLE and isinstance(sample, Pointer):
-            sample = sample.get(delete_obj=False)
+            sample = sample.get(request_block=True, delete_obj=False)
             size = Result.unpack_batch_size(sample)
         elif isinstance(sample, dict):
             sample = next(iter(sample.values()), 1)

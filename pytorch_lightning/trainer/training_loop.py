@@ -280,7 +280,7 @@ class TrainLoop:
 
     def _check_training_step_output(self, training_step_output):
         if _PYSYFT_AVAILABLE and isinstance(training_step_output, Pointer):
-            training_step_output = training_step_output.get(delete_obj=False)
+            training_step_output = training_step_output.get(request_block=True, delete_obj=False)
         if isinstance(training_step_output, torch.Tensor) and not self.automatic_optimization:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
@@ -355,7 +355,7 @@ class TrainLoop:
         # TODO: remove checks in 1.0.0
         if _PYSYFT_AVAILABLE and isinstance(training_step_output_for_epoch_end, Pointer):
             _training_step_output_for_epoch_end = training_step_output_for_epoch_end.get(
-                delete_obj=False)
+                request_block=True, delete_obj=False)
         else:
             _training_step_output_for_epoch_end = training_step_output_for_epoch_end
 
@@ -392,7 +392,7 @@ class TrainLoop:
         hiddens = None
 
         if _PYSYFT_AVAILABLE and isinstance(training_step_output, Pointer):
-            _training_step_output = training_step_output.get(delete_obj=False)
+            _training_step_output = training_step_output.get(request_block=True, delete_obj=False)
         else:
             _training_step_output = training_step_output
 
@@ -652,7 +652,7 @@ class TrainLoop:
 
         for split_idx, split_batch in enumerate(splits):
             if _PYSYFT_AVAILABLE:
-                split_batch = split_batch.get(delete_obj=False).send(client_cache["duet"])
+                split_batch = split_batch.get(request_block=True, delete_obj=False).send(client_cache["duet"])
 
             # create an iterable for optimizers and loop over them
             for opt_idx, optimizer in self.prepare_optimizers():
