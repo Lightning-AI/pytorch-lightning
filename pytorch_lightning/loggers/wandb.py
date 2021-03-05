@@ -60,13 +60,13 @@ class WandbLogger(LightningLoggerBase):
         version: Same as id.
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong.
-        log_model: Save checkpoints as W&B artifacts as created by
-            :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+            as W&B artifacts.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
-              :paramref:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint.save_top_k` == -1
-              which also saves every checkpoint during training.
+              :paramref:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint.save_top_k` ``== -1``
+              which also logs every checkpoint during training.
             * if ``log_model == False`` (default), no checkpoint is logged.
 
         prefix: A string to put at the beginning of metric keys.
