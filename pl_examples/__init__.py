@@ -1,6 +1,13 @@
 import os
 
+from six.moves import urllib
+
 from pytorch_lightning.utilities import _module_available
+
+# TorchVision hotfix https://github.com/pytorch/vision/issues/1938
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+urllib.request.install_opener(opener)
 
 _EXAMPLES_ROOT = os.path.dirname(__file__)
 _PACKAGE_ROOT = os.path.dirname(_EXAMPLES_ROOT)
@@ -33,12 +40,6 @@ LIGHTNING_LOGO = """
                   ##########
                      ####
 """
-
-# TorchVision hotfix https://github.com/pytorch/vision/issues/1938
-from six.moves import urllib
-opener = urllib.request.build_opener()
-opener.addheaders = [('User-agent', 'Mozilla/5.0')]
-urllib.request.install_opener(opener)
 
 
 def nice_print(msg, last=False):
