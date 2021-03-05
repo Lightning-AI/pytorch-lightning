@@ -17,13 +17,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from weakref import proxy
 
 import torch
+from torch.distributed.distributed_c10d import get_world_size
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DistributedType, LightningEnum
 from pytorch_lightning.utilities.warnings import WarningCache
-from torch.distributed.distributed_c10d import GroupMember, get_world_size
 
 log = logging.getLogger(__name__)
 
