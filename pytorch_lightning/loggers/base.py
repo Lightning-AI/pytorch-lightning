@@ -339,6 +339,19 @@ class LightningLoggerBase(ABC):
             metrics = {f'{self._prefix}{self.LOGGER_JOIN_CHAR}{k}': v for k, v in metrics.items()}
 
         return metrics
+    
+    def on_save_checkpoint(self, trainer, pl_module: LightningModule, checkpoint: Dict[str, Any]) -> dict:
+        """
+        Called when saving a model checkpoint, use to persist state of logger.
+
+        Args:
+            trainer: the current Trainer instance.
+            pl_module: the current LightningModule instance.
+            checkpoint: the checkpoint dictionary that will be saved.
+
+        Returns:
+            The logger state.
+        """
 
 
 class LoggerCollection(LightningLoggerBase):
@@ -409,7 +422,14 @@ class LoggerCollection(LightningLoggerBase):
     @property
     def version(self) -> str:
         return '_'.join([str(logger.version) for logger in self._logger_iterable])
-
+    
+    def on_save_checkpoint(self, trainer, pl_module: LightningModule, checkpoint: Dict[str, Any]) -> dict:
+        logger_states = {}
+        for logger in self._logger_iterable:
+            state = logger.on_save_checkpoint(trainer, pl_module, checkpoint)
+            if state:
+                logger_states[type(logger)] = state
+        return logger_states
 
 class DummyExperiment(object):
     """ Dummy experiment """
@@ -456,7 +476,7 @@ class DummyLogger(LightningLoggerBase):
     def __getitem__(self, idx) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
-
+    
 
 def merge_dicts(
     dicts: Sequence[Mapping],
