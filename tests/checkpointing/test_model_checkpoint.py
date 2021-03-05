@@ -614,9 +614,8 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
         max_epochs=epochs,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        val_check_interval=1.0,
+        limit_train_batches=1,
+        limit_val_batches=1,
         logger=False,
     )
     trainer.fit(model)
@@ -637,9 +636,8 @@ def test_model_checkpoint_every_n_epochs_and_no_period(tmpdir, every_n_epochs):
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
         max_epochs=epochs,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        val_check_interval=1.0,
+        limit_train_batches=1,
+        limit_val_batches=1,
         logger=False,
     )
     trainer.fit(model)
@@ -653,16 +651,15 @@ def test_ckpt_every_n_batches(tmpdir):
     """ Tests that the checkpoints are saved every n training steps. """
 
     model = LogInTwoMethods()
-
+    every_n_batches = 16
     trainer = Trainer(
         default_root_dir=tmpdir,
-        min_epochs=2,
         max_epochs=2,
         progress_bar_refresh_rate=0,
         checkpoint_callback=ModelCheckpoint(
             filename="{step}",
             every_n_epochs=0,
-            every_n_batches=16,
+            every_n_batches=every_n_batches,
             dirpath=tmpdir,
             save_top_k=-1,
             save_last=False,
@@ -671,16 +668,7 @@ def test_ckpt_every_n_batches(tmpdir):
     )
 
     trainer.fit(model)
-    expected = [
-        "step=15.ckpt",
-        "step=31.ckpt",
-        "step=47.ckpt",
-        "step=63.ckpt",
-        "step=79.ckpt",
-        "step=95.ckpt",
-        "step=111.ckpt",
-        "step=127.ckpt",
-    ]
+    expected=[f"step={i}.ckpt" for i in range(15, 128, every_n_batches)]
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
@@ -689,9 +677,7 @@ def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir):
     model = LogInTwoMethods()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        min_epochs=2,
         max_epochs=2,
-        progress_bar_refresh_rate=0,
         checkpoint_callback=ModelCheckpoint(
             every_n_epochs=1,
             every_n_batches=30,

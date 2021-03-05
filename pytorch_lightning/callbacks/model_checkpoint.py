@@ -186,8 +186,8 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
-        self.period = every_n_epochs
-        self.every_n_epochs = every_n_epochs
+        self.every_n_epochs = period or every_n_epochs
+        self.period = self.every_n_epochs
         self.every_n_batches = every_n_batches
         self._last_global_step_saved = -1
         self.current_score = None
@@ -204,8 +204,6 @@ class ModelCheckpoint(Callback):
                 'Argument `period` is deprecated in v1.3 and will be removed in v1.5.'
                 ' Please use `every_n_epochs` instead.', DeprecationWarning
             )
-            self.every_n_epochs = period
-            self.period = period
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
@@ -221,7 +219,7 @@ class ModelCheckpoint(Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
         if self._should_skip_saving_checkpoint(trainer):
             return
-        step = trainer.global_step
+        step = trainer.total_batch_idx
         skip_batch = self.every_n_steps < 1 or ((step + 1) % self.every_n_steps != 0)
         if skip_batch:
             return
