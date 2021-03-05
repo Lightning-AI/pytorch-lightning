@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Generator
+from types import ModuleType
+from typing import Any, Dict, Generator, Union
 
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.experimental.plugins.secure.base import BaseSecurePlugin
 from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
 
@@ -45,13 +47,7 @@ class PySyftPlugin(BaseSecurePlugin):
 
 
 if _PYSYFT_AVAILABLE:
-
-    from types import ModuleType
-    from typing import Any, Union
-
     import syft as sy
-
-    from pytorch_lightning.core.lightning import LightningModule
 
     SyModuleProxyType = Union[ModuleType, Module]
     SyModelProxyType = Union[Module, sy.Module]

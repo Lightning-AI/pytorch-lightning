@@ -39,6 +39,9 @@ from pytorch_lightning.utilities.warnings import WarningCache
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
+if _PYSYFT_AVAILABLE:
+    from pytorch_lightning.experimental.plugins.secure.pysyft import PySyftPlugin
+
 
 class ModelCheckpoint(Callback):
     r"""
@@ -303,7 +306,6 @@ class ModelCheckpoint(Callback):
         # delegate the saving to the trainer
         if self.save_function is not None:
             if _PYSYFT_AVAILABLE:
-                from pytorch_lightning.experimental.plugins.secure.pysyft import PySyftPlugin
                 PySyftPlugin.save_function(trainer, filepath, self.save_weights_only)
             else:
                 self.save_function(filepath, self.save_weights_only)
