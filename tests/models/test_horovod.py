@@ -355,7 +355,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     num_workers = 8
     init_lr = 0.1 * num_workers
 
-    with patch('horovod.torch.size', return_value=8) as mock_hvd_size:
+    with patch('horovod.torch.size', return_value=8):
 
         # fit model
         trainer = Trainer(
