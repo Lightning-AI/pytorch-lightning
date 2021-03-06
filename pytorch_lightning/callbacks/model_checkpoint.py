@@ -213,12 +213,14 @@ class ModelCheckpoint(Callback):
         epoch = trainer.current_epoch
         global_step = trainer.global_step
 
+        from pytorch_lightning.trainer.states import TrainerState
         if (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
+            or trainer.state != TrainerState.FITTING  # don't save anything during non-fit
+            or trainer.sanity_checking  # don't save anything during sanity check
             or self.save_top_k == 0  # no models are saved
             or self.period < 1  # no models are saved
             or (epoch + 1) % self.period  # skip epoch
-            or trainer.running_sanity_check  # don't save anything during sanity check
             or self._last_global_step_saved == global_step  # already saved at the last step
         ):
             return

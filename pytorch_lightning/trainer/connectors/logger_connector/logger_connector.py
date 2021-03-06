@@ -24,7 +24,7 @@ from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.utilities import DeviceType, flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -40,8 +40,8 @@ class LoggerConnector:
         self._logged_metrics = MetricsHolder()
         self._progress_bar_metrics = MetricsHolder(to_float=True)
         self.eval_loop_results = []
-        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in RunningStage}
-        self._cached_results[None] = EpochResultStore(trainer, None)
+        self._cached_results = {stage: EpochResultStore(trainer) for stage in RunningStage}
+        self._cached_results[None] = EpochResultStore(trainer)
         self._callback_hook_validator = CallbackHookNameValidator()
 
     @property
@@ -287,7 +287,7 @@ class LoggerConnector:
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
     def get_evaluate_epoch_results(self):
-        if not self.trainer.running_sanity_check:
+        if not self.trainer.sanity_checking:
             # log all the metrics as a single dict
             metrics_to_log = self.cached_results.get_epoch_log_metrics()
             if len(metrics_to_log) > 0:
@@ -295,11 +295,16 @@ class LoggerConnector:
 
         self.prepare_eval_loop_results()
 
-        # log results of test
-        if self.trainer.testing and self.trainer.is_global_zero and self.trainer.verbose_test:
+        # log results of evaluation
+        if (
+            self.trainer.state != TrainerState.FITTING
+            and self.trainer.evaluating
+            and self.trainer.is_global_zero
+            and self.trainer.verbose_evaluate
+        ):
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
-                print(f'DATALOADER:{result_idx} TEST RESULTS')
+                print(f'DATALOADER:{result_idx} {self.trainer._running_stage.upper()} RESULTS')
                 pprint({
                     k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
                     for k, v in results.items()
@@ -330,7 +335,7 @@ class LoggerConnector:
                     flat['checkpoint_on'] = flat['val_loss']
                     flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
-                if self.trainer.testing:
+                if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                     self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
         else:
             # with a scalar return, auto set it to "val_loss" for callbacks
@@ -345,7 +350,7 @@ class LoggerConnector:
                 flat['early_stop_on'] = flat['val_loss']
 
             self.trainer.logger_connector.callback_metrics.update(flat)
-            if self.trainer.testing:
+            if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                 self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
     def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
@@ -363,14 +368,14 @@ class LoggerConnector:
         callback_metrics.update(log_metrics)
         callback_metrics.update(prog_bar_metrics)
         self.trainer.logger_connector.callback_metrics.update(callback_metrics)
-        if self.trainer.testing:
+        if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
             self.trainer.logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         if len(dataloader_result_metrics) > 0:
             self.eval_loop_results.append(dataloader_result_metrics)
 
     def __process_eval_epoch_end_results_and_log_legacy(self, eval_results):
-        if self.trainer.running_sanity_check:
+        if self.trainer.sanity_checking:
             return
 
         if eval_results is not None and len(eval_results) > 0:

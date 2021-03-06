@@ -27,9 +27,8 @@ class PredictLoop(object):
         self.trainer.num_predict_batches = []
 
     def get_predict_dataloaders(self, max_batches):
-        # select dataloaders
-        model = self.trainer.lightning_module
-        self.trainer.reset_predict_dataloader(model)
+        self.trainer.reset_predict_dataloader(self.trainer.lightning_module)
+
         dataloaders = self.trainer.predict_dataloaders
         if max_batches is None:
             max_batches = self.trainer.num_predict_batches
