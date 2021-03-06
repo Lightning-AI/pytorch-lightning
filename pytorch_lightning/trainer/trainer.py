@@ -922,7 +922,7 @@ class Trainer(
             self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
 
         if self.validating:
-            self.validated_ckpt_paath = ckpt_path
+            self.validated_ckpt_path = ckpt_path
         else:
             self.tested_ckpt_path = ckpt_path
 
