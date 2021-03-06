@@ -4,7 +4,6 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.tuning import Tuner
 from tests.helpers import BoringDataModule, BoringModel
-from tests.helpers.runif import RunIf
 
 
 class BatchSizeDataModule(BoringDataModule):
