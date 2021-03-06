@@ -185,6 +185,7 @@ class LightningModule(
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
     ) -> Any:
+        device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
 
         if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
