@@ -19,12 +19,14 @@ from tests.helpers.runif import RunIf
     LightningParallelModule,
     LightningDistributedModule,
 ])
-@pytest.mark.parametrize("stage", [
-    ("training", "training_step"),
-    ("testing", "test_step"),
-    ("validating", "validation_step"),
-    ("predicting", "predict"),
-])
+@pytest.mark.parametrize(
+    "stage", [
+        ("training", "training_step"),
+        ("testing", "test_step"),
+        ("validating", "validation_step"),
+        ("predicting", "predict"),
+    ]
+)
 def test_lightning_wrapper_module_methods(wrapper_class, stage):
     """ Test that the LightningWrapper redirects .forward() to the LightningModule methods. """
     pl_module = MagicMock()
