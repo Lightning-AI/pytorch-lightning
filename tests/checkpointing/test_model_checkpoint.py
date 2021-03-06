@@ -1084,9 +1084,9 @@ def test_current_score(tmpdir):
 
     class TestModel(BoringModel):
 
-        def training_step(self, *args):
+        def training_step(self, *args, **kwargs):
             self.log("foo", (self.current_epoch + 1) / 10)
-            return super().training_step(*args)
+            return super().training_step(*args, **kwargs)
 
     model_checkpoint = ModelCheckpoint(
         dirpath=tmpdir,
@@ -1117,9 +1117,9 @@ def test_current_score_when_nan(tmpdir, mode: str):
 
     class TestModel(BoringModel):
 
-        def training_step(self, *args):
+        def training_step(self, *args, **kwargs):
             self.log("foo", float("nan"))
-            return super().training_step(*args)
+            return super().training_step(*args, **kwargs)
 
     model_checkpoint = ModelCheckpoint(
         dirpath=tmpdir,

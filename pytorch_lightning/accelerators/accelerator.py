@@ -127,9 +127,7 @@ class Accelerator(object):
         """
         pass
 
-    def batch_to_device(
-        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
-    ) -> Any:
+    def batch_to_device(self, batch: Any, dataloader_idx: Optional[int] = None) -> Any:
         """Moves the batch to the correct device.
         The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
@@ -141,7 +139,7 @@ class Accelerator(object):
         model = self.lightning_module
 
         if model is not None:
-            return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
+            return model._apply_batch_transfer_handler(batch, dataloader_idx)
 
         return move_data_to_device(batch, device)
 

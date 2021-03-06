@@ -180,7 +180,7 @@ class ParityModuleRNN(LightningModule):
         seq, last = self.rnn(x)
         return self.linear_out(seq)
 
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = F.mse_loss(y_hat, y)
@@ -212,7 +212,7 @@ class ParityModuleMNIST(LightningModule):
         x = self.c_d2(x)
         return x
 
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)

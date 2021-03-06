@@ -594,7 +594,7 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
-    def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
+    def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.
@@ -612,6 +612,8 @@ class DataHooks:
         Note:
             This hook should only transfer the data and not modify it, nor should it move the data to
             any other device than the one passed in as argument (unless you know what you are doing).
+            To check the current state of execution of this hook you can use ``self.training/testing/validating/predicting``
+            so that you can add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -620,6 +622,7 @@ class DataHooks:
         Args:
             batch: A batch of data that needs to be transferred to a new device.
             device: The target device as defined in PyTorch.
+            dataloader_idx: The index of the dataloader to which the batch belongs.
 
         Returns:
             A reference to the data on the new device.
@@ -643,12 +646,15 @@ class DataHooks:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
         """
-        device = device or self.device
         return move_data_to_device(batch, device)
 
-    def on_before_batch_transfer(self, batch, dataloader_idx):
+    def on_before_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
+
+        Note:
+            To check the current state of execution of this hook you can use ``self.training/testing/validating/predicting``
+            so that you can add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -677,9 +683,13 @@ class DataHooks:
         """
         return batch
 
-    def on_after_batch_transfer(self, batch, dataloader_idx):
+    def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         """
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
+
+        Note:
+            To check the current state of execution of this hook you can use ``self.training/testing/validating/predicting``
+            so that you can add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
