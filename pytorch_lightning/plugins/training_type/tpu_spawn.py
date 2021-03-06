@@ -244,7 +244,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo, pass also bets score
 
         # load last weights
-        if last_path and model.trainer.state != TrainerState.FITTING:
+        if last_path and model.trainer.state == TrainerState.FITTING:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 

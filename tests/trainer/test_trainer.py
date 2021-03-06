@@ -601,7 +601,7 @@ def test_benchmark_option(tmpdir):
 
 @pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
-def test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
+def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k):
     hparams = EvalModelTemplate.get_default_hparams()
 
     model = EvalModelTemplate(**hparams)
