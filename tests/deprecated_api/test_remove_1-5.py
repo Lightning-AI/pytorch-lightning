@@ -111,3 +111,16 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
         ModelCheckpoint(dirpath=tmpdir)
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         ModelCheckpoint(dirpath=tmpdir, period=1)
+
+
+def test_old_transfer_batch_to_device_hook(tmpdir):
+
+    class OldModel(BoringModel):
+
+        def transfer_batch_to_device(self, batch, device):
+            return super().transfer_batch_to_device(batch, device, None)
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
+    with pytest.deprecated_call(match='old signature will be removed in v1.5'):
+        trainer.fit(OldModel())
+
