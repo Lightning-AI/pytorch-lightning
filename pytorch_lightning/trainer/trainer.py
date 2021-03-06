@@ -457,10 +457,10 @@ class Trainer(
                                 |                             ||
                          {self.dispatch}                      ||
                                 |                             ||  LIGHTNING
-                {self.accelerator.start_training} or          ||  FLOW
-                {self.accelerator.start_evaluating} or        ||  DIRECTION
+                {self.accelerator.start_training} or          ||
+                {self.accelerator.start_evaluating} or        ||  FLOW
                 {self.accelerator.start_predicting}           ||
-                                |                             ||
+                                |                             ||  DIRECTION
                         {self.run_train} or                   ||
                      {self.run_evaluation} or                 ||
                        {self.run_predict}                     ||
