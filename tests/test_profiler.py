@@ -307,31 +307,29 @@ def test_pytorch_profiler_nested(tmpdir):
         with pytorch_profiler.profile("c"):
             _ = a + b
 
-    pa = pytorch_profiler.profiled_actions
+    actual = {k: [e.name for e in events] for k, events in pytorch_profiler.function_events.items()}
+    if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
+        actual = {k: [e.replace("aten::", "") for e in events] for k, events in actual.items()}
 
     # From PyTorch 1.8.0, less operation are being traced.
     if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
-        expected_ = {
+        expected = {
             'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'add'],
             'b': ['zeros', 'empty', 'zero_'],
             'c': ['add'],
         }
     # From PyTorch 1.6.0, more operation are being traced.
     elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        expected_ = {
+        expected = {
             'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty'],
             'b': ['zeros', 'empty', 'zero_', 'fill_'],
             'c': ['add', 'empty'],
         }
     else:
-        expected_ = {
+        expected = {
             'a': ['add'],
             'b': [],
             'c': ['add'],
         }
 
-    for n in ('a', 'b', 'c'):
-        pa[n] = [e.name for e in pa[n]]
-        if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
-            pa[n] = [e.replace("aten::", "") for e in pa[n]]
-        assert pa[n] == expected_[n]
+    assert actual == expected

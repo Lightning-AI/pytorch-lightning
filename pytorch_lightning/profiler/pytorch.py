@@ -15,10 +15,10 @@
 import inspect
 import logging
 import os
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union, Type, Any, Tuple, Dict
 
 import torch
-from torch.autograd.profiler import EventList, FunctionEvent
+from torch.autograd.profiler import record_function, EventList, parse_event_records
 
 from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities import rank_zero_only
@@ -26,6 +26,8 @@ from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
+
+_PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
 
 
 class PyTorchProfiler(BaseProfiler):
@@ -46,13 +48,7 @@ class PyTorchProfiler(BaseProfiler):
     def __init__(
         self,
         output_filename: Optional[str] = None,
-        enabled: bool = True,
-        use_cpu: bool = True,
-        use_cuda: bool = False,
-        record_shapes: bool = False,
-        profile_memory: bool = False,
         group_by_input_shapes: bool = False,
-        with_stack: bool = False,
         emit_nvtx: bool = False,
         export_to_chrome: bool = False,
         path_to_export_trace: Optional[str] = None,
@@ -61,6 +57,7 @@ class PyTorchProfiler(BaseProfiler):
         record_functions: Optional[List[str]] = None,
         local_rank: Optional[int] = None,
         profiled_functions: Optional[List[str]] = None,
+        **profiler_kwargs: Any,
     ) -> None:
         """
         This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
@@ -72,20 +69,7 @@ class PyTorchProfiler(BaseProfiler):
                 each rank will stream the profiled operation to their own file
                 with the extension ``_{rank}.txt``
 
-            enabled: Setting this to False makes this context manager a no-op.
-
-            use_cpu: record events on the CPU
-
-            use_cuda: Enables timing of CUDA events as well using the cudaEvent API.
-                Adds approximately 4us of overhead to each tensor operation.
-
-            record_shapes: If shapes recording is set, information about input dimensions will be collected.
-
-            profile_memory: Whether to report memory usage
-
             group_by_input_shapes: Include operator input shapes and group calls by shape.
-
-            with_stack: record source information (file and line number) for the ops
 
             emit_nvtx: Context manager that makes every autograd operation emit an NVTX range
                 Run::
@@ -106,13 +90,19 @@ class PyTorchProfiler(BaseProfiler):
             row_limit: Limit the number of rows in a table, ``0`` is a special value that
                 removes the limit completely.
 
-            sort_by_key: Keys to sort out profiled table.
+            sort_by_key: Attribute used to sort entries. By default
+                they are printed in the same order as they were registered.
+                Valid keys include: ``cpu_time``, ``cuda_time``, ``cpu_time_total``,
+                ``cuda_time_total``, ``cpu_memory_usage``, ``cuda_memory_usage``,
+                ``self_cpu_memory_usage``, ``self_cuda_memory_usage``, ``count``.
 
             record_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
 
             local_rank: When running in distributed setting, local_rank is used for each process
                 to write to their own file if `output_fname` is provided.
+
+            profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
 
         Raises:
             MisconfigurationException:
@@ -127,19 +117,14 @@ class PyTorchProfiler(BaseProfiler):
         record_functions = self.__deprecation_check(profiled_functions, record_functions)
 
         self.output_fname = output_filename
-        self.enabled = enabled
         self.record_functions = record_functions or self.RECORD_FUNCTIONS
-        self.use_cpu = use_cpu
-        self.use_cuda = use_cuda
-        self.record_shapes = record_shapes
-        self.profile_memory = profile_memory
-        self.sort_by_key = sort_by_key or ("cuda_time_total" if self.use_cuda else "cpu_time_total")
-        self.with_stack = with_stack
-        self.group_by_input_shapes = group_by_input_shapes and record_shapes
+        self.sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
+        self.group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self.row_limit = row_limit
         self.emit_nvtx = emit_nvtx
         self.export_to_chrome = export_to_chrome
         self.path_to_export_trace = path_to_export_trace
+        self.profiler_kwargs = profiler_kwargs
 
         if self.export_to_chrome and self.path_to_export_trace is None:
             rank_zero_warn(
@@ -152,15 +137,17 @@ class PyTorchProfiler(BaseProfiler):
                 f"Found sort_by_key: {self.sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-        self.profiled_actions: Dict[str, Union[FunctionEvent, EventList]] = {}
-        self.context_names = {}
-        self.running_stack = []
-        self.profiler = None
+        self.stack: List[Tuple[str, record_function]] = []
+        self.profiler: Optional[_PROFILER] = None
+        self.function_events: Dict[str, EventList] = {}
 
         super().__init__(local_rank=local_rank)
 
-    def __deprecation_check(self, profiled_functions: Optional[List[str]],
-                            record_functions: Optional[List[str]]) -> Optional[List[str]]:
+    def __deprecation_check(
+        self,
+        profiled_functions: Optional[List[str]],
+        record_functions: Optional[List[str]]
+    ) -> Optional[List[str]]:
         if profiled_functions is not None:
             rank_zero_warn(
                 "`PyTorchProfiler.profiled_functions` has been renamed to"
@@ -197,82 +184,101 @@ class PyTorchProfiler(BaseProfiler):
         if action_name not in self.record_functions:
             return
 
-        if len(self.running_stack) > 0:
-            self._stop()
-
-        self.running_stack.append(action_name)
-
-        self.context_names[action_name] = "/".join(self.running_stack)
-
-        self._start()
-
-    def _start(self) -> None:
-        if self.emit_nvtx:
-            self._create_profiler(torch.cuda.profiler.profile, enter=False)
-            self._create_profiler(torch.autograd.profiler.emit_nvtx)
-        else:
-            self._create_profiler(torch.autograd.profiler.profile)
-
-    def _create_profiler(self, profiler, enter=True) -> None:
-        init_args = inspect.signature(profiler.__init__).parameters
-        profiler_args = {k: v for k, v in vars(self).items() if k in init_args}
-        pr = profiler(**profiler_args)
-        if enter:
-            pr = pr.__enter__()
-        self.profiler = pr
-
-    def _stop(self) -> None:
         if self.profiler is None:
-            return
+            self._create_profilers()
 
-        self.profiler.__exit__(None, None, None)
+            self.profiler.__enter__()
+            if self._parent_profiler is not None:
+                self._parent_profiler.__enter__()
 
-        events: EventList = self.profiler.function_events
-        if events is not None:
-            for name in self.running_stack:
-                if name not in self.profiled_actions:
-                    self.profiled_actions[name] = events
-                else:
-                    self.profiled_actions[name] += events
+        recording = record_function(action_name)
+        self.stack.append((action_name, recording))
+        recording.__enter__()
+
+    def _create_profilers(self) -> None:
+        if self.emit_nvtx:
+            self._parent_profiler = self._create_profiler(torch.cuda.profiler.profile)
+            self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
+        else:
+            self._parent_profiler = None
+            self.profiler = self._create_profiler(torch.autograd.profiler.profile)
+
+    def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
+        init_parameters = inspect.signature(profiler.__init__).parameters
+        kwargs = {k: v for k, v in self.profiler_kwargs.items() if k in init_parameters}
+        return profiler(**kwargs)
 
     def stop(self, action_name: str) -> None:
-        if action_name not in self.record_functions:
+        if self.profiler is None or action_name not in self.record_functions:
             return
 
-        if len(self.running_stack) == 0 or self.running_stack[-1] != action_name:
+        if not self.stack or self.stack[-1][0] != action_name:
             raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
 
-        self._stop()
+        action_name, recording = self.stack.pop()
+        recording.__exit__(None, None, None)
 
-        self.profiler = None
-        self.running_stack.pop()
-        # restore running profiler
-        if len(self.running_stack) > 0:
-            self._start()
+        self.function_events[action_name] = self.thing()
+        self.profiler.function_events = None
+
+        if not self.stack:
+            self.profiler.__exit__(None, None, None)
+            if self._parent_profiler is not None:
+                self._parent_profiler.__exit__(None, None, None)
+
+    def thing(self):
+        """TODO: Adapted from ..."""
+        profiler = self.profiler
+        kind = torch.autograd.ProfilerState.CUDA if profiler.use_cuda else torch.autograd.ProfilerState.CPU
+        config = torch.autograd.ProfilerConfig(
+            kind,
+            profiler.record_shapes,
+            profiler.profile_memory,
+            profiler.with_stack
+        )
+
+        records = torch.autograd._disable_profiler()
+
+        function_events = EventList(
+            parse_event_records(records),
+            use_cuda=profiler.use_cuda,
+            profile_memory=profiler.profile_memory
+        )
+        if profiler.with_stack:
+            function_events.set_backward_stacktraces()
+
+        torch.autograd._enable_profiler(config)
+
+        return function_events
 
     def summary(self) -> str:
-        if not self.enabled or self.emit_nvtx:
+        if not self.profiler_kwargs.get("enabled", True) or self.emit_nvtx:
             return ""
 
         local_rank = 0 if self.local_rank is None else self.local_rank
         recorded_stats = {}
-        for action_name, function_events in self.profiled_actions.items():
+        function_events = self.profiler.function_events
 
-            # next line is a workaround for a pytorch issue (fixed on master, still present
-            # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
-            # parent event for detach`
-            function_events.populate_cpu_children = lambda: None
+        # next line is a workaround for a pytorch issue (fixed on master, still present
+        # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
+        # parent event for detach`
+        function_events.populate_cpu_children = lambda: None
 
-            if self.export_to_chrome:
-                filename = f"{action_name}_{local_rank}_trace.json"
-                path_to_trace = (
-                    filename
-                    if self.path_to_export_trace is None else os.path.join(self.path_to_export_trace, filename)
-                )
-                function_events.export_chrome_trace(path_to_trace)
+        if self.export_to_chrome:
+            filename = f"{function_events.name}_{local_rank}_trace.json"
+            path_to_trace = (
+                filename
+                if self.path_to_export_trace is None else os.path.join(self.path_to_export_trace, filename)
+            )
+            function_events.export_chrome_trace(path_to_trace)
 
-            data = function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
-            table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
-            recorded_stats[action_name] = table
+        data = function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
+        table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
+        recorded_stats[action_name] = table
 
         return self.stats_to_str(recorded_stats)
+
+    def __del__(self) -> None:
+        super().__del__()
+        self.profiler.__exit__(None, None, None)
+        self._parent_profiler.__exit__(None, None, None)
