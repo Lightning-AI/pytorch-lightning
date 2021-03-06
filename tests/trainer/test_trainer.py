@@ -19,7 +19,7 @@ from argparse import Namespace
 from copy import deepcopy
 from distutils.version import LooseVersion
 from pathlib import Path
-from unittest.mock import ANY, call, patch, Mock
+from unittest.mock import ANY, call, patch
 
 import cloudpickle
 import pytest
@@ -1794,6 +1794,7 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
         assert trainer.lightning_optimizers[0].optimizer is trainer.optimizers[0]
 
     class OptimizerSpy(Callback):
+
         def on_fit_start(self, *args, **kwargs):
             compare_optimizers()
 
@@ -1803,7 +1804,7 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         auto_lr_find=True,
-        callbacks=[OptimizerSpy()]
+        callbacks=[OptimizerSpy()],
     )
 
     trainer.tune(model)
