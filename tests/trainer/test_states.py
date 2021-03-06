@@ -32,50 +32,38 @@ def test_initialize_state(tmpdir):
 )
 def test_trainer_state_while_running(tmpdir, extra_params):
     trainer = Trainer(default_root_dir=tmpdir, **extra_params, auto_lr_find=True)
-    fdr = trainer.fast_dev_run
 
     class TestModel(BoringModel):
         def __init__(self, expected_state):
             super().__init__()
             self.expected_state = expected_state
-            self.called = set()
             self.lr = 0.1
 
         def on_batch_start(self, *_):
             assert self.trainer.state == self.expected_state
 
         def on_train_batch_start(self, *_):
-            self.called.add("train")
             assert self.trainer.training
 
         def on_sanity_check_start(self, *_):
-            self.called.add("sanity")
             assert self.trainer.sanity_checking
 
         def on_validation_batch_start(self, *_):
-            self.called.add("validation")
             assert self.trainer.validating or self.trainer.sanity_checking
 
         def on_test_batch_start(self, *_):
-            self.called.add("test")
             assert self.trainer.testing
 
     model = TestModel(TrainerState.TUNING)
     trainer.tune(model)
-    if fdr:
-        assert not model.called
-    else:
-        assert model.called == {'train', 'validation'}
     assert trainer.state == TrainerState.FINISHED
 
     model = TestModel(TrainerState.FITTING)
     trainer.fit(model)
-    assert model.called == {'train', 'validation'} if fdr else {'train', 'sanity', 'validation'}
     assert trainer.state == TrainerState.FINISHED
 
     model = TestModel(TrainerState.TESTING)
     trainer.test(model)
-    assert model.called == {'test'}
     assert trainer.state == TrainerState.FINISHED
 
 
