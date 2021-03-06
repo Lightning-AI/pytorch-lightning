@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from weakref import proxy
 
 import torch
-from torch.distributed.distributed_c10d import get_world_size
+from torch.distributed import get_world_size
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
