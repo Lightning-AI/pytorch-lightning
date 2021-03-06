@@ -319,6 +319,7 @@ class LitAutoEncoder(pl.LightningModule):
         self.automatic_optimization = False
 
     def training_step(self, batch, batch_idx):
+        # access your optimizers with use_pl_optimizer=False. Default is True
         opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
 
         loss_a = ...
