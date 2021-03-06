@@ -258,7 +258,7 @@ class EpochResultStore:
     """
 
     def __init__(self, trainer: 'pl.Trainer') -> None:
-        self.trainer = trainer
+        self.trainer = proxy(trainer)
         self.reset()
 
     def __getitem__(self, key: str) -> Any:
