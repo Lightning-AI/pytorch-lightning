@@ -23,7 +23,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
@@ -62,7 +62,6 @@ class TrainLoop:
     ):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
-        self.trainer.interrupted = False
         self.trainer.should_stop = False
         self.trainer._state = TrainerState.INITIALIZING
 
@@ -123,7 +122,6 @@ class TrainLoop:
     def on_train_end(self):
         if self._teardown_already_run:
             return
-
         self._teardown_already_run = True
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
@@ -147,6 +145,9 @@ class TrainLoop:
 
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
+
+        # reset bookkeeping
+        self.trainer._running_stage = None
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -477,7 +478,6 @@ class TrainLoop:
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
-        should_check_val = False
         val_loop_called = False
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
@@ -513,11 +513,10 @@ class TrainLoop:
             # -----------------------------------------
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
+                self.trainer.validating = True
                 self.trainer.run_evaluation()
+                self.trainer.training = True
                 val_loop_called = True
-
-                # reset stage to train
-                self.trainer._running_stage = RunningStage.TRAINING
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -572,10 +571,9 @@ class TrainLoop:
             self.check_early_stopping_callback(True)
 
         if should_check_val:
+            self.trainer.validating = True
             self.trainer.run_evaluation(on_epoch=True)
-
-            # reset stage to train
-            self.trainer._running_stage = RunningStage.TRAINING
+            self.trainer.training = True
 
         # increment the global step once
         # progress global step according to grads progress

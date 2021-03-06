@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.lr_finder import lr_find
@@ -61,6 +62,8 @@ class Tuner:
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
             self.lr_find(model, update_attr=True)
+
+        self.trainer.state = TrainerState.FINISHED
 
     def scale_batch_size(
         self,
