@@ -878,8 +878,7 @@ class Trainer(
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model, datamodule)
         results = (
-            self.__evaluate_given_model(model, dataloaders=test_dataloaders)
-            if model_provided else
+            self.__evaluate_given_model(model, dataloaders=test_dataloaders) if model_provided else
             self.__evaluate_using_weights(model, ckpt_path=ckpt_path, dataloaders=test_dataloaders)
         )
 
