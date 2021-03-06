@@ -450,22 +450,22 @@ class Trainer(
         # INSPECT THE CORE LOOPS
         # ----------------------------
         rf"""
-             Lightning internal flow looks like this.    ||
-            {self.fit} or {self.test} or {self.predict}  ||
-                                |                        ||
-                        create accelerator               ||
-                                |                        ||
-                         {self.dispatch}                 ||
-                                |                        ||  LIGHTNING
-                {self.accelerator.start_training} or     ||  FLOW
-                {self.accelerator.start_evaluating} or   ||  DIRECTION
-                {self.accelerator.start_predicting}      ||
-                                |                        ||
-                        {self.run_train} or              ||
-                     {self.run_evaluation} or            ||
-                       {self.run_predict}                ||
-                                |                        ||
-                             results                     \/
+             Lightning internal flow looks like this:
+        {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
+                                |                             ||
+                        create accelerator                    ||
+                                |                             ||
+                         {self.dispatch}                      ||
+                                |                             ||  LIGHTNING
+                {self.accelerator.start_training} or          ||  FLOW
+                {self.accelerator.start_evaluating} or        ||  DIRECTION
+                {self.accelerator.start_predicting}           ||
+                                |                             ||
+                        {self.run_train} or                   ||
+                     {self.run_evaluation} or                 ||
+                       {self.run_predict}                     ||
+                                |                             ||
+                             results                          \/
         This is used to guide readers to the core loops: train, test, predict.
         {self.run_predict} is the simplest to understand, use `Go to Definition` to read it :)
         Search for `start_training` or `start_evaluating` or `start_predicting` in
