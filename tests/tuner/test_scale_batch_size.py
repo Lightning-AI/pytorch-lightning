@@ -26,7 +26,6 @@ class BatchSizeModel(BoringModel):
             self.batch_size = batch_size
 
 
-@RunIf(min_gpus=1)
 @pytest.mark.parametrize(
     "model,datamodule", [
         (BatchSizeModel(2), None),
@@ -39,7 +38,6 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model, datamod
     """ Test the tuner method `Tuner.scale_batch_size` with a datamodule. """
     trainer = Trainer(
         default_root_dir=tmpdir,
-        gpus=1,
         limit_train_batches=1,
         limit_val_batches=0,
         max_epochs=1,
