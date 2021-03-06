@@ -26,15 +26,7 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 log = logging.getLogger(__name__)
 
 if torch.distributed.is_available():
-    from torch.distributed import (
-        group, 
-        ReduceOp, 
-        Backend, 
-        broadcast, 
-        get_backend, 
-        get_rank, 
-        GroupMember
-    )
+    from torch.distributed import Backend, broadcast, get_backend, get_rank, group, GroupMember, ReduceOp
 
 else:
 
@@ -46,7 +38,7 @@ else:
 
 
 # This part is used to provide broadcast support for PyTorch 1.5 and lower.
-
+# https://github.com/pytorch/pytorch/blob/1.7/torch/distributed/distributed_c10d.py#L160
 def _rank_not_in_group(group):
     """
     Helper that checks if the current process's rank is not in a given group.
