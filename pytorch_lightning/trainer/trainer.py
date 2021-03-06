@@ -449,7 +449,7 @@ class Trainer(
         # ----------------------------
         # INSPECT THE CORE LOOPS
         # ----------------------------
-        rf"""
+        f"""
              Lightning internal flow looks like this:
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
@@ -470,7 +470,7 @@ class Trainer(
         {self.run_predict} is the simplest to understand, use `Go to Definition` to read it :)
         Search for `start_training` or `start_evaluating` or `start_predicting` in
         `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
-        """
+        """  # noqa: W605
 
         # ----------------------------
         # TRAIN
