@@ -20,14 +20,22 @@ from functools import wraps
 from typing import Any, Optional, Union
 
 import torch
-from torch.distributed.distributed_c10d import _rank_not_in_group, Backend, broadcast, get_backend, get_rank
 
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_7
 
 log = logging.getLogger(__name__)
 
 if torch.distributed.is_available():
-    from torch.distributed import group, ReduceOp
+    from torch.distributed import (
+        group, 
+        ReduceOp, 
+        Backend, 
+        broadcast, 
+        get_backend, 
+        get_rank, 
+        GroupMember
+    )
+
 else:
 
     class ReduceOp:
@@ -38,6 +46,14 @@ else:
 
 
 # This part is used to provide broadcast support for PyTorch 1.5 and lower.
+
+def _rank_not_in_group(group):
+    """
+    Helper that checks if the current process's rank is not in a given group.
+    """
+    if group is None:
+        return False
+    return group == GroupMember.NON_GROUP_MEMBER
 
 
 # Taken from https://github.com/pytorch/pytorch/blob/1.7/torch/distributed/distributed_c10d.py#L1164
@@ -104,7 +120,7 @@ def _broadcast_object_list(object_list, src=0, group=None):
             object_list[i] = _tensor_to_object(obj_view, obj_size)
 
 
-if _TORCH_GREATER_EQUAL_1_7:
+if _TORCH_GREATER_EQUAL_1_7 and torch.distributed.is_available():
     from torch.distributed.distributed_c10d import broadcast_object_list
 else:
     broadcast_object_list = _broadcast_object_list
