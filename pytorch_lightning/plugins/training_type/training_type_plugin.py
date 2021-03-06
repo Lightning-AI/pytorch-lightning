@@ -125,9 +125,9 @@ class TrainingTypePlugin(Plugin, ABC):
         # double dispatch to initiate the training loop
         self._results = trainer.run_train()
 
-    def start_testing(self, trainer: 'Trainer') -> None:
+    def start_evaluating(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_test()
+        self._results = trainer.run_evaluate()
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the predicting loop

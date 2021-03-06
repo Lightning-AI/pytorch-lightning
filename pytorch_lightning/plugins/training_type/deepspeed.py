@@ -213,7 +213,7 @@ class DeepSpeedPlugin(DDPPlugin):
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
-        if self.lightning_module.trainer.training:
+        if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
         else:
             self._initialize_deepspeed_inference(model)
@@ -249,8 +249,7 @@ class DeepSpeedPlugin(DDPPlugin):
         )
 
         # set optimizer for save/load, but deepspeed manages the specific optimizer logic
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = [optimizer]
+        self.lightning_module.trainer.optimizers = [optimizer]
         self.model = model
 
     def _initialize_deepspeed_inference(self, model):

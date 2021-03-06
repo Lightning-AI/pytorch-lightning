@@ -137,12 +137,13 @@ class EarlyStopping(Callback):
         self.patience = callback_state['patience']
 
     def on_validation_end(self, trainer, pl_module):
-        if trainer.running_sanity_check:
+        from pytorch_lightning.trainer.states import TrainerState
+        if trainer.state != TrainerState.FITTING or trainer.sanity_checking:
             return
 
-        self._run_early_stopping_check(trainer, pl_module)
+        self._run_early_stopping_check(trainer)
 
-    def _run_early_stopping_check(self, trainer, pl_module):
+    def _run_early_stopping_check(self, trainer):
         """
         Checks whether the early stopping condition is met
         and if so tells the trainer to stop the training.

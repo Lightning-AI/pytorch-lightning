@@ -21,7 +21,7 @@ from torch.distributed import get_world_size
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType, LightningEnum
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -255,10 +255,8 @@ class EpochResultStore:
     epoch_result_store.cache_result()
     ```
     """
-
-    def __init__(self, trainer: 'pl.Trainer', stage: RunningStage):
-        self.trainer = proxy(trainer)
-        self._stage = stage
+    def __init__(self, trainer: 'pl.Trainer') -> None:
+        self.trainer = trainer
         self.reset()
 
     def __getitem__(self, key: str) -> Any:
@@ -344,7 +342,6 @@ class EpochResultStore:
         callback_metrics = {}
         batch_pbar_metrics = {}
         batch_log_metrics = {}
-        is_train = self._stage in RunningStage.TRAINING
 
         if not self._has_batch_loop_finished:
             # get pbar
@@ -352,8 +349,7 @@ class EpochResultStore:
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
             batch_log_metrics = self.get_latest_batch_log_metrics()
 
-            if is_train:
-                # Only log and add to callback epoch step during evaluation, test.
+            if self.trainer.training:
                 logger_connector._logged_metrics.update(batch_log_metrics)
                 callback_metrics.update(batch_pbar_metrics)
                 callback_metrics.update(batch_log_metrics)
@@ -374,7 +370,9 @@ class EpochResultStore:
             callback_metrics.update(epoch_log_metrics)
             callback_metrics.update(forked_metrics)
 
-        if not is_train and self.trainer.testing:
+        # TODO(carmocca): when we implement flushing the logger connector metrics after
+        # the trainer.state changes, this should check trainer.evaluating instead
+        if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
             logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         # update callback_metrics
@@ -519,4 +517,4 @@ class EpochResultStore:
         return result
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"
+        return f"{self.__class__.__name__}(internals={self._internals})"
