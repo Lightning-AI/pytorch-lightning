@@ -27,6 +27,10 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Update Pip
+      run: |
+        pip install --quiet "pip>20.1" --upgrade --user  # needed for get pip cacher folder
+
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
       if: runner.os == 'macOS'
