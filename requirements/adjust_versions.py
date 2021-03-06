@@ -3,7 +3,6 @@ import re
 import sys
 from typing import Any, Dict
 
-VERSIONS_NONE: Dict[str, Any] = dict(torchvision=None, torchcsprng=None)
 VERSIONS_LUT: Dict[str, Dict[str, Any]] = {
     "1.4.0": dict(torchvision="0.5.0", torchtext="0.5"),
     "1.5.0": dict(torchvision="0.6.0", torchtext="0.6"),
@@ -15,7 +14,7 @@ VERSIONS_LUT: Dict[str, Dict[str, Any]] = {
 }
 
 
-def find_latest(ver: str, versions_all: list):
+def find_latest(ver: str, versions_all: list) -> str:
     # drop all except semantic version
     ver = re.search(r'([\.\d]+)', ver).groups()[0]
     # find candidates, by starting version pattern

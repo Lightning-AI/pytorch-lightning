@@ -3,7 +3,7 @@ name: Nightly events
 # https://jasonet.co/posts/scheduled-actions/
 # https://github.community/t/distinct-job-for-each-schedule/17811/2
 on:
-  push: {}
+  push: {}  # fixme
   schedule:
     - cron: "0 0 * * *" # At the end of every day
 
@@ -103,8 +103,6 @@ jobs:
         id: extend
 
       - name: Publish CUDA to Docker Hub
-        # ToDo: extend also building for Nightly from pip
-        if: matrix.pytorch_version < 1.8
         # publish master/release
         uses: docker/build-push-action@v2
         with:
