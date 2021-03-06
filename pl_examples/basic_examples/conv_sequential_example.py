@@ -200,7 +200,7 @@ if __name__ == "__main__":
     cli_lightning_logo()
 
     assert _BOLTS_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
-    # assert _FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
+    assert _FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
 
     parser = ArgumentParser(description="Pipe Example")
     parser.add_argument("--use_rpc_sequential", action="store_true")
