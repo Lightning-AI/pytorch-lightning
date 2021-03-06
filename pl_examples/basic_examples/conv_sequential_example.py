@@ -63,7 +63,7 @@ class LitResnet(pl.LightningModule):
     )
     """
 
-    def __init__(self, lr=0.05, batch_size=32, automatic_optimization=True):
+    def __init__(self, lr=0.05, batch_size=32, manual_optimization=False):
         super().__init__()
 
         self.save_hyperparameters()
@@ -102,7 +102,9 @@ class LitResnet(pl.LightningModule):
             nn.Linear(512, 10)
         )
         self._example_input_array = torch.randn((1, 3, 32, 32))
-        if not self.automatic_optimization:
+
+        if manual_optimization:
+            self.automatic_optimization = False
             self.training_step = self.training_step_manual
 
     def forward(self, x):
@@ -198,10 +200,11 @@ if __name__ == "__main__":
     cli_lightning_logo()
 
     assert _BOLTS_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
-    assert _FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
+    # assert _FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
 
     parser = ArgumentParser(description="Pipe Example")
     parser.add_argument("--use_rpc_sequential", action="store_true")
+    parser.add_argument("--manual_optimization", action="store_true")
     parser = Trainer.add_argparse_args(parser)
     parser = pl_bolts.datamodules.CIFAR10DataModule.add_argparse_args(parser)
     args = parser.parse_args()
@@ -212,7 +215,7 @@ if __name__ == "__main__":
     if args.use_rpc_sequential:
         plugins = RPCSequentialPlugin()
 
-    model = LitResnet(batch_size=args.batch_size, automatic_optimization=args.automatic_optimization)
+    model = LitResnet(batch_size=args.batch_size, manual_optimization=args.manual_optimization)
 
     trainer = pl.Trainer.from_argparse_args(args, plugins=[plugins] if plugins else None)
     trainer.fit(model, cifar10_dm)
