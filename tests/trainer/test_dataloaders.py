@@ -1162,7 +1162,9 @@ def test_replace_sampler_with_multiprocessing_context(tmpdir):
 
 @pytest.mark.parametrize('multiple_trainloader_mode', ["min_size", "max_size_cycle"])
 def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
-    """Integration test for multple train loaders"""
+    """
+    Check the correct dataloader_idx inside hooks
+    """
 
     class CustomEvalModelTemplate(EvalModelTemplate):
 
@@ -1175,15 +1177,21 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
             if self.trainer.training:
                 assert dataloader_idx is None
             elif self.trainer.validating:
-                assert dataloader_idx == (0 if self.val_call_count < 5 else 1)
+                assert dataloader_idx == (0 if self.val_call_count <= 5 else 1)
             elif self.trainer.testing:
-                assert dataloader_idx == (0 if self.test_call_count < 5 else 1)
+                assert dataloader_idx == (0 if self.test_call_count <= 5 else 1)
 
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().transfer_batch_to_device(batch, device, dataloader_idx)
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
+            # incrementing here since this is the first hook called at each step
+            if self.trainer.validating:
+                self.val_call_count += 1
+            elif self.trainer.testing:
+                self.test_call_count += 1
+
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().on_before_batch_transfer(batch, dataloader_idx)
 
@@ -1192,18 +1200,23 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
             return super().on_after_batch_transfer(batch, dataloader_idx)
 
         def validation_step(self, batch, batch_idx, dataloader_idx):
-            self.val_call_count += 1
             self.assert_dataloader_idx_hook(dataloader_idx)
             return self.validation_step__multiple_dataloaders(batch, batch_idx, dataloader_idx)
 
+        def val_dataloader(self):
+            return [self.dataloader(train=False), self.dataloader(train=False)]
+
+        def test_dataloader(self):
+            return [self.dataloader(train=False), self.dataloader(train=False)]
+
         def test_step(self, batch, batch_idx, dataloader_idx):
-            self.test_call_count += 1
             self.assert_dataloader_idx_hook(dataloader_idx)
             return self.test_step__multiple_dataloaders(batch, batch_idx, dataloader_idx)
 
     model = CustomEvalModelTemplate()
     model.train_dataloader = model.train_dataloader__multiple_mapping
     model.training_step = model.training_step__multiple_dataloaders
+    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1212,5 +1225,5 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
     )
 
     assert trainer.fit(model)
-    trainer.test()
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    trainer.test(ckpt_path=None)

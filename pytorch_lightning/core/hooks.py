@@ -13,7 +13,7 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -612,8 +612,9 @@ class DataHooks:
         Note:
             This hook should only transfer the data and not modify it, nor should it move the data to
             any other device than the one passed in as argument (unless you know what you are doing).
-            To check the current state of execution of this hook you can use ``self.training/testing/validating/predicting``
-            so that you can add different logic as per your requirement.
+            To check the current state of execution of this hook you can use
+            ``self.training/testing/validating/predicting`` so that you can
+            add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -653,8 +654,9 @@ class DataHooks:
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
         Note:
-            To check the current state of execution of this hook you can use ``self.training/testing/validating/predicting``
-            so that you can add different logic as per your requirement.
+            To check the current state of execution of this hook you can use
+            ``self.training/testing/validating/predicting`` so that you can
+            add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -688,8 +690,9 @@ class DataHooks:
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
         Note:
-            To check the current state of execution of this hook you can use ``self.training/testing/validating/predicting``
-            so that you can add different logic as per your requirement.
+            To check the current state of execution of this hook you can use
+            ``self.training/testing/validating/predicting`` so that you can
+            add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).

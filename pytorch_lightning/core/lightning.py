@@ -182,18 +182,20 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def _apply_batch_transfer_handler(self, batch: Any, dataloader_idx: Optional[int] = None) -> Any:
+    def _apply_batch_transfer_handler(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ) -> Any:
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
 
         if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
-            batch = self.transfer_batch_to_device(batch, self.device, dataloader_idx)
+            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
         else:
             warning_cache.warn(
                 "`transfer_batch_to_device` hook signature has changed in v1.3."
                 " `dataloader_idx` parameter has been added to it. Support for"
                 " the old signature will be removed in v1.5", DeprecationWarning
             )
-            batch = self.transfer_batch_to_device(batch, self.device)
+            batch = self.transfer_batch_to_device(batch, device)
 
         batch = self.on_after_batch_transfer(batch, dataloader_idx)
         return batch
