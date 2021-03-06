@@ -124,7 +124,10 @@ class HookResultStore:
 
         func = getattr(opt_metric, func_name)
         metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
-        if torch.distributed.is_initialized() and self._all_gather_fn.__self__.trainer.world_size > 1:
+        if (
+            torch.distributed.is_available() and torch.distributed.is_initialized()
+            and self._all_gather_fn.__self__.trainer.world_size > 1
+        ):
             for non_metric_key in opt_metric.get_non_metrics_keys():
                 if non_metric_key in metrics_to_log and non_metric_key not in warning_cache.warned_metrics:
                     metric = self._all_gather_fn(metrics_to_log[non_metric_key])
@@ -253,6 +256,7 @@ class EpochResultStore:
     epoch_result_store.cache_result()
     ```
     """
+
     def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
         self.reset()
