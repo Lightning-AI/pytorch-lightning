@@ -381,21 +381,6 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def setup_trainer(self, model: LightningModule):
-        """
-        Sanity check a few things before starting actual training or testing.
-
-        Args:
-            model: The model to run sanity test on.
-        """
-
-        # log hyper-parameters
-        if self.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            self.logger.log_hyperparams(model.hparams_initial)
-            self.logger.log_graph(model)
-            self.logger.save()
-
     def fit(
         self,
         model: LightningModule,
@@ -444,7 +429,6 @@ class Trainer(
         self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator.setup(self, model)
-        self.setup_trainer(model)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -508,6 +492,13 @@ class Trainer(
 
     def pre_dispatch(self):
         self.accelerator.pre_dispatch()
+
+        # log hyper-parameters
+        if self.logger is not None:
+            # save exp to get started (this is where the first experiment logs are written)
+            self.logger.log_hyperparams(self.lightning_module.hparams_initial)
+            self.logger.log_graph(self.lightning_module)
+            self.logger.save()
 
     def post_dispatch(self):
         self.accelerator.post_dispatch()
