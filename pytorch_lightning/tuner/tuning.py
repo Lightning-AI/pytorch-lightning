@@ -46,8 +46,6 @@ class Tuner:
         self.trainer.data_connector.prepare_data(model)
 
     def tune(self, model, train_dataloader, val_dataloaders, datamodule):
-        self.setup_trainer(model, train_dataloader, val_dataloaders, datamodule)
-
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, bool):
