@@ -1793,18 +1793,12 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     def compare_optimizers():
         assert trainer.lightning_optimizers[0].optimizer is trainer.optimizers[0]
 
-    class OptimizerSpy(Callback):
-
-        def on_fit_start(self, *args, **kwargs):
-            compare_optimizers()
-
     model = BoringModel()
     model.lr = 0.2
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         auto_lr_find=True,
-        callbacks=[OptimizerSpy()],
     )
 
     trainer.tune(model)
