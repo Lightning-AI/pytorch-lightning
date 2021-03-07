@@ -43,7 +43,7 @@ except ImportError:
 
 class WandbLogger(LightningLoggerBase):
     r"""
-    Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning`_.
+    Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
 
     Install it with pip:
 
