@@ -25,14 +25,14 @@ from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 class ModelHooks:
     """Hooks to be used in LightningModule."""
 
-    def setup(self, stage: str) -> None:
+    def setup(self, stage: Optional[str] = None) -> None:
         """
         Called at the beginning of fit (train + validate), validate, test, predict, or tune.
         This is a good hook when you need to build models dynamically or adjust something about them.
         This hook is called on every process when using DDP.
 
         Args:
-            stage: either ``'fit'``, ``'validate'``, ``'test'``, ``'predict'``, or ``'tune'``
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
 
         Example::
 
@@ -53,12 +53,12 @@ class ModelHooks:
 
         """
 
-    def teardown(self, stage: str) -> None:
+    def teardown(self, stage: Optional[str] = None) -> None:
         """
         Called at the end of fit (train + validate), validate, test, predict, or tune.
 
         Args:
-            stage: either ``'fit'``, ``'validate'``, ``'test'``, ``'predict'``, or ``'tune'``
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
         """
 
     def on_fit_start(self) -> None:

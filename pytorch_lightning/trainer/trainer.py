@@ -1031,18 +1031,20 @@ class Trainer(
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
             if not called:
-                self.datamodule.setup(state)
+                self.datamodule.setup(stage=state)
 
-        self.setup(model, state)
-        model.setup(state)
+        self.setup(model, stage=state)
+        model.setup(stage=state)
 
     def call_teardown_hook(self, model: LightningModule) -> None:
-        assert self.state.running, f"TrainerState: {self.state}"
-        state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-        state = state.value
+        if self.state.running:
+            state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+            state = state.value
+        else:
+            state = None
 
-        self.teardown(state)
-        model.teardown(state)
+        self.teardown(stage=state)
+        model.teardown(stage=state)
 
     def _reset_result_and_set_hook_fx_name(self, hook_name):
         # on_before_zero_grad is called within training_step

@@ -15,7 +15,7 @@
 from abc import ABC
 from copy import deepcopy
 from inspect import signature
-from typing import Any, Callable, Dict, List, Type
+from typing import Any, Callable, Dict, List, Type, Optional
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
@@ -34,12 +34,12 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
 
-    def setup(self, model: LightningModule, stage: str) -> None:
+    def setup(self, model: LightningModule, stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.setup(self, model, stage)
 
-    def teardown(self, stage: str) -> None:
+    def teardown(self, stage: Optional[str] = None) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.teardown(self, self.lightning_module, stage)
