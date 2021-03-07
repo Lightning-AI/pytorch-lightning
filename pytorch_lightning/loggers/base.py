@@ -279,12 +279,14 @@ class LightningLoggerBase(ABC):
         return params
 
     @abstractmethod
-    def log_hyperparams(self, params: argparse.Namespace):
+    def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
         """
         Record hyperparameters.
 
         Args:
             params: :class:`~argparse.Namespace` containing the hyperparameters
+            args: Optional positional arguments, depends on the specific logger being used
+            kwargs: Optional keywoard arguments, depends on the specific logger being used
         """
 
     def log_graph(self, model: LightningModule, input_array=None) -> None:
