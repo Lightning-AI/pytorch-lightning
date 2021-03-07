@@ -20,11 +20,13 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from weakref import ReferenceType
+import operator
 
 import torch.nn as nn
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
+from pytorch_lightning.utilities.imports import _compare_version
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -36,6 +38,7 @@ _WANDB_AVAILABLE = _module_available("wandb")
 try:
     import wandb
     from wandb.wandb_run import Run
+    _WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
 except ImportError:
     # needed for test mocks, these tests shall be updated
     wandb, Run = None, None
@@ -125,6 +128,13 @@ class WandbLogger(LightningLoggerBase):
                 f'Providing log_model={log_model} and offline={offline} is an invalid configuration'
                 ' since model checkpoints cannot be uploaded in offline mode.\n'
                 'Hint: Set `offline=False` to log your model.'
+            )
+
+        if log_model and not _WANDB_GREATER_EQUAL_0_10_22:
+            warning_cache.warn(
+                f'Providing log_model={log_model} requires wandb version >= 0.10.22'
+                ' for logging associated model metadata.\n'
+                'Hint: Upgrade with `pip install --ugrade wandb`.'
             )
 
         if sync_step is not None:
@@ -253,7 +263,7 @@ class WandbLogger(LightningLoggerBase):
             metadata = {'score': s, 'original_filename': Path(p).name,
                         'ModelCheckpoint': {k: getattr(checkpoint_callback, k) for k in [
                             'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', 'period'
-                        ]}}
+                        ]}} if _WANDB_GREATER_EQUAL_0_10_22 else None
             artifact = wandb.Artifact(name=f"model-{self.experiment.id}", type="model", metadata=metadata)
             artifact.add_file(p, name='model.ckpt')
             self.experiment.log_artifact(
