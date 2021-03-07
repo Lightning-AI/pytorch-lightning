@@ -131,17 +131,17 @@ def test_data_hooks_called(tmpdir):
     assert not dm.has_setup_predict
 
     dm.prepare_data()
-    assert dm.has_prepared_data 
+    assert dm.has_prepared_data
     assert not dm.has_setup_fit
     assert not dm.has_setup_test
     assert not dm.has_setup_validate
     assert not dm.has_setup_predict
 
     dm.setup()
-    assert dm.has_prepared_data 
-    assert dm.has_setup_fit 
-    assert dm.has_setup_test 
-    assert dm.has_setup_validate 
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_test
+    assert dm.has_setup_validate
     assert not dm.has_setup_predict
 
 
@@ -153,21 +153,21 @@ def test_data_hooks_called_verbose(tmpdir, use_kwarg):
     assert not dm.has_setup_test
 
     dm.prepare_data()
-    assert dm.has_prepared_data 
+    assert dm.has_prepared_data
     assert not dm.has_setup_fit
     assert not dm.has_setup_test
     assert not dm.has_setup_predict
 
     dm.setup(stage='fit') if use_kwarg else dm.setup('fit')
     assert dm.has_prepared_data
-    assert dm.has_setup_fit 
+    assert dm.has_setup_fit
     assert not dm.has_setup_validate
     assert not dm.has_setup_test
     assert not dm.has_setup_predict
 
     dm.setup(stage='validate') if use_kwarg else dm.setup('validate')
-    assert dm.has_prepared_data 
-    assert dm.has_setup_fit 
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert not dm.has_setup_test
     assert not dm.has_setup_predict
@@ -180,11 +180,11 @@ def test_data_hooks_called_verbose(tmpdir, use_kwarg):
     assert not dm.has_setup_predict
 
     dm.setup(stage='predict') if use_kwarg else dm.setup('predict')
-    assert dm.has_prepared_data 
-    assert dm.has_setup_fit 
-    assert dm.has_setup_validate 
-    assert dm.has_setup_test 
-    assert dm.has_setup_predict 
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_validate
+    assert dm.has_setup_test
+    assert dm.has_setup_predict
 
 
 def test_dm_add_argparse_args(tmpdir):
