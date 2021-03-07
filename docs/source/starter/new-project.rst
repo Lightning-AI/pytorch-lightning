@@ -651,7 +651,7 @@ Make your data code reusable by organizing it into a :class:`~pytorch_lightning.
             MNIST(os.getcwd(), train=False, download=True)
 
         # OPTIONAL, called for every GPU/machine (assigning state is OK)
-        def setup(self, stage):
+        def setup(self, stage: Optional[str] = None):
             # transforms
             transform=transforms.Compose([
                 transforms.ToTensor(),
