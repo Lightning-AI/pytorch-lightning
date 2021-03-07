@@ -60,6 +60,7 @@ class CustomLogger(LightningLoggerBase):
         self.hparams_logged = None
         self.metrics_logged = {}
         self.finalized = False
+        self.after_save_checkpoint_called = False
 
     @property
     def experiment(self):
@@ -93,6 +94,9 @@ class CustomLogger(LightningLoggerBase):
     def version(self):
         return "1"
 
+    def after_save_checkpoint(self, checkpoint_callback):
+        self.after_save_checkpoint_called = True
+
 
 def test_custom_logger(tmpdir):
 
@@ -116,6 +120,7 @@ def test_custom_logger(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert logger.hparams_logged == model.hparams
     assert logger.metrics_logged != {}
+    assert logger.after_save_checkpoint_called
     assert logger.finalized_status == "success"
 
 
