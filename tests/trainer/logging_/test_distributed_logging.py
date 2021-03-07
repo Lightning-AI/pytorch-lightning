@@ -69,23 +69,23 @@ def test_global_zero_only_logging_ddp_spawn(tmpdir):
     trainer.fit(model)
 
 
-class LoggerCallsObserver(Callback):
-
-    def on_fit_start(self, trainer, pl_module):
-        assert not trainer.logger.method_calls
-        assert not os.listdir(trainer.logger.save_dir)
-
-    def on_train_start(self, trainer, pl_module):
-        assert trainer.logger.method_call
-        trainer.logger.log_hyperparams.assert_called_once()
-        trainer.logger.log_graph.assert_called_once()
-
-
 def test_first_logger_call_in_subprocess(tmpdir):
     """
     Test that the Trainer does not call the logger too early. Only when the worker processes are initialized
     do we have access to the rank and know which one is the main process.
     """
+
+    class LoggerCallsObserver(Callback):
+
+        def on_fit_start(self, trainer, pl_module):
+            assert not trainer.logger.method_calls
+            assert not os.listdir(trainer.logger.save_dir)
+
+        def on_train_start(self, trainer, pl_module):
+            assert trainer.logger.method_call
+            trainer.logger.log_hyperparams.assert_called_once()
+            trainer.logger.log_graph.assert_called_once()
+
     logger = Mock()
     logger.version = "0"
     logger.name = "name"
