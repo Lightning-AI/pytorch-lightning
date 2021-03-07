@@ -152,6 +152,8 @@ def test_wandb_log_model(wandb, tmpdir):
 
     # test log_model=True
     logger = WandbLogger(log_model=True)
+    logger.experiment.id = '1'
+    logger.experiment.project_name.return_value = 'project'
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     wandb.init().log_artifact.assert_called_once()
@@ -160,6 +162,8 @@ def test_wandb_log_model(wandb, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     logger = WandbLogger(log_model='all')
+    logger.experiment.id = '1'
+    logger.experiment.project_name.return_value = 'project'
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     assert wandb.init().log_artifact.call_count == 2
@@ -168,6 +172,8 @@ def test_wandb_log_model(wandb, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     logger = WandbLogger(log_model=False)
+    logger.experiment.id = '1'
+    logger.experiment.project_name.return_value = 'project'
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     wandb.init().log_artifact.asser()
