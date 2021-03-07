@@ -123,3 +123,22 @@ def test_dp_test(tmpdir):
     new_weights = model.layer_0.weight.clone().detach().cpu()
 
     assert torch.all(torch.eq(old_weights, new_weights))
+
+
+@RunIf(min_gpus=2)
+def test_dp_training_step_dict(tmpdir):
+    """
+    This test verify dp properly reduce dictionaries
+    """
+
+    model = BoringModel()
+    model.training_step_end = None
+    trainer = pl.Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        gpus=2,
+        accelerator='dp',
+    )
+    trainer.fit(model)

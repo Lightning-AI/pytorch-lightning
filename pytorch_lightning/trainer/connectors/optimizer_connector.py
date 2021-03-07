@@ -51,7 +51,7 @@ class OptimizerConnector:
                     )
                     if monitor_val is None:
                         if lr_scheduler.get('strict', True):
-                            avail_metrics = self.trainer.logger_connector.callback_metrics.keys()
+                            avail_metrics = list(self.trainer.logger_connector.callback_metrics.keys())
                             raise MisconfigurationException(
                                 f'ReduceLROnPlateau conditioned on metric {monitor_key}'
                                 f' which is not available. Available metrics are: {avail_metrics}.'
