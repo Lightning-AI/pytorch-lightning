@@ -418,9 +418,8 @@ class DummyExperiment(object):
     def __getattr__(self, _):
         return self.nop
 
-    def __getitem__(self, idx):
-        # enables self.logger[0].experiment.add_image
-        # and self.logger.experiment[0].add_image(...)
+    def __getitem__(self, idx) -> "DummyExperiment":
+        # enables self.logger.experiment[0].add_image(...)
         return self
 
 
@@ -435,7 +434,7 @@ class DummyLogger(LightningLoggerBase):
         self._experiment = DummyExperiment()
 
     @property
-    def experiment(self):
+    def experiment(self) -> DummyExperiment:
         return self._experiment
 
     def log_metrics(self, *args, **kwargs):
@@ -452,7 +451,8 @@ class DummyLogger(LightningLoggerBase):
     def version(self):
         pass
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> "DummyLogger":
+        # enables self.logger[0].experiment.add_image(...)
         return self
 
 
