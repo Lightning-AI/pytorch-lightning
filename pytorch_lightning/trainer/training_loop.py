@@ -607,7 +607,9 @@ class TrainLoop:
         # lightning module hook
         splits = self.tbptt_split_batch(batch)
 
-        grad_tracker = GradNormTracker(self.trainer.track_grad_norm_mode, self.trainer.track_grad_norm)
+        grad_tracker = None
+        if float(self.trainer.track_grad_norm) > 0:
+            grad_tracker = GradNormTracker(self.trainer.track_grad_norm_mode, self.trainer.track_grad_norm)
 
         for split_idx, split_batch in enumerate(splits):
 
@@ -670,12 +672,14 @@ class TrainLoop:
 
                     grad_norm_dic = self._cur_grad_norm_dict
                     self._cur_grad_norm_dict = None
-                    grad_tracker.track_norm(grad_norm_dic, opt_idx)
+                    if grad_tracker:
+                        grad_tracker.track_norm(grad_norm_dic, opt_idx)
 
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
 
-        grad_norm_dic = grad_tracker.get_and_reset()
+        if grad_tracker:
+            grad_norm_dic = grad_tracker.get_and_reset()
 
         result = AttributeDict(
             signal=0,
