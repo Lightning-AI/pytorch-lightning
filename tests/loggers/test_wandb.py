@@ -25,14 +25,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
-def get_warnings(recwarn):
-    warnings_text = '\n'.join(str(w.message) for w in recwarn.list)
-    recwarn.clear()
-    return warnings_text
-
-
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_wandb_logger_init(wandb, recwarn):
+def test_wandb_logger_init(wandb):
     """Verify that basic functionality of wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here."""
 
@@ -127,10 +121,8 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
 
     # mock return values of experiment
     wandb.run = None
-    wandb.init().step = 0
     logger.experiment.id = '1'
     logger.experiment.project_name.return_value = 'project'
-    logger.experiment.step = 0
 
     for _ in range(2):
         _ = logger.experiment
@@ -149,6 +141,37 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=2.ckpt'}
     assert trainer.log_dir == logger.save_dir
+
+
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_wandb_log_model(wandb, tmpdir):
+    """ Test that the logger creates the folders and files in the right place. """
+
+    wandb.run = None
+    model = BoringModel()
+
+    # test log_model=True
+    logger = WandbLogger(log_model=True)
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    wandb.init().log_artifact.assert_called_once()
+
+    # test log_model='all'
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    logger = WandbLogger(log_model='all')
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    assert wandb.init().log_artifact.call_count == 2
+
+    # test log_model=False
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    logger = WandbLogger(log_model=False)
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    wandb.init().log_artifact.asser()
+    assert not wandb.init().log_artifact.called
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
