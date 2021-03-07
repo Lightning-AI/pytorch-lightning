@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC
 import inspect
-from typing import Union, Iterable, Mapping
+from abc import ABC
+from typing import Mapping, Union
 
 import torch
 
-from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
-from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities.memory import recursive_detach
 
 
 class TrainerLoggingMixin(ABC):
@@ -29,17 +29,16 @@ class TrainerLoggingMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     current_epoch: int
-    on_gpu: bool
-    log_gpu_memory: ...
+    _device_type: DeviceType
+    _distrib_type: DistributedType
+    log_gpu_memory:...
     logger: Union[LightningLoggerBase, bool]
     global_step: int
     global_rank: int
-    use_dp: bool
-    use_ddp2: bool
     default_root_dir: str
     slurm_job_id: int
     num_gpus: int
-    logged_metrics: ...
+    logged_metrics:...
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
@@ -67,13 +66,12 @@ class TrainerLoggingMixin(ABC):
             for k, v in output.items():
                 if k in ['log', 'progress_bar']:
                     m = inspect.cleandoc(
-                        f"""The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0
-                        Please use self.log(...) inside the lightningModule instead.
-
-                        # log on a step or aggregate epoch metric to the logger and/or progress bar
-                        # (inside LightningModule)
-                        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-                    """)
+                        f"The {{{k}:dict keyword}} was deprecated in 0.9.1 and will be removed in 1.0.0\n"
+                        " Please use self.log(...) inside the lightningModule instead.\n"
+                        " # log on a step or aggregate epoch metric to the logger and/or progress bar"
+                        " (inside LightningModule)\n"
+                        " self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)"
+                    )
                     rank_zero_warn(m)
 
         # --------------------------
@@ -97,7 +95,7 @@ class TrainerLoggingMixin(ABC):
                 if k not in ['progress_bar', 'log', 'hiddens']:
                     callback_metrics[k] = v
 
-        if train and (self.use_dp or self.use_ddp2):
+        if train and self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
             num_gpus = self.num_gpus
             callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
 
@@ -108,11 +106,12 @@ class TrainerLoggingMixin(ABC):
             progress_output = output['progress_bar']
 
             # reduce progress metrics for progress bar when using dp
-            if train and (self.use_dp or self.use_ddp2):
+            if train and self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
                 num_gpus = self.num_gpus
                 progress_output = self.reduce_distributed_output(progress_output, num_gpus)
 
             progress_bar_metrics = progress_output
+        # todo: specify the possible exception
         except Exception:
             progress_bar_metrics = {}
 
@@ -124,11 +123,12 @@ class TrainerLoggingMixin(ABC):
             log_output = output['log']
 
             # reduce progress metrics for progress bar when using dp
-            if train and (self.use_dp or self.use_ddp2):
+            if train and self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
                 num_gpus = self.num_gpus
                 log_output = self.reduce_distributed_output(log_output, num_gpus)
 
             log_metrics = log_output
+        # todo: specify the possible exception
         except Exception:
             log_metrics = {}
 
@@ -141,6 +141,7 @@ class TrainerLoggingMixin(ABC):
         if train:
             try:
                 loss = output['loss']
+            # todo: specify the possible exception
             except Exception as exp:
                 if isinstance(output, torch.Tensor):
                     loss = output
@@ -150,7 +151,7 @@ class TrainerLoggingMixin(ABC):
                     ) from exp
 
             # when using dp need to reduce the loss
-            if self.use_dp or self.use_ddp2:
+            if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
                 loss = self.reduce_distributed_output(loss, self.num_gpus)
 
         # ---------------

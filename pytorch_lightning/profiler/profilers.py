@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Profiler to check if there are any bottlenecks in your code."""
-
 import cProfile
 import io
+import logging
 import os
 import pstats
 import time
@@ -24,11 +23,11 @@ from collections import defaultdict
 from contextlib import contextmanager
 from typing import Optional, Union
 
-import fsspec
 import numpy as np
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+
+log = logging.getLogger(__name__)
 
 
 class BaseProfiler(ABC):
@@ -96,6 +95,9 @@ class BaseProfiler(ABC):
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
+    def on_train_start(self, local_rank: Optional[int] = None):
+        self.local_rank = local_rank
+
 
 class PassThroughProfiler(BaseProfiler):
     """
@@ -127,6 +129,11 @@ class SimpleProfiler(BaseProfiler):
         Args:
             output_filename: optionally save profile results to file instead of printing
                 to std out when training is finished.
+
+        Raises:
+            ValueError:
+                If you attempt to start an action which has already started, or
+                if you attempt to stop recording an action which was never started.
         """
         self.current_actions = {}
         self.recorded_durations = defaultdict(list)
@@ -144,17 +151,13 @@ class SimpleProfiler(BaseProfiler):
 
     def start(self, action_name: str) -> None:
         if action_name in self.current_actions:
-            raise ValueError(
-                f"Attempted to start {action_name} which has already started."
-            )
+            raise ValueError(f"Attempted to start {action_name} which has already started.")
         self.current_actions[action_name] = time.monotonic()
 
     def stop(self, action_name: str) -> None:
         end_time = time.monotonic()
         if action_name not in self.current_actions:
-            raise ValueError(
-                f"Attempting to stop recording an action ({action_name}) which was never started."
-            )
+            raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
         start_time = self.current_actions.pop(action_name)
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
@@ -186,10 +189,14 @@ class SimpleProfiler(BaseProfiler):
                 output_string += f"{os.linesep}{'-' * output_string_len}"
                 for action, durations, duration_per in report:
                     output_string += log_row(
-                        action, f"{np.mean(durations):.5}", f"{len(durations):}",
-                        f"{np.sum(durations):.5}", f"{duration_per:.5}"
+                        action,
+                        f"{np.mean(durations):.5}",
+                        f"{len(durations):}",
+                        f"{np.sum(durations):.5}",
+                        f"{duration_per:.5}",
                     )
         else:
+
             def log_row(action, mean, total):
                 return f"{os.linesep}{action:<20s}\t|  {mean:<15}\t|  {total:<15}"
 
@@ -197,9 +204,7 @@ class SimpleProfiler(BaseProfiler):
             output_string += f"{os.linesep}{'-' * 65}"
 
             for action, durations in self.recorded_durations.items():
-                output_string += log_row(
-                    action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}"
-                )
+                output_string += log_row(action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}")
         output_string += os.linesep
         return output_string
 
@@ -230,6 +235,10 @@ class AdvancedProfiler(BaseProfiler):
             line_count_restriction: this can be used to limit the number of functions
                 reported for each action. either an integer (to select a count of lines),
                 or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
+
+        Raises:
+            ValueError:
+                If you attempt to stop recording an action which was never started.
         """
         self.profiled_actions = {}
         self.line_count_restriction = line_count_restriction
@@ -267,9 +276,7 @@ class AdvancedProfiler(BaseProfiler):
         # log to standard out
         output_string = f"{os.linesep}Profiler Report{os.linesep}"
         for action, stats in recorded_stats.items():
-            output_string += (
-                f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
-            )
+            output_string += f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
 
         return output_string
 

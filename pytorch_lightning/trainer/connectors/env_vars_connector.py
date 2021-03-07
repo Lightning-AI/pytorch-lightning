@@ -15,7 +15,7 @@
 from functools import wraps
 from typing import Callable
 
-from pytorch_lightning.utilities.argparse_utils import parse_env_variables, get_init_arguments_and_types
+from pytorch_lightning.utilities.argparse import get_init_arguments_and_types, parse_env_variables
 
 
 def overwrite_by_env_vars(fn: Callable) -> Callable:
@@ -24,6 +24,7 @@ def overwrite_by_env_vars(fn: Callable) -> Callable:
     input arguments should be moved automatically to the correct device.
 
     """
+
     @wraps(fn)
     def overwrite_by_env_vars(self, *args, **kwargs):
         # get the class

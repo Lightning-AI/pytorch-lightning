@@ -33,8 +33,8 @@ The GPU machine must have:
 3. [Horovod with NCCL](https://horovod.readthedocs.io/en/stable/gpus_include.html) support: `HOROVOD_GPU_OPERATIONS=NCCL pip install horovod`
 
 
-## Running Coverage   
-Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex installed. 
+## Running Coverage
+Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex installed.
 
 ```bash
 cd pytorch-lightning

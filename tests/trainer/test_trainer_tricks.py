@@ -13,16 +13,19 @@
 # limitations under the License.
 import os
 from copy import deepcopy
+
 import pytest
 import torch
-from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVAILABLE
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.base.datamodules import MNISTDataModule
+from tests.helpers import BoringModel
+from tests.helpers.datamodules import MNISTDataModule
+from tests.helpers.runif import RunIf
 
 
 def test_num_training_batches(tmpdir):
@@ -31,7 +34,12 @@ def test_num_training_batches(tmpdir):
     """
     # when we have fewer batches in the dataloader we should use those instead of the limit
     model = EvalModelTemplate()
-    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1)
+    trainer = Trainer(
+        limit_val_batches=100,
+        limit_train_batches=100,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 10
@@ -42,7 +50,12 @@ def test_num_training_batches(tmpdir):
 
     # when we have more batches in the dataloader we should limit them
     model = EvalModelTemplate()
-    trainer = Trainer(limit_val_batches=7, limit_train_batches=7, max_epochs=1)
+    trainer = Trainer(
+        limit_val_batches=7,
+        limit_train_batches=7,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
     trainer.fit(model)
 
     assert len(model.train_dataloader()) == 10
@@ -190,13 +203,15 @@ def test_trainer_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    changed_attributes = ['max_steps',
-                          'weights_summary',
-                          'logger',
-                          'callbacks',
-                          'checkpoint_callback',
-                          'limit_train_batches',
-                          'current_epoch']
+    changed_attributes = [
+        'max_steps',
+        'weights_summary',
+        'logger',
+        'callbacks',
+        'checkpoint_callback',
+        'limit_train_batches',
+        'current_epoch',
+    ]
 
     attributes_before = {}
     for ca in changed_attributes:
@@ -213,7 +228,7 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize('scale_arg', ['power', 'binsearch', True])
 def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     """ Test possible values for 'batch size auto scaling' Trainer argument. """
@@ -221,10 +236,12 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
     before_batch_size = hparams.get('batch_size')
-    trainer = Trainer(default_root_dir=tmpdir,
-                      max_epochs=1,
-                      auto_scale_batch_size=scale_arg,
-                      gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        auto_scale_batch_size=scale_arg,
+        gpus=1,
+    )
     trainer.tune(model)
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
@@ -233,7 +250,7 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     assert not os.path.exists(tmpdir / 'scale_batch_size_temp_model.ckpt')
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize('use_hparams', [True, False])
 def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     """ Test that new batch size gets written to the correct hyperparameter attribute. """
@@ -259,10 +276,12 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     model = model_class(**hparams)
     model.datamodule = datamodule_model  # unused when another module gets passed to .tune() / .fit()
 
-    trainer = Trainer(default_root_dir=tmpdir,
-                      max_epochs=1,
-                      auto_scale_batch_size=True,
-                      gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        auto_scale_batch_size=True,
+        gpus=1,
+    )
     trainer.tune(model, datamodule_fit)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert trainer.datamodule == datamodule_fit
@@ -275,11 +294,17 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
     """ Test for a warning when model.batch_size and model.hparams.batch_size both present. """
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    model.hparams = hparams
-    # now we have model.batch_size and model.hparams.batch_size
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True)
+
+    class TestModel(BoringModel):
+
+        def __init__(self, batch_size=1):
+            super().__init__()
+            # now we have model.batch_size and model.hparams.batch_size
+            self.batch_size = 1
+            self.save_hyperparameters()
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, max_epochs=1000, auto_scale_batch_size=True)
     expected_message = "Field `model.batch_size` and `model.hparams.batch_size` are mutually exclusive!"
     with pytest.warns(UserWarning, match=expected_message):
         trainer.tune(model)
@@ -327,8 +352,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         trainer.tune(model, **fit_options)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 def test_auto_scale_batch_size_with_amp(tmpdir):
     model = EvalModelTemplate()
     batch_size_before = model.batch_size
@@ -337,7 +361,7 @@ def test_auto_scale_batch_size_with_amp(tmpdir):
         max_steps=1,
         auto_scale_batch_size=True,
         gpus=1,
-        precision=16
+        precision=16,
     )
     trainer.tune(model)
     batch_size_after = model.batch_size
