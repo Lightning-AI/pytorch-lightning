@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 import torch
 import torch.nn as nn
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import TensorDataset
 from pytorch_lightning import LightningModule
 from pytorch_lightning import Trainer
+
 
 class TestModel(LightningModule):
     def __init__(self):
@@ -28,7 +28,7 @@ class TestModel(LightningModule):
         self.loss = nn.L1Loss()
 
     def train_dataloader(self):
-        xs, ys = torch.ones(16, 1, 10, 10), torch.ones(16, 1, 6, 6)*5
+        xs, ys = torch.ones(16, 1, 10, 10), torch.ones(16, 1, 6, 6) * 5
         ds = TensorDataset(xs, ys)
         return DataLoader(ds)
 
@@ -76,6 +76,7 @@ def test_grad_norm_track_aggregated_over_parameters():
     assert all([trainer.logged_metrics[key] > 0.0 for key in second_optimizer]), 'Grad norm not logged for ' \
                                                                                  'second optimizer'
 
+
 def test_grad_norm_track_aggregated_over_optimizers_and_parameters():
     model = TestModel()
     trainer = Trainer(track_grad_norm=2,
@@ -91,7 +92,8 @@ def test_grad_norm_track_aggregated_over_optimizers_and_parameters():
                        'opt_0_grad_2.0_norm_first.bias_std',
                        'opt_0_grad_2.0_norm_total_mean',
                        'opt_0_grad_2.0_norm_total_std')
-    assert all([trainer.logged_metrics[key] > 0.0 for key in first_optimizer]), 'Grad norm not logged for first optimizer'
+    assert all([trainer.logged_metrics[key] > 0.0 for key in first_optimizer]), 'Grad norm not logged for ' \
+                                                                                'first optimizer'
 
     second_optimizer = ('opt_1_grad_2.0_norm_second.weight_mean',
                         'opt_1_grad_2.0_norm_second.weight_std',
@@ -99,7 +101,9 @@ def test_grad_norm_track_aggregated_over_optimizers_and_parameters():
                         'opt_1_grad_2.0_norm_second.bias_std',
                         'opt_1_grad_2.0_norm_total_mean',
                         'opt_1_grad_2.0_norm_total_std')
-    assert all([trainer.logged_metrics[key] > 0.0 for key in second_optimizer]), 'Grad norm not logged for second optimizer'
+    assert all([trainer.logged_metrics[key] > 0.0 for key in second_optimizer]), 'Grad norm not logged for ' \
+                                                                                 'second optimizer'
+
 
 def test_grad_norm_track_aggregated_over_optimizers():
     model = TestModel()

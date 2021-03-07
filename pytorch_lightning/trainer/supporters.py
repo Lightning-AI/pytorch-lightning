@@ -244,7 +244,7 @@ class GradNormTracker:
             self.name_mapping = self.aggregate_over_optimizer
         elif aggregation_mode == 'optimizer+parameters':
             self.name_mapping = self.aggregate_over_optimizer_and_parameters
-        elif aggregation_mode =='parameters':
+        elif aggregation_mode == 'parameters':
             self.name_mapping = self.aggregate_over_parameters
         else:
             raise MisconfigurationException(f'Invalid value=`{self.aggration_mode}` for aggregation_mode. Supported'
@@ -289,6 +289,7 @@ class GradNormTracker:
         # If aggregating over optimizers only keep total norm mean
         if self.aggregation_mode == 'optimizer':
             reduced_norm = {name: val for name, val in reduced_norm.items() if 'norm_total_mean' in name}
+
         # Remove total norm std when aggregating over parameters
         if self.aggregation_mode == 'parameters':
             total_norm_std = GradNormTracker.norm_name(self.norm_type) + '_total_std'
@@ -301,6 +302,7 @@ class GradNormTracker:
         grad_norm_dic = self._grad_norm_dic
         self._grad_norm_dic = {}
         return grad_norm_dic
+
 
 class CycleIterator(object):
     """
