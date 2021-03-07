@@ -171,8 +171,10 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
     pytest.param([0], [0]),
     pytest.param([1, 3], [1, 3]),
     pytest.param((1, 3), [1, 3]),
-    pytest.param('0', None),
-    pytest.param('3', [0, 1, 2]),
+    pytest.param('0', [0]),  # TODO: in v1.5 replace this by the commented line below
+    # pytest.param('0', None),
+    pytest.param('3', [3]),  # TODO: in v1.5 replace this by the commented line below
+    # pytest.param('3', [0, 1, 2]),
     pytest.param('1, 3', [1, 3]),
     pytest.param('2,', [2]),
     pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),

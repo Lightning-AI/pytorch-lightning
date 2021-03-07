@@ -15,7 +15,7 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
-from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -122,7 +122,16 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
         elif ',' in s:
             return [int(x.strip()) for x in s.split(',') if len(x) > 0]
         else:
-            return int(s.strip())
+            num_gpus = int(s.strip())
+            # TODO: remove warning in v1.5 and update docs in docs/advanced/multi-gpu.rst regarding GPU selection
+            rank_zero_warn(
+                f"Parsing of the Trainer argument gpus='{s}' (string) has changed."
+                f" In the current version of Lightning, this will select"
+                f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
+                f" {list(range(num_gpus))}."
+            )
+            return [num_gpus]  # TODO: in v1.5 replace this return statement with the one below
+            # return num_gpus
     else:
         return s
 
