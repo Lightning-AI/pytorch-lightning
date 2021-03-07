@@ -291,8 +291,9 @@ class CheckpointConnector:
                 if isinstance(self.trainer.logger, LoggerCollection):
                     checkpoint['logger'] = self.trainer.logger.on_save_checkpoint(self.trainer, model, checkpoint)
                 else:
-                    checkpoint['logger'][type(self.trainer.logger)
-                                         ] = self.trainer.logger.on_save_checkpoint(self.trainer, model, checkpoint)
+                    state = self.trainer.logger.on_save_checkpoint(self.trainer, model, checkpoint)
+                    if state:
+                        checkpoint['logger'][type(self.trainer.logger)] = state
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
