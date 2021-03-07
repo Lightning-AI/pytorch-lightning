@@ -51,7 +51,10 @@ to manually manage the optimization process. To do so, do the following:
 
 .. code-block:: python
 
-    def training_step(batch, batch_idx):
+    def __init__(self):
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
         opt = self.optimizers()
 
         loss = self.compute_loss(batch)
@@ -69,7 +72,10 @@ Here is the same example as above using a ``closure``.
 
 .. testcode:: python
 
-    def training_step(batch, batch_idx):
+    def __init__(self):
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
         opt = self.optimizers()
 
         def forward_and_backward():
@@ -126,7 +132,6 @@ Here is the same example as above using a ``closure``.
             #  Optimize Discriminator #
             ###########################
             d_opt.zero_grad()
-
             d_x = self.D(X)
             errD_real = self.criterion(d_x, real_label)
 
@@ -178,6 +183,9 @@ Here is an example for advanced use-case.
     class SimpleGAN(LightningModule):
 
         ...
+
+        def __init__(self):
+            self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx):
             # Implementation follows https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
