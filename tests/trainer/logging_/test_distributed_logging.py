@@ -71,7 +71,7 @@ def test_global_zero_only_logging_ddp_spawn(tmpdir):
 
 class LoggerCallsObserver(Callback):
 
-    def on_before_accelerator_backend_setup(self, trainer, pl_module):
+    def on_fit_start(self, trainer, pl_module):
         assert not trainer.logger.method_calls
         assert not os.listdir(trainer.logger.save_dir)
 
