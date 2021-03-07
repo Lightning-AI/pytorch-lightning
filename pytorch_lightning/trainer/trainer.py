@@ -1025,8 +1025,8 @@ class Trainer(
 
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
+        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
         state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-        state = state.value
 
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
@@ -1039,7 +1039,6 @@ class Trainer(
     def call_teardown_hook(self, model: LightningModule) -> None:
         if self.state.running:
             state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-            state = state.value
         else:
             state = None
 
