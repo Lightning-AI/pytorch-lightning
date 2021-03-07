@@ -73,7 +73,6 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
 
     # We know user requested GPUs therefore if some of the
     # requested GPUs are not available an exception is thrown.
-
     gpus = _normalize_parse_gpu_string_input(gpus)
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
@@ -128,9 +127,11 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
                 f"Parsing of the Trainer argument gpus='{s}' (string) has changed."
                 f" In the current version of Lightning, this will select"
                 f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
-                f" {list(range(num_gpus))}."
+                f" {list(range(num_gpus))}.",
+                DeprecationWarning,
             )
-            return [num_gpus]  # TODO: in v1.5 replace this return statement with the one below
+            # TODO: in v1.5 replace this return statement with the one below
+            return [num_gpus]
             # return num_gpus
     else:
         return s

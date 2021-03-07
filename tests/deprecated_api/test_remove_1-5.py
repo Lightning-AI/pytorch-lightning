@@ -19,12 +19,13 @@ import pytest
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.utilities import device_parser
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_v1_5_0_wandb_unused_sync_step(tmpdir):
+def test_v1_5_0_wandb_unused_sync_step(_):
     with pytest.deprecated_call(match=r"v1.2.1 and will be removed in v1.5"):
         WandbLogger(sync_step=True)
 
@@ -74,3 +75,13 @@ def test_v1_5_0_running_sanity_check():
     trainer = Trainer()
     with pytest.deprecated_call(match='has been renamed to `Trainer.sanity_checking`'):
         assert not trainer.running_sanity_check
+
+
+@mock.patch('torch.cuda.device_count', return_value=4)
+def test_v1_5_0_trainer_gpus_str_parsing(_):
+    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* has changed."):
+        Trainer(gpus="3")
+
+    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* has changed."):
+        gpus = device_parser.parse_gpu_ids("3")
+        assert gpus == [3]
