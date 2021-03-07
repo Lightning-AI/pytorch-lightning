@@ -21,10 +21,10 @@ class TrainerState(LightningEnum):
     functions such as `trainer.fit()` and `trainer.test().
 
     >>> # you can compare the type with a string
-    >>> TrainerState.FITTING == 'FITTING'
+    >>> TrainerState.FITTING == 'fit'
     True
     >>> # which is case insensitive
-    >>> TrainerState.FINISHED == 'finished'
+    >>> TrainerState.FINISHED == 'FINISHED'
     True
     """
     INITIALIZING = 'initializing'  # trainer creation
