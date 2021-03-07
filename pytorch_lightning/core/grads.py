@@ -23,7 +23,9 @@ from torch.nn import Parameter
 
 class GradInformation(Module):
 
-    def grad_norm(self, norm_type: Union[float, int, str], parameter_filter: List[Parameter] = None) -> Dict[str, float]:
+    def grad_norm(self,
+                  norm_type: Union[float, int, str],
+                  parameter_filter: List[Parameter] = None) -> Dict[str, float]:
         """Compute each parameter's gradient's norm and their overall norm.
 
         The overall norm is computed over all gradients together, as if they
