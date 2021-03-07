@@ -248,7 +248,7 @@ as long as you return a loss with an attached graph from the `training_step`, Li
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        loss = self.encoder(batch[0])
+        loss = self.encoder(batch)
         return loss
 
 .. _manual_opt:
@@ -258,31 +258,27 @@ Manual optimization
 However, for certain research like GANs, reinforcement learning, or something with multiple optimizers
 or an inner loop, you can turn off automatic optimization and fully control the training loop yourself.
 
-First, turn off automatic optimization:
-
-.. testcode::
-
-    trainer = Trainer(automatic_optimization=False)
-
-Now you own the train loop!
+Turn off automatic optimization and you control the train loop!
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx, opt_idx):
+    def __init__(self):
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
-        (opt_a, opt_b, opt_c) = self.optimizers(use_pl_optimizer=True)
+        opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
 
-        loss_a = self.generator(batch[0])
-
-        # use this instead of loss.backward so we can automate half precision, etc...
-        self.manual_backward(loss_a, opt_a, retain_graph=True)
-        self.manual_backward(loss_a, opt_a)
-        opt_a.step()
+        loss_a = self.generator(batch)
         opt_a.zero_grad()
+        # use `manual_backward()` instead of `loss.backward` to automate half precision, etc...
+        self.manual_backward(loss_a)
+        opt_a.step()
 
-        loss_b = self.discriminator(batch[0])
-        self.manual_backward(loss_b, opt_b)
-        ...
+        loss_b = self.discriminator(batch)
+        opt_b.zero_grad()
+        self.manual_backward(loss_b)
+        opt_b.step()
 
 
 Predict or Deploy
@@ -655,7 +651,7 @@ Make your data code reusable by organizing it into a :class:`~pytorch_lightning.
             MNIST(os.getcwd(), train=False, download=True)
 
         # OPTIONAL, called for every GPU/machine (assigning state is OK)
-        def setup(self, stage):
+        def setup(self, stage: Optional[str] = None):
             # transforms
             transform=transforms.Compose([
                 transforms.ToTensor(),
@@ -740,7 +736,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 .. testcode::
 
     # Profile your code to find speed/memory bottlenecks
-    Trainer(profiler=True)
+    Trainer(profiler="simple")
 
 ---------------
 
@@ -776,7 +772,8 @@ Community
 **********
 Our community of core maintainers and thousands of expert researchers is active on our
 `Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A>`_
-and `Forum <https://forums.pytorchlightning.ai/>`_. Drop by to hang out, ask Lightning questions or even discuss research!
+and `GitHub Discussions <https://github.com/PyTorchLightning/pytorch-lightning/discussions>`_. Drop by
+to hang out, ask Lightning questions or even discuss research!
 
 
 -------------
@@ -785,7 +782,7 @@ Masterclass
 ===========
 We also offer a Masterclass to teach you the advanced uses of Lightning.
 
-.. image:: ../_images/general/PTL101_youtube_thumbnail.jpg
+.. image:: ../_static/images/general/PTL101_youtube_thumbnail.jpg
     :width: 500
     :align: center
     :alt: Masterclass

@@ -70,7 +70,7 @@ class DQN(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(obs_size, hidden_size),
             nn.ReLU(),
-            nn.Linear(hidden_size, n_actions)
+            nn.Linear(hidden_size, n_actions),
         )
 
     def forward(self, x):
@@ -78,9 +78,7 @@ class DQN(nn.Module):
 
 
 # Named tuple for storing experience steps gathered in training
-Experience = namedtuple(
-    'Experience', field_names=['state', 'action', 'reward',
-                               'done', 'new_state'])
+Experience = namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
 
 class ReplayBuffer:
@@ -114,8 +112,13 @@ class ReplayBuffer:
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
         states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
 
-        return (np.array(states), np.array(actions), np.array(rewards, dtype=np.float32),
-                np.array(dones, dtype=np.bool), np.array(next_states))
+        return (
+            np.array(states),
+            np.array(actions),
+            np.array(rewards, dtype=np.float32),
+            np.array(dones, dtype=np.bool),
+            np.array(next_states),
+        )
 
 
 class RLDataset(IterableDataset):
@@ -236,20 +239,21 @@ class DQNLightning(pl.LightningModule):
       )
     )
     """
+
     def __init__(
-            self,
-            env: str,
-            replay_size: int = 200,
-            warm_start_steps: int = 200,
-            gamma: float = 0.99,
-            eps_start: float = 1.0,
-            eps_end: float = 0.01,
-            eps_last_frame: int = 200,
-            sync_rate: int = 10,
-            lr: float = 1e-2,
-            episode_length: int = 50,
-            batch_size: int = 4,
-            **kwargs,
+        self,
+        env: str,
+        replay_size: int = 200,
+        warm_start_steps: int = 200,
+        gamma: float = 0.99,
+        eps_start: float = 1.0,
+        eps_end: float = 0.01,
+        eps_last_frame: int = 200,
+        sync_rate: int = 10,
+        lr: float = 1e-2,
+        episode_length: int = 50,
+        batch_size: int = 4,
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.replay_size = replay_size
@@ -353,9 +357,11 @@ class DQNLightning(pl.LightningModule):
         if self.global_step % self.sync_rate == 0:
             self.target_net.load_state_dict(self.net.state_dict())
 
-        log = {'total_reward': torch.tensor(self.total_reward).to(device),
-               'reward': torch.tensor(reward).to(device),
-               'steps': torch.tensor(self.global_step).to(device)}
+        log = {
+            'total_reward': torch.tensor(self.total_reward).to(device),
+            'reward': torch.tensor(reward).to(device),
+            'steps': torch.tensor(self.global_step).to(device)
+        }
 
         return OrderedDict({'loss': loss, 'log': log, 'progress_bar': log})
 
@@ -389,21 +395,18 @@ class DQNLightning(pl.LightningModule):
         parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
         parser.add_argument("--env", type=str, default="CartPole-v0", help="gym environment tag")
         parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-        parser.add_argument("--sync_rate", type=int, default=10,
-                            help="how many frames do we update the target network")
-        parser.add_argument("--replay_size", type=int, default=1000,
-                            help="capacity of the replay buffer")
-        parser.add_argument("--warm_start_size", type=int, default=1000,
-                            help="how many samples do we use to fill our buffer at the start of training")
-        parser.add_argument("--eps_last_frame", type=int, default=1000,
-                            help="what frame should epsilon stop decaying")
+        parser.add_argument("--sync_rate", type=int, default=10, help="how many frames do we update the target network")
+        parser.add_argument("--replay_size", type=int, default=1000, help="capacity of the replay buffer")
+        parser.add_argument(
+            "--warm_start_steps",
+            type=int,
+            default=1000,
+            help="how many samples do we use to fill our buffer at the start of training"
+        )
+        parser.add_argument("--eps_last_frame", type=int, default=1000, help="what frame should epsilon stop decaying")
         parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
         parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
         parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")
-        parser.add_argument("--max_episode_reward", type=int, default=200,
-                            help="max episode reward in the environment")
-        parser.add_argument("--warm_start_steps", type=int, default=1000,
-                            help="max episode reward in the environment")
         return parser
 
 
@@ -413,7 +416,7 @@ def main(args) -> None:
     trainer = pl.Trainer(
         gpus=1,
         accelerator='dp',
-        val_check_interval=100
+        val_check_interval=100,
     )
 
     trainer.fit(model)
@@ -424,7 +427,7 @@ if __name__ == '__main__':
     torch.manual_seed(0)
     np.random.seed(0)
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(add_help=False)
     parser = DQNLightning.add_model_specific_args(parser)
     args = parser.parse_args()
 

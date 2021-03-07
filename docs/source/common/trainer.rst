@@ -128,7 +128,10 @@ So you can run it like so:
 
     if __name__ == '__main__':
         parser = ArgumentParser()
-        parser = Trainer.add_argparse_args(parser)
+        parser = Trainer.add_argparse_args(
+            # group the Trainer arguments together
+            parser.add_argument_group(title="pl.Trainer args")
+        )
         args = parser.parse_args()
 
         main(args)
@@ -148,19 +151,6 @@ So you can run it like so:
 
 ------------
 
-Validation
-----------
-You can perform an evaluation epoch over the validation set, outside of the training loop,
-using :meth:`pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
-useful if you want to collect new metrics from a model right at its initialization
-or that has already been trained.
-
-.. code-block:: python
-
-    trainer.validate(val_dataloaders=val_dataloaders)
-
-------------
-
 Testing
 -------
 Once you're done training, feel free to run the test set!
@@ -168,7 +158,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test(test_dataloaders=test_dataloaders)
+    trainer.test(test_dataloaders=test_dataloader)
 
 ------------
 
@@ -264,10 +254,10 @@ You can also modify hardware behavior by subclassing an existing accelerator to 
 
 Example::
 
-    class MyOwnDDP(DDPAccelerator):
+    class MyOwnAcc(Accelerator):
         ...
 
-    Trainer(accelerator=MyOwnDDP())
+    Trainer(accelerator=MyOwnAcc())
 
 .. warning:: Passing in custom accelerators is experimental but work is in progress to enable full compatibility.
 
@@ -339,43 +329,6 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(amp_level='O2')
-
-automatic_optimization
-^^^^^^^^^^^^^^^^^^^^^^
-When set to False, Lightning does not automate the optimization process. This means you are responsible for your own
-optimizer behavior
-
-Example::
-
-    def training_step(self, batch, batch_idx):
-        # access your optimizers with use_pl_optimizer=False. Default is True
-        opt = self.optimizers(use_pl_optimizer=True)
-
-        loss = ...
-        self.manual_backward(loss, opt)
-        opt.step()
-        opt.zero_grad()
-
-This is not recommended when using a single optimizer, instead it's recommended when using 2+ optimizers
-AND you are an expert user. Most useful for research like RL, sparse coding and GAN research.
-
-In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizers directly
-
-Example::
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        # access your optimizers with use_pl_optimizer=False. Default is True
-        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
-
-        gen_loss = ...
-        self.manual_backward(gen_loss, opt_a)
-        opt_a.step()
-        opt_a.zero_grad()
-
-        disc_loss = ...
-        self.manual_backward(disc_loss, opt_b)
-        opt_b.step()
-        opt_b.zero_grad()
 
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^
@@ -528,7 +481,9 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`.
+Add a list of :class:`~pytorch_lightning.callbacks.Callback`. Callbacks run sequentially in the order defined here
+with the exception of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
+after all others to ensure all states are saved to the checkpoints.
 
 .. code-block:: python
 
@@ -545,6 +500,14 @@ Example::
             print("Training is started!")
         def on_train_end(self, trainer, pl_module):
             print("Training is done.")
+
+
+Model-specific callbacks can also be added inside the ``LightningModule`` through
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
+the trainer callbacks should there be two or more of the same type.
+:class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
+
 
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -1134,7 +1097,7 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 .. code-block:: python
 
-    from pytorch_lightning.cluster_environments import cluster_environment
+    from pytorch_lightning.plugins.environments import cluster_environment
 
     class MyCluster(ClusterEnvironment):
 
@@ -1189,13 +1152,13 @@ If used on TPU will use torch.bfloat16 but tensor printing
 will still show torch.float32.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     # default used by the Trainer
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16)
+    trainer = Trainer(precision=16, gpus=1)
 
 Example::
 

@@ -17,11 +17,9 @@ from typing import Any
 import torch
 
 from pytorch_lightning.metrics.metric import Metric
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 
 
 class MetricsHolder:
-
     """
     This class acts as a dictonary holder.
     It holds metrics and implements conversion functions.
@@ -74,7 +72,7 @@ class MetricsHolder:
                 else:
                     current = torch.tensor(current, device=device, dtype=torch.float)
 
-        if use_tpu and _TPU_AVAILABLE:
+        if isinstance(current, torch.Tensor) and current.device.type == "xla":
             current = current.cpu()
 
         return current

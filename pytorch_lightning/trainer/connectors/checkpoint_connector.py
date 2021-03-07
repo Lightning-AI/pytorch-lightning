@@ -49,7 +49,7 @@ class CheckpointConnector:
         # used to validate checkpointing logic
         self.has_trained = False
 
-    def restore_weights(self, model: LightningModule) -> None:
+    def restore_weights(self) -> None:
         """
         Attempt to restore a checkpoint (e.g. weights) in this priority:
         1. from HPC weights
@@ -69,11 +69,11 @@ class CheckpointConnector:
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
-        elif self.trainer.resume_from_checkpoint is not None and not self.trainer.testing:
+        elif self.trainer.resume_from_checkpoint is not None:
             self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer._device_type == DeviceType.GPU)
 
         # wait for all to catch up
-        self.trainer.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
+        self.trainer.training_type_plugin.barrier('TrainerIOMixin.restore_weights')
 
         # clear cache after restore
         if self.trainer._device_type == DeviceType.GPU:
@@ -94,7 +94,7 @@ class CheckpointConnector:
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # acquire the model
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # restore model and datamodule state
         self.restore_model_state(model, checkpoint)
@@ -158,7 +158,7 @@ class CheckpointConnector:
         self.trainer.current_epoch = checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
-        if self.trainer.current_epoch > self.trainer.max_epochs:
+        if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
             m = f"""
             you restored a checkpoint with current_epoch={self.trainer.current_epoch}
             but the Trainer(max_epochs={self.trainer.max_epochs})
@@ -214,13 +214,12 @@ class CheckpointConnector:
         filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
 
         # give model a chance to do something on hpc_save
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
         checkpoint = self.dump_checkpoint()
 
         model.on_hpc_save(checkpoint)
 
-        if self.trainer.accelerator_backend:
-            checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+        checkpoint = self.trainer.accelerator.on_save(checkpoint)
 
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
@@ -230,7 +229,8 @@ class CheckpointConnector:
             if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn(
-                'warning, `hyper_parameters` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                'warning, `hyper_parameters` dropped from checkpoint.'
+                f' An attribute is not picklable {err}'
             )
             atomic_save(checkpoint, filepath)
 
@@ -270,22 +270,23 @@ class CheckpointConnector:
         if not has_reached_max_steps:
             current_epoch += 1
 
+        model = self.trainer.lightning_module
+
         checkpoint = {
             'epoch': current_epoch,
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
+            'state_dict': model.state_dict(),
         }
 
         if not weights_only:
-
             # dump callbacks
-            callback_states = self.trainer.on_save_checkpoint()
-            checkpoint['callbacks'] = callback_states
+            checkpoint['callbacks'] = self.trainer.on_save_checkpoint(checkpoint)
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
                 # Rely on accelerator to dump optimizer state
-                optimizer_state = self.trainer.accelerator_backend.optimizer_state(optimizer)
+                optimizer_state = self.trainer.accelerator.optimizer_state(optimizer)
                 optimizer_states.append(optimizer_state)
 
             checkpoint['optimizer_states'] = optimizer_states
@@ -297,19 +298,15 @@ class CheckpointConnector:
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # dump amp scaling
-            if (self.trainer.amp_backend == AMPType.NATIVE
-                    and self.trainer._device_type != DeviceType.TPU
-                    and self.trainer.scaler is not None):
+            if (
+                self.trainer.amp_backend == AMPType.NATIVE and self.trainer._device_type != DeviceType.TPU
+                and self.trainer.scaler is not None
+            ):
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
 
-        # add the hyper_parameters and state_dict from the model
-        model = self.trainer.get_model()
-
-        # dump the module_arguments and state_dict from the model
-        checkpoint['state_dict'] = model.state_dict()
-
+        # dump hyper-parameters
         if model.hparams:
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
@@ -337,7 +334,7 @@ class CheckpointConnector:
         checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # acquire the model
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         # restore model and datamodule state
         self.restore_model_state(model, checkpoint)
@@ -398,17 +395,18 @@ class CheckpointConnector:
         """
         # dump states as a checkpoint dictionary object
         checkpoint = self.dump_checkpoint(weights_only)
-
         if self.trainer.is_global_zero:
             # write the checkpoint dictionary on the file
-            if self.trainer.accelerator_backend:
-                checkpoint = self.trainer.accelerator_backend.on_save(checkpoint)
+
+            if self.trainer.training_type_plugin:
+                checkpoint = self.trainer.training_type_plugin.on_save(checkpoint)
             try:
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
                 rank_zero_warn(
-                    'Warning, `hyper_parameters` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                    'Warning, `hyper_parameters` dropped from checkpoint.'
+                    f' An attribute is not picklable {err}'
                 )
                 atomic_save(checkpoint, filepath)

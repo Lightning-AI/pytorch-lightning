@@ -18,7 +18,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning.core.lightning import LightningModule
-from tests.base.datasets import PATH_DATASETS, TrialMNIST
 from tests.base.model_optimizers import ConfigureOptimizersPool
 from tests.base.model_test_dataloaders import TestDataloaderVariations
 from tests.base.model_test_epoch_ends import TestEpochEndVariations
@@ -29,6 +28,7 @@ from tests.base.model_utilities import ModelTemplateData, ModelTemplateUtils
 from tests.base.model_valid_dataloaders import ValDataloaderVariations
 from tests.base.model_valid_epoch_ends import ValidationEpochEndVariations
 from tests.base.model_valid_steps import ValidationStepVariations
+from tests.helpers.datasets import PATH_DATASETS, TrialMNIST
 
 
 class EvalModelTemplate(
@@ -52,17 +52,17 @@ class EvalModelTemplate(
     """
 
     def __init__(
-            self,
-            drop_prob: float = 0.2,
-            batch_size: int = 32,
-            in_features: int = 28 * 28,
-            learning_rate: float = 0.001 * 8,
-            optimizer_name: str = 'adam',
-            data_root: str = PATH_DATASETS,
-            out_features: int = 10,
-            hidden_dim: int = 1000,
-            b1: float = 0.5,
-            b2: float = 0.999,
+        self,
+        drop_prob: float = 0.2,
+        batch_size: int = 32,
+        in_features: int = 28 * 28,
+        learning_rate: float = 0.001 * 8,
+        optimizer_name: str = 'adam',
+        data_root: str = PATH_DATASETS,
+        out_features: int = 10,
+        hidden_dim: int = 1000,
+        b1: float = 0.5,
+        b2: float = 0.999,
     ):
         # init superclass
         super().__init__()
@@ -111,7 +111,7 @@ class EvalModelTemplate(
         x = self.c_d1_drop(x)
 
         x = self.c_d2(x)
-        logits = F.log_softmax(x, dim=1)
+        logits = F.softmax(x, dim=1)
 
         return logits
 
@@ -139,7 +139,8 @@ class EvalModelTemplate(
 
         if continue_training:
             args.update(
-                test_tube_do_checkpoint_load=True, hpc_exp_number=hpc_exp_number,
+                test_tube_do_checkpoint_load=True,
+                hpc_exp_number=hpc_exp_number,
             )
 
         return args
@@ -149,6 +150,7 @@ T = TypeVar('T')
 
 
 class GenericParentEvalModelTemplate(Generic[T], EvalModelTemplate):
+
     def __init__(
         self,
         drop_prob: float,

@@ -15,6 +15,7 @@
 import ast
 import csv
 import inspect
+import logging
 import os
 from argparse import Namespace
 from copy import deepcopy
@@ -25,13 +26,13 @@ from warnings import warn
 import torch
 import yaml
 
-from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import AttributeDict, rank_zero_warn, _OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 
+log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
@@ -39,7 +40,6 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
     from omegaconf.dictconfig import DictConfig
     from omegaconf.errors import UnsupportedValueType, ValidationError
-
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -179,8 +179,9 @@ class ModelIO(object):
             cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
 
             # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
-            cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded,
-                                                        checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+            cls_kwargs_loaded = _convert_loaded_hparams(
+                cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE)
+            )
 
             # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)

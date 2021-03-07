@@ -240,7 +240,7 @@ In this case, it's better to group the full definition of a dataset into a `Data
             tokenize()
             build_vocab()
 
-        def setup(self):
+        def setup(self, stage: Optional[str] = None):
             # called on every GPU
             vocab = load_vocab()
             self.vocab_size = len(vocab)
@@ -310,8 +310,8 @@ An alternative to using a DataModule is to defer initialization of the models mo
             download_data()
             tokenize()
 
-        def setup(self, step):
-            # step is either 'fit' or 'test' 90% of the time not relevant
+        def setup(self, stage: Optional[str] = None):
+            # step is either 'fit', 'validate', 'test', or 'predict'. 90% of the time not relevant
             data = load_data()
             num_classes = data.classes
             self.l1 = nn.Linear(..., num_classes)
@@ -361,9 +361,9 @@ The training step is what happens inside the training loop.
             # TRAINING STEP
             # ....
             # TRAINING STEP
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
 In the case of MNIST, we do the following
 
@@ -377,9 +377,9 @@ In the case of MNIST, we do the following
             loss = F.nll_loss(logits, y)
             # ------ TRAINING STEP END ------
 
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
 In Lightning, everything that is in the training step gets organized under the
 :func:`~pytorch_lightning.core.LightningModule.training_step` function in the LightningModule.
@@ -488,7 +488,7 @@ Once your training starts, you can view the logs by using your favorite logger o
 
 Which will generate automatic tensorboard logs (or with the logger of your choice).
 
-.. figure:: ../_images/mnist_imgs/mnist_tb.png
+.. figure:: ../_static/images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
    :width: 500
 
@@ -509,7 +509,7 @@ Train on CPU
 
 You should see the following weights summary and progress bar
 
-.. figure:: ../_images/mnist_imgs/mnist_cpu_bar.png
+.. figure:: ../_static/images/mnist_imgs/mnist_cpu_bar.png
    :alt: mnist CPU bar
 
 
@@ -524,7 +524,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
     trainer.fit(model, train_loader)
 
 
-.. figure:: ../_images/mnist_imgs/mnist_gpu.png
+.. figure:: ../_static/images/mnist_imgs/mnist_gpu.png
     :alt: mnist GPU bar
 
 Train on Multi-GPU
@@ -558,11 +558,11 @@ Let's train on Colab (`full demo available here <https://colab.research.google.c
 
 First, change the runtime to TPU (and reinstall lightning).
 
-.. figure:: ../_images/mnist_imgs/runtime_tpu.png
+.. figure:: ../_static/images/mnist_imgs/runtime_tpu.png
     :alt: mnist GPU bar
     :width: 400
 
-.. figure:: ../_images/mnist_imgs/restart_runtime.png
+.. figure:: ../_static/images/mnist_imgs/restart_runtime.png
     :alt: mnist GPU bar
     :width: 400
 
@@ -598,7 +598,7 @@ In this method we do all the preparation we need to do once (instead of on every
             MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
             MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
-        def setup(self, stage):
+        def setup(self, stage: Optional[str] = None):
             # transform
             transform=transforms.Compose([transforms.ToTensor()])
             mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
@@ -637,13 +637,13 @@ Now we can train the LightningModule on a TPU without doing anything else!
 
 You'll now see the TPU cores booting up.
 
-.. figure:: ../_images/mnist_imgs/tpu_start.png
+.. figure:: ../_static/images/mnist_imgs/tpu_start.png
     :alt: TPU start
     :width: 400
 
 Notice the epoch is MUCH faster!
 
-.. figure:: ../_images/mnist_imgs/tpu_fast.png
+.. figure:: ../_static/images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
     :width: 600
 
@@ -768,7 +768,7 @@ Once you train your model simply call ``.test()``.
 
         --------------------------------------------------------------
         TEST RESULTS
-        {'test_loss': tensor(1.1703, device='cuda:0')}
+        {'test_loss': 1.1703}
         --------------------------------------------------------------
 
 You can also run the test from a saved lightning model
@@ -881,8 +881,30 @@ Or maybe we have a model that we use to do generation
     z = sample_noise()
     generated_imgs = model(z)
 
-How you split up what goes in ``forward`` vs ``training_step`` depends on how you want to use this model for
+
+To perform inference at scale, it is possible to use ``trainer.predict`` with LightningModule ``predict`` function
+By default, LightningModule ``predict`` calls forward, but it can be overriden to add any processing logic.
+
+.. code-block:: python
+
+    class LitMNISTDreamer(LightningModule):
+
+        def forward(self, z):
+            imgs = self.decoder(z)
+            return imgs
+
+        def predict(self, batch, batch_idx: int , dataloader_idx: int = None):
+            return self(batch)
+
+
+    model = LitMNISTDreamer()
+    trainer.predict(model, datamodule)
+
+
+How you split up what goes in ``forward`` vs ``training_step`` vs ``predict`` depends on how you want to use this model for
 prediction.
+However, we recommend ``forward`` to contain only tensor operation with your model, ``training_step`` to encapsulate ``forward`` logic with logging,
+metrics and loss computation and ``predict`` to encapsulate ``forward`` with preprocess, postprocess functions.
 
 ----------------
 

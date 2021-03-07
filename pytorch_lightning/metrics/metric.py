@@ -120,10 +120,14 @@ class Metric(nn.Module, ABC):
             When passing a custom function to ``dist_reduce_fx``, expect the synchronized metric state to follow
             the format discussed in the above note.
 
+        Raises:
+            ValueError:
+                If ``default`` is not a ``tensor`` or an ``empty list``.
+            ValueError:
+                If ``dist_reduce_fx`` is not callable or one of ``"mean"``, ``"sum"``, ``"cat"``, ``None``.
         """
         if (
-            not isinstance(default, torch.Tensor)
-            and not isinstance(default, list)  # noqa: W503
+            not isinstance(default, torch.Tensor) and not isinstance(default, list)  # noqa: W503
             or (isinstance(default, list) and len(default) != 0)  # noqa: W503
         ):
             raise ValueError("state variable must be a tensor or any empty list (where you can append tensors)")
@@ -193,6 +197,7 @@ class Metric(nn.Module, ABC):
             setattr(self, attr, reduced)
 
     def _wrap_update(self, update):
+
         @functools.wraps(update)
         def wrapped_func(*args, **kwargs):
             self._computed = None
@@ -201,6 +206,7 @@ class Metric(nn.Module, ABC):
         return wrapped_func
 
     def _wrap_compute(self, compute):
+
         @functools.wraps(compute)
         def wrapped_func(*args, **kwargs):
             # return cached value
@@ -297,14 +303,19 @@ class Metric(nn.Module, ABC):
         for key in self._persistent.keys():
             self._persistent[key] = mode
 
-    def state_dict(self, *args, **kwargs):
+    def state_dict(self, destination=None, prefix='', keep_vars=False):
+        destination = super().state_dict(destination=destination, prefix=prefix, keep_vars=keep_vars)
         # Register metric states to be part of the state_dict
-        state_dict = super().state_dict()
         for key in self._defaults.keys():
             if self._persistent[key]:
                 current_val = getattr(self, key)
-                state_dict.update({key: current_val})
-        return state_dict
+                if not keep_vars:
+                    if torch.is_tensor(current_val):
+                        current_val = current_val.detach()
+                    elif isinstance(current_val, list):
+                        current_val = [cur_v.detach() if torch.is_tensor(cur_v) else cur_v for cur_v in current_val]
+                destination[prefix + key] = current_val
+        return destination
 
     def _filter_kwargs(self, **kwargs):
         """ filter kwargs such that they match the update signature of the metric """
@@ -314,8 +325,7 @@ class Metric(nn.Module, ABC):
         _params = (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
         filtered_kwargs = {
             k: v
-            for k, v in kwargs.items()
-            if k in self._update_signature.parameters.keys()
+            for k, v in kwargs.items() if k in self._update_signature.parameters.keys()
             and self._update_signature.parameters[k].kind not in _params
         }
 
@@ -328,7 +338,13 @@ class Metric(nn.Module, ABC):
         hash_vals = [self.__class__.__name__]
 
         for key in self._defaults.keys():
-            hash_vals.append(getattr(self, key))
+            val = getattr(self, key)
+            # Special case: allow list values, so long
+            # as their elements are hashable
+            if hasattr(val, '__iter__') and not isinstance(val, torch.Tensor):
+                hash_vals.extend(val)
+            else:
+                hash_vals.append(val)
 
         return hash(tuple(hash_vals))
 
@@ -517,6 +533,14 @@ class MetricCollection(nn.ModuleDict):
               dict as key for output dict. Use this format if you want to chain
               together multiple of the same metric with different parameters.
 
+    Raises:
+        ValueError:
+            If one of the elements of ``metrics`` is not an instance of ``pl.metrics.Metric``.
+        ValueError:
+            If two elements in ``metrics`` have the same ``name``.
+        ValueError:
+            If ``metrics`` is not a ``list``, ``tuple`` or a ``dict``.
+
     Example (input as list):
 
         >>> from pytorch_lightning.metrics import MetricCollection, Accuracy, Precision, Recall
@@ -544,14 +568,16 @@ class MetricCollection(nn.ModuleDict):
             for name, metric in metrics.items():
                 if not isinstance(metric, Metric):
                     raise ValueError(
-                        f"Value {metric} belonging to key {name}" " is not an instance of `pl.metrics.Metric`"
+                        f"Value {metric} belonging to key {name}"
+                        " is not an instance of `pl.metrics.Metric`"
                     )
                 self[name] = metric
         elif isinstance(metrics, (tuple, list)):
             for metric in metrics:
                 if not isinstance(metric, Metric):
                     raise ValueError(
-                        f"Input {metric} to `MetricCollection` is not a instance" " of `pl.metrics.Metric`"
+                        f"Input {metric} to `MetricCollection` is not a instance"
+                        " of `pl.metrics.Metric`"
                     )
                 name = metric.__class__.__name__
                 if name in self:

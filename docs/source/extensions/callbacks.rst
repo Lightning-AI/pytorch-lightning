@@ -94,8 +94,8 @@ Lightning has a few built-in callbacks.
     :nosignatures:
     :template: classtemplate.rst
 
-    BackboneLambdaFinetuningCallback
-    BaseFinetuningCallback
+    BackboneFinetuning
+    BaseFinetuning
     Callback
     EarlyStopping
     GPUStatsMonitor
@@ -103,8 +103,11 @@ Lightning has a few built-in callbacks.
     LambdaCallback
     LearningRateMonitor
     ModelCheckpoint
+    ModelPruning
     ProgressBar
     ProgressBarBase
+    QuantizationAwareTraining
+    StochasticWeightAveraging
 
 ----------
 

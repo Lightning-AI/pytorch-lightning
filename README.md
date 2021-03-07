@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/source/_images/logos/lightning_logo-name.png" width="400px">
+<img src="docs/source/_static/images/logo.png" width="400px">
 
 
 **The lightweight PyTorch wrapper for high-performance AI research.
@@ -16,7 +16,7 @@ Scale your models, not the boilerplate.**
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
   <a href="#grid-ai">Grid AI</a> •
-  <a href="#licence">Licence</a>
+  <a href="#license">License</a>
 </p>
 
 <!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
@@ -29,9 +29,7 @@ Scale your models, not the boilerplate.**
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A)
-[![Discourse status](https://img.shields.io/discourse/status?server=https%3A%2F%2Fforums.pytorchlightning.ai)](https://forums.pytorchlightning.ai/)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
-[![Next Release](https://img.shields.io/badge/Next%20Release-Nov%2021-<COLOR>.svg)](https://shields.io/)
 
 <!--
 [![CodeFactor](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning)
@@ -42,59 +40,68 @@ Scale your models, not the boilerplate.**
 
 ---
 
-## NEWS
-[Dec 2020 - Read about how Facebook uses Lightning to standardize deep learning across research and production teams](https://ai.facebook.com/blog/reengineering-facebook-ais-deep-learning-platforms-for-interoperability)
-
----
-
 ## PyTorch Lightning is just organized PyTorch
 Lightning disentangles PyTorch code to decouple the science from the engineering.
-![PT to PL](docs/source/_images/general/pl_quick_start_full_compressed.gif)
+![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)
 
 ---
 
-## Lightning Philosophy
-Lightning is designed with these principles in mind:
+## Lightning Design Philosophy
+Lightning structures PyTorch code with these principles:
 
-Principle 1: Enable maximal flexibility.
-Principle 2: Abstract away unnecessary boilerplate, but make it accessible when needed.
-Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).
-Principle 4: Deep learning code should be organized into 4 distinct categories.
+<div align="center">
+  <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/philosophies.jpg" max-height="250px">
+</div>
 
-  - Research code (the LightningModule).
-  - Engineering code (you delete, and is handled by the Trainer).
-  - Non-essential research code (logging, etc... this goes in Callbacks).
-  - Data (use PyTorch Dataloaders or organize them into a LightningDataModule).
+Lightning forces the following structure to your code which makes it reusable and shareable:
+
+- Research code (the LightningModule).
+- Engineering code (you delete, and is handled by the Trainer).
+- Non-essential research code (logging, etc... this goes in Callbacks).
+- Data (use PyTorch Dataloaders or organize them into a LightningDataModule).
 
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
 
-Get started with our [2 step guide](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
-
----
-
-## Inference
-Lightning is also designed for the fast inference AI researchers and production teams need to scale up things like BERT and self-supervised learning.
-Lightning can automatically export to ONNX or TorchScript for those cases.
+Get started with our [2 step guide](https://pytorch-lightning.readthedocs.io/en/latest/starter/new-project.html)
 
 ---
 
 ## Continuous Integration
-<center>
+Lightning is rigurously tested across multiple GPUs, TPUs CPUs and against major Python and PyTorch versions.
 
-| System / PyTorch ver. | 1.4 (min. req.)* | 1.5 | 1.6 | 1.7 (latest) | 1.8 (nightly) |
-| :---: | :---: | :---: | :---: | :---: | :---: |
-| Conda py3.7 [linux] | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) |
-| Linux py3.7 [GPUs**] | - | - | [![GPUs Status](http://104.154.220.231/api/badges/PyTorchLightning/pytorch-lightning/status.svg)](http://104.154.220.231/PyTorchLightning/pytorch-lightning) | - | - |
-| Linux py3.{6,7} [TPUs***] | - | - | [![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22TPU+tests%22+branch%3Amaster) | [![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22TPU+tests%22+branch%3Amaster) |
-| Linux py3.{6,7} | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | - | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - |
-| OSX py3.{6,7,8} | - | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - |
-| Windows py3.{6,7,8} | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | - | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - |
+<details>
+  <summary>Current build statuses</summary>
 
-- _\** tests run on two NVIDIA K80_
-- _\*** tests run on Google GKE TPUv2/3_
-- _TPU w/ py3.6/py3.7 means we support Colab and Kaggle env._
+  <center>
 
-</center>
+  | System / PyTorch ver. | 1.4 (min. req.)* | 1.5 | 1.6 | 1.7 (latest) | 1.8 (nightly) |
+  | :---: | :---: | :---: | :---: | :---: | :---: |
+  | Conda py3.7 [linux] | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) |
+  | Linux py3.7 [GPUs**] | - | - | [![Build Status](https://dev.azure.com/PytorchLightning/pytorch-lightning/_apis/build/status/PyTorchLightning.pytorch-lightning?branchName=master)](https://dev.azure.com/PytorchLightning/pytorch-lightning/_build/latest?definitionId=2&branchName=master) | - | - |
+  | Linux py3.{6,7} [TPUs***] | - | - | [![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22TPU+tests%22+branch%3Amaster) | [![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22TPU+tests%22+branch%3Amaster) |
+  | Linux py3.{6,7} | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | - | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - |
+  | OSX py3.{6,7,8} | - | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - |
+  | Windows py3.{6,7,8} | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | - | [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - |
+
+  - _\** tests run on two NVIDIA K80_
+  - _\*** tests run on Google GKE TPUv2/3_
+  - _TPU w/ py3.6/py3.7 means we support Colab and Kaggle env._
+
+  </center>
+</details>
+
+<details>
+  <summary>Bleeding edge build status (1.2)</summary>
+
+  <center>
+
+  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.2-dev&event=push)
+  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.2-dev&event=push)
+  </center>
+</details>
 
 ---
 
@@ -106,34 +113,51 @@ Simple installation from PyPI
 ```bash
 pip install pytorch-lightning
 ```
-_To get full package experience you can install also all optional dependencies with `pytorch-lightning['extra']` or for CPU users with `pytorch-lightning['cpu-extra']`._
-
-From Conda
-```bash
-conda install pytorch-lightning -c conda-forge
-```
 
 <!-- following section will be skipped from PyPI description -->
+<details>
+  <summary>Other installation options</summary>
+    <!-- following section will be skipped from PyPI description -->
 
-#### Install bleeding-edge - future 1.2
+  #### Install with optional dependencies
 
-the actual status of 1.2 [nightly] is following:
+  ```bash
+  pip install pytorch-lightning['extra']
+  ```
 
-![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
-![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.2-dev&event=push)
-![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.2-dev&event=push)
-![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.2-dev&event=push)
-![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.2-dev&event=push)
+  #### Conda
 
-Install future release from the source (no guarantees)
-```bash
-pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.2-dev --upgrade
-```
-or nightly from testing PyPI
-```bash
-pip install -iU https://test.pypi.org/simple/ pytorch-lightning
-```
+  ```bash
+  conda install pytorch-lightning -c conda-forge
+  ```
 
+  #### Install stable - future 1.1.x
+
+  the actual status of 1.1 [stable] is following:
+
+  ![CI base testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20base%20testing/badge.svg?branch=release%2F1.1.x&event=push)
+  ![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.1.x&event=push)
+  ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.1.x&event=push)
+  ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.1.x&event=push)
+  ![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.1.x&event=push)
+
+  Install future release from the source
+  ```bash
+  pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.1.x --upgrade
+  ```
+
+  #### Install bleeding-edge - future 1.2
+
+  Install nightly from the source (no guarantees)
+  ```bash
+  pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
+  ```
+
+  or from testing PyPI
+  ```bash
+  pip install -iU https://test.pypi.org/simple/ pytorch-lightning
+  ```
+</details>
 <!-- end skipping PyPI description -->
 
 ### Step 1: Add these imports
@@ -193,37 +217,108 @@ trainer = pl.Trainer()
 trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
-#### And without changing a single line of code, you could run on GPUs/TPUs
-```python
-# 8 GPUs
-trainer = Trainer(max_epochs=1, gpus=8)
+## Advanced features
+Lightning has over [40+ advanced features](https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html#trainer-flags) designed for professional AI research at scale.
 
-# 256 GPUs
-trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+Here are some examples:
 
-# TPUs
-trainer = Trainer(tpu_cores=8)
-```
+<div align="center">
+  <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/features_2.jpg" max-height="600px">
+</div>
 
-#### And even export for production via onnx or torchscript
-```python
-# torchscript
-autoencoder = LitAutoEncoder()
-torch.jit.save(autoencoder.to_torchscript(), "model.pt")
+<details>
+  <summary>Highlighted feature code snippets</summary>
 
-# onnx
-with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-    autoencoder = LitAutoEncoder()
-    input_sample = torch.randn((1, 64))
-    autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
-    os.path.isfile(tmpfile.name)
-```
+  ```python
+  # 8 GPUs
+  # no code changes needed
+  trainer = Trainer(max_epochs=1, gpus=8)
 
-#### For advanced users, you can still own complex training loops
+  # 256 GPUs
+  trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+  ```
+
+  <summary>Train on TPUs without code changes</summary>
+
+  ```python
+  # no code changes needed
+  trainer = Trainer(tpu_cores=8)
+   ```
+
+  <summary>16-bit precision</summary>
+
+  ```python
+  # no code changes needed
+  trainer = Trainer(precision=16)
+   ```
+
+  <summary>Experiment managers</summary>
+
+  ```python
+  from pytorch_lightning import loggers
+
+  # tensorboard
+  trainer = Trainer(logger=TensorBoardLogger('logs/'))
+
+  # weights and biases
+  trainer = Trainer(logger=loggers.WandbLogger())
+
+  # comet
+  trainer = Trainer(logger=loggers.CometLogger())
+
+  # mlflow
+  trainer = Trainer(logger=loggers.MLFlowLogger())
+
+  # neptune
+  trainer = Trainer(logger=loggers.NeptuneLogger())
+
+  # ... and dozens more
+   ```
+
+  <summary>EarlyStopping</summary>
+
+  ```python
+  es = EarlyStopping(monitor='val_loss')
+  trainer = Trainer(callbacks=[es])
+   ```
+
+  <summary>Checkpointing</summary>
+
+  ```python
+  checkpointing = ModelCheckpoint(monitor='val_loss')
+  trainer = Trainer(callbacks=[checkpointing])
+   ```
+
+  <summary>Export to torchscript (JIT) (production use)</summary>
+
+  ```python
+  # torchscript
+  autoencoder = LitAutoEncoder()
+  torch.jit.save(autoencoder.to_torchscript(), "model.pt")
+   ```
+
+  <summary>Export to ONNX (production use)</summary>
+
+  ```python
+  # onnx
+  with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+      autoencoder = LitAutoEncoder()
+      input_sample = torch.randn((1, 64))
+      autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
+      os.path.isfile(tmpfile.name)
+   ```
+</details>
+
+### Pro-level control of training loops (advanced users)
+For complex/professional level work, you have optional full control of the training loop and optimizers.
 
 ```python
 class LitAutoEncoder(pl.LightningModule):
-    def training_step(self, batch, batch_idx, opt_idx):
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
         (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
 
@@ -240,26 +335,16 @@ class LitAutoEncoder(pl.LightningModule):
 ```
 ---
 
-## Key Features
+## Advantages over unstructured PyTorch
 
-* Scale your models to run on any hardware (CPU, GPUs, TPUs) without changing your model
-* Making code more readable by decoupling the research code from the engineering
+* Models become hardware agnostic
+* Code is clear to read because engineering code is abstracted away
 * Easier to reproduce
-* Less error prone by automating most of the training loop and tricky engineering
+* Make fewer mistakes because lightning handles the tricky engineering
 * Keeps all the flexibility (LightningModules are still PyTorch modules), but removes a ton of boilerplate
-* Lightning has out-of-the-box integration with the popular logging/visualizing frameworks ([Tensorboard](https://pytorch.org/docs/stable/tensorboard.html), [MLFlow](https://mlflow.org/), [Neptune.ai](https://neptune.ai/), [Comet.ml](https://www.comet.ml/site/), [Wandb](https://www.wandb.com/)).
+* Lightning has dozens of integrations with popular machine learning tools.
 * [Tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests). We test every combination of PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
 * Minimal running speed overhead (about 300 ms per epoch compared with pure PyTorch).
-
-### Lightning automates 40+ parts of DL/ML research
-- GPU training
-- Distributed GPU (cluster) training
-- TPU training
-- EarlyStopping
-- Logging/Visualizing
-- Checkpointing
-- Experiment management
-- [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
 
 ---
 
@@ -297,29 +382,18 @@ class LitAutoEncoder(pl.LightningModule):
 ## Community
 
 The lightning community is maintained by
-- [16 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, Ph.D. students from top AI labs.
-- 280+ community contributors.
+- [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
+- 400+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
 ### Asking for help
 If you have any questions please:
-1. [Read the docs](https://pytorch-lightning.rtfd.io/en/latest/).
-2. [Look it up in our forum (or add a new question)](https://forums.pytorchlightning.ai/)
-2. [Search through the issues](https://github.com/PytorchLightning/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).
+1. [Read the docs](https://pytorch-lightning.rtfd.io/en/latest).
+2. [Search through existing Discussions](https://github.com/PyTorchLightning/pytorch-lightning/discussions), or [add a new question](https://github.com/PyTorchLightning/pytorch-lightning/discussions/new)
 3. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A).
-4. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.
-
 ### Funding
-Building open-source software with only a few part-time people is hard!
-
-[We're venture funded](https://techcrunch.com/2020/10/08/grid-ai-raises-18-6m-series-a-to-help-ai-researchers-and-engineers-bring-their-models-to-production/)
-and backed by some of the top VC funds in the world, [Index Ventures](https://www.indexventures.com/companies/), [Bain Capital Ventures](https://www.baincapitalventures.com/portfolio/), [First Minute Capital](https://firstminute.capital/companies).
-
-Their funding ensures we can continue to build awesome tooling like Grid, give you around the clock support,
-hire a full-time staff, attend conferences, and move faster through implementing features you request.
-
-To supercharge your research and production work, visit our [Grid.ai platform](https://www.grid.ai/)
+[We're venture funded](https://techcrunch.com/2020/10/08/grid-ai-raises-18-6m-series-a-to-help-ai-researchers-and-engineers-bring-their-models-to-production/) to make sure we can provide around the clock support, hire a full-time staff, attend conferences, and move faster through implementing features you request.
 
 ---
 
@@ -351,12 +425,12 @@ Please observe the Apache 2.0 license that is listed in this repository. In addi
 the Lightning framework is Patent Pending.
 
 ## BibTeX
-If you want to cite the framework feel free to use this (but only if you loved it 😊):
+If you want to cite the framework feel free to use this (but only if you loved it 😊) or [zendo](https://zenodo.org/record/3828935#.YC45Lc9Khqs):
 
 ```bibtex
 @article{falcon2019pytorch,
   title={PyTorch Lightning},
-  author={Falcon, WA},
+  author={Falcon, WA and .al},
   journal={GitHub. Note: https://github.com/PyTorchLightning/pytorch-lightning},
   volume={3},
   year={2019}

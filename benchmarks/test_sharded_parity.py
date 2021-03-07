@@ -15,17 +15,16 @@
 import os
 import platform
 import time
-from typing import Type, Union
+from typing import Type
 
 import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.plugins.ddp_plugin import DDPPlugin
-from pytorch_lightning.plugins.sharded_plugin import DDPShardedPlugin
+from pytorch_lightning.plugins import DDPSpawnShardedPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _NATIVE_AMP_AVAILABLE
-from tests.backends import DDPLauncher
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.accelerators import DDPLauncher
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
@@ -34,8 +33,6 @@ from tests.base.boring_model import BoringModel, RandomDataset
 def test_ddp_sharded_plugin_correctness_one_gpu():
     plugin_parity_test(
         gpus=1,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
     )
 
@@ -48,8 +45,6 @@ def test_ddp_sharded_plugin_correctness_amp_one_gpu():
     plugin_parity_test(
         gpus=1,
         precision=16,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
     )
 
@@ -61,8 +56,6 @@ def test_ddp_sharded_plugin_correctness_amp_one_gpu():
 def test_ddp_sharded_plugin_correctness_multi_gpu():
     plugin_parity_test(
         gpus=2,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -76,8 +69,6 @@ def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
     plugin_parity_test(
         gpus=2,
         precision=16,
-        accelerator='ddp_spawn',
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -91,8 +82,6 @@ def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
     plugin_parity_test(
         gpus=2,
         precision=16,
-        accelerator='ddp_spawn',
-        plugin='ddp_sharded',
         model_cls=SeedTrainLoaderModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -100,30 +89,28 @@ def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
 
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 @DDPLauncher.run("--accelerator ddp --gpus 2 --precision 32")
 def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
     plugin_parity_test(
         gpus=args.gpus,
         precision=args.precision,
-        accelerator=args.accelerator,
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
     )
 
 
 @pytest.mark.skipif(not _FAIRSCALE_AVAILABLE, reason="Fairscale is not available")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1',
-                    reason="test should be run outside of pytest")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 @DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
 def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
     plugin_parity_test(
         gpus=args.gpus,
         precision=args.precision,
-        accelerator=args.accelerator,
-        plugin=DDPShardedPlugin(),
         model_cls=SeedTrainLoaderModel,
     )
 
@@ -137,9 +124,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
         Ensures same results using multiple optimizers across multiple GPUs
     """
     plugin_parity_test(
-        plugin=DDPShardedPlugin(),
         gpus=2,
-        accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderMultipleOptimizersModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -154,9 +139,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim_manual(tmpdir):
         Ensures using multiple optimizers across multiple GPUs with manual optimization
     """
     plugin_parity_test(
-        plugin=DDPShardedPlugin(),
         gpus=2,
-        accelerator='ddp_spawn',
         model_cls=SeedTrainLoaderManualModel,
         max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
     )
@@ -173,6 +156,7 @@ class SeedTrainLoaderModel(BoringModel):
 
 
 class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
+
     def training_step(self, batch, batch_idx, optimizer_idx):
         # manual
         # access your optimizers with use_pl_optimizer=False. Default is True
@@ -209,6 +193,7 @@ class SeedTrainLoaderManualModel(SeedTrainLoaderModel):
 
 
 class SeedTrainLoaderMultipleOptimizersModel(SeedTrainLoaderModel):
+
     def training_step(self, batch, batch_idx, optimizer_idx):
         output = self.layer(batch)
         loss = self.loss(batch, output)
@@ -247,7 +232,7 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
     if use_cuda:
         torch.cuda.synchronize()
-        max_memory = torch.cuda.max_memory_allocated() / 2 ** 20
+        max_memory = torch.cuda.max_memory_allocated() / 2**20
 
     total_time = time.perf_counter() - time_start
 
@@ -255,13 +240,11 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
 
 def plugin_parity_test(
-        model_cls: Type[SeedTrainLoaderModel],
-        plugin: Union[str, DDPPlugin],
-        seed: int = 42,
-        accelerator: str = 'ddp_spawn',
-        gpus: int = 0,
-        precision: int = 32,
-        max_percent_speed_diff: float = 0.1,
+    model_cls: Type[SeedTrainLoaderModel],
+    seed: int = 42,
+    gpus: int = 0,
+    precision: int = 32,
+    max_percent_speed_diff: float = 0.1,
 ):
     """
     Ensures that the trained model is identical to the standard DDP implementation.
@@ -269,9 +252,7 @@ def plugin_parity_test(
 
     Args:
         model_cls: Model class to use for test.
-        plugin: Plugin to parity test.
         seed: Seed for generators. Note that this does not handle the seed for data-loading on multi-process.
-        accelerator: Accelerator type for test.
         gpus: Number of GPUS to enable.
         precision: Whether to use AMP or normal FP32 training.
         max_percent_speed_diff: The maximum speed difference compared to normal DDP training.
@@ -289,14 +270,10 @@ def plugin_parity_test(
         max_epochs=1,
         gpus=gpus,
         precision=precision,
-        accelerator=accelerator,
+        accelerator='ddp_spawn',
     )
 
-    max_memory_ddp, ddp_time = record_ddp_fit_model_stats(
-        trainer=trainer,
-        model=ddp_model,
-        use_cuda=use_cuda
-    )
+    max_memory_ddp, ddp_time = record_ddp_fit_model_stats(trainer=trainer, model=ddp_model, use_cuda=use_cuda)
 
     # Reset and train Custom DDP
     seed_everything(seed)
@@ -307,14 +284,12 @@ def plugin_parity_test(
         max_epochs=1,
         gpus=gpus,
         precision=precision,
-        accelerator=accelerator,
-        plugins=[plugin],
+        accelerator='ddp_sharded_spawn',
     )
+    assert isinstance(trainer.training_type_plugin, DDPSpawnShardedPlugin)
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(
-        trainer=trainer,
-        model=custom_plugin_model,
-        use_cuda=use_cuda
+        trainer=trainer, model=custom_plugin_model, use_cuda=use_cuda
     )
 
     # Assert model parameters are identical after fit

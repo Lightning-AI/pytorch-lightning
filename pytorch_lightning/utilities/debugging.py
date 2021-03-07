@@ -54,12 +54,12 @@ class InternalDebugger(object):
         self.dataloader_sequence_calls = []
 
     def track_event(
-            self,
-            evt_type: str,
-            evt_value: Any = None,
-            global_rank: Optional[int] = None,
-            local_rank: Optional[int] = None,
-            comment: str = ''
+        self,
+        evt_type: str,
+        evt_value: Any = None,
+        global_rank: Optional[int] = None,
+        local_rank: Optional[int] = None,
+        comment: str = ''
     ) -> None:
         self.events.append({
             "timestamp": time.time(),
@@ -121,29 +121,32 @@ class InternalDebugger(object):
         self.saved_train_losses.append(loss_dict)
 
     @enabled_only
-    def track_lr_schedulers_update(self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None):
+    def track_lr_schedulers_update(
+        self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None, monitor_val=None
+    ):
         loss_dict = {
             'batch_idx': batch_idx,
             'interval': interval,
             'scheduler_idx': scheduler_idx,
             'epoch': self.trainer.current_epoch,
             'monitor_key': monitor_key,
+            'monitor_val': monitor_val,
             'old_lr': old_lr,
             'new_lr': new_lr
         }
         self.saved_lr_scheduler_updates.append(loss_dict)
 
     @enabled_only
-    def track_eval_loss_history(self, test_mode, batch_idx, dataloader_idx, output):
+    def track_eval_loss_history(self, batch_idx, dataloader_idx, output):
         loss_dict = {
-            'sanity_check': self.trainer.running_sanity_check,
+            'sanity_check': self.trainer.sanity_checking,
             'dataloader_idx': dataloader_idx,
             'batch_idx': batch_idx,
             'epoch': self.trainer.current_epoch,
             'output': output
         }
 
-        if test_mode:
+        if self.trainer.testing:
             self.saved_test_losses.append(loss_dict)
         else:
             self.saved_val_losses.append(loss_dict)

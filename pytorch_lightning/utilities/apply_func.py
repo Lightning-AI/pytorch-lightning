@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import operator
 from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
@@ -22,27 +22,26 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
-    from torchtext.data import Batch
+    if _compare_version("torchtext", operator.ge, "0.9.0"):
+        from torchtext.legacy.data import Batch
+    else:
+        from torchtext.data import Batch
 else:
     Batch = type(None)
 
 
-def to_dtype_tensor(value, dtype:torch.dtype = None, device: torch.device = None):
+def to_dtype_tensor(value, dtype: torch.dtype = None, device: torch.device = None):
     if device is None:
-        raise MisconfigurationException(
-            "device (torch.device) should be provided."
-        )
+        raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.tensor(value, dtype=dtype, device=device)
 
 
 def from_numpy(value, device: torch.device = None):
     if device is None:
-        raise MisconfigurationException(
-            "device (torch.device) should be provided."
-        )
+        raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.from_numpy(value).to(device)
 
 
@@ -55,8 +54,14 @@ CONVERSION_DTYPES = [
 ]
 
 
-def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args,
-                        wrong_dtype: Optional[Union[type, tuple]] = None, **kwargs) -> Any:
+def apply_to_collection(
+    data: Any,
+    dtype: Union[type, tuple],
+    function: Callable,
+    *args,
+    wrong_dtype: Optional[Union[type, tuple]] = None,
+    **kwargs
+) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.
 
@@ -80,8 +85,7 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
 
     # Recursively apply to collection items
     if isinstance(data, Mapping):
-        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs)
-                          for k, v in data.items()})
+        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs) for k, v in data.items()})
 
     if isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
         return elem_type(*(apply_to_collection(d, dtype, function, *args, **kwargs) for d in data))
@@ -159,9 +163,7 @@ def move_data_to_device(batch: Any, device: torch.device):
 
 def convert_to_tensors(data, device: torch.device = None):
     if device is None:
-        raise MisconfigurationException(
-            "device (torch.device) should be provided."
-        )
+        raise MisconfigurationException("device (torch.device) should be provided.")
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
     return data

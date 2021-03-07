@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
-from distutils.version import LooseVersion
 from unittest import mock
 from unittest.mock import patch
 
@@ -24,13 +22,14 @@ from torch.utils.data.dataset import IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
-import tests.base.develop_pipelines as tpipes
+import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test_fit_train_loader_only(tmpdir):
@@ -82,18 +81,20 @@ def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
         trainer.fit(model)
 
 
-@pytest.mark.parametrize("dataloader_options", [
-    dict(limit_train_batches=-0.1),
-    dict(limit_train_batches=1.2),
-    dict(limit_val_batches=-0.1),
-    dict(limit_val_batches=1.2),
-    dict(limit_test_batches=-0.1),
-    dict(limit_test_batches=1.2),
-    dict(val_check_interval=-0.1),
-    dict(val_check_interval=1.2),
-    dict(overfit_batches=-0.1),
-    dict(overfit_batches=1.2),
-])
+@pytest.mark.parametrize(
+    "dataloader_options", [
+        dict(limit_train_batches=-0.1),
+        dict(limit_train_batches=1.2),
+        dict(limit_val_batches=-0.1),
+        dict(limit_val_batches=1.2),
+        dict(limit_test_batches=-0.1),
+        dict(limit_test_batches=1.2),
+        dict(val_check_interval=-0.1),
+        dict(val_check_interval=1.2),
+        dict(overfit_batches=-0.1),
+        dict(overfit_batches=1.2),
+    ]
+)
 def test_dataloader_config_errors_init(tmpdir, dataloader_options):
     with pytest.raises(MisconfigurationException, match='passed invalid value'):
         Trainer(
@@ -129,7 +130,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     # make sure predictions are good for each val set
     for dataloader in trainer.val_dataloaders:
-        tpipes.run_prediction(trainer.model, dataloader)
+        tpipes.run_prediction_eval_model_template(trained_model=model, dataloader=dataloader)
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
@@ -139,8 +140,9 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     model_template = EvalModelTemplate()
 
     class MultipleTestDataloaderModel(EvalModelTemplate):
+
         def test_dataloader(self):
-            return model_template.test_dataloader__multiple()
+            return [self.dataloader(train=False), self.dataloader(train=False)]
 
         def test_step(self, batch, batch_idx, *args, **kwargs):
             return model_template.test_step__multiple_dataloaders(batch, batch_idx, *args, **kwargs)
@@ -151,8 +153,8 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
+        limit_val_batches=10,
+        limit_train_batches=100,
     )
     trainer.fit(model)
     if ckpt_path == 'specific':
@@ -160,57 +162,14 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     trainer.test(ckpt_path=ckpt_path)
 
     # verify there are 2 test loaders
-    assert len(trainer.test_dataloaders) == 2, \
-        'Multiple test_dataloaders not initiated properly'
+    assert len(trainer.test_dataloaders) == 2, 'Multiple test_dataloaders not initiated properly'
 
     # make sure predictions are good for each test set
     for dataloader in trainer.test_dataloaders:
-        tpipes.run_prediction(trainer.model, dataloader)
+        tpipes.run_prediction_eval_model_template(trainer.model, dataloader)
 
     # run the test method
     trainer.test(ckpt_path=ckpt_path)
-
-
-@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
-def test_multiple_validate_dataloader(tmpdir, ckpt_path):
-    """Verify multiple val_dataloaders."""
-
-    model_template = EvalModelTemplate()
-
-    class MultipleValDataloaderModel(EvalModelTemplate):
-        def val_dataloader(self):
-            return model_template.val_dataloader__multiple()
-
-        def validation_step(self, batch, batch_idx, *args, **kwargs):
-            return model_template.validation_step__multiple_dataloaders(batch, batch_idx, *args, **kwargs)
-
-        def validation_epoch_end(self, outputs):
-            return model_template.validation_epoch_end__multiple_dataloaders(outputs)
-
-    model = MultipleValDataloaderModel()
-
-    # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
-    )
-    trainer.fit(model)
-    if ckpt_path == 'specific':
-        ckpt_path = trainer.checkpoint_callback.best_model_path
-    trainer.validate(ckpt_path=ckpt_path)
-
-    # verify there are 2 test loaders
-    assert len(trainer.val_dataloaders) == 2, \
-        'Multiple val_dataloaders not initiated properly'
-
-    # make sure predictions are good for each test set
-    for dataloader in trainer.val_dataloaders:
-        tpipes.run_prediction(dataloader, trainer.model)
-
-    # run the validate method
-    trainer.validate(ckpt_path=ckpt_path)
 
 
 def test_train_dataloader_passed_to_fit(tmpdir):
@@ -241,8 +200,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    fit_options = dict(train_dataloader=model.dataloader(train=True),
-                       val_dataloaders=model.dataloader(train=False))
+    fit_options = dict(train_dataloader=model.dataloader(train=True), val_dataloaders=model.dataloader(train=False))
 
     trainer.fit(model, **fit_options)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
@@ -263,14 +221,12 @@ def test_all_dataloaders_passed_to_fit(tmpdir, ckpt_path):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    fit_options = dict(train_dataloader=model.dataloader(train=True),
-                       val_dataloaders=model.dataloader(train=False))
+    fit_options = dict(train_dataloader=model.dataloader(train=True), val_dataloaders=model.dataloader(train=False))
     trainer.fit(model, **fit_options)
 
     if ckpt_path == 'specific':
         ckpt_path = trainer.checkpoint_callback.best_model_path
-    test_options = dict(test_dataloaders=model.dataloader(train=False),
-                        ckpt_path=ckpt_path)
+    test_options = dict(test_dataloaders=model.dataloader(train=False), ckpt_path=ckpt_path)
     trainer.test(**test_options)
 
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
@@ -296,15 +252,16 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir, ckpt_path):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    fit_options = dict(train_dataloader=model.dataloader(train=True),
-                       val_dataloaders=[model.dataloader(train=False),
-                                        model.dataloader(train=False)])
+    fit_options = dict(
+        train_dataloader=model.dataloader(train=True),
+        val_dataloaders=[model.dataloader(train=False), model.dataloader(train=False)]
+    )
     trainer.fit(model, **fit_options)
     if ckpt_path == 'specific':
         ckpt_path = trainer.checkpoint_callback.best_model_path
-    test_options = dict(test_dataloaders=[model.dataloader(train=False),
-                                          model.dataloader(train=False)],
-                        ckpt_path=ckpt_path)
+    test_options = dict(
+        test_dataloaders=[model.dataloader(train=False), model.dataloader(train=False)], ckpt_path=ckpt_path
+    )
     trainer.test(**test_options)
 
     assert len(trainer.val_dataloaders) == 2, \
@@ -369,15 +326,12 @@ def test_inf_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, lim
     assert trainer.num_test_batches[0] == limit_test_batches
 
 
-@pytest.mark.parametrize(
-    ['limit_train_batches', 'limit_val_batches', 'limit_test_batches'],
-    [
-        pytest.param(0.0, 0.0, 0.0),
-        pytest.param(0, 0, 0.5),
-        pytest.param(1.0, 1.0, 1.0),
-        pytest.param(0.2, 0.4, 0.4),
-    ]
-)
+@pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
+    pytest.param(0.0, 0.0, 0.0),
+    pytest.param(0, 0, 0.5),
+    pytest.param(1.0, 1.0, 1.0),
+    pytest.param(0.2, 0.4, 0.4),
+])
 def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify num_batches for train, val & test dataloaders passed with batch limit in percent"""
     model = EvalModelTemplate()
@@ -398,27 +352,20 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
     )
     trainer.fit(model)
     expected_train_batches = int(len(trainer.train_dataloader) * limit_train_batches)
-    expected_val_batches = [
-        int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders
-    ]
+    expected_val_batches = [int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders]
     assert trainer.num_training_batches == expected_train_batches
     assert trainer.num_val_batches == expected_val_batches
 
     trainer.test(ckpt_path=None)
-    expected_test_batches = [
-        int(len(dataloader) * limit_test_batches) for dataloader in trainer.test_dataloaders
-    ]
+    expected_test_batches = [int(len(dataloader) * limit_test_batches) for dataloader in trainer.test_dataloaders]
     assert trainer.num_test_batches == expected_test_batches
 
 
-@pytest.mark.parametrize(
-    ['limit_train_batches', 'limit_val_batches', 'limit_test_batches'],
-    [
-        pytest.param(0, 0, 0),
-        pytest.param(1, 2, 3),
-        pytest.param(1, 2, 1e50),
-    ]
-)
+@pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
+    pytest.param(0, 0, 0),
+    pytest.param(1, 2, 3),
+    pytest.param(1, 2, 1e50),
+])
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify num_batches for train, val & test dataloaders passed with batch limit as number"""
@@ -652,26 +599,21 @@ def test_error_on_zero_len_dataloader(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize('ckpt_path', (None, 'best', 'specific'))
+@pytest.mark.parametrize('stage', ('train', 'test', 'val'))
 @patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
-def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
+def test_warning_with_few_workers(_, tmpdir, ckpt_path, stage):
     """ Test that error is raised if dataloader with only a few workers is used """
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
-    # logger file to get meta
-    train_dl = model.dataloader(train=True)
+    train_dl = model.train_dataloader()
     train_dl.num_workers = 0
 
-    val_dl = model.dataloader(train=False)
+    val_dl = model.val_dataloader()
     val_dl.num_workers = 0
 
-    train_dl = model.dataloader(train=False)
-    train_dl.num_workers = 0
-
-    fit_options = dict(train_dataloader=train_dl,
-                       val_dataloaders=val_dl)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -679,30 +621,22 @@ def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
         limit_train_batches=0.2,
     )
 
-    # fit model
     with pytest.warns(
-        UserWarning, match='The dataloader, train dataloader, does not have many workers which may be a bottleneck.'
+        UserWarning,
+        match=f'The dataloader, {stage} dataloader{" 0" if stage != "train" else ""}, does not have many workers'
     ):
-        trainer.fit(model, **fit_options)
-
-    with pytest.warns(
-        UserWarning, match='The dataloader, val dataloader 0, does not have many workers which may be a bottleneck.'
-    ):
-        trainer.fit(model, **fit_options)
-
-    if ckpt_path == 'specific':
-        ckpt_path = trainer.checkpoint_callback.best_model_path
-    test_options = dict(test_dataloaders=train_dl, ckpt_path=ckpt_path)
-    with pytest.warns(
-        UserWarning, match='The dataloader, test dataloader 0, does not have many workers which may be a bottleneck.'
-    ):
-        trainer.test(**test_options)
+        if stage == 'test':
+            ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == 'specific' else ckpt_path
+            trainer.test(model, test_dataloaders=train_dl, ckpt_path=ckpt_path)
+        else:
+            trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
 
 
-@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+@RunIf(skip_windows=True)
+@pytest.mark.parametrize('ckpt_path', (None, 'best', 'specific'))
+@pytest.mark.parametrize('stage', ('train', 'test', 'val'))
 @patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
-def test_warning_with_few_workers_multi_loader(mock, tmpdir, ckpt_path):
+def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     """ Test that error is raised if dataloader with only a few workers is used """
 
     model = EvalModelTemplate()
@@ -711,10 +645,6 @@ def test_warning_with_few_workers_multi_loader(mock, tmpdir, ckpt_path):
     model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
     model.test_step = model.test_step__multiple_dataloaders
     model.test_epoch_end = model.test_epoch_end__multiple_dataloaders
-
-    # logger file to get meta
-    train_dl = model.dataloader(train=True)
-    train_dl.num_workers = 0
 
     val_dl = model.dataloader(train=False)
     val_dl.num_workers = 0
@@ -726,8 +656,6 @@ def test_warning_with_few_workers_multi_loader(mock, tmpdir, ckpt_path):
     val_multi_dl = [val_dl, val_dl]
     test_multi_dl = [train_dl, train_dl]
 
-    fit_options = dict(train_dataloader=train_multi_dl,
-                       val_dataloaders=val_multi_dl)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -735,30 +663,17 @@ def test_warning_with_few_workers_multi_loader(mock, tmpdir, ckpt_path):
         limit_train_batches=0.2,
     )
 
-    # fit model
     with pytest.warns(
-        UserWarning, match='The dataloader, train dataloader, does not have many workers which may be a bottleneck.'
+        UserWarning,
+        match=f'The dataloader, {stage} dataloader{" 0" if stage != "train" else ""}, does not have many workers'
     ):
-        trainer.fit(model, **fit_options)
-
-    with pytest.warns(
-        UserWarning, match='The dataloader, val dataloader 0, does not have many workers which may be a bottleneck.'
-    ):
-        trainer.fit(model, **fit_options)
-
-    if ckpt_path == 'specific':
-        ckpt_path = trainer.checkpoint_callback.best_model_path
-    test_options = dict(test_dataloaders=test_multi_dl, ckpt_path=ckpt_path)
-    with pytest.warns(
-        UserWarning, match='The dataloader, test dataloader 0, does not have many workers which may be a bottleneck.'
-    ):
-        trainer.test(**test_options)
+        if stage == 'test':
+            ckpt_path = trainer.checkpoint_callback.best_model_path if ckpt_path == 'specific' else ckpt_path
+            trainer.test(model, test_dataloaders=test_multi_dl, ckpt_path=ckpt_path)
+        else:
+            trainer.fit(model, train_dataloader=train_multi_dl, val_dataloaders=val_multi_dl)
 
 
-@pytest.mark.xfail(
-    LooseVersion(torch.__version__) < LooseVersion("1.4.0"),
-    reason="IterableDataset with __len__ before 1.4 raises",
-)
 def test_warning_with_iterable_dataset_and_len(tmpdir):
     """ Tests that a warning message is shown when an IterableDataset defines `__len__`. """
     model = EvalModelTemplate()
@@ -785,17 +700,31 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
         trainer.test(model, test_dataloaders=[dataloader])
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@RunIf(min_gpus=2)
 def test_dataloader_reinit_for_subclass(tmpdir):
 
     class CustomDataLoader(torch.utils.data.DataLoader):
-        def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None,
-                     batch_sampler=None, num_workers=0, collate_fn=None,
-                     pin_memory=False, drop_last=False, timeout=0,
-                     worker_init_fn=None, dummy_kwarg=None, **kwargs):
-            super().__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
-                             num_workers, collate_fn, pin_memory, drop_last, timeout,
-                             worker_init_fn)
+
+        def __init__(
+            self,
+            dataset,
+            batch_size=1,
+            shuffle=False,
+            sampler=None,
+            batch_sampler=None,
+            num_workers=0,
+            collate_fn=None,
+            pin_memory=False,
+            drop_last=False,
+            timeout=0,
+            worker_init_fn=None,
+            dummy_kwarg=None,
+            **kwargs
+        ):
+            super().__init__(
+                dataset, batch_size, shuffle, sampler, batch_sampler, num_workers, collate_fn, pin_memory, drop_last,
+                timeout, worker_init_fn
+            )
 
             self.dummy_kwarg = dummy_kwarg
 
@@ -830,7 +759,8 @@ def test_dataloader_reinit_for_subclass(tmpdir):
     # Should raise an error if existing sampler is being replaced
     with pytest.raises(MisconfigurationException, match='DistributedSampler'):
         trainer.auto_add_sampler(
-            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), shuffle=True)
+            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), shuffle=True
+        )
 
 
 class DistribSamplerCallback(Callback):
@@ -851,8 +781,7 @@ class DistribSamplerCallback(Callback):
         assert not test_sampler.shuffle
 
 
-@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@RunIf(min_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend """
 
@@ -875,16 +804,11 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
         dataloader = super().train_dataloader()
         dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True)
         return DataLoader(
-            dataloader.dataset,
-            batch_size=self.batch_size,
-            drop_last=False,
-            sampler=dist_sampler,
-            shuffle=False
+            dataloader.dataset, batch_size=self.batch_size, drop_last=False, sampler=dist_sampler, shuffle=False
         )
 
 
-@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@RunIf(min_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader """
 
@@ -902,7 +826,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     assert trainer.state == TrainerState.FINISHED, "DDP Training failed"
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
+@RunIf(min_gpus=3)
 def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we need at least 3 gpus for this test
     num_gpus = 3
@@ -1004,12 +928,7 @@ def test_train_dataloader_not_implemented_error(tmpdir, check_interval):
     model.train_dataloader = model.train_dataloader__not_implemented_error
     model.val_dataloader = model.val_dataloader__not_implemented_error
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=5,
-        max_epochs=1,
-        val_check_interval=check_interval
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, val_check_interval=check_interval)
     trainer.fit(model)
     # verify training completed
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
@@ -1116,7 +1035,7 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
         'val_dataloader',
         'val_dataloader',
         'val_dataloader',
-        'test_dataloader'
+        'test_dataloader',
     ]
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
@@ -1184,7 +1103,7 @@ def test_dataloaders_load_every_epoch(tmpdir):
         'val_dataloader',
         'train_dataloader',
         'val_dataloader',
-        'test_dataloader'
+        'test_dataloader',
     ]
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
@@ -1222,7 +1141,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         'val_dataloader',
         'train_dataloader',
         'val_dataloader',
-        'test_dataloader'
+        'test_dataloader',
     ]
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected

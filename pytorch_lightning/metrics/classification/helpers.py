@@ -17,6 +17,39 @@ import numpy as np
 import torch
 
 from pytorch_lightning.metrics.utils import select_topk, to_onehot
+from pytorch_lightning.utilities import LightningEnum
+
+
+class DataType(LightningEnum):
+    """
+    Enum to represent data type
+    """
+
+    BINARY = "binary"
+    MULTILABEL = "multi-label"
+    MULTICLASS = "multi-class"
+    MULTIDIM_MULTICLASS = "multi-dim multi-class"
+
+
+class AverageMethod(LightningEnum):
+    """
+    Enum to represent average method
+    """
+
+    MICRO = "micro"
+    MACRO = "macro"
+    WEIGHTED = "weighted"
+    NONE = "none"
+    SAMPLES = "samples"
+
+
+class MDMCAverageMethod(LightningEnum):
+    """
+    Enum to represent multi-dim multi-class average method
+    """
+
+    GLOBAL = "global"
+    SAMPLEWISE = "samplewise"
 
 
 def _basic_input_validation(preds: torch.Tensor, target: torch.Tensor, threshold: float, is_multiclass: bool):
@@ -78,13 +111,13 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
 
         # Get the case
         if preds.ndim == 1 and preds_float:
-            case = "binary"
+            case = DataType.BINARY
         elif preds.ndim == 1 and not preds_float:
-            case = "multi-class"
+            case = DataType.MULTICLASS
         elif preds.ndim > 1 and preds_float:
-            case = "multi-label"
+            case = DataType.MULTILABEL
         else:
-            case = "multi-dim multi-class"
+            case = DataType.MULTIDIM_MULTICLASS
 
         implied_classes = preds[0].numel()
 
@@ -100,9 +133,9 @@ def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor)
         implied_classes = preds.shape[1]
 
         if preds.ndim == 2:
-            case = "multi-class"
+            case = DataType.MULTICLASS
         else:
-            case = "multi-dim multi-class"
+            case = DataType.MULTIDIM_MULTICLASS
     else:
         raise ValueError(
             "Either `preds` and `target` both should have the (same) shape (N, ...), or `target` should be (N, ...)"
@@ -182,7 +215,7 @@ def _check_num_classes_ml(num_classes: int, is_multiclass: bool, implied_classes
 
 
 def _check_top_k(top_k: int, case: str, implied_classes: int, is_multiclass: Optional[bool], preds_float: bool):
-    if case == "binary":
+    if case == DataType.BINARY:
         raise ValueError("You can not use `top_k` parameter with binary data.")
     if not isinstance(top_k, int) or top_k <= 0:
         raise ValueError("The `top_k` has to be an integer larger than 0.")
@@ -190,7 +223,7 @@ def _check_top_k(top_k: int, case: str, implied_classes: int, is_multiclass: Opt
         raise ValueError("You have set `top_k`, but you do not have probability predictions.")
     if is_multiclass is False:
         raise ValueError("If you set `is_multiclass=False`, you can not set `top_k`.")
-    if case == "multi-label" and is_multiclass:
+    if case == DataType.MULTILABEL and is_multiclass:
         raise ValueError(
             "If you want to transform multi-label data to 2 class multi-dimensional"
             "multi-class data using `is_multiclass=True`, you can not use `top_k`."
@@ -266,7 +299,7 @@ def _check_classification_inputs(
     case, implied_classes = _check_shape_and_type_consistency(preds, target)
 
     # For (multi-dim) multi-class case with prob preds, check that preds sum up to 1
-    if "multi-class" in case and preds.is_floating_point():
+    if case in (DataType.MULTICLASS, DataType.MULTIDIM_MULTICLASS) and preds.is_floating_point():
         if not torch.isclose(preds.sum(dim=1), torch.ones_like(preds.sum(dim=1))).all():
             raise ValueError("Probabilities in `preds` must sum up to 1 accross the `C` dimension.")
 
@@ -284,11 +317,11 @@ def _check_classification_inputs(
 
     # Check that num_classes is consistent
     if num_classes:
-        if case == "binary":
+        if case == DataType.BINARY:
             _check_num_classes_binary(num_classes, is_multiclass)
-        elif "multi-class" in case:
+        elif case in (DataType.MULTICLASS, DataType.MULTIDIM_MULTICLASS):
             _check_num_classes_mc(preds, target, num_classes, is_multiclass, implied_classes)
-        elif case == "multi-label":
+        elif case.MULTILABEL:
             _check_num_classes_ml(num_classes, is_multiclass, implied_classes)
 
     # Check that top_k is consistent
@@ -406,14 +439,14 @@ def _input_format_classification(
         top_k=top_k,
     )
 
-    if case in ["binary", "multi-label"] and not top_k:
+    if case in (DataType.BINARY, DataType.MULTILABEL) and not top_k:
         preds = (preds >= threshold).int()
         num_classes = num_classes if not is_multiclass else 2
 
-    if case == "multi-label" and top_k:
+    if case == DataType.MULTILABEL and top_k:
         preds = select_topk(preds, top_k)
 
-    if "multi-class" in case or is_multiclass:
+    if case in (DataType.MULTICLASS, DataType.MULTIDIM_MULTICLASS) or is_multiclass:
         if preds.is_floating_point():
             num_classes = preds.shape[1]
             preds = select_topk(preds, top_k or 1)
@@ -426,7 +459,7 @@ def _input_format_classification(
         if is_multiclass is False:
             preds, target = preds[:, 1, ...], target[:, 1, ...]
 
-    if ("multi-class" in case and is_multiclass is not False) or is_multiclass:
+    if (case in (DataType.MULTICLASS, DataType.MULTIDIM_MULTICLASS) and is_multiclass is not False) or is_multiclass:
         target = target.reshape(target.shape[0], target.shape[1], -1)
         preds = preds.reshape(preds.shape[0], preds.shape[1], -1)
     else:
@@ -486,7 +519,7 @@ model_evaluation.html#multiclass-and-multilabel-classification>`__.
     denominator = torch.where(zero_div_mask | ignore_mask, torch.tensor(1.0, device=denominator.device), denominator)
     weights = torch.where(ignore_mask, torch.tensor(0.0, device=weights.device), weights)
 
-    if average not in ["micro", "none", None]:
+    if average not in (AverageMethod.MICRO, AverageMethod.NONE, None):
         weights = weights / weights.sum(dim=-1, keepdim=True)
 
     scores = weights * (numerator / denominator)
@@ -494,11 +527,11 @@ model_evaluation.html#multiclass-and-multilabel-classification>`__.
     # This is in case where sum(weights) = 0, which happens if we ignore the only present class with average='weighted'
     scores = torch.where(torch.isnan(scores), torch.tensor(float(zero_division), device=scores.device), scores)
 
-    if mdmc_average == "samplewise":
+    if mdmc_average == MDMCAverageMethod.SAMPLEWISE:
         scores = scores.mean(dim=0)
         ignore_mask = ignore_mask.sum(dim=0).bool()
 
-    if average in ["none", None]:
+    if average in (AverageMethod.NONE, None):
         scores = torch.where(ignore_mask, torch.tensor(np.nan, device=scores.device), scores)
     else:
         scores = scores.sum()

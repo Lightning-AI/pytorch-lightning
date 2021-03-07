@@ -183,7 +183,9 @@ class ModelSummary(object):
         self._mode = mode
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
-        self._precision_megabytes = (self._model.precision / 8.0) * 1e-6
+        # TODO: how do we compute precisin_megabytes in case of mixed precision?
+        precision = self._model.precision if isinstance(self._model.precision, int) else 32
+        self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -227,6 +229,7 @@ class ModelSummary(object):
 
     @property
     def model_size(self) -> float:
+        # todo: seems it does not work with quantized models - it returns 0.0
         return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:
@@ -243,7 +246,7 @@ class ModelSummary(object):
         trainer = self._model.trainer
 
         input_ = model.example_input_array
-        input_ = model.transfer_batch_to_device(input_, model.device)
+        input_ = model._apply_batch_transfer_handler(input_, model.device)
 
         if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
             model.forward = torch.cuda.amp.autocast()(model.forward)
@@ -385,9 +388,7 @@ def get_gpu_memory_map() -> Dict[str, int]:
 
     # Convert lines into a dictionary
     gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {
-        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
-    }
+    gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
 
@@ -427,9 +428,9 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10 ** shift)
+    number = number * (10**shift)
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
-    else:
-        return f"{number:,.1f} {labels[index]}"
+
+    return f"{number:,.1f} {labels[index]}"

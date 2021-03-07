@@ -11,19 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 
-import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.metrics import Metric
+from tests.helpers.runif import RunIf
 
 
 class DummyMetric(Metric):
+
     def __init__(self):
         super().__init__()
         self.add_state("x", torch.tensor(0), dist_reduce_fx="sum")
@@ -82,24 +82,21 @@ def _ddp_test_fn(rank, worldsize):
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
 
-        epoch_expected = {
-            "b": cumulative_sum * worldsize,
-            "a_epoch": cumulative_sum * worldsize
-        }
+        epoch_expected = {"b": cumulative_sum * worldsize, "a_epoch": cumulative_sum * worldsize}
 
         assert set(epoch_log.keys()) == set(epoch_expected.keys())
         for k in epoch_expected.keys():
             assert epoch_expected[k] == epoch_log[k]
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
+@RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
     tutils.reset_seed()
     tutils.set_random_master_port()
 
     worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
+    mp.spawn(_ddp_test_fn, args=(worldsize, ), nprocs=worldsize)
 
 
 def test_result_metric_integration():

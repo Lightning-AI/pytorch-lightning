@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """[Train, Eval]Result for easier logging, checkpointing, early stopping, epoch-wise reduction."""
 
 import numbers
@@ -27,6 +26,7 @@ from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
 class Result(Dict):
+
     def __init__(
         self,
         minimize: Optional[Tensor] = None,
@@ -148,6 +148,9 @@ class Result(Dict):
                 value = torch.tensor(value, device=device, dtype=torch.float)
             value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
+        if isinstance(value, torch.Tensor) and value.device.type == "xla":
+            value = value.cpu()
+
         if 'meta' not in self:
             self.__setitem__('meta', {})
 
@@ -224,7 +227,7 @@ class Result(Dict):
         tbptt_pad_token: int,
         tbptt_reduce_fx: Callable,
         forked: bool,
-        dataloader_idx: Union[int, None]
+        dataloader_idx: Union[int, None],
     ):
         # set the meta for the item
         meta_value = value
@@ -297,7 +300,7 @@ class Result(Dict):
             dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
 
             if options['logger'] and options['on_step']:
-                if isinstance(self[k], Metric):
+                if isinstance(self[k], Metric) and self[k]._forward_cache is not None:
                     result[dl_key] = self[k]._forward_cache.detach()
                 else:
                     result[dl_key] = self[k]
@@ -406,27 +409,29 @@ class Result(Dict):
             dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
 
             if options['prog_bar'] and options['on_step']:
-                if isinstance(self[k], Metric):
+                if isinstance(self[k], Metric) and self[k]._forward_cache is not None:
                     result[dl_key] = self[k]._forward_cache
                 else:
                     result[dl_key] = self[k]
 
         return result
 
-    def detach(self):
+    def detach(self) -> 'Result':
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
+        return self
 
-    def to(self, *args, **kwargs):
+    def to(self, *args, **kwargs) -> 'Result':
         """Move all self attributes to the given device."""
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.to(*args, **kwargs))
+        return self
 
-    def cpu(self):
+    def cpu(self) -> 'Result':
         """Move all self attributes to CPU."""
-        self.to(torch.device("cpu"))
+        return self.to(torch.device("cpu"))
 
     def __repr__(self):
         self_copy = self.copy()

@@ -28,11 +28,14 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Callable:
+
     def decorator(func: Callable) -> Callable:
+
         def wrapper(self, *args, **kwargs) -> Any:
             # Set information
             self._current_fx_name = fx_name
@@ -46,6 +49,7 @@ def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Cal
             return result
 
         return wrapper
+
     return decorator
 
 
@@ -120,6 +124,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
     y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
 
     class MockSeq2SeqDataset(torch.utils.data.Dataset):
+
         def __getitem__(self, i):
             return x_seq, y_seq_list
 
@@ -204,22 +209,18 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
 def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, monkeypatch, num_dataloaders):
     """
-    Tests that LoggerConnector will properly capture logged information in multi_dataloaders scenario
+    Tests that LoggerConnector will properly capture logged information in multi dataloaders scenario
     """
     monkeypatch.setenv("PL_DEV_DEBUG", "1")
 
     class TestModel(BoringModel):
-
-        test_losses = {}
+        test_losses = {dl_idx: [] for dl_idx in range(num_dataloaders)}
 
         @decorator_with_arguments(fx_name="test_step")
         def test_step(self, batch, batch_idx, dl_idx=0):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-
-            self.test_losses.setdefault(dl_idx, [])
             self.test_losses[dl_idx].append(loss)
-
             self.log("test_loss", loss, on_step=True, on_epoch=True)
             return {"test_loss": loss}
 
@@ -232,12 +233,10 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, m
             self.reduce_results = deepcopy(self.trainer.logger_connector.cached_results)
 
         def test_dataloader(self):
-            return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
+            return [super().test_dataloader()] * num_dataloaders
 
     model = TestModel()
-    model.val_dataloader = None
     model.test_epoch_end = None
-
     limit_test_batches = 4
 
     trainer = Trainer(
@@ -257,15 +256,15 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, m
     assert len(generated) == num_dataloaders
 
     for dl_idx in range(num_dataloaders):
-        generated = len(test_results(fx_name="test_step", dl_idx=dl_idx))
-        assert generated == limit_test_batches
+        generated = test_results(fx_name="test_step", dl_idx=dl_idx)
+        assert len(generated) == limit_test_batches
 
     test_results = model.reduce_results
 
     for dl_idx in range(num_dataloaders):
         expected = torch.stack(model.test_losses[dl_idx]).mean()
         generated = test_results(fx_name="test_step", dl_idx=dl_idx, reduced=True)["test_loss_epoch"]
-        assert abs(expected.item() - generated.item()) < 1e-6
+        torch.testing.assert_allclose(generated, expected)
 
 
 def test_call_back_validator(tmpdir):
@@ -351,8 +350,7 @@ def test_call_back_validator(tmpdir):
             is_stage or "batch" in func_name or "epoch" in func_name or "grad" in func_name or "backward" in func_name
         )
         allowed = (
-            allowed
-            and "pretrain" not in func_name
+            allowed and "pretrain" not in func_name
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
@@ -371,7 +369,7 @@ def test_call_back_validator(tmpdir):
         validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires two GPUs")
+@RunIf(min_gpus=2)
 def test_epoch_results_cache_dp(tmpdir):
 
     root_device = torch.device("cuda", 0)
@@ -454,3 +452,58 @@ def test_metrics_holder(to_float, tmpdir):
     assert excepted_function(metrics["x"])
     assert excepted_function(metrics["y"])
     assert excepted_function(metrics["z"])
+
+
+def test_logging_to_progress_bar_with_reserved_key(tmpdir):
+    """ Test that logging a metric with a reserved name to the progress bar raises a warning. """
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args, **kwargs):
+            output = super().training_step(*args, **kwargs)
+            self.log("loss", output["loss"], prog_bar=True)
+            return output
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=2,
+    )
+    with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
+        trainer.fit(model)
+
+
+@pytest.mark.parametrize("add_dataloader_idx", [False, True])
+def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
+    """ test that auto_add_dataloader_idx argument works """
+
+    class TestModel(BoringModel):
+
+        def val_dataloader(self):
+            dl = super().val_dataloader()
+            return [dl, dl]
+
+        def validation_step(self, *args, **kwargs):
+            output = super().validation_step(*args[:-1], **kwargs)
+            if add_dataloader_idx:
+                name = "val_loss"
+            else:
+                name = f"val_loss_custom_naming_{args[-1]}"
+
+            self.log(name, output["x"], add_dataloader_idx=add_dataloader_idx)
+            return output
+
+    model = TestModel()
+    model.validation_epoch_end = None
+
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=5)
+    trainer.fit(model)
+    logged = trainer.logged_metrics
+
+    # Check that the correct keys exist
+    if add_dataloader_idx:
+        assert 'val_loss/dataloader_idx_0' in logged
+        assert 'val_loss/dataloader_idx_1' in logged
+    else:
+        assert 'val_loss_custom_naming_0' in logged
+        assert 'val_loss_custom_naming_1' in logged

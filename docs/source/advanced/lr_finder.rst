@@ -106,7 +106,7 @@ below. It is recommended to not pick the learning rate that achieves the lowest
 loss, but instead something in the middle of the sharpest downward slope (red point).
 This is the point returned py ``lr_finder.suggestion()``.
 
-.. figure:: ../_images/trainer/lr_finder.png
+.. figure:: ../_static/images/trainer/lr_finder.png
 
 The parameters of the algorithm can be seen below.
 

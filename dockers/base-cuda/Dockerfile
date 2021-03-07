@@ -31,11 +31,12 @@ ARG CMAKE_VERSION=3.18.4
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Europe/Prague
-
-ENV PATH="$PATH:/root/.local/bin"
-ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
+ENV \
+    DEBIAN_FRONTEND=noninteractive \
+    TZ=Europe/Prague \
+    PATH="$PATH:/root/.local/bin" \
+    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
+    MKL_THREADING_LAYER=GNU
 
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
@@ -48,6 +49,7 @@ RUN apt-get update -qq && \
         unzip \
         ca-certificates \
         software-properties-common \
+        libopenmpi-dev \
     && \
 
 # Install python
@@ -67,15 +69,16 @@ RUN apt-get update -qq && \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-ENV HOROVOD_GPU_OPERATIONS=NCCL
-ENV HOROVOD_WITH_PYTORCH=1
-ENV HOROVOD_WITHOUT_TENSORFLOW=1
-ENV HOROVOD_WITHOUT_MXNET=1
-ENV HOROVOD_WITH_GLOO=1
-ENV HOROVOD_WITHOUT_MPI=1
-#ENV MAKEFLAGS="-j$(nproc)"
-ENV MAKEFLAGS="-j1"
-ENV TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
+ENV \
+    HOROVOD_GPU_OPERATIONS=NCCL \
+    HOROVOD_WITH_PYTORCH=1 \
+    HOROVOD_WITHOUT_TENSORFLOW=1 \
+    HOROVOD_WITHOUT_MXNET=1 \
+    HOROVOD_WITH_GLOO=1 \
+    HOROVOD_WITHOUT_MPI=1 \
+    # MAKEFLAGS="-j$(nproc)" \
+    MAKEFLAGS="-j1" \
+    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
 
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
@@ -91,12 +94,14 @@ RUN \
     # eventualy use pre-release
     #pip install "torch==${PYTORCH_VERSION}.*" --pre && \
     # set particular PyTorch version
-    python -c "import re ; fname = 'requirements.txt' ; req = re.sub(r'torch[>=]+[\d\.]+', 'torch==${PYTORCH_VERSION}.*', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python ./requirements/adjust_versions.py requirements.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements
     # todo: find a way how to install nightly PT version
     #  --pre --extra-index-url https://download.pytorch.org/whl/nightly/cu${cuda_ver[0]}${cuda_ver[1]}/torch_nightly.html
     pip install -r requirements/devel.txt --no-cache-dir && \
-    rm -rf requirements*
+    rm -rf requirements.* requirements/
 
 RUN \
     # install DALI, needed for examples
@@ -107,6 +112,11 @@ RUN \
     git clone https://github.com/NVIDIA/apex && \
     pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
     rm -rf apex
+
+RUN \
+    # install DeepSpeed from source.
+    # todo: swap to pypi release once DeepSpeed releases a new version >= 0.3.10
+    pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
 
 RUN \
     # Show what we have

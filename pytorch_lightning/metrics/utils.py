@@ -44,7 +44,11 @@ def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
 
 
 def _input_format_classification_one_hot(
-    num_classes: int, preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, multilabel: bool = False
+    num_classes: int,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    threshold: float = 0.5,
+    multilabel: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Convert preds and target tensors into one hot spare label tensors
 
@@ -55,6 +59,11 @@ def _input_format_classification_one_hot(
         target: tensor with ground true labels
         threshold: float used for thresholding multilabel input
         multilabel: boolean flag indicating if input is multilabel
+
+    Raises:
+        ValueError:
+            If ``preds`` and ``target`` don't have the same number of dimensions
+            or one additional dimension for ``preds``.
 
     Returns:
         preds: one hot tensor of shape [num_classes, -1] with predicted labels
@@ -95,17 +104,17 @@ def to_onehot(
         label_tensor: dense label tensor, with shape [N, d1, d2, ...]
         num_classes: number of classes C
 
-    Output:
+    Returns:
         A sparse label tensor with shape [N, C, d1, d2, ...]
 
     Example:
 
+        >>> from pytorch_lightning.metrics.utils import to_onehot
         >>> x = torch.tensor([1, 2, 3])
         >>> to_onehot(x)
         tensor([[0, 1, 0, 0],
                 [0, 0, 1, 0],
                 [0, 0, 0, 1]])
-
     """
     if num_classes is None:
         num_classes = int(label_tensor.max().detach().item() + 1)
@@ -131,10 +140,12 @@ def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch
         topk: number of highest entries to turn into 1s
         dim: dimension on which to compare entries
 
-    Output:
+    Returns:
         A binary tensor of the same shape as the input tensor of type torch.int32
 
     Example:
+
+        >>> from pytorch_lightning.metrics.utils import select_topk
         >>> x = torch.tensor([[1.1, 2.0, 3.0], [2.0, 1.0, 0.5]])
         >>> select_topk(x, topk=2)
         tensor([[0, 1, 1],
@@ -158,10 +169,10 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
 
     Example:
 
+        >>> from pytorch_lightning.metrics.utils import to_categorical
         >>> x = torch.tensor([[0.2, 0.5], [0.9, 0.1]])
         >>> to_categorical(x)
         tensor([1, 0])
-
     """
     return torch.argmax(tensor, dim=argmax_dim)
 
@@ -241,6 +252,9 @@ def class_reduce(
             - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'`` or ``None``: returns calculated metric per class
 
+    Raises:
+        ValueError:
+            If ``class_reduction`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"none"`` or ``None``.
     """
     valid_reduction = ("micro", "macro", "weighted", "none", None)
     if class_reduction == "micro":
@@ -262,5 +276,28 @@ def class_reduce(
         return fraction
 
     raise ValueError(
-        f"Reduction parameter {class_reduction} unknown." f" Choose between one of these: {valid_reduction}"
+        f"Reduction parameter {class_reduction} unknown."
+        f" Choose between one of these: {valid_reduction}"
     )
+
+
+def _stable_1d_sort(x: torch, N: int = 2049):
+    """
+    Stable sort of 1d tensors. Pytorch defaults to a stable sorting algorithm
+    if number of elements are larger than 2048. This function pads the tensors,
+    makes the sort and returns the sorted array (with the padding removed)
+    See this discussion: https://discuss.pytorch.org/t/is-torch-sort-stable/20714
+
+    Raises:
+        ValueError:
+            If dim of ``x`` is greater than 1 since stable sort works with only 1d tensors.
+    """
+    if x.ndim > 1:
+        raise ValueError('Stable sort only works on 1d tensors')
+    n = x.numel()
+    if N - n > 0:
+        x_max = x.max()
+        x = torch.cat([x, (x_max + 1) * torch.ones(N - n, dtype=x.dtype, device=x.device)], 0)
+    x_sort = x.sort()
+    i = min(N, n)
+    return x_sort.values[:i], x_sort.indices[:i]

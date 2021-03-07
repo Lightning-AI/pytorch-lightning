@@ -22,20 +22,20 @@ from pytorch_lightning.metrics.functional.precision_recall_curve import (
 
 
 def _average_precision_update(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, int, int]:
     return _precision_recall_curve_update(preds, target, num_classes, pos_label)
 
 
 def _average_precision_compute(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: int,
-        pos_label: int,
-        sample_weights: Optional[Sequence] = None
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: int,
+    pos_label: int,
+    sample_weights: Optional[Sequence] = None
 ) -> Union[List[torch.Tensor], torch.Tensor]:
     precision, recall, _ = _precision_recall_curve_compute(preds, target, num_classes, pos_label)
     # Return the step function integral
@@ -51,16 +51,18 @@ def _average_precision_compute(
 
 
 def average_precision(
-        preds: torch.Tensor,
-        target: torch.Tensor,
-        num_classes: Optional[int] = None,
-        pos_label: Optional[int] = None,
-        sample_weights: Optional[Sequence] = None,
+    preds: torch.Tensor,
+    target: torch.Tensor,
+    num_classes: Optional[int] = None,
+    pos_label: Optional[int] = None,
+    sample_weights: Optional[Sequence] = None,
 ) -> Union[List[torch.Tensor], torch.Tensor]:
     """
     Computes the average precision score.
 
     Args:
+        preds: predictions from model (logits or probabilities)
+        target: ground truth values
         num_classes: integer with number of classes. Not nessesary to provide
             for binary problems.
         pos_label: integer determining the positive class. Default is ``None``
@@ -75,6 +77,7 @@ def average_precision(
 
     Example (binary case):
 
+        >>> from pytorch_lightning.metrics.functional import average_precision
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 1, 1])
         >>> average_precision(pred, target, pos_label=1)
@@ -82,6 +85,7 @@ def average_precision(
 
     Example (multiclass case):
 
+        >>> from pytorch_lightning.metrics.functional import average_precision
         >>> pred = torch.tensor([[0.75, 0.05, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.75, 0.05, 0.05, 0.05],
         ...                      [0.05, 0.05, 0.75, 0.05, 0.05],

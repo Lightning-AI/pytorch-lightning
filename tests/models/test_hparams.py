@@ -21,14 +21,13 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from omegaconf import Container, OmegaConf
-from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, AttributeDict, is_picklable
-from tests.base import BoringModel, EvalModelTemplate, TrialMNIST
+from tests.helpers import BoringModel, RandomDataset
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
     from hydra.experimental import compose, initialize
@@ -36,19 +35,14 @@ if _HYDRA_EXPERIMENTAL_AVAILABLE:
 
 class SaveHparamsModel(BoringModel):
     """ Tests that a model can take an object """
+
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
 
 
-class AssignHparamsModel(BoringModel):
-    """ Tests that a model can take an object with explicit setter """
-    def __init__(self, hparams):
-        super().__init__()
-        self.hparams = hparams
-
-
 def decorate(func):
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
@@ -58,20 +52,12 @@ def decorate(func):
 
 class SaveHparamsDecoratedModel(BoringModel):
     """ Tests that a model can take an object """
+
     @decorate
     @decorate
     def __init__(self, hparams, *my_args, **my_kwargs):
         super().__init__()
         self.save_hyperparameters(hparams)
-
-
-class AssignHparamsDecoratedModel(BoringModel):
-    """ Tests that a model can take an object with explicit setter"""
-    @decorate
-    @decorate
-    def __init__(self, hparams, *my_args, **my_kwargs):
-        super().__init__()
-        self.hparams = hparams
 
 
 # -------------------------
@@ -109,9 +95,7 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
     return raw_checkpoint_path
 
 
-@pytest.mark.parametrize("cls", [
-    SaveHparamsModel, AssignHparamsModel, SaveHparamsDecoratedModel, AssignHparamsDecoratedModel
-])
+@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_namespace_hparams(tmpdir, cls):
     # init model
     model = cls(hparams=Namespace(test_arg=14))
@@ -120,9 +104,7 @@ def test_namespace_hparams(tmpdir, cls):
     _run_standard_hparams_test(tmpdir, model, cls)
 
 
-@pytest.mark.parametrize("cls", [
-    SaveHparamsModel, AssignHparamsModel, SaveHparamsDecoratedModel, AssignHparamsDecoratedModel
-])
+@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_dict_hparams(tmpdir, cls):
     # init model
     model = cls(hparams={'test_arg': 14})
@@ -131,9 +113,7 @@ def test_dict_hparams(tmpdir, cls):
     _run_standard_hparams_test(tmpdir, model, cls)
 
 
-@pytest.mark.parametrize("cls", [
-    SaveHparamsModel, AssignHparamsModel, SaveHparamsDecoratedModel, AssignHparamsDecoratedModel
-])
+@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_omega_conf_hparams(tmpdir, cls):
     # init model
     conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
@@ -156,7 +136,8 @@ def test_explicit_args_hparams(tmpdir):
     """
 
     # define model
-    class LocalModel(EvalModelTemplate):
+    class LocalModel(BoringModel):
+
         def __init__(self, test_arg, test_arg2):
             super().__init__()
             self.save_hyperparameters('test_arg', 'test_arg2')
@@ -177,7 +158,8 @@ def test_implicit_args_hparams(tmpdir):
     """
 
     # define model
-    class LocalModel(EvalModelTemplate):
+    class LocalModel(BoringModel):
+
         def __init__(self, test_arg, test_arg2):
             super().__init__()
             self.save_hyperparameters()
@@ -198,7 +180,8 @@ def test_explicit_missing_args_hparams(tmpdir):
     """
 
     # define model
-    class LocalModel(EvalModelTemplate):
+    class LocalModel(BoringModel):
+
         def __init__(self, test_arg, test_arg2):
             super().__init__()
             self.save_hyperparameters('test_arg')
@@ -225,6 +208,7 @@ def test_explicit_missing_args_hparams(tmpdir):
 
     return raw_checkpoint_path
 
+
 # -------------------------
 # SPECIFIC TESTS
 # -------------------------
@@ -233,6 +217,7 @@ def test_explicit_missing_args_hparams(tmpdir):
 def test_class_nesting():
 
     class MyModule(LightningModule):
+
         def forward(self):
             ...
 
@@ -245,6 +230,7 @@ def test_class_nesting():
         _ = a.hparams
 
     class A:
+
         def test(self):
             a = MyModule()
             _ = a.hparams
@@ -257,7 +243,14 @@ def test_class_nesting():
     A().test()
 
 
-class SubClassEvalModel(EvalModelTemplate):
+class CustomBoringModel(BoringModel):
+
+    def __init__(self, batch_size=64):
+        super().__init__()
+        self.save_hyperparameters()
+
+
+class SubClassBoringModel(CustomBoringModel):
     any_other_loss = torch.nn.CrossEntropyLoss()
 
     def __init__(self, *args, subclass_arg=1200, **kwargs):
@@ -265,18 +258,18 @@ class SubClassEvalModel(EvalModelTemplate):
         self.save_hyperparameters()
 
 
-class SubSubClassEvalModel(SubClassEvalModel):
+class SubSubClassBoringModel(SubClassBoringModel):
     pass
 
 
-class AggSubClassEvalModel(SubClassEvalModel):
+class AggSubClassBoringModel(SubClassBoringModel):
 
     def __init__(self, *args, my_loss=torch.nn.CrossEntropyLoss(), **kwargs):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
 
 
-class UnconventionalArgsEvalModel(EvalModelTemplate):
+class UnconventionalArgsBoringModel(CustomBoringModel):
     """ A model that has unconventional names for "self", "*args" and "**kwargs". """
 
     def __init__(obj, *more_args, other_arg=300, **more_kwargs):
@@ -285,37 +278,40 @@ class UnconventionalArgsEvalModel(EvalModelTemplate):
         obj.save_hyperparameters()
 
 
-class DictConfSubClassEvalModel(SubClassEvalModel):
+class DictConfSubClassBoringModel(SubClassBoringModel):
+
     def __init__(self, *args, dict_conf=OmegaConf.create(dict(my_param='something')), **kwargs):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
 
 
-@pytest.mark.parametrize("cls", [
-    EvalModelTemplate,
-    SubClassEvalModel,
-    SubSubClassEvalModel,
-    AggSubClassEvalModel,
-    UnconventionalArgsEvalModel,
-    DictConfSubClassEvalModel,
-])
+@pytest.mark.parametrize(
+    "cls", [
+        CustomBoringModel,
+        SubClassBoringModel,
+        SubSubClassBoringModel,
+        AggSubClassBoringModel,
+        UnconventionalArgsBoringModel,
+        DictConfSubClassBoringModel,
+    ]
+)
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
     extra_args = {}
-    if cls is AggSubClassEvalModel:
+    if cls is AggSubClassBoringModel:
         extra_args.update(my_loss=torch.nn.CosineEmbeddingLoss())
-    elif cls is DictConfSubClassEvalModel:
+    elif cls is DictConfSubClassBoringModel:
         extra_args.update(dict_conf=OmegaConf.create(dict(my_param='anything')))
 
     model = cls(**extra_args)
-    assert model.hparams.batch_size == 32
+    assert model.hparams.batch_size == 64
     model = cls(batch_size=179, **extra_args)
     assert model.hparams.batch_size == 179
 
-    if isinstance(model, SubClassEvalModel):
+    if isinstance(model, SubClassBoringModel):
         assert model.hparams.subclass_arg == 1200
 
-    if isinstance(model, AggSubClassEvalModel):
+    if isinstance(model, AggSubClassBoringModel):
         assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
 
     # verify that the checkpoint saved the correct values
@@ -332,10 +328,10 @@ def test_collect_init_arguments(tmpdir, cls):
     model = cls.load_from_checkpoint(raw_checkpoint_path)
     assert model.hparams.batch_size == 179
 
-    if isinstance(model, AggSubClassEvalModel):
+    if isinstance(model, AggSubClassBoringModel):
         assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
 
-    if isinstance(model, DictConfSubClassEvalModel):
+    if isinstance(model, DictConfSubClassBoringModel):
         assert isinstance(model.hparams.dict_conf, Container)
         assert model.hparams.dict_conf['my_param'] == 'anything'
 
@@ -353,7 +349,7 @@ def _raw_checkpoint_path(trainer) -> str:
     return raw_checkpoint_path
 
 
-class LocalVariableModelSuperLast(EvalModelTemplate):
+class LocalVariableModelSuperLast(BoringModel):
     """ This model has the super().__init__() call at the end. """
 
     def __init__(self, arg1, arg2, *args, **kwargs):
@@ -363,7 +359,7 @@ class LocalVariableModelSuperLast(EvalModelTemplate):
         super().__init__(*args, **kwargs)  # this is intentionally here at the end
 
 
-class LocalVariableModelSuperFirst(EvalModelTemplate):
+class LocalVariableModelSuperFirst(BoringModel):
     """ This model has the _auto_collect_arguments() call at the end. """
 
     def __init__(self, arg1, arg2, *args, **kwargs):
@@ -374,10 +370,13 @@ class LocalVariableModelSuperFirst(EvalModelTemplate):
         self.save_hyperparameters()  # this is intentionally here at the end
 
 
-@pytest.mark.parametrize("cls", [
-    LocalVariableModelSuperFirst,
-    # LocalVariableModelSuperLast,
-])
+@pytest.mark.parametrize(
+    "cls",
+    [
+        LocalVariableModelSuperFirst,
+        # LocalVariableModelSuperLast,
+    ]
+)
 def test_collect_init_arguments_with_local_vars(cls):
     """ Tests that only the arguments are collected and not local variables. """
     model = cls(arg1=1, arg2=2)
@@ -411,22 +410,27 @@ def test_collect_init_arguments_with_local_vars(cls):
 #     assert model.hparams.my_arg == 42
 
 
-class AnotherArgModel(EvalModelTemplate):
+class AnotherArgModel(BoringModel):
+
     def __init__(self, arg1):
         super().__init__()
         self.save_hyperparameters(arg1)
 
 
-class OtherArgsModel(EvalModelTemplate):
+class OtherArgsModel(BoringModel):
+
     def __init__(self, arg1, arg2):
+
         super().__init__()
         self.save_hyperparameters(arg1, arg2)
 
 
-@pytest.mark.parametrize("cls,config", [
-    (AnotherArgModel, dict(arg1=42)),
-    (OtherArgsModel, dict(arg1=3.14, arg2='abc')),
-])
+@pytest.mark.parametrize(
+    "cls,config", [
+        (AnotherArgModel, dict(arg1=42)),
+        (OtherArgsModel, dict(arg1=3.14, arg2='abc')),
+    ]
+)
 def test_single_config_models_fail(tmpdir, cls, config):
     """ Test fail on passing unsupported config type. """
     with pytest.raises(ValueError):
@@ -435,7 +439,7 @@ def test_single_config_models_fail(tmpdir, cls, config):
 
 @pytest.mark.parametrize("past_key", ['module_arguments'])
 def test_load_past_checkpoint(tmpdir, past_key):
-    model = EvalModelTemplate()
+    model = CustomBoringModel()
 
     # verify we can train
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -452,7 +456,7 @@ def test_load_past_checkpoint(tmpdir, past_key):
     torch.save(raw_checkpoint, raw_checkpoint_path)
 
     # verify that model loads correctly
-    model2 = EvalModelTemplate.load_from_checkpoint(raw_checkpoint_path)
+    model2 = CustomBoringModel.load_from_checkpoint(raw_checkpoint_path)
     assert model2.hparams.batch_size == -17
 
 
@@ -464,7 +468,7 @@ def test_hparams_pickle(tmpdir):
     assert ad == pickle.loads(pkl)
 
 
-class UnpickleableArgsEvalModel(EvalModelTemplate):
+class UnpickleableArgsBoringModel(BoringModel):
     """ A model that has an attribute that cannot be pickled. """
 
     def __init__(self, foo='bar', pickle_me=(lambda x: x + 1), **kwargs):
@@ -474,7 +478,7 @@ class UnpickleableArgsEvalModel(EvalModelTemplate):
 
 
 def test_hparams_pickle_warning(tmpdir):
-    model = UnpickleableArgsEvalModel()
+    model = UnpickleableArgsBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
     with pytest.warns(UserWarning, match="attribute 'pickle_me' removed from hparams because it cannot be pickled"):
         trainer.fit(model)
@@ -482,8 +486,9 @@ def test_hparams_pickle_warning(tmpdir):
 
 
 def test_hparams_save_yaml(tmpdir):
-    hparams = dict(batch_size=32, learning_rate=0.001, data_root='./any/path/here',
-                   nasted=dict(any_num=123, anystr='abcd'))
+    hparams = dict(
+        batch_size=32, learning_rate=0.001, data_root='./any/path/here', nasted=dict(any_num=123, anystr='abcd')
+    )
     path_yaml = os.path.join(tmpdir, 'testing-hparams.yaml')
 
     save_hparams_to_yaml(path_yaml, hparams)
@@ -499,36 +504,15 @@ def test_hparams_save_yaml(tmpdir):
     assert load_hparams_from_yaml(path_yaml) == hparams
 
 
-class NoArgsSubClassEvalModel(EvalModelTemplate):
+class NoArgsSubClassBoringModel(CustomBoringModel):
+
     def __init__(self):
         super().__init__()
-
-
-class SimpleNoArgsModel(LightningModule):
-    def __init__(self):
-        super().__init__()
-        self.l1 = torch.nn.Linear(28 * 28, 10)
-
-    def forward(self, x):
-        return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-    def training_step(self, batch, batch_nb):
-        x, y = batch
-        loss = F.cross_entropy(self(x), y)
-        return {'loss': loss, 'log': {'train_loss': loss}}
-
-    def test_step(self, batch, batch_nb):
-        x, y = batch
-        loss = F.cross_entropy(self(x), y)
-        return {'loss': loss, 'log': {'train_loss': loss}}
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.02)
 
 
 @pytest.mark.parametrize("cls", [
-    SimpleNoArgsModel,
-    NoArgsSubClassEvalModel,
+    BoringModel,
+    NoArgsSubClassBoringModel,
 ])
 def test_model_nohparams_train_test(tmpdir, cls):
     """Test models that do not tae any argument in init."""
@@ -539,19 +523,20 @@ def test_model_nohparams_train_test(tmpdir, cls):
         default_root_dir=tmpdir,
     )
 
-    train_loader = DataLoader(TrialMNIST(os.getcwd(), train=True, download=True), batch_size=32)
+    train_loader = DataLoader(RandomDataset(32, 64), batch_size=32)
     trainer.fit(model, train_loader)
 
-    test_loader = DataLoader(TrialMNIST(os.getcwd(), train=False, download=True), batch_size=32)
+    test_loader = DataLoader(RandomDataset(32, 64), batch_size=32)
     trainer.test(test_dataloaders=test_loader)
 
 
 def test_model_ignores_non_exist_kwargument(tmpdir):
     """Test that the model takes only valid class arguments."""
 
-    class LocalModel(EvalModelTemplate):
+    class LocalModel(BoringModel):
+
         def __init__(self, batch_size=15):
-            super().__init__(batch_size=batch_size)
+            super().__init__()
             self.save_hyperparameters()
 
     model = LocalModel()
@@ -567,16 +552,16 @@ def test_model_ignores_non_exist_kwargument(tmpdir):
     assert 'non_exist_kwarg' not in model.hparams
 
 
-class SuperClassPositionalArgs(EvalModelTemplate):
+class SuperClassPositionalArgs(BoringModel):
 
     def __init__(self, hparams):
         super().__init__()
-        self._hparams = None  # pretend EvalModelTemplate did not call self.save_hyperparameters()
-        self.hparams = hparams
+        self._hparams = hparams  # pretend BoringModel did not call self.save_hyperparameters()
 
 
 class SubClassVarArgs(SuperClassPositionalArgs):
     """ Loading this model should accept hparams and init in the super class """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -594,6 +579,7 @@ def test_args(tmpdir):
 
 
 class RuntimeParamChangeModelSaving(BoringModel):
+
     def __init__(self, **kwargs):
         super().__init__()
         self.save_hyperparameters()
@@ -606,8 +592,6 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
     assert model.hparams.running_arg == 123
     model.hparams.running_arg = -1
     assert model.hparams.running_arg == -1
-    model.hparams = Namespace(abc=42)
-    assert model.hparams.abc == 42
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -624,6 +608,7 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
 
 
 class UnsafeParamModel(BoringModel):
+
     def __init__(self, my_path, any_param=123):
         super().__init__()
         self.save_hyperparameters()
@@ -652,18 +637,11 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
 
         def __init__(self, args_0, args_1, args_2, kwarg_1=None):
             self.save_hyperparameters()
-            self.test_hparams()
-            config_file = f"{tmpdir}/hparams.yaml"
-            save_hparams_to_yaml(config_file, self.hparams)
-            self.hparams = load_hparams_from_yaml(config_file)
-            self.test_hparams()
-            super().__init__()
-
-        def test_hparams(self):
             assert self.hparams.args_0.log == "Something"
             assert self.hparams.args_1['cfg'].log == "Something"
             assert self.hparams.args_2[0].log == "Something"
             assert self.hparams.kwarg_1['cfg'][0].log == "Something"
+            super().__init__()
 
     with initialize(config_path="conf"):
         args_0 = compose(config_name="config")
@@ -683,3 +661,39 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
         )
         trainer.fit(model)
         _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)
+
+
+@pytest.mark.parametrize("ignore", ("arg2", ("arg2", "arg3")))
+def test_ignore_args_list_hparams(tmpdir, ignore):
+    """
+    Tests that args can be ignored in save_hyperparameters
+    """
+
+    class LocalModel(BoringModel):
+
+        def __init__(self, arg1, arg2, arg3):
+            super().__init__()
+            self.save_hyperparameters(ignore=ignore)
+
+    model = LocalModel(arg1=14, arg2=90, arg3=50)
+
+    # test proper property assignments
+    assert model.hparams.arg1 == 14
+    for arg in ignore:
+        assert arg not in model.hparams
+
+    # verify we can train
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer.fit(model)
+
+    # make sure the raw checkpoint saved the properties
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    raw_checkpoint = torch.load(raw_checkpoint_path)
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
+    assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["arg1"] == 14
+
+    # verify that model loads correctly
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, arg2=123, arg3=100)
+    assert model.hparams.arg1 == 14
+    for arg in ignore:
+        assert arg not in model.hparams
