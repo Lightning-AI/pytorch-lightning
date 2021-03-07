@@ -57,8 +57,8 @@ def track_data_hook_calls(fn):
 
     - When ``dm.prepare_data()`` is called, ``dm.has_prepared_data`` gets set to True
     - When ``dm.setup()``, ``dm.has_setup_{fit,validate,test}`` get set to True
-    - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``
-        it's corresponding `dm_has_setup_{stage}` gets set to True
+    - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
+        Its corresponding `dm_has_setup_{stage}` attribute gets set to True
 
     Args:
         fn (function): Function that will be tracked to see if it has been called.
@@ -226,37 +226,37 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
     @property
     def has_setup_fit(self) -> bool:
-        """Return bool letting you know if ``datamodule.setup('fit')`` has been called or not.
+        """Return bool letting you know if ``datamodule.setup(stage='fit')`` has been called or not.
 
         Returns:
-            bool: True ``if datamodule.setup('fit')`` has been called. False by default.
+            bool: True ``if datamodule.setup(stage='fit')`` has been called. False by default.
         """
         return self._has_setup_fit
 
     @property
     def has_setup_validate(self) -> bool:
-        """Return bool letting you know if ``datamodule.setup('validate')`` has been called or not.
+        """Return bool letting you know if ``datamodule.setup(stage='validate')`` has been called or not.
 
         Returns:
-            bool: True if ``datamodule.setup('validate')`` has been called. False by default.
+            bool: True if ``datamodule.setup(stage='validate')`` has been called. False by default.
         """
         return self._has_setup_validate
 
     @property
     def has_setup_test(self) -> bool:
-        """Return bool letting you know if ``datamodule.setup('test')`` has been called or not.
+        """Return bool letting you know if ``datamodule.setup(stage='test')`` has been called or not.
 
         Returns:
-            bool: True if ``datamodule.setup('test')`` has been called. False by default.
+            bool: True if ``datamodule.setup(stage='test')`` has been called. False by default.
         """
         return self._has_setup_test
 
     @property
     def has_setup_predict(self) -> bool:
-        """Return bool letting you know if ``datamodule.setup('predict')`` has been called or not.
+        """Return bool letting you know if ``datamodule.setup(stage='predict')`` has been called or not.
 
         Returns:
-            bool: True if ``datamodule.setup('predict')`` has been called. False by default.
+            bool: True if ``datamodule.setup(stage='predict')`` has been called. False by default.
         """
         return self._has_setup_predict
 

@@ -40,7 +40,7 @@ class TrainerCallbackHookMixin(ABC):
             callback.setup(self, model, stage)
 
     def teardown(self, stage: Optional[str] = None) -> None:
-        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
+        """Called at the end of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.teardown(self, self.lightning_module, stage)
 
