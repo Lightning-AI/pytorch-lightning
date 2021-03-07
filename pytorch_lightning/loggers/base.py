@@ -439,10 +439,10 @@ class DummyLogger(LightningLoggerBase):
     def experiment(self) -> DummyExperiment:
         return self._experiment
 
-    def log_metrics(self, *args, **kwargs):
+    def log_metrics(self, *args, **kwargs) -> None:
         pass
 
-    def log_hyperparams(self, *args, **kwargs):
+    def log_hyperparams(self, *args, **kwargs) -> None:
         pass
 
     @property
