@@ -79,9 +79,9 @@ def test_v1_5_0_running_sanity_check():
 
 @mock.patch('torch.cuda.device_count', return_value=4)
 def test_v1_5_0_trainer_gpus_str_parsing(_):
-    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* has changed."):
+    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
         Trainer(gpus="3")
 
-    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* has changed."):
+    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
         gpus = device_parser.parse_gpu_ids("3")
         assert gpus == [3]
