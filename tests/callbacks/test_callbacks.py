@@ -19,7 +19,7 @@ from tests.helpers import BoringModel
 
 
 @mock.patch("torch.save")  # need to mock torch.save or we get pickle error
-def test_trainer_callback_system(torch_save, tmpdir):
+def test_trainer_callback_system(_, tmpdir):
     """Test the callback system."""
 
     model = BoringModel()

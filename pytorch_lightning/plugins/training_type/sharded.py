@@ -16,6 +16,7 @@ from typing import Optional
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
@@ -48,8 +49,7 @@ class DDPShardedPlugin(DDPPlugin):
         trainer.convert_to_lightning_optimizers()
 
     def _wrap_optimizers(self):
-        trainer = self.model.trainer
-        if trainer.testing is True:
+        if self.model.trainer.state != TrainerState.FITTING:
             return
         self._reinit_optimizers_with_oss()
 
