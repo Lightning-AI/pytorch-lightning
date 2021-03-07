@@ -43,7 +43,7 @@ except ImportError:
 
 class WandbLogger(LightningLoggerBase):
     r"""
-    Log using `Weights and Biases <https://www.wandb.com/>`_.
+    Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning`_.
 
     Install it with pip:
 
@@ -83,12 +83,16 @@ class WandbLogger(LightningLoggerBase):
 
         from pytorch_lightning.loggers import WandbLogger
         from pytorch_lightning import Trainer
-        wandb_logger = WandbLogger()
+
+        # instrument experiment with W&B
+        wandb_logger = WandbLogger(project='MNIST', log_model='all')
         trainer = Trainer(logger=wandb_logger)
 
+        # log gradients and model topology
+        WandbLogger.watch(model)
+
     See Also:
-        - `Tutorial <https://colab.research.google.com/drive/16d1uctGaw2y9KhGBlINNTsWpmlXdJwRW?usp=sharing>`__
-          on how to use W&B with PyTorch Lightning
+        - `Demo in Google Colab <http://wandb.me/lightning>`__ with model logging
         - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
 
     """
