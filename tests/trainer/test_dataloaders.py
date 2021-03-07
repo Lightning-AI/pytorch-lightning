@@ -163,14 +163,14 @@ def test_multiple_eval_dataloader(tmpdir, ckpt_path):
     if ckpt_path == 'specific':
         ckpt_path = trainer.checkpoint_callback.best_model_path
 
-    trainer.validate(ckpt_path=ckpt_path)
+    trainer.validate(ckpt_path=ckpt_path, verbose=False)
     # verify there are 2 loaders
     assert len(trainer.val_dataloaders) == 2
     # make sure predictions are good for each dl
     for dataloader in trainer.val_dataloaders:
         tpipes.run_prediction_eval_model_template(trainer.model, dataloader)
 
-    trainer.test(ckpt_path=ckpt_path)
+    trainer.test(ckpt_path=ckpt_path, verbose=False)
     assert len(trainer.test_dataloaders) == 2
     for dataloader in trainer.test_dataloaders:
         tpipes.run_prediction_eval_model_template(trainer.model, dataloader)

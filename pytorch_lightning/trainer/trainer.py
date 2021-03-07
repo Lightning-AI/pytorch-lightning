@@ -874,11 +874,14 @@ class Trainer(
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model, datamodule)
-        results = (
-            self.__evaluate_given_model(model, dataloaders=val_dataloaders)
-            if model_provided else
-            self.__evaluate_using_weights(model, ckpt_path=ckpt_path, dataloaders=val_dataloaders)
-        )
+        #  Attach dataloaders (if given)
+        self.data_connector.attach_dataloaders(model, val_dataloaders=val_dataloaders)
+
+        if not model_provided:
+            self.__evaluate_using_weights(model, ckpt_path=ckpt_path)
+
+        # run validate
+        results = self.fit(model)
 
         assert self.state.stopped
         self.validating = False
@@ -932,11 +935,14 @@ class Trainer(
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model, datamodule)
-        results = (
-            self.__evaluate_given_model(model, dataloaders=test_dataloaders)
-            if model_provided else
-            self.__evaluate_using_weights(model, ckpt_path=ckpt_path, dataloaders=test_dataloaders)
-        )
+        #  Attach dataloaders (if given)
+        self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        if not model_provided:
+            self.__evaluate_using_weights(model, ckpt_path=ckpt_path)
+
+        # run test
+        results = self.fit(model)
 
         assert self.state.stopped
         self.testing = False
@@ -947,7 +953,6 @@ class Trainer(
         self,
         model,
         ckpt_path: Optional[str] = None,
-        dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
     ):
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
@@ -961,42 +966,21 @@ class Trainer(
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
 
-            if len(ckpt_path) == 0:
-                rank_zero_warn(
-                    f'`.test()` found no path for the best weights, {ckpt_path}. Please'
+            if not ckpt_path:
+                raise MisconfigurationException(
+                    f'`.test()` found no path for the best weights: "{ckpt_path}". Please'
                     ' specify a path for a checkpoint `.test(ckpt_path=PATH)`'
                 )
-                return {}
 
             self.training_type_plugin.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
 
-        # attach dataloaders
-        if dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
-
         if self.validating:
             self.validated_ckpt_path = ckpt_path
         else:
             self.tested_ckpt_path = ckpt_path
-
-        # run test
-        results = self.fit(model)
-
-        return results
-
-    def __evaluate_given_model(self, model, dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None):
-        # attach data
-        if dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
-
-        # run test
-        # sets up testing so we short circuit to eval
-        results = self.fit(model)
-
-        return results
 
     def predict(
         self,
@@ -1037,15 +1021,11 @@ class Trainer(
                 'You cannot pass dataloaders to trainer.predict if you supply a datamodule.'
             )
 
-        if datamodule is not None:
-            # Attach datamodule to get setup/prepare_data added to model before the call to it below
-            self.data_connector.attach_datamodule(model, datamodule)
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.data_connector.attach_datamodule(model, datamodule)
+        #  Attach dataloaders (if given)
+        self.data_connector.attach_dataloaders(model, predict_dataloaders=dataloaders)
 
-        # attach data
-        if dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, predict_dataloaders=dataloaders)
-
-        self.model = model
         results = self.fit(model)
 
         assert self.state.stopped
