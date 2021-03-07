@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 import torch.nn.functional as F
 
 import pytorch_lightning as pl
@@ -23,8 +22,6 @@ from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
-
-PRETEND_N_OF_GPUS = 16
 
 
 class CustomClassificationModelDP(ClassificationModel):
@@ -93,36 +90,6 @@ def test_multi_gpu_model_dp(tmpdir):
 
     # test memory helper functions
     memory.get_memory_profile('min_max')
-
-
-@RunIf(min_gpus=2)
-def test_dp_test(tmpdir):
-    tutils.set_random_master_port()
-
-    dm = ClassifDataModule()
-    model = CustomClassificationModelDP()
-    trainer = pl.Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
-        accelerator='dp',
-    )
-    trainer.fit(model, datamodule=dm)
-    assert 'ckpt' in trainer.checkpoint_callback.best_model_path
-    results = trainer.test(datamodule=dm)
-    assert 'test_acc' in results[0]
-
-    old_weights = model.layer_0.weight.clone().detach().cpu()
-
-    results = trainer.test(model, datamodule=dm)
-    assert 'test_acc' in results[0]
-
-    # make sure weights didn't change
-    new_weights = model.layer_0.weight.clone().detach().cpu()
-
-    assert torch.all(torch.eq(old_weights, new_weights))
 
 
 @RunIf(min_gpus=2)

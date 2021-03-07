@@ -466,7 +466,23 @@ def test_trainer_model_hook_system(tmpdir):
         'on_fit_end',
         'teardown',
     ]
+    assert model.called == expected
 
+    model = HookedModel()
+
+    trainer.validate(model, verbose=False)
+    expected = [
+        'on_validation_model_eval',
+        'on_validation_start',
+        'on_validation_epoch_start',
+        'on_validation_batch_start',
+        'on_validation_batch_end',
+        'on_validation_epoch_end',
+        'on_epoch_end',
+        'on_validation_end',
+        'on_validation_model_train',
+        'teardown',
+    ]
     assert model.called == expected
 
     model = HookedModel()

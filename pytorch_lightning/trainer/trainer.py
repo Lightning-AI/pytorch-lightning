@@ -826,6 +826,65 @@ class Trainer(
 
             self._running_stage = stage
 
+    def validate(
+        self,
+        model: Optional[LightningModule] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        ckpt_path: Optional[str] = 'best',
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        r"""
+        Perform one evaluation epoch over the validation set.
+
+        Args:
+            model: The model to validate.
+
+            val_dataloaders: Either a single PyTorch DataLoader or a list of them,
+                specifying validation samples.
+
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
+                If ``None``, use the current weights of the model.
+
+            verbose: If True, prints the validation results.
+
+            datamodule: A instance of :class:`LightningDataModule`.
+
+        Returns:
+            The dictionary with final validation results returned by validation_epoch_end.
+            If validation_epoch_end is not defined, the output is a list of the dictionaries
+            returned by validation_step.
+        """
+        # --------------------
+        # SETUP HOOK
+        # --------------------
+        self.verbose_evaluate = verbose
+
+        self.state = TrainerState.VALIDATING
+        self.validating = True
+
+        # If you supply a datamodule you can't supply val_dataloaders
+        if val_dataloaders and datamodule:
+            raise MisconfigurationException(
+                'You cannot pass both `trainer.val(val_dataloaders=..., datamodule=...)`'
+            )
+
+        model_provided = model is not None
+        model = model or self.lightning_module
+
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.data_connector.attach_datamodule(model, datamodule)
+        results = (
+            self.__evaluate_given_model(model, dataloaders=val_dataloaders)
+            if model_provided else
+            self.__evaluate_using_weights(model, ckpt_path=ckpt_path, dataloaders=val_dataloaders)
+        )
+
+        assert self.state.stopped
+        self.validating = False
+
+        return results
+
     def test(
         self,
         model: Optional[LightningModule] = None,
@@ -839,16 +898,17 @@ class Trainer(
         fit to make sure you never run on your test set until you want to.
 
         Args:
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the current weights of the model. Default to ``best``.
-            datamodule: A instance of :class:`LightningDataModule`.
-
             model: The model to test.
 
             test_dataloaders: Either a single PyTorch DataLoader or a list of them,
                 specifying test samples.
 
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+                If ``None``, use the current weights of the model.
+
             verbose: If True, prints the test results.
+
+            datamodule: A instance of :class:`LightningDataModule`.
 
         Returns:
             Returns a list of dictionaries, one for each test dataloader containing their respective metrics.
@@ -864,7 +924,7 @@ class Trainer(
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
-                'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
+                'You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`'
             )
 
         model_provided = model is not None
