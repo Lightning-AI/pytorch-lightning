@@ -59,7 +59,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.sync_batchnorm = sync_batchnorm
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
-        self.num_processes = len(parallel_devices) if parallel_devices is not None else parallel_devices
+        self.num_processes = len(parallel_devices) if parallel_devices is not None else None
         self.node_rank = 0
         self.mp_queue = None
 
