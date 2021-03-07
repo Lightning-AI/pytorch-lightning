@@ -68,7 +68,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
-    if gpus is None or isinstance(gpus, int) and gpus == 0:
+    if gpus is None or isinstance(gpus, int) and gpus == 0 or isinstance(gpus, str) and gpus.strip() == "0":
         return None
 
     # We know user requested GPUs therefore if some of the
@@ -119,8 +119,10 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
     if isinstance(s, str):
         if s == '-1':
             return -1
-        else:
+        elif ',' in s:
             return [int(x.strip()) for x in s.split(',') if len(x) > 0]
+        else:
+            return int(s.strip())
     else:
         return s
 
