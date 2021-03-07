@@ -17,6 +17,7 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import PropertyMock
 
+import pytest
 import torch
 import torch.nn.functional as F
 
@@ -108,13 +109,13 @@ def test_hooks_no_recursion_error(tmpdir):
         dm.prepare_data()
 
 
-def test_base_datamodule(tmpdir):
+def test_helper_boringdatamodule(tmpdir):
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup()
 
 
-def test_base_datamodule_with_verbose_setup(tmpdir):
+def test_helper_boringdatamodule_with_verbose_setup(tmpdir):
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup('fit')
@@ -123,55 +124,67 @@ def test_base_datamodule_with_verbose_setup(tmpdir):
 
 def test_data_hooks_called(tmpdir):
     dm = BoringDataModule()
-    assert dm.has_prepared_data is False
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert not dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
+    assert not dm.has_setup_validate
+    assert not dm.has_setup_predict
 
     dm.prepare_data()
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert dm.has_prepared_data 
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
+    assert not dm.has_setup_validate
+    assert not dm.has_setup_predict
 
     dm.setup()
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is True
+    assert dm.has_prepared_data 
+    assert dm.has_setup_fit 
+    assert dm.has_setup_test 
+    assert dm.has_setup_validate 
+    assert not dm.has_setup_predict
 
 
-def test_data_hooks_called_verbose(tmpdir):
+@pytest.mark.parametrize("use_kwarg", (False, True))
+def test_data_hooks_called_verbose(tmpdir, use_kwarg):
     dm = BoringDataModule()
-    assert dm.has_prepared_data is False
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert not dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
 
     dm.prepare_data()
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert dm.has_prepared_data 
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
+    assert not dm.has_setup_predict
 
-    dm.setup('fit')
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is False
+    dm.setup(stage='fit') if use_kwarg else dm.setup('fit')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit 
+    assert not dm.has_setup_validate
+    assert not dm.has_setup_test
+    assert not dm.has_setup_predict
 
-    dm.setup('test')
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is True
+    dm.setup(stage='validate') if use_kwarg else dm.setup('validate')
+    assert dm.has_prepared_data 
+    assert dm.has_setup_fit 
+    assert dm.has_setup_validate
+    assert not dm.has_setup_test
+    assert not dm.has_setup_predict
 
+    dm.setup(stage='test') if use_kwarg else dm.setup('test')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_validate
+    assert dm.has_setup_test
+    assert not dm.has_setup_predict
 
-def test_data_hooks_called_with_stage_kwarg(tmpdir):
-    dm = BoringDataModule()
-    dm.prepare_data()
-    assert dm.has_prepared_data is True
-
-    dm.setup(stage='fit')
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is False
-
-    dm.setup(stage='test')
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is True
+    dm.setup(stage='predict') if use_kwarg else dm.setup('predict')
+    assert dm.has_prepared_data 
+    assert dm.has_setup_fit 
+    assert dm.has_setup_validate 
+    assert dm.has_setup_test 
+    assert dm.has_setup_predict 
 
 
 def test_dm_add_argparse_args(tmpdir):

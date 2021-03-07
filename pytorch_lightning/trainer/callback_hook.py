@@ -29,18 +29,18 @@ class TrainerCallbackHookMixin(ABC):
     callbacks: List[Callback] = []
     lightning_module: LightningModule
 
-    def on_before_accelerator_backend_setup(self, model):
-        """Called in the beginning of fit and test"""
+    def on_before_accelerator_backend_setup(self, model: LightningModule) -> None:
+        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
 
-    def setup(self, model, stage: str):
-        """Called in the beginning of fit and test"""
+    def setup(self, model: LightningModule, stage: str) -> None:
+        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.setup(self, model, stage)
 
-    def teardown(self, stage: str):
-        """Called at the end of fit and test"""
+    def teardown(self, stage: str) -> None:
+        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.teardown(self, self.lightning_module, stage)
 
@@ -124,15 +124,15 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_end(self, self.lightning_module)
 
-    def on_pretrain_routine_start(self, model):
-        """Called when the train begins."""
+    def on_pretrain_routine_start(self) -> None:
+        """Called when the pre-train routine begins."""
         for callback in self.callbacks:
-            callback.on_pretrain_routine_start(self, model)
+            callback.on_pretrain_routine_start(self, self.lightning_module)
 
-    def on_pretrain_routine_end(self, model):
-        """Called when the train ends."""
+    def on_pretrain_routine_end(self) -> None:
+        """Called when the pre-train routine ends."""
         for callback in self.callbacks:
-            callback.on_pretrain_routine_end(self, model)
+            callback.on_pretrain_routine_end(self, self.lightning_module)
 
     def on_batch_start(self):
         """Called when the training batch begins."""

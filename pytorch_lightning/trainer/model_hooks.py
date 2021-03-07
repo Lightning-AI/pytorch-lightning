@@ -22,12 +22,6 @@ class TrainerModelHooksMixin(ABC):
 
     lightning_module: LightningModule
 
-    def is_function_implemented(self, f_name, model=None):
-        if model is None:
-            model = self.lightning_module
-        f_op = getattr(model, f_name, None)
-        return callable(f_op)
-
     def has_arg(self, f_name, arg_name):
         model = self.lightning_module
         f_op = getattr(model, f_name, None)

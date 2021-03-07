@@ -27,14 +27,14 @@ class TrainerState(LightningEnum):
     >>> TrainerState.FINISHED == 'finished'
     True
     """
-    INITIALIZING = 'INITIALIZING'  # trainer creation
-    FITTING = 'FITTING'  # trainer.fit()
-    VALIDATING = 'VALIDATING'  # trainer.validate()
-    TESTING = 'TESTING'  # trainer.test()
-    PREDICTING = 'PREDICTING'  # trainer.predict()
-    TUNING = 'TUNING'  # trainer.tune()
-    FINISHED = 'FINISHED'
-    INTERRUPTED = 'INTERRUPTED'
+    INITIALIZING = 'initializing'  # trainer creation
+    FITTING = 'fit'  # trainer.fit()
+    VALIDATING = 'validate'  # trainer.validate()
+    TESTING = 'test'  # trainer.test()
+    PREDICTING = 'predict'  # trainer.predict()
+    TUNING = 'tune'  # trainer.tune()
+    FINISHED = 'finished'
+    INTERRUPTED = 'interrupted'
 
     @property
     def stopped(self) -> bool:

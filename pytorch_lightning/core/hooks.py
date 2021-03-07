@@ -27,12 +27,12 @@ class ModelHooks:
 
     def setup(self, stage: str) -> None:
         """
-        Called at the beginning of fit and test.
+        Called at the beginning of fit (train + validate), validate, test, predict, or tune.
         This is a good hook when you need to build models dynamically or adjust something about them.
         This hook is called on every process when using DDP.
 
         Args:
-            stage: either 'fit' or 'test'
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, ``'predict'``, or ``'tune'``
 
         Example::
 
@@ -55,10 +55,10 @@ class ModelHooks:
 
     def teardown(self, stage: str) -> None:
         """
-        Called at the end of fit and test.
+        Called at the end of fit (train + validate), validate, test, predict, or tune.
 
         Args:
-            stage: either 'fit' or 'test'
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, ``'predict'``, or ``'tune'``
         """
 
     def on_fit_start(self) -> None:

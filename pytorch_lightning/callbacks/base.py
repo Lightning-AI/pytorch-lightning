@@ -34,11 +34,11 @@ class Callback(abc.ABC):
         pass
 
     def setup(self, trainer, pl_module: LightningModule, stage: str) -> None:
-        """Called when fit or test begins"""
+        """Called when fit, validate, test, predict, or tune begins"""
         pass
 
     def teardown(self, trainer, pl_module: LightningModule, stage: str) -> None:
-        """Called when fit or test ends"""
+        """Called when fit, validate, test, predict, or tune ends"""
         pass
 
     def on_init_start(self, trainer) -> None:
