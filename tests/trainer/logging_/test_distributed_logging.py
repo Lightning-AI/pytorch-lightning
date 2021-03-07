@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from pathlib import Path
 from unittest import mock
-from unittest.mock import Mock, MagicMock, call
+from unittest.mock import Mock
 
-from pytorch_lightning import Trainer, Callback
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning import Callback, Trainer
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
