@@ -280,6 +280,9 @@ class GradNormTracker:
             self._grad_norm_dic[name].add(norm)
 
     def _reduce(self):
+        if not self._grad_norm_dic:
+            return
+
         reduced_norm = {}
         for name, norm in self._grad_norm_dic.items():
             mean, std = norm.value()
