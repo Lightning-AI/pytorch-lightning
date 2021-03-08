@@ -61,7 +61,7 @@ def track_data_hook_calls(fn):
     - When ``dm.setup()``, ``dm.has_setup_{fit,validate,test}`` get set to True
     - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
         Its corresponding `dm_has_setup_{stage}` attribute gets set to True
-    - ``dm.teardown()`` and ``dm.teardown(stage)`` acts exactly like ``dm.setup``
+    - ``dm.teardown()`` and ``dm.teardown(stage)`` act exactly like ``dm.setup``
 
     Args:
         fn (function): Function that will be tracked to see if it has been called.

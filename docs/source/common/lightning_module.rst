@@ -1248,7 +1248,7 @@ prepare_data
 setup
 ~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.setup
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.setup
     :noindex:
 
 tbptt_split_batch
@@ -1260,7 +1260,7 @@ tbptt_split_batch
 teardown
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.teardown
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.teardown
     :noindex:
 
 train_dataloader

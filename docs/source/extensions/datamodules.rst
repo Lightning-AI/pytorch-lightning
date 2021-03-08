@@ -418,7 +418,7 @@ You can of course use DataModules in plain PyTorch code as well.
     for batch in dm.val_dataloader():
         ...
 
-     dm.teardown(stage='fit')
+    dm.teardown(stage='fit')
 
     # lazy load test data
     dm.setup(stage='test')
