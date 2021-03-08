@@ -4,6 +4,7 @@ import pytest
 import torch
 from torch.nn import DataParallel
 
+from pytorch_lightning import LightningModule
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.data_parallel import (
     LightningParallelModule,
@@ -123,3 +124,30 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
     wrapped_model = LightningParallelModule(model)
     output = wrapped_model(batch, batch_idx)
     assert output["python scalar"] == torch.tensor([12.3], device=device)
+
+
+def test_lightning_parallel_module_device_access():
+
+    class DeviceAccessModel(LightningModule):
+
+        def training_step(self, batch, batch_idx):
+            assert batch.shape == torch.Size([1, 1])
+            assert self.device.index == batch.item()
+            return torch.tensor(1, device=self.device)
+
+    pl_module = DeviceAccessModel()
+    # required for redirecting the forward call to training_step
+    pl_module.trainer = Mock()
+    pl_module.trainer._running_stage = RunningStage.TRAINING
+
+    root_device = torch.device("cuda", 0)
+    wrapped_module = LightningParallelModule(pl_module).to(root_device)
+    model = DataParallel(wrapped_module, device_ids=[0, 1])
+
+    data = torch.tensor([0.0, 1.0], device=root_device).view(2, 1)  # one value per gpu
+    data = data.to(root_device)
+    # model.to(root_device)
+    output = model(data, 0)
+    assert output.device == root_device
+    assert pl_module.device == root_device
+    assert torch.all(output.cpu().eq(torch.tensor([1, 1])))

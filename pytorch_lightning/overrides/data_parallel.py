@@ -13,7 +13,7 @@
 # limitations under the License.
 import numbers
 import warnings
-from typing import Any
+from typing import Any, Optional
 
 import torch
 from torch.nn import DataParallel
@@ -22,6 +22,7 @@ from torch.nn.parallel import DistributedDataParallel
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
@@ -71,6 +72,8 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         super().__init__(pl_module)
 
     def forward(self, *inputs, **kwargs):
+        self.update_replica_device_attributes(inputs)
+        # forward call will redirect to training_step, validation_step, etc.
         output = super().forward(*inputs, **kwargs)
 
         def output_transform(data: Any):
@@ -84,6 +87,27 @@ class LightningParallelModule(_LightningModuleWrapperBase):
             function=output_transform,
         )
         return output
+
+    def update_replica_device_attributes(self, inputs: Any) -> None:
+        replica_device = None
+
+        def find_tensor_with_device(tensor: torch.Tensor):
+            nonlocal replica_device
+            if replica_device is None and tensor.device != torch.device("cpu"):
+                replica_device = tensor.device
+            return tensor
+
+        apply_to_collection(inputs, dtype=torch.Tensor, function=find_tensor_with_device)
+
+        if replica_device is not None:
+            # by calling .to() we force the update to the self.device property
+            self.module.to(device=replica_device)
+        else:
+            rank_zero_warn(
+                "Could not determine on which device the inputs are."
+                "When using DataParallel (accelerator='dp'), be aware that in case you are using self.device"
+                "in your code it will reference only the root device."
+            )
 
 
 def python_scalar_to_tensor(data: Any, device: torch.device = torch.device("cpu")) -> Any:
