@@ -24,17 +24,12 @@ class LightningDistributed:
         self.device = device
 
     def broadcast(self, obj: Any, group=_group.WORLD):
-        is_list = isinstance(obj, list)
-
-        if not is_list:
-            obj = [obj]
+        # always wrap into a list so list can be brodcasted.
+        obj = [obj]
 
         if self.rank != 0:
             obj = [None for _ in range(len(obj))]
 
         broadcast_object_list(obj, 0, group=group or _group.WORLD)
 
-        if not is_list:
-            obj = obj[0]
-
-        return obj
+        return obj[0]
