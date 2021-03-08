@@ -446,12 +446,12 @@ class DummyLogger(LightningLoggerBase):
         pass
 
     @property
-    def name(self):
-        pass
+    def name(self) -> str:
+        return ""
 
     @property
-    def version(self):
-        pass
+    def version(self) -> str:
+        return ""
 
     def __getitem__(self, idx) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
