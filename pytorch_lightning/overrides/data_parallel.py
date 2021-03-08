@@ -96,9 +96,9 @@ class LightningParallelModule(_LightningModuleWrapperBase):
                 "When using DataParallel (accelerator='dp'), be aware that in case you are using self.device"
                 "in your code it will reference only the root device."
             )
-
-        # by calling .to() we force the update to the self.device property
-        self.module.to(device=first_parameter.device)
+        else:
+            # by calling .to() we force the update to the self.device property
+            self.module.to(device=first_parameter.device)
 
         # def find_tensor_with_device(tensor: torch.Tensor):
         #     nonlocal replica_device
