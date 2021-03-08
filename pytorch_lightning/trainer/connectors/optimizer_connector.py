@@ -40,6 +40,7 @@ class OptimizerConnector:
                            'epoch': self.trainer.current_epoch,
                            'val': self.trainer.current_val_epoch}[interval]
             current_idx += 1  # account for all counters starts from 0
+
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
             if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:
@@ -53,7 +54,7 @@ class OptimizerConnector:
                     )
                     if monitor_val is None:
                         if lr_scheduler.get('strict', True):
-                            avail_metrics = self.trainer.logger_connector.callback_metrics.keys()
+                            avail_metrics = list(self.trainer.logger_connector.callback_metrics.keys())
                             raise MisconfigurationException(
                                 f'ReduceLROnPlateau conditioned on metric {monitor_key}'
                                 f' which is not available. Available metrics are: {avail_metrics}.'

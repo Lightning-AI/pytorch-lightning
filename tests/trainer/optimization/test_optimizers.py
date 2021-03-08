@@ -470,32 +470,47 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
 
 
 @pytest.mark.parametrize("interval, expected_updates", [
-    ("epoch", 1), ("step", 5), ("val", 2)]
+    ("epoch", 1), ("step", 3), ("val", 2)]
 )
 def test_interval_scheduler(tmpdir, interval, expected_updates):
     """ check interval parameter for schedulers works as expected """
     init_lr = 1
+    
+    model = BoringModel()
+    optimizer = torch.optim.SGD(model.parameters(), lr=init_lr)
+    model.configure_optimizers = lambda: {
+        'optimizer': optimizer,
+        'lr_scheduler': {
+            'scheduler': torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1),
+            'interval': interval,
+        },
+    }
+    
+    # class IntervalOptimizerModel(BoringModel):
 
-    class IntervalOptimizerModel(BoringModel):
+    #     def configure_optimizers(self):
+    #         opt = torch.optim.SGD(self.layer.parameters(), lr=init_lr)
+    #         lr_scheduler = torch.optim.lr_scheduler.StepLR(opt, 1, gamma=0.1)
+    #         return [opt], [{'scheduler': lr_scheduler, 'interval': interval}]
 
-        def configure_optimizers(self):
-            opt = torch.optim.SGD(self.layer.parameters(), lr=init_lr)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(opt)
-            return [opt], [{'scheduler': lr_scheduler, 'interval': interval}]
-
-    model = IntervalOptimizerModel()
+    # model = IntervalOptimizerModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        max_steps=5,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
+        limit_train_batches=3,
+        limit_val_batches=2,
         val_check_interval=0.5
     )
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
-    adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
-    assert adjusted_lr == init_lr**expected_updates, \
+    # check scheduler was configured correctly
+    sch = trainer.lr_schedulers
+    assert sch[0]['interval'] == interval, 'Learning rate scheduler not configured correctly'
+    import pdb
+    pdb.set_trace()
+    
+    adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups][0]
+    assert adjusted_lr == init_lr*0.1**expected_updates, \
         f'Lr not adjusted correctly, expected {init_lr**expected_updates} but got {adjusted_lr}'
