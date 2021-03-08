@@ -45,7 +45,7 @@ class SMDDPPlugin(DDPPlugin):
         cluster_environment: Optional[SMDistributedEnvironment] = None,
         sync_batchnorm: bool = False,
         **kwargs: Union[Any, Dict[str, Any]],
-    ):
+    ) -> None:
         if not _SMDIST_AVAILABLE:
             raise MisconfigurationException("`smdistributed` module is not available.")
 
