@@ -764,6 +764,8 @@ class Trainer(
         return eval_loop_results
 
     def run_predict(self):
+        self.predict_loop.on_predict_start()
+        
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders(None)
 
@@ -800,6 +802,7 @@ class Trainer(
                     self.predict_loop.predict(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
+        self.predict_loop.on_predict_end()
         return results
 
     def run_sanity_check(self, ref_model):
