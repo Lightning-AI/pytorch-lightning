@@ -1,8 +1,22 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import Optional
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
@@ -35,8 +49,7 @@ class DDPShardedPlugin(DDPPlugin):
         trainer.convert_to_lightning_optimizers()
 
     def _wrap_optimizers(self):
-        trainer = self.model.trainer
-        if trainer.testing is True:
+        if self.model.trainer.state != TrainerState.FITTING:
             return
         self._reinit_optimizers_with_oss()
 

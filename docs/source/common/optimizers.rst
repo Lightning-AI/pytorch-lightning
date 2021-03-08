@@ -21,76 +21,143 @@ Manual optimization
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable
 to manually manage the optimization process. To do so, do the following:
 
-* Override your LightningModule ``automatic_optimization`` property to return ``False``
-* Drop or ignore the optimizer_idx argument
-* Use `self.manual_backward(loss)` instead of `loss.backward()`.
+* Set the ``automatic_optimization`` property to ``False`` in your ``LightningModule`` ``__init__`` function
+* Use ``self.manual_backward(loss)`` instead of ``loss.backward()``.
 
-.. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with zero_grad, accumulated_grad_batches, model toggling, etc..
+.. testcode:: python
 
-.. warning:: Before 1.2, ``optimzer.step`` was calling ``zero_grad`` internally. From 1.2, it is left to the users expertize.
+    from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            # Important: This property activate ``manual optimization`` for your model
+            self.automatic_optimization = False
+
+        def training_step(batch, batch_idx):
+            opt = self.optimizers()
+            loss = self.compute_loss(batch)
+            self.manual_backward(loss)
+
+.. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
+
+.. warning:: Before 1.2, ``optimzer.step`` was calling ``optimizer.zero_grad()`` internally. From 1.2, it is left to the users expertise.
 
 .. tip:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
 
 .. tip:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to support accelerators and precision for you.
 
-
 .. code-block:: python
 
-    def training_step(batch, batch_idx, optimizer_idx):
+    def __init__(self):
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
         opt = self.optimizers()
 
         loss = self.compute_loss(batch)
         self.manual_backward(loss)
-        opt.step()
 
         # accumulate gradient batches
         if batch_idx % 2 == 0:
+            opt.step()
             opt.zero_grad()
 
-
-.. tip:: It is a good practice to provide the optimizer with a ``closure`` function that performs a ``forward`` and ``backward`` pass of your model. It is optional for most optimizers, but makes your code compatible if you switch to an optimizer which requires a closure.
+.. tip:: It is a good practice to provide the optimizer with a ``closure`` function that performs a ``forward``, ``zero_grad`` and ``backward`` of your model. It is optional for most optimizers, but makes your code compatible if you switch to an optimizer which requires a closure. See also `the PyTorch docs <https://pytorch.org/docs/stable/optim.html#optimizer-step-closure>`_.
 
 Here is the same example as above using a ``closure``.
 
-.. code-block:: python
+.. testcode:: python
 
-    def training_step(batch, batch_idx, optimizer_idx):
+    def __init__(self):
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
         opt = self.optimizers()
 
-        def forward_and_backward():
+        def closure():
+            # Only zero_grad on the first batch to accumulate gradients
+            is_first_batch_to_accumulate = batch_idx % 2 == 0
+            if is_first_batch_to_accumulate:
+                opt.zero_grad()
+
             loss = self.compute_loss(batch)
             self.manual_backward(loss)
+            return loss
 
-        opt.step(closure=forward_and_backward)
+        opt.step(closure=closure)
 
-        # accumulate gradient batches
-        if batch_idx % 2 == 0:
-            opt.zero_grad()
+.. tip:: Be careful where you call ``zero_grad`` or your model won't converge. It is good pratice to call ``zero_grad`` before ``manual_backward``.
 
+.. testcode:: python
 
-.. code-block:: python
+    import torch
+    from torch import Tensor
+    from pytorch_lightning import LightningModule
 
-    # Scenario for a GAN.
+    class SimpleGAN(LightningModule):
 
-    def training_step(...):
-        opt_gen, opt_dis = self.optimizers()
+        def __init__(self):
+            super().__init__()
+            self.G = Generator()
+            self.D = Discriminator()
 
-        # compute generator loss
-        loss_gen = self.compute_generator_loss(...)
+            # Important: This property activate ``manual optimization`` for this model
+            self.automatic_optimization = False
 
-        # zero_grad needs to be called before backward
-        opt_gen.zero_grad()
-        self.manual_backward(loss_gen)
-        opt_gen.step()
+        def sample_z(self, n) -> Tensor:
+            sample = self._Z.sample((n,))
+            return sample
 
-        # compute discriminator loss
-        loss_dis = self.compute_discriminator_loss(...)
+        def sample_G(self, n) -> Tensor:
+            z = self.sample_z(n)
+            return self.G(z)
 
-        # zero_grad needs to be called before backward
-        opt_dis.zero_grad()
-        self.manual_backward(loss_dis)
-        opt_dis.step()
+        def training_step(self, batch, batch_idx):
+            # Implementation follows https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+            g_opt, d_opt = self.optimizers()
 
+            X, _ = batch
+            batch_size = X.shape[0]
+
+            real_label = torch.ones((batch_size, 1), device=self.device)
+            fake_label = torch.zeros((batch_size, 1), device=self.device)
+
+            g_X = self.sample_G(batch_size)
+
+            ###########################
+            #  Optimize Discriminator #
+            ###########################
+            d_opt.zero_grad()
+            d_x = self.D(X)
+            errD_real = self.criterion(d_x, real_label)
+
+            d_z = self.D(g_X.detach())
+            errD_fake = self.criterion(d_z, fake_label)
+
+            errD = (errD_real + errD_fake)
+
+            self.manual_backward(errD)
+            d_opt.step()
+
+            #######################
+            #  Optimize Generator #
+            #######################
+            g_opt.zero_grad()
+
+            d_z = self.D(g_X)
+            errG = self.criterion(d_z, real_label)
+
+            self.manual_backward(errG)
+            g_opt.step()
+
+            self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
+
+        def configure_optimizers(self):
+            g_opt = torch.optim.Adam(self.G.parameters(), lr=1e-5)
+            d_opt = torch.optim.Adam(self.D.parameters(), lr=1e-5)
+            return g_opt, d_opt
 
 .. note:: ``LightningOptimizer`` provides a ``toggle_model`` function as a ``@context_manager`` for advanced users. It can be useful when performing gradient accumulation with several optimizers or training in a distributed setting.
 
@@ -102,43 +169,76 @@ Toggling means that all parameters from B exclusive to A will have their ``requi
 When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
 
-Here is an example on how to use it:
 
-.. code-block:: python
+Here is an example for advanced use-case.
 
+.. testcode:: python
 
     # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
 
-    def training_step(self, batch, batch_idx, ...):
-        opt_gen, opt_dis = self.optimizers()
+    class SimpleGAN(LightningModule):
 
-        accumulated_grad_batches = batch_idx % 2 == 0
+        ...
 
-        # compute generator loss
-        def closure_gen():
-            loss_gen = self.compute_generator_loss(...)
-            self.manual_backward(loss_gen)
-            if accumulated_grad_batches:
-                opt_gen.zero_grad()
+        def __init__(self):
+            self.automatic_optimization = False
 
-        with opt_gen.toggle_model(sync_grad=accumulated_grad_batches):
-            opt_gen.step(closure=closure_gen)
+        def training_step(self, batch, batch_idx):
+            # Implementation follows https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+            g_opt, d_opt = self.optimizers()
 
-        def closure_dis():
-            loss_dis = self.compute_discriminator_loss(...)
-            self.manual_backward(loss_dis)
-            if accumulated_grad_batches:
-                opt_dis.zero_grad()
+            X, _ = batch
+            X.requires_grad = True
+            batch_size = X.shape[0]
 
-        with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
-            opt_dis.step(closure=closure_dis)
+            real_label = torch.ones((batch_size, 1), device=self.device)
+            fake_label = torch.zeros((batch_size, 1), device=self.device)
+
+            accumulated_grad_batches = batch_idx % 2 == 0
+
+            g_X = self.sample_G(batch_size)
+
+            ###########################
+            #  Optimize Discriminator #
+            ###########################
+            with d_opt.toggle_model(sync_grad=accumulated_grad_batches):
+                d_x = self.D(X)
+                errD_real = self.criterion(d_x, real_label)
+
+                d_z = self.D(g_X.detach())
+                errD_fake = self.criterion(d_z, fake_label)
+
+                errD = (errD_real + errD_fake)
+
+                self.manual_backward(errD)
+                if accumulated_grad_batches:
+                    d_opt.step()
+                    d_opt.zero_grad()
+
+            #######################
+            #  Optimize Generator #
+            #######################
+            with g_opt.toggle_model(sync_grad=accumulated_grad_batches):
+                d_z = self.D(g_X)
+                errG = self.criterion(d_z, real_label)
+
+                self.manual_backward(errG)
+                if accumulated_grad_batches:
+                    g_opt.step()
+                    g_opt.zero_grad()
+
+            self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
 
 ------
 
 Automatic optimization
 ======================
-With Lightning most users don't have to think about when to call .backward(), .step(), .zero_grad(), since
-Lightning automates that for you.
+With Lightning most users don't have to think about when to call ``.zero_grad()``, ``.backward()`` and ``.step()``
+since Lightning automates that for you.
+
+.. warning::
+   Before 1.2.2, ``.zero_grad()`` was called after ``.backward()`` and ``.step()`` internally.
+   From 1.2.2, Lightning calls ``.zero_grad()`` before ``.backward()``.
 
 Under the hood Lightning does the following:
 
@@ -147,33 +247,33 @@ Under the hood Lightning does the following:
     for epoch in epochs:
         for batch in data:
             loss = model.training_step(batch, batch_idx, ...)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
-        for scheduler in schedulers:
-            scheduler.step()
+        for lr_scheduler in lr_schedulers:
+            lr_scheduler.step()
 
 In the case of multiple optimizers, Lightning does the following:
 
 .. code-block:: python
 
     for epoch in epochs:
-      for batch in data:
-         for opt in optimizers:
-            disable_grads_for_other_optimizers()
-            train_step(opt)
-            opt.step()
+        for batch in data:
+            for opt in optimizers:
+                loss = model.training_step(batch, batch_idx, optimizer_idx)
+                opt.zero_grad()
+                loss.backward()
+                opt.step()
 
-      for scheduler in schedulers:
-         scheduler.step()
+        for lr_scheduler in lr_schedulers:
+            lr_scheduler.step()
 
 
 Learning rate scheduling
 ------------------------
-Every optimizer you use can be paired with any `LearningRateScheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
-In the basic use-case, the scheduler (or multiple schedulers) should be returned as the second output from the ``.configure_optimizers``
-method:
+Every optimizer you use can be paired with any `Learning Rate Scheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
+In the basic use-case, the scheduler (or multiple schedulers) should be returned as the second output from the ``.configure_optimizers`` method:
 
 .. testcode::
 
@@ -262,7 +362,7 @@ returned as a dict which can contain the following keywords:
 
 Use multiple optimizers (like GANs)
 -----------------------------------
-To use multiple optimizers return > 1 optimizers from :meth:`pytorch_lightning.core.LightningModule.configure_optimizers`
+To use multiple optimizers return two or more optimizers from :meth:`pytorch_lightning.core.LightningModule.configure_optimizers`
 
 .. testcode::
 
@@ -283,13 +383,15 @@ Lightning will call each optimizer sequentially:
 .. code-block:: python
 
    for epoch in epochs:
-      for batch in data:
-         for opt in optimizers:
-            train_step(opt)
-            opt.step()
+       for batch in data:
+           for opt in optimizers:
+               loss = train_step(batch, batch_idx, optimizer_idx)
+               opt.zero_grad()
+               loss.backward()
+               opt.step()
 
-      for scheduler in schedulers:
-         scheduler.step()
+      for lr_scheduler in lr_schedulers:
+          lr_scheduler.step()
 
 ----------
 
@@ -299,8 +401,6 @@ To do more interesting things with your optimizers such as learning rate warm-up
 override the :meth:`optimizer_step` function.
 
 For example, here step optimizer A every 2 batches and optimizer B every 4 batches
-
-.. note:: When using Trainer(enable_pl_optimizer=True), there is no need to call `.zero_grad()`.
 
 .. testcode::
 
@@ -334,7 +434,7 @@ Here we add a learning-rate warm up
         # update params
         optimizer.step(closure=closure)
 
-.. note:: The default ``optimizer_step`` is relying on the internal ``LightningOptimizer`` to properly perform a step. It handles TPUs, AMP, accumulate_grad_batches, zero_grad, and much more ...
+.. note:: The default ``optimizer_step`` is relying on the internal ``LightningOptimizer`` to properly perform a step. It handles TPUs, AMP, accumulate_grad_batches and much more ...
 
 .. testcode::
 
@@ -363,6 +463,11 @@ Using the closure functions for optimization
 --------------------------------------------
 
 When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled. By default, this function is defined by wrapping the `training_step` and the backward steps as follows
+
+.. warning::
+   Before 1.2.2, ``.zero_grad()`` was called outside the closure internally.
+   From 1.2.2, the closure calls ``.zero_grad()`` inside, so there is no need to define your own closure
+   when using similar optimizers to :class:`torch.optim.LBFGS` which requires reevaluation of the loss with the closure in ``optimizer.step()``.
 
 .. testcode::
 

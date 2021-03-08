@@ -14,6 +14,8 @@
 """
 Tests to ensure that the training loop works with a dict
 """
+import pytest
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from tests.helpers.deterministic_model import DeterministicModel
@@ -44,7 +46,8 @@ def test_validation_step_no_return(tmpdir):
 
     # out are the results of the full loop
     # eval_results are output of _evaluate
-    out, eval_results = trainer.run_evaluation()
+    with pytest.warns(RuntimeWarning, match="the running stage is set to None"):
+        out, eval_results = trainer.run_evaluation()
     assert len(out) == 1
     assert len(eval_results) == 0
 

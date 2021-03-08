@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
@@ -34,6 +34,10 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = None
         self._results = None
         self.global_rank = 0
+
+    @abstractmethod
+    def connect(self, model: 'Module') -> None:
+        """Called by the accelerator to connect it with this plugin"""
 
     @property
     @abstractmethod
@@ -96,7 +100,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> Optional[LightningModule]:
+    def lightning_module(self) -> LightningModule:
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 
@@ -117,9 +121,9 @@ class TrainingTypePlugin(Plugin, ABC):
         # double dispatch to initiate the training loop
         self._results = trainer.run_train()
 
-    def start_testing(self, trainer: 'Trainer') -> None:
+    def start_evaluating(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_test()
+        self._results = trainer.run_evaluate()
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the predicting loop
@@ -149,7 +153,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step_end(self, output):
         return output
 
-    def on_save(self, checkpoint: dict) -> dict:
+    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
         return checkpoint
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:

@@ -23,7 +23,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
@@ -58,12 +58,10 @@ class TrainLoop:
         max_steps,
         min_steps,
         num_sanity_val_steps,
-        automatic_optimization,
         weights_summary,
     ):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
-        self.trainer.interrupted = False
         self.trainer.should_stop = False
         self.trainer._state = TrainerState.INITIALIZING
 
@@ -71,7 +69,6 @@ class TrainLoop:
         self.trainer.batch_idx = 0
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
-        self.automatic_optimization = automatic_optimization
 
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.trainer.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
@@ -125,7 +122,6 @@ class TrainLoop:
     def on_train_end(self):
         if self._teardown_already_run:
             return
-
         self._teardown_already_run = True
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
@@ -149,6 +145,9 @@ class TrainLoop:
 
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
+
+        # reset bookkeeping
+        self.trainer._running_stage = None
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -263,7 +262,7 @@ class TrainLoop:
         is_result_obj = isinstance(training_step_output, Result)
 
         if is_result_obj:
-            training_step_output.detach()
+            training_step_output = training_step_output.detach()
         else:
             training_step_output.batch_loss = training_step_output.batch_loss.detach()
 
@@ -311,7 +310,7 @@ class TrainLoop:
         closure_loss = None
         untouched_loss = None
 
-        if self.trainer.train_loop.automatic_optimization:
+        if self.automatic_optimization:
             # accumulate loss
             # (if accumulate_grad_batches = 1 no effect)
             if is_result_obj:
@@ -397,9 +396,9 @@ class TrainLoop:
 
         # track metrics without grads for epoch reduction
         training_step_output_for_epoch_end = copy(result)
-        training_step_output_for_epoch_end.detach()
+        training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
         if self.trainer.move_metrics_to_cpu:
-            training_step_output_for_epoch_end.cpu()
+            training_step_output_for_epoch_end = training_step_output_for_epoch_end.cpu()
 
         # what flows back into the system
         training_step_output = result
@@ -479,7 +478,7 @@ class TrainLoop:
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
-        should_check_val = False
+        val_loop_called = False
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
@@ -514,10 +513,10 @@ class TrainLoop:
             # -----------------------------------------
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
+                self.trainer.validating = True
                 self.trainer.run_evaluation()
-
-                # reset stage to train
-                self.trainer._running_stage = RunningStage.TRAINING
+                self.trainer.training = True
+                val_loop_called = True
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -560,20 +559,21 @@ class TrainLoop:
         )
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
-        if should_check_val:
-            self.trainer.run_evaluation(on_epoch=True)
-
-            # reset stage to train
-            self.trainer._running_stage = RunningStage.TRAINING
-
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
-        if should_train_only:
-            # update epoch level lr_schedulers
+        # update epoch level lr_schedulers if no val loop outside train loop is triggered
+        if (val_loop_called and not should_check_val) or should_train_only:
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
+        if should_train_only:
             self.check_checkpoint_callback(True)
             self.check_early_stopping_callback(True)
+
+        if should_check_val:
+            self.trainer.validating = True
+            self.trainer.run_evaluation(on_epoch=True)
+            self.trainer.training = True
 
         # increment the global step once
         # progress global step according to grads progress
@@ -738,7 +738,13 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if not self._skip_backward and self.trainer.train_loop.automatic_optimization:
+            if not self._skip_backward and self.automatic_optimization:
+                is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
+
+                if is_first_batch_to_accumulate:
+                    self.on_before_zero_grad(optimizer)
+                    self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+
                 # backward pass
                 if result is not None:
                     with self.trainer.profiler.profile("model_backward"):
@@ -820,7 +826,7 @@ class TrainLoop:
         is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         can_check_val = self.trainer.enable_validation and is_val_check_epoch
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
-        epoch_end_val_check = self.trainer.val_check_batch == self.trainer.num_training_batches
+        epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
 
         should_check_val = ((is_val_check_batch and epoch_end_val_check) or self.trainer.should_stop
                             or is_last_batch_for_infinite_dataset
@@ -834,12 +840,17 @@ class TrainLoop:
 
         if len(self.trainer.optimizers) > 1:
             if self.trainer.has_arg("training_step", "optimizer_idx"):
+                if not self.automatic_optimization:
+                    self.warning_cache.warn(
+                        "`training_step` hook signature has changed in v1.3."
+                        " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
+                        " the old signature will be removed in v1.5", DeprecationWarning
+                    )
                 args.append(opt_idx)
-            else:
-                num_opts = len(self.trainer.optimizers)
+            elif not self.trainer.has_arg("training_step", "optimizer_idx") and self.automatic_optimization:
                 raise ValueError(
-                    f"Your LightningModule defines {num_opts} optimizers but "
-                    f'training_step is missing the "optimizer_idx" argument.'
+                    f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
+                    ' `training_step` is missing the `optimizer_idx` argument.'
                 )
 
         # pass hiddens if using tbptt
