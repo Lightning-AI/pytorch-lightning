@@ -138,7 +138,7 @@ def test_lightning_parallel_module_device_access():
         def training_step(self, batch, batch_idx):
             assert batch.shape == torch.Size([1, 1])
             assert self.device.index == batch.item()
-            assert self.device == self.layer.device
+            assert self.device == self.layer.weight.device
             return torch.tensor(1, device=self.device)
 
     pl_module = DeviceAccessModel()
