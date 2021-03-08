@@ -141,7 +141,7 @@ class SMDDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.init_smddp_connection(self.global_rank, self.world_size)
+        self.init_ddp_connection(self.global_rank, self.world_size)
 
         # TODO: we moved it to the trainer.fit after calling pre_dispatch
         #   ... need to double check that it is the correct place
@@ -164,7 +164,7 @@ class SMDDPPlugin(ParallelPlugin):
         # move the model to the correct device
         self.model_to_device()
 
-        self.configure_smddp()
+        self.configure_ddp()
 
         self.barrier()
 
@@ -173,13 +173,13 @@ class SMDDPPlugin(ParallelPlugin):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def init_smddp_connection(self, global_rank: int, world_size: int) -> None:
+    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
 
         if not dist.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             dist.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
-    def configure_smddp(self):
+    def configure_ddp(self):
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model),
             device_ids=[dist.get_local_rank()],
