@@ -869,7 +869,7 @@ class Trainer(
         # If you supply a datamodule you can't supply val_dataloaders
         if val_dataloaders and datamodule:
             raise MisconfigurationException(
-                'You cannot pass both `trainer.val(val_dataloaders=..., datamodule=...)`'
+                'You cannot pass both `trainer.validate(val_dataloaders=..., datamodule=...)`'
             )
 
         model_provided = model is not None
@@ -881,7 +881,7 @@ class Trainer(
         self.data_connector.attach_dataloaders(model, val_dataloaders=val_dataloaders)
 
         if not model_provided:
-            self.__evaluate_using_weights(model, ckpt_path=ckpt_path)
+            self.validated_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
 
         # run validate
         results = self.fit(model)
@@ -942,7 +942,7 @@ class Trainer(
         self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         if not model_provided:
-            self.__evaluate_using_weights(model, ckpt_path=ckpt_path)
+            self.tested_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
 
         # run test
         results = self.fit(model)
@@ -952,11 +952,11 @@ class Trainer(
 
         return results
 
-    def __evaluate_using_weights(
+    def __load_ckpt_weights(
         self,
         model,
         ckpt_path: Optional[str] = None,
-    ):
+    ) -> Optional[str]:
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
@@ -979,11 +979,7 @@ class Trainer(
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
-
-        if self.validating:
-            self.validated_ckpt_path = ckpt_path
-        else:
-            self.tested_ckpt_path = ckpt_path
+        return ckpt_path
 
     def predict(
         self,
