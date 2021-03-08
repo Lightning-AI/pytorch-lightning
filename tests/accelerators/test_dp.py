@@ -128,9 +128,7 @@ def test_dp_test(tmpdir):
 
 @RunIf(min_gpus=2)
 def test_dp_training_step_dict(tmpdir):
-    """
-    This test verify dp properly reduce dictionaries
-    """
+    """ This test verifies that dp properly reduces dictionaries """
 
     class TestModel(BoringModel):
 
