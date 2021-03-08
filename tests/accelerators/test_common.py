@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from tests.accelerators.test_dp import CustomClassificationModelDP
 from tests.helpers.datamodules import ClassifDataModule
@@ -12,7 +13,7 @@ from tests.helpers.runif import RunIf
     pytest.param({"accelerator": "dp", "gpus": 2}, marks=RunIf(min_gpus=2)),
     pytest.param({"accelerator": "ddp_spawn", "gpus": 2}, marks=RunIf(min_gpus=2)),
 ))
-def test_evaluate(tmpdir, trainer_kwargs, tutils=None):
+def test_evaluate(tmpdir, trainer_kwargs):
     tutils.set_random_master_port()
 
     dm = ClassifDataModule()
