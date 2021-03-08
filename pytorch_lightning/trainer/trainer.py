@@ -970,9 +970,10 @@ class Trainer(
                 ckpt_path = self.checkpoint_callback.best_model_path
 
             if not ckpt_path:
+                fn = self.state.value
                 raise MisconfigurationException(
-                    f'`.test()` found no path for the best weights: "{ckpt_path}". Please'
-                    ' specify a path for a checkpoint `.test(ckpt_path=PATH)`'
+                    f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
+                    ' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
                 )
 
             self.training_type_plugin.barrier()
