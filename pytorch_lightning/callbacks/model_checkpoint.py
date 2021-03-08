@@ -138,6 +138,7 @@ class ModelCheckpoint(Callback):
         ...     monitor='val/loss',
         ...     dirpath='my/path/',
         ...     filename='sample-mnist-epoch{epoch:02d}-val_loss{val/loss:.2f}'
+        ...     auto_insert_metric_name: False
         ... )
 
         # retrieve the best checkpoint after training
