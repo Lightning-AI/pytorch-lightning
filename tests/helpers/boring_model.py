@@ -84,6 +84,7 @@ class BoringModel(LightningModule):
         self.layer = torch.nn.Linear(32, 2)
 
     def forward(self, x):
+        print("x", x.device, x.shape)
         return self.layer(x)
 
     def loss(self, batch, prediction):
