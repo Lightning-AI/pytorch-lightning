@@ -689,10 +689,7 @@ def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_v
     )
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
-    if verbose and save_last:
-        assert caplog.messages.count('Saving latest checkpoint...') == 1
-    else:
-        assert caplog.messages.count('Saving latest checkpoint...') == 0
+    assert caplog.messages.count('Saving latest checkpoint...') == (verbose and save_last)
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
