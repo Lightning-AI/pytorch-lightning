@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
+import torch.nn as nn
 from torch.nn import DataParallel
 
 from pytorch_lightning import LightningModule
@@ -130,9 +131,14 @@ def test_lightning_parallel_module_device_access():
 
     class DeviceAccessModel(LightningModule):
 
+        def __init__(self):
+            super().__init__()
+            self.layer = nn.Linear(2, 3)
+
         def training_step(self, batch, batch_idx):
             assert batch.shape == torch.Size([1, 1])
             assert self.device.index == batch.item()
+            assert self.device == self.layer.device
             return torch.tensor(1, device=self.device)
 
     pl_module = DeviceAccessModel()
