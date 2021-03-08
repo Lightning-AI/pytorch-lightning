@@ -46,10 +46,13 @@ class TensorBoardLogger(LightningLoggerBase):
     preinstalled.
 
     Example:
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.loggers import TensorBoardLogger
-        >>> logger = TensorBoardLogger("tb_logs", name="my_model")
-        >>> trainer = Trainer(logger=logger)
+
+    .. testcode::
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.loggers import TensorBoardLogger
+        logger = TensorBoardLogger("tb_logs", name="my_model")
+        trainer = Trainer(logger=logger)
 
     Args:
         save_dir: Save directory
