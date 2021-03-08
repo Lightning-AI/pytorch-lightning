@@ -17,6 +17,7 @@ import os
 import pickle
 import re
 from argparse import Namespace
+from logging import INFO
 from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
@@ -500,20 +501,20 @@ def test_none_monitor_top_k(tmpdir):
 
 def test_none_monitor_save_last(tmpdir):
     """ Test that a warning appears for save_last=True with monitor=None. """
-    with pytest.warns(UserWarning, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is a redundant.*'):
+    with pytest.warns(UserWarning, match=r'ModelCheckpoint.*is a redundant.*'):
         ModelCheckpoint(dirpath=tmpdir, save_last=True)
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, save_last=None)
     ModelCheckpoint(dirpath=tmpdir, save_last=False)
 
 
-def test_model_checkpoint_none_monitor(tmpdir):
+def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     """ Test that it is possible to save all checkpoints when monitor=None. """
     seed_everything()
     model = LogInTwoMethods()
 
     epochs = 2
-    checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
@@ -522,17 +523,22 @@ def test_model_checkpoint_none_monitor(tmpdir):
         max_epochs=epochs,
         logger=False,
     )
-    trainer.fit(model)
+
+    with caplog.at_level(INFO):
+        trainer.fit(model)
+        assert "will duplicate the last checkpoint saved" in caplog.text
 
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
-    assert checkpoint_callback.best_model_path == checkpoint_callback.last_model_path == tmpdir / 'epoch=1-step=19.ckpt'
+    assert checkpoint_callback.best_model_path == tmpdir / 'epoch=1-step=19.ckpt'
+    assert checkpoint_callback.last_model_path == tmpdir / 'last.ckpt'
     assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
 
     # check that the correct ckpts were created
     expected = [f'epoch={i}-step={j}.ckpt' for i, j in zip(range(epochs), [9, 19])]
+    expected.append('last.ckpt')
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
@@ -560,7 +566,7 @@ def test_model_checkpoint_period(tmpdir, period):
 def test_model_checkpoint_topk_zero(tmpdir):
     """ Test that no checkpoints are saved when save_top_k=0. """
     model = LogInTwoMethods()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
@@ -574,8 +580,9 @@ def test_model_checkpoint_topk_zero(tmpdir):
     assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
-    # check that no ckpts were created
-    assert len(os.listdir(tmpdir)) == 0
+    # check that only the last ckpt was created
+    assert os.listdir(tmpdir) == ['last.ckpt']
+    assert checkpoint_callback.last_model_path == tmpdir / 'last.ckpt'
 
 
 def test_model_checkpoint_topk_all(tmpdir):
@@ -1083,7 +1090,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     # check best_k_models state
     assert {Path(f).name for f in mc.best_k_models.keys()} == expected
     # check created ckpts
-    assert set(sorted(os.listdir(tmpdir))) == expected
+    assert set(os.listdir(tmpdir)) == expected
 
 
 def test_model_checkpoint_mode_options():
