@@ -765,7 +765,7 @@ class Trainer(
 
     def run_predict(self):
         self.predict_loop.on_predict_start()
-        
+
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders(None)
 
@@ -788,7 +788,6 @@ class Trainer(
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dataloader = self.accelerator.process_dataloader(dataloader)
             dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
-
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue

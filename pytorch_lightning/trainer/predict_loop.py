@@ -100,11 +100,11 @@ class PredictLoop(object):
             return results[0]
 
         return results
-    
+
     def on_predict_start(self):
         # hook
         self.trainer.call_hook("on_predict_start")
-        
+
     def on_predict_end(self):
         # hook
         self.trainer.call_hook("on_predict_end")

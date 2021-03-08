@@ -282,6 +282,18 @@ class ModelHooks:
         """
         # do something at the end of testing
 
+    def on_predict_start(self) -> None:
+        """
+        Called at the beginning of predicting.
+        """
+        # do something at the start of predicting
+
+    def on_predict_end(self) -> None:
+        """
+        Called at the end of predicting.
+        """
+        # do something at the end of predicting
+
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
         """
         Called after optimizer.step() and before optimizer.zero_grad().
