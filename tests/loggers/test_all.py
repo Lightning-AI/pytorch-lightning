@@ -14,13 +14,13 @@
 import inspect
 import os
 import pickle
-import platform
 from unittest import mock
-from unittest.mock import ANY, call
+from unittest.mock import ANY
 
 import pytest
+import torch
 
-import tests.base.develop_utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import (
     CometLogger,
@@ -31,7 +31,9 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
-from tests.base import BoringModel, EvalModelTemplate
+from pytorch_lightning.trainer.states import TrainerState
+from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
@@ -74,14 +76,32 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
         _test_loggers_fit_test(tmpdir, TestTubeLogger)
 
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+        wandb.run = None
+        wandb.init().step = 0
         _test_loggers_fit_test(tmpdir, WandbLogger)
 
 
 def _test_loggers_fit_test(tmpdir, logger_class):
-    model = EvalModelTemplate()
+
+    class CustomModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.log('train_some_val', loss)
+            return {"loss": loss}
+
+        def validation_epoch_end(self, outputs) -> None:
+            avg_val_loss = torch.stack([x['x'] for x in outputs]).mean()
+            self.log_dict({'early_stop_on': avg_val_loss, 'val_loss': avg_val_loss**0.5})
+
+        def test_epoch_end(self, outputs) -> None:
+            avg_test_loss = torch.stack([x["y"] for x in outputs]).mean()
+            self.log('test_loss', avg_test_loss)
 
     class StoreHistoryLogger(logger_class):
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.history = []
@@ -109,12 +129,13 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == MLFlowLogger:
         logger = mock_mlflow_run_creation(logger, experiment_id="foo", run_id="bar")
 
+    model = CustomModel()
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
-        limit_train_batches=0.2,
-        limit_val_batches=0.5,
-        fast_dev_run=True,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        log_every_n_steps=1,
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
@@ -124,17 +145,17 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == TensorBoardLogger:
         expected = [
             (0, ['hp_metric']),
-            (0, ['train_some_val']),
-            (0, ['early_stop_on', 'epoch', 'val_acc']),
+            (0, ['epoch', 'train_some_val']),
+            (0, ['early_stop_on', 'epoch', 'val_loss']),
             (0, ['hp_metric']),
-            (1, ['epoch', 'test_acc', 'test_loss'])
+            (1, ['epoch', 'test_loss']),
         ]
         assert log_metric_names == expected
     else:
         expected = [
-            (0, ['train_some_val']),
-            (0, ['early_stop_on', 'epoch', 'val_acc']),
-            (1, ['epoch', 'test_acc', 'test_loss'])
+            (0, ['epoch', 'train_some_val']),
+            (0, ['early_stop_on', 'epoch', 'val_loss']),
+            (1, ['epoch', 'test_loss']),
         ]
         assert log_metric_names == expected
 
@@ -173,7 +194,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
         def name(self):
             return 'name'
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_steps=1,
@@ -209,14 +230,17 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     assert trainer.default_root_dir == tmpdir
 
 
-@pytest.mark.parametrize("logger_class", [
-    CometLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TensorBoardLogger,
-    TestTubeLogger,
-    # The WandbLogger gets tested for pickling in its own test.
-])
+@pytest.mark.parametrize(
+    "logger_class",
+    [
+        CometLogger,
+        MLFlowLogger,
+        NeptuneLogger,
+        TensorBoardLogger,
+        TestTubeLogger,
+        # The WandbLogger gets tested for pickling in its own test.
+    ]
+)
 def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     """ Test that the logger objects can be pickled. This test only makes sense if the packages are installed. """
     _patch_comet_atexit(monkeypatch)
@@ -254,16 +278,23 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     assert trainer2.logger.save_dir == logger.save_dir
 
 
-@pytest.mark.parametrize("extra_params", [
-    pytest.param(dict(max_epochs=1, auto_scale_batch_size=True), id='Batch-size-Finder'),
-    pytest.param(dict(max_epochs=3, auto_lr_find=True), id='LR-Finder'),
-])
+@pytest.mark.parametrize(
+    "extra_params", [
+        pytest.param(dict(max_epochs=1, auto_scale_batch_size=True), id='Batch-size-Finder'),
+        pytest.param(dict(max_epochs=3, auto_lr_find=True), id='LR-Finder'),
+    ]
+)
 def test_logger_reset_correctly(tmpdir, extra_params):
     """ Test that the tuners do not alter the logger reference """
+
+    class CustomModel(BoringModel):
+
+        def __init__(self, lr=0.1, batch_size=1):
+            super().__init__()
+            self.save_hyperparameters()
+
     tutils.reset_seed()
-
-    model = EvalModelTemplate()
-
+    model = CustomModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         **extra_params,
@@ -292,14 +323,16 @@ class RankZeroLoggerCheck(Callback):
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
-@pytest.mark.parametrize("logger_class", [
-    CometLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TensorBoardLogger,
-    TestTubeLogger,
-])
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.parametrize(
+    "logger_class", [
+        CometLogger,
+        MLFlowLogger,
+        NeptuneLogger,
+        TensorBoardLogger,
+        TestTubeLogger,
+    ]
+)
+@RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy loggers on global rank > 0"""
     _patch_comet_atexit(monkeypatch)
@@ -312,18 +345,18 @@ def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
 def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(
         logger=logger,
         default_root_dir=tmpdir,
-        distributed_backend='ddp_cpu',
+        accelerator='ddp_cpu',
         num_processes=2,
         max_steps=1,
         checkpoint_callback=True,
         callbacks=[RankZeroLoggerCheck()],
     )
-    result = trainer.fit(model)
-    assert result == 1
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 def test_logger_with_prefix_all(tmpdir, monkeypatch):
@@ -351,7 +384,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
         logger = _instantiate_logger(NeptuneLogger, save_idr=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log_metric.assert_called_once_with("tmp-test", x=0, y=1.0)
+        logger.experiment.log_metric.assert_called_once_with("tmp-test", 1.0)
 
     # TensorBoard
     with mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter'):
@@ -368,5 +401,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     # WandB
     with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
         logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
+        wandb.run = None
+        wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
+        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0, 'trainer/global_step': 0})

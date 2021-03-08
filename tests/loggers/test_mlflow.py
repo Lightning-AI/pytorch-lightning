@@ -11,17 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import importlib.util
 import os
-
 from unittest import mock
 from unittest.mock import MagicMock
+
 import pytest
 
-
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import MLFlowLogger
-from tests.base import EvalModelTemplate
+from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
+from tests.helpers import BoringModel
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -105,7 +103,7 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
     assert logger.version == "run-id"
     assert logger.name == "exp-id"
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         logger=logger,
@@ -113,14 +111,16 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
         limit_train_batches=1,
         limit_val_batches=3,
     )
+    assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "exp-id" / "run-id" / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=0.ckpt'}
+    assert trainer.log_dir == logger.save_dir
 
 
 def test_mlflow_logger_dirs_creation(tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
-    if not importlib.util.find_spec('mlflow'):
+    if not _MLFLOW_AVAILABLE:
         pytest.xfail("test for explicit file creation requires mlflow dependency to be installed.")
 
     assert not os.listdir(tmpdir)
@@ -136,15 +136,28 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir)) == {'.trash', exp_id}
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
 
-    model = EvalModelTemplate()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3,
-                      log_gpu_memory=True)
+    class CustomModel(BoringModel):
+
+        def training_epoch_end(self, *args, **kwargs):
+            super().training_epoch_end(*args, **kwargs)
+            self.log('epoch', self.current_epoch)
+
+    model = CustomModel()
+    limit_batches = 5
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=limit_batches,
+        limit_val_batches=limit_batches,
+        log_gpu_memory=True,
+    )
     trainer.fit(model)
     assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
     assert 'epoch' in os.listdir(tmpdir / exp_id / run_id / 'metrics')
     assert set(os.listdir(tmpdir / exp_id / run_id / 'params')) == model.hparams.keys()
     assert trainer.checkpoint_callback.dirpath == (tmpdir / exp_id / run_id / 'checkpoints')
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=9.ckpt'}
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f'epoch=0-step={limit_batches - 1}.ckpt']
 
 
 @mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
@@ -171,3 +184,18 @@ def test_mlflow_logger_with_unexpected_characters(client, mlflow, tmpdir):
 
     with pytest.warns(RuntimeWarning, match='special characters in metric name'):
         logger.log_metrics(metrics)
+
+
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
+    """
+    Test that the logger raises warning with special characters not accepted by MLFlow.
+    """
+    logger = MLFlowLogger('test', save_dir=tmpdir)
+    value = 'test' * 100
+    key = 'test_param'
+    params = {key: value}
+
+    with pytest.warns(RuntimeWarning, match=f'Discard {key}={value}'):
+        logger.log_hyperparams(params)

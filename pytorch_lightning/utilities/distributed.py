@@ -12,19 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import warnings
 from functools import wraps
+from typing import Any, Optional, Union
 
 import torch
-from pytorch_lightning import _logger as log
-from typing import Union, Optional, Any
+
+log = logging.getLogger(__name__)
 
 if torch.distributed.is_available():
-    from torch.distributed import ReduceOp
+    from torch.distributed import group, ReduceOp
 else:
+
     class ReduceOp:
         SUM = None
+
+    class group:
+        WORLD = None
 
 
 def rank_zero_only(fn):
@@ -58,21 +64,6 @@ rank_zero_info = rank_zero_only(_info)
 rank_zero_warn = rank_zero_only(_warn)
 
 
-def find_free_network_port() -> int:
-    """
-    Finds a free port on localhost.
-    It is useful in single-node training when we don't want to connect to a real master node but
-    have to set the `MASTER_PORT` environment variable.
-    """
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
-
-
 def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):
     """
     Function to gather all tensors from several ddp processes onto a list that
@@ -89,6 +80,9 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
     if group is None:
         group = torch.distributed.group.WORLD
 
+    # convert tensors to contiguous format
+    result = result.contiguous()
+
     world_size = torch.distributed.get_world_size(group)
 
     gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
@@ -101,7 +95,9 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
 
 
 def sync_ddp_if_available(
-    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    result: Union[torch.Tensor],
+    group: Optional[Any] = None,
+    reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
     Function to reduce a tensor across worker processes during distributed training
@@ -110,6 +106,7 @@ def sync_ddp_if_available(
         group: the process group to gather results from. Defaults to all processes (world)
         reduce_op: the reduction operation. Defaults to sum.
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
+
     Return:
         reduced value
     """
@@ -119,7 +116,9 @@ def sync_ddp_if_available(
 
 
 def sync_ddp(
-    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    result: Union[torch.Tensor],
+    group: Optional[Any] = None,
+    reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
@@ -138,17 +137,62 @@ def sync_ddp(
     if group is None:
         group = torch.distributed.group.WORLD
 
-    if reduce_op is None:
-        reduce_op = torch.distributed.ReduceOp.SUM
-    elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
-        reduce_op = torch.distributed.ReduceOp.SUM
+    op = reduce_op if isinstance(reduce_op, ReduceOp) else ReduceOp.SUM
+
+    if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
         divide_by_world_size = True
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
-    torch.distributed.all_reduce(result, op=reduce_op, group=group, async_op=False)
+    torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
 
     if divide_by_world_size:
         result = result / torch.distributed.get_world_size(group)
 
     return result
+
+
+class AllGatherGrad(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, tensor, group=group.WORLD):
+        ctx.group = group
+
+        gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
+
+        torch.distributed.all_gather(gathered_tensor, tensor, group=group)
+        gathered_tensor = torch.stack(gathered_tensor, dim=0)
+
+        return gathered_tensor
+
+    @staticmethod
+    def backward(ctx, *grad_output):
+        grad_output = torch.cat(grad_output)
+
+        torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
+
+        return grad_output[torch.distributed.get_rank()]
+
+
+def all_gather_ddp_if_available(
+    tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
+) -> torch.Tensor:
+    """
+    Function to gather a tensor from several distributed processes
+
+    Args:
+        tensor: tensor of shape (batch, ...)
+        group: the process group to gather results from. Defaults to all processes (world)
+        sync_grads: flag that allows users to synchronize gradients for all_gather op
+
+    Return:
+        A tensor of shape (world_size, batch, ...)
+    """
+    group = group if group is not None else torch.distributed.group.WORLD
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if sync_grads:
+            return AllGatherGrad.apply(tensor, group)
+        else:
+            with torch.no_grad():
+                return AllGatherGrad.apply(tensor, group)
+    return tensor
