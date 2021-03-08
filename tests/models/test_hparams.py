@@ -95,9 +95,7 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
     return raw_checkpoint_path
 
 
-@pytest.mark.parametrize(
-    "cls", [SaveHparamsModel, SaveHparamsDecoratedModel]
-)
+@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_namespace_hparams(tmpdir, cls):
     # init model
     model = cls(hparams=Namespace(test_arg=14))
@@ -106,9 +104,7 @@ def test_namespace_hparams(tmpdir, cls):
     _run_standard_hparams_test(tmpdir, model, cls)
 
 
-@pytest.mark.parametrize(
-    "cls", [SaveHparamsModel, SaveHparamsDecoratedModel]
-)
+@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_dict_hparams(tmpdir, cls):
     # init model
     model = cls(hparams={'test_arg': 14})
@@ -117,9 +113,7 @@ def test_dict_hparams(tmpdir, cls):
     _run_standard_hparams_test(tmpdir, model, cls)
 
 
-@pytest.mark.parametrize(
-    "cls", [SaveHparamsModel, SaveHparamsDecoratedModel]
-)
+@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
 def test_omega_conf_hparams(tmpdir, cls):
     # init model
     conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
@@ -667,3 +661,39 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
         )
         trainer.fit(model)
         _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)
+
+
+@pytest.mark.parametrize("ignore", ("arg2", ("arg2", "arg3")))
+def test_ignore_args_list_hparams(tmpdir, ignore):
+    """
+    Tests that args can be ignored in save_hyperparameters
+    """
+
+    class LocalModel(BoringModel):
+
+        def __init__(self, arg1, arg2, arg3):
+            super().__init__()
+            self.save_hyperparameters(ignore=ignore)
+
+    model = LocalModel(arg1=14, arg2=90, arg3=50)
+
+    # test proper property assignments
+    assert model.hparams.arg1 == 14
+    for arg in ignore:
+        assert arg not in model.hparams
+
+    # verify we can train
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
+    trainer.fit(model)
+
+    # make sure the raw checkpoint saved the properties
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    raw_checkpoint = torch.load(raw_checkpoint_path)
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
+    assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["arg1"] == 14
+
+    # verify that model loads correctly
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, arg2=123, arg3=100)
+    assert model.hparams.arg1 == 14
+    for arg in ignore:
+        assert arg not in model.hparams

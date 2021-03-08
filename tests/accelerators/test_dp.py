@@ -11,10 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from unittest import mock
-
-import pytest
 import torch
 import torch.nn.functional as F
 
@@ -25,6 +21,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 PRETEND_N_OF_GPUS = 16
@@ -55,7 +52,7 @@ class CustomClassificationModelDP(ClassificationModel):
         self.log('test_acc', self.test_acc(outputs['logits'], outputs['y']))
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_multi_gpu_early_stop_dp(tmpdir):
     """Make sure DDP works. with early stopping"""
     tutils.set_random_master_port()
@@ -76,7 +73,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
     tpipes.run_model_test(trainer_options, model, dm)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_multi_gpu_model_dp(tmpdir):
     tutils.set_random_master_port()
 
@@ -98,8 +95,7 @@ def test_multi_gpu_model_dp(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_dp_test(tmpdir):
     tutils.set_random_master_port()
 
@@ -127,3 +123,22 @@ def test_dp_test(tmpdir):
     new_weights = model.layer_0.weight.clone().detach().cpu()
 
     assert torch.all(torch.eq(old_weights, new_weights))
+
+
+@RunIf(min_gpus=2)
+def test_dp_training_step_dict(tmpdir):
+    """
+    This test verify dp properly reduce dictionaries
+    """
+
+    model = BoringModel()
+    model.training_step_end = None
+    trainer = pl.Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        gpus=2,
+        accelerator='dp',
+    )
+    trainer.fit(model)

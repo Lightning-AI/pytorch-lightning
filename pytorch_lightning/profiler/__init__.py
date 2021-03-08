@@ -194,13 +194,8 @@ To visualize the profiled operation, you can either:
 
 """
 
-from pytorch_lightning.profiler.profilers import (
-    AdvancedProfiler,
-    BaseProfiler,
-    PassThroughProfiler,
-    PyTorchProfiler,
-    SimpleProfiler,
-)
+from pytorch_lightning.profiler.profilers import AdvancedProfiler, BaseProfiler, PassThroughProfiler, SimpleProfiler
+from pytorch_lightning.profiler.pytorch import PyTorchProfiler
 
 __all__ = [
     'BaseProfiler',

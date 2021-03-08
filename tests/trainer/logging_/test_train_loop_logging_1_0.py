@@ -31,6 +31,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from tests.helpers.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
 from tests.helpers.deterministic_model import DeterministicModel
+from tests.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -410,7 +411,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     assert generated == expected
 
 
-def test_validation_step_with_string_data_logging():
+def test_validation_step_with_string_data_logging(tmpdir):
 
     class TestModel(BoringModel):
 
@@ -435,7 +436,7 @@ def test_validation_step_with_string_data_logging():
     # model
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -490,7 +491,7 @@ def test_nested_datasouce_batch(tmpdir):
     # model
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=1,
@@ -731,10 +732,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with ddp
@@ -771,7 +769,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics['bar'] == 2
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_logging_sync_dist_true_gpu(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with GPU (should just return the original value)
@@ -895,7 +893,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     assert trainer.callback_metrics == expected
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
+@RunIf(min_gpus=1)
 def test_metric_are_properly_reduced(tmpdir):
 
     class TestingModel(BoringModel):

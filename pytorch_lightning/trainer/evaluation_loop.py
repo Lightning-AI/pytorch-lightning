@@ -32,21 +32,20 @@ class EvaluationLoop(object):
         self.num_dataloaders = None
 
     def on_trainer_init(self):
-        self.trainer.num_val_batches = []
         self.trainer.num_sanity_val_batches = []
         self.trainer.num_test_batches = []
+        self.trainer.num_val_batches = []
         self.trainer.test_dataloaders = None
         self.trainer.val_dataloaders = None
-        self.trainer.running_sanity_check = False
 
-        # when .test() is called, it sets this
+        # .validate() and .test() set this when they load a checkpoint
+        self.trainer.validated_ckpt_path = None
         self.trainer.tested_ckpt_path = None
 
-        # when true, prints test results
-        self.trainer.verbose_test = True
+        # when true, print evaluation results in .validate() and .test()
+        self.trainer.verbose_evaluate = True
 
-    def get_evaluation_dataloaders(self, max_batches):
-        # select dataloaders
+    def get_evaluation_dataloaders(self):
         model = self.trainer.lightning_module
 
         # select dataloaders
@@ -54,20 +53,19 @@ class EvaluationLoop(object):
             self.trainer.reset_test_dataloader(model)
 
             dataloaders = self.trainer.test_dataloaders
-            new_max_batches = self.trainer.num_test_batches
+            max_batches = self.trainer.num_test_batches
         else:
             # val
-            in_sanity_check = self.trainer.running_sanity_check
-            should_reload_every_epoch = self.trainer.reload_dataloaders_every_epoch
-            if (self.trainer.val_dataloaders is None or should_reload_every_epoch) and not in_sanity_check:
+            if self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
                 self.trainer.reset_val_dataloader(model)
-
+            if self.trainer.sanity_checking:
+                self.trainer.num_sanity_val_batches = [
+                    min(self.trainer.num_sanity_val_steps, val_batches) for val_batches in self.trainer.num_val_batches
+                ]
+                max_batches = self.trainer.num_sanity_val_batches
+            else:
+                max_batches = self.trainer.num_val_batches
             dataloaders = self.trainer.val_dataloaders
-            new_max_batches = self.trainer.num_val_batches
-
-        if max_batches is None:
-            max_batches = new_max_batches
-
         return dataloaders, max_batches
 
     def should_skip_evaluation(self, max_batches):
@@ -154,7 +152,7 @@ class EvaluationLoop(object):
         model_ref = self.trainer.lightning_module
         model_ref._results = Result()
 
-        if self.testing:
+        if self.trainer.testing:
             model_ref._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
                 output = self.trainer.accelerator.test_step(args)
@@ -181,7 +179,7 @@ class EvaluationLoop(object):
 
     def evaluation_epoch_end(self):
         # unset dataloder_idx in model
-        self.trainer.logger_connector.evaluation_epoch_end(self.trainer.testing)
+        self.trainer.logger_connector.evaluation_epoch_end()
 
         # call the model epoch end
         deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders)
@@ -203,6 +201,10 @@ class EvaluationLoop(object):
 
         # with a single dataloader don't pass an array
         outputs = self.outputs
+
+        # free memory
+        self.outputs = []
+
         eval_results = outputs
         if num_dataloaders == 1:
             eval_results = outputs[0]
@@ -283,9 +285,7 @@ class EvaluationLoop(object):
 
     def on_evaluation_batch_start(self, batch, batch_idx, dataloader_idx):
         # set dataloader_idx to model and track batch_size
-        self.trainer.logger_connector.on_evaluation_batch_start(
-            self.trainer.testing, batch, dataloader_idx, self.num_dataloaders
-        )
+        self.trainer.logger_connector.on_evaluation_batch_start(batch, dataloader_idx, self.num_dataloaders)
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)
@@ -321,7 +321,7 @@ class EvaluationLoop(object):
         self.trainer.call_hook('on_epoch_end')
 
     def log_evaluation_step_metrics(self, output, batch_idx):
-        if self.trainer.running_sanity_check:
+        if self.trainer.sanity_checking:
             return
 
         step_log_metrics = {}
