@@ -826,42 +826,40 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     assert trainer.state == TrainerState.FINISHED, "DDP Training failed"
 
 
-class CurrentTestModel(EvalModelTemplate):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # batch norm doesn't work with batch size 1, we replace it
-        self.c_d1_bn = torch.nn.ReLU()
-
-    def training_step(self, *args, **kwargs):
-        output = super().training_step(*args, **kwargs)
-        loss = output['loss']
-        # we make sure to add some metrics to the output dict,
-        # this is essential for this test
-        output['progress_bar'] = {'train_loss': loss}
-        return output
-
-    def train_dataloader(self):
-        dataloader = super().train_dataloader()
-        # construct a dataset with a size that is not divisible by num_gpus
-        # therefore the last batch will have a size < num_gpus
-        num_gpus = 3
-        batch_size = 3
-        size = num_gpus * batch_size + (num_gpus - 1)
-        dataset = Subset(dataloader.dataset, range(size))
-        dataloader = DataLoader(
-            dataset,
-            batch_size=self.batch_size,
-            drop_last=False,
-        )
-        return dataloader
-
-
 @RunIf(min_gpus=3)
 def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we need at least 3 gpus for this test
     num_gpus = 3
     batch_size = 3
+
+    class CurrentTestModel(EvalModelTemplate):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # batch norm doesn't work with batch size 1, we replace it
+            self.c_d1_bn = torch.nn.ReLU()
+
+        def training_step(self, *args, **kwargs):
+            output = super().training_step(*args, **kwargs)
+            loss = output['loss']
+            # we make sure to add some metrics to the output dict,
+            # this is essential for this test
+            output['progress_bar'] = {'train_loss': loss}
+            return output
+
+        def train_dataloader(self):
+            dataloader = super().train_dataloader()
+            # construct a dataset with a size that is not divisible by num_gpus
+            # therefore the last batch will have a size < num_gpus
+            size = num_gpus * batch_size + (num_gpus - 1)
+            dataset = Subset(dataloader.dataset, range(size))
+            dataloader = DataLoader(
+                dataset,
+                batch_size=self.batch_size,
+                drop_last=False,
+            )
+            return dataloader
+
     hparams = EvalModelTemplate.get_default_hparams()
     hparams['batch_size'] = batch_size
     model = CurrentTestModel(**hparams)
