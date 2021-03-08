@@ -166,4 +166,11 @@ def convert_to_tensors(data, device: torch.device = None):
         raise MisconfigurationException("device (torch.device) should be provided.")
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
+
+    def _move_to_device(value, device=None):
+        if device is not None and value.device != device:
+            value = value.to(device)
+        return value.contiguous()
+
+    data = apply_to_collection(data, torch.Tensor, partial(_move_to_device, device=device))
     return data

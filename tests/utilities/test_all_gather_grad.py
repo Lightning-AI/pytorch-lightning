@@ -58,6 +58,8 @@ def test_all_gather_collection(tmpdir):
             self.training_epoch_end_called = True
             losses = torch.stack([x["loss"] for x in outputs])
             gathered_loss = self.all_gather({
+                "losses_tensor_int": torch.tensor([1, 2, 3]),
+                "losses_tensor_float": torch.tensor([1., 2., 3.]),
                 "losses_np_ndarray": np.array([1, 2, 3]),
                 "losses_bool": [True, False],
                 "losses_float": [0., 1., 2.],
@@ -65,6 +67,8 @@ def test_all_gather_collection(tmpdir):
                 "losses": losses,
                 "losses_list": [losses, losses]
             })
+            assert gathered_loss["losses_tensor_int"][0].dtype == torch.int64
+            assert gathered_loss["losses_tensor_float"][0].dtype == torch.float
             assert gathered_loss["losses_np_ndarray"][0].dtype == torch.int64
             # torch.bool can't be all_gathered
             assert gathered_loss["losses_bool"][0].dtype == torch.uint8
