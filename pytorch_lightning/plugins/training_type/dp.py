@@ -54,6 +54,7 @@ class DataParallelPlugin(ParallelPlugin):
                 return t.float().mean().type(dtype_tensor)
 
             tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
+
         return tensor
 
     @property
