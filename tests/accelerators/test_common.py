@@ -37,7 +37,7 @@ def test_evaluate(tmpdir, trainer_kwargs):
     assert result[0]['val_acc'] > 0.55
 
     result = trainer.test(datamodule=dm)
-    assert result[0]['test_acc'] > 0.6
+    assert result[0]['test_acc'] > 0.55
 
     # make sure weights didn't change
     new_weights = model.layer_0.weight.clone().detach().cpu()
