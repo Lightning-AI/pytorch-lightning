@@ -443,7 +443,7 @@ class Trainer(
         # ----------------------------
         self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator.setup(self, model)
+        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
         self.setup_trainer(model)
 
         # ----------------------------
@@ -476,7 +476,8 @@ class Trainer(
         # TRAIN
         # ----------------------------
         # hook
-        self.call_hook("on_fit_start")
+        if self.state == TrainerState.FITTING:
+            self.call_hook("on_fit_start")
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
         self.pre_dispatch()
@@ -491,12 +492,11 @@ class Trainer(
         # POST-Training CLEAN UP
         # ----------------------------
         # hook
-        self.call_hook('on_fit_end')
+        if self.state == TrainerState.FITTING:
+            self.call_hook('on_fit_end')
 
-        # hook
-        self.teardown('fit')
-        if self.is_function_implemented('teardown'):
-            model.teardown('fit')
+        # teardown
+        self.call_teardown_hook(model)
 
         if self.state != TrainerState.INTERRUPTED:
             self.state = TrainerState.FINISHED
@@ -544,9 +544,8 @@ class Trainer(
         # on pretrain routine start
         ref_model = self.lightning_module
 
-        self.on_pretrain_routine_start(ref_model)
-        if self.is_function_implemented("on_pretrain_routine_start"):
-            ref_model.on_pretrain_routine_start()
+        self.on_pretrain_routine_start()
+        ref_model.on_pretrain_routine_start()
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
@@ -559,9 +558,8 @@ class Trainer(
         self.checkpoint_connector.restore_weights()
 
         # on pretrain routine end
-        self.on_pretrain_routine_end(ref_model)
-        if self.is_function_implemented("on_pretrain_routine_end"):
-            ref_model.on_pretrain_routine_end()
+        self.on_pretrain_routine_end()
+        ref_model.on_pretrain_routine_end()
 
     def run_train(self) -> None:
 
@@ -882,8 +880,6 @@ class Trainer(
             self.__evaluate_using_weights(model, ckpt_path=ckpt_path, dataloaders=test_dataloaders)
         )
 
-        self.teardown('test')
-
         assert self.state.stopped
         self.testing = False
 
@@ -931,10 +927,6 @@ class Trainer(
         # run test
         results = self.fit(model)
 
-        # teardown
-        if self.is_function_implemented('teardown', model=model):
-            model.teardown('test')
-
         return results
 
     def __evaluate_given_model(self, model, dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None):
@@ -945,10 +937,6 @@ class Trainer(
         # run test
         # sets up testing so we short circuit to eval
         results = self.fit(model)
-
-        # teardown
-        if self.is_function_implemented('teardown', model=model):
-            model.teardown('test')
 
         return results
 
@@ -1037,17 +1025,27 @@ class Trainer(
         assert self.state.stopped
         self.tuning = False
 
-    def call_setup_hook(self, model):
-        # call setup after the ddp process has connected
-        stage_name = 'test' if self.evaluating else 'fit'
+    def call_setup_hook(self, model: LightningModule) -> None:
+        assert self.state.running, f"TrainerState: {self.state}"
+        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
+        state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_setup_{stage_name}')
+            called = getattr(self.datamodule, f'has_setup_{state}')
             if not called:
-                self.datamodule.setup(stage_name)
+                self.datamodule.setup(stage=state)
 
-        self.setup(model, stage_name)
-        model.setup(stage_name)
+        self.setup(model, stage=state)
+        model.setup(stage=state)
+
+    def call_teardown_hook(self, model: LightningModule) -> None:
+        if self.state.running:
+            state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+        else:
+            state = None
+
+        self.teardown(stage=state)
+        model.teardown(stage=state)
 
     def _reset_result_and_set_hook_fx_name(self, hook_name):
         # on_before_zero_grad is called within training_step

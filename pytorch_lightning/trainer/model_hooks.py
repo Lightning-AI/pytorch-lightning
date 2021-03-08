@@ -14,6 +14,7 @@
 
 import inspect
 from abc import ABC
+from typing import Optional
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -22,13 +23,14 @@ class TrainerModelHooksMixin(ABC):
 
     lightning_module: LightningModule
 
-    def is_function_implemented(self, f_name, model=None):
+    def is_function_implemented(self, f_name: str, model: Optional[LightningModule] = None) -> bool:
+        # note: currently unused - kept as it is public
         if model is None:
             model = self.lightning_module
         f_op = getattr(model, f_name, None)
         return callable(f_op)
 
-    def has_arg(self, f_name, arg_name):
+    def has_arg(self, f_name: str, arg_name: str) -> bool:
         model = self.lightning_module
         f_op = getattr(model, f_name, None)
         return arg_name in inspect.signature(f_op).parameters
