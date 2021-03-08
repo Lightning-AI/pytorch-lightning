@@ -24,7 +24,7 @@ from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.environments.smdist_environment import SMDistributedEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _SMDIST_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
@@ -42,7 +42,7 @@ class SMDDPPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        cluster_environment: Optional[ClusterEnvironment] = None,
+        cluster_environment: Optional[SMDistributedEnvironment] = None,
         sync_batchnorm: bool = False,
         **kwargs: Union[Any, Dict[str, Any]],
     ):
