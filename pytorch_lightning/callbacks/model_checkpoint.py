@@ -132,7 +132,7 @@ class ModelCheckpoint(Callback):
         ... )
 
         # save epoch and val_loss in name, but specify the formatting yourself (e.g. to avoid problems with Tensorboard
-        # or Neptune, due to the presence of characters like = or /)
+        # or Neptune, due to the presence of characters like '=' or '/')
         # saves a file like: my/path/sample-mnist-epoch02-val_loss0.32.ckpt
         >>> checkpoint_callback = ModelCheckpoint(
         ...     monitor='val/loss',
