@@ -40,7 +40,6 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True)
-            self.log('foo2', batch_idx * (int(self.trainer.global_rank) + 1), on_step=False, on_epoch=True)
             return acc
 
         def validation_step(self, batch, batch_idx):

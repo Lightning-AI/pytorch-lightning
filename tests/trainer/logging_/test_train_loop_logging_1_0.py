@@ -770,7 +770,6 @@ def test_logging_sync_dist_true_ddp(tmpdir):
             trainer.fit(model)
     else:
         trainer.fit(model)
-    
     assert trainer.logged_metrics['foo'] == 2
     assert trainer.logged_metrics['bar'] == 2
 
