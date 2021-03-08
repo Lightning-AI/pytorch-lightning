@@ -60,8 +60,7 @@ class EvaluationLoop(object):
                 self.trainer.reset_val_dataloader(model)
             if self.trainer.sanity_checking:
                 self.trainer.num_sanity_val_batches = [
-                    min(self.trainer.num_sanity_val_steps, val_batches)
-                    for val_batches in self.trainer.num_val_batches
+                    min(self.trainer.num_sanity_val_steps, val_batches) for val_batches in self.trainer.num_val_batches
                 ]
                 max_batches = self.trainer.num_sanity_val_batches
             else:
