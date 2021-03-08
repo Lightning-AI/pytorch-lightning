@@ -34,11 +34,11 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 warning_cache = WarningCache()
 
 _WANDB_AVAILABLE = _module_available("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
 
 try:
     import wandb
     from wandb.wandb_run import Run
-    _WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
 except ImportError:
     # needed for test mocks, these tests shall be updated
     wandb, Run = None, None
