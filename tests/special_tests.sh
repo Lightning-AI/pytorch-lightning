@@ -21,9 +21,9 @@ python ${DEFAULTS} tests/plugins/test_deepspeed_plugin.py::test_deepspeed_multig
 python ${DEFAULTS} tests/plugins/test_rpc_plugin.py::test_rpc_function_calls_ddp
 # todo (tchaton) tests are hanging in CI.
 # python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_manual
-# python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_manual_amp
+python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_manual_amp
 # python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_automatic
-# python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_with_wrong_balance
+python ${DEFAULTS} tests/plugins/test_rpc_sequential_plugin.py::test_rpc_sequential_plugin_with_wrong_balance
 python ${DEFAULTS} tests/utilities/test_all_gather_grad.py::test_all_gather_collection
 python ${DEFAULTS} tests/trainer/test_trainer.py::test_trainer_predict_ddp
 python ${DEFAULTS} tests/trainer/test_trainer.py::test_trainer_predict_dp

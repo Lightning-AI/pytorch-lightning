@@ -633,12 +633,6 @@ class Result(Dict):
             meta[dest] = meta[source]
             del meta[source]
 
-    def get_non_metrics_keys(self):
-        """
-        This function is used to filter metric keys for which the value isn't a Metric
-        """
-        return [k for k, v in self.items() if not isinstance(v, Metric)]
-
 
 def choose_last(x):
     if isinstance(x, (torch.Tensor, list)):

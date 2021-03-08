@@ -54,7 +54,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,   # noqa E265
     cmdline = [
         'horovodrun', '-np',
-        str(num_processes), sys.executable, TEST_SCRIPT, '--trainer-options', TEST_SCRIPT, '--trainer-options',
+        str(num_processes), sys.executable, TEST_SCRIPT, '--trainer-options',
         shlex.quote(json.dumps(trainer_options))
     ]
     if on_gpu:

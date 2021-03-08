@@ -45,13 +45,13 @@ class LogInTwoMethods(BoringModel):
 
     def training_step(self, batch, batch_idx):
         out = super().training_step(batch, batch_idx)
-        self.log('early_stop_on', out['loss'], sync_dist=True)
+        self.log('early_stop_on', out['loss'])
         return out
 
     def validation_epoch_end(self, outputs):
         outs = torch.stack([x['x'] for x in outputs]).mean()
         self.log('epoch', self.current_epoch)
-        self.log('val_acc', outs, sync_dist=True)
+        self.log('val_acc', outs)
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
