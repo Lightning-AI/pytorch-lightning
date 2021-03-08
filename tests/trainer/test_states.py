@@ -34,6 +34,7 @@ def test_trainer_state_while_running(tmpdir, extra_params):
     trainer = Trainer(default_root_dir=tmpdir, **extra_params, auto_lr_find=True)
 
     class TestModel(BoringModel):
+
         def __init__(self, expected_state):
             super().__init__()
             self.expected_state = expected_state
@@ -78,6 +79,7 @@ def test_interrupt_state_on_keyboard_interrupt(tmpdir, extra_params):
     model = BoringModel()
 
     class InterruptCallback(Callback):
+
         def on_batch_start(self, trainer, pl_module):
             raise KeyboardInterrupt
 
