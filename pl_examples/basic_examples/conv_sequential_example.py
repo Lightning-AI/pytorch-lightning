@@ -102,8 +102,9 @@ class LitResnet(pl.LightningModule):
             nn.Linear(512, 10)
         )
         self._example_input_array = torch.randn((1, 3, 32, 32))
-        self._manual_optimization = manual_optimization
-        if self._manual_optimization:
+
+        if manual_optimization:
+            self.automatic_optimization = False
             self.training_step = self.training_step_manual
 
     def forward(self, x):
@@ -165,10 +166,6 @@ class LitResnet(pl.LightningModule):
             }
         }
 
-    @property
-    def automatic_optimization(self) -> bool:
-        return not self._manual_optimization
-
 
 #################################
 #     Instantiate Data Module   #
@@ -189,6 +186,7 @@ def instantiate_datamodule(args):
     ])
 
     cifar10_dm = pl_bolts.datamodules.CIFAR10DataModule(
+        data_dir=args.data_dir,
         batch_size=args.batch_size,
         train_transforms=train_transforms,
         test_transforms=test_transforms,
@@ -206,6 +204,7 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description="Pipe Example")
     parser.add_argument("--use_rpc_sequential", action="store_true")
+    parser.add_argument("--manual_optimization", action="store_true")
     parser = Trainer.add_argparse_args(parser)
     parser = pl_bolts.datamodules.CIFAR10DataModule.add_argparse_args(parser)
     args = parser.parse_args()
@@ -216,7 +215,7 @@ if __name__ == "__main__":
     if args.use_rpc_sequential:
         plugins = RPCSequentialPlugin()
 
-    model = LitResnet(batch_size=args.batch_size, manual_optimization=not args.automatic_optimization)
+    model = LitResnet(batch_size=args.batch_size, manual_optimization=args.manual_optimization)
 
     trainer = pl.Trainer.from_argparse_args(args, plugins=[plugins] if plugins else None)
     trainer.fit(model, cifar10_dm)

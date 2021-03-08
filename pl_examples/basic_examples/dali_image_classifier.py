@@ -23,9 +23,15 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DALI_AVAILABLE, _DATASETS_PATH, _TORCHVISION_AVAILABLE, cli_lightning_logo
+from pl_examples import (
+    _DALI_AVAILABLE,
+    _DATASETS_PATH,
+    _TORCHVISION_AVAILABLE,
+    _TORCHVISION_MNIST_AVAILABLE,
+    cli_lightning_logo,
+)
 
-if _TORCHVISION_AVAILABLE:
+if _TORCHVISION_AVAILABLE and _TORCHVISION_MNIST_AVAILABLE:
     from torchvision import transforms
     from torchvision.datasets.mnist import MNIST
 else:
