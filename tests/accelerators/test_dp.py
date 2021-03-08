@@ -126,48 +126,48 @@ def test_dp_test(tmpdir):
     assert torch.all(torch.eq(old_weights, new_weights))
 
 
+class ReductionTestModel(BoringModel):
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+    def val_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+    def test_dataloader(self):
+        return DataLoader(RandomDataset(32, 64), batch_size=2)
+
+    def add_outputs(self, output, device):
+        output.update({
+            "reduce_int": torch.tensor(device.index, dtype=torch.int, device=device),
+            "reduce_float": torch.tensor(device.index, dtype=torch.float, device=device),
+        })
+
+    def training_step(self, batch, batch_idx):
+        output = super().training_step(batch, batch_idx)
+        self.add_outputs(output, batch.device)
+        return output
+
+    def validation_step(self, batch, batch_idx):
+        output = super().validation_step(batch, batch_idx)
+        self.add_outputs(output, batch.device)
+        return output
+
+    def test_step(self, batch, batch_idx):
+        output = super().test_step(batch, batch_idx)
+        self.add_outputs(output, batch.device)
+        return output
+
+    def training_epoch_end(self, outputs):
+        assert outputs[0]["loss"].shape == torch.Size([])
+        assert outputs[0]["reduce_int"].item() == 0  # mean([0, 1]) = 0
+        assert outputs[0]["reduce_float"].item() == 0.5  # mean([0., 1.]) = 0.5
+
+
 @RunIf(min_gpus=2)
 def test_dp_training_step_dict(tmpdir):
     """ This test verifies that dp properly reduces dictionaries """
-
-    class TestModel(BoringModel):
-
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=2)
-
-        def val_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=2)
-
-        def test_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), batch_size=2)
-
-        def add_outputs(self, output, device):
-            output.update({
-                "reduce_int": torch.tensor(device.index, dtype=torch.int, device=device),
-                "reduce_float": torch.tensor(device.index, dtype=torch.float, device=device),
-            })
-
-        def training_step(self, batch, batch_idx):
-            output = super().training_step(batch, batch_idx)
-            self.add_outputs(output, batch.device)
-            return output
-
-        def validation_step(self, batch, batch_idx):
-            output = super().validation_step(batch, batch_idx)
-            self.add_outputs(output, batch.device)
-            return output
-
-        def test_step(self, batch, batch_idx):
-            output = super().test_step(batch, batch_idx)
-            self.add_outputs(output, batch.device)
-            return output
-
-        def training_epoch_end(self, outputs):
-            assert outputs[0]["loss"].shape == torch.Size([])
-            assert outputs[0]["reduce_int"].item() == 0  # mean([0, 1]) = 0
-            assert outputs[0]["reduce_float"].item() == 0.5  # mean([0., 1.]) = 0.5
-
-    model = TestModel()
+    model = ReductionTestModel()
     model.training_step_end = None
     model.validation_step_end = None
     model.test_step_end = None
