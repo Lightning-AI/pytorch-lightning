@@ -234,7 +234,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._model = model
 
     def _close_logger(self, trainer) -> None:
-        if hasattr(trainer, "logger"):
+        if trainer.logger is not None:
             trainer.logger.finalize("success")
 
     @property
