@@ -123,7 +123,7 @@ class SMDDPPlugin(ParallelPlugin):
 
         self.node_rank = self.cluster_environment.node_rank()
         self.local_rank = self.cluster_environment.local_rank()
-        self.global_rank = dist.get_rank()
+        self.global_rank = self.cluster_environment.global_rank()
         self.world_size = self.cluster_environment.world_size()
 
         rank_zero_only.rank = self.global_rank

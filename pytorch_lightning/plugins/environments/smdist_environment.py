@@ -51,4 +51,9 @@ class SMDistributedEnvironment(ClusterEnvironment):
         return dist.get_local_rank()
 
     def node_rank(self) -> int:
+        hosts = os.environ['SM_HOSTS']
+        current_host = os.environ['SM_CURRENT_HOST']
+        return hosts.index(current_host) if current_host in hosts else 0
+
+    def global_rank(self) -> int:
         return dist.get_rank()
