@@ -101,9 +101,9 @@ class HorovodPlugin(ParallelPlugin):
         # Make sure all workers have finished training before returning to the user
         hvd.join()
 
-    def start_testing(self, trainer):
+    def start_evaluating(self, trainer):
         with ExitStack():
-            self._results = trainer.run_test()
+            self._results = trainer.run_evaluate()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
