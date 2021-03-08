@@ -5,7 +5,6 @@ import torch
 from torch.nn import DataParallel
 
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.base import warning_cache
 from pytorch_lightning.overrides.data_parallel import (
     LightningParallelModule,
     python_scalar_to_tensor,
@@ -20,12 +19,14 @@ from tests.helpers.runif import RunIf
     LightningParallelModule,
     LightningDistributedModule,
 ])
-@pytest.mark.parametrize("stage", [
-    ("training", "training_step"),
-    ("testing", "test_step"),
-    ("validating", "validation_step"),
-    ("predicting", "predict"),
-])
+@pytest.mark.parametrize(
+    "stage", [
+        ("training", "training_step"),
+        ("testing", "test_step"),
+        ("validating", "validation_step"),
+        ("predicting", "predict"),
+    ]
+)
 def test_lightning_wrapper_module_methods(wrapper_class, stage):
     """ Test that the LightningWrapper redirects .forward() to the LightningModule methods. """
     pl_module = MagicMock()
@@ -36,61 +37,12 @@ def test_lightning_wrapper_module_methods(wrapper_class, stage):
 
     prop, step = stage
     pl_module.trainer.sanity_checking = False
+
     for p in ("training", "testing", "validating", "predicting"):
         setattr(pl_module.trainer, p, p == prop)
 
     wrapped_module(batch, batch_idx)
-
     getattr(pl_module, step).assert_called_with(batch, batch_idx)
-
-
-@pytest.mark.parametrize("wrapper_class", [
-    LightningParallelModule,
-    LightningDistributedModule,
-])
-@pytest.mark.parametrize("stage", [
-    ("training", "training_step"),
-    ("testing", "test_step"),
-    ("validating", "validation_step"),
-])
-def test_lightning_wrapper_module_warn_none_output(wrapper_class, stage):
-    """ Test that the LightningWrapper module warns about forgotten return statement. """
-    warning_cache.clear()
-    pl_module = MagicMock()
-
-    prop, step = stage
-    pl_module.trainer.sanity_checking = False
-    for p in ("training", "testing", "validating", "predicting"):
-        setattr(pl_module.trainer, p, p == prop)
-
-    wrapped_module = wrapper_class(pl_module)
-
-    getattr(pl_module, step).return_value = None
-
-    with pytest.warns(UserWarning, match=f"Your {step} returned None"):
-        wrapped_module()
-
-
-@pytest.mark.parametrize("wrapper_class", [
-    LightningParallelModule,
-    LightningDistributedModule,
-])
-def test_lightning_wrapper_module_no_warn(wrapper_class):
-    warning_cache.clear()
-    pl_module = MagicMock()
-
-    pl_module.trainer.sanity_checking = False
-    pl_module.trainer.training = False
-    pl_module.trainer.testing = False
-    pl_module.trainer.validating = False
-    pl_module.trainer.predicting = False
-
-    wrapped_module = wrapper_class(pl_module)
-
-    with pytest.warns(None) as record:
-        wrapped_module()
-        pl_module.assert_called()
-        assert not record
 
 
 @pytest.mark.parametrize(

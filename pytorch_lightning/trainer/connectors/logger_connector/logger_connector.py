@@ -297,9 +297,7 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state != TrainerState.FITTING
-            and self.trainer.evaluating
-            and self.trainer.is_global_zero
+            self.trainer.state != TrainerState.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate
         ):
             print('-' * 80)
