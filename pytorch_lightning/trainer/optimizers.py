@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import List, Optional, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 from torch import optim
@@ -27,7 +27,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class TrainerOptimizersMixin(ABC):
 
+    _lightning_optimizers: Optional[List[LightningOptimizer]]
+
     def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
+        self._lightning_optimizers = None
         optim_conf = model.configure_optimizers()
         if optim_conf is None:
             rank_zero_warn(
