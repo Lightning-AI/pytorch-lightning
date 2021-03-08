@@ -115,9 +115,10 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
         def training_epoch_end(self, outputs) -> None:
             data = str(self.global_rank)
-            out = self.trainer.training_type_plugin.broadcast(str(data))
-            assert data == str(self.global_rank)
-            assert out == "0"
+            obj = [[data], (data, ), set(data)]
+            out = self.trainer.training_type_plugin.broadcast(obj)
+            assert obj == [[str(self.global_rank)], (str(self.global_rank), ), set(str(self.global_rank))]
+            assert out == [['0'], ('0', ), set('0')]
 
     model = TestModel()
     trainer = Trainer(

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import io
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
@@ -116,13 +115,3 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
                 yield None
         else:
             yield None
-
-    def broadcast(self, obj: object, src: int) -> object:
-        buffer = io.BytesIO()
-        torch.save(obj, buffer)
-        data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data).to(self.root_device, dtype=torch.float)
-        data = self.all_gather(data_tensor)
-        buffer = io.BytesIO(data.cpu().byte().numpy())
-        obj = torch.load(buffer)
-        return obj
