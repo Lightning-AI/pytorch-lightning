@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 
 import numpy as np
-import torch
-
-from pytorch_lightning.utilities import _TORCH_LOWER_EQUAL_1_4, _TORCH_QUANTIZE_AVAILABLE
 
 _TEST_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_TEST_ROOT)
@@ -35,12 +33,4 @@ RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 if not os.path.isdir(_TEMP_PATH):
     os.mkdir(_TEMP_PATH)
 
-_MISS_QUANT_DEFAULT = 'fbgemm' not in torch.backends.quantized.supported_engines
-
-_SKIPIF_ARGS_PT_LE_1_4 = dict(condition=_TORCH_LOWER_EQUAL_1_4, reason="test pytorch > 1.4")
-_SKIPIF_ARGS_NO_GPU = dict(condition=not torch.cuda.is_available(), reason="test requires single-GPU machine")
-_SKIPIF_ARGS_NO_GPUS = dict(condition=torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-_SKIPIF_ARGS_NO_PT_QUANT = dict(
-    condition=not _TORCH_QUANTIZE_AVAILABLE or _MISS_QUANT_DEFAULT,
-    reason="PyTorch quantization is needed for this test"
-)
+logging.basicConfig(level=logging.ERROR)

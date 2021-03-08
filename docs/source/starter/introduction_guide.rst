@@ -240,7 +240,7 @@ In this case, it's better to group the full definition of a dataset into a `Data
             tokenize()
             build_vocab()
 
-        def setup(self):
+        def setup(self, stage: Optional[str] = None):
             # called on every GPU
             vocab = load_vocab()
             self.vocab_size = len(vocab)
@@ -310,8 +310,8 @@ An alternative to using a DataModule is to defer initialization of the models mo
             download_data()
             tokenize()
 
-        def setup(self, step):
-            # step is either 'fit' or 'test' 90% of the time not relevant
+        def setup(self, stage: Optional[str] = None):
+            # step is either 'fit', 'validate', 'test', or 'predict'. 90% of the time not relevant
             data = load_data()
             num_classes = data.classes
             self.l1 = nn.Linear(..., num_classes)
@@ -361,9 +361,9 @@ The training step is what happens inside the training loop.
             # TRAINING STEP
             # ....
             # TRAINING STEP
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
 In the case of MNIST, we do the following
 
@@ -377,9 +377,9 @@ In the case of MNIST, we do the following
             loss = F.nll_loss(logits, y)
             # ------ TRAINING STEP END ------
 
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
 In Lightning, everything that is in the training step gets organized under the
 :func:`~pytorch_lightning.core.LightningModule.training_step` function in the LightningModule.
@@ -598,7 +598,7 @@ In this method we do all the preparation we need to do once (instead of on every
             MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
             MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
-        def setup(self, stage):
+        def setup(self, stage: Optional[str] = None):
             # transform
             transform=transforms.Compose([transforms.ToTensor()])
             mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)

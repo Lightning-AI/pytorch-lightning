@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
     from torch.cuda.amp import GradScaler
 
     from pytorch_lightning.trainer.trainer import Trainer
-
 
 _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 
@@ -81,8 +81,8 @@ class Accelerator(object):
     def start_training(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
 
-    def start_testing(self, trainer: 'Trainer') -> None:
-        self.training_type_plugin.start_testing(trainer)
+    def start_evaluating(self, trainer: 'Trainer') -> None:
+        self.training_type_plugin.start_evaluating(trainer)
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_predicting(trainer)
@@ -224,9 +224,7 @@ class Accelerator(object):
         with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
             return self.training_type_plugin.predict(*args)
 
-    def training_step_end(
-        self, output: _STEP_OUTPUT_TYPE
-    ) -> _STEP_OUTPUT_TYPE:
+    def training_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the training step
 
         Args:
@@ -234,9 +232,7 @@ class Accelerator(object):
         """
         return self.training_type_plugin.training_step_end(output)
 
-    def test_step_end(
-        self, output: _STEP_OUTPUT_TYPE
-    ) -> _STEP_OUTPUT_TYPE:
+    def test_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the test step
 
         Args:
@@ -244,9 +240,7 @@ class Accelerator(object):
         """
         return self.training_type_plugin.test_step_end(output)
 
-    def validation_step_end(
-        self, output: _STEP_OUTPUT_TYPE
-    ) -> _STEP_OUTPUT_TYPE:
+    def validation_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the validation step
 
         Args:
@@ -330,7 +324,7 @@ class Accelerator(object):
             trainer: the Trainer, these optimizers should be connected to
             model: the model to be optimized by the created optimizers
         """
-        if trainer.testing:
+        if trainer.state not in (TrainerState.FITTING, TrainerState.TUNING):
             return
         optimizers, lr_schedulers, optimizer_frequencies = self.training_type_plugin.init_optimizers(
             trainer=trainer, model=self.lightning_module
@@ -386,7 +380,7 @@ class Accelerator(object):
         return getattr(self.training_type_plugin, 'optimizer_state', lambda x: x.state_dict())(optimizer)
 
     def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
-        return checkpoint
+        return self.training_type_plugin.on_save(checkpoint)
 
     def barrier(self, name: Optional[str] = None) -> None:
         self.training_type_plugin.barrier(name=name)
@@ -400,9 +394,7 @@ class Accelerator(object):
         """
         return self.training_type_plugin.broadcast(obj, src)
 
-    def all_gather(
-        self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
-    ) -> torch.Tensor:
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """
         Function to gather a tensor from several distributed processes.
 
@@ -426,7 +418,7 @@ class Accelerator(object):
     @property
     def results(self) -> Any:
         """
-        The results of the last training/testing run will be cached within the training type plugin.
+        The results of the last run will be cached within the training type plugin.
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
         return self.training_type_plugin.results
