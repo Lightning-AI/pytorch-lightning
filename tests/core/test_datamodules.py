@@ -129,6 +129,10 @@ def test_data_hooks_called(tmpdir):
     assert not dm.has_setup_test
     assert not dm.has_setup_validate
     assert not dm.has_setup_predict
+    assert not dm.has_teardown_fit
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_predict
 
     dm.prepare_data()
     assert dm.has_prepared_data
@@ -136,6 +140,10 @@ def test_data_hooks_called(tmpdir):
     assert not dm.has_setup_test
     assert not dm.has_setup_validate
     assert not dm.has_setup_predict
+    assert not dm.has_teardown_fit
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_predict
 
     dm.setup()
     assert dm.has_prepared_data
@@ -143,48 +151,83 @@ def test_data_hooks_called(tmpdir):
     assert dm.has_setup_test
     assert dm.has_setup_validate
     assert not dm.has_setup_predict
+    assert not dm.has_teardown_fit
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_predict
+
+    dm.teardown()
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_test
+    assert dm.has_setup_validate
+    assert not dm.has_setup_predict
+    assert dm.has_teardown_fit
+    assert dm.has_teardown_test
+    assert dm.has_teardown_validate
+    assert not dm.has_teardown_predict
 
 
 @pytest.mark.parametrize("use_kwarg", (False, True))
 def test_data_hooks_called_verbose(tmpdir, use_kwarg):
     dm = BoringDataModule()
-    assert not dm.has_prepared_data
-    assert not dm.has_setup_fit
-    assert not dm.has_setup_test
-
     dm.prepare_data()
-    assert dm.has_prepared_data
     assert not dm.has_setup_fit
     assert not dm.has_setup_test
+    assert not dm.has_setup_validate
     assert not dm.has_setup_predict
+    assert not dm.has_teardown_fit
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_predict
 
     dm.setup(stage='fit') if use_kwarg else dm.setup('fit')
-    assert dm.has_prepared_data
     assert dm.has_setup_fit
     assert not dm.has_setup_validate
     assert not dm.has_setup_test
     assert not dm.has_setup_predict
 
     dm.setup(stage='validate') if use_kwarg else dm.setup('validate')
-    assert dm.has_prepared_data
     assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert not dm.has_setup_test
     assert not dm.has_setup_predict
 
     dm.setup(stage='test') if use_kwarg else dm.setup('test')
-    assert dm.has_prepared_data
     assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert dm.has_setup_test
     assert not dm.has_setup_predict
 
     dm.setup(stage='predict') if use_kwarg else dm.setup('predict')
-    assert dm.has_prepared_data
     assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert dm.has_setup_test
     assert dm.has_setup_predict
+
+    dm.teardown(stage='fit') if use_kwarg else dm.teardown('fit')
+    assert dm.has_teardown_fit
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_predict
+
+    dm.teardown(stage='validate') if use_kwarg else dm.teardown('validate')
+    assert dm.has_teardown_fit
+    assert dm.has_teardown_validate
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_predict
+
+    dm.teardown(stage='test') if use_kwarg else dm.teardown('test')
+    assert dm.has_teardown_fit
+    assert dm.has_teardown_validate
+    assert dm.has_teardown_test
+    assert not dm.has_teardown_predict
+
+    dm.teardown(stage='predict') if use_kwarg else dm.teardown('predict')
+    assert dm.has_teardown_fit
+    assert dm.has_teardown_validate
+    assert dm.has_teardown_test
+    assert dm.has_teardown_predict
 
 
 def test_dm_add_argparse_args(tmpdir):

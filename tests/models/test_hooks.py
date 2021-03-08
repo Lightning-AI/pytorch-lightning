@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 from unittest import mock
 from unittest.mock import PropertyMock
 
@@ -20,7 +19,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from tests.helpers import BoringModel, RandomDataset
+from tests.helpers import BoringModel, RandomDataset, BoringDataModule
 from tests.helpers.runif import RunIf
 
 
@@ -260,7 +259,7 @@ def test_on_train_batch_start_hook(max_epochs, batch_idx_):
 
 
 def test_trainer_model_hook_system(tmpdir):
-    """Test the hooks system."""
+    """Test the LightningModule hook system."""
 
     class HookedModel(BoringModel):
 
@@ -269,148 +268,150 @@ def test_trainer_model_hook_system(tmpdir):
             self.called = []
 
         def on_after_backward(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_after_backward")
             super().on_after_backward()
 
-        def on_before_zero_grad(self, optimizer):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_before_zero_grad(optimizer)
+        def on_before_zero_grad(self, *args, **kwargs):
+            self.called.append("on_before_zero_grad")
+            super().on_before_zero_grad(*args, **kwargs)
 
         def on_epoch_start(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_epoch_start")
             super().on_epoch_start()
 
         def on_epoch_end(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_epoch_end")
             super().on_epoch_end()
 
         def on_fit_start(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_fit_start")
             super().on_fit_start()
 
         def on_fit_end(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_fit_end")
             super().on_fit_end()
 
-        def on_hpc_load(self, checkpoint):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_hpc_load(checkpoint)
+        def on_hpc_load(self, *args, **kwargs):
+            self.called.append("on_hpc_load")
+            super().on_hpc_load(*args, **kwargs)
 
-        def on_hpc_save(self, checkpoint):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_hpc_save(checkpoint)
+        def on_hpc_save(self, *args, **kwargs):
+            self.called.append("on_hpc_save")
+            super().on_hpc_save(*args, **kwargs)
 
-        def on_load_checkpoint(self, checkpoint):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_load_checkpoint(checkpoint)
+        def on_load_checkpoint(self, *args, **kwargs):
+            self.called.append("on_load_checkpoint")
+            super().on_load_checkpoint(*args, **kwargs)
 
-        def on_save_checkpoint(self, checkpoint):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_save_checkpoint(checkpoint)
+        def on_save_checkpoint(self, *args, **kwargs):
+            self.called.append("on_save_checkpoint")
+            super().on_save_checkpoint(*args, **kwargs)
 
         def on_pretrain_routine_start(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_pretrain_routine_start")
             super().on_pretrain_routine_start()
 
         def on_pretrain_routine_end(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_pretrain_routine_end")
             super().on_pretrain_routine_end()
 
         def on_train_start(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_train_start")
             super().on_train_start()
 
         def on_train_end(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_train_end")
             super().on_train_end()
 
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_train_batch_start(batch, batch_idx, dataloader_idx)
+        def on_train_batch_start(self, *args, **kwargs):
+            self.called.append("on_train_batch_start")
+            super().on_train_batch_start(*args, **kwargs)
 
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_train_batch_end(outputs, batch, batch_idx, dataloader_idx)
+        def on_train_batch_end(self, *args, **kwargs):
+            self.called.append("on_train_batch_end")
+            super().on_train_batch_end(*args, **kwargs)
 
         def on_train_epoch_start(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_train_epoch_start")
             super().on_train_epoch_start()
 
         def on_train_epoch_end(self, outputs):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_train_epoch_end")
             super().on_train_epoch_end(outputs)
 
         def on_validation_start(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_validation_start")
             super().on_validation_start()
 
         def on_validation_end(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_validation_end")
             super().on_validation_end()
 
-        def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_validation_batch_start(batch, batch_idx, dataloader_idx)
+        def on_validation_batch_start(self, *args, **kwargs):
+            self.called.append("on_validation_batch_start")
+            super().on_validation_batch_start(*args, **kwargs)
 
-        def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_validation_batch_end(outputs, batch, batch_idx, dataloader_idx)
+        def on_validation_batch_end(self, *args, **kwargs):
+            self.called.append("on_validation_batch_end")
+            super().on_validation_batch_end(*args, **kwargs)
 
         def on_validation_epoch_start(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_validation_epoch_start")
             super().on_validation_epoch_start()
 
         def on_validation_epoch_end(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_validation_epoch_end")
             super().on_validation_epoch_end()
 
         def on_test_start(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_test_start")
             super().on_test_start()
 
-        def on_test_batch_start(self, batch, batch_idx, dataloader_idx):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_test_batch_start(batch, batch_idx, dataloader_idx)
+        def on_test_batch_start(self, *args, **kwargs):
+            self.called.append("on_test_batch_start")
+            super().on_test_batch_start(*args, **kwargs)
 
-        def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_test_batch_end(outputs, batch, batch_idx, dataloader_idx)
+        def on_test_batch_end(self, *args, **kwargs):
+            self.called.append("on_test_batch_end")
+            super().on_test_batch_end(*args, **kwargs)
 
         def on_test_epoch_start(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_test_epoch_start")
             super().on_test_epoch_start()
 
         def on_test_epoch_end(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_test_epoch_end")
             super().on_test_epoch_end()
 
         def on_validation_model_eval(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_validation_model_eval")
             super().on_validation_model_eval()
 
         def on_validation_model_train(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_validation_model_train")
             super().on_validation_model_train()
 
         def on_test_model_eval(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_test_model_eval")
             super().on_test_model_eval()
 
         def on_test_model_train(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_test_model_train")
             super().on_test_model_train()
 
         def on_test_end(self):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append("on_test_end")
             super().on_test_end()
 
+        def setup(self, stage=None):
+            self.called.append(f"setup_{stage}")
+            super().setup(stage=stage)
+
         def teardown(self, stage=None):
-            self.called.append(inspect.currentframe().f_code.co_name)
+            self.called.append(f"teardown_{stage}")
             super().teardown(stage)
 
     model = HookedModel()
-
-    assert model.called == []
 
     # fit model
     trainer = Trainer(
@@ -427,6 +428,7 @@ def test_trainer_model_hook_system(tmpdir):
 
     trainer.fit(model)
     expected = [
+        'setup_fit',
         'on_fit_start',
         'on_pretrain_routine_start',
         'on_pretrain_routine_end',
@@ -464,15 +466,15 @@ def test_trainer_model_hook_system(tmpdir):
         'on_validation_model_train',
         'on_train_end',
         'on_fit_end',
-        'teardown',
+        'teardown_fit',
     ]
-
     assert model.called == expected
 
     model = HookedModel()
-
     trainer.test(model, verbose=False)
+
     expected = [
+        'setup_test',
         'on_test_model_eval',
         'on_test_start',
         'on_test_epoch_start',
@@ -482,6 +484,103 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_end',
         'on_test_end',
         'on_test_model_train',
-        'teardown',
+        'teardown_test',
     ]
     assert model.called == expected
+
+
+def test_trainer_datamodule_hook_system(tmpdir):
+    """Test the LightningDataModule hook system."""
+
+    class HookedDataModule(BoringDataModule):
+        def __init__(self):
+            super().__init__()
+            self.called = []
+
+        def prepare_data(self):
+            self.called.append("prepare_data")
+            super().prepare_data()
+
+        def setup(self, stage=None):
+            self.called.append(f"setup_{stage}")
+            super().setup(stage=stage)
+
+        def teardown(self, stage=None):
+            self.called.append(f"teardown_{stage}")
+            super().teardown(stage=stage)
+
+        def train_dataloader(self):
+            self.called.append("train_dataloader")
+            return super().train_dataloader()
+
+        def test_dataloader(self):
+            self.called.append("test_dataloader")
+            return super().test_dataloader()
+
+        def val_dataloader(self):
+            self.called.append("val_dataloader")
+            return super().val_dataloader()
+
+        def predict_dataloader(self):
+            self.called.append("predict_dataloader")
+
+        def transfer_batch_to_device(self, *args, **kwargs):
+            self.called.append("transfer_batch_to_device")
+            return super().transfer_batch_to_device(*args, **kwargs)
+
+        def on_before_batch_transfer(self, *args, **kwargs):
+            self.called.append("on_before_batch_transfer")
+            return super().on_before_batch_transfer(*args, **kwargs)
+
+        def on_after_batch_transfer(self, *args, **kwargs):
+            self.called.append("on_after_batch_transfer")
+            return super().on_after_batch_transfer(*args, **kwargs)
+
+    model = BoringModel()
+    dm = HookedDataModule()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=1,
+        limit_train_batches=2,
+        limit_test_batches=1,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+    trainer.fit(model, datamodule=dm)
+
+    expected = [
+        'prepare_data',
+        'setup_fit',
+        'val_dataloader',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
+        'train_dataloader',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
+        'teardown_fit'
+    ]
+    assert dm.called == expected
+
+    dm = HookedDataModule()
+    trainer.test(model, datamodule=dm, verbose=False)
+
+    expected = [
+        'prepare_data',
+        'setup_test',
+        'test_dataloader',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
+        'teardown_test'
+    ]
+    assert dm.called == expected
