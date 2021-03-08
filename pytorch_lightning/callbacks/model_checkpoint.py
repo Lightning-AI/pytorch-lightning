@@ -534,7 +534,7 @@ class ModelCheckpoint(Callback):
         step = monitor_candidates.get("step")
 
         if self.check_monitor_top_k(trainer, current):
-            self._update_best_and_save(current, epoch, step, trainer, pl_module, metrics)
+            self._update_best_and_save(current, epoch, step, trainer, monitor_candidates)
         elif self.monitor is not None and self.verbose:
             rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
@@ -551,9 +551,7 @@ class ModelCheckpoint(Callback):
         self._save_model(trainer, filepath)
 
         if (
-            self.save_top_k is None
-            and self.best_model_path
-            and self.best_model_path != filepath
+            self.save_top_k is None and self.best_model_path and self.best_model_path != filepath
             and trainer.is_global_zero
         ):
             self._del_model(self.best_model_path)
