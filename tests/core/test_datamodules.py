@@ -19,7 +19,6 @@ from unittest.mock import PropertyMock
 
 import pytest
 import torch
-import torch.nn.functional as F
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -29,7 +28,7 @@ from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
-from tests.helpers.utils import reset_seed, set_random_master_port
+from tests.helpers.utils import reset_seed
 
 
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
