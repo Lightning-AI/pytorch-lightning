@@ -25,7 +25,7 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.smdist_environment import SMDistributedEnvironment
-from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _SMDIST_AVAILABLE
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -36,7 +36,7 @@ if _SMDIST_AVAILABLE:
     from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel
 
 
-class SMDDPPlugin(ParallelPlugin):
+class SMDDPPlugin(DDPPlugin):
 
     distributed_backend = "smddp"
 
@@ -52,71 +52,17 @@ class SMDDPPlugin(ParallelPlugin):
         # While running smdistributed, all the gpus in the instance are considered
         parallel_device_ids = list(range(torch.cuda.device_count()))
         self.parallel_devices = [torch.device("cuda", i) for i in parallel_device_ids]
+        num_nodes = len(os.environ['SM_HOSTS'])
 
-        super().__init__(parallel_devices=self.parallel_devices, cluster_environment=cluster_environment)
+        super().__init__(
+            parallel_devices=self.parallel_devices,
+            num_nodes=num_nodes,
+            cluster_environment=cluster_environment,
+            sync_batchnorm=sync_batchnorm
+        )
 
-        self.sync_batchnorm = sync_batchnorm
+        self._ddp_kwargs = kwargs
         self.dist = SMLightningDistributed()
-        self.num_nodes = len(os.environ['SM_HOSTS'])
-        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else self.parallel_devices
-
-    @property
-    def root_device(self):
-        return self.parallel_devices[self.local_rank]
-
-    @property
-    def distributed_sampler_kwargs(self):
-        distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
-        return distributed_sampler_kwargs
-
-    def training_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def validation_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def test_step(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def predict(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
-    def post_training_step(self):
-        if not self.lightning_module.automatic_optimization:
-            self.model.require_backward_grad_sync = True
-
-    def barrier(self, *args, **kwargs) -> None:
-        if dist.is_initialized():
-            dist.barrier()
-
-    def broadcast(self, obj: object, src: int = 0) -> object:
-        return self.dist.broadcast(obj)
-
-    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
-        """Run before precision plugin executes backward"""
-        if not self.lightning_module.automatic_optimization and self.model.require_backward_grad_sync:
-            prepare_for_backward(self.model, closure_loss)
-
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
-        """
-        Reduces a tensor from several distributed processes to one aggregated tensor.
-        As this plugin only operates with a single device, the reduction is simply the identity.
-
-        Args:
-            tensor: the tensor to sync and reduce
-            *args: ignored
-            **kwargs: ignored
-
-        Return:
-            the unmodified input as reduction is not needed for single process operation
-        """
-        if isinstance(tensor, torch.Tensor):
-            tensor = self.sync_ddp_if_available(tensor, group, reduce_op=(reduce_op or "mean"))
-        return tensor
-
-    @property
-    def lightning_module(self):
-        return self.unwrap_lightning_module()
 
     def setup(self, model):
         self._model = model
@@ -128,6 +74,20 @@ class SMDDPPlugin(ParallelPlugin):
 
         rank_zero_only.rank = self.global_rank
         self.model_to_device()
+
+    def configure_ddp(self):
+        self.pre_configure_ddp()
+        self._model = DistributedDataParallel(
+            LightningDistributedModule(self.model),
+            device_ids=[dist.get_local_rank()],
+            **self._ddp_kwargs,
+        )
+
+    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
+
+        if not dist.is_initialized():
+            log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+            dist.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def pre_dispatch(self):
         # TODO: check if needed
@@ -167,23 +127,6 @@ class SMDDPPlugin(ParallelPlugin):
         self.configure_ddp()
 
         self.barrier()
-
-    def model_to_device(self):
-        if self.on_gpu:
-            torch.cuda.set_device(self.root_device)
-        self.model.to(self.root_device)
-
-    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
-
-        if not dist.is_initialized():
-            log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-            dist.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
-
-    def configure_ddp(self):
-        self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model),
-            device_ids=[dist.get_local_rank()],
-        )
 
     def sync_ddp_if_available(
         self,
@@ -243,6 +186,10 @@ class SMDDPPlugin(ParallelPlugin):
 
         return result
 
+    @property
+    def lightning_module(self):
+        return self.unwrap_lightning_module()
+
     def unwrap_lightning_module(self) -> LightningModule:
         model = self._model
         if isinstance(model, (DistributedDataParallel)):
@@ -250,6 +197,30 @@ class SMDDPPlugin(ParallelPlugin):
         if isinstance(model, _LightningModuleWrapperBase):
             model = model.module
         return model
+
+    def barrier(self, *args, **kwargs) -> None:
+        if dist.is_initialized():
+            dist.barrier()
+
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        return self.dist.broadcast(obj)
+
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
+        """
+        Reduces a tensor from several distributed processes to one aggregated tensor.
+        As this plugin only operates with a single device, the reduction is simply the identity.
+
+        Args:
+            tensor: the tensor to sync and reduce
+            *args: ignored
+            **kwargs: ignored
+
+        Return:
+            the unmodified input as reduction is not needed for single process operation
+        """
+        if isinstance(tensor, torch.Tensor):
+            tensor = self.sync_ddp_if_available(tensor, group, reduce_op=(reduce_op or "mean"))
+        return tensor
 
 
 class SMLightningDistributed(LightningDistributed):
