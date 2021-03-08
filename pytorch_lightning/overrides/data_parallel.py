@@ -89,9 +89,16 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         return output
 
     def update_replica_device_attributes(self, inputs: Any) -> None:
-        replica_device = next(self.parameters()).device
+        first_parameter = next(self.parameters(), None)
+        if first_parameter is None:
+            rank_zero_warn(
+                "Could not determine on which device the inputs are."
+                "When using DataParallel (accelerator='dp'), be aware that in case you are using self.device"
+                "in your code it will reference only the root device."
+            )
+
         # by calling .to() we force the update to the self.device property
-        self.module.to(device=replica_device)
+        self.module.to(device=first_parameter.device)
 
         # def find_tensor_with_device(tensor: torch.Tensor):
         #     nonlocal replica_device
