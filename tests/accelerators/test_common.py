@@ -34,11 +34,11 @@ def test_evaluate(tmpdir, trainer_kwargs):
     old_weights = model.layer_0.weight.clone().detach().cpu()
 
     result = trainer.validate(datamodule=dm)
-    assert result[0]['val_acc'] > 0.7
+    assert result[0]['val_acc'] > 0.55
 
     result = trainer.test(datamodule=dm)
     assert result[0]['test_acc'] > 0.6
 
     # make sure weights didn't change
     new_weights = model.layer_0.weight.clone().detach().cpu()
-    assert torch.testing.assert_allclose(old_weights, new_weights)
+    torch.testing.assert_allclose(old_weights, new_weights)
