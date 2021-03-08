@@ -30,6 +30,12 @@ class DataConnector(object):
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
 
+        if not isinstance(check_val_every_n_epoch, int):
+            raise MisconfigurationException(
+                f"check_val_every_n_epoch={check_val_every_n_epoch} is not a"
+                " valid configuration. It should be an integer."
+            )
+
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
         self.trainer.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
         self.trainer._is_data_prepared = False
