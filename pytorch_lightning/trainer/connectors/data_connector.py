@@ -34,8 +34,7 @@ class DataConnector(object):
 
         if not isinstance(check_val_every_n_epoch, int):
             raise MisconfigurationException(
-                f"check_val_every_n_epoch={check_val_every_n_epoch} is not a"
-                " valid configuration. It should be an integer."
+                f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
