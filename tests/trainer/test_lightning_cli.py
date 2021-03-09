@@ -22,6 +22,7 @@ import pytest
 import yaml
 
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import LightningArgumentParser, LightningCLI, SaveConfigCallback
 from tests.helpers import BoringDataModule, BoringModel
@@ -258,7 +259,11 @@ def test_lightning_cli_args(tmpdir):
     ]
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
-        cli = LightningCLI(BoringModel, BoringDataModule)
+        cli = LightningCLI(
+            BoringModel,
+            BoringDataModule,
+            trainer_defaults={'callbacks': [LearningRateMonitor()]}
+        )
 
     assert cli.fit_result == 1
     config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml'
@@ -291,7 +296,13 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
         f.write(yaml.dump(config))
 
     with mock.patch('sys.argv', ['any.py', '--config', str(config_path)]):
-        cli = LightningCLI(BoringModel, BoringDataModule, subclass_mode_model=True, subclass_mode_data=True)
+        cli = LightningCLI(
+            BoringModel,
+            BoringDataModule,
+            subclass_mode_model=True,
+            subclass_mode_data=True,
+            trainer_defaults={'callbacks': LearningRateMonitor()}
+        )
 
     assert cli.fit_result == 1
     config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml'

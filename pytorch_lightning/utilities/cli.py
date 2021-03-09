@@ -224,7 +224,7 @@ class LightningCLI:
         if self.config_init['trainer'].get('callbacks') is None:
             self.config_init['trainer']['callbacks'] = []
         if 'callbacks' in self.trainer_defaults:
-            if isinstance(self.trainer_defaults['callbacks']):
+            if isinstance(self.trainer_defaults['callbacks'], list):
                 self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
