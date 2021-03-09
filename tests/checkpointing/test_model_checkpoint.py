@@ -671,19 +671,24 @@ def test_default_checkpoint_behavior(tmpdir):
 @pytest.mark.parametrize('max_epochs', [1, 2])
 @pytest.mark.parametrize('should_validate', [True, False])
 @pytest.mark.parametrize('save_last', [True, False])
-def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_validate, save_last):
+@pytest.mark.parametrize('verbose', [True, False])
+def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_validate, save_last, verbose):
     """Tests 'Saving latest checkpoint...' log"""
     model = LogInTwoMethods()
     if not should_validate:
         model.validation_step = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last)],
+        callbacks=[
+            ModelCheckpoint(
+                monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last, verbose=verbose
+            )
+        ],
         max_epochs=max_epochs,
     )
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
-    assert caplog.messages.count('Saving latest checkpoint...') == save_last
+    assert caplog.messages.count('Saving latest checkpoint...') == (verbose and save_last)
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
