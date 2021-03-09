@@ -30,6 +30,9 @@ from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -234,16 +237,12 @@ class TrainerDataLoadingMixin(ABC):
                 ' `num_training_batches` to use.'
             )
 
-        # determine when to check validation
-        # if int passed in, val checks that often
-        # otherwise, it checks in [0, 1.0] % range of a training epoch
         if isinstance(self.val_check_interval, int):
             self.val_check_batch = self.val_check_interval
             if self.val_check_batch > self.num_training_batches:
-                raise ValueError(
-                    f'`val_check_interval` ({self.val_check_interval}) must be less than or equal '
-                    f'to the number of the training batches ({self.num_training_batches}). '
-                    'If you want to disable validation set `limit_val_batches` to 0.0 instead.'
+                warning_cache.warn(
+                    f'`val_check_interval` ({self.val_check_interval}) is greater than '
+                    f'the number of the training batches ({self.num_training_batches}).'
                 )
         else:
             if not has_len(self.train_dataloader):
