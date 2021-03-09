@@ -15,7 +15,6 @@
 # import m2r
 import builtins
 import glob
-import inspect
 import os
 import shutil
 import sys
@@ -26,9 +25,10 @@ PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
-builtins.__LIGHTNING_SETUP__ = True
-
+FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
+if SPHINX_MOCK_REQUIREMENTS:
+    builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
 
@@ -50,22 +50,31 @@ import pytorch_lightning  # noqa: E402
 # with open('readme.md', 'w') as fp:
 #     fp.write(readme)
 
+
+def _transform_changelog(path_in: str, path_out: str) -> None:
+    with open(path_in, 'r') as fp:
+        chlog_lines = fp.readlines()
+    # enrich short subsub-titles to be unique
+    chlog_ver = ''
+    for i, ln in enumerate(chlog_lines):
+        if ln.startswith('## '):
+            chlog_ver = ln[2:].split('-')[0].strip()
+        elif ln.startswith('### '):
+            ln = ln.replace('###', f'### {chlog_ver} -')
+            chlog_lines[i] = ln
+    with open(path_out, 'w') as fp:
+        fp.writelines(chlog_lines)
+
+
+os.makedirs(os.path.join(PATH_HERE, FOLDER_GENERATED), exist_ok=True)
 # copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
-    shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
+    shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
-with open(os.path.join(PATH_ROOT, 'CHANGELOG.md'), 'r') as fp:
-    chlog_lines = fp.readlines()
-# enrich short subsub-titles to be unique
-chlog_ver = ''
-for i, ln in enumerate(chlog_lines):
-    if ln.startswith('## '):
-        chlog_ver = ln[2:].split('-')[0].strip()
-    elif ln.startswith('### '):
-        ln = ln.replace('###', f'### {chlog_ver} -')
-        chlog_lines[i] = ln
-with open(os.path.join(PATH_HERE, 'CHANGELOG.md'), 'w') as fp:
-    fp.writelines(chlog_lines)
+_transform_changelog(
+    os.path.join(PATH_ROOT, 'CHANGELOG.md'),
+    os.path.join(PATH_HERE, FOLDER_GENERATED, 'CHANGELOG.md'),
+)
 
 # -- Project information -----------------------------------------------------
 
@@ -78,12 +87,11 @@ version = pytorch_lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = pytorch_lightning.__version__
 
-
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = '2.0'
+needs_sphinx = '3.4'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -147,7 +155,7 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    'PULL_REQUEST_TEMPLATE.md',
+    f'{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -175,14 +183,14 @@ html_theme_options = {
     'logo_only': False,
 }
 
-html_logo = '_images/logos/lightning_logo-name.svg'
+html_logo = '_static/images/logo.svg'
 
-html_favicon = '_images/logos/lightning_icon.svg'
+html_favicon = '_static/images/icon.svg'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_images', '_templates', '_static']
+html_static_path = ['_templates', '_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -193,7 +201,6 @@ html_static_path = ['_images', '_templates', '_static']
 # 'searchbox.html']``.
 #
 # html_sidebars = {}
-
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -227,9 +234,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, project, project + ' Documentation', [author], 1)
-]
+man_pages = [(master_doc, project, project + ' Documentation', [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -237,8 +242,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, project, project + ' Documentation', author, project,
-     'One line description of project.', 'Miscellaneous'),
+    (
+        master_doc,
+        project,
+        project + ' Documentation',
+        author,
+        project,
+        'One line description of project.',
+        'Miscellaneous',
+    ),
 ]
 
 # -- Options for Epub output -------------------------------------------------
@@ -278,7 +290,7 @@ todo_include_todos = True
 def setup(app):
     # this is for hiding doctest decoration,
     # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
-    app.add_javascript('copybutton.js')
+    app.add_js_file('copybutton.js')
     app.add_css_file('main.css')
 
 
@@ -294,10 +306,14 @@ def setup(app):
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 def package_list_from_file(file):
+    """List up package name (not containing version and extras) from a package list file
+    """
     mocked_packages = []
     with open(file, 'r') as fp:
         for ln in fp.readlines():
-            found = [ln.index(ch) for ch in list(',=<>#') if ch in ln]
+            # Example: `tqdm>=4.41.0` => `tqdm`
+            # `[` is for package with extras
+            found = [ln.index(ch) for ch in list(',=<>#[') if ch in ln]
             pkg = ln[:min(found)] if found else ln
             if pkg.rstrip():
                 mocked_packages.append(pkg.rstrip())
@@ -353,19 +369,21 @@ autosectionlabel_prefix_document = True
 # only run doctests marked with a ".. doctest::" directive
 doctest_test_doctest_blocks = ''
 doctest_global_setup = """
-
 import importlib
 import os
+from typing import Optional
 import torch
-
+from torch import nn
+import pytorch_lightning as pl
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities import (
-    NATIVE_AMP_AVAILABLE,
-    APEX_AVAILABLE,
-    XLA_AVAILABLE,
-    TPU_AVAILABLE,
+    _NATIVE_AMP_AVAILABLE,
+    _APEX_AVAILABLE,
+    _XLA_AVAILABLE,
+    _TPU_AVAILABLE,
+    _TORCHVISION_AVAILABLE,
+    _module_available,
 )
-TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
-
-
+TORCHVISION_AVAILABLE = _module_available("torchvision")
 """
 coverage_skip_undoc_in_source = True

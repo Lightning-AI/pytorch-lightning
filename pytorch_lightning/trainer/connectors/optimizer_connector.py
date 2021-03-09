@@ -18,11 +18,11 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class OptimizerConnector:
+
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, enable_pl_optimizer):
-        self.trainer._enable_pl_optimizer = enable_pl_optimizer
+    def on_trainer_init(self):
         self.trainer.lr_schedulers = []
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
@@ -53,13 +53,12 @@ class OptimizerConnector:
                 if lr_scheduler['reduce_on_plateau']:
                     monitor_key = lr_scheduler['monitor']
                     monitor_val = (
-                        monitor_metrics.get(monitor_key)
-                        if monitor_metrics is not None
-                        else self.trainer.logger_connector.callback_metrics.get(monitor_key)
+                        monitor_metrics.get(monitor_key) if monitor_metrics is not None else
+                        self.trainer.logger_connector.callback_metrics.get(monitor_key)
                     )
                     if monitor_val is None:
                         if lr_scheduler.get('strict', True):
-                            avail_metrics = self.trainer.logger_connector.callback_metrics.keys()
+                            avail_metrics = list(self.trainer.logger_connector.callback_metrics.keys())
                             raise MisconfigurationException(
                                 f'ReduceLROnPlateau conditioned on metric {monitor_key}'
                                 f' which is not available. Available metrics are: {avail_metrics}.'
@@ -74,13 +73,21 @@ class OptimizerConnector:
                         continue
                 # update LR
                 old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+
                 if lr_scheduler['reduce_on_plateau']:
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
+
                 new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
                 if self.trainer.dev_debugger.enabled:
                     self.trainer.dev_debugger.track_lr_schedulers_update(
-                        self.trainer.batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=monitor_key
+                        self.trainer.batch_idx,
+                        interval,
+                        scheduler_idx,
+                        old_lr,
+                        new_lr,
+                        monitor_key=monitor_key,
+                        monitor_val=monitor_val
                     )

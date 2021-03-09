@@ -27,14 +27,15 @@ COPY ./ ./pytorch-lightning/
 RUN \
     # Disable cache
     #conda install "pip>20.1" && \
-    #pip config set global.cache-dir false && \
-    if [ -z $LIGHTNING_VERSION ] ; then \
-        pip install ./pytorch-lightning --upgrade-strategy only-if-needed ; \
+    if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
-    else \
-        rm -rf pytorch-lightning ; \
-        pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --upgrade-strategy only-if-needed ; \
-    fi
+        wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
+        unzip ${LIGHTNING_VERSION}.zip ; \
+        mv pytorch-lightning-*/ pytorch-lightning ; \
+        rm *.zip ; \
+    fi && \
+    pip install ./pytorch-lightning["extra"] --no-cache-dir && \
+    rm -rf pytorch-lightning
 
 RUN python --version && \
     pip --version && \

@@ -45,10 +45,10 @@ def _count_ngram(ngram_input_list: List[str], n_gram: int) -> Counter:
 
 
 def bleu_score(
-        translate_corpus: Sequence[str],
-        reference_corpus: Sequence[str],
-        n_gram: int = 4,
-        smooth: bool = False
+    translate_corpus: Sequence[str],
+    reference_corpus: Sequence[str],
+    n_gram: int = 4,
+    smooth: bool = False
 ) -> torch.Tensor:
     """
     Calculate BLEU score of machine translated text with one or more references
@@ -63,18 +63,16 @@ def bleu_score(
         Tensor with BLEU Score
 
     Example:
-
+        >>> from pytorch_lightning.metrics.functional import bleu_score
         >>> translate_corpus = ['the cat is on the mat'.split()]
         >>> reference_corpus = [['there is a cat on the mat'.split(), 'a cat is on the mat'.split()]]
         >>> bleu_score(translate_corpus, reference_corpus)
         tensor(0.7598)
-
     """
 
     assert len(translate_corpus) == len(reference_corpus)
     numerator = torch.zeros(n_gram)
     denominator = torch.zeros(n_gram)
-    precision_scores = torch.zeros(n_gram)
     c = 0.0
     r = 0.0
 

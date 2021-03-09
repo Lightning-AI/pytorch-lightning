@@ -3,7 +3,7 @@ name: "Docs check"
 
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]  # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
@@ -40,18 +40,16 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        env:
-          HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-          HOROVOD_WITHOUT_MXNET: 1
-          HOROVOD_WITHOUT_TENSORFLOW: 1
         run: |
+          python --version
+          pip --version
+          # remove Horovod from requirements
+          python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
           # python -m pip install --upgrade --user pip
           pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/extra.txt
           pip install --requirement requirements/loggers.txt
           pip install --requirement requirements/docs.txt
-          python --version
-          pip --version
           pip list
         shell: bash
 
@@ -86,12 +84,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
+          python --version
+          pip --version
+          # pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/docs.txt
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
-          python --version
-          pip --version
           pip list
         shell: bash
 
@@ -100,13 +98,12 @@ jobs:
           # First run the same pipeline as Read-The-Docs
           cd docs
           make clean
-          make html --debug --jobs 2 SPHINXOPTS="-W"
+          make html --debug --jobs $(nproc) SPHINXOPTS="-W"
 
       - name: Upload built docs
         uses: actions/upload-artifact@v2
         with:
-          name: docs-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
+          name: docs-results-${{ github.sha }}
           path: docs/build/html/
         # Use always() to always run this step to publish test results when there are test failures
         if: success()
-

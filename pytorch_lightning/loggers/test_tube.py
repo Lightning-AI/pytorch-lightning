@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Test Tube Logger
 ----------------
@@ -19,14 +18,17 @@ Test Tube Logger
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-try:
-    from test_tube import Experiment
-except ImportError:  # pragma: no-cover
-    Experiment = None
-
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
+
+_TESTTUBE_AVAILABLE = _module_available("test_tube")
+
+if _TESTTUBE_AVAILABLE:
+    from test_tube import Experiment
+else:
+    Experiment = None
 
 
 class TestTubeLogger(LightningLoggerBase):
@@ -72,6 +74,10 @@ class TestTubeLogger(LightningLoggerBase):
             the user has defined the `self.example_input_array` attribute in their
             model.
         prefix: A string to put at the beginning of metric keys.
+
+    Raises:
+        ImportError:
+            If required TestTube package is not installed on the device.
     """
 
     __test__ = False
@@ -89,8 +95,10 @@ class TestTubeLogger(LightningLoggerBase):
         prefix: str = '',
     ):
         if Experiment is None:
-            raise ImportError('You want to use `test_tube` logger which is not installed yet,'
-                              ' install it with `pip install test-tube`.')
+            raise ImportError(
+                'You want to use `test_tube` logger which is not installed yet,'
+                ' install it with `pip install test-tube`.'
+            )
         super().__init__()
         self._save_dir = save_dir
         self._name = name
@@ -151,16 +159,13 @@ class TestTubeLogger(LightningLoggerBase):
                 input_array = model.example_input_array
 
             if input_array is not None:
-                self.experiment.add_graph(
-                    model,
-                    model.transfer_batch_to_device(
-                        model.example_input_array, model.device)
-                )
+                self.experiment.add_graph(model, model._apply_batch_transfer_handler(input_array))
             else:
-                rank_zero_warn('Could not log computational graph since the'
-                               ' `model.example_input_array` attribute is not set'
-                               ' or `input_array` was not given',
-                               UserWarning)
+                rank_zero_warn(
+                    'Could not log computational graph since neither the'
+                    ' `model.example_input_array` attribute is set nor'
+                    ' `input_array` was given', UserWarning
+                )
 
     @rank_zero_only
     def save(self) -> None:
@@ -194,15 +199,15 @@ class TestTubeLogger(LightningLoggerBase):
     def name(self) -> str:
         if self._experiment is None:
             return self._name
-        else:
-            return self.experiment.name
+
+        return self.experiment.name
 
     @property
     def version(self) -> int:
         if self._experiment is None:
             return self._version
-        else:
-            return self.experiment.version
+
+        return self.experiment.version
 
     # Test tube experiments are not pickleable, so we need to override a few
     # methods to get DDP working. See

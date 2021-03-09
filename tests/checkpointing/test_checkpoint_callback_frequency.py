@@ -17,53 +17,8 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, callbacks, seed_everything
-from tests.base import BoringModel
-
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_mc_called_on_fastdevrun(tmpdir):
-    seed_everything(1234)
-
-    train_val_step_model = BoringModel()
-
-    # fast dev run = called once
-    # train loop only, dict, eval result
-    trainer = Trainer(fast_dev_run=True)
-    trainer.fit(train_val_step_model)
-
-    # checkpoint should have been called once with fast dev run
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
-
-    # -----------------------
-    # also called once with no val step
-    # -----------------------
-    class TrainingStepCalled(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.training_step_called = False
-            self.validation_step_called = False
-            self.test_step_called = False
-
-        def training_step(self, batch, batch_idx):
-            self.training_step_called = True
-            return super().training_step(batch, batch_idx)
-
-    train_step_only_model = TrainingStepCalled()
-    train_step_only_model.validation_step = None
-
-    # fast dev run = called once
-    # train loop only, dict, eval result
-    trainer = Trainer(fast_dev_run=True)
-    trainer.fit(train_step_only_model)
-
-    # make sure only training step was called
-    assert train_step_only_model.training_step_called
-    assert not train_step_only_model.validation_step_called
-    assert not train_step_only_model.test_step_called
-
-    # checkpoint should have been called once with fast dev run
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
+from pytorch_lightning import callbacks, seed_everything, Trainer
+from tests.helpers import BoringModel
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -92,8 +47,10 @@ def test_mc_called(tmpdir):
 
 
 @mock.patch('torch.save')
-@pytest.mark.parametrize(['epochs', 'val_check_interval', 'expected'],
-                         [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 7)])
+@pytest.mark.parametrize(
+    ['epochs', 'val_check_interval', 'expected'],
+    [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 7)],
+)
 def test_default_checkpoint_freq(save_mock, tmpdir, epochs, val_check_interval, expected):
 
     model = BoringModel()
@@ -101,7 +58,8 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs, val_check_interval, 
         default_root_dir=tmpdir,
         max_epochs=epochs,
         weights_summary=None,
-        val_check_interval=val_check_interval
+        val_check_interval=val_check_interval,
+        progress_bar_refresh_rate=0,
     )
     trainer.fit(model)
 
@@ -110,11 +68,12 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs, val_check_interval, 
 
 
 @mock.patch('torch.save')
-@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'],
-                         [(1, 1, 1.0, 1), (2, 2, 1.0, 2), (2, 1, 0.25, 4), (2, 2, 0.3, 7)])
+@pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 1.0, 2),
+                                                                             (2, 1, 0.25, 4), (2, 2, 0.3, 7)])
 def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.last_coeff = 10.0
