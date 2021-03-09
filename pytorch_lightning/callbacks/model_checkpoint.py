@@ -93,14 +93,18 @@ class ModelCheckpoint(Callback):
         save_weights_only: if ``True``, then only the model's weights will be
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
-        every_n_epochs: Interval (number of epochs) between checkpoints.
-        every_n_batches: Interval (number of training batches) between checkpoints.
+        every_n_train_steps: Number of training steps between checkpoints.
+            To disable, set ``every_n_train_steps = 0``. This value must be non-negative.
+        every_n_val_epochs: Number of validation epochs between checkpoints.
+            To disable, set ``every_n_val_epochs = 0``. This value must be non-negative.
+            This is not mutually exclusive with ``every_n_val_epochs``. If both are set, pay extreme caution if also setting ``monitor``
+            as the ``monitor`` value must be available in both training and validation. This can have unintended consequences with tracking the top K models.
         period: Interval (number of epochs) between checkpoints.
 
             .. warning::
                This argument has been deprecated in v1.3 and will be removed in v1.5.
 
-            Use ``every_n_epochs`` instead.
+            Use ``every_n_val_epochs`` instead.
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -173,8 +177,8 @@ class ModelCheckpoint(Callback):
         save_weights_only: bool = False,
         mode: str = "min",
         auto_insert_metric_name: bool = True
-        every_n_epochs: int = 1,
-        every_n_batches: int = 0,
+        every_n_train_steps: int = 0,
+        every_n_val_epochs: int = 1,
         period: Optional[int] = None,
     ):
         super().__init__()
@@ -184,9 +188,9 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
-        self.every_n_epochs = period if period is not None else every_n_epochs
-        self.period = self.every_n_epochs
-        self.every_n_batches = every_n_batches
+        self.every_n_val_epochs = period if period is not None else every_n_val_epochs
+        self.period = self.every_n_val_epochs
+        self.every_n_train_steps = every_n_train_steps
         self._last_global_step_saved = -1
         self.current_score = None
         self.best_k_models = {}
@@ -200,7 +204,7 @@ class ModelCheckpoint(Callback):
         if period is not None:
             rank_zero_warn(
                 'Argument `period` is deprecated in v1.3 and will be removed in v1.5.'
-                ' Please use `every_n_epochs` instead.', DeprecationWarning
+                ' Please use `every_n_val_epochs` instead.', DeprecationWarning
             )
 
         self.__init_monitor_mode(monitor, mode)
@@ -214,11 +218,12 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer)
         self.save_function = trainer.save_checkpoint
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+    def on_train_batch_end(self, trainer, pl_module, *args, **kwargs) -> None:
+        """ Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps` """
         if self._should_skip_saving_checkpoint(trainer):
             return
-        step = trainer.total_batch_idx
-        skip_batch = self.every_n_batches < 1 or ((step + 1) % self.every_n_batches != 0)
+        step = trainer.global_step
+        skip_batch = self.every_n_train_steps < 1 or ((step + 1) % self.every_n_train_steps != 0)
         if skip_batch:
             return
         self.save_checkpoint(trainer, pl_module)
@@ -228,8 +233,8 @@ class ModelCheckpoint(Callback):
         checkpoints can be saved at the end of the val loop
         """
         skip = (
-            self._should_skip_saving_checkpoint(trainer) or self.every_n_epochs < 1
-            or (trainer.current_epoch + 1) % self.every_n_epochs != 0
+            self._should_skip_saving_checkpoint(trainer) or self.every_n_val_epochs < 1
+            or (trainer.current_epoch + 1) % self.every_n_val_epochs != 0
         )
         if skip:
             return
@@ -248,7 +253,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
 
-    def save_checkpoint(self, trainer, pl_module):
+    def save_checkpoint(self, trainer, unused):
         """
         Performs the main logic around saving a checkpoint.
         This method runs on all ranks, it is the responsibility of `self.save_function`
@@ -292,6 +297,14 @@ class ModelCheckpoint(Callback):
     def __validate_init_configuration(self):
         if self.save_top_k is not None and self.save_top_k < -1:
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
+        if self.every_n_train_steps < 0:
+            raise MisconfigurationException(
+                f'Invalid value for every_n_train_batches={self.every_n_train_steps}. Must be >= 0'
+            )
+        if self.every_n_val_epochs < 0:
+            raise MisconfigurationException(
+                f'Invalid value for every_n_val_epochs={self.every_n_val_epochs}. Must be >= 0'
+            )
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
             if self.save_top_k not in (None, -1, 0):
@@ -610,9 +623,7 @@ class ModelCheckpoint(Callback):
         self._save_model(trainer, filepath)
 
         if (
-            self.save_top_k is None
-            and self.best_model_path
-            and self.best_model_path != filepath
+            self.save_top_k is None and self.best_model_path and self.best_model_path != filepath
             and trainer.is_global_zero
         ):
             self._del_model(self.best_model_path)

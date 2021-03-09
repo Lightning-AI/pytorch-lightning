@@ -524,6 +524,26 @@ def test_none_monitor_save_last(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_last=False)
 
 
+def test_invalid_every_n_val_epochs(tmpdir):
+    """ Make sure that a MisconfigurationException is raised for a negative every_n_val_epochs argument. """
+    with pytest.raises(MisconfigurationException, match=r'.*Must be >= 0'):
+        ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=-3)
+    # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=0)
+    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=1)
+    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=2)
+
+
+def test_invalid_every_n_train_steps(tmpdir):
+    """ Make sure that a MisconfigurationException is raised for a negative every_n_val_epochs argument. """
+    with pytest.raises(MisconfigurationException, match=r'.*Must be >= 0'):
+        ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=-3)
+    # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0)
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1)
+    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=2)
+
+
 def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     """ Test that it is possible to save all checkpoints when monitor=None. """
     seed_everything()
@@ -578,12 +598,12 @@ def test_model_checkpoint_period(tmpdir, period: int):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@pytest.mark.parametrize("every_n_epochs", list(range(4)))
-def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
+@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
+def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=every_n_epochs
+        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_val_epochs=every_n_val_epochs
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -596,17 +616,22 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
+    expected = [f'epoch={e}.ckpt' for e in range(epochs)
+                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@pytest.mark.parametrize("every_n_epochs", list(range(4)))
-def test_model_checkpoint_every_n_epochs_and_period(tmpdir, every_n_epochs):
-    """ Tests that if period is set, it takes precedence over every_n_epochs for backwards compatibility. """
+@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
+def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epochs):
+    """ Tests that if period is set, it takes precedence over every_n_val_epochs for backwards compatibility. """
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_epochs=(2 * every_n_epochs), period=every_n_epochs
+        dirpath=tmpdir,
+        filename='{epoch}',
+        save_top_k=-1,
+        every_n_val_epochs=(2 * every_n_val_epochs),
+        period=every_n_val_epochs
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -619,19 +644,20 @@ def test_model_checkpoint_every_n_epochs_and_period(tmpdir, every_n_epochs):
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % every_n_epochs] if every_n_epochs > 0 else []
+    expected = [f'epoch={e}.ckpt' for e in range(epochs)
+                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-def test_ckpt_every_n_batches(tmpdir):
+def test_ckpt_every_n_train_steps(tmpdir):
     """ Tests that the checkpoints are saved every n training steps. """
 
     model = LogInTwoMethods()
-    every_n_batches = 16
+    every_n_train_steps = 16
     checkpoint_callback = ModelCheckpoint(
         filename="{step}",
-        every_n_epochs=0,
-        every_n_batches=every_n_batches,
+        every_n_val_epochs=0,
+        every_n_train_steps=every_n_train_steps,
         dirpath=tmpdir,
         save_top_k=-1,
         save_last=False,
@@ -645,18 +671,18 @@ def test_ckpt_every_n_batches(tmpdir):
     )
 
     trainer.fit(model)
-    expected = [f"step={i}.ckpt" for i in range(15, 128, every_n_batches)]
+    expected = [f"step={i}.ckpt" for i in range(15, 128, every_n_train_steps)]
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@pytest.mark.parametrize("every_n_epochs", [1, 3])
-def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir, every_n_epochs):
+@pytest.mark.parametrize("every_n_val_epochs", [1, 3])
+def test_ckpt_every_n_train_steps_and_every_n_val_epochs(tmpdir, every_n_val_epochs):
     """ Tests that checkpoints are taken every 30 steps and every epochs """
     model = LogInTwoMethods()
-    every_n_batches = 30
+    every_n_train_steps = 30
     checkpoint_callback = ModelCheckpoint(
-        every_n_epochs=every_n_epochs,
-        every_n_batches=every_n_batches,
+        every_n_val_epochs=every_n_val_epochs,
+        every_n_train_steps=every_n_train_steps,
         dirpath=tmpdir,
         save_top_k=-1,
         save_last=False,
@@ -673,7 +699,7 @@ def test_ckpt_every_n_batches_and_every_n_epochs(tmpdir, every_n_epochs):
     trainer.fit(model)
     expected_steps_for_ckpt = [
         i for i in range(epoch_step_length * max_epochs)
-        if ((i + 1) % every_n_batches) == 0 or (i + 1) % (every_n_epochs * epoch_step_length) == 0
+        if ((i + 1) % every_n_train_steps) == 0 or (i + 1) % (every_n_val_epochs * epoch_step_length) == 0
     ]
     expected_ckpt_files = [f"step={step}.ckpt" for step in expected_steps_for_ckpt]
     assert set(os.listdir(tmpdir)) == set(expected_ckpt_files)
