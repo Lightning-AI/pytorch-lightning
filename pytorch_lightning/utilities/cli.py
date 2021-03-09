@@ -34,7 +34,7 @@ class LightningArgumentParser(ArgumentParser):
         """Initialize argument parser that supports configuration file input
 
         For full details of accepted arguments see `ArgumentParser.__init__
-        <https://omni-us.github.io/jsonargparse/#jsonargparse.core.ArgumentParser.__init__>`_.
+        <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_.
         """
         if not _JSONARGPARSE_AVAILABLE:
             raise ModuleNotFoundError(
@@ -86,7 +86,7 @@ class LightningCLI:
         datamodule_class: Type[LightningDataModule] = None,
         save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
-        trainer_kwargs: Dict[str, Any] = None,
+        trainer_defaults: Dict[str, Any] = None,
         description: str = 'pytorch-lightning trainer command line tool',
         env_prefix: str = 'PL',
         env_parse: bool = False,
@@ -121,17 +121,17 @@ class LightningCLI:
             datamodule_class: An optional LightningDataModule class.
             save_config_callback: A callback class to save the training config.
             trainer_class: An optional extension of the Trainer class.
-            trainer_kwargs: Additional arguments to instantiate Trainer.
+            trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
             description: Description of the tool shown when running --help.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
             parser_kwargs: Additional arguments to instantiate LightningArgumentParser.
             subclass_mode_model: Whether model can be any `subclass
-                <https://omni-us.github.io/jsonargparse/#classes-as-type>`_ of the
-                given class.
+                <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
+                of the given class.
             subclass_mode_data: Whether datamodule can be any `subclass
-                <https://omni-us.github.io/jsonargparse/#classes-as-type>`_ of the
-                given class.
+                <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
+                of the given class.
         """
         assert issubclass(trainer_class, Trainer)
         assert issubclass(model_class, LightningModule)
@@ -141,7 +141,7 @@ class LightningCLI:
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
         self.trainer_class = trainer_class
-        self.trainer_kwargs = {} if trainer_kwargs is None else trainer_kwargs
+        self.trainer_defaults = {} if trainer_defaults is None else trainer_defaults
         self.subclass_mode_model = subclass_mode_model
         self.subclass_mode_data = subclass_mode_data
         self.parser_kwargs = {} if parser_kwargs is None else parser_kwargs
@@ -174,6 +174,8 @@ class LightningCLI:
     def add_core_arguments_to_parser(self):
         """Adds arguments from the core classes to the parser"""
         self.parser.add_lightning_class_args(self.trainer_class, 'trainer')
+        trainer_defaults = {'trainer.'+k: v for k, v in self.trainer_defaults.items() if k != 'callbacks'}
+        self.parser.set_defaults(trainer_defaults)
         self.parser.add_lightning_class_args(self.model_class, 'model', subclass_mode=self.subclass_mode_model)
         if self.datamodule_class is not None:
             self.parser.add_lightning_class_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
@@ -219,12 +221,16 @@ class LightningCLI:
 
     def instantiate_trainer(self):
         """Instantiates the trainer using self.config_init['trainer']"""
-        self.trainer_kwargs.update(self.config_init['trainer'])
-        if self.trainer_kwargs.get('callbacks') is None:
-            self.trainer_kwargs['callbacks'] = []
+        if self.config_init['trainer'].get('callbacks') is None:
+            self.config_init['trainer']['callbacks'] = []
+        if 'callbacks' in self.trainer_defaults:
+            if isinstance(self.trainer_defaults['callbacks']):
+                self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
+            else:
+                self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
         if self.save_config_callback is not None:
-            self.trainer_kwargs['callbacks'].append(self.save_config_callback(self.parser, self.config))
-        self.trainer = self.trainer_class(**self.trainer_kwargs)
+            self.config_init['trainer']['callbacks'].append(self.save_config_callback(self.parser, self.config))
+        self.trainer = self.trainer_class(**self.config_init['trainer'])
 
     def prepare_fit_kwargs(self):
         """Prepares fit_kwargs including datamodule using self.config_init['data'] if given"""
