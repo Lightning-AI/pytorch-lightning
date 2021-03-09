@@ -278,7 +278,8 @@ def test_lr_find_with_bs_scale(tmpdir):
 
     hparams = EvalModelTemplate.get_default_hparams()
     before_lr = hparams.get('learning_rate')
-    model = EvalModelTemplate(**hparams)
+    model = BoringModel()
+    model.save_hyperparameters(hparams)
 
     # logger file to get meta
     trainer = Trainer(
