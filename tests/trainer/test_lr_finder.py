@@ -23,7 +23,6 @@ from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
-from tests.helpers.runif import RunIf
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -274,7 +273,6 @@ def test_lr_finder_fails_fast_on_bad_config(tmpdir):
         trainer.tune(BoringModel())
 
 
-@RunIf(min_gpus=1)
 def test_lr_find_with_bs_scale(tmpdir):
     """ Test that lr_find runs with batch_size_scaling """
 
