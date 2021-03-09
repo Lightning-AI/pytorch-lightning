@@ -20,7 +20,7 @@ from distutils.version import LooseVersion
 from importlib.util import find_spec
 
 import torch
-from pkg_resources import DistributionNotFound, get_distribution
+from pkg_resources import DistributionNotFound
 
 
 def _module_available(module_path: str) -> bool:
