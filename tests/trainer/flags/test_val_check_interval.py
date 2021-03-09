@@ -66,3 +66,22 @@ def test_val_check_interval_steps(tmpdir, steps):
 
     assert model.train_epoch_calls == max_epochs
     assert model.val_epoch_calls == max_epochs * train_data_length // steps
+
+
+@pytest.mark.parametrize('epochs', [0.5, 1.5, 2.4])
+def test_val_check_interval_epochs(tmpdir, epochs):
+
+    max_epochs = 4
+    model = TestModel()
+    train_data_length = len(model.train_dataloader())
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=max_epochs,
+        val_check_interval=epochs,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    assert model.train_epoch_calls == max_epochs
+    assert model.val_epoch_calls == max_epochs // epochs
