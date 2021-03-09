@@ -174,7 +174,7 @@ class LightningCLI:
     def add_core_arguments_to_parser(self):
         """Adds arguments from the core classes to the parser"""
         self.parser.add_lightning_class_args(self.trainer_class, 'trainer')
-        trainer_defaults = {'trainer.'+k: v for k, v in self.trainer_defaults.items() if k != 'callbacks'}
+        trainer_defaults = {'trainer.' + k: v for k, v in self.trainer_defaults.items() if k != 'callbacks'}
         self.parser.set_defaults(trainer_defaults)
         self.parser.add_lightning_class_args(self.model_class, 'model', subclass_mode=self.subclass_mode_model)
         if self.datamodule_class is not None:
