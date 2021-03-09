@@ -279,7 +279,7 @@ def test_lr_find_with_bs_scale(tmpdir):
     class BoringModelTune(BoringModel):
         def __init__(self, hparams):
             super().__init__()
-            self.save_hyper_parameters(hparams)
+            self.save_hyperparameters(hparams)
 
     hparams = EvalModelTemplate.get_default_hparams()
     before_lr = hparams.get('learning_rate')
