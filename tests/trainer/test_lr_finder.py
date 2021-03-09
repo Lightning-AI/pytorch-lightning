@@ -23,6 +23,7 @@ from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.runif import RunIf
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
