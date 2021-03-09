@@ -1832,7 +1832,7 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
 
 def test_check_val_every_n_epoch_exception(tmpdir):
 
-    with pytest.raises(MisconfigurationException, match="It should be an integer."):
+    with pytest.raises(MisconfigurationException, match="should be an integer."):
         Trainer(
             default_root_dir=tmpdir,
             max_epochs=1,
