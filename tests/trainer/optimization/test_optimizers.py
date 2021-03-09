@@ -411,9 +411,7 @@ def test_step_scheduling_for_multiple_optimizers_without_frequency(tmpdir):
 
     class DummyStepModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"loss": loss}
+            super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs) -> None:
             pass
@@ -442,12 +440,9 @@ def test_step_scheduling_for_multiple_optimizers_without_frequency(tmpdir):
     result = trainer.fit(model)
     assert trainer.lr_schedulers[0]['opt_idx'] == 0
     assert trainer.lr_schedulers[1]['opt_idx'] == 1
-    assert (
-        trainer.lr_schedulers[0]['scheduler']._step_count == 6
-    )  # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization.
-    assert (
-        trainer.lr_schedulers[1]['scheduler']._step_count == 6
-    )  # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization.
+    # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization
+    assert trainer.lr_schedulers[0]['scheduler']._step_count == 4
+    assert trainer.lr_schedulers[1]['scheduler']._step_count == 3
     assert result
 
 
