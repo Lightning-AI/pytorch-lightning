@@ -287,6 +287,7 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
 
     def _should_skip_saving_checkpoint(self, trainer) -> bool:
+        from pytorch_lightning.trainer.states import TrainerState
         return (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
             or trainer.state != TrainerState.FITTING # don't save anything during non-fit
