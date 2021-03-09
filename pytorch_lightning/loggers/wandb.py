@@ -233,7 +233,6 @@ class WandbLogger(LightningLoggerBase):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
-    @rank_zero_only
     def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
         # log checkpoints as artifacts
         if self._log_model == 'all' or self._log_model is True and checkpoint_callback.save_top_k == -1:

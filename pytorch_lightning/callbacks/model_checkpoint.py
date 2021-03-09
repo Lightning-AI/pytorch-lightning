@@ -250,7 +250,7 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
 
         # notify loggers
-        if trainer.logger and hasattr(trainer.logger, 'after_save_checkpoint'):
+        if trainer.is_global_zero and trainer.logger and hasattr(trainer.logger, 'after_save_checkpoint'):
             trainer.logger.after_save_checkpoint(proxy(self))
 
     def __validate_init_configuration(self):
