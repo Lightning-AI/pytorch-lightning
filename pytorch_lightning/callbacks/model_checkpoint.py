@@ -293,7 +293,6 @@ class ModelCheckpoint(Callback):
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
             or trainer.state != TrainerState.FITTING  # don't save anything during non-fit
             or trainer.sanity_checking  # don't save anything during sanity check
-            or self.save_top_k == 0  # no models are saved
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
         )
 
