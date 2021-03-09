@@ -326,7 +326,7 @@ class ModelCheckpoint(Callback):
         else:
             raise ValueError(".save_function() not set")
 
-    def check_monitor_top_k(self, trainer, current: Optional[torch.Tensor]) -> bool:
+    def check_monitor_top_k(self, trainer, current: Optional[torch.Tensor] = None) -> bool:
         if current is None:
             return False
 
