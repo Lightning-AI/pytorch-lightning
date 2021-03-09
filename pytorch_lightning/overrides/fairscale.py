@@ -33,7 +33,7 @@ if _FAIRSCALE_AVAILABLE:
         return unwrap_lightning_module(model)
 
 
-class LightningFullyShardedDataModule(_LightningModuleWrapperBase):
+class LightningFullyShardedModule(_LightningModuleWrapperBase):
     # Just do this for later docstrings
     pass
 
@@ -43,10 +43,16 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     def unwrap_lightning_module_fully_sharded(wrapped_model) -> LightningModule:
+        """
+        Unwrap the lightning module within the FSDP wrapper. This is recursive as FSDP can be nested, meaning
+        the LightningModule could be a few layers deep.
+        """
         model = wrapped_model
         if isinstance(model, FullyShardedDataParallel):
-            model = model.module
+            model = unwrap_lightning_module_fully_sharded(model.module)
         # Additional check if we're using a flattened parameters buffer
-        if isinstance(model, FlattenParamsWrapper):
-            model = model.module
-        return unwrap_lightning_module(model)
+        elif isinstance(model, FlattenParamsWrapper):
+            model = unwrap_lightning_module_fully_sharded(model.module)
+        if isinstance(model, _LightningModuleWrapperBase):
+            model = unwrap_lightning_module_fully_sharded(model.module)
+        return model

@@ -26,7 +26,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     from pytorch_lightning.overrides.fairscale import (
-        LightningFullyShardedDataModule,
+        LightningFullyShardedModule,
         unwrap_lightning_module_fully_sharded,
     )
 
@@ -42,7 +42,7 @@ class FullyShardedPlugin(DDPPlugin):
         fp32_reduce_scatter: Optional[bool] = None,
         compute_dtype: Optional[torch.dtype] = None,
         bucket_cap_mb: int = 25,
-        automatic_module_wrap: bool = False,
+        automatic_module_wrap: bool = True,
         min_num_params: int = 1e8,
         activation_checkpoint: bool = False,
         parallel_devices: Optional[List[torch.device]] = None,
@@ -134,6 +134,7 @@ class FullyShardedPlugin(DDPPlugin):
             torch.cuda.set_device(self.root_device)
 
         with enable_wrap(
+            wrapper_cls=FullyShardedDataParallel,
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
@@ -149,26 +150,22 @@ class FullyShardedPlugin(DDPPlugin):
             # currently this also means you have to use fully sharded to load the model as well.
             self.lightning_module.trainer.call_hook("on_distributed_model_setup")
             if self.automatic_module_wrap:
-                self.model = auto_wrap(
-                    LightningFullyShardedDataModule(self.model),
-                    min_num_params=self.min_num_params,
-                    activation_checkpoint=self.activation_checkpoint
-                )
+                self.model = auto_wrap(LightningFullyShardedModule(self.model))
                 if not isinstance(self.model, FullyShardedDataParallel):
-                    self.model = wrap(self.model, activation_checkpoint=self.activation_checkpoint)
+                    self.model = wrap(self.model)
             else:
-                self.model = wrap(
-                    LightningFullyShardedDataModule(self.model), activation_checkpoint=self.activation_checkpoint
-                )
+                self.model = wrap(LightningFullyShardedModule(self.model))
 
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us
-            super().model_to_device()
+            self.model_to_device()
         # setup optimizers after fully sharded has wrapped the lightning module
         self.lightning_module.trainer.accelerator.setup_optimizers(self.lightning_module.trainer)
 
     def model_to_device(self):
         self.model.to(self.root_device)
+        # ensure we update the device type in the lightning module
+        self.lightning_module.to(self.root_device)
 
     @property
     def lightning_module(self) -> LightningModule:
