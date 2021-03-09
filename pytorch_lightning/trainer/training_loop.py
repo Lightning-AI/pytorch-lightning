@@ -822,7 +822,7 @@ class TrainLoop:
 
     def should_check_val_fx(self, batch_idx, is_last_batch, on_epoch=False):
         # decide if we should run validation
-        is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+        is_val_check_batch = (self.trainer.global_step + 1) % self.trainer.val_check_batch == 0
         is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         can_check_val = self.trainer.enable_validation and is_val_check_epoch
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
@@ -832,7 +832,7 @@ class TrainLoop:
                             or is_last_batch_for_infinite_dataset
                             ) if on_epoch else (is_val_check_batch and not epoch_end_val_check)
 
-        return should_check_val and can_check_val
+        return should_check_val and can_check_val if self.trainer.val_check_batch <= self.trainer.num_training_batches else should_check_val
 
     def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step

@@ -74,8 +74,8 @@ class DebuggingConnector:
         self.trainer.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')
         self.trainer.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
         self.trainer.limit_predict_batches = _determine_batch_limits(limit_predict_batches, 'limit_predict_batches')
-        self.trainer.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
         self.trainer.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
+        self.trainer.val_check_interval = _determine_val_check_interval_limits(val_check_interval)
         self.determine_data_use_amount(self.trainer.overfit_batches)
 
     def determine_data_use_amount(self, overfit_batches: float) -> None:
@@ -95,3 +95,12 @@ def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int,
         raise MisconfigurationException(
             f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
         )
+
+
+def _determine_val_check_interval_limits(value: Union[int, float]) -> Union[int, float]:
+    if isinstance(value, (int, float)) and value >= 0:
+        return value
+    raise MisconfigurationException(
+        f"You have passed invalid value {value} for val_check_interval,"
+        " it has to be greater than 0 and an integer or float."
+    )
