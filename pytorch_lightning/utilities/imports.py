@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
+import importlib
 import operator
 import platform
 import sys
@@ -42,8 +43,15 @@ def _module_available(module_path: str) -> bool:
 
 
 def _compare_version(package: str, op, version) -> bool:
+    """Compare package version with some requirements
+
+    >>> _compare_version("torch", operator.ge, "0.1")
+    True
+    """
     try:
-        pkg_version = LooseVersion(get_distribution(package).version)
+        pkg = importlib.import_module(package)
+        assert hasattr(pkg, '__version__')
+        pkg_version = pkg.__version__
         return op(pkg_version, LooseVersion(version))
     except DistributionNotFound:
         return False
