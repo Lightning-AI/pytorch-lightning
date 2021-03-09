@@ -275,7 +275,7 @@ def test_lr_finder_fails_fast_on_bad_config(tmpdir):
 
 def test_lr_find_with_bs_scale(tmpdir):
     """ Test that lr_find runs with batch_size_scaling """
-    
+
     class BoringModelTune(BoringModel):
         def __init__(self, hparams):
             super().__init__()
