@@ -600,17 +600,6 @@ class Trainer(
                 if self.max_steps and self.max_steps <= self.global_step:
                     return
 
-                # update LR schedulers
-                self.optimizer_connector.update_learning_rates(
-                    interval='epoch',
-                    opt_indices=[
-                        opt_idx
-                        for opt_idx, _ in self.train_loop.get_optimizers_iterable(
-                            batch_idx=(self.total_batch_idx - 1)
-                        )  # Select the optimizers which were used in the last batch of the epoch
-                    ],
-                )
-
                 # early stopping
                 met_min_epochs = (epoch >= self.min_epochs - 1) if self.min_epochs else True
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
@@ -720,7 +709,15 @@ class Trainer(
 
         # update epoch-level lr_schedulers
         if on_epoch:
-            self.optimizer_connector.update_learning_rates(interval='epoch')
+            self.optimizer_connector.update_learning_rates(
+                interval='epoch',
+                opt_indices=[
+                    opt_idx
+                    for opt_idx, _ in self.train_loop.get_optimizers_iterable(
+                        batch_idx=(self.total_batch_idx - 1)
+                    )  # Select the optimizers which were used in the last batch of the epoch
+                ],
+            )
 
         # hook
         self.evaluation_loop.on_evaluation_end()
