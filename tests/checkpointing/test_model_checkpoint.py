@@ -687,14 +687,10 @@ def test_model_checkpoint_save_last_warning(
     model = LogInTwoMethods()
     if not should_validate:
         model.validation_step = None
-    ckpt = ModelCheckpoint(
-                monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last, verbose=verbose
-            )
+    ckpt = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last, verbose=verbose)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[ckpt
-
-        ],
+        callbacks=[ckpt],
         max_epochs=max_epochs,
     )
     with caplog.at_level(logging.INFO):
