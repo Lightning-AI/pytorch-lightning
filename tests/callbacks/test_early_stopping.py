@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import pickle
-import sys
 from unittest import mock
 
 import cloudpickle
@@ -21,13 +21,16 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import _logger, seed_everything, Trainer
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
+
+_logger = logging.getLogger(__name__)
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
@@ -374,13 +377,13 @@ class EarlyStoppingModel(BoringModel):
                      3,
                      'ddp_cpu',
                      2,
-                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
+                     marks=RunIf(skip_windows=True)),
         pytest.param([EarlyStopping(monitor='cba', patience=3),
                       EarlyStopping(monitor='abc')],
                      3,
                      'ddp_cpu',
                      2,
-                     marks=pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")),
+                     marks=RunIf(skip_windows=True)),
     ],
 )
 def test_multiple_early_stopping_callbacks(callbacks, expected_stop_epoch, accelerator, num_processes, tmpdir):

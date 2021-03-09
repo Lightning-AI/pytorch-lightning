@@ -22,6 +22,7 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_model_saves_with_input_sample(tmpdir):
@@ -37,7 +38,7 @@ def test_model_saves_with_input_sample(tmpdir):
     assert os.path.getsize(file_path) > 4e2
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_model_saves_on_gpu(tmpdir):
     """Test that model saves on gpu"""
     model = BoringModel()
@@ -76,7 +77,7 @@ def test_model_saves_with_example_input_array(tmpdir):
     assert os.path.getsize(file_path) > 4e2
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_model_saves_on_multi_gpu(tmpdir):
     """Test that ONNX model saves on a distributed backend"""
     tutils.set_random_master_port()

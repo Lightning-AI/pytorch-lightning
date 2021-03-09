@@ -371,6 +371,7 @@ doctest_test_doctest_blocks = ''
 doctest_global_setup = """
 import importlib
 import os
+from typing import Optional
 import torch
 from torch import nn
 import pytorch_lightning as pl

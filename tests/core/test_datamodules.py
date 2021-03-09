@@ -27,6 +27,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import reset_seed, set_random_master_port
 
@@ -108,13 +109,13 @@ def test_hooks_no_recursion_error(tmpdir):
         dm.prepare_data()
 
 
-def test_base_datamodule(tmpdir):
+def test_helper_boringdatamodule(tmpdir):
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup()
 
 
-def test_base_datamodule_with_verbose_setup(tmpdir):
+def test_helper_boringdatamodule_with_verbose_setup(tmpdir):
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup('fit')
@@ -123,55 +124,67 @@ def test_base_datamodule_with_verbose_setup(tmpdir):
 
 def test_data_hooks_called(tmpdir):
     dm = BoringDataModule()
-    assert dm.has_prepared_data is False
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert not dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
+    assert not dm.has_setup_validate
+    assert not dm.has_setup_predict
 
     dm.prepare_data()
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
+    assert not dm.has_setup_validate
+    assert not dm.has_setup_predict
 
     dm.setup()
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is True
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_test
+    assert dm.has_setup_validate
+    assert not dm.has_setup_predict
 
 
-def test_data_hooks_called_verbose(tmpdir):
+@pytest.mark.parametrize("use_kwarg", (False, True))
+def test_data_hooks_called_verbose(tmpdir, use_kwarg):
     dm = BoringDataModule()
-    assert dm.has_prepared_data is False
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert not dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
 
     dm.prepare_data()
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
+    assert not dm.has_setup_predict
 
-    dm.setup('fit')
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is False
+    dm.setup(stage='fit') if use_kwarg else dm.setup('fit')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert not dm.has_setup_validate
+    assert not dm.has_setup_test
+    assert not dm.has_setup_predict
 
-    dm.setup('test')
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is True
+    dm.setup(stage='validate') if use_kwarg else dm.setup('validate')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_validate
+    assert not dm.has_setup_test
+    assert not dm.has_setup_predict
 
+    dm.setup(stage='test') if use_kwarg else dm.setup('test')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_validate
+    assert dm.has_setup_test
+    assert not dm.has_setup_predict
 
-def test_data_hooks_called_with_stage_kwarg(tmpdir):
-    dm = BoringDataModule()
-    dm.prepare_data()
-    assert dm.has_prepared_data is True
-
-    dm.setup(stage='fit')
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is False
-
-    dm.setup(stage='test')
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is True
+    dm.setup(stage='predict') if use_kwarg else dm.setup('predict')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_validate
+    assert dm.has_setup_test
+    assert dm.has_setup_predict
 
 
 def test_dm_add_argparse_args(tmpdir):
@@ -348,7 +361,7 @@ def test_trainer_attached_to_dm(tmpdir):
     assert dm.trainer is not None
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_full_loop_single_gpu(tmpdir):
     reset_seed()
 
@@ -373,7 +386,7 @@ def test_full_loop_single_gpu(tmpdir):
     assert result[0]['test_acc'] > 0.6
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_full_loop_dp(tmpdir):
     set_random_master_port()
 
@@ -420,7 +433,7 @@ def test_full_loop_dp(tmpdir):
     assert result[0]['test_acc'] > 0.6
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
 def test_dm_apply_batch_transfer_handler(get_module_mock):
     expected_device = torch.device('cuda', 0)
