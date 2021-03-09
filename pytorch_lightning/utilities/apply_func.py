@@ -168,10 +168,10 @@ def convert_to_tensors(data, device: torch.device = None):
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
 
-    def _move_to_device_and_contiguous(t: torch.Tensor, device: torch.device):
+    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device):
         if t.device != device:
             t = t.to(device)
         return t.contiguous()
 
-    data = apply_to_collection(data, torch.Tensor, partial(_move_to_device_and_contiguous, device=device))
+    data = apply_to_collection(data, torch.Tensor, partial(_move_to_device_and_make_contiguous, device=device))
     return data
