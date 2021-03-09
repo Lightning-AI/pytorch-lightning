@@ -253,7 +253,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
 
-    def save_checkpoint(self, trainer, unused):
+    def save_checkpoint(self, trainer, unused: Optional = None):
         """
         Performs the main logic around saving a checkpoint.
         This method runs on all ranks, it is the responsibility of `self.save_function`
@@ -289,7 +289,8 @@ class ModelCheckpoint(Callback):
     def _should_skip_saving_checkpoint(self, trainer) -> bool:
         return (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
-            or trainer.running_sanity_check  # don't save anything during sanity check
+            or trainer.state != TrainerState.FITTING # don't save anything during non-fit
+            or trainer.sanity_checking  # don't save anything during sanity check
             or self.save_top_k == 0  # no models are saved
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
         )
