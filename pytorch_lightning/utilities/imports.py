@@ -48,6 +48,8 @@ def _compare_version(package: str, op, version) -> bool:
     >>> _compare_version("torch", operator.ge, "0.1")
     True
     """
+    if not _module_available(package):
+        return False
     try:
         pkg = importlib.import_module(package)
         assert hasattr(pkg, '__version__')
