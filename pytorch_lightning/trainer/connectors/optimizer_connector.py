@@ -28,7 +28,7 @@ class OptimizerConnector:
         self.trainer.optimizer_frequencies = []
 
     def update_learning_rates(
-        self, interval: str, monitor_metrics: Optional[Dict[str, Any]] = None, opt_indices: List[int] = []
+        self, interval: str, monitor_metrics: Optional[Dict[str, Any]] = None, opt_indices: Optional[List[int]] = None
     ):
         """Update learning rates.
 
@@ -38,6 +38,9 @@ class OptimizerConnector:
         """
         if not self.trainer.lr_schedulers:
             return
+
+        if opt_indices is None:
+            opt_indices = []
 
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
             if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:

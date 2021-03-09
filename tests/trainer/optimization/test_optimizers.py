@@ -366,9 +366,7 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(tmpdir):
 
     class DummyStepModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"loss": loss}
+            return super().training_step(batch, batch_idx)
 
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=0.01)
@@ -411,7 +409,7 @@ def test_step_scheduling_for_multiple_optimizers_without_frequency(tmpdir):
 
     class DummyStepModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
-            super().training_step(batch, batch_idx)
+            return super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs) -> None:
             pass
