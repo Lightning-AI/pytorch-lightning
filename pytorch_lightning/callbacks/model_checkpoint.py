@@ -265,7 +265,6 @@ class ModelCheckpoint(Callback):
                 " has been removed. Support for the old signature will be removed in v1.5", DeprecationWarning
             )
 
-        epoch = trainer.current_epoch
         global_step = trainer.global_step
 
         self._add_backward_monitor_support(trainer)
