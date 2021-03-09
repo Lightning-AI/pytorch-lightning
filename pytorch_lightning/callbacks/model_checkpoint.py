@@ -97,8 +97,10 @@ class ModelCheckpoint(Callback):
             To disable, set ``every_n_train_steps = 0``. This value must be non-negative.
         every_n_val_epochs: Number of validation epochs between checkpoints.
             To disable, set ``every_n_val_epochs = 0``. This value must be non-negative.
-            This is not mutually exclusive with ``every_n_val_epochs``. If both are set, pay extreme caution if also setting ``monitor``
-            as the ``monitor`` value must be available in both training and validation. This can have unintended consequences with tracking the top K models.
+            This is not mutually exclusive with ``every_n_val_epochs``.
+            If both are set, pay extreme caution if also setting ``monitor``
+            as the ``monitor`` value must be available in both training and validation.
+            This can have unintended consequences with tracking the top k models.
         period: Interval (number of epochs) between checkpoints.
 
             .. warning::
@@ -289,7 +291,7 @@ class ModelCheckpoint(Callback):
         from pytorch_lightning.trainer.states import TrainerState
         return (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
-            or trainer.state != TrainerState.FITTING # don't save anything during non-fit
+            or trainer.state != TrainerState.FITTING  # don't save anything during non-fit
             or trainer.sanity_checking  # don't save anything during sanity check
             or self.save_top_k == 0  # no models are saved
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
