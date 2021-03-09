@@ -1132,8 +1132,8 @@ class LightningModule(
             the scheduler will only be updated when its optimizer is being used.
 
         Note:
-            The lr_dict is a dictionary which contains scheduler and its associated configuration.
-            It has five keys. The default configuration is shown below.
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
 
             .. code-block:: python
 
