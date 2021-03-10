@@ -1828,3 +1828,13 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     trainer.max_epochs = 2  # simulate multiple fit calls
     trainer.fit(model)
     compare_optimizers()
+
+
+def test_check_val_every_n_epoch_exception(tmpdir):
+
+    with pytest.raises(MisconfigurationException, match="should be an integer."):
+        Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            check_val_every_n_epoch=1.2,
+        )
