@@ -274,6 +274,10 @@ class AcceleratorConnector(object):
         return self._distrib_type == DistributedType.DEEPSPEED
 
     @property
+    def use_smdistributed(self) -> bool:
+        return self.distributed_backend == DistributedType.SMDDP
+
+    @property
     def is_distributed(self) -> bool:
         is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
         if self.on_tpu:
@@ -307,10 +311,6 @@ class AcceleratorConnector(object):
     def is_using_torchelastic(self) -> bool:
         te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
         return te_flags_passed
-
-    @property
-    def use_smdistributed(self) -> bool:
-        return self.distributed_backend == DistributedType.SMDDP
 
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
