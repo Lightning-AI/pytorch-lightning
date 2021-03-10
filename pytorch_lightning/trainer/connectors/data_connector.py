@@ -26,9 +26,16 @@ class DataConnector(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node):
+    def on_trainer_init(
+        self, check_val_every_n_epoch: int, reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool
+    ) -> None:
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
+
+        if not isinstance(check_val_every_n_epoch, int):
+            raise MisconfigurationException(
+                f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
+            )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
         self.trainer.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
