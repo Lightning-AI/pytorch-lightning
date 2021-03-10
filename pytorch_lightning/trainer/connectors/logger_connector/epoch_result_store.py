@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 from weakref import proxy
@@ -22,8 +21,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType, LightningEnum
-
-log = logging.getLogger(__name__)
 
 
 class ResultStoreType(LightningEnum):
