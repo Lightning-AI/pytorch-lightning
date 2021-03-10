@@ -30,6 +30,9 @@ class SMDistributedEnvironment(ClusterEnvironment):
             raise MisconfigurationException("`smdistributed` module is not available.")
         super().__init__()
 
+    def creates_children(self) -> bool:
+        return False
+
     def master_address(self):
         master_address = os.environ['SM_CURRENT_HOST']
         log.debug(f"MASTER_ADDR: {master_address}")
