@@ -83,7 +83,12 @@ class DeepSpeedPlugin(DDPPlugin):
         initial_scale_power: int = 32,
         loss_scale_window: int = 1000,
         hysteresis: int = 2,
-        min_loss_scale: int = 1
+        min_loss_scale: int = 1,
+        activation_checkpointing: bool = False,
+        partition_activations: bool = False,
+        cpu_checkpointing: bool = False,
+        contiguous_memory_optimization: bool = False,
+        synchronize_checkpoint_boundary: bool = False,
     ) -> None:
         """
 
@@ -159,6 +164,11 @@ class DeepSpeedPlugin(DDPPlugin):
             self.config = self._create_default_config(
                 zero_optimization,
                 zero_allow_untested_optimizer,
+                activation_checkpointing=activation_checkpointing,
+                partition_activations=partition_activations,
+                cpu_checkpointing=cpu_checkpointing,
+                contiguous_memory_optimization=contiguous_memory_optimization,
+                synchronize_checkpoint_boundary=synchronize_checkpoint_boundary,
                 stage=stage,
                 cpu_offload=cpu_offload,
                 contiguous_gradients=contiguous_gradients,
@@ -230,11 +240,17 @@ class DeepSpeedPlugin(DDPPlugin):
         optimizer = optimizers[0]
         return optimizer, scheduler, optimizer_frequencies
 
+    @property
+    def zero_stage_3(self) -> bool:
+        return self.config.get('zero_optimization') and self.config.get('zero_optimization').get('stage') == 3
+
     def _initialize_deepspeed_train(self, model):
         if self.on_gpu:
             torch.cuda.set_device(self.root_device)
-        with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
-            self.lightning_module.trainer.call_hook("on_model_parallel_setup")
+
+        if self.zero_stage_3:
+            with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
+                self.lightning_module.trainer.call_hook("on_model_parallel_setup")
 
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
         if "optimizer" not in self.config:
@@ -252,10 +268,21 @@ class DeepSpeedPlugin(DDPPlugin):
             lr_scheduler=lightning_scheduler,
             config_params=self.config,
         )
+        self._set_deepspeed_activation_checkpointing()
 
         # set optimizer for save/load, but deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [optimizer]
         self.model = model
+
+    def _set_deepspeed_activation_checkpointing(self):
+        checkpoint_config = self.config.get('activation_checkpointing', {})
+        deepspeed.checkpointing.configure(
+            mpu_=None,
+            partition_activations=checkpoint_config.get('partition_activations'),
+            contiguous_checkpointing=checkpoint_config.get('contiguous_checkpointing'),
+            checkpoint_in_cpu=checkpoint_config.get('checkpoint_in_cpu'),
+            profile=checkpoint_config.get('profile'),
+        )
 
     def _initialize_deepspeed_inference(self, model):
         # move the model to the correct device
@@ -346,8 +373,21 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException("To use DeepSpeed ZeRO Optimization, you must set precision=16.")
 
     def _create_default_config(
-        self, zero_optimization: bool, zero_allow_untested_optimizer: bool, **zero_kwargs
+        self, zero_optimization: bool, zero_allow_untested_optimizer: bool, activation_checkpointing: bool,
+        partition_activations: bool, cpu_checkpointing: bool, contiguous_memory_optimization: bool,
+        synchronize_checkpoint_boundary: bool, **zero_kwargs
     ) -> Dict:
+        cfg = {}
         if zero_optimization:
-            return {"zero_allow_untested_optimizer": zero_allow_untested_optimizer, "zero_optimization": zero_kwargs}
-        return {}
+            cfg = {"zero_allow_untested_optimizer": zero_allow_untested_optimizer, "zero_optimization": zero_kwargs}
+        if activation_checkpointing:
+            cfg = {
+                'activation_checkpointing': {
+                    "partition_activations": partition_activations,
+                    "cpu_checkpointing": cpu_checkpointing,
+                    "contiguous_memory_optimization": contiguous_memory_optimization,
+                    "synchronize_checkpoint_boundary": synchronize_checkpoint_boundary
+                },
+                **cfg
+            }
+        return cfg

@@ -334,6 +334,13 @@ class ModelHooks:
 
         """
 
+    def on_model_parallel_setup(self) -> None:
+        """
+
+        Returns:
+
+        """
+
 
 class DataHooks:
     """Hooks to be used for data related stuff."""
