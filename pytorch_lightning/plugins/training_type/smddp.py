@@ -47,7 +47,11 @@ class SMDDPPlugin(DDPPlugin):
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         if not _SMDIST_AVAILABLE:
-            raise MisconfigurationException("`smdistributed` module is not available.")
+            raise MisconfigurationException(
+                "`smdistributed` module is not available."
+                " You would need to enable distributed=smdistributed"
+                " in the Sagemaker Estimator Object."
+            )
 
         # While running smdistributed, all the gpus in the instance are considered
         parallel_device_ids = list(range(torch.cuda.device_count()))
@@ -126,7 +130,7 @@ class SMDDPPlugin(DDPPlugin):
 
         self.configure_ddp()
 
-        self.barrier()
+        self.barrier("configure ddp")
 
     def sync_ddp_if_available(
         self,
