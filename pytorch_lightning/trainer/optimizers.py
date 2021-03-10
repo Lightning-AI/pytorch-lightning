@@ -117,16 +117,7 @@ class TrainerOptimizersMixin(ABC):
         # Convert each scheduler into dict structure with relevant information
         lr_schedulers = []
         default_config = _get_default_scheduler_config()
-        default_config = {
-            'scheduler': None,
-            'name': None,  # no custom name
-            'interval': 'epoch',  # after epoch is over
-            'frequency': 1,  # every epoch/batch
-            'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
-            'monitor': monitor,  # value to monitor for ReduceLROnPlateau
-            'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
-            'opt_idx': None,  # necessary to store opt_idx when optimizer frequencies are specified
-        }
+
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 # check provided keys
@@ -216,4 +207,5 @@ def _get_default_scheduler_config() -> Dict[str, Any]:
         'reduce_on_plateau': False,  # most often not ReduceLROnPlateau scheduler
         'monitor': None,  # value to monitor for ReduceLROnPlateau
         'strict': True,  # enforce that the monitor exists for ReduceLROnPlateau
+        'opt_idx': None,  # necessary to store opt_idx when optimizer frequencies are specified
     }
