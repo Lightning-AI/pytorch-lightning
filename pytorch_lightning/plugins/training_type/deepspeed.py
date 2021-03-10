@@ -233,6 +233,9 @@ class DeepSpeedPlugin(DDPPlugin):
     def _initialize_deepspeed_train(self, model):
         if self.on_gpu:
             torch.cuda.set_device(self.root_device)
+        with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
+            self.lightning_module.trainer.call_hook("on_model_parallel_setup")
+
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
         if "optimizer" not in self.config:
             rank_zero_info(
