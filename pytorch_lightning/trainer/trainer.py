@@ -839,6 +839,7 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None``, use the current weights of the model.
+                When the model is given as argument, this parameter will not apply.
 
             verbose: If True, prints the validation results.
 
@@ -902,6 +903,7 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the current weights of the model.
+                When the model is given as argument, this parameter will not apply.
 
             verbose: If True, prints the test results.
 
