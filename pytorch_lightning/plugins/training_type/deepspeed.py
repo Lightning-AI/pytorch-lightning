@@ -231,6 +231,8 @@ class DeepSpeedPlugin(DDPPlugin):
         return optimizer, scheduler, optimizer_frequencies
 
     def _initialize_deepspeed_train(self, model):
+        if self.root_device.type == "cuda":
+            torch.cuda.set_device(self.root_device)
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
         if "optimizer" not in self.config:
             rank_zero_info(
