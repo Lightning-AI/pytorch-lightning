@@ -126,6 +126,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         def validation_epoch_end(self, outputs):
             self.log('g', torch.tensor(2, device=self.device), on_epoch=True)
             self.validation_epoch_end_called = True
+            assert len(self.trainer.evaluation_loop.outputs) == 0
 
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
@@ -508,16 +509,6 @@ def test_log_works_in_val_callback(tmpdir):
                 on_epochs=self.choices,
                 prob_bars=self.choices
             )
-
-        """
-        def on_batch_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_batch_start', 4, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
-
-        def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            self.make_logging(pl_module, 'on_validation_batch_start', 5, on_steps=self.choices,
-                              on_epochs=self.choices, prob_bars=self.choices)
-        """
 
         def on_batch_end(self, trainer, pl_module):
             self.make_logging(

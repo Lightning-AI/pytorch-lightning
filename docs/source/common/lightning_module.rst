@@ -946,31 +946,29 @@ When set to ``False``, Lightning does not automate the optimization process. Thi
         opt = self.optimizers(use_pl_optimizer=True)
 
         loss = ...
-        self.manual_backward(loss, opt)
+        self.manual_backward(loss)
         opt.step()
         opt.zero_grad()
 
 This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter. Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
-
-In the multi-optimizer case, ignore the ``optimizer_idx`` argument and use the optimizers directly
 
 .. code-block:: python
 
     def __init__(self):
         self.automatic_optimization = False
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
-        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
+        opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
 
         gen_loss = ...
         opt_a.zero_grad()
-        self.manual_backward(gen_loss, opt_a)
+        self.manual_backward(gen_loss)
         opt_a.step()
 
         disc_loss = ...
         opt_b.zero_grad()
-        self.manual_backward(disc_loss, opt_b)
+        self.manual_backward(disc_loss)
         opt_b.step()
 
 --------------

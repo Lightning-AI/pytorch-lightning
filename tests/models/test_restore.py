@@ -30,6 +30,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 
@@ -166,10 +167,7 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
-            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[
-                checkpoint,
-                callback_capture,
-            ]
+            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[checkpoint, callback_capture]
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
@@ -214,7 +212,7 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     trainer.fit(model, datamodule=dm)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
 
@@ -262,7 +260,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         tpipes.run_prediction_eval_model_template(pretrained_model, dataloader)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     """Verify `test()` on pretrained model."""
     tutils.set_random_master_port()
@@ -395,7 +393,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     new_trainer.test(pretrained_model)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
     model = CustomClassificationModelDP(lr=0.1)
@@ -452,7 +450,7 @@ def test_dp_resume(tmpdir):
 
             # if model and state loaded correctly, predictions will be good even though we
             # haven't trained with the new loaded model
-            new_trainer._running_stage = RunningStage.EVALUATING
+            new_trainer._running_stage = RunningStage.VALIDATING
 
             dataloader = self.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)

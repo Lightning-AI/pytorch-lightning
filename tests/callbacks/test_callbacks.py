@@ -19,28 +19,19 @@ from tests.helpers import BoringModel
 
 
 @mock.patch("torch.save")  # need to mock torch.save or we get pickle error
-def test_trainer_callback_system(torch_save, tmpdir):
-    """Test the callback system."""
+def test_trainer_callback_system_fit(_, tmpdir):
+    """Test the callback system for fit."""
 
     model = BoringModel()
-
     callback_mock = MagicMock()
-
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[callback_mock],
         max_epochs=1,
         limit_val_batches=1,
         limit_train_batches=3,
-        limit_test_batches=2,
         progress_bar_refresh_rate=0,
     )
-
-    # no call yet
-    callback_mock.assert_not_called()
-
-    # fit model
-    trainer = Trainer(**trainer_options)
 
     # check that only the to calls exists
     assert trainer.callbacks[0] == callback_mock
@@ -49,6 +40,7 @@ def test_trainer_callback_system(torch_save, tmpdir):
         call.on_init_end(trainer),
     ]
 
+    # fit model
     trainer.fit(model)
 
     assert callback_mock.method_calls == [
@@ -104,8 +96,20 @@ def test_trainer_callback_system(torch_save, tmpdir):
         call.teardown(trainer, model, 'fit'),
     ]
 
-    callback_mock.reset_mock()
-    trainer = Trainer(**trainer_options)
+
+def test_trainer_callback_system_test(tmpdir):
+    """Test the callback system for test."""
+
+    model = BoringModel()
+    callback_mock = MagicMock()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[callback_mock],
+        max_epochs=1,
+        limit_test_batches=2,
+        progress_bar_refresh_rate=0,
+    )
+
     trainer.test(model)
 
     assert callback_mock.method_calls == [
@@ -113,7 +117,6 @@ def test_trainer_callback_system(torch_save, tmpdir):
         call.on_init_end(trainer),
         call.setup(trainer, model, 'test'),
         call.on_before_accelerator_backend_setup(trainer, model),
-        call.on_fit_start(trainer, model),
         call.on_test_start(trainer, model),
         call.on_test_epoch_start(trainer, model),
         call.on_test_batch_start(trainer, model, ANY, 0, 0),
@@ -123,8 +126,6 @@ def test_trainer_callback_system(torch_save, tmpdir):
         call.on_test_epoch_end(trainer, model),
         call.on_epoch_end(trainer, model),
         call.on_test_end(trainer, model),
-        call.on_fit_end(trainer, model),
-        call.teardown(trainer, model, 'fit'),
         call.teardown(trainer, model, 'test'),
     ]
 

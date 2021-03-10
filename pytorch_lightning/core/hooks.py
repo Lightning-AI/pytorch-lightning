@@ -25,14 +25,14 @@ from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 class ModelHooks:
     """Hooks to be used in LightningModule."""
 
-    def setup(self, stage: str) -> None:
+    def setup(self, stage: Optional[str] = None) -> None:
         """
-        Called at the beginning of fit and test.
+        Called at the beginning of fit (train + validate), validate, test, predict, or tune.
         This is a good hook when you need to build models dynamically or adjust something about them.
         This hook is called on every process when using DDP.
 
         Args:
-            stage: either 'fit' or 'test'
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
 
         Example::
 
@@ -53,12 +53,12 @@ class ModelHooks:
 
         """
 
-    def teardown(self, stage: str) -> None:
+    def teardown(self, stage: Optional[str] = None) -> None:
         """
-        Called at the end of fit and test.
+        Called at the end of fit (train + validate), validate, test, predict, or tune.
 
         Args:
-            stage: either 'fit' or 'test'
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
         """
 
     def on_fit_start(self) -> None:
@@ -383,12 +383,14 @@ class DataHooks:
             model.test_dataloader()
         """
 
-    def train_dataloader(self) -> DataLoader:
+    def train_dataloader(self) -> Any:
         """
-        Implement a PyTorch DataLoader for training.
+        Implement one or more PyTorch DataLoaders for training.
 
         Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
+            Either a single PyTorch :class:`~torch.utils.data.DataLoader` or a collection of these
+            (list, dict, nested lists and dicts). In the case of multiple dataloaders, please see
+            this :ref:`page <multiple-training-dataloaders>`
 
         The dataloader you return will not be called every epoch unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
@@ -414,6 +416,7 @@ class DataHooks:
 
         Example::
 
+            # single dataloader
             def train_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(),
                                                 transforms.Normalize((0.5,), (1.0,))])
@@ -425,6 +428,32 @@ class DataHooks:
                     shuffle=True
                 )
                 return loader
+
+            # multiple dataloaders, return as list
+            def train_dataloader(self):
+                mnist = MNIST(...)
+                cifar = CIFAR(...)
+                mnist_loader = torch.utils.data.DataLoader(
+                    dataset=mnist, batch_size=self.batch_size, shuffle=True
+                )
+                cifar_loader = torch.utils.data.DataLoader(
+                    dataset=cifar, batch_size=self.batch_size, shuffle=True
+                )
+                # each batch will be a list of tensors: [batch_mnist, batch_cifar]
+                return [mnist_loader, cifar_loader]
+
+            # multiple dataloader, return as dict
+            def train_dataloader(self):
+                mnist = MNIST(...)
+                cifar = CIFAR(...)
+                mnist_loader = torch.utils.data.DataLoader(
+                    dataset=mnist, batch_size=self.batch_size, shuffle=True
+                )
+                cifar_loader = torch.utils.data.DataLoader(
+                    dataset=cifar, batch_size=self.batch_size, shuffle=True
+                )
+                # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
+                return {'mnist': mnist_loader, 'cifar': cifar_loader}
 
         """
         rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import logging
 import os
 import time
 from pathlib import Path
@@ -55,7 +55,7 @@ def advanced_profiler(tmpdir):
     pytest.param("b", [2]),
     pytest.param("c", [1]),
 ])
-def test_simple_profiler_durations(simple_profiler, action, expected):
+def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
 
     for duration in expected:
@@ -72,7 +72,7 @@ def test_simple_profiler_durations(simple_profiler, action, expected):
     pytest.param("b", [2]),
     pytest.param("c", [1]),
 ])
-def test_simple_profiler_iterable_durations(simple_profiler, action, expected):
+def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 
@@ -95,7 +95,8 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
 
 def test_simple_profiler_describe(caplog, simple_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
-    simple_profiler.describe()
+    with caplog.at_level(logging.INFO):
+        simple_profiler.describe()
 
     assert "Profiler Report" in caplog.text
 
@@ -120,7 +121,7 @@ def test_simple_profiler_value_errors(simple_profiler):
     pytest.param("b", [2]),
     pytest.param("c", [1]),
 ])
-def test_advanced_profiler_durations(advanced_profiler, action, expected):
+def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
 
     for duration in expected:
         with advanced_profiler.profile(action):
@@ -138,7 +139,7 @@ def test_advanced_profiler_durations(advanced_profiler, action, expected):
     pytest.param("b", [2]),
     pytest.param("c", [1]),
 ])
-def test_advanced_profiler_iterable_durations(advanced_profiler, action, expected):
+def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 

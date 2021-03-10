@@ -102,8 +102,6 @@ jobs:
         id: extend
 
       - name: Publish CUDA to Docker Hub
-        # ToDo: extend also building for Nightly from pip
-        if: matrix.pytorch_version < 1.8
         # publish master/release
         uses: docker/build-push-action@v2
         with:
