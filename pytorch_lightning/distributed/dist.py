@@ -17,12 +17,15 @@ from typing import Any
 import torch
 from torch import distributed as torch_distrib
 
-from pytorch_lightning.utilities import _GROUP_AVAILABLE
+from pytorch_lightning.utilities import _GROUP_AVAILABLE, _SMDIST_AVAILABLE
 
 WORLD = None
 if _GROUP_AVAILABLE:
     from torch.distributed import group
     WORLD = group.WORLD
+
+if _SMDIST_AVAILABLE:
+    import smdistributed.dataparallel.torch.distributed as sm_dist
 
 
 class LightningDistributed:
@@ -60,3 +63,11 @@ class LightningDistributed:
         buffer = io.BytesIO(data_tensor.cpu().numpy())
         obj = torch.load(buffer)
         return obj
+
+
+class SMLightningDistributed(LightningDistributed):
+
+    def _broadcast(self, tensor, src, group):
+        if group is None:
+            return sm_dist.broadcast(tensor, src=src)
+        return sm_dist.broadcast(tensor, src=0, group=group)

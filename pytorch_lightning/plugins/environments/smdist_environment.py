@@ -34,7 +34,7 @@ class SMDistributedEnvironment(ClusterEnvironment):
         return False
 
     def master_address(self):
-        master_address = os.environ['SM_CURRENT_HOST']
+        master_address = os.environ["SM_CURRENT_HOST"]
         log.debug(f"MASTER_ADDR: {master_address}")
         return master_address
 
@@ -44,7 +44,7 @@ class SMDistributedEnvironment(ClusterEnvironment):
             os.environ["MASTER_PORT"] = "12910"
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-        port = os.environ.get('MASTER_PORT')
+        port = os.environ.get("MASTER_PORT")
         return port
 
     def world_size(self) -> int:
@@ -54,8 +54,8 @@ class SMDistributedEnvironment(ClusterEnvironment):
         return dist.get_local_rank()
 
     def node_rank(self) -> int:
-        hosts = os.environ['SM_HOSTS']
-        current_host = os.environ['SM_CURRENT_HOST']
+        hosts = os.environ["SM_HOSTS"]
+        current_host = os.environ["SM_CURRENT_HOST"]
         return hosts.index(current_host) if current_host in hosts else 0
 
     def global_rank(self) -> int:
