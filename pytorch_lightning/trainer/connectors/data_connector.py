@@ -17,6 +17,7 @@ from typing import List, Optional, Union
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
@@ -27,9 +28,15 @@ class DataConnector(object):
         self.trainer = trainer
 
     def on_trainer_init(self, check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node):
+        CHECK_VAL_EVERY_N_EPOCH_DEFAULT = 1
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
 
+        if check_val_every_n_epoch != CHECK_VAL_EVERY_N_EPOCH_DEFAULT:
+            rank_zero_warn(
+                "`check_val_every_n_epoch` was deprecated in v1.3.0."
+                " It will be removed in v1.5.0", DeprecationWarning
+            )
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
         self.trainer.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
         self.trainer._is_data_prepared = False

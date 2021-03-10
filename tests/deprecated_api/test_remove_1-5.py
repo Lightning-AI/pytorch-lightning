@@ -104,3 +104,12 @@ def test_old_training_step_signature_with_opt_idx_manual_opt(tmpdir):
 
     with pytest.deprecated_call(match="`training_step` .* `optimizer_idx` .* manual .* will be removed in v1.5"):
         trainer.fit(model)
+
+
+def test_v1_5_0_check_val_every_n_epoch(tmpdir):
+
+    with pytest.deprecated_call(match="It will be removed in v1.5.0"):
+        Trainer(
+            default_root_dir=tmpdir,
+            check_val_every_n_epoch=3,
+        )
