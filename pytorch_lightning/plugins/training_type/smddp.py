@@ -80,7 +80,7 @@ class SMDDPPlugin(DDPPlugin):
         self._model = DistributedDataParallel(
             LightningDistributedModule(self.model),
             device_ids=[dist.get_local_rank()],
-            **self._ddp_kwargs,
+            broadcast_buffers=False,
         )
 
     def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
