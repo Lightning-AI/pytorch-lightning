@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from unittest import mock
+from unittest.mock import Mock
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Callback, Trainer
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -64,5 +65,41 @@ def test_global_zero_only_logging_ddp_spawn(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
+    )
+    trainer.fit(model)
+
+
+def test_first_logger_call_in_subprocess(tmpdir):
+    """
+    Test that the Trainer does not call the logger too early. Only when the worker processes are initialized
+    do we have access to the rank and know which one is the main process.
+    """
+
+    class LoggerCallsObserver(Callback):
+
+        def on_fit_start(self, trainer, pl_module):
+            # this hook is executed directly before Trainer.pre_dispatch
+            # logger should not write any logs until this point
+            assert not trainer.logger.method_calls
+            assert not os.listdir(trainer.logger.save_dir)
+
+        def on_train_start(self, trainer, pl_module):
+            assert trainer.logger.method_call
+            trainer.logger.log_hyperparams.assert_called_once()
+            trainer.logger.log_graph.assert_called_once()
+
+    logger = Mock()
+    logger.version = "0"
+    logger.name = "name"
+    logger.save_dir = tmpdir
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        logger=logger,
+        callbacks=[LoggerCallsObserver()]
     )
     trainer.fit(model)

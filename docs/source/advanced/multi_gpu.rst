@@ -332,7 +332,6 @@ There are cases in which it is NOT possible to use DDP. Examples are:
 
 - Jupyter Notebook, Google COLAB, Kaggle, etc.
 - You have a nested script without a root package
-- Your script needs to invoke both `.fit` and `.test`, or one of them multiple times
 
 In these situations you should use `dp` or `ddp_spawn` instead.
 
