@@ -22,7 +22,8 @@ from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
-from pytorch_lightning.utilities import parsing, rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str
 
 
 class _DataModuleWrapper(type):
@@ -54,10 +55,10 @@ class _DataModuleWrapper(type):
 def track_data_hook_calls(fn):
     """A decorator that checks if prepare_data/setup have been called.
 
-    - When dm.prepare_data() is called, dm.has_prepared_data gets set to True
-    - When dm.setup('fit') is called, dm.has_setup_fit gets set to True
-    - When dm.setup('test') is called, dm.has_setup_test gets set to True
-    - When dm.setup() is called without stage arg, both dm.has_setup_fit and dm.has_setup_test get set to True
+    - When ``dm.prepare_data()`` is called, ``dm.has_prepared_data`` gets set to True
+    - When ``dm.setup()``, ``dm.has_setup_{fit,validate,test}`` get set to True
+    - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
+        Its corresponding `dm_has_setup_{stage}` attribute gets set to True
 
     Args:
         fn (function): Function that will be tracked to see if it has been called.
@@ -76,15 +77,15 @@ def track_data_hook_calls(fn):
         if fn.__name__ == "setup":
 
             # Get stage either by grabbing from args or checking kwargs.
-            # If not provided, set call status of 'fit' and 'test' to True.
+            # If not provided, set call status of 'fit', 'validate', and 'test' to True.
             # We do this so __attach_datamodule in trainer.py doesn't mistakenly call setup('test') on trainer.test()
             stage = args[1] if len(args) > 1 else kwargs.get("stage", None)
 
-            if stage == "fit" or stage is None:
-                obj._has_setup_fit = True
-
-            if stage == "test" or stage is None:
-                obj._has_setup_test = True
+            if stage is None:
+                for s in ("fit", "validate", "test"):
+                    setattr(obj, f"_has_setup_{s}", True)
+            else:
+                setattr(obj, f"_has_setup_{stage}", True)
 
         if fn.__name__ == "prepare_data":
             obj._has_prepared_data = True
@@ -155,7 +156,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False
         self._has_setup_fit = False
+        self._has_setup_validate = False
         self._has_setup_test = False
+        self._has_setup_predict = False
 
     @property
     def train_transforms(self):
@@ -213,31 +216,49 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         return self.dims
 
     @property
-    def has_prepared_data(self):
-        """Return bool letting you know if datamodule.prepare_data() has been called or not.
+    def has_prepared_data(self) -> bool:
+        """Return bool letting you know if ``datamodule.prepare_data()`` has been called or not.
 
         Returns:
-            bool: True if datamodule.prepare_data() has been called. False by default.
+            bool: True if ``datamodule.prepare_data()`` has been called. False by default.
         """
         return self._has_prepared_data
 
     @property
-    def has_setup_fit(self):
-        """Return bool letting you know if datamodule.setup('fit') has been called or not.
+    def has_setup_fit(self) -> bool:
+        """Return bool letting you know if ``datamodule.setup(stage='fit')`` has been called or not.
 
         Returns:
-            bool: True if datamodule.setup('fit') has been called. False by default.
+            bool: True ``if datamodule.setup(stage='fit')`` has been called. False by default.
         """
         return self._has_setup_fit
 
     @property
-    def has_setup_test(self):
-        """Return bool letting you know if datamodule.setup('test') has been called or not.
+    def has_setup_validate(self) -> bool:
+        """Return bool letting you know if ``datamodule.setup(stage='validate')`` has been called or not.
 
         Returns:
-            bool: True if datamodule.setup('test') has been called. False by default.
+            bool: True if ``datamodule.setup(stage='validate')`` has been called. False by default.
+        """
+        return self._has_setup_validate
+
+    @property
+    def has_setup_test(self) -> bool:
+        """Return bool letting you know if ``datamodule.setup(stage='test')`` has been called or not.
+
+        Returns:
+            bool: True if ``datamodule.setup(stage='test')`` has been called. False by default.
         """
         return self._has_setup_test
+
+    @property
+    def has_setup_predict(self) -> bool:
+        """Return bool letting you know if ``datamodule.setup(stage='predict')`` has been called or not.
+
+        Returns:
+            bool: True if ``datamodule.setup(stage='predict')`` has been called. False by default.
+        """
+        return self._has_setup_predict
 
     @abstractmethod
     def prepare_data(self, *args, **kwargs):
@@ -272,10 +293,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
                 arg_kwargs.update(nargs="?", const=True)
                 # if the only arg type is bool
                 if len(arg_types) == 1:
-                    use_type = parsing.str_to_bool
+                    use_type = str_to_bool
                 # if only two args (str, bool)
                 elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
-                    use_type = parsing.str_to_bool_or_str
+                    use_type = str_to_bool_or_str
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]

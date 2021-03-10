@@ -26,9 +26,16 @@ class DataConnector(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node):
+    def on_trainer_init(
+        self, check_val_every_n_epoch: int, reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool
+    ) -> None:
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
+
+        if not isinstance(check_val_every_n_epoch, int):
+            raise MisconfigurationException(
+                f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
+            )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
         self.trainer.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
@@ -81,7 +88,7 @@ class DataConnector(object):
 
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.attach_datamodule(model, datamodule, 'fit')
+        self.attach_datamodule(model, datamodule)
 
     def __enforce_datamodule_dataloader_override(self, train_dataloader, val_dataloaders, datamodule):
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
@@ -112,10 +119,8 @@ class DataConnector(object):
         if predict_dataloaders is not None:
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
-    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
-        # Todo: required argument `stage` is not used
-
-        # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
+    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule]) -> None:
+        # We use datamodule if it's been provided, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
 
         # If we have a datamodule, attach necessary hooks + dataloaders

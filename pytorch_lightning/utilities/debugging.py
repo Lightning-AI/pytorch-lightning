@@ -139,7 +139,7 @@ class InternalDebugger(object):
     @enabled_only
     def track_eval_loss_history(self, batch_idx, dataloader_idx, output):
         loss_dict = {
-            'sanity_check': self.trainer.running_sanity_check,
+            'sanity_check': self.trainer.sanity_checking,
             'dataloader_idx': dataloader_idx,
             'batch_idx': batch_idx,
             'epoch': self.trainer.current_epoch,

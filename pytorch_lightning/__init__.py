@@ -1,7 +1,8 @@
 """Root package info."""
 
-import logging as python_logging
+import logging
 import os
+import sys
 import time
 
 _this_year = time.strftime("%Y")
@@ -37,10 +38,14 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/latest
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
+_root_logger = logging.getLogger()
+_logger = logging.getLogger(__name__)
+_logger.setLevel(logging.INFO)
 
-_logger = python_logging.getLogger("lightning")
-_logger.addHandler(python_logging.StreamHandler())
-_logger.setLevel(python_logging.INFO)
+# if root logger has handlers, propagate messages up and let root logger process them
+if not _root_logger.hasHandlers():
+    _logger.addHandler(logging.StreamHandler())
+    _logger.propagate = False
 
 _PACKAGE_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_PACKAGE_ROOT)
@@ -53,9 +58,7 @@ try:
 except NameError:
     __LIGHTNING_SETUP__: bool = False
 
-if __LIGHTNING_SETUP__:
-    import sys  # pragma: no-cover
-
+if __LIGHTNING_SETUP__:  # pragma: no-cover
     sys.stdout.write(f'Partial import of `{__name__}` during the build process.\n')  # pragma: no-cover
     # We are not importing the rest of the lightning during the build process, as it may not be compiled yet
 else:

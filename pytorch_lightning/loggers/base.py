@@ -279,12 +279,14 @@ class LightningLoggerBase(ABC):
         return params
 
     @abstractmethod
-    def log_hyperparams(self, params: argparse.Namespace):
+    def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
         """
         Record hyperparameters.
 
         Args:
             params: :class:`~argparse.Namespace` containing the hyperparameters
+            args: Optional positional arguments, depends on the specific logger being used
+            kwargs: Optional keywoard arguments, depends on the specific logger being used
         """
 
     def log_graph(self, model: LightningModule, input_array=None) -> None:
@@ -418,41 +420,41 @@ class DummyExperiment(object):
     def __getattr__(self, _):
         return self.nop
 
-    def __getitem__(self, idx):
-        # enables self.logger[0].experiment.add_image
-        # and self.logger.experiment[0].add_image(...)
+    def __getitem__(self, idx) -> "DummyExperiment":
+        # enables self.logger.experiment[0].add_image(...)
         return self
 
 
 class DummyLogger(LightningLoggerBase):
-    """ Dummy logger for internal use. Is useful if we want to disable users
-        logger for a feature, but still secure that users code can run """
+    """
+    Dummy logger for internal use. It is useful if we want to disable user's
+    logger for a feature, but still ensure that user code can run
+    """
 
     def __init__(self):
         super().__init__()
         self._experiment = DummyExperiment()
 
     @property
-    def experiment(self):
+    def experiment(self) -> DummyExperiment:
         return self._experiment
 
-    @rank_zero_only
-    def log_metrics(self, metrics, step):
+    def log_metrics(self, *args, **kwargs) -> None:
         pass
 
-    @rank_zero_only
-    def log_hyperparams(self, params):
-        pass
-
-    @property
-    def name(self):
+    def log_hyperparams(self, *args, **kwargs) -> None:
         pass
 
     @property
-    def version(self):
-        pass
+    def name(self) -> str:
+        return ""
 
-    def __getitem__(self, idx):
+    @property
+    def version(self) -> str:
+        return ""
+
+    def __getitem__(self, idx) -> "DummyLogger":
+        # enables self.logger[0].experiment.add_image(...)
         return self
 
 
