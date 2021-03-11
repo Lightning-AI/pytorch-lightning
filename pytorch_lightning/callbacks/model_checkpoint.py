@@ -348,7 +348,7 @@ class ModelCheckpoint(Callback):
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
-        # If using multiple devices, make sure all processes are unimanious on the decision.
+        # If using multiple devices, make sure all processes are unanimous on the decision.
         should_update_best_and_save = trainer.training_type_plugin.reduce_boolean_decision(should_update_best_and_save)
 
         return should_update_best_and_save
