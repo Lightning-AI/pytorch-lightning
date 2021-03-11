@@ -356,13 +356,15 @@ class ModelCheckpoint(Callback):
 
         # Default to running once after each validation epoch if neither
         # every_n_train_steps nor every_n_val_epochs is set
-        self.every_n_val_epochs = every_n_val_epochs or 0
-        self.every_n_train_steps = every_n_train_steps or 0
-        if self.every_n_train_steps == 0 and self.every_n_val_epochs == 0:
+        if every_n_train_steps is None and every_n_val_epochs is None:
             self.every_n_val_epochs = 1
+            self.every_n_train_steps = 0
             log.debug("Both every_n_train_steps and every_n_val_epochs are not set. Setting every_n_val_epochs=1")
+        else:
+            self.every_n_val_epochs = every_n_val_epochs or 0
+            self.every_n_train_steps = every_n_train_steps or 0
 
-        # period takes precedence for every_n_val_epochs for backwards compatibility
+        # period takes precedence over every_n_val_epochs for backwards compatibility
         if period is not None:
             rank_zero_warn(
                 'Argument `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'

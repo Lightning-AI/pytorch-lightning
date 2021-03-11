@@ -614,7 +614,7 @@ def test_model_checkpoint_period(tmpdir, period: int):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@pytest.mark.parametrize("every_n_val_epochs", list(range(1, 4)))
+@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
 def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
     model = LogInTwoMethods()
     epochs = 5
