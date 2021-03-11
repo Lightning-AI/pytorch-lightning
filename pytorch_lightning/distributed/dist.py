@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import io
-from typing import Any
+from typing import Any, Optional
 
 import torch
 from torch import distributed as torch_distrib
