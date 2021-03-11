@@ -132,6 +132,16 @@ class ModelCheckpoint(Callback):
         ...     filename='sample-mnist-{epoch:02d}-{val_loss:.2f}'
         ... )
 
+        # save epoch and val_loss in name, but specify the formatting yourself (e.g. to avoid problems with Tensorboard
+        # or Neptune, due to the presence of characters like '=' or '/')
+        # saves a file like: my/path/sample-mnist-epoch02-val_loss0.32.ckpt
+        >>> checkpoint_callback = ModelCheckpoint(
+        ...     monitor='val/loss',
+        ...     dirpath='my/path/',
+        ...     filename='sample-mnist-epoch{epoch:02d}-val_loss{val/loss:.2f}',
+        ...     auto_insert_metric_name=False
+        ... )
+
         # retrieve the best checkpoint after training
         checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
         trainer = Trainer(callbacks=[checkpoint_callback])
@@ -157,6 +167,7 @@ class ModelCheckpoint(Callback):
         save_weights_only: bool = False,
         mode: str = "min",
         period: int = 1,
+        auto_insert_metric_name: bool = True
     ):
         super().__init__()
         self.monitor = monitor
@@ -165,6 +176,7 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.period = period
+        self.auto_insert_metric_name = auto_insert_metric_name
         self._last_global_step_saved = -1
         self.current_score = None
         self.best_k_models = {}
@@ -361,6 +373,7 @@ class ModelCheckpoint(Callback):
         step: int,
         metrics: Dict[str, Any],
         prefix: str = "",
+        auto_insert_metric_name: bool = True
     ) -> str:
         if not filename:
             # filename is not set, use default name
@@ -372,7 +385,10 @@ class ModelCheckpoint(Callback):
             metrics.update({"epoch": epoch, 'step': step})
             for group in groups:
                 name = group[1:]
-                filename = filename.replace(group, name + "={" + name)
+
+                if auto_insert_metric_name:
+                    filename = filename.replace(group, name + "={" + name)
+
                 if name not in metrics:
                     metrics[name] = 0
             filename = filename.format(**metrics)
@@ -397,6 +413,11 @@ class ModelCheckpoint(Callback):
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}-{val_loss:.2f}')
             >>> os.path.basename(ckpt.format_checkpoint_name(2, 3, metrics=dict(val_loss=0.123456)))
             'epoch=2-val_loss=0.12.ckpt'
+            >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
+            ... filename='epoch={epoch}-validation_loss={val_loss:.2f}',
+            ... auto_insert_metric_name=False)
+            >>> os.path.basename(ckpt.format_checkpoint_name(2, 3, metrics=dict(val_loss=0.123456)))
+            'epoch=2-validation_loss=0.12.ckpt'
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{missing:d}')
             >>> os.path.basename(ckpt.format_checkpoint_name(0, 4, metrics={}))
             'missing=0.ckpt'
@@ -405,7 +426,13 @@ class ModelCheckpoint(Callback):
             'step=0.ckpt'
 
         """
-        filename = self._format_checkpoint_name(self.filename, epoch, step, metrics)
+        filename = self._format_checkpoint_name(
+            self.filename,
+            epoch,
+            step,
+            metrics,
+            auto_insert_metric_name=self.auto_insert_metric_name)
+
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
 

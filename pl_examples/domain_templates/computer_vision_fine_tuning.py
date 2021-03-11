@@ -147,14 +147,14 @@ class CatDogImageDataModule(LightningDataModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser = argparse.ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("CatDogImageDataModule")
         parser.add_argument(
             "--num-workers", default=0, type=int, metavar="W", help="number of CPU workers", dest="num_workers"
         )
         parser.add_argument(
             "--batch-size", default=8, type=int, metavar="W", help="number of sample in a batch", dest="batch_size"
         )
-        return parser
+        return parent_parser
 
 
 #  --- Pytorch-lightning module ---
@@ -268,7 +268,7 @@ class TransferLearningModel(pl.LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser = argparse.ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("TransferLearningModel")
         parser.add_argument(
             "--backbone",
             default="resnet50",
@@ -303,7 +303,7 @@ class TransferLearningModel(pl.LightningModule):
         parser.add_argument(
             "--milestones", default=[2, 4], type=list, metavar="M", help="List of two epochs milestones"
         )
-        return parser
+        return parent_parser
 
 
 def main(args: argparse.Namespace) -> None:

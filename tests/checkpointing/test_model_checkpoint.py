@@ -432,6 +432,15 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt_name = ckpt.format_checkpoint_name(4, 3, {'val/loss': 0.03})
     assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
 
+    # auto_insert_metric_name=False
+    ckpt_name = ModelCheckpoint._format_checkpoint_name(
+        'epoch={epoch:03d}-val_acc={val/acc}',
+        3,
+        2,
+        {'val/acc': 0.03},
+        auto_insert_metric_name=False)
+    assert ckpt_name == 'epoch=003-val_acc=0.03'
+
 
 class ModelCheckpointExtensionTest(ModelCheckpoint):
     FILE_EXTENSION = '.tpkc'
@@ -865,6 +874,9 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     assert_checkpoint_log_dir(0)
     assert_checkpoint_content(ckpt_dir)
 
+    trainer.validate(model)
+    assert trainer.current_epoch == epochs - 1
+
     trainer.test(model)
     assert trainer.current_epoch == epochs - 1
 
@@ -878,16 +890,23 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         assert_trainer_init(trainer)
 
         model = ExtendedBoringModel()
+
         trainer.test(model)
         assert not trainer.checkpoint_connector.has_trained
         # resume_from_checkpoint is resumed when calling `.fit`
         assert trainer.global_step == 0
         assert trainer.current_epoch == 0
+
         trainer.fit(model)
         assert not trainer.checkpoint_connector.has_trained
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert_checkpoint_log_dir(idx)
+
+        trainer.validate(model)
+        assert not trainer.checkpoint_connector.has_trained
+        assert trainer.global_step == epochs * limit_train_batches
+        assert trainer.current_epoch == epochs
 
 
 def test_configure_model_checkpoint(tmpdir):
