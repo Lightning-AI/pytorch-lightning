@@ -1,7 +1,8 @@
-coverage>=5.0
+coverage>=5.2
 codecov>=2.1
-pytest>=5.0
-# pytest-cov
+pytest>=6.0
+pytest-cov>2.10
+pytest-xdist
 flake8>=3.6
 check-manifest
 twine==3.2
