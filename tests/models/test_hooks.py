@@ -474,6 +474,7 @@ def test_trainer_model_hook_system(tmpdir):
 
     trainer.validate(model, verbose=False)
     expected = [
+        'setup_validate',
         'on_validation_model_eval',
         'on_validation_start',
         'on_validation_epoch_start',
@@ -483,7 +484,7 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_end',
         'on_validation_end',
         'on_validation_model_train',
-        'teardown',
+        'teardown_validate',
     ]
     assert model.called == expected
 
@@ -564,6 +565,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
         limit_test_batches=1,
         progress_bar_refresh_rate=0,
         weights_summary=None,
+        reload_dataloaders_every_epoch=True,
     )
     trainer.fit(model, datamodule=dm)
 
@@ -581,10 +583,25 @@ def test_trainer_datamodule_hook_system(tmpdir):
         'on_before_batch_transfer',
         'transfer_batch_to_device',
         'on_after_batch_transfer',
+        'val_dataloader',
         'on_before_batch_transfer',
         'transfer_batch_to_device',
         'on_after_batch_transfer',
         'teardown_fit'
+    ]
+    assert dm.called == expected
+
+    dm = HookedDataModule()
+    trainer.validate(model, datamodule=dm, verbose=False)
+
+    expected = [
+        'prepare_data',
+        'setup_validate',
+        'val_dataloader',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
+        'teardown_validate'
     ]
     assert dm.called == expected
 
