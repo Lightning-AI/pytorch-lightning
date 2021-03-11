@@ -390,7 +390,7 @@ class DQNLightning(pl.LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = argparse.ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("DQNLightning")
         parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
         parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
         parser.add_argument("--env", type=str, default="CartPole-v0", help="gym environment tag")
@@ -407,7 +407,7 @@ class DQNLightning(pl.LightningModule):
         parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
         parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
         parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")
-        return parser
+        return parent_parser
 
 
 def main(args) -> None:

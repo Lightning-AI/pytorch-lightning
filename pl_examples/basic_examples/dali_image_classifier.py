@@ -175,10 +175,10 @@ class LitClassifier(pl.LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser = parent_parser.add_argument_group("LitClassifier")
         parser.add_argument('--hidden_dim', type=int, default=128)
         parser.add_argument('--learning_rate', type=float, default=0.0001)
-        return parser
+        return parent_parser
 
 
 def cli_main():
