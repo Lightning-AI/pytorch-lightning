@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import operator
 from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
@@ -22,10 +22,10 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _module_available, _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
-    if _module_available("torchtext.legacy.data"):
+    if _compare_version("torchtext", operator.ge, "0.9.0"):
         from torchtext.legacy.data import Batch
     else:
         from torchtext.data import Batch
@@ -164,6 +164,12 @@ def move_data_to_device(batch: Any, device: torch.device):
 def convert_to_tensors(data, device: torch.device = None):
     if device is None:
         raise MisconfigurationException("device (torch.device) should be provided.")
+
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
+
+    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device):
+        return t.to(device).contiguous()
+
+    data = apply_to_collection(data, torch.Tensor, partial(_move_to_device_and_make_contiguous, device=device))
     return data

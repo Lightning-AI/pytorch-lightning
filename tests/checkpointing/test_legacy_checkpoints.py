@@ -54,9 +54,11 @@ CHECKPOINT_EXTENSION = ".ckpt"
         "1.1.8",
         "1.2.0",
         "1.2.1",
+        "1.2.2",
+        "1.2.3",
     ]
 )
-def test_resume_legacy_checkpoints(tmpdir, pl_version):
+def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     path_dir = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
 
     # todo: make this as mock, so it is cleaner...

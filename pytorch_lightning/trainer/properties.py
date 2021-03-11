@@ -31,7 +31,7 @@ from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingT
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -48,6 +48,7 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _lightning_optimizers = None
     _progress_bar_callback: ProgressBarBase
+    _running_stage: Optional[RunningStage] = None
     _state: TrainerState
     _weights_save_path: str
 
@@ -167,6 +168,14 @@ class TrainerProperties(ABC):
     @property
     def state(self) -> TrainerState:
         return self._state
+
+    @state.setter
+    def state(self, state: TrainerState) -> None:
+        self._state = state
+
+    @property
+    def interrupted(self) -> bool:
+        return self._state == TrainerState.INTERRUPTED
 
     @property
     def is_global_zero(self) -> bool:
@@ -411,6 +420,76 @@ class TrainerProperties(ABC):
     def distributed_sampler_kwargs(self) -> Optional[dict]:
         if isinstance(self.training_type_plugin, ParallelPlugin):
             return self.training_type_plugin.distributed_sampler_kwargs
+
+    @property
+    def training(self) -> bool:
+        return self._running_stage == RunningStage.TRAINING
+
+    @training.setter
+    def training(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TRAINING
+        elif self.training:
+            self._running_stage = None
+
+    @property
+    def testing(self) -> bool:
+        return self._running_stage == RunningStage.TESTING
+
+    @testing.setter
+    def testing(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TESTING
+        elif self.testing:
+            self._running_stage = None
+
+    @property
+    def predicting(self) -> bool:
+        return self._running_stage == RunningStage.PREDICTING
+
+    @predicting.setter
+    def predicting(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.PREDICTING
+        elif self.predicting:
+            self._running_stage = None
+
+    @property
+    def tuning(self) -> bool:
+        return self._running_stage == RunningStage.TUNING
+
+    @tuning.setter
+    def tuning(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TUNING
+        elif self.tuning:
+            self._running_stage = None
+
+    @property
+    def validating(self) -> bool:
+        return self._running_stage == RunningStage.VALIDATING
+
+    @validating.setter
+    def validating(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.VALIDATING
+        elif self.validating:
+            self._running_stage = None
+
+    @property
+    def evaluating(self) -> bool:
+        return self._running_stage and self._running_stage.evaluating
+
+    @property
+    def sanity_checking(self) -> bool:
+        return self._running_stage == RunningStage.SANITY_CHECKING
+
+    @sanity_checking.setter
+    def sanity_checking(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.SANITY_CHECKING
+        elif self.sanity_checking:
+            self._running_stage = None
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

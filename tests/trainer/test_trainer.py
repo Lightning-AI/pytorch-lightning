@@ -352,10 +352,11 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
         monitor='checkpoint_on',
         save_top_k=save_top_k,
         save_last=save_last,
-        verbose=1
+        verbose=True
     )
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
+    trainer.state = TrainerState.FITTING
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
@@ -472,7 +473,11 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         state = pl_load(ckpt)
 
         # Resume training
-        new_trainer = Trainer(resume_from_checkpoint=ckpt, max_epochs=2)
+        new_trainer = Trainer(
+            default_root_dir=tmpdir,
+            resume_from_checkpoint=ckpt,
+            max_epochs=2,
+        )
         new_trainer.fit(next_model)
         assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
@@ -594,44 +599,57 @@ def test_benchmark_option(tmpdir):
     assert torch.backends.cudnn.benchmark
 
 
-@pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
-@pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
-def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
-    hparams = EvalModelTemplate.get_default_hparams()
+@pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
+@pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
+@pytest.mark.parametrize("fn", ("validate", "test"))
+def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", -batch_idx)
+            return super().validation_step(batch, batch_idx)
 
-    model = EvalModelTemplate(**hparams)
+    model = TestModel()
     trainer = Trainer(
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        callbacks=[ModelCheckpoint(monitor="early_stop_on", save_top_k=save_top_k)],
+        callbacks=[ModelCheckpoint(monitor="foo", save_top_k=save_top_k)],
     )
     trainer.fit(model)
+
+    test_or_validate = getattr(trainer, fn)
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
         if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
-                trainer.test(ckpt_path=ckpt_path)
+                test_or_validate(ckpt_path=ckpt_path)
         else:
-            trainer.test(ckpt_path=ckpt_path)
-            assert trainer.tested_ckpt_path == trainer.checkpoint_callback.best_model_path
+            test_or_validate(ckpt_path=ckpt_path)
+            if fn == "test":
+                assert trainer.tested_ckpt_path == trainer.checkpoint_callback.best_model_path
+            else:
+                assert trainer.validated_ckpt_path == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and
         # use the weights from the end of training
-        trainer.test(ckpt_path=ckpt_path)
+        test_or_validate(ckpt_path=ckpt_path)
         assert trainer.tested_ckpt_path is None
+        assert trainer.validated_ckpt_path is None
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
             with pytest.raises(FileNotFoundError):
-                trainer.test(ckpt_path="random.ckpt")
+                test_or_validate(ckpt_path="random.ckpt")
         else:
             ckpt_path = str(
                 list((Path(tmpdir) / f"lightning_logs/version_{trainer.logger.version}/checkpoints").iterdir()
                      )[0].absolute()
             )
-            trainer.test(ckpt_path=ckpt_path)
-            assert trainer.tested_ckpt_path == ckpt_path
+            test_or_validate(ckpt_path=ckpt_path)
+            if fn == "test":
+                assert trainer.tested_ckpt_path == ckpt_path
+            else:
+                assert trainer.validated_ckpt_path == ckpt_path
 
 
 def test_disabled_training(tmpdir):
@@ -1287,10 +1305,11 @@ def test_trainer_pickle(tmpdir):
     cloudpickle.dumps(trainer)
 
 
-def test_trainer_setup_call(tmpdir):
-    """Test setup call with fit and test call."""
+@pytest.mark.parametrize("stage", ("fit", "validate", "test"))
+def test_trainer_setup_call(tmpdir, stage):
+    """Test setup call gets the correct stage"""
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
 
         def setup(self, stage):
             self.stage = stage
@@ -1306,21 +1325,23 @@ def test_trainer_setup_call(tmpdir):
     # fit model
     trainer = TrainerSubclass(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False)
 
-    trainer.fit(model)
-    assert trainer.stage == "fit"
-    assert trainer.lightning_module.stage == "fit"
+    if stage == "fit":
+        trainer.fit(model)
+    elif stage == "validate":
+        trainer.validate(model, ckpt_path=None)
+    else:
+        trainer.test(model, ckpt_path=None)
 
-    trainer.test(ckpt_path=None)
-    assert trainer.stage == "test"
-    assert trainer.lightning_module.stage == "test"
+    assert trainer.stage == stage
+    assert trainer.lightning_module.stage == stage
 
 
 @pytest.mark.parametrize(
     "train_batches, max_steps, log_interval",
     [
-        pytest.param(10, 10, 1),
-        pytest.param(3, 10, 1),
-        pytest.param(3, 10, 5),
+        (10, 10, 1),
+        (3, 10, 1),
+        (3, 10, 5),
     ],
 )
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
@@ -1388,12 +1409,12 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
+def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
-    model = BoringModel()
-    datamodule = TestLightningDataModule(dataloaders)
+    model = model or BoringModel()
+    dm = TestLightningDataModule(dataloaders)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1406,7 +1427,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
         plugins=plugins,
     )
     if datamodule:
-        results = trainer.predict(model, datamodule=datamodule)
+        results = trainer.predict(model, datamodule=dm)
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
@@ -1415,6 +1436,23 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
     assert len(results) == 2
     assert len(results[0]) == num_samples
     assert results[0][0].shape == torch.Size([1, 2])
+
+
+def test_trainer_predict_no_return(tmpdir):
+    """
+    Test trainer.predict warns when nothing is returned
+    """
+
+    class CustomBoringModel(BoringModel):
+
+        def predict(self, batch, batch_idx, dataloader_idx=None):
+            if (batch_idx + 1) % 2 == 0:
+                return
+
+            return super().predict(batch, batch_idx, dataloader_idx)
+
+    with pytest.warns(UserWarning, match='predict returned None'):
+        predict(tmpdir, None, None, 1, model=CustomBoringModel())
 
 
 @pytest.mark.parametrize('datamodule', [False, True])
@@ -1548,6 +1586,22 @@ def test_pytorch_profiler_nested(tmpdir):
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
             pa[n] = [e.replace("aten::", "") for e in pa[n]]
         assert pa[n] == expected_[n]
+
+
+@RunIf(min_gpus=1, special=True)
+def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+    """
+    This test check emit_nvtx is correctly supported
+    """
+    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        gpus=1,
+    )
+    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -1765,3 +1819,38 @@ def test_train_loop_system(tmpdir):
         "training_step",
         "backward",
     ]
+
+
+def test_init_optimizers_resets_lightning_optimizers(tmpdir):
+    """ Test that the Trainer resets the `lightning_optimizers` list everytime new optimizers get initialized. """
+
+    def compare_optimizers():
+        assert trainer.lightning_optimizers[0].optimizer is trainer.optimizers[0]
+
+    model = BoringModel()
+    model.lr = 0.2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        auto_lr_find=True,
+    )
+
+    trainer.tune(model)
+    compare_optimizers()
+
+    trainer.fit(model)
+    compare_optimizers()
+
+    trainer.max_epochs = 2  # simulate multiple fit calls
+    trainer.fit(model)
+    compare_optimizers()
+
+
+def test_check_val_every_n_epoch_exception(tmpdir):
+
+    with pytest.raises(MisconfigurationException, match="should be an integer."):
+        Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            check_val_every_n_epoch=1.2,
+        )

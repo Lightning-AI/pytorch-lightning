@@ -20,8 +20,8 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_scale_batch_size=True if tuner_alg == 'batch size scaler' else False,
-        auto_lr_find=True if tuner_alg == 'learning rate finder' else False,
+        auto_scale_batch_size=(tuner_alg == 'batch size scaler'),
+        auto_lr_find=(tuner_alg == 'learning rate finder'),
         fast_dev_run=True
     )
     expected_message = f'Skipping {tuner_alg} since fast_dev_run is enabled.'
@@ -71,6 +71,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     checkpoint_callback = ModelCheckpoint()
     early_stopping_callback = EarlyStopping()
     trainer_config = dict(
+        default_root_dir=tmpdir,
         fast_dev_run=fast_dev_run,
         val_check_interval=2,
         logger=True,

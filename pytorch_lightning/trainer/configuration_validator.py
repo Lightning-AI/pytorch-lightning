@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -22,20 +23,24 @@ class ConfigValidator(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def verify_loop_configurations(self, model: LightningModule):
+    def verify_loop_configurations(self, model: LightningModule) -> None:
         r"""
-        Checks that the model is configured correctly before training or testing is started.
+        Checks that the model is configured correctly before the run is started.
 
         Args:
             model: The model to check the configuration.
 
         """
-        if not self.trainer.testing:
+        if self.trainer.state == TrainerState.FITTING:
             self.__verify_train_loop_configuration(model)
-            self.__verify_eval_loop_configuration(model, 'validation')
-        else:
-            # check test loop configuration
+            self.__verify_eval_loop_configuration(model, 'val')
+        elif self.trainer.state == TrainerState.TUNING:
+            self.__verify_train_loop_configuration(model)
+        elif self.trainer.state == TrainerState.VALIDATING:
+            self.__verify_eval_loop_configuration(model, 'val')
+        elif self.trainer.state == TrainerState.TESTING:
             self.__verify_eval_loop_configuration(model, 'test')
+        # TODO: add predict
 
     def __verify_train_loop_configuration(self, model):
         # -----------------------------------
@@ -83,18 +88,14 @@ class ConfigValidator(object):
                 ' It ensures optimizer_step or optimizer_zero_grad are called on every batch.'
             )
 
-    def __verify_eval_loop_configuration(self, model, eval_loop_name):
-        step_name = f'{eval_loop_name}_step'
-
-        # map the dataloader name
-        loader_name = f'{eval_loop_name}_dataloader'
-        if eval_loop_name == 'validation':
-            loader_name = 'val_dataloader'
+    def __verify_eval_loop_configuration(self, model: LightningModule, stage: str) -> None:
+        loader_name = f'{stage}_dataloader'
+        step_name = 'validation_step' if stage == 'val' else 'test_step'
 
         has_loader = is_overridden(loader_name, model)
         has_step = is_overridden(step_name, model)
 
         if has_loader and not has_step:
-            rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {eval_loop_name} loop')
+            rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop')
         if has_step and not has_loader:
-            rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {eval_loop_name} loop')
+            rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {stage} loop')
