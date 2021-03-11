@@ -94,13 +94,13 @@ class ModelCheckpoint(Callback):
             saved (``model.save_weights(filepath)``), else the full model
             is saved (``model.save(filepath)``).
         every_n_train_steps: Number of training steps between checkpoints.
-            To disable, set ``every_n_train_steps = 0``. This value must be non-negative.
+            If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training
+            To disable, set ``every_n_train_steps = 0``. This value must be ``None`` non-negative.
+            This must be mutually exclusive with ``every_n_val_epochs``.
         every_n_val_epochs: Number of validation epochs between checkpoints.
-            To disable, set ``every_n_val_epochs = 0``. This value must be non-negative.
-            This is not mutually exclusive with ``every_n_val_epochs``.
-            If both are set, pay extreme caution if also setting ``monitor``
-            as the ``monitor`` value must be available in both training and validation.
-            This can have unintended consequences with tracking the top k models.
+            If ``every_n_val_epochs == None or every_n_val_epochs == 0``, we skip saving on validation end
+            To disable, set ``every_n_val_epochs = 0``. This value must be ``None`` or non-negative.
+            This must be mutually exclusive with ``every_n_train_steps``.
         period: Interval (number of epochs) between checkpoints.
 
             .. warning::
@@ -179,8 +179,8 @@ class ModelCheckpoint(Callback):
         save_weights_only: bool = False,
         mode: str = "min",
         auto_insert_metric_name: bool = True
-        every_n_train_steps: int = 0,
-        every_n_val_epochs: int = 1,
+        every_n_train_steps: Optional[int] = None,
+        every_n_val_epochs: Optional[int] = None,
         period: Optional[int] = None,
     ):
         super().__init__()
@@ -190,9 +190,6 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
-        self.every_n_val_epochs = period if period is not None else every_n_val_epochs
-        self.period = self.every_n_val_epochs
-        self.every_n_train_steps = every_n_train_steps
         self._last_global_step_saved = -1
         self.current_score = None
         self.best_k_models = {}
@@ -203,14 +200,9 @@ class ModelCheckpoint(Callback):
         self.save_function = None
         self.warned_result_obj = False
 
-        if period is not None:
-            rank_zero_warn(
-                'Argument `period` is deprecated in v1.3 and will be removed in v1.5.'
-                ' Please use `every_n_val_epochs` instead.', DeprecationWarning
-            )
-
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
+        self.__init_triggers(every_n_train_steps, every_n_val_epochs, period)
         self.__validate_init_configuration()
 
     def on_pretrain_routine_start(self, trainer, pl_module):
@@ -235,8 +227,8 @@ class ModelCheckpoint(Callback):
         checkpoints can be saved at the end of the val loop
         """
         skip = (
-            self._should_skip_saving_checkpoint(trainer) or self.every_n_val_epochs < 1
-            or (trainer.current_epoch + 1) % self.every_n_val_epochs != 0
+            self._should_skip_saving_checkpoint(trainer) or self.every_n_val_epochs is None
+            or self.every_n_val_epochs < 1 or (trainer.current_epoch + 1) % self.every_n_val_epochs != 0
         )
         if skip:
             return
@@ -301,11 +293,16 @@ class ModelCheckpoint(Callback):
             raise MisconfigurationException(f'Invalid value for save_top_k={self.save_top_k}. Must be None or >= -1')
         if self.every_n_train_steps < 0:
             raise MisconfigurationException(
-                f'Invalid value for every_n_train_batches={self.every_n_train_steps}. Must be >= 0'
+                f'Invalid value for every_n_train_steps={self.every_n_train_steps}. Must be >= 0'
             )
         if self.every_n_val_epochs < 0:
             raise MisconfigurationException(
                 f'Invalid value for every_n_val_epochs={self.every_n_val_epochs}. Must be >= 0'
+            )
+        if self.every_n_train_steps > 0 and self.every_n_val_epochs > 0:
+            raise MisconfigurationException(
+                f'Invalid values for every_n_train_steps={self.every_n_train_steps} and every_n_val_epochs={self.every_n_val_epochs}.'
+                'Both cannot be enabled at the same time.'
             )
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
@@ -352,6 +349,44 @@ class ModelCheckpoint(Callback):
             raise MisconfigurationException(f"`mode` can be {', '.join(mode_dict.keys())} but got {mode}")
 
         self.kth_value, self.mode = mode_dict[mode]
+
+    def __init_triggers(
+        self, every_n_train_steps: Optional[int], every_n_val_epochs: Optional[int], period: Optional[int]
+    ) -> None:
+
+        # Default to running once after each validation epoch if neither
+        # every_n_train_steps nor every_n_val_epochs is set
+        self.every_n_val_epochs = every_n_val_epochs or 0
+        self.every_n_train_steps = every_n_train_steps or 0
+        if self.every_n_train_steps == 0 and self.every_n_val_epochs == 0:
+            self.every_n_val_epochs = 1
+            log.debug("Both every_n_train_steps and every_n_val_epochs are not set. Setting every_n_val_epochs=1")
+
+        # period takes precedence for every_n_val_epochs for backwards compatibility
+        if period is not None:
+            rank_zero_warn(
+                'Argument `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
+                ' Please use `every_n_val_epochs` instead.', DeprecationWarning
+            )
+            self.every_n_val_epochs = period
+
+        self._period = self.every_n_val_epochs
+
+    @property
+    def period(self) -> Optional[int]:
+        rank_zero_warn(
+            'Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
+            ' Please use `every_n_val_epochs` instead.', DeprecationWarning
+        )
+        return self._period
+
+    @period.setter
+    def period(self, value: Optional[int]) -> None:
+        rank_zero_warn(
+            'Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
+            ' Please use `every_n_val_epochs` instead.', DeprecationWarning
+        )
+        self._period = value
 
     @rank_zero_only
     def _del_model(self, filepath: str):

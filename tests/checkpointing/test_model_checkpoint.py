@@ -544,6 +544,22 @@ def test_invalid_every_n_train_steps(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=2)
 
 
+def test_invalid_every_n_train_steps_val_epochs_combination(tmpdir):
+    """ Make sure that a MisconfigurationException is raised if both every_n_val_epochs and every_n_train_steps are enabled together. """
+    with pytest.raises(MisconfigurationException, match=r'.*Both cannot be enabled at the same time'):
+        ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_val_epochs=2)
+    # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_val_epochs=3)
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=4, every_n_val_epochs=0)
+
+
+def test_none_every_n_train_steps_val_epochs(tmpdir):
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir)
+    assert checkpoint_callback.period == 1
+    assert checkpoint_callback.every_n_val_epochs == 1
+    assert checkpoint_callback.every_n_train_steps == 0
+
+
 def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     """ Test that it is possible to save all checkpoints when monitor=None. """
     seed_everything()
@@ -598,7 +614,7 @@ def test_model_checkpoint_period(tmpdir, period: int):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
-@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
+@pytest.mark.parametrize("every_n_val_epochs", list(range(1, 4)))
 def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
     model = LogInTwoMethods()
     epochs = 5
@@ -654,6 +670,8 @@ def test_ckpt_every_n_train_steps(tmpdir):
 
     model = LogInTwoMethods()
     every_n_train_steps = 16
+    max_epochs = 2
+    epoch_length = 64
     checkpoint_callback = ModelCheckpoint(
         filename="{step}",
         every_n_val_epochs=0,
@@ -671,38 +689,10 @@ def test_ckpt_every_n_train_steps(tmpdir):
     )
 
     trainer.fit(model)
-    expected = [f"step={i}.ckpt" for i in range(15, 128, every_n_train_steps)]
-    assert set(os.listdir(tmpdir)) == set(expected)
-
-
-@pytest.mark.parametrize("every_n_val_epochs", [1, 3])
-def test_ckpt_every_n_train_steps_and_every_n_val_epochs(tmpdir, every_n_val_epochs):
-    """ Tests that checkpoints are taken every 30 steps and every epochs """
-    model = LogInTwoMethods()
-    every_n_train_steps = 30
-    checkpoint_callback = ModelCheckpoint(
-        every_n_val_epochs=every_n_val_epochs,
-        every_n_train_steps=every_n_train_steps,
-        dirpath=tmpdir,
-        save_top_k=-1,
-        save_last=False,
-        filename="{step}",
-    )
-    max_epochs = 3
-    epoch_step_length = 64
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=max_epochs,
-        callbacks=[checkpoint_callback],
-        logger=False,
-    )
-    trainer.fit(model)
-    expected_steps_for_ckpt = [
-        i for i in range(epoch_step_length * max_epochs)
-        if ((i + 1) % every_n_train_steps) == 0 or (i + 1) % (every_n_val_epochs * epoch_step_length) == 0
+    expected = [
+        f"step={i}.ckpt" for i in range(every_n_train_steps - 1, max_epochs * epoch_length, every_n_train_steps)
     ]
-    expected_ckpt_files = [f"step={step}.ckpt" for step in expected_steps_for_ckpt]
-    assert set(os.listdir(tmpdir)) == set(expected_ckpt_files)
+    assert set(os.listdir(tmpdir)) == set(expected)
 
 
 def test_model_checkpoint_topk_zero(tmpdir):
