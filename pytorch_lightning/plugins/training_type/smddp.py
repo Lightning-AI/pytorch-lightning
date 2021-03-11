@@ -15,6 +15,7 @@ import os
 from typing import Any, Dict, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
@@ -180,7 +181,7 @@ class SMDDPPlugin(DDPPlugin):
 
         # sync all processes before reduction
         dist.barrier(group=group)
-        dist.all_reduce(result, op=op, group=group, async_op=False)
+        torch_distrib.all_reduce(result, op=op, group=group, async_op=False)
 
         if divide_by_world_size:
             result = result / dist.get_world_size(group)
