@@ -26,9 +26,16 @@ class DataConnector(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node):
+    def on_trainer_init(
+        self, check_val_every_n_epoch: int, reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool
+    ) -> None:
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
+
+        if not isinstance(check_val_every_n_epoch, int):
+            raise MisconfigurationException(
+                f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
+            )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
         self.trainer.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
@@ -102,10 +109,10 @@ class DataConnector(object):
     def attach_dataloaders(
         self,
         model,
-        train_dataloader=None,
-        val_dataloaders=None,
-        test_dataloaders=None,
-        predict_dataloaders=None,
+        train_dataloader: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        predict_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
     ):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
@@ -121,7 +128,7 @@ class DataConnector(object):
         if predict_dataloaders is not None:
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
-    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule]) -> None:
+    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule] = None) -> None:
         # We use datamodule if it's been provided, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
 

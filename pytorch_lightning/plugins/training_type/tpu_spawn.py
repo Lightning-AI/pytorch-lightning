@@ -139,8 +139,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             # save the last weights
             last_path = None
             if (
-                self.lightning_module.trainer.state == TrainerState.FITTING
-                and best_model_path is not None
+                self.lightning_module.trainer.state == TrainerState.FITTING and best_model_path is not None
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
@@ -263,7 +262,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._model = model
 
     def _close_logger(self, trainer) -> None:
-        if hasattr(trainer, "logger"):
+        if trainer.logger is not None:
             trainer.logger.finalize("success")
 
     @property
