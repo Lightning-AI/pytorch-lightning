@@ -295,14 +295,15 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model = model
 
     def _set_deepspeed_activation_checkpointing(self):
-        checkpoint_config = self.config.get('activation_checkpointing', {})
-        deepspeed.checkpointing.configure(
-            mpu_=None,
-            partition_activations=checkpoint_config.get('partition_activations'),
-            contiguous_checkpointing=checkpoint_config.get('contiguous_checkpointing'),
-            checkpoint_in_cpu=checkpoint_config.get('checkpoint_in_cpu'),
-            profile=checkpoint_config.get('profile'),
-        )
+        if self.config.get('activation_checkpointing'):
+            checkpoint_config = self.config['activation_checkpointing']
+            deepspeed.checkpointing.configure(
+                mpu_=None,
+                partition_activations=checkpoint_config.get('partition_activations'),
+                contiguous_checkpointing=checkpoint_config.get('contiguous_checkpointing'),
+                checkpoint_in_cpu=checkpoint_config.get('checkpoint_in_cpu'),
+                profile=checkpoint_config.get('profile'),
+            )
 
     def _initialize_deepspeed_inference(self, model):
         # move the model to the correct device
