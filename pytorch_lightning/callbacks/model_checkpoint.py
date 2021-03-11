@@ -101,6 +101,10 @@ class ModelCheckpoint(Callback):
             If ``every_n_val_epochs == None or every_n_val_epochs == 0``, we skip saving on validation end
             To disable, set ``every_n_val_epochs = 0``. This value must be ``None`` or non-negative.
             This must be mutually exclusive with ``every_n_train_steps``.
+            Setting both ``ModelCheckpoint(..., every_n_val_epochs=V)`` and
+            ``Trainer(max_epochs=N, check_val_every_n_epoch=M)``
+            will only save checkpoints at epochs 0 < E <= N
+            where both values for ``every_n_val_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
         period: Interval (number of epochs) between checkpoints.
 
             .. warning::
@@ -178,7 +182,7 @@ class ModelCheckpoint(Callback):
         save_top_k: Optional[int] = None,
         save_weights_only: bool = False,
         mode: str = "min",
-        auto_insert_metric_name: bool = True
+        auto_insert_metric_name: bool = True,
         every_n_train_steps: Optional[int] = None,
         every_n_val_epochs: Optional[int] = None,
         period: Optional[int] = None,
@@ -212,7 +216,7 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer)
         self.save_function = trainer.save_checkpoint
 
-    def on_train_batch_end(self, trainer, pl_module, *args, **kwargs) -> None:
+    def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
         """ Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps` """
         if self._should_skip_saving_checkpoint(trainer):
             return
@@ -220,9 +224,9 @@ class ModelCheckpoint(Callback):
         skip_batch = self._every_n_train_steps < 1 or ((step + 1) % self._every_n_train_steps != 0)
         if skip_batch:
             return
-        self.save_checkpoint(trainer, pl_module)
+        self.save_checkpoint(trainer)
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer, *args, **kwargs) -> None:
         """
         checkpoints can be saved at the end of the val loop
         """
@@ -232,7 +236,7 @@ class ModelCheckpoint(Callback):
         )
         if skip:
             return
-        self.save_checkpoint(trainer, pl_module)
+        self.save_checkpoint(trainer)
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
@@ -303,7 +307,7 @@ class ModelCheckpoint(Callback):
             raise MisconfigurationException(
                 f'Invalid values for every_n_train_steps={self._every_n_train_steps}'
                 ' and every_n_val_epochs={self._every_n_val_epochs}.'
-                'Both cannot be enabled at the same time.'
+                ' Both cannot be enabled at the same time.'
             )
         if self.monitor is None:
             # None: save last epoch, -1: save all epochs, 0: nothing is saved
@@ -504,11 +508,8 @@ class ModelCheckpoint(Callback):
 
         """
         filename = self._format_checkpoint_name(
-            self.filename,
-            epoch,
-            step,
-            metrics,
-            auto_insert_metric_name=self.auto_insert_metric_name)
+            self.filename, epoch, step, metrics, auto_insert_metric_name=self.auto_insert_metric_name
+        )
 
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f"v{ver}"))
