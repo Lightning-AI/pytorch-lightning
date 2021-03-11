@@ -545,7 +545,10 @@ def test_invalid_every_n_train_steps(tmpdir):
 
 
 def test_invalid_every_n_train_steps_val_epochs_combination(tmpdir):
-    """ Make sure that a MisconfigurationException is raised if both every_n_val_epochs and every_n_train_steps are enabled together. """
+    """
+    Test that a MisconfigurationException is raised if both
+    every_n_val_epochs and every_n_train_steps are enabled together.
+    """
     with pytest.raises(MisconfigurationException, match=r'.*Both cannot be enabled at the same time'):
         ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_val_epochs=2)
     # These should not fail

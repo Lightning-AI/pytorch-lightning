@@ -301,7 +301,8 @@ class ModelCheckpoint(Callback):
             )
         if self.every_n_train_steps > 0 and self.every_n_val_epochs > 0:
             raise MisconfigurationException(
-                f'Invalid values for every_n_train_steps={self.every_n_train_steps} and every_n_val_epochs={self.every_n_val_epochs}.'
+                f'Invalid values for every_n_train_steps={self.every_n_train_steps}'
+                ' and every_n_val_epochs={self.every_n_val_epochs}.'
                 'Both cannot be enabled at the same time.'
             )
         if self.monitor is None:
