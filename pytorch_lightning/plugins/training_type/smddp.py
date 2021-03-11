@@ -205,7 +205,7 @@ class SMDDPPlugin(DDPPlugin):
             dist.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
-        return self.dist.broadcast(obj, src)
+        return self.dist.broadcast(obj)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
         """
