@@ -55,6 +55,8 @@ class MNISTDataModule(LightningDataModule):
             val_split: how many of the training images to use for the validation split
             num_workers: how many workers to use for loading data
             normalize: If true applies image normalize
+            seed: starting seed for RNG.
+            batch_size: desired batch size.
         """
         super().__init__(*args, **kwargs)
         if num_workers and platform.system() == "Windows":
