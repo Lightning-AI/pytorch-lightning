@@ -281,8 +281,8 @@ def test_lr_find_with_bs_scale(tmpdir):
             super().__init__()
             self.save_hyperparameters()
 
-    before_lr = model.hparams.learning_rate
     model = BoringModelTune()
+    before_lr = model.hparams.learning_rate
 
     # logger file to get meta
     trainer = Trainer(
