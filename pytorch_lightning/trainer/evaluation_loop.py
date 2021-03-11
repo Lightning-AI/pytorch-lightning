@@ -204,9 +204,6 @@ class EvaluationLoop(object):
         # with a single dataloader don't pass an array
         outputs = self.outputs
 
-        # free memory
-        self.outputs = []
-
         eval_results = outputs
         if num_dataloaders == 1:
             eval_results = outputs[0]
@@ -321,6 +318,10 @@ class EvaluationLoop(object):
 
     def call_on_evaluation_epoch_end_hook(self):
         outputs = self.outputs
+
+        # free memory
+        self.outputs = []
+
         model_ref = self.trainer.lightning_module
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
 
