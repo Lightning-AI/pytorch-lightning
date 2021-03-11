@@ -44,12 +44,30 @@ jobs:
     - name: Tests
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        python -m pytest pytorch_lightning tests --cov=pytorch_lightning -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        python -m pytest pytorch_lightning tests --cov=pytorch_lightning -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       shell: bash -l {0}
 
-    - name: Upload pytest test results
+    - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
         name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
         path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
       if: failure()
+
+    - name: Statistics
+      if: success()
+      run: |
+        coverage report
+        coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      if: always()
+      # see: https://github.com/actions/toolkit/issues/399
+      continue-on-error: true
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: coverage.xml
+        flags: cpu,pytest,torch${{ matrix.pytorch-version }}
+        name: CPU-coverage
+        fail_ci_if_error: false
