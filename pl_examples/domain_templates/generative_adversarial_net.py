@@ -32,9 +32,10 @@ from pl_examples import _TORCHVISION_AVAILABLE, _TORCHVISION_MNIST_AVAILABLE, cl
 from pytorch_lightning.core import LightningDataModule, LightningModule
 from pytorch_lightning.trainer import Trainer
 
-if _TORCHVISION_AVAILABLE and _TORCHVISION_MNIST_AVAILABLE:
+if _TORCHVISION_AVAILABLE:
     import torchvision
-    import torchvision.transforms as transforms
+    from torchvision import transforms
+if _TORCHVISION_MNIST_AVAILABLE:
     from torchvision.datasets import MNIST
 else:
     from tests.helpers.datasets import MNIST
