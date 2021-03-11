@@ -154,7 +154,7 @@ class TrainLoop:
         if should_update and self.trainer.checkpoint_connector.has_trained:
             callbacks = self.trainer.checkpoint_callbacks
 
-            if is_last and any(cb.save_last for cb in callbacks):
+            if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
                 rank_zero_info("Saving latest checkpoint...")
 
             model = self.trainer.lightning_module
