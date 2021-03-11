@@ -277,12 +277,11 @@ def test_lr_find_with_bs_scale(tmpdir):
     """ Test that lr_find runs with batch_size_scaling """
 
     class BoringModelTune(BoringModel):
-        def __init__(self, hparams):
+        def __init__(self, learning_rate=0.1, batch_size=2):
             super().__init__()
-            self.save_hyperparameters(hparams)
+            self.save_hyperparameters()
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    before_lr = hparams.get('learning_rate')
+    before_lr = mode.hparams.learning_rate
     model = BoringModelTune(hparams)
 
     # logger file to get meta
