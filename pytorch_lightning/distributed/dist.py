@@ -67,7 +67,7 @@ class LightningDistributed:
 
 class SMLightningDistributed(LightningDistributed):
 
-    def _broadcast(self, tensor, src, group):
+    def _broadcast(self, tensor: torch.Tensor, src: int, group: Optional[Any] = None):
         if group is None:
             return sm_dist.broadcast(tensor, src=src)
         return sm_dist.broadcast(tensor, src=0, group=group)

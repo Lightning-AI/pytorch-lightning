@@ -33,18 +33,18 @@ class SMDistributedEnvironment(ClusterEnvironment):
     def creates_children(self) -> bool:
         return False
 
-    def master_address(self):
+    def master_address(self) -> str:
         master_address = os.environ["SM_CURRENT_HOST"]
         log.debug(f"MASTER_ADDR: {master_address}")
         return master_address
 
-    def master_port(self):
+    def master_port(self) -> str:
         if "MASTER_PORT" not in os.environ:
             rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ["MASTER_PORT"] = "12910"
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
-        port = os.environ.get("MASTER_PORT")
+        port = os.environ["MASTER_PORT"]
         return port
 
     def world_size(self) -> int:
