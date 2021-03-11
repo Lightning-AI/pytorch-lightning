@@ -51,10 +51,8 @@ def test_lr_monitor_single_lr(tmpdir):
 
 
 @pytest.mark.parametrize('opt', ['SGD', 'Adam'])
-def test_lr_monitor_single_lr_with_momentum(tmpdir, opt):
-    """
-    Test that learning rates and momentum are extracted and logged for single lr scheduler.
-    """
+def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
+    """Test that learning rates and momentum are extracted and logged for single lr scheduler."""
 
     class LogMomentumModel(BoringModel):
 
@@ -170,7 +168,7 @@ def test_lr_monitor_no_logger(tmpdir):
 
 
 @pytest.mark.parametrize("logging_interval", ['step', 'epoch'])
-def test_lr_monitor_multi_lrs(tmpdir, logging_interval):
+def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     """ Test that learning rates are extracted and logged for multi lr schedulers. """
     tutils.reset_seed()
 

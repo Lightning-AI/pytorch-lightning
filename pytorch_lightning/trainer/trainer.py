@@ -381,21 +381,6 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def setup_trainer(self, model: LightningModule):
-        """
-        Sanity check a few things before starting actual training or testing.
-
-        Args:
-            model: The model to run sanity test on.
-        """
-
-        # log hyper-parameters
-        if self.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            self.logger.log_hyperparams(model.hparams_initial)
-            self.logger.log_graph(model)
-            self.logger.save()
-
     def fit(
         self,
         model: LightningModule,
@@ -444,7 +429,6 @@ class Trainer(
         self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
-        self.setup_trainer(model)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -508,6 +492,13 @@ class Trainer(
 
     def pre_dispatch(self):
         self.accelerator.pre_dispatch()
+
+        # log hyper-parameters
+        if self.logger is not None:
+            # save exp to get started (this is where the first experiment logs are written)
+            self.logger.log_hyperparams(self.lightning_module.hparams_initial)
+            self.logger.log_graph(self.lightning_module)
+            self.logger.save()
 
     def post_dispatch(self):
         self.accelerator.post_dispatch()
@@ -829,6 +820,69 @@ class Trainer(
 
             self._running_stage = stage
 
+    def validate(
+        self,
+        model: Optional[LightningModule] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        ckpt_path: Optional[str] = 'best',
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        r"""
+        Perform one evaluation epoch over the validation set.
+
+        Args:
+            model: The model to validate.
+
+            val_dataloaders: Either a single PyTorch DataLoader or a list of them,
+                specifying validation samples.
+
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
+                If ``None``, use the current weights of the model.
+                When the model is given as argument, this parameter will not apply.
+
+            verbose: If True, prints the validation results.
+
+            datamodule: A instance of :class:`LightningDataModule`.
+
+        Returns:
+            The dictionary with final validation results returned by validation_epoch_end.
+            If validation_epoch_end is not defined, the output is a list of the dictionaries
+            returned by validation_step.
+        """
+        # --------------------
+        # SETUP HOOK
+        # --------------------
+        self.verbose_evaluate = verbose
+
+        self.state = TrainerState.VALIDATING
+        self.validating = True
+
+        # If you supply a datamodule you can't supply val_dataloaders
+        if val_dataloaders and datamodule:
+            raise MisconfigurationException(
+                'You cannot pass both `trainer.validate(val_dataloaders=..., datamodule=...)`'
+            )
+
+        model_provided = model is not None
+        model = model or self.lightning_module
+
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.data_connector.attach_datamodule(model, datamodule)
+        #  Attach dataloaders (if given)
+        self.data_connector.attach_dataloaders(model, val_dataloaders=val_dataloaders)
+
+        if not model_provided:
+            self.validated_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
+
+        # run validate
+        results = self.fit(model)
+
+        assert self.state.stopped
+        self.validating = False
+
+        return results
+
     def test(
         self,
         model: Optional[LightningModule] = None,
@@ -842,16 +896,18 @@ class Trainer(
         fit to make sure you never run on your test set until you want to.
 
         Args:
-            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
-                If ``None``, use the current weights of the model. Default to ``best``.
-            datamodule: A instance of :class:`LightningDataModule`.
-
             model: The model to test.
 
             test_dataloaders: Either a single PyTorch DataLoader or a list of them,
                 specifying test samples.
 
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+                If ``None``, use the current weights of the model.
+                When the model is given as argument, this parameter will not apply.
+
             verbose: If True, prints the test results.
+
+            datamodule: A instance of :class:`LightningDataModule`.
 
         Returns:
             Returns a list of dictionaries, one for each test dataloader containing their respective metrics.
@@ -867,7 +923,7 @@ class Trainer(
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
             raise MisconfigurationException(
-                'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
+                'You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`'
             )
 
         model_provided = model is not None
@@ -875,22 +931,25 @@ class Trainer(
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model, datamodule)
-        results = (
-            self.__evaluate_given_model(model, dataloaders=test_dataloaders) if model_provided else
-            self.__evaluate_using_weights(model, ckpt_path=ckpt_path, dataloaders=test_dataloaders)
-        )
+        #  Attach dataloaders (if given)
+        self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        if not model_provided:
+            self.tested_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
+
+        # run test
+        results = self.fit(model)
 
         assert self.state.stopped
         self.testing = False
 
         return results
 
-    def __evaluate_using_weights(
+    def __load_ckpt_weights(
         self,
         model,
         ckpt_path: Optional[str] = None,
-        dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
-    ):
+    ) -> Optional[str]:
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
             raise MisconfigurationException(
@@ -903,42 +962,18 @@ class Trainer(
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
 
-            if len(ckpt_path) == 0:
-                rank_zero_warn(
-                    f'`.test()` found no path for the best weights, {ckpt_path}. Please'
-                    ' specify a path for a checkpoint `.test(ckpt_path=PATH)`'
+            if not ckpt_path:
+                fn = self.state.value
+                raise MisconfigurationException(
+                    f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
+                    ' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
                 )
-                return {}
 
             self.training_type_plugin.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
-
-        # attach dataloaders
-        if dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
-
-        if self.validating:
-            self.validated_ckpt_path = ckpt_path
-        else:
-            self.tested_ckpt_path = ckpt_path
-
-        # run test
-        results = self.fit(model)
-
-        return results
-
-    def __evaluate_given_model(self, model, dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None):
-        # attach data
-        if dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, test_dataloaders=dataloaders)
-
-        # run test
-        # sets up testing so we short circuit to eval
-        results = self.fit(model)
-
-        return results
+        return ckpt_path
 
     def predict(
         self,
@@ -979,15 +1014,11 @@ class Trainer(
                 'You cannot pass dataloaders to trainer.predict if you supply a datamodule.'
             )
 
-        if datamodule is not None:
-            # Attach datamodule to get setup/prepare_data added to model before the call to it below
-            self.data_connector.attach_datamodule(model, datamodule)
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.data_connector.attach_datamodule(model, datamodule)
+        #  Attach dataloaders (if given)
+        self.data_connector.attach_dataloaders(model, predict_dataloaders=dataloaders)
 
-        # attach data
-        if dataloaders is not None:
-            self.data_connector.attach_dataloaders(model, predict_dataloaders=dataloaders)
-
-        self.model = model
         results = self.fit(model)
 
         assert self.state.stopped
