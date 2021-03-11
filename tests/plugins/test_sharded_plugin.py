@@ -259,30 +259,20 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 
 
 @RunIf(skip_windows=True, special=True, fairscale=True)
-def test_ddp_sharded_plugin_test(tmpdir):
+@pytest.mark.parametrize("trainer_kwargs", (
+    {'num_processes': 2},
+    pytest.param({'gpus': 2}, marks=RunIf(min_gpus=2))
+))
+def test_ddp_sharded_plugin_test_multigpu(tmpdir, trainer_kwargs):
     """
-        Test to ensure we can use test without fit
-    """
-    model = BoringModel()
-    trainer = Trainer(
-        accelerator='ddp_sharded_spawn',
-        num_processes=2,
-        fast_dev_run=True,
-    )
-
-    trainer.test(model)
-
-
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_test_multigpu(tmpdir):
-    """
-        Test to ensure we can use test without fit
+        Test to ensure we can use validate and test without fit
     """
     model = BoringModel()
     trainer = Trainer(
         accelerator='ddp_sharded_spawn',
-        gpus=2,
         fast_dev_run=True,
+        **trainer_kwargs,
     )
 
+    trainer.validate(model)
     trainer.test(model)

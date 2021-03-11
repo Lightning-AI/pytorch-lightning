@@ -32,9 +32,10 @@ from pl_examples import _TORCHVISION_AVAILABLE, _TORCHVISION_MNIST_AVAILABLE, cl
 from pytorch_lightning.core import LightningDataModule, LightningModule
 from pytorch_lightning.trainer import Trainer
 
-if _TORCHVISION_AVAILABLE and _TORCHVISION_MNIST_AVAILABLE:
+if _TORCHVISION_AVAILABLE:
     import torchvision
-    import torchvision.transforms as transforms
+    from torchvision import transforms
+if _TORCHVISION_MNIST_AVAILABLE:
     from torchvision.datasets import MNIST
 else:
     from tests.helpers.datasets import MNIST
@@ -134,14 +135,18 @@ class GAN(LightningModule):
         self.example_input_array = torch.zeros(2, self.hparams.latent_dim)
 
     @staticmethod
-    def add_argparse_args(parent_parser: ArgumentParser):
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+    def add_argparse_args(parent_parser: ArgumentParser, *, use_argument_group=True):
+        if use_argument_group:
+            parser = parent_parser.add_argument_group("pl.GAN")
+            parser_out = parent_parser
+        else:
+            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+            parser_out = parser
         parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
         parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
         parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of second order momentum of gradient")
         parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
-
-        return parser
+        return parser_out
 
     def forward(self, z):
         return self.generator(z)

@@ -229,8 +229,8 @@ class TrainerProperties(ABC):
         return parse_env_variables(cls)
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        return add_argparse_args(cls, parent_parser)
+    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
+        return add_argparse_args(cls, parent_parser, **kwargs)
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
