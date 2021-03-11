@@ -28,6 +28,7 @@ from pytorch_lightning.plugins import (
     DDP2Plugin,
     DDPPlugin,
     DDPShardedPlugin,
+    DDPSMPlugin,
     DDPSpawnPlugin,
     DDPSpawnShardedPlugin,
     DeepSpeedPlugin,
@@ -38,7 +39,6 @@ from pytorch_lightning.plugins import (
     ShardedNativeMixedPrecisionPlugin,
     SingleDevicePlugin,
     SingleTPUPlugin,
-    SMDDPPlugin,
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
@@ -275,7 +275,7 @@ class AcceleratorConnector(object):
 
     @property
     def use_smdistributed(self) -> bool:
-        return self.distributed_backend == DistributedType.SMDDP
+        return self.distributed_backend == DistributedType.DDP_SM
 
     @property
     def is_distributed(self) -> bool:
@@ -410,7 +410,7 @@ class AcceleratorConnector(object):
         elif self.use_horovod:
             plugin = HorovodPlugin(parallel_devices=self.parallel_devices)
         elif self.use_smdistributed:
-            plugin = SMDDPPlugin(cluster_environment=self.cluster_environment, sync_batchnorm=self.sync_batchnorm)
+            plugin = DDPSMPlugin(cluster_environment=self.cluster_environment, sync_batchnorm=self.sync_batchnorm)
         elif self.on_tpu:
             if isinstance(self.tpu_cores, list):
                 plugin = SingleTPUPlugin(self.tpu_id)

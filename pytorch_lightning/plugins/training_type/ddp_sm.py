@@ -15,7 +15,6 @@ import os
 from typing import Any, Dict, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
@@ -34,9 +33,9 @@ if _SMDIST_AVAILABLE:
     from smdistributed.dataparallel.torch.parallel.distributed import DistributedDataParallel
 
 
-class SMDDPPlugin(DDPPlugin):
+class DDPSMPlugin(DDPPlugin):
 
-    distributed_backend = "smddp"
+    distributed_backend = "ddp_sm"
 
     def __init__(
         self,
@@ -181,7 +180,7 @@ class SMDDPPlugin(DDPPlugin):
 
         # sync all processes before reduction
         dist.barrier(group=group)
-        torch_distrib.all_reduce(result, op=op, group=group, async_op=False)
+        dist.all_reduce(result, op=op, group=group, async_op=False)
 
         if divide_by_world_size:
             result = result / dist.get_world_size(group)

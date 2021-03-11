@@ -13,11 +13,11 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning.plugins import SMDDPPlugin
+from pytorch_lightning.plugins import DDPSMPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_smdistributed_not_available():  # type: ignore
 
     with pytest.raises(MisconfigurationException, match="`smdistributed` module is not available."):
-        SMDDPPlugin()
+        DDPSMPlugin()

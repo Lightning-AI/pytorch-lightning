@@ -7,6 +7,7 @@ from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNative
 from pytorch_lightning.plugins.precision.tpu_bfloat import TPUHalfPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.ddp_sm import DDPSMPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin  # noqa: F401
@@ -18,7 +19,6 @@ from pytorch_lightning.plugins.training_type.sharded import DDPShardedPlugin  # 
 from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin  # noqa: F401
-from pytorch_lightning.plugins.training_type.smddp import SMDDPPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin  # noqa: F401
 
@@ -45,5 +45,5 @@ __all__ = [
     'Plugin',
     'DDPShardedPlugin',
     'DDPSpawnShardedPlugin',
-    'SMDDPPlugin',
+    'DDPSMPlugin',
 ]
