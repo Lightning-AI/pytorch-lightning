@@ -67,6 +67,8 @@ class DeepSpeedPlugin(DDPPlugin):
         zero_optimization: bool = True,
         stage: int = 2,
         cpu_offload: bool = False,
+        cpu_offload_params: bool = False,
+        cpu_offload_use_pin_memory: bool = False,
         contiguous_gradients: bool = True,
         overlap_comm: bool = True,
         allgather_partitions: bool = True,
@@ -111,6 +113,10 @@ class DeepSpeedPlugin(DDPPlugin):
 
             cpu_offload: Enable offloading optimizer memory and computation to CPU
 
+            cpu_offload_params: When using ZeRO stage 3, offload parameters to CPU
+
+            cpu_offload_use_pin_memory: When using ZeRO stage 3, pin memory on CPU
+
             contiguous_gradients: Copies gradients to a continuous buffer as they are produced.
                 Avoids memory fragmentation during backwards. Useful when training large models. (default: True)
 
@@ -149,6 +155,18 @@ class DeepSpeedPlugin(DDPPlugin):
 
             min_loss_scale: The minimum FP16 dynamic loss scaling value (Default: 1000)
 
+            activation_checkpointing: Enable activation checkpointing. This allows DeepSpeed to setup global variables
+                however still requires you to wrap your forward functions in deepspeed.checkpointing.checkpoint.
+                See https://www.deepspeed.ai/tutorials/megatron/#deepspeed-activation-checkpoints-optional
+
+            partition_activations: Enables partition activation when used with ZeRO stage 3
+
+            cpu_checkpointing: Offloads partitioned activations to CPU if ``partition_activations`` is enabled
+
+            contiguous_memory_optimization: Copies partitioned activations so that they are contiguous in memory.
+                Not supported by all models
+
+            synchronize_checkpoint_boundary: Insert ``torch.cuda.synchronize()`` at each checkpoint boundary.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -171,6 +189,8 @@ class DeepSpeedPlugin(DDPPlugin):
                 synchronize_checkpoint_boundary=synchronize_checkpoint_boundary,
                 stage=stage,
                 cpu_offload=cpu_offload,
+                cpu_offload_params=cpu_offload_params,
+                cpu_offload_use_pin_memory=cpu_offload_use_pin_memory,
                 contiguous_gradients=contiguous_gradients,
                 overlap_comm=overlap_comm,
                 allgather_partitions=allgather_partitions,
