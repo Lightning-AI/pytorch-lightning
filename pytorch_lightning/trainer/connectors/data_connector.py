@@ -89,6 +89,7 @@ class DataConnector(object):
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(model, train_dataloader, val_dataloaders)
         self.attach_datamodule(model, datamodule)
+        self._validate_data_hooks(model)
 
     def __enforce_datamodule_dataloader_override(self, train_dataloader, val_dataloaders, datamodule):
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
@@ -96,6 +97,14 @@ class DataConnector(object):
             raise MisconfigurationException(
                 'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
             )
+
+    def _validate_data_hooks(self, model):
+        # Raise Misconfiguration exception since these hooks are not supported in DP mode
+        # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
+        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
+        for hook in batch_transfer_hooks:
+            if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
+                raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
 
     def attach_dataloaders(
         self,
@@ -127,22 +136,16 @@ class DataConnector(object):
         if datamodule:
 
             # Override loader hooks
-            if is_overridden('train_dataloader', datamodule):
-                model.train_dataloader = datamodule.train_dataloader
-            if is_overridden('val_dataloader', datamodule):
-                model.val_dataloader = datamodule.val_dataloader
-            if is_overridden('test_dataloader', datamodule):
-                model.test_dataloader = datamodule.test_dataloader
-            if is_overridden('predict_dataloader', datamodule):
-                model.predict_dataloader = datamodule.predict_dataloader
+            dl_methods = ('train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader')
+            for method in dl_methods:
+                if is_overridden(method, datamodule):
+                    setattr(model, method, getattr(datamodule, method))
 
             # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-            if is_overridden('on_before_batch_transfer', datamodule):
-                model.on_before_batch_transfer = datamodule.on_before_batch_transfer
-            if is_overridden('transfer_batch_to_device', datamodule):
-                model.transfer_batch_to_device = datamodule.transfer_batch_to_device
-            if is_overridden('on_after_batch_transfer', datamodule):
-                model.on_after_batch_transfer = datamodule.on_after_batch_transfer
+            batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
+            for hook in batch_transfer_hooks:
+                if is_overridden(hook, datamodule):
+                    setattr(model, hook, getattr(datamodule, hook))
 
             self.trainer.datamodule = datamodule
             datamodule.trainer = self.trainer

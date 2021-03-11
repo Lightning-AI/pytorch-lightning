@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -18,8 +19,10 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -130,6 +133,56 @@ class ReductionTestModel(BoringModel):
         assert outputs[0]["loss"].shape == torch.Size([])
         assert outputs[0]["reduce_int"].item() == 0  # mean([0, 1]) = 0
         assert outputs[0]["reduce_float"].item() == 0.5  # mean([0., 1.]) = 0.5
+
+
+def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
+    """
+    Test that an exception is raised when overriding batch_transfer_hooks in DP model.
+    """
+    monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
+
+    class CustomModel(BoringModel):
+
+        def transfer_batch_to_device(self, batch, device):
+            batch = batch.to(device)
+            return batch
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_steps=7,
+        gpus=[0, 1],
+        accelerator='dp',
+    )
+
+    trainer = Trainer(**trainer_options)
+    model = CustomModel()
+
+    with pytest.raises(MisconfigurationException, match=r'Overriding `transfer_batch_to_device` is not .* in DP'):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+
+        def on_before_batch_transfer(self, batch, dataloader_idx):
+            batch += 1
+            return batch
+
+    trainer = Trainer(**trainer_options)
+    model = CustomModel()
+
+    with pytest.raises(MisconfigurationException, match=r'Overriding `on_before_batch_transfer` is not .* in DP'):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+
+        def on_after_batch_transfer(self, batch, dataloader_idx):
+            batch += 1
+            return batch
+
+    trainer = Trainer(**trainer_options)
+    model = CustomModel()
+
+    with pytest.raises(MisconfigurationException, match=r'Overriding `on_after_batch_transfer` is not .* in DP'):
+        trainer.fit(model)
 
 
 @RunIf(min_gpus=2)
