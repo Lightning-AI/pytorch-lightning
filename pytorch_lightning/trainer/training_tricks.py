@@ -29,10 +29,7 @@ class TrainerTrainingTricksMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    default_root_dir: str
     lightning_module: LightningModule
-    progress_bar_callback:...
-    on_gpu: bool
 
     def print_nan_gradients(self) -> None:
         model = self.lightning_module
