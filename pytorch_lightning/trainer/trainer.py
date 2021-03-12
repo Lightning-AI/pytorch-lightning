@@ -480,6 +480,7 @@ class Trainer(
             self.call_hook('on_fit_end')
 
         # teardown
+        self.profiler.teardown()
         self.call_teardown_hook(model)
 
         if self.state != TrainerState.INTERRUPTED:

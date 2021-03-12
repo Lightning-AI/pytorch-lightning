@@ -55,9 +55,9 @@ class BaseProfiler(ABC):
     def stop(self, action_name: str) -> None:
         """Defines how to record the duration once an action is complete."""
 
-    @abstractmethod
     def teardown(self) -> None:
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
+        pass
 
     @contextmanager
     def profile(self, action_name: str) -> None:
@@ -116,9 +116,6 @@ class PassThroughProfiler(BaseProfiler):
         pass
 
     def stop(self, action_name: str) -> None:
-        pass
-
-    def teardown(self) -> None:
         pass
 
     def summary(self) -> str:

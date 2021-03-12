@@ -1603,6 +1603,45 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     )
     trainer.fit(model)
 
+def test_profiler_teardown(tmpdir):
+    """
+    This test checks if profiler teardown method is called when
+    trainer is exiting.
+    """
+    profilerSimple = SimpleProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    profilerAdvanced = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    profilerPytorch = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        profiler=profilerSimple,
+    )
+    trainer.fit(model)
+
+    assert profilerSimple.output_file.closed
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        profiler=profilerAdvanced,
+    )
+    trainer.fit(model)
+
+    assert profilerAdvanced.output_file.closed
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        profiler=profilerPytorch,
+    )
+    trainer.fit(model)
+
+    assert profilerPytorch.output_file.closed
+
 
 @pytest.mark.parametrize(
     ["limit_train_batches", "global_step", "num_training_batches", "current_epoch", "should_train"],
