@@ -13,8 +13,8 @@
 # limitations under the License.
 from typing import Any
 
+from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.torch_distributed import broadcast_object_list
 
 
 class LightningDistributed:

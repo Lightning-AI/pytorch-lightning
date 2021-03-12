@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Union, Optional
+from typing import Any, Optional, Union
 
 import torch
 
@@ -23,8 +23,6 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def __init__(self, device: torch.device):
         super().__init__()
         self.device: torch.device = device
-        self.world_size = 1
-        self.local_rank = 0
 
     @property
     def on_tpu(self) -> bool:
