@@ -190,13 +190,13 @@ class MLFlowLogger(LightningLoggerBase):
     @rank_zero_only
     def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
         import matplotlib.pyplot as plt
+
         # save temporary file until logged
         filename = Path(self.save_dir) / (name + f"_step_{step}" + self._figure_file_extension)
         figure.savefig(filename)
         self.experiment.log_artifact(self.run_id, filename, artifact_path="figure_" + name)
 
         filename.unlink()  # delete temporary file
-
         if close:
             plt.close(figure)
 

@@ -19,7 +19,6 @@ import logging
 from argparse import Namespace
 from typing import Any, Dict, Iterable, Optional, Union
 
-import matplotlib.pyplot as plt
 import torch
 from torch import is_tensor
 
@@ -265,11 +264,11 @@ class NeptuneLogger(LightningLoggerBase):
             self.log_metric(key, val)
 
     @rank_zero_only
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
+        import matplotlib.pyplot as plt
+
         description = f"step_{step}" if step is not None else None
-
         self.experiment.log_image(name, figure, description=description)
-
         if close:
             plt.close(figure)
 

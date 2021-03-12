@@ -19,7 +19,6 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-import matplotlib.pyplot as plt
 import torch.nn as nn
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
@@ -201,9 +200,10 @@ class WandbLogger(LightningLoggerBase):
             self.experiment.log(metrics)
 
     @rank_zero_only
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
-        self.experiment.log({name: wandb.Image(figure)}, step=step)
+    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
+        import matplotlib.pyplot as plt
 
+        self.experiment.log({name: wandb.Image(figure)}, step=step)
         if close:
             plt.close(figure)
 
