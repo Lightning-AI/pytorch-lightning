@@ -17,6 +17,7 @@ import functools
 import inspect
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
+from copy import deepcopy
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 from torch.utils.data import DataLoader, Dataset
@@ -39,6 +40,13 @@ class _DataModuleWrapper(type):
         2. Assures prepare_data() runs on rank 0
         3. Lets you check prepare_data and setup to see if they've been called
         """
+        __flash_special_attr__ = getattr(cls, "__flash_special_attr__", None)
+        if __flash_special_attr__:
+            saved_attr = []
+            for special_attr_name in __flash_special_attr__:
+                attr = deepcopy(getattr(cls, special_attr_name, None))
+                saved_attr.append((special_attr_name, attr))
+
         if not cls.__has_added_checks:
             cls.__has_added_checks = True
             # Track prepare_data calls and make sure it runs on rank zero
@@ -48,6 +56,10 @@ class _DataModuleWrapper(type):
 
         # Get instance of LightningDataModule by mocking its __init__ via __call__
         obj = type.__call__(cls, *args, **kwargs)
+
+        if __flash_special_attr__:
+            for special_attr_name, attr in saved_attr:
+                setattr(obj, special_attr_name, attr)
 
         return obj
 
