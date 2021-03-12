@@ -23,6 +23,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
