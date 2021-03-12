@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from pathlib import Path
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -218,4 +219,4 @@ def test_mlflow_log_figure(client, mlflow, step_idx, figure_format, tmpdir):
     fname_expect = logger.save_dir + f'/dummy_step_{step_idx}{figure_format}'
     artifact_expect = 'figure_dummy'
 
-    mock_log.assert_called_once_with(logger.run_id, fname_expect, artifact_path=artifact_expect)
+    mock_log.assert_called_once_with(logger.run_id, Path(fname_expect), artifact_path=artifact_expect)

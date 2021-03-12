@@ -391,7 +391,6 @@ class LoggerCollection(LightningLoggerBase):
             logger.log_metrics(metrics, step)
 
     def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
-
         for logger in self._logger_iterable:
             # don't close in the individual loggers, but once at the end
             logger.log_figure(name, figure, step=step, close=False)
