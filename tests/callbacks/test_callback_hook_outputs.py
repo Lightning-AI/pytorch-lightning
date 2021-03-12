@@ -113,3 +113,24 @@ def test_on_test_epoch_end_outputs(tmpdir):
     )
 
     trainer.test(model)
+
+
+def test_free_memory_on_eval_outputs(tmpdir):
+
+    class CB(Callback):
+
+        def on_epoch_end(self, trainer, pl_module):
+            assert len(trainer.evaluation_loop.outputs) == 0
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=CB(),
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        weights_summary=None,
+    )
+
+    trainer.fit(model)
