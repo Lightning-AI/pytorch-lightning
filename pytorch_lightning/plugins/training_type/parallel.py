@@ -36,6 +36,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         super().__init__()
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
+        self.local_rank = 0
+        self.world_size = 1
 
     @property
     @abstractmethod
