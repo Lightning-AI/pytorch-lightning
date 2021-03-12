@@ -14,7 +14,6 @@
 import math
 import os
 import pickle
-import platform
 import sys
 from argparse import Namespace
 from copy import deepcopy
@@ -26,6 +25,7 @@ import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf
+from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
@@ -33,14 +33,14 @@ from pytorch_lightning import Callback, LightningDataModule, LightningModule, Tr
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.profiler.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
+from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @pytest.fixture
@@ -199,129 +199,38 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     assert not failed, "Model should be loaded due to strict=False."
 
 
-@pytest.mark.parametrize(
-    ["schedule", "expected"],
-    [
-        pytest.param({
-            1: 2,
-            3: 4
-        }, [1, 2, 4]),
-        pytest.param(3, [3, 3, 3]),
-        pytest.param(4, [4, 4, 4]),
-    ],
-)
-def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
-    """
-    Test grad accumulation by the freq of optimizer updates
-    """
-
-    # test incorrect configs
-    with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={-1: 3, 1: 4, 4: 6})
-    with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={-2: 3})
-
-    with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches={})
-    with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
-    with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches={1: 2, 3.0: 4})
-    with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
-
-    model = EvalModelTemplate()
-
-    trainer = Trainer(
-        accumulate_grad_batches=schedule,
-        limit_train_batches=0.7,  # not to be divisible by accumulate_grad_batches on purpose
-        limit_val_batches=0.8,
-        max_epochs=4,
-        default_root_dir=tmpdir,
-    )
-
-    model.old_optimizer_step = model.optimizer_step
-
-    # test optimizer call freq matches scheduler
-    def _optimizer_step(
-        epoch,
-        batch_idx,
-        optimizer,
-        optimizer_idx,
-        second_order_closure=None,
-        on_tpu=False,
-        using_native_amp=False,
-        using_lbfgs=False,
-    ):
-        # only test the first 12 batches in epoch
-        if batch_idx < 12:
-            if epoch == 0:
-                # reset counter when starting epoch
-                if batch_idx == expected[0] - 1:
-                    model.prev_called_batch_idx = expected[0] - 1
-
-                    # use this opportunity to test once
-                    assert trainer.accumulate_grad_batches == expected[0]
-
-                # separate check for last batch with accumulate 1 step
-                if expected[0] == 1 and (batch_idx + 1) == trainer.num_training_batches:
-                    assert batch_idx == model.prev_called_batch_idx
-                elif (batch_idx + 1) == trainer.num_training_batches:
-                    # prev_called_batch_idx - schedule + modulus remainder
-                    assert batch_idx == (model.prev_called_batch_idx - expected[0] + (batch_idx + 1) % expected[0])
-                else:
-                    assert batch_idx == model.prev_called_batch_idx
-                    model.prev_called_batch_idx += expected[0]
-
-            elif 1 <= epoch <= 2:
-                # reset counter when starting epoch
-                if batch_idx == expected[1] - 1:
-                    model.prev_called_batch_idx = expected[1] - 1
-
-                    # use this opportunity to test once
-                    assert trainer.accumulate_grad_batches == expected[1]
-
-                if trainer.num_training_batches == batch_idx + 1:
-                    # prev_called_batch_idx - schedule + modulus remainder
-                    assert batch_idx == (model.prev_called_batch_idx - expected[1] + (batch_idx + 1) % expected[1])
-                else:
-                    assert batch_idx == model.prev_called_batch_idx
-                    model.prev_called_batch_idx += expected[1]
-
-            else:
-                if batch_idx == expected[2] - 1:
-                    model.prev_called_batch_idx = expected[2] - 1
-
-                    # use this opportunity to test once
-                    assert trainer.accumulate_grad_batches == expected[2]
-
-                if (batch_idx + 1) == trainer.num_training_batches:
-                    # prev_called_batch_idx - schedule + modulus remainder
-                    assert batch_idx == (model.prev_called_batch_idx - expected[2] + (batch_idx + 1) % expected[2])
-                else:
-                    assert batch_idx == model.prev_called_batch_idx
-                    model.prev_called_batch_idx += expected[2]
-
-        model.old_optimizer_step(
-            epoch, batch_idx, optimizer, optimizer_idx, second_order_closure, on_tpu, using_native_amp, using_lbfgs
+@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
+def test_trainer_accumulate_grad_batches_zero_grad(tmpdir, accumulate_grad_batches):
+    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=20,
+            limit_val_batches=1,
+            max_epochs=1,
+            weights_summary=None,
+            accumulate_grad_batches=accumulate_grad_batches,
         )
+        trainer.fit(model)
+
+        assert sgd_zero_grad.call_count == math.ceil(trainer.limit_train_batches / accumulate_grad_batches)
 
 
 @pytest.mark.parametrize(
     ["accumulate_grad_batches", "limit_train_batches"],
     [
-        pytest.param({
+        ({
             1: 2,
             3: 4
         }, 1.0),
-        pytest.param({
+        ({
             1: 2,
             3: 4
         }, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
-        pytest.param(3, 1.0),
-        pytest.param(3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
-        pytest.param(4, 1.0),
-        pytest.param(4, 0.7),  # not to be divisible by accumulate_grad_batches on purpose
+        (3, 1.0),
+        (3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
+        (4, 1.0),
+        (4, 0.7),  # not to be divisible by accumulate_grad_batches on purpose
     ],
 )
 def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_batches, limit_train_batches):
@@ -329,20 +238,17 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
     class CurrentModel(BoringModel):
 
-        def on_batch_start(self, batch, batch_idx, dataloader_idx):
+        def on_batch_start(self, *_):
             self.on_train_batch_start_state_dict = self.state_dict()
 
-        def on_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        def on_batch_end(self, outputs, batch, batch_idx, *_):
             self.on_train_batch_start_end_dict = self.state_dict()
             for key in self.on_train_batch_start_end_dict.keys():
+                equal = torch.equal(self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key])
                 if (batch_idx + 1) == self.trainer.num_training_batches:
-                    assert torch.equal(
-                        self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key]
-                    )
+                    assert equal
                 else:
-                    assert not torch.equal(
-                        self.on_train_batch_start_state_dict[key], self.on_train_batch_start_end_dict[key]
-                    )
+                    assert not equal
 
     model = CurrentModel()
 
@@ -446,10 +352,11 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
         monitor='checkpoint_on',
         save_top_k=save_top_k,
         save_last=save_last,
-        verbose=1
+        verbose=True
     )
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
+    trainer.state = TrainerState.FITTING
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
@@ -566,7 +473,11 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         state = pl_load(ckpt)
 
         # Resume training
-        new_trainer = Trainer(resume_from_checkpoint=ckpt, max_epochs=2)
+        new_trainer = Trainer(
+            default_root_dir=tmpdir,
+            resume_from_checkpoint=ckpt,
+            max_epochs=2,
+        )
         new_trainer.fit(next_model)
         assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
         assert next_model.num_on_load_checkpoint_called == 1
@@ -688,44 +599,57 @@ def test_benchmark_option(tmpdir):
     assert torch.backends.cudnn.benchmark
 
 
-@pytest.mark.parametrize("ckpt_path", [None, "best", "specific"])
-@pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
-def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
-    hparams = EvalModelTemplate.get_default_hparams()
+@pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
+@pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
+@pytest.mark.parametrize("fn", ("validate", "test"))
+def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", -batch_idx)
+            return super().validation_step(batch, batch_idx)
 
-    model = EvalModelTemplate(**hparams)
+    model = TestModel()
     trainer = Trainer(
         max_epochs=2,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
-        callbacks=[ModelCheckpoint(monitor="early_stop_on", save_top_k=save_top_k)],
+        callbacks=[ModelCheckpoint(monitor="foo", save_top_k=save_top_k)],
     )
     trainer.fit(model)
+
+    test_or_validate = getattr(trainer, fn)
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
         if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
-                trainer.test(ckpt_path=ckpt_path)
+                test_or_validate(ckpt_path=ckpt_path)
         else:
-            trainer.test(ckpt_path=ckpt_path)
-            assert trainer.tested_ckpt_path == trainer.checkpoint_callback.best_model_path
+            test_or_validate(ckpt_path=ckpt_path)
+            if fn == "test":
+                assert trainer.tested_ckpt_path == trainer.checkpoint_callback.best_model_path
+            else:
+                assert trainer.validated_ckpt_path == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and
         # use the weights from the end of training
-        trainer.test(ckpt_path=ckpt_path)
+        test_or_validate(ckpt_path=ckpt_path)
         assert trainer.tested_ckpt_path is None
+        assert trainer.validated_ckpt_path is None
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
             with pytest.raises(FileNotFoundError):
-                trainer.test(ckpt_path="random.ckpt")
+                test_or_validate(ckpt_path="random.ckpt")
         else:
             ckpt_path = str(
                 list((Path(tmpdir) / f"lightning_logs/version_{trainer.logger.version}/checkpoints").iterdir()
                      )[0].absolute()
             )
-            trainer.test(ckpt_path=ckpt_path)
-            assert trainer.tested_ckpt_path == ckpt_path
+            test_or_validate(ckpt_path=ckpt_path)
+            if fn == "test":
+                assert trainer.tested_ckpt_path == ckpt_path
+            else:
+                assert trainer.validated_ckpt_path == ckpt_path
 
 
 def test_disabled_training(tmpdir):
@@ -974,8 +898,7 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not _NATIVE_AMP_AVAILABLE, reason="test requires native AMP.")
+@RunIf(min_gpus=1, amp_native=True)
 def test_gradient_clipping_fp16(tmpdir):
     """
     Test gradient clipping with fp16
@@ -1368,7 +1291,7 @@ def test_trainer_subclassing():
         }),
     ],
 )
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_trainer_omegaconf(trainer_params):
     Trainer(**trainer_params)
 
@@ -1382,10 +1305,11 @@ def test_trainer_pickle(tmpdir):
     cloudpickle.dumps(trainer)
 
 
-def test_trainer_setup_call(tmpdir):
-    """Test setup call with fit and test call."""
+@pytest.mark.parametrize("stage", ("fit", "validate", "test"))
+def test_trainer_setup_call(tmpdir, stage):
+    """Test setup call gets the correct stage"""
 
-    class CurrentModel(EvalModelTemplate):
+    class CurrentModel(BoringModel):
 
         def setup(self, stage):
             self.stage = stage
@@ -1401,21 +1325,23 @@ def test_trainer_setup_call(tmpdir):
     # fit model
     trainer = TrainerSubclass(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False)
 
-    trainer.fit(model)
-    assert trainer.stage == "fit"
-    assert trainer.lightning_module.stage == "fit"
+    if stage == "fit":
+        trainer.fit(model)
+    elif stage == "validate":
+        trainer.validate(model, ckpt_path=None)
+    else:
+        trainer.test(model, ckpt_path=None)
 
-    trainer.test(ckpt_path=None)
-    assert trainer.stage == "test"
-    assert trainer.lightning_module.stage == "test"
+    assert trainer.stage == stage
+    assert trainer.lightning_module.stage == stage
 
 
 @pytest.mark.parametrize(
     "train_batches, max_steps, log_interval",
     [
-        pytest.param(10, 10, 1),
-        pytest.param(3, 10, 1),
-        pytest.param(3, 10, 5),
+        (10, 10, 1),
+        (3, 10, 1),
+        (3, 10, 5),
     ],
 )
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
@@ -1483,12 +1409,12 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
+def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
-    model = BoringModel()
-    datamodule = TestLightningDataModule(dataloaders)
+    model = model or BoringModel()
+    dm = TestLightningDataModule(dataloaders)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1501,7 +1427,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
         plugins=plugins,
     )
     if datamodule:
-        results = trainer.predict(model, datamodule=datamodule)
+        results = trainer.predict(model, datamodule=dm)
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
@@ -1512,49 +1438,50 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
     assert results[0][0].shape == torch.Size([1, 2])
 
 
+def test_trainer_predict_no_return(tmpdir):
+    """
+    Test trainer.predict warns when nothing is returned
+    """
+
+    class CustomBoringModel(BoringModel):
+
+        def predict(self, batch, batch_idx, dataloader_idx=None):
+            if (batch_idx + 1) % 2 == 0:
+                return
+
+            return super().predict(batch, batch_idx, dataloader_idx)
+
+    with pytest.warns(UserWarning, match='predict returned None'):
+        predict(tmpdir, None, None, 1, model=CustomBoringModel())
+
+
 @pytest.mark.parametrize('datamodule', [False, True])
 def test_trainer_predict_cpu(tmpdir, datamodule):
     predict(tmpdir, None, None, 1, datamodule=datamodule)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize('num_gpus', [1, 2])
 def test_trainer_predict_dp(tmpdir, num_gpus):
     predict(tmpdir, "dp", num_gpus, None)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_trainer_predict_ddp(tmpdir):
     predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, skip_windows=True, special=True)
 def test_trainer_predict_ddp_spawn(tmpdir):
     predict(tmpdir, "ddp_spawn", 2, None)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, None, 1, None)
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(skip_windows=True, special=True)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
 
@@ -1581,10 +1508,7 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     pytorch_profiler.stop(action)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize("use_output_filename", [False, True])
 def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
@@ -1662,6 +1586,22 @@ def test_pytorch_profiler_nested(tmpdir):
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
             pa[n] = [e.replace("aten::", "") for e in pa[n]]
         assert pa[n] == expected_[n]
+
+
+@RunIf(min_gpus=1, special=True)
+def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+    """
+    This test check emit_nvtx is correctly supported
+    """
+    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        gpus=1,
+    )
+    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -1764,7 +1704,7 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     trainer.fit(model, train_data)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_setup_hook_move_to_device_correctly(tmpdir):
     """
     Verify that if a user defines a layer in the setup hook function, this is moved to the correct device.
@@ -1789,3 +1729,128 @@ def test_setup_hook_move_to_device_correctly(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
     trainer.fit(model, train_data)
+
+
+def test_train_loop_system(tmpdir):
+    """
+    Test the following methods are called in the order in automatic optimization.
+    1. optimizer.step (skip when gradient accumulation)
+    2. model.training_step
+    3. optimizer.zero_grad (run when the first batch of gradient accumulation)
+    4. model.backward
+
+    Note that the order is NOT `training_step`->`zero_grad`->`backward`->`step`.
+    This is because `optimizer.step(closure)` calls `closure()` which then calls
+    the three remaining methods `training_step`, `zero_grad` and `backward` inside.
+    """
+    called_methods = []
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        progress_bar_refresh_rate=0,
+    )
+
+    class TestOptimizer(SGD):
+
+        def step(self, *args, **kwargs):
+            called_methods.append("step")
+            return super().step(*args, **kwargs)
+
+        def zero_grad(self, *args, **kwargs):
+            called_methods.append("zero_grad")
+            return super().zero_grad(*args, **kwargs)
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            return TestOptimizer(self.parameters(), lr=0.1)
+
+        def training_step(self, *args, **kwargs):
+            called_methods.append("training_step")
+            return super().training_step(*args, **kwargs)
+
+        def backward(self, *args, **kwargs):
+            called_methods.append("backward")
+            return super().backward(*args, **kwargs)
+
+    model = TestModel()
+    trainer = Trainer(**trainer_options)
+
+    # No methods are called yet.
+    assert called_methods == []
+
+    trainer.fit(model)
+    assert called_methods == [
+        "step",
+        "training_step",
+        "zero_grad",
+        "backward",
+    ] * trainer.limit_train_batches
+
+    called_methods.clear()
+    trainer = Trainer(**trainer_options, accumulate_grad_batches=3)
+
+    # No methods are called yet.
+    assert called_methods == []
+
+    trainer.fit(model)
+    assert called_methods == [
+        # 0
+        "training_step",
+        "zero_grad",
+        "backward",
+        # 1
+        "training_step",
+        "backward",
+        # 2
+        "step",
+        "training_step",
+        "backward",
+        # 3
+        "training_step",
+        "zero_grad",
+        "backward",
+        # 4
+        "step",
+        "training_step",
+        "backward",
+    ]
+
+
+def test_init_optimizers_resets_lightning_optimizers(tmpdir):
+    """ Test that the Trainer resets the `lightning_optimizers` list everytime new optimizers get initialized. """
+
+    def compare_optimizers():
+        assert trainer.lightning_optimizers[0].optimizer is trainer.optimizers[0]
+
+    model = BoringModel()
+    model.lr = 0.2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        auto_lr_find=True,
+    )
+
+    trainer.tune(model)
+    compare_optimizers()
+
+    trainer.fit(model)
+    compare_optimizers()
+
+    trainer.max_epochs = 2  # simulate multiple fit calls
+    trainer.fit(model)
+    compare_optimizers()
+
+
+def test_check_val_every_n_epoch_exception(tmpdir):
+
+    with pytest.raises(MisconfigurationException, match="should be an integer."):
+        Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            check_val_every_n_epoch=1.2,
+        )

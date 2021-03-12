@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
+import logging
 import os
 from functools import wraps
 from typing import Callable, List, Optional, Sequence, Union
@@ -22,7 +23,6 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -38,6 +38,8 @@ if importlib.util.find_spec('ipywidgets') is not None:
     from tqdm.auto import tqdm
 else:
     from tqdm import tqdm
+
+log = logging.getLogger(__name__)
 
 
 def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
@@ -106,6 +108,10 @@ def lr_find(
 
         update_attr: Whether to update the learning rate attribute or not.
 
+    Raises:
+        MisconfigurationException:
+            If learning rate/lr in ``model`` or ``model.hparams`` isn't overriden when ``auto_lr_find=True``, or
+            if you are using `more than one optimizer` with learning rate finder.
 
     Example::
 
@@ -412,11 +418,11 @@ class _LRCallback(Callback):
             self.progress_bar.update()
 
         current_loss = trainer.train_loop.running_loss.last().item()
-        current_step = trainer.global_step + 1  # remove the +1 in 1.0
+        current_step = trainer.global_step
 
         # Avg loss (loss with momentum) + smoothing
         self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
-        smoothed_loss = self.avg_loss / (1 - self.beta**current_step)
+        smoothed_loss = self.avg_loss / (1 - self.beta**(current_step + 1))
 
         # Check if we diverging
         if self.early_stop_threshold is not None:

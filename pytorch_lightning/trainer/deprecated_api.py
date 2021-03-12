@@ -14,15 +14,11 @@
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 
 
 class DeprecatedDistDeviceAttributes:
 
-    _distrib_type: DistributedType
-    _device_type: DeviceType
-    _running_stage: RunningStage
     num_gpus: int
     accelerator_connector: AcceleratorConnector
 
@@ -137,7 +133,8 @@ class DeprecatedDistDeviceAttributes:
 class DeprecatedTrainerAttributes:
 
     accelerator: Accelerator
-    lightning_module = LightningModule
+    lightning_module: LightningModule
+    sanity_checking: bool
 
     @property
     def accelerator_backend(self) -> Accelerator:
@@ -153,3 +150,11 @@ class DeprecatedTrainerAttributes:
             " and will be removed in v1.4.", DeprecationWarning
         )
         return self.lightning_module
+
+    @property
+    def running_sanity_check(self) -> bool:
+        rank_zero_warn(
+            "`Trainer.running_sanity_check` has been renamed to `Trainer.sanity_checking`"
+            " and will be removed in v1.5.", DeprecationWarning
+        )
+        return self.sanity_checking

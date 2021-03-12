@@ -65,6 +65,17 @@ class AUROC(Metric):
            Callback that performs the allgather operation on the metric state. When ``None``, DDP
            will be used to perform the allgather
 
+    Raises:
+        ValueError:
+            If ``average`` is none of ``None``, ``"macro"`` or ``"weighted"``.
+        ValueError:
+            If ``max_fpr`` is not a ``float`` in the range ``(0, 1]``.
+        RuntimeError:
+            If ``PyTorch version`` is ``below 1.6`` since max_fpr requires ``torch.bucketize``
+            which is not available below 1.6.
+        ValueError:
+            If the mode of data (binary, multi-label, multi-class) changes between batches.
+
     Example (binary case):
 
         >>> from pytorch_lightning.metrics import AUROC

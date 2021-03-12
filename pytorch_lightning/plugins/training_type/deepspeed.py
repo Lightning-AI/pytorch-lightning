@@ -66,7 +66,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self,
         zero_optimization: bool = True,
         stage: int = 2,
-        cpu_offload: bool = True,
+        cpu_offload: bool = False,
         contiguous_gradients: bool = True,
         overlap_comm: bool = True,
         allgather_partitions: bool = True,
@@ -104,7 +104,7 @@ class DeepSpeedPlugin(DDPPlugin):
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning (default: 2)
 
-            cpu_offload: Enable offloading optimizer memory and computation to CPU (default: True)
+            cpu_offload: Enable offloading optimizer memory and computation to CPU
 
             contiguous_gradients: Copies gradients to a continuous buffer as they are produced.
                 Avoids memory fragmentation during backwards. Useful when training large models. (default: True)
@@ -213,7 +213,7 @@ class DeepSpeedPlugin(DDPPlugin):
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
-        if self.lightning_module.trainer.training:
+        if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
         else:
             self._initialize_deepspeed_inference(model)
@@ -231,6 +231,8 @@ class DeepSpeedPlugin(DDPPlugin):
         return optimizer, scheduler, optimizer_frequencies
 
     def _initialize_deepspeed_train(self, model):
+        if self.on_gpu:
+            torch.cuda.set_device(self.root_device)
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
         if "optimizer" not in self.config:
             rank_zero_info(
@@ -249,8 +251,7 @@ class DeepSpeedPlugin(DDPPlugin):
         )
 
         # set optimizer for save/load, but deepspeed manages the specific optimizer logic
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = [optimizer]
+        self.lightning_module.trainer.optimizers = [optimizer]
         self.model = model
 
     def _initialize_deepspeed_inference(self, model):

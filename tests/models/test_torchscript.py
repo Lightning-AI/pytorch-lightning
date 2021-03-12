@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from distutils.version import LooseVersion
 
 import pytest
 import torch
@@ -19,6 +18,7 @@ import torch
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests.helpers.datamodules import MNISTDataModule
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("modelclass", [
@@ -82,8 +82,8 @@ def test_torchscript_input_output_trace():
     assert torch.allclose(script_output, model_output)
 
 
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 def test_torchscript_device(device):
     """ Test that scripted module is on the correct device. """
     model = BoringModel().to(device)
@@ -129,10 +129,7 @@ def test_torchscript_properties(tmpdir, modelclass):
     ParityModuleRNN,
     BasicGAN,
 ])
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
-    reason="torch.save/load has bug loading script modules on torch <= 1.4",
-)
+@RunIf(min_torch="1.5.0")
 def test_torchscript_save_load(tmpdir, modelclass):
     """ Test that scripted LightningModule is correctly saved and can be loaded. """
     model = modelclass()

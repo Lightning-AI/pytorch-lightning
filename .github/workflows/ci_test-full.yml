@@ -104,11 +104,14 @@ jobs:
         HOROVOD_WITHOUT_MXNET: 1
         HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
-        # python -m pip install --upgrade --user pip
-        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
-        pip install --requirement ./requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
         python --version
         pip --version
+        # python -m pip install --upgrade --user pip
+        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        # adjust versions according installed Torch version
+        python ./requirements/adjust_versions.py requirements/extra.txt
+        python ./requirements/adjust_versions.py requirements/examples.txt
+        pip install --requirement ./requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash
 
@@ -135,9 +138,13 @@ jobs:
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        python -m pytest pytorch_lightning tests --cov=pytorch_lightning -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
-    - name: Upload pytest test results
+    - name: Examples
+      run: |
+        python -m pytest pl_examples -v --durations=10
+
+    - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
         name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
@@ -158,6 +165,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.xml
-        flags: cpu,pytest
+        flags: cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false

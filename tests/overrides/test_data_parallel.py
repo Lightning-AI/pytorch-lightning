@@ -5,7 +5,6 @@ import torch
 from torch.nn import DataParallel
 
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.base import warning_cache
 from pytorch_lightning.overrides.data_parallel import (
     LightningParallelModule,
     python_scalar_to_tensor,
@@ -13,13 +12,22 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("wrapper_class", [
     LightningParallelModule,
     LightningDistributedModule,
 ])
-def test_lightning_wrapper_module_methods(wrapper_class):
+@pytest.mark.parametrize(
+    "stage", [
+        ("training", "training_step"),
+        ("testing", "test_step"),
+        ("validating", "validation_step"),
+        ("predicting", "predict"),
+    ]
+)
+def test_lightning_wrapper_module_methods(wrapper_class, stage):
     """ Test that the LightningWrapper redirects .forward() to the LightningModule methods. """
     pl_module = MagicMock()
     wrapped_module = wrapper_class(pl_module)
@@ -27,53 +35,14 @@ def test_lightning_wrapper_module_methods(wrapper_class):
     batch = torch.rand(5)
     batch_idx = 3
 
-    pl_module.running_stage = RunningStage.TRAINING
+    prop, step = stage
+    pl_module.trainer.sanity_checking = False
+
+    for p in ("training", "testing", "validating", "predicting"):
+        setattr(pl_module.trainer, p, p == prop)
+
     wrapped_module(batch, batch_idx)
-    pl_module.training_step.assert_called_with(batch, batch_idx)
-
-    pl_module.running_stage = RunningStage.TESTING
-    wrapped_module(batch, batch_idx)
-    pl_module.test_step.assert_called_with(batch, batch_idx)
-
-    pl_module.running_stage = RunningStage.EVALUATING
-    wrapped_module(batch, batch_idx)
-    pl_module.validation_step.assert_called_with(batch, batch_idx)
-
-    pl_module.running_stage = RunningStage.PREDICTING
-    wrapped_module(batch)
-    pl_module.predict.assert_called_with(batch)
-
-
-@pytest.mark.parametrize("wrapper_class", [
-    LightningParallelModule,
-    LightningDistributedModule,
-])
-def test_lightning_wrapper_module_warn_none_output(wrapper_class):
-    """ Test that the LightningWrapper module warns about forgotten return statement. """
-    warning_cache.clear()
-    pl_module = MagicMock()
-    wrapped_module = wrapper_class(pl_module)
-
-    pl_module.training_step.return_value = None
-    pl_module.validation_step.return_value = None
-    pl_module.test_step.return_value = None
-
-    with pytest.warns(UserWarning, match="Your training_step returned None"):
-        pl_module.running_stage = RunningStage.TRAINING
-        wrapped_module()
-
-    with pytest.warns(UserWarning, match="Your test_step returned None"):
-        pl_module.running_stage = RunningStage.TESTING
-        wrapped_module()
-
-    with pytest.warns(UserWarning, match="Your validation_step returned None"):
-        pl_module.running_stage = RunningStage.EVALUATING
-        wrapped_module()
-
-    with pytest.warns(None) as record:
-        pl_module.running_stage = None
-        wrapped_module()
-        assert not record
+    getattr(pl_module, step).assert_called_with(batch, batch_idx)
 
 
 @pytest.mark.parametrize(
@@ -88,7 +57,7 @@ def test_unsqueeze_scalar_tensor(inp, expected):
     assert torch.all(unsqueeze_scalar_tensor(inp).eq(expected))
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-gpu machine")
+@RunIf(min_gpus=2)
 def test_lightning_parallel_module_unsqueeze_scalar():
     """ Test that LightningParallelModule takes care of un-squeezeing 0-dim tensors. """
 
@@ -132,8 +101,8 @@ def test_python_scalar_to_tensor(inp, expected):
     assert torch.all(python_scalar_to_tensor(inp).eq(expected))
 
 
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_lightning_parallel_module_python_scalar_conversion(device):
     """ Test that LightningParallelModule can convert Python scalars to tensors. """
 
@@ -145,8 +114,7 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
             output.update({"python scalar": 12.3})
             return output
 
-    model = TestModel()
-    model.to(device)
+    model = TestModel().to(device)
     model.trainer = Mock()
     model.trainer._running_stage = RunningStage.TRAINING
     batch = torch.rand(2, 32).to(device)

@@ -25,14 +25,14 @@ from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 class ModelHooks:
     """Hooks to be used in LightningModule."""
 
-    def setup(self, stage: str) -> None:
+    def setup(self, stage: Optional[str] = None) -> None:
         """
-        Called at the beginning of fit and test.
+        Called at the beginning of fit (train + validate), validate, test, predict, or tune.
         This is a good hook when you need to build models dynamically or adjust something about them.
         This hook is called on every process when using DDP.
 
         Args:
-            stage: either 'fit' or 'test'
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
 
         Example::
 
@@ -53,12 +53,12 @@ class ModelHooks:
 
         """
 
-    def teardown(self, stage: str) -> None:
+    def teardown(self, stage: Optional[str] = None) -> None:
         """
-        Called at the end of fit and test.
+        Called at the end of fit (train + validate), validate, test, predict, or tune.
 
         Args:
-            stage: either 'fit' or 'test'
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
         """
 
     def on_fit_start(self) -> None:
@@ -383,12 +383,14 @@ class DataHooks:
             model.test_dataloader()
         """
 
-    def train_dataloader(self) -> DataLoader:
+    def train_dataloader(self) -> Any:
         """
-        Implement a PyTorch DataLoader for training.
+        Implement one or more PyTorch DataLoaders for training.
 
         Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
+            Either a single PyTorch :class:`~torch.utils.data.DataLoader` or a collection of these
+            (list, dict, nested lists and dicts). In the case of multiple dataloaders, please see
+            this :ref:`page <multiple-training-dataloaders>`
 
         The dataloader you return will not be called every epoch unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
@@ -414,6 +416,7 @@ class DataHooks:
 
         Example::
 
+            # single dataloader
             def train_dataloader(self):
                 transform = transforms.Compose([transforms.ToTensor(),
                                                 transforms.Normalize((0.5,), (1.0,))])
@@ -425,6 +428,32 @@ class DataHooks:
                     shuffle=True
                 )
                 return loader
+
+            # multiple dataloaders, return as list
+            def train_dataloader(self):
+                mnist = MNIST(...)
+                cifar = CIFAR(...)
+                mnist_loader = torch.utils.data.DataLoader(
+                    dataset=mnist, batch_size=self.batch_size, shuffle=True
+                )
+                cifar_loader = torch.utils.data.DataLoader(
+                    dataset=cifar, batch_size=self.batch_size, shuffle=True
+                )
+                # each batch will be a list of tensors: [batch_mnist, batch_cifar]
+                return [mnist_loader, cifar_loader]
+
+            # multiple dataloader, return as dict
+            def train_dataloader(self):
+                mnist = MNIST(...)
+                cifar = CIFAR(...)
+                mnist_loader = torch.utils.data.DataLoader(
+                    dataset=mnist, batch_size=self.batch_size, shuffle=True
+                )
+                cifar_loader = torch.utils.data.DataLoader(
+                    dataset=cifar, batch_size=self.batch_size, shuffle=True
+                )
+                # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
+                return {'mnist': mnist_loader, 'cifar': cifar_loader}
 
         """
         rank_zero_warn("`train_dataloader` must be implemented to be used with the Lightning Trainer")
@@ -586,10 +615,7 @@ class DataHooks:
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
-            If you need multi-GPU support for your custom batch objects, you need to define your custom
-            :class:`~torch.nn.parallel.DistributedDataParallel` or
-            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
-            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
+            Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be transferred to a new device.
@@ -609,6 +635,10 @@ class DataHooks:
                     batch = super().transfer_batch_to_device(data, device)
                 return batch
 
+        Raises:
+            MisconfigurationException:
+                If using data-parallel, ``Trainer(accelerator='dp')``.
+
         See Also:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
@@ -620,10 +650,11 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
-        .. warning:: dataloader_idx always returns 0, and will be updated to support the true idx in the future.
+        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true index in the future.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
+            Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
@@ -637,6 +668,10 @@ class DataHooks:
             def on_before_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = transforms(batch['x'])
                 return batch
+
+        Raises:
+            MisconfigurationException:
+                If using data-parallel, ``Trainer(accelerator='dp')``.
 
         See Also:
             - :meth:`on_after_batch_transfer`
@@ -652,6 +687,7 @@ class DataHooks:
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
+            Data-Parallel support will come in near future.
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
@@ -665,6 +701,10 @@ class DataHooks:
             def on_after_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = gpu_transforms(batch['x'])
                 return batch
+
+        Raises:
+            MisconfigurationException:
+                If using data-parallel, ``Trainer(accelerator='dp')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`

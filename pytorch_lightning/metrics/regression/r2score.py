@@ -66,6 +66,12 @@ class R2Score(Metric):
         process_group:
             Specify the process group on which synchronization is called. default: None (which selects the entire world)
 
+    Raises:
+        ValueError:
+            If ``adjusted`` parameter is not an integer larger or equal to 0.
+        ValueError:
+            If ``multioutput`` is not one of ``"raw_values"``, ``"uniform_average"`` or ``"variance_weighted"``.
+
     Example:
 
         >>> from pytorch_lightning.metrics import R2Score
@@ -102,7 +108,7 @@ class R2Score(Metric):
         self.num_outputs = num_outputs
 
         if adjusted < 0 or not isinstance(adjusted, int):
-            raise ValueError('`adjusted` parameter should be an integer larger or' ' equal to 0.')
+            raise ValueError('`adjusted` parameter should be an integer larger or equal to 0.')
         self.adjusted = adjusted
 
         allowed_multioutput = ('raw_values', 'uniform_average', 'variance_weighted')

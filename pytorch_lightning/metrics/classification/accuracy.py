@@ -78,6 +78,12 @@ class Accuracy(Metric):
             Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the allgather
 
+    Raises:
+        ValueError:
+            If ``threshold`` is not between ``0`` and ``1``.
+        ValueError:
+            If ``top_k`` is not an ``integer`` larger than ``0``.
+
     Example:
 
         >>> from pytorch_lightning.metrics import Accuracy

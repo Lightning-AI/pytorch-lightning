@@ -15,20 +15,18 @@
 MLflow Logger
 -------------
 """
+import logging
 import re
 from argparse import Namespace
 from pathlib import Path
 from time import time
 from typing import Any, Dict, Optional, Union
 
-import matplotlib.pyplot as plt
-
-from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
 
+log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-
 _MLFLOW_AVAILABLE = _module_available("mlflow")
 try:
     import mlflow
@@ -190,7 +188,8 @@ class MLFlowLogger(LightningLoggerBase):
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
+        import matplotlib.pyplot as plt
         # save temporary file until logged
         filename = Path(self.save_dir) / (name + f"_step_{step}" + self._figure_file_extension)
         figure.savefig(filename)

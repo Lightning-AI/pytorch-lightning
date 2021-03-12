@@ -38,6 +38,7 @@ Note:
     See: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
 """
 import argparse
+import logging
 import os
 from pathlib import Path
 from typing import Union
@@ -54,11 +55,11 @@ from torchvision.datasets.utils import download_and_extract_archive
 
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
-from pytorch_lightning import _logger as log
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
 from pytorch_lightning.utilities import rank_zero_info
 
+log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
 
 #  --- Finetuning Callback ---
@@ -146,14 +147,14 @@ class CatDogImageDataModule(LightningDataModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser = argparse.ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("CatDogImageDataModule")
         parser.add_argument(
             "--num-workers", default=0, type=int, metavar="W", help="number of CPU workers", dest="num_workers"
         )
         parser.add_argument(
             "--batch-size", default=8, type=int, metavar="W", help="number of sample in a batch", dest="batch_size"
         )
-        return parser
+        return parent_parser
 
 
 #  --- Pytorch-lightning module ---
@@ -267,7 +268,7 @@ class TransferLearningModel(pl.LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser = argparse.ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("TransferLearningModel")
         parser.add_argument(
             "--backbone",
             default="resnet50",
@@ -302,7 +303,7 @@ class TransferLearningModel(pl.LightningModule):
         parser.add_argument(
             "--milestones", default=[2, 4], type=list, metavar="M", help="List of two epochs milestones"
         )
-        return parser
+        return parent_parser
 
 
 def main(args: argparse.Namespace) -> None:

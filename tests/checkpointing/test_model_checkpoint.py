@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import math
 import os
 import pickle
-import platform
 import re
 from argparse import Namespace
+from logging import INFO
 from pathlib import Path
+from typing import Union
 from unittest import mock
 from unittest.mock import Mock
 
@@ -37,6 +39,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class LogInTwoMethods(BoringModel):
@@ -54,12 +57,18 @@ class LogInTwoMethods(BoringModel):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(
-    "validation_step,val_dataloaders,monitor",
-    [('base', "base", 'val_log'), ('base', "base", 'train_log_epoch'), (None, "base", 'train_log_epoch'),
-     ("base", None, 'train_log_epoch')],
+    "validation_step_none,val_dataloaders_none,monitor",
+    [
+        (False, False, 'val_log'),
+        (False, False, 'train_log_epoch'),
+        (True, False, 'train_log_epoch'),
+        (False, True, 'train_log_epoch'),
+    ],
 )
 @pytest.mark.parametrize('reduce_lr_on_plateau', [False, True])
-def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloaders, monitor, reduce_lr_on_plateau):
+def test_model_checkpoint_score_and_ckpt(
+    tmpdir, validation_step_none: bool, val_dataloaders_none: bool, monitor: str, reduce_lr_on_plateau: bool
+):
     """
     Test that when a model checkpoint is saved, it saves with
     the correct score appended to ckpt_path and checkpoint data
@@ -106,9 +115,9 @@ def test_model_checkpoint_score_and_ckpt(tmpdir, validation_step, val_dataloader
 
     model = CustomBoringModel()
 
-    if validation_step is None:
+    if validation_step_none:
         model.validation_step = None
-    if val_dataloaders is None:
+    if val_dataloaders_none:
         model.val_dataloaders = None
 
     trainer = Trainer(
@@ -259,7 +268,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_in
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
-def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
+def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
     """Test that dirpath=None in checkpoint callback is valid and that ckpt_path is set correctly"""
     tutils.reset_seed()
     model = LogInTwoMethods()
@@ -283,7 +292,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
-def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
+def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
     model = LogInTwoMethods()
@@ -304,7 +313,7 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k):
     "logger_version,expected",
     [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")],
 )
-def test_model_checkpoint_path(tmpdir, logger_version, expected):
+def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer"""
     tutils.reset_seed()
     model = LogInTwoMethods()
@@ -363,10 +372,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
             assert torch.save.call_count == 0
 
 
-@pytest.mark.skipif(
-    platform.system() == "Windows",
-    reason="Distributed training is not supported on Windows",
-)
+@RunIf(skip_windows=True)
 def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
     model = LogInTwoMethods()
@@ -425,6 +431,12 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     ckpt = ModelCheckpoint(monitor='early_stop_on', dirpath=None, filename='{epoch}_{val/loss:.5f}')
     ckpt_name = ckpt.format_checkpoint_name(4, 3, {'val/loss': 0.03})
     assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
+
+    # auto_insert_metric_name=False
+    ckpt_name = ModelCheckpoint._format_checkpoint_name(
+        'epoch={epoch:03d}-val_acc={val/acc}', 3, 2, {'val/acc': 0.03}, auto_insert_metric_name=False
+    )
+    assert ckpt_name == 'epoch=003-val_acc=0.03'
 
 
 class ModelCheckpointExtensionTest(ModelCheckpoint):
@@ -502,20 +514,59 @@ def test_none_monitor_top_k(tmpdir):
 
 def test_none_monitor_save_last(tmpdir):
     """ Test that a warning appears for save_last=True with monitor=None. """
-    with pytest.warns(UserWarning, match=r'ModelCheckpoint\(save_last=True, monitor=None\) is a redundant.*'):
+    with pytest.warns(UserWarning, match=r'ModelCheckpoint.*is a redundant.*'):
         ModelCheckpoint(dirpath=tmpdir, save_last=True)
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, save_last=None)
     ModelCheckpoint(dirpath=tmpdir, save_last=False)
 
 
-def test_model_checkpoint_none_monitor(tmpdir):
+def test_invalid_every_n_val_epochs(tmpdir):
+    """ Make sure that a MisconfigurationException is raised for a negative every_n_val_epochs argument. """
+    with pytest.raises(MisconfigurationException, match=r'.*Must be >= 0'):
+        ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=-3)
+    # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=0)
+    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=1)
+    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=2)
+
+
+def test_invalid_every_n_train_steps(tmpdir):
+    """ Make sure that a MisconfigurationException is raised for a negative every_n_val_epochs argument. """
+    with pytest.raises(MisconfigurationException, match=r'.*Must be >= 0'):
+        ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=-3)
+    # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0)
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1)
+    ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=2)
+
+
+def test_invalid_every_n_train_steps_val_epochs_combination(tmpdir):
+    """
+    Test that a MisconfigurationException is raised if both
+    every_n_val_epochs and every_n_train_steps are enabled together.
+    """
+    with pytest.raises(MisconfigurationException, match=r'.*Both cannot be enabled at the same time'):
+        ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_val_epochs=2)
+    # These should not fail
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_val_epochs=3)
+    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=4, every_n_val_epochs=0)
+
+
+def test_none_every_n_train_steps_val_epochs(tmpdir):
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir)
+    assert checkpoint_callback.period == 1
+    assert checkpoint_callback._every_n_val_epochs == 1
+    assert checkpoint_callback._every_n_train_steps == 0
+
+
+def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     """ Test that it is possible to save all checkpoints when monitor=None. """
     seed_everything()
     model = LogInTwoMethods()
 
     epochs = 2
-    checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
@@ -524,22 +575,27 @@ def test_model_checkpoint_none_monitor(tmpdir):
         max_epochs=epochs,
         logger=False,
     )
-    trainer.fit(model)
+
+    with caplog.at_level(INFO):
+        trainer.fit(model)
+        assert "will duplicate the last checkpoint saved" in caplog.text
 
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
-    assert checkpoint_callback.best_model_path == checkpoint_callback.last_model_path == tmpdir / 'epoch=1-step=19.ckpt'
+    assert checkpoint_callback.best_model_path == tmpdir / 'epoch=1-step=19.ckpt'
+    assert checkpoint_callback.last_model_path == tmpdir / 'last.ckpt'
     assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
 
     # check that the correct ckpts were created
     expected = [f'epoch={i}-step={j}.ckpt' for i, j in zip(range(epochs), [9, 19])]
+    expected.append('last.ckpt')
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
 @pytest.mark.parametrize("period", list(range(4)))
-def test_model_checkpoint_period(tmpdir, period):
+def test_model_checkpoint_period(tmpdir, period: int):
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}', save_top_k=-1, period=period)
@@ -547,9 +603,8 @@ def test_model_checkpoint_period(tmpdir, period):
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
         max_epochs=epochs,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        val_check_interval=1.0,
+        limit_train_batches=1,
+        limit_val_batches=1,
         logger=False,
     )
     trainer.fit(model)
@@ -559,10 +614,91 @@ def test_model_checkpoint_period(tmpdir, period):
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
+@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
+def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
+    model = LogInTwoMethods()
+    epochs = 5
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_val_epochs=every_n_val_epochs
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        max_epochs=epochs,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    # check that the correct ckpts were created
+    expected = [f'epoch={e}.ckpt' for e in range(epochs)
+                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
+    assert set(os.listdir(tmpdir)) == set(expected)
+
+
+@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
+def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epochs):
+    """ Tests that if period is set, it takes precedence over every_n_val_epochs for backwards compatibility. """
+    model = LogInTwoMethods()
+    epochs = 5
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmpdir,
+        filename='{epoch}',
+        save_top_k=-1,
+        every_n_val_epochs=(2 * every_n_val_epochs),
+        period=every_n_val_epochs
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        max_epochs=epochs,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    # check that the correct ckpts were created
+    expected = [f'epoch={e}.ckpt' for e in range(epochs)
+                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
+    assert set(os.listdir(tmpdir)) == set(expected)
+
+
+def test_ckpt_every_n_train_steps(tmpdir):
+    """ Tests that the checkpoints are saved every n training steps. """
+
+    model = LogInTwoMethods()
+    every_n_train_steps = 16
+    max_epochs = 2
+    epoch_length = 64
+    checkpoint_callback = ModelCheckpoint(
+        filename="{step}",
+        every_n_val_epochs=0,
+        every_n_train_steps=every_n_train_steps,
+        dirpath=tmpdir,
+        save_top_k=-1,
+        save_last=False,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        progress_bar_refresh_rate=0,
+        callbacks=[checkpoint_callback],
+        logger=False,
+    )
+
+    trainer.fit(model)
+    expected = [
+        f"step={i}.ckpt" for i in range(every_n_train_steps - 1, max_epochs * epoch_length, every_n_train_steps)
+    ]
+    assert set(os.listdir(tmpdir)) == set(expected)
+
+
 def test_model_checkpoint_topk_zero(tmpdir):
     """ Test that no checkpoints are saved when save_top_k=0. """
     model = LogInTwoMethods()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
@@ -576,8 +712,9 @@ def test_model_checkpoint_topk_zero(tmpdir):
     assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ''
-    # check that no ckpts were created
-    assert len(os.listdir(tmpdir)) == 0
+    # check that only the last ckpt was created
+    assert os.listdir(tmpdir) == ['last.ckpt']
+    assert checkpoint_callback.last_model_path == tmpdir / 'last.ckpt'
 
 
 def test_model_checkpoint_topk_all(tmpdir):
@@ -667,18 +804,23 @@ def test_default_checkpoint_behavior(tmpdir):
 @pytest.mark.parametrize('max_epochs', [1, 2])
 @pytest.mark.parametrize('should_validate', [True, False])
 @pytest.mark.parametrize('save_last', [True, False])
-def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_validate, save_last):
+@pytest.mark.parametrize('verbose', [True, False])
+def test_model_checkpoint_save_last_warning(
+    tmpdir, caplog, max_epochs: int, should_validate: bool, save_last: bool, verbose: bool
+):
     """Tests 'Saving latest checkpoint...' log"""
     model = LogInTwoMethods()
     if not should_validate:
         model.validation_step = None
+    ckpt = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last, verbose=verbose)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last)],
+        callbacks=[ckpt],
         max_epochs=max_epochs,
     )
-    trainer.fit(model)
-    assert caplog.messages.count('Saving latest checkpoint...') == save_last
+    with caplog.at_level(logging.INFO):
+        trainer.fit(model)
+    assert caplog.messages.count('Saving latest checkpoint...') == (verbose and save_last)
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
@@ -717,7 +859,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize('mode', ['min', 'max'])
-def test_checkpointing_with_nan_as_first(tmpdir, mode):
+def test_checkpointing_with_nan_as_first(tmpdir, mode: int):
     monitor = [float('nan')]
     monitor += [5, 7, 8] if mode == 'max' else [8, 7, 5]
 
@@ -848,6 +990,9 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     assert_checkpoint_log_dir(0)
     assert_checkpoint_content(ckpt_dir)
 
+    trainer.validate(model)
+    assert trainer.current_epoch == epochs - 1
+
     trainer.test(model)
     assert trainer.current_epoch == epochs - 1
 
@@ -861,16 +1006,23 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         assert_trainer_init(trainer)
 
         model = ExtendedBoringModel()
+
         trainer.test(model)
         assert not trainer.checkpoint_connector.has_trained
         # resume_from_checkpoint is resumed when calling `.fit`
         assert trainer.global_step == 0
         assert trainer.current_epoch == 0
+
         trainer.fit(model)
         assert not trainer.checkpoint_connector.has_trained
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert_checkpoint_log_dir(idx)
+
+        trainer.validate(model)
+        assert not trainer.checkpoint_connector.has_trained
+        assert trainer.global_step == epochs * limit_train_batches
+        assert trainer.current_epoch == epochs
 
 
 def test_configure_model_checkpoint(tmpdir):
@@ -960,7 +1112,7 @@ def test_current_score(tmpdir):
 
 
 @pytest.mark.parametrize("mode", ["min", "max"])
-def test_current_score_when_nan(tmpdir, mode):
+def test_current_score_when_nan(tmpdir, mode: str):
     """ Check that ModelCheckpoint handles NaN values correctly """
 
     class TestModel(BoringModel):
@@ -1084,7 +1236,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     # check best_k_models state
     assert {Path(f).name for f in mc.best_k_models.keys()} == expected
     # check created ckpts
-    assert set(sorted(os.listdir(tmpdir))) == expected
+    assert set(os.listdir(tmpdir)) == expected
 
 
 def test_model_checkpoint_mode_options():

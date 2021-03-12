@@ -94,6 +94,21 @@ DP performs three GPU transfers for EVERY batch:
 
 Whereas DDP only performs 1 transfer to sync gradients. Because of this, DDP is MUCH faster than DP.
 
+When using DDP set find_unused_parameters=False
+-----------------------------------------------
+
+By default we have enabled find unused parameters to True. This is for compatibility issues that have arisen in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more information).
+This by default comes with a performance hit, and can be disabled in most cases.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DDPPlugin
+
+    trainer = pl.Trainer(
+        gpus=2,
+        plugins=DDPPlugin(find_unused_parameters=False),
+    )
+
 ----------
 
 16-bit precision

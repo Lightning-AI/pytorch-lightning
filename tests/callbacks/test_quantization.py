@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+from typing import Callable, Union
 
 import pytest
 import torch
@@ -20,17 +21,15 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests import _SKIPIF_ARGS_NO_PT_QUANT, _SKIPIF_ARGS_PT_LE_1_4
 from tests.helpers.datamodules import RegressDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import RegressionModel
 
 
-@pytest.mark.parametrize(
-    "observe", ['average', pytest.param('histogram', marks=pytest.mark.skipif(**_SKIPIF_ARGS_PT_LE_1_4))]
-)
+@pytest.mark.parametrize("observe", ['average', pytest.param('histogram', marks=RunIf(min_torch="1.5"))])
 @pytest.mark.parametrize("fuse", [True, False])
-@pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
-def test_quantization(tmpdir, observe, fuse):
+@RunIf(quantization=True)
+def test_quantization(tmpdir, observe: str, fuse: bool):
     """Parity test for quant model"""
     seed_everything(42)
     dm = RegressDataModule()
@@ -64,7 +63,7 @@ def test_quantization(tmpdir, observe, fuse):
     assert torch.allclose(org_score, quant_score, atol=0.45)
 
 
-@pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
+@RunIf(quantization=True)
 def test_quantize_torchscript(tmpdir):
     """Test converting to torchscipt """
     dm = RegressDataModule()
@@ -80,7 +79,7 @@ def test_quantize_torchscript(tmpdir):
     tsmodel(tsmodel.quant(batch[0]))
 
 
-@pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
+@RunIf(quantization=True)
 def test_quantization_exceptions(tmpdir):
     """Test wrong fuse layers"""
     with pytest.raises(MisconfigurationException, match='Unsupported qconfig'):
@@ -123,8 +122,8 @@ def custom_trigger_last(trainer):
         (custom_trigger_last, 2),
     ]
 )
-@pytest.mark.skipif(**_SKIPIF_ARGS_NO_PT_QUANT)
-def test_quantization_triggers(tmpdir, trigger_fn, expected_count):
+@RunIf(quantization=True)
+def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], expected_count: int):
     """Test  how many times the quant is called"""
     dm = RegressDataModule()
     qmodel = RegressionModel()
