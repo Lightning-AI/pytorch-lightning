@@ -15,7 +15,7 @@
 from abc import ABC
 from copy import deepcopy
 from inspect import signature
-from typing import Any, Callable, Dict, List, Type, Optional
+from typing import Any, Callable, Dict, List, Optional, Type
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
@@ -105,12 +105,12 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_test_epoch_end(self, self.lightning_module)
 
     def on_epoch_start(self):
-        """Called when the epoch begins."""
+        """Called when either of train/val/test epoch begins."""
         for callback in self.callbacks:
             callback.on_epoch_start(self, self.lightning_module)
 
     def on_epoch_end(self):
-        """Called when the epoch ends."""
+        """Called when either of train/val/test epoch ends."""
         for callback in self.callbacks:
             callback.on_epoch_end(self, self.lightning_module)
 

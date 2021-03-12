@@ -201,7 +201,7 @@ class ProgressBarBase(Callback):
     def on_train_start(self, trainer, pl_module):
         self._train_batch_idx = trainer.batch_idx
 
-    def on_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -393,8 +393,8 @@ class ProgressBar(ProgressBarBase):
         super().on_train_start(trainer, pl_module)
         self.main_progress_bar = self.init_train_tqdm()
 
-    def on_epoch_start(self, trainer, pl_module):
-        super().on_epoch_start(trainer, pl_module)
+    def on_train_epoch_start(self, trainer, pl_module):
+        super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float('inf'):
