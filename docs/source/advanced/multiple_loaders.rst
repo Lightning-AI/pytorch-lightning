@@ -65,7 +65,7 @@ dataloaders).
 
 However, with lightning you can also return multiple loaders and lightning will take care of batch combination.
 
-For more details please have a look at :attr:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
+For more details please have a look at :paramref:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
 
 .. testcode::
 
@@ -114,9 +114,11 @@ be returned
 Test/Val dataloaders
 --------------------
 For validation and test dataloaders, lightning also gives you the additional
-option of passing multiple dataloaders back from each call.
+option of passing multiple dataloaders back from each call. You can choose to pass
+the batches sequentially or simultaneously, as is done for the training step.
+The default mode for validation and test dataloaders is sequential.
 
-See the following for more details:
+See the following for more details for the default sequential option:
 
 - :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.val_dataloader`
 - :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.test_dataloader`
@@ -127,3 +129,17 @@ See the following for more details:
         loader_1 = Dataloader()
         loader_2 = Dataloader()
         return [loader_1, loader_2]
+
+To combine batches of multiple test and validation dataloaders simultaneously, one
+needs to wrap the dataloaders with `CombinedLoader`.
+
+.. testcode::
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader
+
+    def val_dataloader(self):
+        loader_1 = Dataloader()
+        loader_2 = Dataloader()
+        loaders = {'a': loader_a,'b': loader_b}
+        combined_loaders = CombinedLoader(loaders, "max_size_cycle")
+        return combined_loaders

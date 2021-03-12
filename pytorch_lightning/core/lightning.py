@@ -25,7 +25,7 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -44,8 +44,6 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.states import RunningStage
 log = logging.getLogger(__name__)
 
 
@@ -69,7 +67,6 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
-        "running_stage",
         "global_rank",
         "local_rank",
         "logger",
@@ -171,10 +168,6 @@ class LightningModule(
         If False you are responsible for calling .backward, .step, zero_grad.
         """
         return self._automatic_optimization
-
-    @property
-    def running_stage(self) -> Optional["RunningStage"]:
-        return self.trainer._running_stage if self.trainer else None
 
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:

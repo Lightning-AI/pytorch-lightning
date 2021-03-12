@@ -318,9 +318,9 @@ class LitAutoEncoder(pl.LightningModule):
         super().__init__()
         self.automatic_optimization = False
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
-        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
+        opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
 
         loss_a = ...
         self.manual_backward(loss_a, opt_a)

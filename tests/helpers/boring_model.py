@@ -151,8 +151,10 @@ class BoringDataModule(LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         if stage == "fit" or stage is None:
             self.random_train = Subset(self.random_full, indices=range(64))
-            self.random_val = Subset(self.random_full, indices=range(64, 128))
             self.dims = self.random_train[0].shape
+
+        if stage in ("fit", "validate") or stage is None:
+            self.random_val = Subset(self.random_full, indices=range(64, 128))
 
         if stage == "test" or stage is None:
             self.random_test = Subset(self.random_full, indices=range(128, 192))

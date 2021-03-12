@@ -16,13 +16,14 @@ import multiprocessing
 import platform
 from abc import ABC
 from copy import deepcopy
-from typing import Callable, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Iterable, List, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -36,8 +37,6 @@ class TrainerDataLoadingMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    global_rank: int
-    shown_warnings:...
     val_check_interval: float
     tpu_local_core_rank: int
     train_dataloader: DataLoader
@@ -48,13 +47,10 @@ class TrainerDataLoadingMixin(ABC):
     test_dataloaders: List[DataLoader]
     num_test_batches: List[Union[int, float]]
     limit_train_batches: Union[int, float]
-    limit_val_batches: Union[int, float]
-    limit_test_batches: Union[int, float]
-    replace_sampler_ddp: bool
+    overfit_batches: Union[int, float]
+    distributed_sampler_kwargs: dict
     accelerator: Accelerator
-    num_nodes: int
-    num_processes: int
-    distributed_backend: Optional[str]
+    accelerator_connector: AcceleratorConnector
     dev_debugger: InternalDebugger
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
@@ -372,8 +368,7 @@ class TrainerDataLoadingMixin(ABC):
         has_loader = is_overridden('test_dataloader', model)
         has_step = is_overridden('test_step', model)
         if has_loader and has_step:
-            self.num_test_batches, self.test_dataloaders =\
-                self._reset_eval_dataloader(model, 'test')
+            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(model, 'test')
 
     def reset_predict_dataloader(self, model) -> None:
         """Resets the predict dataloader and determines the number of batches.
@@ -383,8 +378,7 @@ class TrainerDataLoadingMixin(ABC):
         """
         has_loader = is_overridden('predict_dataloader', model)
         if has_loader:
-            self.num_predict_batches, self.predict_dataloaders =\
-                self._reset_eval_dataloader(model, 'predict')
+            self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(model, 'predict')
 
     def request_dataloader(self, dataloader_fx: Callable) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.

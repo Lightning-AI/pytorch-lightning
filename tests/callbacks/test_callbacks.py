@@ -19,28 +19,19 @@ from tests.helpers import BoringModel
 
 
 @mock.patch("torch.save")  # need to mock torch.save or we get pickle error
-def test_trainer_callback_system(torch_save, tmpdir):
-    """Test the callback system."""
+def test_trainer_callback_hook_system_fit(_, tmpdir):
+    """Test the callback hook system for fit."""
 
     model = BoringModel()
-
     callback_mock = MagicMock()
-
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[callback_mock],
         max_epochs=1,
         limit_val_batches=1,
         limit_train_batches=3,
-        limit_test_batches=2,
         progress_bar_refresh_rate=0,
     )
-
-    # no call yet
-    callback_mock.assert_not_called()
-
-    # fit model
-    trainer = Trainer(**trainer_options)
 
     # check that only the to calls exists
     assert trainer.callbacks[0] == callback_mock
@@ -49,6 +40,7 @@ def test_trainer_callback_system(torch_save, tmpdir):
         call.on_init_end(trainer),
     ]
 
+    # fit model
     trainer.fit(model)
 
     assert callback_mock.method_calls == [
@@ -104,8 +96,20 @@ def test_trainer_callback_system(torch_save, tmpdir):
         call.teardown(trainer, model, 'fit'),
     ]
 
-    callback_mock.reset_mock()
-    trainer = Trainer(**trainer_options)
+
+def test_trainer_callback_hook_system_test(tmpdir):
+    """Test the callback hook system for test."""
+
+    model = BoringModel()
+    callback_mock = MagicMock()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[callback_mock],
+        max_epochs=1,
+        limit_test_batches=2,
+        progress_bar_refresh_rate=0,
+    )
+
     trainer.test(model)
 
     assert callback_mock.method_calls == [
@@ -113,7 +117,6 @@ def test_trainer_callback_system(torch_save, tmpdir):
         call.on_init_end(trainer),
         call.setup(trainer, model, 'test'),
         call.on_before_accelerator_backend_setup(trainer, model),
-        call.on_fit_start(trainer, model),
         call.on_test_start(trainer, model),
         call.on_test_epoch_start(trainer, model),
         call.on_test_batch_start(trainer, model, ANY, 0, 0),
@@ -123,10 +126,44 @@ def test_trainer_callback_system(torch_save, tmpdir):
         call.on_test_epoch_end(trainer, model),
         call.on_epoch_end(trainer, model),
         call.on_test_end(trainer, model),
-        call.on_fit_end(trainer, model),
-        call.teardown(trainer, model, 'fit'),
         call.teardown(trainer, model, 'test'),
     ]
+
+
+def test_trainer_callback_hook_system_validate(tmpdir):
+    """Test the callback hook system for validate."""
+
+    model = BoringModel()
+    callback_mock = MagicMock()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[callback_mock],
+        max_epochs=1,
+        limit_val_batches=2,
+        progress_bar_refresh_rate=0,
+    )
+
+    trainer.validate(model)
+
+    assert callback_mock.method_calls == [
+        call.on_init_start(trainer),
+        call.on_init_end(trainer),
+        call.setup(trainer, model, 'validate'),
+        call.on_before_accelerator_backend_setup(trainer, model),
+        call.on_validation_start(trainer, model),
+        call.on_validation_epoch_start(trainer, model),
+        call.on_validation_batch_start(trainer, model, ANY, 0, 0),
+        call.on_validation_batch_end(trainer, model, ANY, ANY, 0, 0),
+        call.on_validation_batch_start(trainer, model, ANY, 1, 0),
+        call.on_validation_batch_end(trainer, model, ANY, ANY, 1, 0),
+        call.on_validation_epoch_end(trainer, model),
+        call.on_epoch_end(trainer, model),
+        call.on_validation_end(trainer, model),
+        call.teardown(trainer, model, 'validate'),
+    ]
+
+
+# TODO: add callback tests for predict and tune
 
 
 def test_callbacks_configured_in_model(tmpdir):
@@ -165,22 +202,29 @@ def test_callbacks_configured_in_model(tmpdir):
     # .fit()
     trainer_options.update(callbacks=[trainer_callback_mock])
     trainer = Trainer(**trainer_options)
+
     assert trainer_callback_mock in trainer.callbacks
     assert model_callback_mock not in trainer.callbacks
     trainer.fit(model)
+
     assert model_callback_mock in trainer.callbacks
     assert trainer.callbacks[-1] == model_callback_mock
     assert_expected_calls(trainer, model_callback_mock, trainer_callback_mock)
 
     # .test()
-    model_callback_mock.reset_mock()
-    trainer_callback_mock.reset_mock()
-    trainer_options.update(callbacks=[trainer_callback_mock])
-    trainer = Trainer(**trainer_options)
-    trainer.test(model)
-    assert model_callback_mock in trainer.callbacks
-    assert trainer.callbacks[-1] == model_callback_mock
-    assert_expected_calls(trainer, model_callback_mock, trainer_callback_mock)
+    for fn in ("test", "validate"):
+        model_callback_mock.reset_mock()
+        trainer_callback_mock.reset_mock()
+
+        trainer_options.update(callbacks=[trainer_callback_mock])
+        trainer = Trainer(**trainer_options)
+
+        trainer_fn = getattr(trainer, fn)
+        trainer_fn(model)
+
+        assert model_callback_mock in trainer.callbacks
+        assert trainer.callbacks[-1] == model_callback_mock
+        assert_expected_calls(trainer, model_callback_mock, trainer_callback_mock)
 
 
 def test_configure_callbacks_hook_multiple_calls(tmpdir):
@@ -207,10 +251,13 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
     callbacks_after_fit = trainer.callbacks.copy()
     assert callbacks_after_fit == callbacks_before_fit + [model_callback_mock]
 
-    trainer.test(model)
-    callbacks_after_test = trainer.callbacks.copy()
-    assert callbacks_after_test == callbacks_after_fit
+    for fn in ("test", "validate"):
+        trainer_fn = getattr(trainer, fn)
+        trainer_fn(model)
 
-    trainer.test(ckpt_path=None)
-    callbacks_after_test = trainer.callbacks.copy()
-    assert callbacks_after_test == callbacks_after_fit
+        callbacks_after = trainer.callbacks.copy()
+        assert callbacks_after == callbacks_after_fit
+
+        trainer_fn(ckpt_path=None)
+        callbacks_after = trainer.callbacks.copy()
+        assert callbacks_after == callbacks_after_fit

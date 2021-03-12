@@ -404,7 +404,7 @@ def test_trainer_model_hook_system(tmpdir):
             self.called.append(inspect.currentframe().f_code.co_name)
             super().on_test_end()
 
-        def teardown(self, stage: str):
+        def teardown(self, stage=None):
             self.called.append(inspect.currentframe().f_code.co_name)
             super().teardown(stage)
 
@@ -420,12 +420,12 @@ def test_trainer_model_hook_system(tmpdir):
         limit_train_batches=2,
         limit_test_batches=1,
         progress_bar_refresh_rate=0,
+        weights_summary=None,
     )
 
     assert model.called == []
 
     trainer.fit(model)
-
     expected = [
         'on_fit_start',
         'on_pretrain_routine_start',
@@ -466,14 +466,29 @@ def test_trainer_model_hook_system(tmpdir):
         'on_fit_end',
         'teardown',
     ]
-
     assert model.called == expected
 
-    model2 = HookedModel()
-    trainer.test(model2)
+    model = HookedModel()
 
+    trainer.validate(model, verbose=False)
     expected = [
-        'on_fit_start',
+        'on_validation_model_eval',
+        'on_validation_start',
+        'on_validation_epoch_start',
+        'on_validation_batch_start',
+        'on_validation_batch_end',
+        'on_validation_epoch_end',
+        'on_epoch_end',
+        'on_validation_end',
+        'on_validation_model_train',
+        'teardown',
+    ]
+    assert model.called == expected
+
+    model = HookedModel()
+
+    trainer.test(model, verbose=False)
+    expected = [
         'on_test_model_eval',
         'on_test_start',
         'on_test_epoch_start',
@@ -483,9 +498,6 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_end',
         'on_test_end',
         'on_test_model_train',
-        'on_fit_end',
-        'teardown',  # for 'fit'
-        'teardown',  # for 'test'
+        'teardown',
     ]
-
-    assert model2.called == expected
+    assert model.called == expected
