@@ -20,7 +20,6 @@ from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -239,6 +238,11 @@ class DeepSpeedPlugin(DDPPlugin):
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
+        if self.on_gpu:
+            torch.cuda.set_device(self.root_device)
+
+        self._call_model_parallel_setup()
+
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
         else:
@@ -261,13 +265,6 @@ class DeepSpeedPlugin(DDPPlugin):
         return self.config.get('zero_optimization') and self.config.get('zero_optimization').get('stage') == 3
 
     def _initialize_deepspeed_train(self, model):
-        if self.on_gpu:
-            torch.cuda.set_device(self.root_device)
-
-        if self.zero_stage_3:
-            with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
-                self.lightning_module.trainer.call_hook("on_model_parallel_setup")
-
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
         if "optimizer" not in self.config:
             rank_zero_info(
@@ -290,6 +287,11 @@ class DeepSpeedPlugin(DDPPlugin):
         self.lightning_module.trainer.optimizers = [optimizer]
         self.model = model
 
+    def _call_model_parallel_setup(self):
+        if self.zero_stage_3:
+            with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
+                self.lightning_module.trainer.call_hook("on_model_parallel_setup")
+
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get('activation_checkpointing'):
             checkpoint_config = self.config['activation_checkpointing']
@@ -302,15 +304,16 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
     def _initialize_deepspeed_inference(self, model):
-        # move the model to the correct device
-        self.model_to_device()
-
-        self.pre_configure_ddp()
-        self.model = DistributedDataParallel(
-            model,
-            device_ids=self.determine_ddp_device_ids(),
-            **self._ddp_kwargs,
+        inference_config = {
+            'train_micro_batch_size_per_gpu': 1,
+            'fp16': self.config['fp16'],
+        }
+        model, _, _, _ = deepspeed.initialize(
+            args=SimpleNamespace(local_rank=self.local_rank),
+            model=model,
+            config_params=inference_config,
         )
+        self.model = model
 
     def configure_scheduler(self, lr_scheduler):
         scheduler = _get_default_scheduler_config()
@@ -357,7 +360,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if "train_micro_batch_size_per_gpu" not in self.config:
             # train_micro_batch_size_per_gpu is used for throughput logging purposes
             # by default we use the batch size of the loader which may be incorrect if a batch sampler is passed
-            batch_size = self.lightning_module.train_dataloader().batch_size
+            batch_size = self.lightning_module.train_dataloader().batch_sampler.batch_size
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
@@ -403,5 +406,9 @@ class DeepSpeedPlugin(DDPPlugin):
             }
         }
         if zero_optimization:
-            cfg = {"zero_allow_untested_optimizer": zero_allow_untested_optimizer, "zero_optimization": zero_kwargs}
+            cfg = {
+                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
+                "zero_optimization": zero_kwargs,
+                **cfg
+            }
         return cfg

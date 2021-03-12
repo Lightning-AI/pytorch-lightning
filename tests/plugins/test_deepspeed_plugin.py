@@ -301,6 +301,22 @@ def test_deepspeed_custom_precision_params(tmpdir):
         trainer.fit(model)
 
 
+@RunIf(deepspeed=True)
+def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
+    """Ensure if we modify the activation checkpointing parameters, the deepspeed config contains these changes."""
+    ds = DeepSpeedPlugin(
+        partition_activations=True,
+        cpu_checkpointing=True,
+        contiguous_memory_optimization=True,
+        synchronize_checkpoint_boundary=True
+    )
+    checkpoint_config = ds.config['activation_checkpointing']
+    assert checkpoint_config['partition_activations']
+    assert checkpoint_config['cpu_checkpointing']
+    assert checkpoint_config['contiguous_memory_optimization']
+    assert checkpoint_config['synchronize_checkpoint_boundary']
+
+
 @RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
     """Ensure if we use a config and turn off cpu_offload, that this is set to False within the config."""
@@ -324,7 +340,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, special=True, deepspeed=True)
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
         Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
@@ -341,6 +357,51 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     trainer.test(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
+
+
+class ModelParallelBoringModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.linear = None
+
+    def on_model_parallel_setup(self) -> None:
+        self.linear = torch.nn.Linear(32, 2)
+
+
+@RunIf(min_gpus=2, deepspeed=True)
+def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
+    """
+        Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
+    """
+    model = ModelParallelBoringModel()
+    trainer = Trainer(
+        plugins=[DeepSpeedPlugin(stage=3)],
+        default_root_dir=tmpdir,
+        gpus=2,
+        fast_dev_run=True,
+        precision=16,
+    )
+    trainer.fit(model)
+    trainer.test(model)
+
+    _assert_save_model_is_equal(model, tmpdir, trainer)
+
+
+@RunIf(min_gpus=2, deepspeed=True)
+def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
+    """
+        Test to ensure we can use DeepSpeed with just test.
+    """
+    model = ModelParallelBoringModel()
+    trainer = Trainer(
+        plugins=[DeepSpeedPlugin(stage=3)],
+        default_root_dir=tmpdir,
+        gpus=2,
+        fast_dev_run=True,
+        precision=16,
+    )
+    trainer.test(model)
 
 
 def _assert_save_model_is_equal(model, tmpdir, trainer):
