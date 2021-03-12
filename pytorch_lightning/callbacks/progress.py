@@ -149,9 +149,10 @@ class ProgressBarBase(Callback):
         validation dataloader is of infinite size.
         """
         total_val_batches = 0
-        if not self.trainer.disable_validation:
+        if self.trainer.enable_validation:
             is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
             total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
+
         return total_val_batches
 
     @property
