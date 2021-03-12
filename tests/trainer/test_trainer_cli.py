@@ -67,10 +67,15 @@ def test_add_argparse_args_redefined(cli_args: list):
 
 
 @pytest.mark.parametrize('cli_args', [['--accumulate_grad_batches=22'], ['--weights_save_path=./'], []])
-def test_add_argparse_via_argument_group(cli_args: list):
-    """Simple test ensuring that passing an argument group still works"""
+def test_add_argparse_args(cli_args: list):
+    """Simple test ensuring Trainer.add_argparse_args works."""
     parser = ArgumentParser(add_help=False)
-    parser = Trainer.add_argparse_args(parser.add_argument_group(title="pl.Trainer args"))
+    parser = Trainer.add_argparse_args(parser)
+    args = parser.parse_args(cli_args)
+    assert Trainer.from_argparse_args(args)
+
+    parser = ArgumentParser(add_help=False)
+    parser = Trainer.add_argparse_args(parser, use_argument_group=False)
     args = parser.parse_args(cli_args)
     assert Trainer.from_argparse_args(args)
 

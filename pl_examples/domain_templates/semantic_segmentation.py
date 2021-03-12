@@ -245,7 +245,7 @@ class SegModel(pl.LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("SegModel")
         parser.add_argument("--data_path", type=str, help="path where dataset is stored")
         parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
         parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
@@ -257,7 +257,7 @@ class SegModel(pl.LightningModule):
             default=False,
             help="whether to use bilinear interpolation or transposed"
         )
-        return parser
+        return parent_parser
 
 
 def main(hparams: Namespace):
