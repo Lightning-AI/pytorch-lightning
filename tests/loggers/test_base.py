@@ -295,17 +295,13 @@ def test_logger_collection_on_save_checkpoint(tmpdir):
     dummy_logger = DummyLogger()
     custom_logger = CustomLogger()
     tensorboard_logger = TensorBoardLogger(save_dir=tmpdir)
-
     logger_iterable = [dummy_logger, custom_logger, tensorboard_logger]
-
-    for logger in logger_iterable:
-        assert hasattr(logger, 'on_save_checkpoint')
 
     logger_collection = LoggerCollection(logger_iterable=logger_iterable)
 
     logger_state_dict = logger_collection.on_save_checkpoint(None, None, None)
     assert type(tensorboard_logger) in logger_state_dict
 
-    # those loggers don't have on_save_checkpoint() hook implemented, so they should be present in logger state dict
+    # those loggers don't have on_save_checkpoint() hook implemented, so they shouldn't be present in logger state dict
     assert type(dummy_logger) not in logger_state_dict
     assert type(custom_logger) not in logger_state_dict
