@@ -261,13 +261,15 @@ class WandbLogger(LightningLoggerBase):
         for t, p, s in checkpoints:
             metadata = {'score': s, 'original_filename': Path(p).name,
                         'ModelCheckpoint': {k: getattr(checkpoint_callback, k) for k in [
-                            'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', 'period'
-                        ]}} if _WANDB_GREATER_EQUAL_0_10_22 else None
+                            'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', '_every_n_train_steps',
+                            '_every_n_val_epochs']
+                            # ensure it does not break if `ModelCheckpoint` args change
+                        if hasattr(checkpoint_callback, k)}} if _WANDB_GREATER_EQUAL_0_10_22 else None
             artifact = wandb.Artifact(name=f"model-{self.experiment.id}", type="model", metadata=metadata)
             artifact.add_file(p, name='model.ckpt')
             self.experiment.log_artifact(
                 artifact,
                 aliases=["latest", "best"] if p == checkpoint_callback.best_model_path
                 else ["latest"])
-            # remember logged models
+            # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t
