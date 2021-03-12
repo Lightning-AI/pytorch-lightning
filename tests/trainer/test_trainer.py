@@ -1603,6 +1603,7 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     )
     trainer.fit(model)
 
+
 def test_profiler_teardown(tmpdir):
     """
     This test checks if profiler teardown method is called when
