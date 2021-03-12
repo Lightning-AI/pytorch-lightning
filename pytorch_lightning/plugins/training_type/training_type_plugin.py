@@ -33,10 +33,10 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self) -> None:
         self._model = None
         self._results = None
-        # This default values will be modified by subclasses
-        self.global_rank = 0
-        self.local_rank = 0
-        self.world_size = 1
+        # Those default values will be modified by subclasses
+        self.global_rank = None
+        self.local_rank = None
+        self.world_size = None
 
     @abstractmethod
     def connect(self, model: 'Module') -> None:

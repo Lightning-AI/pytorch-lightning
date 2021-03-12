@@ -23,6 +23,9 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def __init__(self, device: torch.device):
         super().__init__()
         self.device: torch.device = device
+        self.global_rank = 0
+        self.local_rank = 0
+        self.world_size = 1
 
     @property
     def on_tpu(self) -> bool:
