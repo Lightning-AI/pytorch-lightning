@@ -265,10 +265,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
-        if step is not None:
-            description = f"step_{step}"
-        else:
-            description = None
+        description = f"step_{step}" if step is not None else None
 
         self.experiment.log_image(name, figure, description=description)
 
