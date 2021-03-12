@@ -295,7 +295,7 @@ Logging Figures
 ***************
 
 When training a model, often it is very indicative to log figures, e.g. of the in- and output.
-For standard matplotlib figures, Lightning has a unified API that works with the implemented loggers.
+For standard ``matplotlib.pyplot`` figures, Lightning has a unified API that works with most of the implemented loggers.
 
 .. code-block:: python
     f = plt.figure()
