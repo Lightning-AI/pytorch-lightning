@@ -33,7 +33,6 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self) -> None:
         self._model = None
         self._results = None
-        # Those default values will be modified by subclasses
         self.global_rank = None
         self.local_rank = None
         self.world_size = None
