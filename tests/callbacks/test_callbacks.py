@@ -156,7 +156,7 @@ def test_trainer_callback_hook_system_validate(tmpdir):
         call.on_validation_batch_end(trainer, model, ANY, ANY, 0, 0),
         call.on_validation_batch_start(trainer, model, ANY, 1, 0),
         call.on_validation_batch_end(trainer, model, ANY, ANY, 1, 0),
-        call.on_validation_epoch_end(trainer, model),
+        call.on_validation_epoch_end(trainer, model, ANY),
         call.on_epoch_end(trainer, model),
         call.on_validation_end(trainer, model),
         call.teardown(trainer, model, 'validate'),
