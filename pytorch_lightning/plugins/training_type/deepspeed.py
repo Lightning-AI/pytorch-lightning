@@ -86,7 +86,6 @@ class DeepSpeedPlugin(DDPPlugin):
         loss_scale_window: int = 1000,
         hysteresis: int = 2,
         min_loss_scale: int = 1,
-        activation_checkpointing: bool = False,
         partition_activations: bool = False,
         cpu_checkpointing: bool = False,
         contiguous_memory_optimization: bool = False,
@@ -155,11 +154,9 @@ class DeepSpeedPlugin(DDPPlugin):
 
             min_loss_scale: The minimum FP16 dynamic loss scaling value (Default: 1000)
 
-            activation_checkpointing: Enable activation checkpointing. This allows DeepSpeed to setup global variables
-                however still requires you to wrap your forward functions in deepspeed.checkpointing.checkpoint.
+            partition_activations: Enables partition activation when used with ZeRO stage 3.
+                Still requires you to wrap your forward functions in deepspeed.checkpointing.checkpoint.
                 See https://www.deepspeed.ai/tutorials/megatron/#deepspeed-activation-checkpoints-optional
-
-            partition_activations: Enables partition activation when used with ZeRO stage 3
 
             cpu_checkpointing: Offloads partitioned activations to CPU if ``partition_activations`` is enabled
 
@@ -182,7 +179,6 @@ class DeepSpeedPlugin(DDPPlugin):
             self.config = self._create_default_config(
                 zero_optimization,
                 zero_allow_untested_optimizer,
-                activation_checkpointing=activation_checkpointing,
                 partition_activations=partition_activations,
                 cpu_checkpointing=cpu_checkpointing,
                 contiguous_memory_optimization=contiguous_memory_optimization,
@@ -394,21 +390,18 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException("To use DeepSpeed ZeRO Optimization, you must set precision=16.")
 
     def _create_default_config(
-        self, zero_optimization: bool, zero_allow_untested_optimizer: bool, activation_checkpointing: bool,
-        partition_activations: bool, cpu_checkpointing: bool, contiguous_memory_optimization: bool,
-        synchronize_checkpoint_boundary: bool, **zero_kwargs
+        self, zero_optimization: bool, zero_allow_untested_optimizer: bool, partition_activations: bool,
+        cpu_checkpointing: bool, contiguous_memory_optimization: bool, synchronize_checkpoint_boundary: bool,
+        **zero_kwargs
     ) -> Dict:
-        cfg = {}
+        cfg = {
+            'activation_checkpointing': {
+                "partition_activations": partition_activations,
+                "cpu_checkpointing": cpu_checkpointing,
+                "contiguous_memory_optimization": contiguous_memory_optimization,
+                "synchronize_checkpoint_boundary": synchronize_checkpoint_boundary
+            }
+        }
         if zero_optimization:
             cfg = {"zero_allow_untested_optimizer": zero_allow_untested_optimizer, "zero_optimization": zero_kwargs}
-        if activation_checkpointing:
-            cfg = {
-                'activation_checkpointing': {
-                    "partition_activations": partition_activations,
-                    "cpu_checkpointing": cpu_checkpointing,
-                    "contiguous_memory_optimization": contiguous_memory_optimization,
-                    "synchronize_checkpoint_boundary": synchronize_checkpoint_boundary
-                },
-                **cfg
-            }
         return cfg
