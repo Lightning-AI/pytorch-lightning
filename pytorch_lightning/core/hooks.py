@@ -606,6 +606,18 @@ class DataHooks:
             will have an argument ``dataloader_idx`` which matches the order here.
         """
 
+    def on_request_train_dataloader(self) -> None:
+        """Called before requesting the train dataloader."""
+
+    def on_request_val_dataloader(self) -> None:
+        """Called before requesting the val dataloader."""
+
+    def on_request_test_dataloader(self) -> None:
+        """Called before requesting the test dataloader."""
+
+    def on_request_predict_dataloader(self) -> None:
+        """Called before requesting the predict dataloader."""
+
     def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors

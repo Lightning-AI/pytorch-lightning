@@ -579,11 +579,11 @@ class Trainer(
         model.train()
         torch.set_grad_enabled(True)
 
-        # reload data when needed
-        self.train_loop.reset_train_val_dataloaders(model)
-
         # hook
         self.train_loop.on_train_start()
+
+        # reload data when needed
+        self.train_loop.reset_train_val_dataloaders(model)
 
         try:
             if self.train_loop.should_skip_training():

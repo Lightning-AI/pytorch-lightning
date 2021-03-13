@@ -23,6 +23,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -195,7 +196,7 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
-        self.train_dataloader = self.request_dataloader(model.train_dataloader)
+        self.train_dataloader = self.request_dataloader(model, "train")
 
         if self.overfit_batches > 0:
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
@@ -275,7 +276,7 @@ class TrainerDataLoadingMixin(ABC):
         """
         # always get the loaders first so we can count how many there are
         loader_name = f'{mode}_dataloader'
-        dataloaders = self.request_dataloader(getattr(model, loader_name))
+        dataloaders = self.request_dataloader(model, mode)
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
@@ -284,7 +285,7 @@ class TrainerDataLoadingMixin(ABC):
         # duplicate it the numb of times needed to match the train loaders
         if self.overfit_batches > 0:
             num_loaders = len(dataloaders)
-            train_dataloader = self.request_dataloader(getattr(model, 'train_dataloader'))
+            train_dataloader = self.request_dataloader(model, 'train')
             dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
 
         self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
@@ -384,7 +385,7 @@ class TrainerDataLoadingMixin(ABC):
         if has_loader:
             self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(model, 'predict')
 
-    def request_dataloader(self, dataloader_fx: Callable) -> DataLoader:
+    def request_dataloader(self, model: LightningModule, stage) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.
 
         Args:
@@ -393,9 +394,9 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        dataloader = dataloader_fx()
+        model.trainer.call_hook(f"on_request_{stage}_dataloader")
+        dataloader: DataLoader = getattr(model, 'train_dataloader')()
         dataloader = self._flatten_dl_only(dataloader)
-
         self.accelerator.barrier('get_dataloaders')
         return dataloader
 

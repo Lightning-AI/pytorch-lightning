@@ -349,7 +349,12 @@ class Accelerator(object):
 
     def to_device(self, batch: Any) -> Any:
         """Pushes the batch to the root device"""
-        return self.batch_to_device(batch, self.root_device)
+        # Todo (tchaton) Better fix
+        is_dict = isinstance(batch, dict)
+        if is_dict:
+            batch = [batch]
+        batch = self.batch_to_device(batch, self.root_device)
+        return batch[0] if is_dict else batch
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
