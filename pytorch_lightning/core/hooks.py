@@ -613,7 +613,7 @@ class DataHooks:
             This hook should only transfer the data and not modify it, nor should it move the data to
             any other device than the one passed in as argument (unless you know what you are doing).
             To check the current state of execution of this hook you can use
-            ``self.training/testing/validating/predicting`` so that you can
+            ``self.trainer.training/testing/validating/predicting`` so that you can
             add different logic as per your requirement.
 
         Note:
@@ -655,7 +655,7 @@ class DataHooks:
 
         Note:
             To check the current state of execution of this hook you can use
-            ``self.training/testing/validating/predicting`` so that you can
+            ``self.trainer.training/testing/validating/predicting`` so that you can
             add different logic as per your requirement.
 
         Note:
@@ -691,7 +691,7 @@ class DataHooks:
 
         Note:
             To check the current state of execution of this hook you can use
-            ``self.training/testing/validating/predicting`` so that you can
+            ``self.trainer.training/testing/validating/predicting`` so that you can
             add different logic as per your requirement.
 
         Note:

@@ -293,7 +293,7 @@ Use this method to generate the test dataloader. Usually you just wrap the datas
 transfer_batch_to_device
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to define how you want to move an arbitrary batch to a device.
-To check the current state of execution of this hook you can use ``self.training/testing/validating/predicting``
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
 so that you can add different logic as per your requirement.
 
 .. testcode::
@@ -312,7 +312,7 @@ so that you can add different logic as per your requirement.
 on_before_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Override to alter or apply augmentations to your batch before it is transferred to the device.
-To check the current state of execution of this hook you can use ``self.training/testing/validating/predicting``
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
 so that you can add different logic as per your requirement.
 
 .. testcode::
@@ -332,7 +332,7 @@ so that you can add different logic as per your requirement.
 on_after_batch_transfer
 ^^^^^^^^^^^^^^^^^^^^^^^
 Override to alter or apply augmentations to your batch after it is transferred to the device.
-To check the current state of execution of this hook you can use ``self.training/testing/validating/predicting``
+To check the current state of execution of this hook you can use ``self.trainer.training/testing/validating/predicting``
 so that you can add different logic as per your requirement.
 
 .. testcode::
