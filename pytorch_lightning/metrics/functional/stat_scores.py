@@ -153,7 +153,7 @@ def stat_scores(
 
     The reduction method (how the statistics are aggregated) is controlled by the
     ``reduce`` parameter, and additionally by the ``mdmc_reduce`` parameter in the
-    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
+    multi-dimensional multi-class case.
 
     Args:
         preds: Predictions from model (probabilities or labels)
@@ -197,8 +197,7 @@ def stat_scores(
             Defines how the multi-dimensional multi-class inputs are handeled. Should be
             one of the following:
 
-            - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
-              multi-class (see :ref:`extensions/metrics:input types` for the definition of input types).
+            - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional multi-class.
 
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then the outputs are concatenated together. In each
@@ -212,9 +211,7 @@ def stat_scores(
 
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be. See the parameter's
-            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
-            for a more detailed explanation and examples.
+            than what they appear to be.
 
     Return:
         The metric returns a tensor of shape ``(..., 5)``, where the last dimension corresponds
