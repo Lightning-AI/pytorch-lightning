@@ -198,13 +198,13 @@ class Trainer(
 
             gradient_clip_val: 0 means don't clip.
 
-            limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
+            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches)
 
-            limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
+            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches)
 
-            limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
+            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches)
 
-            limit_predict_batches: How much of prediction dataset to check (floats = percent, int = num_batches)
+            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches)
 
             logger: Logger (or iterable collection of loggers) for experiment tracking.
 
@@ -223,7 +223,7 @@ class Trainer(
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
-            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int).
+            overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
