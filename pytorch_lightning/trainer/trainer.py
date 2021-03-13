@@ -204,6 +204,8 @@ class Trainer(
 
             limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
 
+            limit_predict_batches: How much of the dataset to check during prediction (floats = percent, int = num_batches)
+
             logger: Logger (or iterable collection of loggers) for experiment tracking.
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
@@ -754,10 +756,10 @@ class Trainer(
 
     def run_predict(self):
         # prepare dataloaders
-        dataloaders, max_batches = self.predict_loop.get_predict_dataloaders(None)
+        dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
         # check if we want to skip this evaluation
-        if self.predict_loop.should_skip_predict(dataloaders, max_batches):
+        if self.predict_loop.should_skip_predict(max_batches):
             return []
 
         # ref model
@@ -922,9 +924,7 @@ class Trainer(
 
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
-            raise MisconfigurationException(
-                'You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`'
-            )
+            raise MisconfigurationException('You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`')
 
         model_provided = model is not None
         model = model or self.lightning_module
