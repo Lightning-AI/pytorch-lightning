@@ -123,4 +123,3 @@ def test_old_transfer_batch_to_device_hook(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
     with pytest.deprecated_call(match='old signature will be removed in v1.5'):
         trainer.fit(OldModel())
-
