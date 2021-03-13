@@ -90,7 +90,7 @@ class DDPPlugin(ParallelPlugin):
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
 
-        self._setup_distributed()
+        self.setup_distributed()
 
     def _call_children_scripts(self):
 
@@ -163,7 +163,7 @@ class DDPPlugin(ParallelPlugin):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
-    def _setup_distributed(self):
+    def setup_distributed(self):
         # TODO: check if needed
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
