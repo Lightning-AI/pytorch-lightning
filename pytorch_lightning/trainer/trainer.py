@@ -204,7 +204,7 @@ class Trainer(
 
             limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
 
-            limit_predict_batches: How much of the dataset to check during prediction (floats = percent, int = num_batches)
+            limit_predict_batches: How much of prediction dataset to check (floats = percent, int = num_batches)
 
             logger: Logger (or iterable collection of loggers) for experiment tracking.
 
