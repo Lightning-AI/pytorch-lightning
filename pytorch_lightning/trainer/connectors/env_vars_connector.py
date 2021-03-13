@@ -18,7 +18,7 @@ from typing import Callable
 from pytorch_lightning.utilities.argparse import get_init_arguments_and_types, parse_env_variables
 
 
-def overwrite_by_env_vars(fn: Callable) -> Callable:
+def defaults_from_env_vars(fn: Callable) -> Callable:
     """
     Decorator for :class:`~pytorch_lightning.trainer.trainer.Trainer` methods for which
     input arguments should be moved automatically to the correct device.
