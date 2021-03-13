@@ -426,9 +426,9 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
+        self.call_setup_hook(model)
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -922,9 +922,7 @@ class Trainer(
 
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
-            raise MisconfigurationException(
-                'You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`'
-            )
+            raise MisconfigurationException('You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`')
 
         model_provided = model is not None
         model = model or self.lightning_module
