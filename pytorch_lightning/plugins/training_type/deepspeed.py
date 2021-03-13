@@ -43,11 +43,12 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         super().__init__(pl_module)
         self.precision = precision
 
-    def forward(self, *inputs, **kwargs):
+    def forward(self, *args, **kwargs):
         if self.precision == 16:
-            inputs = self._move_float_tensors_to_half(inputs)
+            args = self._move_float_tensors_to_half(args)
+            kwargs = self._move_float_tensors_to_half(kwargs)
 
-        return super().forward(*inputs, **kwargs)
+        return super().forward(*args, **kwargs)
 
     @staticmethod
     def batch_to(data):
