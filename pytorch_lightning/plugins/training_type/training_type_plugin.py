@@ -33,9 +33,6 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self) -> None:
         self._model = None
         self._results = None
-        self.global_rank = None
-        self.local_rank = None
-        self.world_size = None
 
     @abstractmethod
     def connect(self, model: 'Module') -> None:
