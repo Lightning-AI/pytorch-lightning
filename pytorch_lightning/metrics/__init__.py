@@ -42,6 +42,6 @@ from pytorch_lightning.metrics.regression import (  # noqa: F401
 from pytorch_lightning.metrics.retrieval import RetrievalMAP  # noqa: F401
 
 warn(
-    "`pytorch_lightning.metrics.*` module has been renamed to `torchmetrics.*` and split off to its own package (https://github.com/PyTorchLightning/metrics) since v1.3 and will be removed in v1.5",
-    DeprecationWarning
+    "`pytorch_lightning.metrics.*` module has been renamed to `torchmetrics.*` and split off to its own package"
+    " (https://github.com/PyTorchLightning/metrics) since v1.3 and will be removed in v1.5", DeprecationWarning
 )
