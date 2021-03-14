@@ -100,6 +100,7 @@ def test_first_logger_call_in_subprocess(tmpdir):
         limit_val_batches=1,
         max_epochs=1,
         logger=logger,
-        callbacks=[LoggerCallsObserver()]
+        callbacks=[LoggerCallsObserver()],
+        checkpoint_callback=False,
     )
     trainer.fit(model)
