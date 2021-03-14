@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Any, Dict, List, Tuple, Union, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
