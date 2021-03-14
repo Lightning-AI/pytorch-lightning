@@ -56,7 +56,7 @@ jobs:
         import re
         fname='requirements.txt'
         req = re.sub(r'torch>=[\d\.]+', 'torch>=1.7.1', open(fname).read())
-        open(fname, 'w').write(req)"
+        open(fname, 'w').write(req)
       shell: python
 
     - name: Set min. dependencies
