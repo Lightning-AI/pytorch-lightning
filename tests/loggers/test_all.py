@@ -83,8 +83,6 @@ def test_loggers_fit_test_all(torch_save_mock, tmpdir, monkeypatch):
         _test_loggers_fit_test(tmpdir, WandbLogger)
 
 
-# this test throws pickle errors
-# StoreHistoryLogger should be defined outside of test method to prevent it
 def _test_loggers_fit_test(tmpdir, logger_class):
 
     class CustomModel(BoringModel):
@@ -185,8 +183,6 @@ def test_loggers_save_dir_and_weights_save_path_all(torch_save_mock, tmpdir, mon
         _test_loggers_save_dir_and_weights_save_path(tmpdir, WandbLogger)
 
 
-# this test throws pickle errors
-# TestLogger should be defined outside of test method to prevent it
 def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
 
     class TestLogger(logger_class):
