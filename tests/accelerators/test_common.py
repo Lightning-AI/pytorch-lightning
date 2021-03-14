@@ -10,15 +10,9 @@ from tests.helpers.runif import RunIf
 
 @pytest.mark.parametrize(
     "trainer_kwargs", (
-        pytest.param({"gpus": 1}, marks=RunIf(min_gpus=1)),
-        pytest.param({
-            "accelerator": "dp",
-            "gpus": 2
-        }, marks=RunIf(min_gpus=2)),
-        pytest.param({
-            "accelerator": "ddp_spawn",
-            "gpus": 2
-        }, marks=RunIf(min_gpus=2)),
+        pytest.param(dict(gpus=1), marks=RunIf(min_gpus=1)),
+        pytest.param(dict(accelerator="dp", gpus=2), marks=RunIf(min_gpus=2)),
+        pytest.param(dict(accelerator="ddp_spawn", gpus=2), marks=RunIf(min_gpus=2)),
     )
 )
 def test_evaluate(tmpdir, trainer_kwargs):
