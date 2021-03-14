@@ -28,11 +28,8 @@ from tests.helpers import BoringModel
 def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, expected_val_batches):
 
     class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.val_epoch_calls = 0
-            self.val_batches = []
+        val_epoch_calls = 0
+        val_batches = []
 
         def on_train_epoch_end(self, *args, **kwargs):
             self.val_batches.append(self.trainer.progress_bar_callback.total_val_batches)
