@@ -229,8 +229,7 @@ def test_wandb_sanitize_callable_params(tmpdir):
     assert params["wrapper_something_wo_name"] == "<lambda>"
 
 
-@ mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_wandb_logger_offline_log_model(wandb, tmpdir):
+def test_wandb_logger_offline_log_model(tmpdir):
     """ Test that log_model=True raises an error in offline mode """
     with pytest.raises(MisconfigurationException, match='checkpoints cannot be uploaded in offline mode'):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
