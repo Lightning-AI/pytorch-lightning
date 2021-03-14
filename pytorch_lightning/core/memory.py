@@ -88,7 +88,10 @@ class LayerSummary(object):
             self._out_size = parse_batch_shape(out)
             self._hook_handle.remove()
 
-        return self._module.register_forward_hook(hook)
+        handle = None
+        if not isinstance(self._module, torch.jit.ScriptModule):
+            handle = self._module.register_forward_hook(hook)
+        return handle
 
     def detach_hook(self):
         """
