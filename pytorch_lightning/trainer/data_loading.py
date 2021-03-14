@@ -293,9 +293,9 @@ class TrainerDataLoadingMixin(ABC):
             if mode in modes and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
 
                 # when overfitting, the dataloader should not have sampler
-                if self.overfit_batches > 0:
+                if self.overfit_batches > 0 and mode != 'predict':
                     rank_zero_warn(
-                        'You requested to overfit but enabled test/val dataloader shuffling.'
+                        'You requested to overfit but enabled val/test dataloader shuffling.'
                         ' We are turning it off for you.'
                     )
                     dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset))
@@ -303,7 +303,7 @@ class TrainerDataLoadingMixin(ABC):
                 else:
                     rank_zero_warn(
                         f'Your {mode}_dataloader has `shuffle=True`, it is best practice to turn'
-                        ' this off for validation and test dataloaders.'
+                        ' this off for val/test/predict dataloaders.'
                     )
 
         if any([dl is None for dl in dataloaders]):
