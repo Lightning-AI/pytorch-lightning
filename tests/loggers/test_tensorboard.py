@@ -303,9 +303,9 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     assert not os.path.isfile(os.path.join(tmpdir, hparams_file))
 
 
-def test_tensorboard_on_save_checkpoint(tmpdir):
+def test_tensorboard_state_dict(tmpdir):
     logger = TensorBoardLogger(save_dir=tmpdir, version='version_0')
-    state = logger.on_save_checkpoint(None, None, None)
+    state = logger.state_dict
     assert state['version'] == 'version_0'
 
 

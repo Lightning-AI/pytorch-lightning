@@ -285,13 +285,13 @@ class CheckpointConnector:
             # dump callbacks
             checkpoint['callbacks'] = self.trainer.on_save_checkpoint(checkpoint)
 
-            # dump all loggers
+            # dump loggers
             checkpoint['logger'] = {}
             if self.trainer.logger:
                 if isinstance(self.trainer.logger, LoggerCollection):
-                    checkpoint['logger'] = self.trainer.logger.on_save_checkpoint(self.trainer, model, checkpoint)
+                    checkpoint['logger'] = self.trainer.logger.state_dict
                 else:
-                    state = self.trainer.logger.on_save_checkpoint(self.trainer, model, checkpoint)
+                    state = self.trainer.logger.state_dict
                     if state:
                         checkpoint['logger'][type(self.trainer.logger)] = state
 

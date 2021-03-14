@@ -19,7 +19,7 @@ import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 import torch
@@ -340,18 +340,15 @@ class LightningLoggerBase(ABC):
 
         return metrics
 
-    def on_save_checkpoint(self, trainer, pl_module: LightningModule, checkpoint: Dict[str, Any]) -> dict:
+    @property
+    def state_dict(self) -> Optional[dict]:
         """
         Called when saving a model checkpoint, use to persist state of logger.
-
-        Args:
-            trainer: the current Trainer instance.
-            pl_module: the current LightningModule instance.
-            checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
             The logger state.
         """
+        return None
 
 
 class LoggerCollection(LightningLoggerBase):
@@ -423,13 +420,9 @@ class LoggerCollection(LightningLoggerBase):
     def version(self) -> str:
         return '_'.join([str(logger.version) for logger in self._logger_iterable])
 
-    def on_save_checkpoint(self, trainer, pl_module: LightningModule, checkpoint: Dict[str, Any]) -> dict:
-        logger_states = {}
-        for logger in self._logger_iterable:
-            state = logger.on_save_checkpoint(trainer, pl_module, checkpoint)
-            if state:
-                logger_states[type(logger)] = state
-        return logger_states
+    @property
+    def state_dict(self) -> Dict[Type, dict]:
+        return {type(logger): logger.state_dict for logger in self._logger_iterable if logger.state_dict}
 
 
 class DummyExperiment(object):

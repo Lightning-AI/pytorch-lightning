@@ -291,7 +291,7 @@ def test_np_sanitization():
     assert logger.logged_params == sanitized_params
 
 
-def test_logger_collection_on_save_checkpoint(tmpdir):
+def test_logger_collection_state_dict(tmpdir):
     dummy_logger = DummyLogger()
     custom_logger = CustomLogger()
     tensorboard_logger = TensorBoardLogger(save_dir=tmpdir)
@@ -299,9 +299,9 @@ def test_logger_collection_on_save_checkpoint(tmpdir):
 
     logger_collection = LoggerCollection(logger_iterable=logger_iterable)
 
-    logger_state_dict = logger_collection.on_save_checkpoint(None, None, None)
+    logger_state_dict = logger_collection.state_dict
     assert type(tensorboard_logger) in logger_state_dict
 
-    # those loggers don't have on_save_checkpoint() hook implemented, so they shouldn't be present in logger state dict
+    # loggers that don't have state_dict() implemented shouldn't be present in logger_state_dict
     assert type(dummy_logger) not in logger_state_dict
     assert type(custom_logger) not in logger_state_dict
