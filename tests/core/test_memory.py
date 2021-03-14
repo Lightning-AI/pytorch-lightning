@@ -88,6 +88,19 @@ class MixedDtypeModel(LightningModule):
         return self.reduce(self.embed(x))
 
 
+class PartialScriptModel(LightningModule):
+    """ A model which contains scripted layers. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = torch.jit.script(nn.Linear(5, 3))
+        self.layer2 = nn.Linear(3, 2)
+        self.example_input_array = torch.rand(2, 5)
+
+    def forward(self, x):
+        return self.layer2(self.layer1(x))
+
+
 def test_invalid_weights_summmary():
     """ Test that invalid value for weights_summary raises an error. """
     with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
@@ -212,6 +225,15 @@ def test_summary_layer_types(mode):
         'ReLU',
         'Conv2d',
     ]
+
+
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+def test_summary_with_scripted_modules(mode):
+    model = PartialScriptModel()
+    summary = model.summarize(mode=mode)
+    assert summary.layer_types == ["RecursiveScriptModule", "Linear"]
+    assert summary.in_sizes == [UNKNOWN_SIZE, [2, 3]]
+    assert summary.out_sizes == [UNKNOWN_SIZE, [2, 2]]
 
 
 @pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
