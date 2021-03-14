@@ -118,6 +118,8 @@ class EvaluationLoop(object):
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
+        self.trainer.call_hook('on_epoch_start', *args, **kwargs)
+
         if self.trainer.testing:
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
