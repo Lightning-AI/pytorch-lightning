@@ -285,7 +285,7 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
 
         # notify loggers
-        if trainer.is_global_zero and trainer.logger and hasattr(trainer.logger, 'after_save_checkpoint'):
+        if trainer.is_global_zero and trainer.logger:
             trainer.logger.after_save_checkpoint(proxy(self))
 
     def _should_skip_saving_checkpoint(self, trainer) -> bool:
