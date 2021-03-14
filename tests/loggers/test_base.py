@@ -166,22 +166,21 @@ def test_multiple_loggers_pickle(tmpdir):
     assert trainer2.logger[1].metrics_logged == {"acc": 1.0}
 
 
-class CustomTensorBoardLogger(TensorBoardLogger):
-    # This class needs to be specified outside of test method or else we get pickle error:
-    # AttributeError: Can't pickle local object 'test_adding_step_key.<locals>.CustomTensorBoardLogger'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.logged_step = 0
-
-    def log_metrics(self, metrics, step):
-        if "val_acc" in metrics:
-            assert step == self.logged_step
-
-        super().log_metrics(metrics, step)
-
-
+# this tests throws pickle error
+# CustomTensorBoardLogger should be defined outside of test method to prevent it
 def test_adding_step_key(tmpdir):
+
+    class CustomTensorBoardLogger(TensorBoardLogger):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.logged_step = 0
+
+        def log_metrics(self, metrics, step):
+            if "val_acc" in metrics:
+                assert step == self.logged_step
+
+            super().log_metrics(metrics, step)
 
     class CustomModel(BoringModel):
 
