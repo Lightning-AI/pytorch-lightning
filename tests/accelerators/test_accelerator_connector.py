@@ -136,8 +136,9 @@ def test_accelerator_choice_ddp_slurm(setup_distributed_mock):
         "SLURM_LOCALID": "10"
     }
 )
+@mock.patch('torch.cuda.device_count', return_value=2)
 @mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
-def test_accelerator_choice_ddp2_slurm(setup_distributed_mock):
+def test_accelerator_choice_ddp2_slurm(device_count_mock, setup_distributed_mock):
 
     class CB(Callback):
 
@@ -309,6 +310,9 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock, setup_dist
 
         def master_address(self):
             return 'asdf'
+
+        def creates_children(self) -> bool:
+            return True
 
     class CB(Callback):
 
