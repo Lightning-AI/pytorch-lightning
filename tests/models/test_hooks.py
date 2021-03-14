@@ -432,6 +432,7 @@ def test_trainer_model_hook_system(tmpdir):
         'on_pretrain_routine_end',
         'on_validation_model_eval',
         'on_validation_start',
+        'on_epoch_start',
         'on_validation_epoch_start',
         'on_validation_batch_start',
         'on_validation_batch_end',
@@ -454,6 +455,7 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_end',
         'on_validation_model_eval',
         'on_validation_start',
+        'on_epoch_start',
         'on_validation_epoch_start',
         'on_validation_batch_start',
         'on_validation_batch_end',
@@ -474,6 +476,7 @@ def test_trainer_model_hook_system(tmpdir):
     expected = [
         'on_validation_model_eval',
         'on_validation_start',
+        'on_epoch_start',
         'on_validation_epoch_start',
         'on_validation_batch_start',
         'on_validation_batch_end',
@@ -491,6 +494,7 @@ def test_trainer_model_hook_system(tmpdir):
     expected = [
         'on_test_model_eval',
         'on_test_start',
+        'on_epoch_start',
         'on_test_epoch_start',
         'on_test_batch_start',
         'on_test_batch_end',
