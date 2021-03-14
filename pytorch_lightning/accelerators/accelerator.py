@@ -21,7 +21,6 @@ from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
 
@@ -396,7 +395,7 @@ class Accelerator(object):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return self.training_type_plugin.all_gather(tensor, group=group, sync_grads=sync_grads)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary
