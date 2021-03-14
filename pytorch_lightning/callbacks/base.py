@@ -17,7 +17,7 @@ Abstract base class used to build new callbacks.
 """
 
 import abc
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -33,12 +33,12 @@ class Callback(abc.ABC):
         """Called before accelerator is being setup"""
         pass
 
-    def setup(self, trainer, pl_module: LightningModule, stage: str) -> None:
-        """Called when fit or test begins"""
+    def setup(self, trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+        """Called when fit, validate, test, predict, or tune begins"""
         pass
 
-    def teardown(self, trainer, pl_module: LightningModule, stage: str) -> None:
-        """Called when fit or test ends"""
+    def teardown(self, trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+        """Called when fit, validate, test, predict, or tune ends"""
         pass
 
     def on_init_start(self, trainer) -> None:

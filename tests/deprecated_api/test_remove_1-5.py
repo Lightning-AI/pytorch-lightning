@@ -12,17 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
-
 from unittest import mock
 
 import pytest
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import device_parser
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
+
+
+def test_v1_5_0_model_checkpoint_save_checkpoint():
+    model_ckpt = ModelCheckpoint()
+    model_ckpt.save_function = lambda *_, **__: None
+    with pytest.deprecated_call(match="ModelCheckpoint.save_checkpoint` signature has changed"):
+        model_ckpt.save_checkpoint(Trainer(), object())
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
@@ -98,6 +105,13 @@ def test_old_training_step_signature_with_opt_idx_manual_opt(tmpdir):
 
     with pytest.deprecated_call(match="`training_step` .* `optimizer_idx` .* manual .* will be removed in v1.5"):
         trainer.fit(model)
+
+
+def test_v1_5_0_model_checkpoint_period(tmpdir):
+    with no_warning_call(DeprecationWarning):
+        ModelCheckpoint(dirpath=tmpdir)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        ModelCheckpoint(dirpath=tmpdir, period=1)
 
 
 @mock.patch('torch.cuda.device_count', return_value=4)

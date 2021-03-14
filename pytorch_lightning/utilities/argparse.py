@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 import os
-from argparse import ArgumentParser, Namespace
+from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
 from typing import Any, Dict, List, Tuple, Union
 
@@ -21,8 +21,7 @@ from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str
 
 
 def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
-    """
-    Create an instance from CLI arguments.
+    """Create an instance from CLI arguments.
     Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
     Args:
@@ -135,37 +134,84 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-    r"""Extends existing argparse by default `Trainer` attributes.
+def get_abbrev_qualified_cls_name(cls):
+    assert isinstance(cls, type), repr(cls)
+    if cls.__module__.startswith("pytorch_lightning."):
+        # Abbreviate.
+        return f"pl.{cls.__name__}"
+    else:
+        # Fully qualified.
+        return f"{cls.__module__}.{cls.__qualname__}"
+
+
+def add_argparse_args(
+    cls,
+    parent_parser: ArgumentParser,
+    *,
+    use_argument_group=True,
+) -> ArgumentParser:
+    r"""Extends existing argparse by default attributes for ``cls``.
 
     Args:
         cls: Lightning class
         parent_parser:
             The custom cli arguments parser, which will be extended by
-            the Trainer default arguments.
+            the class's default arguments.
+        use_argument_group:
+            By default, this is True, and uses ``add_argument_group`` to add
+            a new group.
+            If False, this will use old behavior.
+
+    Returns:
+        If use_argument_group is True, returns ``parent_parser`` to keep old
+        workflows. If False, will return the new ArgumentParser object.
 
     Only arguments of the allowed types (str, float, int, bool) will
-    extend the `parent_parser`.
+    extend the ``parent_parser``.
 
     Examples:
+
+        # Option 1: Default usage.
         >>> import argparse
         >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
         >>> parser = Trainer.add_argparse_args(parser)
         >>> args = parser.parse_args([])
-    """
-    parser = ArgumentParser(
-        parents=[parent_parser],
-        add_help=False,
-    )
 
-    blacklist = ['kwargs']
-    depr_arg_names = cls.get_deprecated_arg_names() + blacklist
+        # Option 2: Disable use_argument_group (old behavior).
+        >>> import argparse
+        >>> from pytorch_lightning import Trainer
+        >>> parser = argparse.ArgumentParser()
+        >>> parser = Trainer.add_argparse_args(parser, use_argument_group=False)
+        >>> args = parser.parse_args([])
+    """
+    if isinstance(parent_parser, _ArgumentGroup):
+        raise RuntimeError("Please only pass an ArgumentParser instance.")
+    if use_argument_group:
+        group_name = get_abbrev_qualified_cls_name(cls)
+        parser = parent_parser.add_argument_group(group_name)
+    else:
+        parser = ArgumentParser(
+            parents=[parent_parser],
+            add_help=False,
+        )
+
+    ignore_arg_names = ['self', 'args', 'kwargs']
+    if hasattr(cls, "get_deprecated_arg_names"):
+        ignore_arg_names += cls.get_deprecated_arg_names()
 
     allowed_types = (str, int, float, bool)
 
-    args_help = parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__)
-    for arg, arg_types, arg_default in (at for at in get_init_arguments_and_types(cls) if at[0] not in depr_arg_names):
+    # Get symbols from cls or init function.
+    for symbol in (cls, cls.__init__):
+        args_and_types = get_init_arguments_and_types(symbol)
+        args_and_types = [x for x in args_and_types if x[0] not in ignore_arg_names]
+        if len(args_and_types) > 0:
+            break
+
+    args_help = parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__ or "")
+
+    for arg, arg_types, arg_default in args_and_types:
         arg_types = [at for at in allowed_types if at in arg_types]
         if not arg_types:
             # skip argument with not supported type
@@ -196,6 +242,9 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         if arg == 'track_grad_norm':
             use_type = float
 
+        if arg_default is inspect._empty:
+            arg_default = None
+
         parser.add_argument(
             f'--{arg}',
             dest=arg,
@@ -205,7 +254,10 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
             **arg_kwargs,
         )
 
-    return parser
+    if use_argument_group:
+        return parent_parser
+    else:
+        return parser
 
 
 def parse_args_from_docstring(docstring: str) -> Dict[str, str]:

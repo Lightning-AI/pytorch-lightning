@@ -203,12 +203,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             model.trainer.save_checkpoint(path)
             return path
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        should_stop = torch.tensor(int(should_stop), device=self.lightning_module.device)
-        stop = xm.mesh_reduce('stop_signal', should_stop, sum)
-        rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
-        should_stop = int(stop.item()) == self.world_size
-        return should_stop
+    def reduce_decision(self, decision: bool) -> bool:
+        decision = torch.tensor(int(decision), device=self.device)
+        decision = self.reduce(decision, "sum")
+        decision = bool(decision == self.world_size)
+        return decision
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
@@ -262,7 +261,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._model = model
 
     def _close_logger(self, trainer) -> None:
-        if hasattr(trainer, "logger"):
+        if trainer.logger is not None:
             trainer.logger.finalize("success")
 
     @property
