@@ -54,9 +54,12 @@ jobs:
       if: matrix.requires == 'minimal' && matrix.python-version == 3.9
       run: |
         import re
-        fname='requirements.txt'
-        req = re.sub(r'torch>=[\d\.]+', 'torch>=1.7.1', open(fname).read())
-        open(fname, 'w').write(req)
+        def _req(fname, ptn, ver):
+            req = re.sub(ptn, ver, open(fname).read())
+            open(fname, 'w').write(req)
+
+        _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.7.1')
+        _req('requirements/extra.txt', r'onnxruntime>=[\d\.]+', 'onnxruntime>=1.7.0')
       shell: python
 
     - name: Set min. dependencies
