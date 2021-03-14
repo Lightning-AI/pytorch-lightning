@@ -15,6 +15,7 @@
 from unittest import mock
 
 import pytest
+import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
