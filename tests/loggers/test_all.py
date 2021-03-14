@@ -56,7 +56,8 @@ def _instantiate_logger(logger_class, save_idr, **override_kwargs):
     return logger
 
 
-def test_loggers_fit_test_all(tmpdir, monkeypatch):
+@mock.patch("torch.save")
+def test_loggers_fit_test_all(torch_save_mock, tmpdir, monkeypatch):
     """ Verify that basic functionality of all loggers. """
 
     _test_loggers_fit_test(tmpdir, TensorBoardLogger)
@@ -162,7 +163,8 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
 
 
-def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
+@mock.patch("torch.save")
+def test_loggers_save_dir_and_weights_save_path_all(torch_save_mock, tmpdir, monkeypatch):
     """ Test the combinations of save_dir, weights_save_path and default_root_dir. """
 
     _test_loggers_save_dir_and_weights_save_path(tmpdir, TensorBoardLogger)
