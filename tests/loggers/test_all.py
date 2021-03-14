@@ -140,7 +140,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    trainer.test()
+    trainer.test(model)
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
     if logger_class == TensorBoardLogger:
