@@ -287,7 +287,7 @@ def test_empty_model_size(mode):
 
 
 @RunIf(min_gpus=1, amp_native=True)
-def test_model_size_precision(monkeypatch, tmpdir):
+def test_model_size_precision(tmpdir):
     """ Test model size for half and full precision. """
     model = PreCalculatedModel()
 
