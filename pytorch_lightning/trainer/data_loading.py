@@ -395,7 +395,7 @@ class TrainerDataLoadingMixin(ABC):
             The dataloader
         """
         model.trainer.call_hook(f"on_request_{stage}_dataloader")
-        dataloader: DataLoader = getattr(model, 'train_dataloader')()
+        dataloader: DataLoader = getattr(model, f'{stage}_dataloader')()
         dataloader = self._flatten_dl_only(dataloader)
         self.accelerator.barrier('get_dataloaders')
         return dataloader
