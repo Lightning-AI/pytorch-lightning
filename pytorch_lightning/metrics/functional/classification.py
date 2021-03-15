@@ -123,6 +123,7 @@ def stat_scores(
     return tp, fp, tn, fn, sup
 
 
+# todo: remove in 1.4
 def stat_scores_multiple_classes(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -136,6 +137,9 @@ def stat_scores_multiple_classes(
 
     .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.stat_scores`
 
+    Raises:
+        ValueError:
+            If ``reduction`` is not one of ``"none"``, ``"sum"`` or ``"elementwise_mean"``.
     """
 
     rank_zero_warn(
@@ -211,6 +215,7 @@ def _confmat_normalize(cm):
     return cm
 
 
+# todo: remove in 1.4
 def precision_recall(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -269,6 +274,7 @@ def precision_recall(
     return precision, recall
 
 
+# todo: remove in 1.4
 def precision(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -312,6 +318,7 @@ def precision(
     return precision_recall(pred=pred, target=target, num_classes=num_classes, class_reduction=class_reduction)[0]
 
 
+# todo: remove in 1.4
 def recall(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -509,6 +516,7 @@ def auc(
     return __auc(x, y)
 
 
+# todo: remove in 1.4
 def auc_decorator() -> Callable:
     rank_zero_warn("This `auc_decorator` was deprecated in v1.2.0." " It will be removed in v1.4.0", DeprecationWarning)
 
@@ -525,6 +533,7 @@ def auc_decorator() -> Callable:
     return wrapper
 
 
+# todo: remove in 1.4
 def multiclass_auc_decorator() -> Callable:
     rank_zero_warn(
         "This `multiclass_auc_decorator` was deprecated in v1.2.0."
@@ -547,6 +556,7 @@ def multiclass_auc_decorator() -> Callable:
     return wrapper
 
 
+# todo: remove in 1.4
 def auroc(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -589,6 +599,7 @@ def auroc(
     )
 
 
+# todo: remove in 1.4
 def multiclass_auroc(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -611,6 +622,16 @@ def multiclass_auroc(
 
     Return:
         Tensor containing ROCAUC score
+
+    Raises:
+        ValueError:
+            If ``pred`` don't sum up to ``1`` over classes for ``Multiclass AUROC``.
+        ValueError:
+            If number of classes found in ``target`` does not equal the number of
+            columns in ``pred``.
+        ValueError:
+            If number of classes deduced from ``pred`` does not equal the number of
+            classes passed in ``num_classes``.
 
     Example:
 
