@@ -222,6 +222,8 @@ class DeepSpeedPlugin(DDPPlugin):
 
         self.init_deepspeed()
 
+        self.lightning_module.trainer.save_checkpoint = self.save_checkpoint
+
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
@@ -367,7 +369,6 @@ class DeepSpeedPlugin(DDPPlugin):
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
 
     def _format_precision_config(self):
-
         amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
         amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
         precision = self.lightning_module.trainer.accelerator_connector.precision
@@ -412,3 +413,29 @@ class DeepSpeedPlugin(DDPPlugin):
                 **cfg
             }
         return cfg
+
+    def _filepath_to_dir(self, filepath: str):
+        return filepath.split('.')[0]
+
+    def save_checkpoint(self, filepath: str, weights_only: bool = False):
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            filepath: write-target file's path
+            weights_only: saving model weights only
+        """
+        # dump states as a checkpoint dictionary object
+        _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
+        save_dir = self._filepath_to_dir(filepath)
+        _exclude_keys = []# ['optimizer_states', 'lr_schedulers']
+        _checkpoint = {k:v for k, v in _checkpoint.items() if k not in _exclude_keys}
+        self.model.save_checkpoint(save_dir, client_state=_checkpoint)
+
+    def restore_model_state_from_ckpt_path(self, ckpt_path: str, map_location=lambda storage, loc: storage):
+        if torch.distributed.is_available():
+            from pytorch_lightning.trainer.states import TrainerState
+            _load_optimization = self.lightning_module.trainer.state == TrainerState.FITTING
+            save_dir = self._filepath_to_dir(ckpt_path)
+            self.model.optimizer._partition_all_parameters() 
+            _, client_state = self.model.load_checkpoint(save_dir, load_optimizer_states=_load_optimization, load_lr_scheduler_states=_load_optimization)
+            return client_state, False

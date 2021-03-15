@@ -13,6 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 import torch
 from torch.nn import Module
@@ -169,3 +170,14 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
         optimizer.step(closure=lambda_closure, **kwargs)
+
+    def restore_model_state_from_ckpt_path(self, ckpt_path: str, map_location=lambda storage, loc: storage) -> Dict:
+        ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
+        # restore datamodule states
+        if self.lightning_module.trainer.datamodule is not None:
+            self.lightning_module.trainer.datamodule.on_load_checkpoint(ckpt)
+
+        # hook: give user access to checkpoint if needed.
+        self.lightning_module.on_load_checkpoint(ckpt)
+        self.lightning_module.load_state_dict(ckpt['state_dict'])
+        return ckpt, True

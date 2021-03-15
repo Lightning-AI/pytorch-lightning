@@ -90,20 +90,16 @@ class CheckpointConnector:
             rank_zero_warn("No checkpoint file exists at `resume_from_checkpoint`. Start from scratch")
             return False
 
-        # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
-        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
+            checkpoint_path, map_location=lambda storage, loc: storage)
 
-        # acquire the model
         model = self.trainer.lightning_module
-
-        # restore model and datamodule state
-        self.restore_model_state(model, checkpoint)
 
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
-        self.restore_training_state(checkpoint)
+        self.restore_training_state(checkpoint, load_optimizer_states)
 
         rank_zero_info(f"Restored states from the checkpoint file at {checkpoint_path}")
         return True
@@ -123,7 +119,7 @@ class CheckpointConnector:
         # restore model state_dict
         model.load_state_dict(checkpoint['state_dict'])
 
-    def restore_training_state(self, checkpoint):
+    def restore_training_state(self, checkpoint, load_optimizer_states: bool):
         """
         Restore trainer state.
         Model will get its change to update
@@ -131,7 +127,7 @@ class CheckpointConnector:
         :return:
         """
         # validation
-        if 'optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint:
+        if load_optimizer_states and ('optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint):
             raise KeyError(
                 'Trying to restore training state but checkpoint contains only the model.'
                 ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
@@ -176,6 +172,9 @@ class CheckpointConnector:
                 " This can cause unreliable results if further training is done,"
                 " consider using an end of epoch checkpoint."
             )
+
+        if not load_optimizer_states:
+            return
 
         # restore the optimizers
         optimizer_states = checkpoint['optimizer_states']

@@ -971,8 +971,7 @@ class Trainer(
 
             self.training_type_plugin.barrier()
 
-            ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt['state_dict'])
+            self.training_type_plugin.restore_model_state_from_ckpt_path(ckpt_path, map_location=lambda storage, loc: storage)
         return ckpt_path
 
     def predict(
