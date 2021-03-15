@@ -24,7 +24,6 @@ import torch
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _compare_version,
-    _module_available,
     _PYSYFT_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     is_syft_initialized,
