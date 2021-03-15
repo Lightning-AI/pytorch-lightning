@@ -275,7 +275,8 @@ class AcceleratorConnector(object):
     def is_distributed(self) -> bool:
         # Used for custom plugins.
         # Custom plugins should implement is_distributed property.
-        if hasattr(self.training_type_plugin, 'is_distributed'):
+        if hasattr(self.training_type_plugin, 'is_distributed') and not \
+                self.on_tpu:
             return self.training_type_plugin.is_distributed
         is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
         if self.on_tpu:
