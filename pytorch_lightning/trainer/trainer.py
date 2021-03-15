@@ -38,7 +38,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
-from pytorch_lightning.trainer.connectors.env_vars_connector import defaults_from_env_vars
+from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
@@ -84,7 +84,7 @@ class Trainer(
     DeprecatedTrainerAttributes,
 ):
 
-    @defaults_from_env_vars
+    @_defaults_from_env_vars
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
