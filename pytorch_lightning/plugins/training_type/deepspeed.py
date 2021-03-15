@@ -417,7 +417,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def _filepath_to_dir(self, filepath: str):
         return filepath.split('.')[0]
 
-    def save_checkpoint(self, filepath: str, weights_only: bool = False):
+    def save_checkpoint(self, filepath: str, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -431,12 +431,17 @@ class DeepSpeedPlugin(DDPPlugin):
         client_state = {k:v for k, v in client_state.items() if k not in _exclude_keys}
         self.model.save_checkpoint(save_dir, client_state=client_state)
 
-    def restore_model_state_from_ckpt_path(self, ckpt_path: str, map_location=lambda storage, loc: storage):
+    def restore_model_state_from_ckpt_path(self, ckpt_path: str, map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
         if torch.distributed.is_available():
+            from pytorch_lightning.trainer.states import TrainerState
+            load_optimizer_states = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
             self.model.optimizer._partition_all_parameters() 
-            _, client_state = self.model.load_checkpoint(save_dir)
 
+            _, client_state = self.model.load_checkpoint(
+                save_dir, load_optimizer_states=load_optimizer_states, load_lr_scheduler_states=load_optimizer_states)
+            
+            # restore datamodule states
             if self.lightning_module.trainer.datamodule is not None:
                 self.lightning_module.trainer.datamodule.on_load_checkpoint(client_state)
 

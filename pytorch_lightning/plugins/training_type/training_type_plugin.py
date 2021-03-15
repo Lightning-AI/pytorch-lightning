@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union, Tuple
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 import torch
@@ -171,7 +171,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
         optimizer.step(closure=lambda_closure, **kwargs)
 
-    def restore_model_state_from_ckpt_path(self, ckpt_path: str, map_location=lambda storage, loc: storage) -> Dict:
+    def restore_model_state_from_ckpt_path(self, ckpt_path: str, map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
         ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
         # restore datamodule states
         if self.lightning_module.trainer.datamodule is not None:
