@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import operator
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _compare_version
 
 
 def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
@@ -68,8 +70,11 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
-    # TODO: in v1.5 uncomment the additional condition for "0".
-    if gpus is None or isinstance(gpus, int) and gpus == 0:  # or isinstance(gpus, str) and gpus.strip() == "0":
+    if gpus is None or isinstance(gpus, int) and gpus == 0:
+        return None
+
+    if _compare_version("pytorch_lightning", operator.ge, "1.5") and isinstance(gpus, str) and gpus.strip() == "0":
+        # TODO: in v1.5 combine this with the above if statement
         return None
 
     # We know user requested GPUs therefore if some of the
@@ -116,13 +121,15 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
-    if isinstance(s, str):
-        if s == '-1':
-            return -1
-        elif ',' in s:
-            return [int(x.strip()) for x in s.split(',') if len(x) > 0]
-        else:
-            num_gpus = int(s.strip())
+    if not isinstance(s, str):
+        return s
+    if s == '-1':
+        return -1
+    elif ',' in s:
+        return [int(x.strip()) for x in s.split(',') if len(x) > 0]
+    else:
+        num_gpus = int(s.strip())
+        if _compare_version("pytorch_lightning", operator.lt, "1.5"):
             # TODO: remove warning in v1.5 and update docs in docs/advanced/multi-gpu.rst regarding GPU selection
             rank_zero_warn(
                 f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
@@ -131,11 +138,8 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
                 f" {list(range(num_gpus))}.",
                 DeprecationWarning,
             )
-            # TODO: in v1.5 replace this return statement with the one below
             return [num_gpus]
-            # return num_gpus
-    else:
-        return s
+        return num_gpus
 
 
 def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:

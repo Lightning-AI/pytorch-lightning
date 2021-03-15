@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
+import operator
 from unittest import mock
 
 import pytest
@@ -21,6 +22,7 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import device_parser
+from pytorch_lightning.utilities.imports import _compare_version
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
 
@@ -114,11 +116,21 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
         ModelCheckpoint(dirpath=tmpdir, period=1)
 
 
+@pytest.mark.xfail(
+    condition=_compare_version("pytorch_lightning", operator.ge, "1.5"),
+    reason="parsing of string will change in v1.5"
+)
 @mock.patch('torch.cuda.device_count', return_value=4)
-def test_v1_5_0_trainer_gpus_str_parsing(_):
+def test_v1_5_0_trainer_gpus_str_parsing(*_):
+    # TODO: when removing this, make sure docs in docs/advanced/multi-gpu.rst reflect the new
+    #   behavior regarding GPU selection. Ping @awaelchli if unsure.
     with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
         Trainer(gpus="3")
 
     with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
         gpus = device_parser.parse_gpu_ids("3")
         assert gpus == [3]
+
+    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='0' .* will change."):
+        gpus = device_parser.parse_gpu_ids("0")
+        assert gpus == [0]
