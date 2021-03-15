@@ -58,15 +58,16 @@ if _PYSYFT_AVAILABLE:
 
     class SyLightningModule(LightningModule):
 
-        def __init__(self, module: sy.Module, request_parameters: bool = False, run_locally: bool = False) -> None:
+        def __init__(self, module: sy.Module, duet: Any,request_parameters: bool = False,
+                     run_locally: bool = False) -> None:
             super().__init__()
             """
             This class is used to wrap the ``sy.Module`` and simplify the interface with Pytorch LightningModule
             """
             # Those are helpers to easily work with `sy.Module`
             self.module = module
-            self.duet = sy.client_cache["duet"]
-            self.remote_torch = sy.client_cache["duet"].torch
+            self.duet = duet
+            self.remote_torch = duet.torch
             self.local_torch = globals()["torch"]
             self.request_parameters = request_parameters
             self.run_locally = run_locally

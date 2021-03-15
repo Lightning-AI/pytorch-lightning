@@ -37,7 +37,6 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
 
 if _PYSYFT_AVAILABLE:
-    from syft import client_cache
     from syft.core.pointer.pointer import Pointer
 
 
@@ -651,7 +650,7 @@ class TrainLoop:
 
         for split_idx, split_batch in enumerate(splits):
             if is_syft_initialized():
-                split_batch = split_batch.get(request_block=True, delete_obj=False).send(client_cache["duet"])
+                split_batch = split_batch.resolve_pointer_type()
 
             # create an iterable for optimizers and loop over them
             for opt_idx, optimizer in self.prepare_optimizers():

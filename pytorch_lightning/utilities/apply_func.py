@@ -39,7 +39,6 @@ else:
     Batch = type(None)
 
 if _PYSYFT_AVAILABLE:
-    from syft import client_cache
     from syft.core.pointer.pointer import Pointer
 
 
