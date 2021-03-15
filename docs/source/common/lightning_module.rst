@@ -1020,11 +1020,11 @@ This is the pseudocode to describe how all the hooks are called during a call to
 .. code-block:: python
 
     def fit(...):
-        configure_callbacks()
-
         if global_rank == 0:
             # prepare data is called on GLOBAL_ZERO only
             prepare_data()
+
+        configure_callbacks()
 
         on_fit_start()
 
