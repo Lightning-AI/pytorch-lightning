@@ -72,8 +72,6 @@ def accuracy(
     changed to subset accuracy (which requires all labels or sub-samples in the sample to
     be correctly predicted) by setting ``subset_accuracy=True``.
 
-    Accepts all input types listed in :ref:`extensions/metrics:input types`.
-
     Args:
         preds: Predictions from model (probabilities, or labels)
         target: Ground truth labels

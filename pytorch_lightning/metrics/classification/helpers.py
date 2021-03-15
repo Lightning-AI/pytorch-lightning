@@ -282,9 +282,7 @@ def _check_classification_inputs(
             Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be. See the parameter's
-            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
-            for a more detailed explanation and examples.
+            than what they appear to be.
 
 
     Return:
@@ -408,9 +406,7 @@ def _input_format_classification(
             Should be left unset (``None``) for all other types of inputs.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be. See the parameter's
-            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
-            for a more detailed explanation and examples.
+            than what they appear to be.
 
 
     Returns:
