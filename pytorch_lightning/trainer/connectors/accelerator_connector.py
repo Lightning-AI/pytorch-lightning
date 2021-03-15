@@ -426,10 +426,9 @@ class AcceleratorConnector(object):
         if hasattr(training_type, 'num_nodes') and getattr(training_type, 'num_nodes') is None:
             training_type.num_nodes = self.num_nodes
 
-        # Automatically set sync_batchnorm if not already set.
+        # Automatically set sync_batchnorm.
         # Useful for custom plugins.
-        if hasattr(training_type, 'sync_batchnorm') and getattr(
-                training_type, 'sync_batchnorm') is None:
+        if hasattr(training_type, 'sync_batchnorm'):
             training_type.sync_batchnorm = self.sync_batchnorm
 
         return training_type
