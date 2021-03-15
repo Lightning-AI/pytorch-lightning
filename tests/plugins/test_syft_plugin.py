@@ -4,7 +4,7 @@ from typing import Any, List, Optional, Union
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE
+from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE, is_syft_initialized
 from tests.helpers.runif import RunIf
 
 if _PYSYFT_AVAILABLE:
@@ -27,6 +27,7 @@ def test_syft(tmpdir):
     duet = alice.get_root_client()
     # bookkeeping
     sy.client_cache["duet"] = duet
+    assert is_syft_initialized()
 
     class BoringSyNet(sy.Module):
 
@@ -78,3 +79,6 @@ def test_syft(tmpdir):
 
     model = LiftSyLightningModule.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, module=module)
     trainer.fit(model)
+
+    del sy.client_cache["duet"]
+    assert not is_syft_initialized()
