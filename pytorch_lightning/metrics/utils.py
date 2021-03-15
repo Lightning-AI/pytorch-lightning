@@ -11,26 +11,35 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import torch
+from torchmetrics.utilities.data import dim_zero_cat as __dim_zero_cat
+from torchmetrics.utilities.data import dim_zero_mean as __dim_zero_mean
+from torchmetrics.utilities.data import dim_zero_sum as __dim_zero_sum
 
 from pytorch_lightning.utilities import rank_zero_warn
 
-METRIC_EPS = 1e-6
-
 
 def dim_zero_cat(x):
-    x = x if isinstance(x, (list, tuple)) else [x]
-    return torch.cat(x, dim=0)
+    rank_zero_warn(
+        "This `dim_zero_cat` was deprecated since v1.3.0 and it will be removed in v1.5.0", DeprecationWarning
+    )
+    return __dim_zero_cat(x)
 
 
 def dim_zero_sum(x):
-    return torch.sum(x, dim=0)
+    rank_zero_warn(
+        "This `dim_zero_sum` was deprecated since v1.3.0 and it will be removed in v1.5.0", DeprecationWarning
+    )
+    return __dim_zero_sum(x)
 
 
 def dim_zero_mean(x):
-    return torch.mean(x, dim=0)
+    rank_zero_warn(
+        "This `dim_zero_mean` was deprecated since v1.3.0 and it will be removed in v1.5.0", DeprecationWarning
+    )
+    return __dim_zero_mean(x)
 
 
 def get_group_indexes(idx: torch.Tensor) -> List[torch.Tensor]:
