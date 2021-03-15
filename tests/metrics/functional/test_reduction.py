@@ -1,8 +1,6 @@
 import pytest
 import torch
-from torchmetrics.utilities import reduce
-
-from pytorch_lightning.metrics.utils import class_reduce
+from torchmetrics.utilities import class_reduce, reduce
 
 
 def test_reduce():
