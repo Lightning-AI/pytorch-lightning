@@ -3,9 +3,7 @@ from pytorch_lightning.plugins import DDPPlugin
 from tests.helpers import BoringModel
 
 
-class CustomParallelPlugin(DDPPlugin):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+class CustomParallelPlugin(DDPPlugin): ...
 
 
 def test_sync_batchnorm_set(tmpdir):
