@@ -124,7 +124,7 @@ def no_warning_call(warning_type, match: Optional[str] = None):
 
         try:
             w = record.pop(warning_type)
-            if not ((match and match in w.text) or w):
+            if not (match and match in str(w.message)):
                 return
         except AssertionError:
             # no warning raised

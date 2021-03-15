@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import operator
 from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
@@ -23,6 +23,7 @@ import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
+    _compare_version,
     _module_available,
     _PYSYFT_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
@@ -30,7 +31,7 @@ from pytorch_lightning.utilities.imports import (
 )
 
 if _TORCHTEXT_AVAILABLE:
-    if _module_available("torchtext.legacy.data"):
+    if _compare_version("torchtext", operator.ge, "0.9.0"):
         from torchtext.legacy.data import Batch
     else:
         from torchtext.data import Batch

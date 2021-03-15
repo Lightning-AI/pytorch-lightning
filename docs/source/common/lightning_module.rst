@@ -952,14 +952,12 @@ When set to ``False``, Lightning does not automate the optimization process. Thi
 
 This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter. Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
 
-In the multi-optimizer case, ignore the ``optimizer_idx`` argument and use the optimizers directly
-
 .. code-block:: python
 
     def __init__(self):
         self.automatic_optimization = False
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
         opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
 

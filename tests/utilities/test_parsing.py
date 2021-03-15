@@ -11,24 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 import inspect
+
+import pytest
 
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     clean_namespace,
+    collect_init_args,
     flatten_dict,
+    get_init_args,
     is_picklable,
     lightning_getattr,
     lightning_hasattr,
     lightning_setattr,
     parse_class_init_keys,
-    get_init_args,
-    collect_init_args,
     str_to_bool,
     str_to_bool_or_str,
 )
-
 
 unpicklable_function = lambda: None
 
@@ -233,7 +233,9 @@ def test_clean_namespace(tmpdir):
 
 
 def test_parse_class_init_keys(tmpdir):
+
     class Class:
+
         def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
             pass
 
@@ -241,7 +243,9 @@ def test_parse_class_init_keys(tmpdir):
 
 
 def test_get_init_args(tmpdir):
+
     class AutomaticArgsModel:
+
         def __init__(self, anyarg, anykw=42, **kwargs):
             super().__init__()
 
@@ -259,7 +263,9 @@ def test_get_init_args(tmpdir):
 
 
 def test_collect_init_args():
+
     class AutomaticArgsParent:
+
         def __init__(self, anyarg, anykw=42, **kwargs):
             super().__init__()
             self.get_init_args_wrapper()
@@ -269,6 +275,7 @@ def test_collect_init_args():
             self.result = collect_init_args(frame, [])
 
     class AutomaticArgsChild(AutomaticArgsParent):
+
         def __init__(self, anyarg, childarg, anykw=42, childkw=42, **kwargs):
             super().__init__(anyarg, anykw=anykw, **kwargs)
 
@@ -299,10 +306,7 @@ def test_attribute_dict(tmpdir):
 
 
 def test_flatten_dict(tmpdir):
-    d = {
-        '1': 1,
-        '_': {'2': 2, '_': {'3': 3, '4': 4}}
-    }
+    d = {'1': 1, '_': {'2': 2, '_': {'3': 3, '4': 4}}}
 
     expected = {
         '1': 1,

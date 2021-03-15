@@ -89,8 +89,9 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
             super().__init__()
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
+        def training_step(self, batch, batch_idx):
             opt_1, opt_2 = self.optimizers()
+
             assert isinstance(opt_1, LightningOptimizer)
             assert isinstance(opt_2, LightningOptimizer)
 

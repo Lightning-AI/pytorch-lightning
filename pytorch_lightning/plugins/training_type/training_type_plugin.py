@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union, Dict
+from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
@@ -121,9 +121,9 @@ class TrainingTypePlugin(Plugin, ABC):
         # double dispatch to initiate the training loop
         self._results = trainer.run_train()
 
-    def start_testing(self, trainer: 'Trainer') -> None:
+    def start_evaluating(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_test()
+        self._results = trainer.run_evaluate()
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the predicting loop

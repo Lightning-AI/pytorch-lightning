@@ -14,6 +14,7 @@
 import torch
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class PredictLoop(object):
@@ -22,14 +23,14 @@ class PredictLoop(object):
         self.trainer = trainer
         self.max_batches = None
         self.num_dataloaders = None
+        self.warning_cache = WarningCache()
 
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []
 
     def get_predict_dataloaders(self, max_batches):
-        # select dataloaders
-        model = self.trainer.lightning_module
-        self.trainer.reset_predict_dataloader(model)
+        self.trainer.reset_predict_dataloader(self.trainer.lightning_module)
+
         dataloaders = self.trainer.predict_dataloaders
         if max_batches is None:
             max_batches = self.trainer.num_predict_batches
@@ -75,6 +76,10 @@ class PredictLoop(object):
 
         model_ref._current_fx_name = "predict"
         predictions = self.trainer.accelerator.predict(args)
+
+        if predictions is None:
+            self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
+
         self._predictions[dataloader_idx].append(predictions)
         self.trainer._progress_bar_callback.on_predict_batch_end(
             self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx

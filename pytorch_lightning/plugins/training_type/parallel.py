@@ -41,13 +41,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         self.cluster_environment = cluster_environment
 
     @property
-    def cluster_local_rank(self):
-        try:
-            return self.cluster_environment.local_rank()
-        except KeyError:
-            return 0
-
-    @property
     @abstractmethod
     def root_device(self):
         raise NotImplementedError

@@ -44,7 +44,7 @@ def test_default_args(mock_argparse, tmpdir):
 
 
 @pytest.mark.parametrize('cli_args', [['--accumulate_grad_batches=22'], ['--weights_save_path=./'], []])
-def test_add_argparse_args_redefined(cli_args):
+def test_add_argparse_args_redefined(cli_args: list):
     """Redefines some default Trainer arguments via the cli and
     tests the Trainer initialization correctness.
     """
@@ -67,7 +67,7 @@ def test_add_argparse_args_redefined(cli_args):
 
 
 @pytest.mark.parametrize('cli_args', [['--accumulate_grad_batches=22'], ['--weights_save_path=./'], []])
-def test_add_argparse_via_argument_group(cli_args):
+def test_add_argparse_via_argument_group(cli_args: list):
     """Simple test ensuring that passing an argument group still works"""
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parser.add_argument_group(title="pl.Trainer args"))
@@ -89,7 +89,7 @@ def test_get_init_arguments_and_types():
 
 
 @pytest.mark.parametrize('cli_args', [['--callbacks=1', '--logger'], ['--foo', '--bar=1']])
-def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
+def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
     """Asserts thar an error raised in case of passing not default cli arguments."""
 
     class _UnkArgError(Exception):

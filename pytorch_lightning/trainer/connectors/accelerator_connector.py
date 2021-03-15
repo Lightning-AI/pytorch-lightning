@@ -42,7 +42,12 @@ from pytorch_lightning.plugins import (
     TPUSpawnPlugin,
     TrainingTypePlugin,
 )
-from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import (
+    ClusterEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
@@ -451,17 +456,10 @@ class AcceleratorConnector(object):
             return self._cluster_environment
         if self.is_slurm_managing_tasks:
             env = SLURMEnvironment()
-            # TODO: decouple DDP from SLURM
-            #   refactor and let generic cluster env hold the information about who spawns the processes
-            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
         elif self.is_using_torchelastic:
             env = TorchElasticEnvironment()
-            # TODO: decouple DDP from TE
-            #   refactor and let generic cluster env hold the information about who spawns the processes
-            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
         else:
-            # TODO: maybe introduce a DefaultEnvironment?
-            env = TorchElasticEnvironment()
+            env = LightningEnvironment()
         return env
 
     def set_distributed_mode(self, distributed_backend: Optional[str] = None):

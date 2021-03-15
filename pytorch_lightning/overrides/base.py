@@ -11,18 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
-
 import torch
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
@@ -43,9 +37,9 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         self.module = pl_module
 
     def forward(self, *inputs, **kwargs):
-        running_stage = self.module.running_stage
+        trainer = self.module.trainer
 
-        if running_stage == RunningStage.TRAINING:
+        if trainer and trainer.training:
             output = self.module.training_step(*inputs, **kwargs)
 
             # In manual_optimization, we need to prevent DDP reducer as
@@ -53,21 +47,13 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             # `require_backward_grad_sync` will be reset in the
             # ddp_plugin ``post_training_step`` hook
             if not self.module.automatic_optimization:
-                self.module.trainer.model.require_backward_grad_sync = False
-            warn_if_output_is_none(output, "training_step")
-
-        elif running_stage == RunningStage.TESTING:
+                trainer.model.require_backward_grad_sync = False
+        elif trainer and trainer.testing:
             output = self.module.test_step(*inputs, **kwargs)
-            warn_if_output_is_none(output, "test_step")
-
-        elif running_stage == RunningStage.EVALUATING:
+        elif trainer and (trainer.sanity_checking or trainer.validating):
             output = self.module.validation_step(*inputs, **kwargs)
-            warn_if_output_is_none(output, "validation_step")
-
-        elif running_stage == RunningStage.PREDICTING:
+        elif trainer and trainer.predicting:
             output = self.module.predict(*inputs, **kwargs)
-            warn_if_output_is_none(output, "predict")
-
         else:
             output = self.module(*inputs, **kwargs)
 
@@ -75,12 +61,6 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 
     def on_post_move_to_device(self):
         pass
-
-
-def warn_if_output_is_none(output: Any, method_name: str) -> None:
-    """ Warns user about which method returned None. """
-    if output is None:
-        warning_cache.warn(f'Your {method_name} returned None. Did you forget to return an output?')
 
 
 def unwrap_lightning_module(wrapped_model) -> LightningModule:

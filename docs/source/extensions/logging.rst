@@ -294,6 +294,25 @@ Some loggers also allow logging the hyperparams used in the experiment. For inst
 when using the TestTubeLogger or the TensorBoardLogger, all hyperparams will show
 in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
 
+.. note::
+    If you want to track a metric in the tensorboard hparams tab, log scalars to the key ``hp_metric``. If tracking multiple metrics, initialize ``TensorBoardLogger`` with ``default_hp_metric=False`` and call ``log_hyperparams`` only once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys. Refer to the following for examples on how to setup proper hyperparams metrics tracking within :doc:`LightningModule <../common/lightning_module>`.
+
+    .. code-block:: python
+
+        # Using default_hp_metric
+        def validation_step(self, batch, batch_idx):
+            self.log("hp_metric", some_scalar)
+
+        # Using custom or multiple metrics (default_hp_metric=False)
+        def on_train_start(self):
+            self.logger.log_hyperparams(self.hparams, {"hp/metric_1": 0, "hp/metric_2": 0})
+
+        def validation_step(self, batch, batch_idx):
+            self.log("hp/metric_1", some_scalar_1)
+            self.log("hp/metric_2", some_scalar_2)
+
+    In the example, using `hp/` as a prefix allows for the metrics to be grouped under "hp" in the tensorboard scalar tab where you can collapse them.
+
 ----------
 
 *************
