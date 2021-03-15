@@ -18,6 +18,8 @@ import torch
 
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
 
+from pytorch_lightning.metrics import MetricCollection, Accuracy
+
 
 def test_v1_5_0_metrics_utils():
     x = torch.tensor([1, 2, 3])
@@ -34,3 +36,14 @@ def test_v1_5_0_metrics_utils():
     x = torch.tensor([[0.2, 0.5], [0.9, 0.1]])
     with pytest.deprecated_call(match="It will be removed in v1.5.0"):
         assert torch.equal(to_categorical(x), torch.Tensor([1, 0]).to(int))
+
+
+def test_v1_5_0_metrics_collection():
+    target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
+    preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
+    with pytest.deprecated_call(
+            match="This `MetricCollection` was deprecated since v1.3.0 in favor of `torchmetrics.MetricCollection`."
+                  " It will be removed in v1.5.0"
+    ):
+        metrics = MetricCollection([Accuracy()])
+    assert metrics(preds, target) == {'Accuracy': torch.Tensor([0.1250])[0]}
