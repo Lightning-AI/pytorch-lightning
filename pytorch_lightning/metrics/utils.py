@@ -17,6 +17,7 @@ import torch
 from torchmetrics.utilities.data import dim_zero_cat as __dim_zero_cat
 from torchmetrics.utilities.data import dim_zero_mean as __dim_zero_mean
 from torchmetrics.utilities.data import dim_zero_sum as __dim_zero_sum
+from torchmetrics.utilities.data import to_onehot as __to_onehot
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -75,37 +76,14 @@ def to_onehot(
     label_tensor: torch.Tensor,
     num_classes: Optional[int] = None,
 ) -> torch.Tensor:
+    r"""
+    .. warning:: This function is deprecated, use ``torchmetrics.utilities.data.to_onehot``. Will be removed in v1.5.0.
     """
-    Converts a dense label tensor to one-hot format
-
-    Args:
-        label_tensor: dense label tensor, with shape [N, d1, d2, ...]
-        num_classes: number of classes C
-
-    Returns:
-        A sparse label tensor with shape [N, C, d1, d2, ...]
-
-    Example:
-
-        >>> from pytorch_lightning.metrics.utils import to_onehot
-        >>> x = torch.tensor([1, 2, 3])
-        >>> to_onehot(x)
-        tensor([[0, 1, 0, 0],
-                [0, 0, 1, 0],
-                [0, 0, 0, 1]])
-    """
-    if num_classes is None:
-        num_classes = int(label_tensor.max().detach().item() + 1)
-
-    tensor_onehot = torch.zeros(
-        label_tensor.shape[0],
-        num_classes,
-        *label_tensor.shape[1:],
-        dtype=label_tensor.dtype,
-        device=label_tensor.device,
+    rank_zero_warn(
+        "This `to_onehot` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.data.to_onehot`."
+        " It will be removed in v1.5.0", DeprecationWarning
     )
-    index = label_tensor.long().unsqueeze(1).expand_as(tensor_onehot)
-    return tensor_onehot.scatter_(1, index, 1.0)
+    return __to_onehot(label_tensor=label_tensor, num_classes=num_classes)
 
 
 def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tensor:
