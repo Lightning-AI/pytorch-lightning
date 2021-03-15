@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -22,7 +23,7 @@ class ConfigValidator(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def verify_loop_configurations(self, model: LightningModule):
+    def verify_loop_configurations(self, model: LightningModule) -> None:
         r"""
         Checks that the model is configured correctly before the run is started.
 
@@ -30,10 +31,16 @@ class ConfigValidator(object):
             model: The model to check the configuration.
 
         """
-        if self.trainer.training:
+        if self.trainer.state == TrainerState.FITTING:
             self.__verify_train_loop_configuration(model)
-        elif self.trainer.evaluating:
-            self.__verify_eval_loop_configuration(model)
+            self.__verify_eval_loop_configuration(model, 'val')
+        elif self.trainer.state == TrainerState.TUNING:
+            self.__verify_train_loop_configuration(model)
+        elif self.trainer.state == TrainerState.VALIDATING:
+            self.__verify_eval_loop_configuration(model, 'val')
+        elif self.trainer.state == TrainerState.TESTING:
+            self.__verify_eval_loop_configuration(model, 'test')
+        # TODO: add predict
 
     def __verify_train_loop_configuration(self, model):
         # -----------------------------------
@@ -81,11 +88,9 @@ class ConfigValidator(object):
                 ' It ensures optimizer_step or optimizer_zero_grad are called on every batch.'
             )
 
-    def __verify_eval_loop_configuration(self, model):
-        stage = "val" if self.trainer.validating else "test"
-
+    def __verify_eval_loop_configuration(self, model: LightningModule, stage: str) -> None:
         loader_name = f'{stage}_dataloader'
-        step_name = f'{stage}_step'
+        step_name = 'validation_step' if stage == 'val' else 'test_step'
 
         has_loader = is_overridden(loader_name, model)
         has_step = is_overridden(step_name, model)

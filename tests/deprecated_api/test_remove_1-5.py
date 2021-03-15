@@ -104,3 +104,10 @@ def test_old_training_step_signature_with_opt_idx_manual_opt(tmpdir):
 
     with pytest.deprecated_call(match="`training_step` .* `optimizer_idx` .* manual .* will be removed in v1.5"):
         trainer.fit(model)
+
+
+def test_v1_5_0_model_checkpoint_period(tmpdir):
+    with no_warning_call(DeprecationWarning):
+        ModelCheckpoint(dirpath=tmpdir)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        ModelCheckpoint(dirpath=tmpdir, period=1)
