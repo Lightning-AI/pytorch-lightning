@@ -37,3 +37,4 @@ from pytorch_lightning.metrics.regression import (  # noqa: F401
     R2Score,
     SSIM,
 )
+from pytorch_lightning.metrics.retrieval import RetrievalMAP  # noqa: F401

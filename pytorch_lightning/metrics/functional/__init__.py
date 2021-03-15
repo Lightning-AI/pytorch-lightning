@@ -28,6 +28,7 @@ from pytorch_lightning.metrics.functional.f_beta import f1, fbeta  # noqa: F401
 from pytorch_lightning.metrics.functional.hamming_distance import hamming_distance  # noqa: F401
 from pytorch_lightning.metrics.functional.image_gradients import image_gradients  # noqa: F401
 from pytorch_lightning.metrics.functional.iou import iou  # noqa: F401
+from pytorch_lightning.metrics.functional.ir_average_precision import retrieval_average_precision  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared_error  # noqa: F401
 from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error  # noqa: F401
