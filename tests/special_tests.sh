@@ -14,7 +14,8 @@
 # Running special tests
 set -e
 export PL_RUNNING_SPECIAL_TESTS=1
-DEFAULTS="-m coverage run --source pytorch_lightning -a -m pytest --verbose --capture=no"
+python -m coverage combine --append
+DEFAULTS="-m pytest --verbose --cov=pytorch_lightning --capture=no"
 python ${DEFAULTS} tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_with_different_frequencies_ddp
 python ${DEFAULTS} tests/models/test_sync_batchnorm.py::test_sync_batchnorm_ddp
 python ${DEFAULTS} tests/plugins/test_deepspeed_plugin.py::test_invalid_deepspeed_defaults_no_precision
