@@ -315,7 +315,7 @@ def test_tensorboard_dump_state(tmpdir):
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
     trainer.fit(model)
 
-    filepath = str(tmpdir / 'checkpoints' / 'last.ckpt')
+    filepath = os.path.join(tmpdir, 'checkpoints', 'last.ckpt')
     trainer.save_checkpoint(filepath=filepath)
 
     ckpt = torch.load(filepath)
