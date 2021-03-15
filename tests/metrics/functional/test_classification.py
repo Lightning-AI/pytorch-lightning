@@ -1,6 +1,6 @@
 import pytest
 import torch
-from torchmetrics.utilities.data import to_onehot, to_categorical, get_num_classes
+from torchmetrics.utilities.data import get_num_classes, to_categorical, to_onehot
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import dice_score

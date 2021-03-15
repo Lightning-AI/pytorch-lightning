@@ -17,7 +17,11 @@ import torch
 from torchmetrics.utilities.data import dim_zero_cat as __dim_zero_cat
 from torchmetrics.utilities.data import dim_zero_mean as __dim_zero_mean
 from torchmetrics.utilities.data import dim_zero_sum as __dim_zero_sum
-from torchmetrics.utilities.data import (to_onehot as __to_onehot, select_topk as __select_topk, to_categorical as __to_categorical, get_num_classes as __get_num_classes)
+from torchmetrics.utilities.data import get_num_classes as __get_num_classes
+from torchmetrics.utilities.data import select_topk as __select_topk
+from torchmetrics.utilities.data import to_categorical as __to_categorical
+from torchmetrics.utilities.data import to_onehot as __to_onehot
+from torchmetrics.utilities.distributed import reduce as __reduce
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -72,10 +76,7 @@ def get_group_indexes(idx: torch.Tensor) -> List[torch.Tensor]:
     return [torch.tensor(x, dtype=torch.int64) for x in indexes.values()]
 
 
-def to_onehot(
-    label_tensor: torch.Tensor,
-    num_classes: Optional[int] = None,
-) -> torch.Tensor:
+def to_onehot(label_tensor: torch.Tensor, num_classes: Optional[int] = None) -> torch.Tensor:
     r"""
     .. warning:: This function is deprecated, use ``torchmetrics.utilities.data.to_onehot``. Will be removed in v1.5.0.
     """
@@ -112,11 +113,7 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
     return __to_categorical(tensor=tensor, argmax_dim=argmax_dim)
 
 
-def get_num_classes(
-    pred: torch.Tensor,
-    target: torch.Tensor,
-    num_classes: Optional[int] = None,
-) -> int:
+def get_num_classes(pred: torch.Tensor, target: torch.Tensor, num_classes: Optional[int] = None) -> int:
     r"""
     .. warning::
 
@@ -130,26 +127,16 @@ def get_num_classes(
 
 
 def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
+    r"""
+    .. warning::
+
+        This function is deprecated, use ``torchmetrics.utilities.reduce``. Will be removed in v1.5.0.
     """
-    Reduces a given tensor by a given reduction method
-
-    Args:
-        to_reduce : the tensor, which shall be reduced
-       reduction :  a string specifying the reduction method ('elementwise_mean', 'none', 'sum')
-
-    Return:
-        reduced Tensor
-
-    Raise:
-        ValueError if an invalid reduction parameter was given
-    """
-    if reduction == "elementwise_mean":
-        return torch.mean(to_reduce)
-    if reduction == "none":
-        return to_reduce
-    if reduction == "sum":
-        return torch.sum(to_reduce)
-    raise ValueError("Reduction parameter unknown.")
+    rank_zero_warn(
+        "This `reduce` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.reduce`."
+        " It will be removed in v1.5.0", DeprecationWarning
+    )
+    return __reduce(to_reduce=to_reduce, reduction=reduction)
 
 
 def class_reduce(

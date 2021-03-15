@@ -14,9 +14,9 @@
 from typing import Optional, Tuple, Union
 
 import torch
+from torchmetrics.utilities import reduce
 
-from pytorch_lightning import utilities
-from pytorch_lightning.metrics import utils
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def _psnr_compute(
@@ -28,7 +28,7 @@ def _psnr_compute(
 ) -> torch.Tensor:
     psnr_base_e = 2 * torch.log(data_range) - torch.log(sum_squared_error / n_obs)
     psnr = psnr_base_e * (10 / torch.log(torch.tensor(base)))
-    return utils.reduce(psnr, reduction=reduction)
+    return reduce(psnr, reduction=reduction)
 
 
 def _psnr_update(preds: torch.Tensor,
@@ -97,7 +97,7 @@ def psnr(
 
     """
     if dim is None and reduction != 'elementwise_mean':
-        utilities.rank_zero_warn(f'The `reduction={reduction}` will not have any effect when `dim` is None.')
+        rank_zero_warn(f'The `reduction={reduction}` will not have any effect when `dim` is None.')
 
     if data_range is None:
         if dim is not None:
