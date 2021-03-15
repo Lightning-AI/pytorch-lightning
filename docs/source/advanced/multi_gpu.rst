@@ -709,8 +709,8 @@ If you run into an issue with the install or later in training, ensure that the 
 DeepSpeed ZeRO Stage 2
 """"""""""""""""""""""
 
-By default we enable DeepSpeed ZeRO Stage 2, which partitions your optimizer states (Stage 1) and your gradients (Stage 2) across your GPUs to reduce memory. In most cases this is more efficient or at parity with DDP, primarily due to the optimized custom communications written by the DeepSpeed team.
-As a result, benefits can also be seen on a single GPU. Do note that the default bucket sizes allocate around ``3.6GB`` of VRAM to use during distributed communications, which can be tweaked when instantiating the plugin described a few sections below.
+By default, we enable DeepSpeed ZeRO Stage 2, which partitions your optimizer states (Stage 1) and your gradients (Stage 2) across your GPUs to reduce memory. In most cases, this is more efficient or at parity with DDP, primarily due to the optimized custom communications written by the DeepSpeed team.
+As a result, benefits can also be seen on a single GPU. Do note that the default bucket sizes allocate around ``3.6GB`` of VRAM to use during distributed communications, which can be tweaked when instantiating the plugin described in a few sections below.
 
 .. note::
     To use ZeRO, you must use ``precision=16``.
@@ -792,7 +792,7 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
 Custom DeepSpeed Config
 """""""""""""""""""""""
 
-In some cases you may want to define your own DeepSpeed Config, to access all parameters defined. We've exposed most of the important parameters, however there may be debug parameters to enable. Also, DeepSpeed allows use of custom DeepSpeed optimizers and schedulers defined within a config file which is supported.
+In some cases you may want to define your own DeepSpeed Config, to access all parameters defined. We've exposed most of the important parameters, however, there may be debugging parameters to enable. Also, DeepSpeed allows the use of custom DeepSpeed optimizers and schedulers defined within a config file that is supported.
 
 .. note::
     All plugin default parameters will be ignored when a config object is passed.
