@@ -105,6 +105,7 @@ def test_torch_distributed_backend_env_variables(tmpdir):
             trainer.fit(model)
 
 
+@RunIf(skip_windows=True)
 @mock.patch('torch.cuda.device_count', return_value=1)
 @mock.patch('torch.cuda.is_available', return_value=True)
 @mock.patch('torch.cuda.set_device')
