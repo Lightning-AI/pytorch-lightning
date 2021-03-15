@@ -40,5 +40,5 @@ def test_passing_env_variables_only():
 def test_passing_env_variables_defaults():
     """Testing overwriting trainer arguments """
     trainer = Trainer(False, max_steps=42)
-    assert isinstance(trainer.logger, LightningLoggerBase)
+    assert trainer.logger is None
     assert trainer.max_steps == 42
