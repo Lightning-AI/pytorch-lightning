@@ -14,7 +14,7 @@ if _PYSYFT_AVAILABLE:
     from pytorch_lightning.experimental.plugins.secure.pysyft import SyLightningModule
 
 
-@RunIf(syft=True, min_torch="1.6.0")
+@RunIf(syft=True)
 def test_syft(tmpdir):
     SyModuleProxyType = Union[ModuleType, Module]
 
