@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
-import torch
 from torchmetrics import Accuracy as _Accuracy
 
 from pytorch_lightning.utilities import rank_zero_warn
