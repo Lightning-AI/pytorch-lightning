@@ -77,6 +77,9 @@ def stat_scores_multiple_classes(
 
     .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.stat_scores`
 
+    Raises:
+        ValueError:
+            If ``reduction`` is not one of ``"none"``, ``"sum"`` or ``"elementwise_mean"``.
     """
 
     rank_zero_warn(
@@ -438,6 +441,16 @@ def multiclass_auroc(
 
     Return:
         Tensor containing ROCAUC score
+
+    Raises:
+        ValueError:
+            If ``pred`` don't sum up to ``1`` over classes for ``Multiclass AUROC``.
+        ValueError:
+            If number of classes found in ``target`` does not equal the number of
+            columns in ``pred``.
+        ValueError:
+            If number of classes deduced from ``pred`` does not equal the number of
+            classes passed in ``num_classes``.
 
     Example:
 

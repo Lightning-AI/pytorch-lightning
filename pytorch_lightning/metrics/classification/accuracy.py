@@ -38,8 +38,6 @@ class Accuracy(Metric):
     changed to subset accuracy (which requires all labels or sub-samples in the sample to
     be correctly predicted) by setting ``subset_accuracy=True``.
 
-    Accepts all input types listed in :ref:`extensions/metrics:input types`.
-
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
@@ -133,8 +131,7 @@ class Accuracy(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`extensions/metrics:input types` for more information
-        on input types.
+        Update state with predictions and targets.
 
         Args:
             preds: Predictions from model (probabilities, or labels)
