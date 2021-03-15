@@ -11,7 +11,7 @@ class CustomParallelPlugin(DDPPlugin):
 def test_sync_batchnorm_set(tmpdir):
     model = BoringModel()
     plugin = CustomParallelPlugin()
-    assert plugin.sync_batchnorm == False
+    assert plugin.sync_batchnorm is False
     trainer = Trainer(
         max_epochs=1,
         plugins=[plugin],
@@ -19,4 +19,4 @@ def test_sync_batchnorm_set(tmpdir):
         sync_batchnorm=True,
     )
     trainer.fit(model)
-    assert plugin.sync_batchnorm == True
+    assert plugin.sync_batchnorm is True
