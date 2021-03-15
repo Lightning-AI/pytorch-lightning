@@ -17,7 +17,7 @@ import torch
 from torchmetrics.utilities.data import dim_zero_cat as __dim_zero_cat
 from torchmetrics.utilities.data import dim_zero_mean as __dim_zero_mean
 from torchmetrics.utilities.data import dim_zero_sum as __dim_zero_sum
-from torchmetrics.utilities.data import to_onehot as __to_onehot
+from torchmetrics.utilities.data import (to_onehot as __to_onehot, select_topk as __select_topk)
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -87,29 +87,16 @@ def to_onehot(
 
 
 def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tensor:
+    r"""
+    .. warning::
+
+        This function is deprecated, use ``torchmetrics.utilities.data.select_topk``. Will be removed in v1.5.0.
     """
-    Convert a probability tensor to binary by selecting top-k highest entries.
-
-    Args:
-        prob_tensor: dense tensor of shape ``[..., C, ...]``, where ``C`` is in the
-            position defined by the ``dim`` argument
-        topk: number of highest entries to turn into 1s
-        dim: dimension on which to compare entries
-
-    Returns:
-        A binary tensor of the same shape as the input tensor of type torch.int32
-
-    Example:
-
-        >>> from pytorch_lightning.metrics.utils import select_topk
-        >>> x = torch.tensor([[1.1, 2.0, 3.0], [2.0, 1.0, 0.5]])
-        >>> select_topk(x, topk=2)
-        tensor([[0, 1, 1],
-                [1, 1, 0]], dtype=torch.int32)
-    """
-    zeros = torch.zeros_like(prob_tensor)
-    topk_tensor = zeros.scatter(dim, prob_tensor.topk(k=topk, dim=dim).indices, 1.0)
-    return topk_tensor.int()
+    rank_zero_warn(
+        "This `select_topk` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.data.select_topk`."
+        " It will be removed in v1.5.0", DeprecationWarning
+    )
+    return __select_topk(prob_tensor=prob_tensor, topk=topk, dim=dim)
 
 
 def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
