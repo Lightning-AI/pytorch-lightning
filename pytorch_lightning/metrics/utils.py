@@ -245,6 +245,9 @@ def class_reduce(
             - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'`` or ``None``: returns calculated metric per class
 
+    Raises:
+        ValueError:
+            If ``class_reduction`` is none of ``"micro"``, ``"macro"``, ``"weighted"``, ``"none"`` or ``None``.
     """
     valid_reduction = ("micro", "macro", "weighted", "none", None)
     if class_reduction == "micro":

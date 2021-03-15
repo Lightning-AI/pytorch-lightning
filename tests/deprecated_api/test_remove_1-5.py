@@ -17,7 +17,7 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import WandbLogger
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call

@@ -15,7 +15,7 @@
 from abc import ABC
 from copy import deepcopy
 from inspect import signature
-from typing import List, Dict, Any, Type, Callable
+from typing import Any, Callable, Dict, List, Type
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
