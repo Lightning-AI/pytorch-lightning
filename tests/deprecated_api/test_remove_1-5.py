@@ -125,7 +125,7 @@ def test_v1_5_0_trainer_gpus_str_parsing(*_):
     # TODO: when removing this, make sure docs in docs/advanced/multi-gpu.rst reflect the new
     #   behavior regarding GPU selection. Ping @awaelchli if unsure.
     with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
-        Trainer(gpus="3")
+        Trainer(gpus="3", accelerator="ddp_spawn")
 
     with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
         gpus = device_parser.parse_gpu_ids("3")
