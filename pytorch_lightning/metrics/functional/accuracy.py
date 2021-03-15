@@ -29,7 +29,7 @@ def accuracy(
     r"""
     This implementation refers to :class:`~torchmetrics.functional.accuracy`.
 
-    .. warning:: This metric is deprecated, use ``torchmetrics.functional.accuracy``. Will be removed in v1.5.0.
+    .. warning:: This metric is deprecated since v1.3.0, use ``torchmetrics.functional.accuracy``. Will be removed in v1.5.0.
     """
 
     rank_zero_warn(
