@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import io
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -36,16 +35,10 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     ):
         super().__init__()
         self.parallel_devices = parallel_devices
+        self.cluster_environment = cluster_environment
+        self.global_rank = 0
         self.world_size = 1
         self.local_rank = 0
-        self.cluster_environment = cluster_environment
-
-    @property
-    def cluster_local_rank(self):
-        try:
-            return self.cluster_environment.local_rank()
-        except KeyError:
-            return 0
 
     @property
     @abstractmethod
@@ -77,11 +70,15 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        should_stop = torch.tensor(int(should_stop), device=self.lightning_module.device)
-        should_stop = self.reduce(should_stop, reduce_op=ReduceOp.SUM)
-        should_stop = bool(should_stop == self.world_size)
-        return should_stop
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """Perform a all_gather on all processes """
+        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
+        decision = bool(decision == self.world_size)
+        return decision
 
     @property
     def torch_distributed_backend(self):
@@ -119,13 +116,3 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
                 yield None
         else:
             yield None
-
-    def broadcast(self, obj: object, src: int) -> object:
-        buffer = io.BytesIO()
-        torch.save(obj, buffer)
-        data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data).to(self.root_device, dtype=torch.float)
-        data = all_gather_ddp_if_available(data_tensor)
-        buffer = io.BytesIO(data.cpu().byte().numpy())
-        obj = torch.load(buffer)
-        return obj

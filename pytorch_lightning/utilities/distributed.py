@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 
 if torch.distributed.is_available():
     from torch.distributed import group, ReduceOp
+
 else:
 
     class ReduceOp:
@@ -62,21 +63,6 @@ def _debug(*args, **kwargs):
 rank_zero_debug = rank_zero_only(_debug)
 rank_zero_info = rank_zero_only(_info)
 rank_zero_warn = rank_zero_only(_warn)
-
-
-def find_free_network_port() -> int:
-    """
-    Finds a free port on localhost.
-    It is useful in single-node training when we don't want to connect to a real master node but
-    have to set the `MASTER_PORT` environment variable.
-    """
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
 
 
 def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):

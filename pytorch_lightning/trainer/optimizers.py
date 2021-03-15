@@ -28,7 +28,10 @@ from pytorch_lightning.utilities.imports import is_syft_initialized
 
 class TrainerOptimizersMixin(ABC):
 
+    _lightning_optimizers: Optional[List[LightningOptimizer]]
+
     def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
+        self._lightning_optimizers = None
         optim_conf = model.configure_optimizers()
         if optim_conf is None:
             rank_zero_warn(

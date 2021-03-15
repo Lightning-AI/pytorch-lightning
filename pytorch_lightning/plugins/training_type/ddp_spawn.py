@@ -27,16 +27,11 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import (
-    find_free_network_port,
-    rank_zero_only,
-    rank_zero_warn,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
 
 log = logging.getLogger(__name__)
@@ -84,7 +79,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def setup(self, model):
         self._model = model
 
-        os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", str(find_free_network_port()))
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
 
         # pass in a state q
         smp = mp.get_context("spawn")
@@ -93,7 +88,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def set_world_ranks(self, process_idx):
         self.local_rank = process_idx
         self.node_rank = self.cluster_environment.node_rank()
-        self.task_idx = self.cluster_local_rank
+        self.task_idx = self.cluster_environment.local_rank()
         self.global_rank = self.node_rank * self.num_processes + self.local_rank
         self.world_size = self.num_nodes * self.num_processes
 
@@ -109,7 +104,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # reset optimizers, since main process is never used for training and thus does not have a valid optim state
         trainer.optimizers = []
 
-    def start_testing(self, trainer):
+    def start_evaluating(self, trainer):
         mp.spawn(self.new_process, **self.mp_spawn_kwargs)
 
     def start_predicting(self, trainer):
@@ -158,7 +153,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         self.barrier()
 
-        results = trainer.train_or_test_or_predict()
+        results = trainer.run_stage()
 
         # persist info in ddp_spawn
         self.transfer_distrib_spawn_state_on_fit_end(results)
@@ -173,6 +168,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.__recover_child_process_weights(best_path, last_path)
 
     def pre_configure_ddp(self):
+        # if unset, default `find_unused_parameters` `True`
+        # Many models require setting this parameter to True, as there are corner cases
+        # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
+        # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
+        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get(
+            "find_unused_parameters", True
+        )
         # todo: PyTorch 1.7.0 DDP introduces ``self.reducer._rebuild_buckets()`` breaking manual_optimization
         if _TORCH_GREATER_EQUAL_1_7 and not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
             "find_unused_parameters", False
@@ -210,7 +212,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         return checkpoint
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
-        # TODO: is there a better way than accessing callback through model -> trainer -> callback?
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
@@ -219,8 +220,10 @@ class DDPSpawnPlugin(ParallelPlugin):
 
             # save the last weights
             last_path = None
-            # TODO: is there a better way than accessing trainer through model -> trainer?
-            if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+            if (
+                self.lightning_module.trainer.state == TrainerState.FITTING and best_model_path is not None
+                and len(best_model_path) > 0
+            ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 atomic_save(self.on_save(self.lightning_module.state_dict()), last_path)
 
@@ -230,14 +233,13 @@ class DDPSpawnPlugin(ParallelPlugin):
             self.mp_queue.put(results)
 
     def __recover_child_process_weights(self, best_path, last_path):
-        # TODO: is there a better way than accessing callback through model -> trainer -> callback?
         # transfer back the best path to the trainer
         if self.lightning_module.trainer.checkpoint_callback:
             self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
         # todo, pass also best score
 
         # load last weights
-        if last_path is not None and not self.lightning_module.trainer.testing:
+        if last_path is not None and self.lightning_module.trainer.state == TrainerState.FITTING:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 

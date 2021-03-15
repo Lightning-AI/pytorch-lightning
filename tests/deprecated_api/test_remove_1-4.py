@@ -24,7 +24,7 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.plugins.environments import TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import LightningEnvironment
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -188,7 +188,7 @@ def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
         plugins=[
             CustomDDPPlugin(
                 parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
-                cluster_environment=TorchElasticEnvironment(),
+                cluster_environment=LightningEnvironment(),
             )
         ]
     )

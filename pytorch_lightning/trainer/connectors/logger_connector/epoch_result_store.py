@@ -13,11 +13,13 @@
 # limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
+from weakref import proxy
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType, LightningEnum
 
 
@@ -50,7 +52,7 @@ class HookResultStore:
     Those data structures enables us to reduce properly Result object when batch loop is finished.
     """
 
-    def __init__(self, fx_name):
+    def __init__(self, fx_name: str) -> None:
         self._fx_name = fx_name
         self._internals = {}
         self._internals_reduced = {}
@@ -104,6 +106,7 @@ class HookResultStore:
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if not isinstance(opt_metric, Result):
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
+
         func = getattr(opt_metric, func_name)
         metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
         results.append(metrics_to_log)
@@ -222,9 +225,8 @@ class EpochResultStore:
     ```
     """
 
-    def __init__(self, trainer, stage):
-        self.trainer = trainer
-        self._stage = stage
+    def __init__(self, trainer: 'pl.Trainer') -> None:
+        self.trainer = proxy(trainer)
         self.reset()
 
     def __getitem__(self, key: str) -> Any:
@@ -309,7 +311,6 @@ class EpochResultStore:
         callback_metrics = {}
         batch_pbar_metrics = {}
         batch_log_metrics = {}
-        is_train = self._stage in RunningStage.TRAINING
 
         if not self._has_batch_loop_finished:
             # get pbar
@@ -317,8 +318,7 @@ class EpochResultStore:
             logger_connector.add_progress_bar_metrics(batch_pbar_metrics)
             batch_log_metrics = self.get_latest_batch_log_metrics()
 
-            if is_train:
-                # Only log and add to callback epoch step during evaluation, test.
+            if self.trainer.training:
                 logger_connector._logged_metrics.update(batch_log_metrics)
                 callback_metrics.update(batch_pbar_metrics)
                 callback_metrics.update(batch_log_metrics)
@@ -339,7 +339,9 @@ class EpochResultStore:
             callback_metrics.update(epoch_log_metrics)
             callback_metrics.update(forked_metrics)
 
-        if not is_train and self.trainer.testing:
+        # TODO(carmocca): when we implement flushing the logger connector metrics after
+        # the trainer.state changes, this should check trainer.evaluating instead
+        if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
             logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         # update callback_metrics
@@ -484,4 +486,4 @@ class EpochResultStore:
         return result
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(stage={self._stage}, internals={self._internals})"
+        return f"{self.__class__.__name__}(internals={self._internals})"

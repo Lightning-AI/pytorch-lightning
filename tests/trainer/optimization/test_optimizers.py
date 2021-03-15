@@ -287,15 +287,22 @@ def test_configure_optimizers_with_frequency(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-def test_init_optimizers_during_testing(tmpdir):
+@pytest.mark.parametrize("fn", ("validate", "test"))
+def test_init_optimizers_during_evaluation(tmpdir, fn):
     """
-    Test that optimizers is an empty list during testing.
+    Test that optimizers is an empty list during evaluation
     """
-    model = EvalModelTemplate()
-    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer1 = torch.optim.Adam(self.parameters(), lr=0.1)
+            optimizer2 = torch.optim.Adam(self.parameters(), lr=0.1)
+            lr_scheduler1 = torch.optim.lr_scheduler.StepLR(optimizer1, step_size=1)
+            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer2, step_size=1)
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=10)
-    trainer.test(model, ckpt_path=None)
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=10, limit_test_batches=10)
+    validate_or_test = getattr(trainer, fn)
+    validate_or_test(TestModel(), ckpt_path=None)
 
     assert len(trainer.lr_schedulers) == 0
     assert len(trainer.optimizers) == 0
