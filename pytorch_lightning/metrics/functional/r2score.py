@@ -14,8 +14,8 @@
 from typing import Tuple
 
 import torch
+from torchmetrics.utilities.checks import _check_same_shape
 
-from pytorch_lightning.metrics.utils import _check_same_shape
 from pytorch_lightning.utilities import rank_zero_warn
 
 

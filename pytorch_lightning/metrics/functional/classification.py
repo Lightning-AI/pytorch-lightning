@@ -15,11 +15,12 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
+from torchmetrics.utilities import class_reduce, reduce
+from torchmetrics.utilities.data import get_num_classes, to_categorical
 
 from pytorch_lightning.metrics.functional.auc import auc as __auc
 from pytorch_lightning.metrics.functional.auroc import auroc as __auroc
 from pytorch_lightning.metrics.functional.iou import iou as __iou
-from pytorch_lightning.metrics.utils import class_reduce, get_num_classes, reduce, to_categorical
 from pytorch_lightning.utilities import rank_zero_warn
 
 
