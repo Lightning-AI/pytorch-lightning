@@ -37,7 +37,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added no return warning to predict ([#6139](https://github.com/PyTorchLightning/pytorch-lightning/pull/6139))
 
 
-- Added `on_epoch_start` at the beginning of validation & test epoch  ([#6498](https://github.com/PyTorchLightning/pytorch-lightning/pull/6498))
+- Added `on_epoch_start` at the beginning of validation & test epoch ([#6498](https://github.com/PyTorchLightning/pytorch-lightning/pull/6498))
 
 
 ### Changed
