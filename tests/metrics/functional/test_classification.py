@@ -1,11 +1,10 @@
 import pytest
 import torch
-from torchmetrics.utilities.data import to_onehot, to_categorical
+from torchmetrics.utilities.data import to_onehot, to_categorical, get_num_classes
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import dice_score
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
-from pytorch_lightning.metrics.utils import get_num_classes
 
 
 def test_onehot():

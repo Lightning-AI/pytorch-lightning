@@ -17,7 +17,7 @@ import torch
 from torchmetrics.utilities.data import dim_zero_cat as __dim_zero_cat
 from torchmetrics.utilities.data import dim_zero_mean as __dim_zero_mean
 from torchmetrics.utilities.data import dim_zero_sum as __dim_zero_sum
-from torchmetrics.utilities.data import (to_onehot as __to_onehot, select_topk as __select_topk, to_categorical as __to_categorical)
+from torchmetrics.utilities.data import (to_onehot as __to_onehot, select_topk as __select_topk, to_categorical as __to_categorical, get_num_classes as __get_num_classes)
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -117,31 +117,16 @@ def get_num_classes(
     target: torch.Tensor,
     num_classes: Optional[int] = None,
 ) -> int:
+    r"""
+    .. warning::
+
+        This function is deprecated, use ``torchmetrics.utilities.data.get_num_classes``. Will be removed in v1.5.0.
     """
-    Calculates the number of classes for a given prediction and target tensor.
-
-    Args:
-        pred: predicted values
-        target: true labels
-        num_classes: number of classes if known
-
-    Return:
-        An integer that represents the number of classes.
-    """
-    num_target_classes = int(target.max().detach().item() + 1)
-    num_pred_classes = int(pred.max().detach().item() + 1)
-    num_all_classes = max(num_target_classes, num_pred_classes)
-
-    if num_classes is None:
-        num_classes = num_all_classes
-    elif num_classes != num_all_classes:
-        rank_zero_warn(
-            f"You have set {num_classes} number of classes which is"
-            f" different from predicted ({num_pred_classes}) and"
-            f" target ({num_target_classes}) number of classes",
-            RuntimeWarning,
-        )
-    return num_classes
+    rank_zero_warn(
+        "This `get_num_classes` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.data.get_num_classes`."
+        " It will be removed in v1.5.0", DeprecationWarning
+    )
+    return __get_num_classes(pred=pred, target=target, num_classes=num_classes)
 
 
 def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
