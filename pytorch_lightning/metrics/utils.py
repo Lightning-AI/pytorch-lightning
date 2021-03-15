@@ -33,16 +33,6 @@ def dim_zero_mean(x):
     return torch.mean(x, dim=0)
 
 
-def _flatten(x):
-    return [item for sublist in x for item in sublist]
-
-
-def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
-    """ Check that predictions and target have the same shape, else raise error """
-    if pred.shape != target.shape:
-        raise RuntimeError("Predictions and targets are expected to have the same shape")
-
-
 def _input_format_classification_one_hot(
     num_classes: int,
     preds: torch.Tensor,
