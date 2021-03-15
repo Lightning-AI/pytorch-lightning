@@ -119,11 +119,11 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         >>> args = get_init_arguments_and_types(Trainer)
 
     """
-    trainer_default_params = inspect.signature(cls).parameters
+    cls_default_params = inspect.signature(cls).parameters
     name_type_default = []
-    for arg in trainer_default_params:
-        arg_type = trainer_default_params[arg].annotation
-        arg_default = trainer_default_params[arg].default
+    for arg in cls_default_params:
+        arg_type = cls_default_params[arg].annotation
+        arg_default = cls_default_params[arg].default
         try:
             arg_types = tuple(arg_type.__args__)
         except AttributeError:
