@@ -21,9 +21,8 @@ from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 class Metric(__Metric):
     r"""
-    This implementation refers to :class:`~torchmetrics.Metric`.
-
-    .. warning:: This metric is deprecated, use ``torchmetrics.Metric``. Will be removed in v1.5.0.
+    .. deprecated::
+        Use :class:`torchmetrics.Metric`. Will be removed in v1.5.0.
     """
 
     def __init__(
@@ -46,10 +45,9 @@ class Metric(__Metric):
 
 
 class MetricCollection(__MetricCollection):
-    r"""
-    This implementation refers to :class:`~torchmetrics.MetricCollection`.
-
-    .. warning:: This metric is deprecated, use ``torchmetrics.MetricCollection``. Will be removed in v1.5.0.
+    """
+    .. deprecated::
+        Use :class:`torchmetrics.MetricCollection`. Will be removed in v1.5.0.
     """
 
     def __init__(self, metrics: Union[List[Metric], Tuple[Metric], Dict[str, Metric]]):

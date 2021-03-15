@@ -78,8 +78,9 @@ def get_group_indexes(idx: torch.Tensor) -> List[torch.Tensor]:
 
 
 def to_onehot(label_tensor: torch.Tensor, num_classes: Optional[int] = None) -> torch.Tensor:
-    r"""
-    .. warning:: This function is deprecated, use ``torchmetrics.utilities.data.to_onehot``. Will be removed in v1.5.0.
+    """
+    .. deprecated::
+        Use :func:`torchmetrics.utilities.data.to_onehot`. Will be removed in v1.5.0.
     """
     rank_zero_warn(
         "This `to_onehot` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.data.to_onehot`."
@@ -89,10 +90,9 @@ def to_onehot(label_tensor: torch.Tensor, num_classes: Optional[int] = None) -> 
 
 
 def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tensor:
-    r"""
-    .. warning::
-
-        This function is deprecated, use ``torchmetrics.utilities.data.select_topk``. Will be removed in v1.5.0.
+    """
+    .. deprecated::
+        Use :func:`torchmetrics.utilities.data.select_topk`. Will be removed in v1.5.0.
     """
     rank_zero_warn(
         "This `select_topk` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.data.select_topk`."
@@ -102,10 +102,9 @@ def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch
 
 
 def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
-    r"""
-    .. warning::
-
-        This function is deprecated, use ``torchmetrics.utilities.data.to_categorical``. Will be removed in v1.5.0.
+    """
+    .. deprecated::
+        Use :func:`torchmetrics.utilities.data.to_categorical`. Will be removed in v1.5.0.
     """
     rank_zero_warn(
         "This `to_categorical` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.data.to_categorical`."
@@ -115,10 +114,9 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
 
 
 def get_num_classes(pred: torch.Tensor, target: torch.Tensor, num_classes: Optional[int] = None) -> int:
-    r"""
-    .. warning::
-
-        This function is deprecated, use ``torchmetrics.utilities.data.get_num_classes``. Will be removed in v1.5.0.
+    """
+    .. deprecated::
+        Use :func:`torchmetrics.utilities.data.get_num_classes`. Will be removed in v1.5.0.
     """
     rank_zero_warn(
         "This `get_num_classes` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.data.get_num_classes`."
@@ -128,10 +126,9 @@ def get_num_classes(pred: torch.Tensor, target: torch.Tensor, num_classes: Optio
 
 
 def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
-    r"""
-    .. warning::
-
-        This function is deprecated, use ``torchmetrics.utilities.reduce``. Will be removed in v1.5.0.
+    """
+    .. deprecated::
+        Use :func:`torchmetrics.utilities.reduce`. Will be removed in v1.5.0.
     """
     rank_zero_warn(
         "This `reduce` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.reduce`."
@@ -143,10 +140,9 @@ def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
 def class_reduce(
     num: torch.Tensor, denom: torch.Tensor, weights: torch.Tensor, class_reduction: str = "none"
 ) -> torch.Tensor:
-    r"""
-    .. warning::
-
-        This function is deprecated, use ``torchmetrics.utilities.class_reduce``. Will be removed in v1.5.0.
+    """
+    .. deprecated::
+        Use :func:`torchmetrics.utilities.class_reduce`. Will be removed in v1.5.0.
     """
     rank_zero_warn(
         "This `class_reduce` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.class_reduce`."

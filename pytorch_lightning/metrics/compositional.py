@@ -21,10 +21,9 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 class CompositionalMetric(__CompositionalMetric):
-    r"""
-    This implementation refers to :class:`~torchmetrics.metric.CompositionalMetric`.
-
-    .. warning:: This metric is deprecated, use ``torchmetrics.metric.CompositionalMetric``. Will be removed in v1.5.0.
+    """
+    .. deprecated::
+        Use :class:`torchmetrics.metric.CompositionalMetric`. Will be removed in v1.5.0.
     """
 
     def __init__(
