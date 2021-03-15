@@ -17,6 +17,10 @@ jobs:
         os: [ubuntu-18.04, windows-2019, macOS-10.15]
         python-version: [3.6, 3.7, 3.8, 3.9]
         requires: ['minimal', 'latest']
+        exclude:
+          - python-version: 3.9
+            os: windows-2019
+            requires: 'minimal'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     # TODO: the macOS is taking too long, probably caching did not work...
