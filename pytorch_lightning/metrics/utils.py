@@ -17,7 +17,7 @@ import torch
 from torchmetrics.utilities.data import dim_zero_cat as __dim_zero_cat
 from torchmetrics.utilities.data import dim_zero_mean as __dim_zero_mean
 from torchmetrics.utilities.data import dim_zero_sum as __dim_zero_sum
-from torchmetrics.utilities.data import (to_onehot as __to_onehot, select_topk as __select_topk)
+from torchmetrics.utilities.data import (to_onehot as __to_onehot, select_topk as __select_topk, to_categorical as __to_categorical)
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -100,24 +100,16 @@ def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch
 
 
 def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
+    r"""
+    .. warning::
+
+        This function is deprecated, use ``torchmetrics.utilities.data.to_categorical``. Will be removed in v1.5.0.
     """
-    Converts a tensor of probabilities to a dense label tensor
-
-    Args:
-        tensor: probabilities to get the categorical label [N, d1, d2, ...]
-        argmax_dim: dimension to apply
-
-    Return:
-        A tensor with categorical labels [N, d2, ...]
-
-    Example:
-
-        >>> from pytorch_lightning.metrics.utils import to_categorical
-        >>> x = torch.tensor([[0.2, 0.5], [0.9, 0.1]])
-        >>> to_categorical(x)
-        tensor([1, 0])
-    """
-    return torch.argmax(tensor, dim=argmax_dim)
+    rank_zero_warn(
+        "This `to_categorical` was deprecated since v1.3.0 in favor of `torchmetrics.utilities.data.to_categorical`."
+        " It will be removed in v1.5.0", DeprecationWarning
+    )
+    return __to_categorical(tensor=tensor, argmax_dim=argmax_dim)
 
 
 def get_num_classes(
