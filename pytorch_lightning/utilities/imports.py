@@ -77,7 +77,7 @@ _XLA_AVAILABLE = _module_available("torch_xla")
 def is_syft_initialized():
     if _PYSYFT_AVAILABLE:
         import syft as sy
-        from syft.core.node.vm.client import VirtualMachineClient
-        if "duet" in sy.client_cache and isinstance(sy.client_cache["duet"], VirtualMachineClient):
+        from syft.core.node.abstract.node import AbstractNodeClient
+        if "duet" in sy.client_cache and issubclass(type(sy.client_cache["duet"]), AbstractNodeClient):
             return True
     return False

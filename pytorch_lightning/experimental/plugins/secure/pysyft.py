@@ -71,7 +71,7 @@ if _PYSYFT_AVAILABLE:
             self.request_parameters = request_parameters
             self.run_locally = run_locally
 
-        def setup(self, stage_name: str):
+        def setup(self, stage: str):
             self.get = self.module.get
             self.send = self.module.send
             self.send_model()
