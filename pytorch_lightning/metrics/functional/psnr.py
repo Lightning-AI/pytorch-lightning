@@ -84,6 +84,10 @@ def psnr(
     Return:
         Tensor with PSNR score
 
+    Raises:
+        ValueError:
+            If ``dim`` is not ``None`` and ``data_range`` is not provided.
+
     Example:
         >>> from pytorch_lightning.metrics.functional import psnr
         >>> pred = torch.tensor([[0.0, 1.0], [2.0, 3.0]])

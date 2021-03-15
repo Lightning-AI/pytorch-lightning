@@ -165,6 +165,18 @@ def auroc(
             range [0, max_fpr]. Should be a float between 0 and 1.
         sample_weight: sample weights for each data point
 
+    Raises:
+        ValueError:
+            If ``max_fpr`` is not a ``float`` in the range ``(0, 1]``.
+        RuntimeError:
+            If ``PyTorch version`` is ``below 1.6`` since max_fpr requires `torch.bucketize`
+            which is not available below 1.6.
+        ValueError:
+            If ``max_fpr`` is not set to ``None`` and the mode is ``not binary``
+            since partial AUC computation is not available in multilabel/multiclass.
+        ValueError:
+            If ``average`` is none of ``None``, ``"macro"`` or ``"weighted"``.
+
     Example (binary case):
 
         >>> from pytorch_lightning.metrics.functional import auroc

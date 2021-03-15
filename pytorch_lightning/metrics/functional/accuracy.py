@@ -102,6 +102,10 @@ def accuracy(
               ``preds = preds.flatten()`` and same for ``target``). Note that the ``top_k`` parameter
               still applies in both cases, if set.
 
+    Raises:
+        ValueError:
+            If ``top_k`` parameter is set for ``multi-label`` inputs.
+
     Example:
 
         >>> from pytorch_lightning.metrics.functional import accuracy

@@ -244,6 +244,21 @@ def stat_scores(
           - If ``reduce='macro'``, the shape will be ``(N, C, 5)``
           - If ``reduce='samples'``, the shape will be ``(N, X, 5)``
 
+    Raises:
+        ValueError:
+            If ``reduce`` is none of ``"micro"``, ``"macro"`` or ``"samples"``.
+        ValueError:
+            If ``mdmc_reduce`` is none of ``None``, ``"samplewise"``, ``"global"``.
+        ValueError:
+            If ``reduce`` is set to ``"macro"`` and ``num_classes`` is not provided.
+        ValueError:
+            If ``num_classes`` is set
+            and ``ignore_index`` is not in the range ``[0, num_classes)``.
+        ValueError:
+            If ``ignore_index`` is used with ``binary data``.
+        ValueError:
+            If inputs are ``multi-dimensional multi-class`` and ``mdmc_reduce`` is not provided.
+
     Example:
 
         >>> from pytorch_lightning.metrics.functional import stat_scores
