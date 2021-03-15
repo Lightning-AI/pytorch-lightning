@@ -425,17 +425,21 @@ class DeepSpeedPlugin(DDPPlugin):
             weights_only: saving model weights only
         """
         # dump states as a checkpoint dictionary object
-        _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
+        client_state = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
         save_dir = self._filepath_to_dir(filepath)
-        _exclude_keys = []# ['optimizer_states', 'lr_schedulers']
-        _checkpoint = {k:v for k, v in _checkpoint.items() if k not in _exclude_keys}
-        self.model.save_checkpoint(save_dir, client_state=_checkpoint)
+        _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
+        client_state = {k:v for k, v in client_state.items() if k not in _exclude_keys}
+        self.model.save_checkpoint(save_dir, client_state=client_state)
 
     def restore_model_state_from_ckpt_path(self, ckpt_path: str, map_location=lambda storage, loc: storage):
         if torch.distributed.is_available():
-            from pytorch_lightning.trainer.states import TrainerState
-            _load_optimization = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
             self.model.optimizer._partition_all_parameters() 
-            _, client_state = self.model.load_checkpoint(save_dir, load_optimizer_states=_load_optimization, load_lr_scheduler_states=_load_optimization)
+            _, client_state = self.model.load_checkpoint(save_dir)
+
+            if self.lightning_module.trainer.datamodule is not None:
+                self.lightning_module.trainer.datamodule.on_load_checkpoint(client_state)
+
+            # hook: give user access to checkpoint if needed.
+            self.lightning_module.on_load_checkpoint(client_state)
             return client_state, False
