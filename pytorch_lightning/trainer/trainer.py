@@ -65,8 +65,6 @@ from pytorch_lightning.utilities.imports import _PYSYFT_AVAILABLE, is_syft_initi
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
-if _PYSYFT_AVAILABLE:
-    from syft import client_cache
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -573,9 +571,9 @@ class Trainer(
         model = self.lightning_module
         model.train()
 
+        # add check if model is
         if is_syft_initialized():
-            # Todo (tudorcebere): Find better solution than `client_cache` to access Duet
-            client_cache["duet"].torch.set_grad_enabled(True)
+            model.torch.set_grad_enabled(True)
         else:
             torch.set_grad_enabled(True)
 

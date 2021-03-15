@@ -38,7 +38,6 @@ else:
     Batch = type(None)
 
 if _PYSYFT_AVAILABLE:
-    from syft import client_cache
     from syft.core.pointer.pointer import Pointer
 
 
@@ -165,11 +164,8 @@ def move_data_to_device(batch: Any, device: torch.device):
 
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
 
-        if is_syft_initialized():
-            if isinstance(data, Pointer):
-                data = data.get(request_block=True, delete_obj=False)
-                data = data.send(client_cache["duet"])
-                return data
+        if is_syft_initialized() and isinstance(data, Pointer):
+                return data.resolve_pointer_type()
         return data.to(device, **kwargs)
 
     dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType

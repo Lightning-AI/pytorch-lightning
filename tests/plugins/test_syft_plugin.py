@@ -43,8 +43,9 @@ def test_syft(tmpdir):
         def __init__(
             self,
             module: sy.Module,
+            duet: Any
         ) -> None:
-            super().__init__(module)
+            super().__init__(module, duet)
 
         def training_step(self, batch: SyTensorProxyType, batch_idx: Optional[int]) -> SyTensorProxyType:
             data_ptr = batch
@@ -64,7 +65,7 @@ def test_syft(tmpdir):
             return self.torch.utils.data.DataLoader(self.torch.randn(64, 32))
 
     module = BoringSyNet(torch)
-    model = LiftSyLightningModule(module=module)
+    model = LiftSyLightningModule(module=module, duet=duet)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -77,7 +78,8 @@ def test_syft(tmpdir):
     trainer.test()
     trainer.test(model)
 
-    model = LiftSyLightningModule.load_from_checkpoint(trainer.checkpoint_callback.best_model_path, module=module)
+    model = LiftSyLightningModule.load_from_checkpoint(
+        trainer.checkpoint_callback.best_model_path, module=module, duet=duet)
     trainer.fit(model)
 
     del sy.client_cache["duet"]
