@@ -118,7 +118,7 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
 
 @pytest.mark.xfail(
     condition=_compare_version("pytorch_lightning", operator.ge, "1.5"),
-    reason="parsing of string will change in v1.5"
+    reason="parsing of string will change in v1.5",
 )
 @mock.patch('torch.cuda.device_count', return_value=4)
 def test_v1_5_0_trainer_gpus_str_parsing(*_):
