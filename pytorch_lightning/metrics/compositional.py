@@ -21,10 +21,9 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 class CompositionalMetric(__CompositionalMetric):
-    r"""
-    This implementation refers to :class:`~torchmetrics.metric.CompositionalMetric`.
-
-    .. warning:: This metric is deprecated, use ``torchmetrics.metric.CompositionalMetric``. Will be removed in v1.5.0.
+    """
+    .. deprecated::
+        Use :class:`torchmetrics.metric.CompositionalMetric`. Will be removed in v1.5.0.
     """
 
     def __init__(
@@ -34,7 +33,7 @@ class CompositionalMetric(__CompositionalMetric):
         metric_b: Union[Metric, int, float, torch.Tensor, None],
     ):
         rank_zero_warn(
-            "This `Metric` was deprecated since v1.3.0 in favor of `torchmetrics.Metric`."
-            " It will be removed in v1.5.0", DeprecationWarning
+            "This `CompositionalMetric` was deprecated since v1.3.0 in favor of"
+            " `torchmetrics.metric.CompositionalMetric`. It will be removed in v1.5.0", DeprecationWarning
         )
         super().__init__(operator=operator, metric_a=metric_a, metric_b=metric_b)

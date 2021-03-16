@@ -14,9 +14,9 @@
 from typing import Any, List, Optional, Tuple, Union
 
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning.metrics.functional.roc import _roc_compute, _roc_update
-from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 

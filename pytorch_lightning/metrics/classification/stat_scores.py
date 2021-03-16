@@ -14,9 +14,9 @@
 from typing import Any, Callable, Optional, Tuple
 
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_compute, _stat_scores_update
-from pytorch_lightning.metrics.metric import Metric
 
 
 class StatScores(Metric):

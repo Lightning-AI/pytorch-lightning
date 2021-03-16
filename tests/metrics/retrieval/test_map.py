@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 import torch
 from sklearn.metrics import average_precision_score as sk_average_precision
+from torchmetrics import Metric
 
 from pytorch_lightning import seed_everything
-from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.metrics.retrieval.mean_average_precision import RetrievalMAP
 
 
