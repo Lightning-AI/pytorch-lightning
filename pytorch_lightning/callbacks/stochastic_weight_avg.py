@@ -17,6 +17,7 @@ Stochastic Weight Averaging Callback
 """
 from copy import deepcopy
 from typing import Callable, Optional, Union
+from weakref import proxy
 
 import torch
 from torch import nn
@@ -136,8 +137,15 @@ class StochasticWeightAveraging(Callback):
         return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
 
     def on_before_accelerator_backend_setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
+        
+        # this bypasses pickling errors with advanced profiler
+        pl_module.trainer = None
         # copy the model before moving it to accelerator device.
         self._average_model = deepcopy(pl_module)
+        # reset trainer ref
+        trainer_ref = proxy(trainer)
+        self._average_model.trainer = trainer_ref
+        pl_module.trainer = trainer_ref
 
     def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
         optimizers = trainer.optimizers
