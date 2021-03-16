@@ -5,13 +5,16 @@ from tests.helpers import BoringModel
 
 class CustomParallelPlugin(DDPPlugin):
     def __init__(self, **kwargs):
-        super().__init__(sync_batchnorm=None, **kwargs)
+        super().__init__(**kwargs)
+        # Set to None so it will be overwritten by the accelerator connector.
+        self.sync_batchnorm = None
 
 
 def test_sync_batchnorm_set(tmpdir):
+    """Tests if sync_batchnorm is automatically set for custom plugin."""
     model = BoringModel()
     plugin = CustomParallelPlugin()
-    assert plugin.sync_batchnorm is False
+    assert plugin.sync_batchnorm is None
     trainer = Trainer(
         max_epochs=1,
         plugins=[plugin],
