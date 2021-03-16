@@ -13,7 +13,6 @@
 # limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
-from weakref import proxy
 
 import torch
 

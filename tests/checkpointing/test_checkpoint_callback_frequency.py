@@ -19,7 +19,6 @@ import torch
 
 from pytorch_lightning import callbacks, seed_everything, Trainer
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -102,7 +101,10 @@ def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
 
 @mock.patch('torch.save')
-@RunIf(special=True, min_gpus=2)
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(
+    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
+)
 @pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 0.3, 5)])
 def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
