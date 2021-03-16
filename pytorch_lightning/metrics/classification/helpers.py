@@ -16,7 +16,7 @@ from typing import Optional, Tuple
 import numpy as np
 import torch
 from torchmetrics.classification.checks import _basic_input_validation, _check_shape_and_type_consistency, \
-    _check_num_classes_binary, _check_num_classes_mc, _check_num_classes_ml
+    _check_num_classes_binary, _check_num_classes_mc, _check_num_classes_ml, _check_top_k
 from torchmetrics.utilities.data import select_topk, to_onehot
 
 from pytorch_lightning.utilities import LightningEnum
@@ -52,24 +52,6 @@ class MDMCAverageMethod(LightningEnum):
 
     GLOBAL = "global"
     SAMPLEWISE = "samplewise"
-
-
-def _check_top_k(top_k: int, case: str, implied_classes: int, is_multiclass: Optional[bool], preds_float: bool):
-    if case == DataType.BINARY:
-        raise ValueError("You can not use `top_k` parameter with binary data.")
-    if not isinstance(top_k, int) or top_k <= 0:
-        raise ValueError("The `top_k` has to be an integer larger than 0.")
-    if not preds_float:
-        raise ValueError("You have set `top_k`, but you do not have probability predictions.")
-    if is_multiclass is False:
-        raise ValueError("If you set `is_multiclass=False`, you can not set `top_k`.")
-    if case == DataType.MULTILABEL and is_multiclass:
-        raise ValueError(
-            "If you want to transform multi-label data to 2 class multi-dimensional"
-            "multi-class data using `is_multiclass=True`, you can not use `top_k`."
-        )
-    if top_k >= implied_classes:
-        raise ValueError("The `top_k` has to be strictly smaller than the `C` dimension of `preds`.")
 
 
 def _check_classification_inputs(
