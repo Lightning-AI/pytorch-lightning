@@ -15,7 +15,8 @@ from typing import Optional, Tuple
 
 import numpy as np
 import torch
-from torchmetrics.classification.checks import _basic_input_validation, _check_shape_and_type_consistency
+from torchmetrics.classification.checks import _basic_input_validation, _check_shape_and_type_consistency, \
+    _check_num_classes_binary
 from torchmetrics.utilities.data import select_topk, to_onehot
 
 from pytorch_lightning.utilities import LightningEnum
@@ -51,27 +52,6 @@ class MDMCAverageMethod(LightningEnum):
 
     GLOBAL = "global"
     SAMPLEWISE = "samplewise"
-
-
-def _check_num_classes_binary(num_classes: int, is_multiclass: bool):
-    """
-    This checks that the consistency of `num_classes` with the data
-    and `is_multiclass` param for binary data.
-    """
-
-    if num_classes > 2:
-        raise ValueError("Your data is binary, but `num_classes` is larger than 2.")
-    if num_classes == 2 and not is_multiclass:
-        raise ValueError(
-            "Your data is binary and `num_classes=2`, but `is_multiclass` is not True."
-            " Set it to True if you want to transform binary data to multi-class format."
-        )
-    if num_classes == 1 and is_multiclass:
-        raise ValueError(
-            "You have binary data and have set `is_multiclass=True`, but `num_classes` is 1."
-            " Either set `is_multiclass=None`(default) or set `num_classes=2`"
-            " to transform binary data to multi-class format."
-        )
 
 
 def _check_num_classes_mc(
