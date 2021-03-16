@@ -1852,18 +1852,8 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     compare_optimizers()
 
 
-@pytest.mark.parametrize(
-    "data", [
-        dict(datamodule=TestLightningDataModule(dataloaders)),
-        dict(
-            dataloaders=[
-                torch.utils.data.DataLoader(RandomDataset(32, 2)),
-                torch.utils.data.DataLoader(RandomDataset(32, 2)),
-            ]
-        )
-    ]
-)
-def test_trainer_predict_verify_config(tmpdir, data):
+@pytest.mark.parametrize("use_datamodule", [False, True])
+def test_trainer_predict_verify_config(tmpdir, use_datamodule):
 
     class TestModel(LightningModule):
 
@@ -1874,10 +1864,16 @@ def test_trainer_predict_verify_config(tmpdir, data):
         def forward(self, x):
             return self.layer(x)
 
+    dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
+
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir)
 
-    results = trainer.predict(model, **data)
+    if use_datamodule:
+        datamodule = TestLightningDataModule(dataloaders)
+        results = trainer.predict(model, datamodule=datamodule)
+    else:
+        results = trainer.predict(model, dataloaders=dataloaders)
 
     assert len(results) == 2
     assert results[0][0].shape == torch.Size([1, 2])
