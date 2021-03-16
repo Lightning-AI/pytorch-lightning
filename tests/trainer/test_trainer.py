@@ -1850,3 +1850,35 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     trainer.max_epochs = 2  # simulate multiple fit calls
     trainer.fit(model)
     compare_optimizers()
+
+
+@pytest.mark.parametrize("use_datamodule", [False, True])
+def test_trainer_predict_verify_config(tmpdir, use_datamodule):
+
+    class TestModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            return self.layer(x)
+
+    dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+
+    if use_datamodule:
+        datamodule = TestLightningDataModule(dataloaders)
+        results = trainer.predict(model, datamodule=datamodule)
+    else:
+        results = trainer.predict(model, dataloaders=dataloaders)
+
+    assert len(results) == 2
+    assert results[0][0].shape == torch.Size([1, 2])
+
+    model.predict_dataloader = None
+
+    with pytest.raises(MisconfigurationException, match="Dataloader not found for `Trainer.predict`"):
+        trainer.predict(model)

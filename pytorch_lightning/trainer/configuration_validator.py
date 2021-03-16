@@ -30,7 +30,9 @@ class ConfigValidator(object):
             model: The model to check the configuration.
 
         """
-        if not self.trainer.testing:
+        if self.trainer.predicting:
+            self.__verify_predict_loop_configuration(model)
+        elif not self.trainer.testing:
             self.__verify_train_loop_configuration(model)
             self.__verify_eval_loop_configuration(model, 'validation')
         else:
@@ -98,3 +100,9 @@ class ConfigValidator(object):
             rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {eval_loop_name} loop')
         if has_step and not has_loader:
             rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {eval_loop_name} loop')
+
+    def __verify_predict_loop_configuration(self, model):
+
+        has_predict_dataloader = is_overridden('predict_dataloader', model)
+        if not has_predict_dataloader:
+            raise MisconfigurationException('Dataloader not found for `Trainer.predict`')
