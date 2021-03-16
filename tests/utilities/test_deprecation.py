@@ -1,6 +1,7 @@
 import pytest
 
 from pytorch_lightning.utilities.deprecation import deprecated
+from tests.helpers.utils import no_warning_call
 
 
 def my_sum(a, b=3):
@@ -25,9 +26,8 @@ def test_deprecated_func():
         assert dep_sum(2, b=5) == 7
 
     # check that the warning is raised only once per function
-    with pytest.warns(None) as record:
+    with no_warning_call(DeprecationWarning):
         assert dep_sum(2, b=5) == 7
-    assert len(record) == 0
 
     # and does not affect other functions
     with pytest.deprecated_call(
