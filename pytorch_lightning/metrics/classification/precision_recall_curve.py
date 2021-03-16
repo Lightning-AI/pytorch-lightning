@@ -14,12 +14,12 @@
 from typing import Any, List, Optional, Tuple, Union
 
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning.metrics.functional.precision_recall_curve import (
     _precision_recall_curve_compute,
     _precision_recall_curve_update,
 )
-from pytorch_lightning.metrics.metric import Metric
 from pytorch_lightning.utilities import rank_zero_warn
 
 

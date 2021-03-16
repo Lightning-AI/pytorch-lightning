@@ -4,9 +4,10 @@ import numpy as np
 import pytest
 import torch
 from sklearn.metrics import accuracy_score as sk_accuracy
+from torchmetrics.classification.checks import _input_format_classification
+from torchmetrics.utilities.enums import DataType
 
 from pytorch_lightning.metrics import Accuracy
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.metrics.functional import accuracy
 from tests.metrics.classification.inputs import _input_binary, _input_binary_prob
 from tests.metrics.classification.inputs import _input_multiclass as _input_mcls

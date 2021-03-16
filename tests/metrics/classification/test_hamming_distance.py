@@ -1,9 +1,9 @@
 import pytest
 import torch
 from sklearn.metrics import hamming_loss as sk_hamming_loss
+from torchmetrics.classification.checks import _input_format_classification
 
 from pytorch_lightning.metrics import HammingDistance
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics.functional import hamming_distance
 from tests.metrics.classification.inputs import _input_binary, _input_binary_prob
 from tests.metrics.classification.inputs import _input_multiclass as _input_mcls

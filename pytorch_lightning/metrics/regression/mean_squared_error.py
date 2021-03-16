@@ -14,12 +14,12 @@
 from typing import Any, Callable, Optional
 
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning.metrics.functional.mean_squared_error import (
     _mean_squared_error_compute,
     _mean_squared_error_update,
 )
-from pytorch_lightning.metrics.metric import Metric
 
 
 class MeanSquaredError(Metric):

@@ -359,9 +359,9 @@ def test_trainer_model_hook_system(tmpdir):
             self.called.append("on_validation_epoch_start")
             super().on_validation_epoch_start()
 
-        def on_validation_epoch_end(self):
+        def on_validation_epoch_end(self, *args, **kwargs):
             self.called.append("on_validation_epoch_end")
-            super().on_validation_epoch_end()
+            super().on_validation_epoch_end(*args, **kwargs)
 
         def on_test_start(self):
             self.called.append("on_test_start")
@@ -379,9 +379,9 @@ def test_trainer_model_hook_system(tmpdir):
             self.called.append("on_test_epoch_start")
             super().on_test_epoch_start()
 
-        def on_test_epoch_end(self):
+        def on_test_epoch_end(self, *args, **kwargs):
             self.called.append("on_test_epoch_end")
-            super().on_test_epoch_end()
+            super().on_test_epoch_end(*args, **kwargs)
 
         def on_validation_model_eval(self):
             self.called.append("on_validation_model_eval")

@@ -204,7 +204,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_train_epoch_end(self, outputs) -> None:
+    def on_train_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called in the training loop at the very end of the epoch.
         """
@@ -216,7 +216,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_validation_epoch_end(self) -> None:
+    def on_validation_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called in the validation loop at the very end of the epoch.
         """
@@ -228,7 +228,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_test_epoch_end(self) -> None:
+    def on_test_epoch_end(self, outputs: List[Any]) -> None:
         """
         Called in the test loop at the very end of the epoch.
         """

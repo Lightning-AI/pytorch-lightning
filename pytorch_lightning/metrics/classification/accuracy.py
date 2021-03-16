@@ -14,9 +14,9 @@
 from typing import Any, Callable, Optional
 
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning.metrics.functional.accuracy import _accuracy_compute, _accuracy_update
-from pytorch_lightning.metrics.metric import Metric
 
 
 class Accuracy(Metric):
@@ -37,8 +37,6 @@ class Accuracy(Metric):
     accuracy by default, which counts all labels or sub-samples separately. This can be
     changed to subset accuracy (which requires all labels or sub-samples in the sample to
     be correctly predicted) by setting ``subset_accuracy=True``.
-
-    Accepts all input types listed in :ref:`extensions/metrics:input types`.
 
     Args:
         threshold:
@@ -133,8 +131,7 @@ class Accuracy(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`extensions/metrics:input types` for more information
-        on input types.
+        Update state with predictions and targets.
 
         Args:
             preds: Predictions from model (probabilities, or labels)
