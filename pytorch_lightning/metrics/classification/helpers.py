@@ -15,7 +15,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import torch
-from torchmetrics.classification.checks import _basic_input_validation
+from torchmetrics.classification.checks import _basic_input_validation, _check_shape_and_type_consistency
 from torchmetrics.utilities.data import select_topk, to_onehot
 
 from pytorch_lightning.utilities import LightningEnum
@@ -51,68 +51,6 @@ class MDMCAverageMethod(LightningEnum):
 
     GLOBAL = "global"
     SAMPLEWISE = "samplewise"
-
-
-def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor) -> Tuple[str, int]:
-    """
-    This checks that the shape and type of inputs are consistent with
-    each other and fall into one of the allowed input types (see the
-    documentation of docstring of ``_input_format_classification``). It does
-    not check for consistency of number of classes, other functions take
-    care of that.
-
-    It returns the name of the case in which the inputs fall, and the implied
-    number of classes (from the ``C`` dim for multi-class data, or extra dim(s) for
-    multi-label data).
-    """
-
-    preds_float = preds.is_floating_point()
-
-    if preds.ndim == target.ndim:
-        if preds.shape != target.shape:
-            raise ValueError(
-                "The `preds` and `target` should have the same shape,",
-                f" got `preds` with shape={preds.shape} and `target` with shape={target.shape}.",
-            )
-        if preds_float and target.max() > 1:
-            raise ValueError(
-                "If `preds` and `target` are of shape (N, ...) and `preds` are floats, `target` should be binary."
-            )
-
-        # Get the case
-        if preds.ndim == 1 and preds_float:
-            case = DataType.BINARY
-        elif preds.ndim == 1 and not preds_float:
-            case = DataType.MULTICLASS
-        elif preds.ndim > 1 and preds_float:
-            case = DataType.MULTILABEL
-        else:
-            case = DataType.MULTIDIM_MULTICLASS
-
-        implied_classes = preds[0].numel()
-
-    elif preds.ndim == target.ndim + 1:
-        if not preds_float:
-            raise ValueError("If `preds` have one dimension more than `target`, `preds` should be a float tensor.")
-        if preds.shape[2:] != target.shape[1:]:
-            raise ValueError(
-                "If `preds` have one dimension more than `target`, the shape of `preds` should be"
-                " (N, C, ...), and the shape of `target` should be (N, ...)."
-            )
-
-        implied_classes = preds.shape[1]
-
-        if preds.ndim == 2:
-            case = DataType.MULTICLASS
-        else:
-            case = DataType.MULTIDIM_MULTICLASS
-    else:
-        raise ValueError(
-            "Either `preds` and `target` both should have the (same) shape (N, ...), or `target` should be (N, ...)"
-            " and `preds` should be (N, C, ...)."
-        )
-
-    return case, implied_classes
 
 
 def _check_num_classes_binary(num_classes: int, is_multiclass: bool):
