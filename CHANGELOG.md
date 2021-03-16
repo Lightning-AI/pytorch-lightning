@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.2.x] - YYYY-MM-DD
+
+### Added
+
+- Added `trainer.predict` config validation ([#6541](https://github.com/PyTorchLightning/pytorch-lightning/pull/6541))
+
+
 ## [1.2.3] - 2021-03-09
 
 
