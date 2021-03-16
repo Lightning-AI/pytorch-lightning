@@ -5,7 +5,7 @@ from tests.helpers import BoringModel
 
 class CustomParallelPlugin(DDPPlugin):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(sync_batchnorm=None, **kwargs)
 
 
 def test_sync_batchnorm_set(tmpdir):
