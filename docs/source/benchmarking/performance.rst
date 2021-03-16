@@ -195,5 +195,5 @@ read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zer
 
     class Model(LightningModule):
 
-        def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
             optimizer.zero_grad(set_to_none=True)
