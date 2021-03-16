@@ -24,10 +24,12 @@ def test_deprecated_func():
     ):
         assert dep_sum(2, b=5) == 7
 
+    # check that the warning is raised only once per function
     with pytest.warns(None) as record:
         assert dep_sum(2, b=5) == 7
     assert len(record) == 0
 
+    # and does not affect other functions
     with pytest.deprecated_call(
         match='This `dep2_sum` was deprecated since v0.1 in favor of `tests.utilities.test_deprecation.my_sum`.'
         ' It will be removed in v0.5.'
