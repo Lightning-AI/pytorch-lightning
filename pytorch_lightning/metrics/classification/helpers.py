@@ -16,7 +16,7 @@ from typing import Optional, Tuple
 import numpy as np
 import torch
 from torchmetrics.classification.checks import _basic_input_validation, _check_shape_and_type_consistency, \
-    _check_num_classes_binary, _check_num_classes_mc
+    _check_num_classes_binary, _check_num_classes_mc, _check_num_classes_ml
 from torchmetrics.utilities.data import select_topk, to_onehot
 
 from pytorch_lightning.utilities import LightningEnum
@@ -52,22 +52,6 @@ class MDMCAverageMethod(LightningEnum):
 
     GLOBAL = "global"
     SAMPLEWISE = "samplewise"
-
-
-def _check_num_classes_ml(num_classes: int, is_multiclass: bool, implied_classes: int):
-    """
-    This checks that the consistency of `num_classes` with the data
-    and `is_multiclass` param for multi-label data.
-    """
-
-    if is_multiclass and num_classes != 2:
-        raise ValueError(
-            "Your have set `is_multiclass=True`, but `num_classes` is not equal to 2."
-            " If you are trying to transform multi-label data to 2 class multi-dimensional"
-            " multi-class, you should set `num_classes` to either 2 or None."
-        )
-    if not is_multiclass and num_classes != implied_classes:
-        raise ValueError("The implied number of classes (from shape of inputs) does not match num_classes.")
 
 
 def _check_top_k(top_k: int, case: str, implied_classes: int, is_multiclass: Optional[bool], preds_float: bool):
