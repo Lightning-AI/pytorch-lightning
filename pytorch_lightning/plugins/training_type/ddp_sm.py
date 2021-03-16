@@ -51,9 +51,9 @@ class DDPSMPlugin(DDPPlugin):
             )
 
         # While running smdistributed, all the gpus in the instance are considered
-        parallel_device_ids = list(range(int(os.environ["SM_NUM_GPUS"])))
+        parallel_device_ids = list(range(torch.cuda.device_count()))
         self.parallel_devices = [torch.device("cuda", i) for i in parallel_device_ids]
-        num_nodes = len(os.environ['SM_HOSTS'])
+        num_nodes = len(os.environ['SM_HOSTS'].split(","))
 
         super().__init__(
             parallel_devices=self.parallel_devices,
