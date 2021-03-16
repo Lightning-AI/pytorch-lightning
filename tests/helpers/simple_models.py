@@ -14,7 +14,6 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch import distributed as dist
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.metrics import Accuracy, MeanSquaredError
@@ -28,7 +27,7 @@ class ClassificationModel(LightningModule):
         self.lr = lr
         for i in range(3):
             setattr(self, f"layer_{i}", nn.Linear(32, 32))
-            setattr(self, f"layer_{i}a", torch.nn.ReLU())
+            setattr(self, f"layer_{i}a", nn.ReLU())
         setattr(self, "layer_end", nn.Linear(32, 3))
 
         self.train_acc = Accuracy()
@@ -55,20 +54,20 @@ class ClassificationModel(LightningModule):
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
         self.log('train_loss', loss, prog_bar=True)
-        #self.log('train_acc', self.train_acc(logits.argmax(-1), y), prog_bar=True)
+        self.log('train_acc', self.train_acc(logits.argmax(-1), y), prog_bar=True)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         self.log('val_loss', F.cross_entropy(logits, y), prog_bar=False)
-        # self.log('val_acc', self.valid_acc(logits.argmax(-1), y), prog_bar=True)
+        self.log('val_acc', self.valid_acc(logits.argmax(-1), y), prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
         self.log('test_loss', F.cross_entropy(logits, y), prog_bar=False)
-        # self.log('test_acc', self.test_acc(logits.argmax(-1), y), prog_bar=True)
+        self.log('test_acc', self.test_acc(logits.argmax(-1), y), prog_bar=True)
 
 
 class RegressionModel(LightningModule):

@@ -1,23 +1,22 @@
 import json
 import os
-from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core import datamodule
 from typing import Any
+
 import pytest
 import torch
-from torch import Tensor
+from torch import nn, Tensor
 from torch.optim import Optimizer
-from torch import nn
-from pytorch_lightning.metrics import Accuracy 
-from pytorch_lightning import Trainer, callbacks
+
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.runif import RunIf
-from pytorch_lightning import LightningModule
+from tests.helpers.simple_models import ClassificationModel
 
 
 def test_deepspeed_lightning_module(tmpdir):
@@ -454,12 +453,14 @@ def test_deepspeed_multigpu_stage_2_checkpointing_accumated_grad_batches(tmpdir,
     """
         Test to ensure with Stage 3 and multiple GPUs that we can save/load a model, resuming from a checkpoint
     """
+
     class VerificationCallback(Callback):
 
-        def on_train_batch_start(self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        def on_train_batch_start(
+            self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
+        ) -> None:
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps
-
 
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()

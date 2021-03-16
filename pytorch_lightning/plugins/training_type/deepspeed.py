@@ -18,10 +18,10 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 import torch
 
+from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -455,23 +455,26 @@ class DeepSpeedPlugin(DDPPlugin):
             client_state = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
             save_dir = self._filepath_to_dir(filepath)
             _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
-            client_state = {k:v for k, v in client_state.items() if k not in _exclude_keys}
+            client_state = {k: v for k, v in client_state.items() if k not in _exclude_keys}
             self.model.save_checkpoint(save_dir, client_state=client_state)
         else:
             self.lightning_module.trainer.checkpoint_connector.save_checkpoint(filepath)
 
-    def restore_model_state_from_ckpt_path(self, ckpt_path: str, map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
+    def restore_model_state_from_ckpt_path(self,
+                                           ckpt_path: str,
+                                           map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
         if torch.distributed.get_world_size() > 1:
             from pytorch_lightning.trainer.states import TrainerState
             load_optimizer_states = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
-            
+
             if self.zero_stage_3:
-                self.model.optimizer._partition_all_parameters() 
+                self.model.optimizer._partition_all_parameters()
 
             _, client_state = self.model.load_checkpoint(
-                save_dir, load_optimizer_states=load_optimizer_states, load_lr_scheduler_states=load_optimizer_states)
-            
+                save_dir, load_optimizer_states=load_optimizer_states, load_lr_scheduler_states=load_optimizer_states
+            )
+
             # restore datamodule states
             if self.lightning_module.trainer.datamodule is not None:
                 self.lightning_module.trainer.datamodule.on_load_checkpoint(client_state)
@@ -491,7 +494,6 @@ class DeepSpeedPlugin(DDPPlugin):
             trainer.global_step += 1
         else:
             trainer.accumulate_grad_batches = self._original_accumulate_grad_batches
-            #print("increment_accumulated_grad_global_step", trainer.total_batch_idx, not self.should_accumulate(trainer), trainer.global_step, self.model.global_steps)
             if self._accumulated_batches_reached(trainer):
                 trainer.global_step += 1
             trainer.accumulate_grad_batches = 1

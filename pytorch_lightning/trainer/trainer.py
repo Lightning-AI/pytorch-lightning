@@ -58,7 +58,6 @@ from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -922,9 +921,7 @@ class Trainer(
 
         # If you supply a datamodule you can't supply test_dataloaders
         if test_dataloaders and datamodule:
-            raise MisconfigurationException(
-                'You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`'
-            )
+            raise MisconfigurationException('You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`')
 
         model_provided = model is not None
         model = model or self.lightning_module
@@ -971,7 +968,9 @@ class Trainer(
 
             self.training_type_plugin.barrier()
 
-            self.training_type_plugin.restore_model_state_from_ckpt_path(ckpt_path, map_location=lambda storage, loc: storage)
+            self.training_type_plugin.restore_model_state_from_ckpt_path(
+                ckpt_path, map_location=lambda storage, loc: storage
+            )
         return ckpt_path
 
     def predict(
