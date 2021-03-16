@@ -15,6 +15,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import torch
+from torchmetrics.classification.checks import _basic_input_validation
 from torchmetrics.utilities.data import select_topk, to_onehot
 
 from pytorch_lightning.utilities import LightningEnum
@@ -50,37 +51,6 @@ class MDMCAverageMethod(LightningEnum):
 
     GLOBAL = "global"
     SAMPLEWISE = "samplewise"
-
-
-def _basic_input_validation(preds: torch.Tensor, target: torch.Tensor, threshold: float, is_multiclass: bool):
-    """
-    Perform basic validation of inputs that does not require deducing any information
-    of the type of inputs.
-    """
-
-    if target.is_floating_point():
-        raise ValueError("The `target` has to be an integer tensor.")
-    if target.min() < 0:
-        raise ValueError("The `target` has to be a non-negative tensor.")
-
-    preds_float = preds.is_floating_point()
-    if not preds_float and preds.min() < 0:
-        raise ValueError("If `preds` are integers, they have to be non-negative.")
-
-    if not preds.shape[0] == target.shape[0]:
-        raise ValueError("The `preds` and `target` should have the same first dimension.")
-
-    if preds_float and (preds.min() < 0 or preds.max() > 1):
-        raise ValueError("The `preds` should be probabilities, but values were detected outside of [0,1] range.")
-
-    if not 0 < threshold < 1:
-        raise ValueError(f"The `threshold` should be a float in the (0,1) interval, got {threshold}")
-
-    if is_multiclass is False and target.max() > 1:
-        raise ValueError("If you set `is_multiclass=False`, then `target` should not exceed 1.")
-
-    if is_multiclass is False and not preds_float and preds.max() > 1:
-        raise ValueError("If you set `is_multiclass=False` and `preds` are integers, then `preds` should not exceed 1.")
 
 
 def _check_shape_and_type_consistency(preds: torch.Tensor, target: torch.Tensor) -> Tuple[str, int]:
