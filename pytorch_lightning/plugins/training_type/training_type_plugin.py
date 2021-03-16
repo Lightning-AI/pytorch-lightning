@@ -181,3 +181,6 @@ class TrainingTypePlugin(Plugin, ABC):
         self.lightning_module.on_load_checkpoint(ckpt)
         self.lightning_module.load_state_dict(ckpt['state_dict'])
         return ckpt, True
+
+    def increment_accumulated_grad_global_step(self, trainer) -> None:
+        trainer.global_step += 1

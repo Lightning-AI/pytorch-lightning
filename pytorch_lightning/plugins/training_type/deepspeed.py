@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from pytorch_lightning.callbacks import GradientAccumulationScheduler
 
 import torch
 
@@ -237,6 +238,8 @@ class DeepSpeedPlugin(DDPPlugin):
             self._format_config()
             self._config_initialized = True
 
+        self._handle_gradient_accumulation_steps()
+
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
 
@@ -287,6 +290,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
         # set optimizer for save/load, but deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [optimizer]
+        self.lightning_module.trainer.schedulers = [lr_scheduler]
         self.model = model
 
     def _call_model_parallel_setup(self):
@@ -306,14 +310,29 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
     def _initialize_deepspeed_inference(self, model):
+        optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
+        if "optimizer" not in self.config:
+            rank_zero_info(
+                "You have not specified an optimizer or scheduler within the DeepSpeed config."
+                "Using `configure_optimizers` to define optimizer and scheduler."
+            )
+            optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
         inference_config = {
             'train_micro_batch_size_per_gpu': 1,
             'fp16': self.config['fp16'],
         }
+        if self.zero_stage_3:
+            inference_config.update({
+                "zero_allow_untested_optimizer": self.config['zero_allow_untested_optimizer'],
+                "zero_optimization": self.config['zero_optimization'],
+            })
         model, _, _, _ = deepspeed.initialize(
             args=SimpleNamespace(local_rank=self.local_rank),
             model=model,
+            optimizer=optimizer,
+            lr_scheduler=lightning_scheduler,
             config_params=inference_config,
+            model_parameters=[],
         )
         self.model = model
 
@@ -343,6 +362,13 @@ class DeepSpeedPlugin(DDPPlugin):
         # note: We rely on the deepspeed engine to carry out the step rather than the optimizer.
         # internally, the engine has a reference to the optimizer already.
         self.model.step(**kwargs)
+
+    def _handle_gradient_accumulation_steps(self):
+        if self.config.get("gradient_accumulation_steps") > 1:
+            self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
+        else:
+            self._original_accumulate_grad_batches = None
 
     def _format_config(self):
         if self.config is None:
@@ -424,19 +450,24 @@ class DeepSpeedPlugin(DDPPlugin):
             filepath: write-target file's path
             weights_only: saving model weights only
         """
-        # dump states as a checkpoint dictionary object
-        client_state = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
-        save_dir = self._filepath_to_dir(filepath)
-        _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
-        client_state = {k:v for k, v in client_state.items() if k not in _exclude_keys}
-        self.model.save_checkpoint(save_dir, client_state=client_state)
+        if torch.distributed.get_world_size() > 1:
+            # dump states as a checkpoint dictionary object
+            client_state = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
+            save_dir = self._filepath_to_dir(filepath)
+            _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
+            client_state = {k:v for k, v in client_state.items() if k not in _exclude_keys}
+            self.model.save_checkpoint(save_dir, client_state=client_state)
+        else:
+            self.lightning_module.trainer.checkpoint_connector.save_checkpoint(filepath)
 
     def restore_model_state_from_ckpt_path(self, ckpt_path: str, map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
-        if torch.distributed.is_available():
+        if torch.distributed.get_world_size() > 1:
             from pytorch_lightning.trainer.states import TrainerState
             load_optimizer_states = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
-            self.model.optimizer._partition_all_parameters() 
+            
+            if self.zero_stage_3:
+                self.model.optimizer._partition_all_parameters() 
 
             _, client_state = self.model.load_checkpoint(
                 save_dir, load_optimizer_states=load_optimizer_states, load_lr_scheduler_states=load_optimizer_states)
@@ -448,3 +479,19 @@ class DeepSpeedPlugin(DDPPlugin):
             # hook: give user access to checkpoint if needed.
             self.lightning_module.on_load_checkpoint(client_state)
             return client_state, False
+        else:
+            super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
+        return {}, False
+
+    def _accumulated_batches_reached(self, trainer):
+        return (trainer.total_batch_idx) % trainer.accumulate_grad_batches == 0
+
+    def increment_accumulated_grad_global_step(self, trainer):
+        if self._original_accumulate_grad_batches is None:
+            trainer.global_step += 1
+        else:
+            trainer.accumulate_grad_batches = self._original_accumulate_grad_batches
+            #print("increment_accumulated_grad_global_step", trainer.total_batch_idx, not self.should_accumulate(trainer), trainer.global_step, self.model.global_steps)
+            if self._accumulated_batches_reached(trainer):
+                trainer.global_step += 1
+            trainer.accumulate_grad_batches = 1

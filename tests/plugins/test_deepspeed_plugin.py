@@ -1,14 +1,15 @@
 import json
 import os
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core import datamodule
-
+from typing import Any
 import pytest
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
 from torch import nn
 from pytorch_lightning.metrics import Accuracy 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, callbacks
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -16,6 +17,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.runif import RunIf
+from pytorch_lightning import LightningModule
 
 
 def test_deepspeed_lightning_module(tmpdir):
@@ -389,6 +391,10 @@ class ModelParallelClassificationModel(ClassificationModel):
             setattr(self, f"layer_{i}a", nn.ReLU())
         setattr(self, "layer_end", nn.Linear(32, 3))
 
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+        return [optimizer], [lr_scheduler]
 
 
 @RunIf(min_gpus=2, deepspeed=True)
@@ -410,7 +416,6 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@pytest.mark.skipif("Currently failing")
 @RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
     """
@@ -420,25 +425,70 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
     dm = ClassifDataModule()
     trainer = Trainer(
         max_epochs=2,
-        plugins=[DeepSpeedPlugin(stage=3, zero_optimization=True)],
+        plugins=[DeepSpeedPlugin(stage=3, zero_optimization=True, cpu_offload=True)],
         default_root_dir=tmpdir,
         gpus=2,
-        fast_dev_run=True,
+        limit_val_batches=2,
+        limit_test_batches=2,
         precision=16,
+        accumulate_grad_batches=2,
     )
     trainer.fit(model, datamodule=dm)
 
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(stage=3, zero_optimization=True)],
+        max_epochs=3,
+        plugins=[DeepSpeedPlugin(stage=3, zero_optimization=True, cpu_offload=True)],
         default_root_dir=tmpdir,
         gpus=2,
-        fast_dev_run=True,
+        limit_val_batches=2,
+        limit_test_batches=2,
         precision=16,
         resume_from_checkpoint=trainer.checkpoint_callback.best_model_path,
     )
     trainer.fit(model, datamodule=dm)
+    trainer.test(datamodule=dm)
 
-    _assert_save_model_is_equal(model, tmpdir, trainer)
+
+@RunIf(min_gpus=2, deepspeed=True)
+def test_deepspeed_multigpu_stage_2_checkpointing_accumated_grad_batches(tmpdir, deepspeed_config):
+    """
+        Test to ensure with Stage 3 and multiple GPUs that we can save/load a model, resuming from a checkpoint
+    """
+    class VerificationCallback(Callback):
+
+        def on_train_batch_start(self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+            deepspeed_engine = trainer.training_type_plugin.model
+            assert trainer.global_step == deepspeed_engine.global_steps
+
+
+    model = ModelParallelClassificationModel()
+    dm = ClassifDataModule()
+    trainer = Trainer(
+        max_epochs=2,
+        plugins=[DeepSpeedPlugin(stage=2, zero_optimization=True, cpu_offload=True)],
+        default_root_dir=tmpdir,
+        gpus=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        precision=16,
+        accumulate_grad_batches=3,
+        callbacks=[VerificationCallback()]
+    )
+    trainer.fit(model, datamodule=dm)
+
+    trainer = Trainer(
+        max_epochs=3,
+        plugins=[DeepSpeedPlugin(stage=2, zero_optimization=True, cpu_offload=True)],
+        default_root_dir=tmpdir,
+        gpus=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        precision=16,
+        resume_from_checkpoint=trainer.checkpoint_callback.best_model_path,
+        callbacks=[VerificationCallback()]
+    )
+    trainer.fit(model, datamodule=dm)
+    trainer.test(datamodule=dm)
 
 
 @RunIf(min_gpus=2, deepspeed=True)

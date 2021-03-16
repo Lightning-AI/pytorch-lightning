@@ -98,6 +98,8 @@ class CheckpointConnector:
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
 
+        print(checkpoint)
+
         # restore training state
         self.restore_training_state(checkpoint, load_optimizer_states)
 

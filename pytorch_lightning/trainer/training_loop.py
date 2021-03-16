@@ -547,6 +547,8 @@ class TrainLoop:
             if self._num_training_batches_reached(is_last_batch):
                 break
 
+
+
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 
@@ -631,6 +633,8 @@ class TrainLoop:
                         batch_outputs=batch_outputs,
                         opt_idx=opt_idx,
                     )
+
+                    self.trainer.training_type_plugin.on_batch
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -806,7 +810,7 @@ class TrainLoop:
 
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
-            self.trainer.global_step += 1
+            self.trainer.training_type_plugin.increment_accumulated_grad_global_step(self.trainer)
 
     def _accumulated_batches_reached(self):
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
