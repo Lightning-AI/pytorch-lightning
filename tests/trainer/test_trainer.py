@@ -1852,10 +1852,17 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     compare_optimizers()
 
 
-@pytest.mark.parametrize("data", [
-    dict(datamodule=TestLightningDataModule(dataloaders)),
-    dict(dataloaders=[torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2)),
-])])
+@pytest.mark.parametrize(
+    "data", [
+        dict(datamodule=TestLightningDataModule(dataloaders)),
+        dict(
+            dataloaders=[
+                torch.utils.data.DataLoader(RandomDataset(32, 2)),
+                torch.utils.data.DataLoader(RandomDataset(32, 2)),
+            ]
+        )
+    ]
+)
 def test_trainer_predict_verify_config(tmpdir, data):
 
     class TestModel(LightningModule):
