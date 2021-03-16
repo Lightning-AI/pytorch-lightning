@@ -37,7 +37,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
-from pytorch_lightning.trainer.connectors.env_vars_connector import overwrite_by_env_vars
+from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
@@ -83,7 +83,7 @@ class Trainer(
     DeprecatedTrainerAttributes,
 ):
 
-    @overwrite_by_env_vars
+    @_defaults_from_env_vars
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
@@ -407,21 +407,6 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def setup_trainer(self, model: LightningModule):
-        """
-        Sanity check a few things before starting actual training or testing.
-
-        Args:
-            model: The model to run sanity test on.
-        """
-
-        # log hyper-parameters
-        if self.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            self.logger.log_hyperparams(model.hparams_initial)
-            self.logger.log_graph(model)
-            self.logger.save()
-
     def fit(
         self,
         model: LightningModule,
@@ -471,8 +456,7 @@ class Trainer(
         # ----------------------------
         self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator.setup(self, model)
-        self.setup_trainer(model)
+        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -538,6 +522,13 @@ class Trainer(
 
     def pre_dispatch(self):
         self.accelerator.pre_dispatch()
+
+        # log hyper-parameters
+        if self.logger is not None:
+            # save exp to get started (this is where the first experiment logs are written)
+            self.logger.log_hyperparams(self.lightning_module.hparams_initial)
+            self.logger.log_graph(self.lightning_module)
+            self.logger.save()
 
     def post_dispatch(self):
         self.accelerator.post_dispatch()
