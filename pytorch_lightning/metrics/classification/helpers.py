@@ -21,17 +21,6 @@ from torchmetrics.utilities.data import select_topk, to_onehot
 from pytorch_lightning.utilities import LightningEnum
 
 
-class DataType(LightningEnum):
-    """
-    Enum to represent data type
-    """
-
-    BINARY = "binary"
-    MULTILABEL = "multi-label"
-    MULTICLASS = "multi-class"
-    MULTIDIM_MULTICLASS = "multi-dim multi-class"
-
-
 class AverageMethod(LightningEnum):
     """
     Enum to represent average method

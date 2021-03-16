@@ -3,8 +3,8 @@ import torch
 from torch import rand, randint
 from torchmetrics.classification.checks import _input_format_classification
 from torchmetrics.utilities.data import select_topk, to_onehot
+from torchmetrics.utilities.enums import DataType
 
-from pytorch_lightning.metrics.classification.helpers import DataType
 from tests.metrics.classification.inputs import _input_binary as _bin
 from tests.metrics.classification.inputs import _input_binary_prob as _bin_prob
 from tests.metrics.classification.inputs import _input_multiclass as _mc
