@@ -14,8 +14,7 @@
 from typing import Tuple
 
 import torch
-
-from pytorch_lightning.metrics.utils import _stable_1d_sort
+from torchmetrics.utilities.data import _stable_1d_sort
 
 
 def _auc_update(x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
