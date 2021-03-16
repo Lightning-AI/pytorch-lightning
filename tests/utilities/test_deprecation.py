@@ -82,7 +82,7 @@ class PastCls:
 
 def test_deprecated_class():
     with pytest.deprecated_call(
-        match='The `PastCls` was deprecated since v0.2 in favor of `tests.utilities.test_deprecation.NewCls`.'
+        match='`test.utilites.test_deprecation.PastCls` was deprecated since v0.2 in favor of `tests.utilities.test_deprecation.NewCls`.'
         ' It will be removed in v0.4.'
     ):
         past = PastCls(2)

@@ -51,7 +51,7 @@ def deprecated(target: Callable, ver_deprecate: Optional[str] = "", ver_remove: 
                 target_str = f'{target.__module__}.{target.__name__}'
                 base_name = base.__qualname__.split('.')[-2] if is_class else base.__name__
                 rank_zero_warn(
-                    f"The `{base_name}` was deprecated since v{ver_deprecate} in favor of `{target_str}`."
+                    f"`{base_name}` was deprecated since v{ver_deprecate} in favor of `{target_str}`."
                     f" It will be removed in v{ver_remove}.", DeprecationWarning
                 )
                 wrapped_fn.warned = True
