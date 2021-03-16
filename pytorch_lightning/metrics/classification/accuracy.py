@@ -15,16 +15,12 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import Accuracy as _Accuracy
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.deprecation import deprecated
 
 
 class Accuracy(_Accuracy):
-    r"""
-    This implementation refers to :class:`~torchmetrics.Accuracy`.
 
-    .. warning:: This metric is deprecated, use ``torchmetrics.Accuracy``. Will be removed in v1.5.0.
-    """
-
+    @deprecated(target=_Accuracy, ver_deprecate="1.3.0", ver_remove="1.5.0")
     def __init__(
         self,
         threshold: float = 0.5,
@@ -35,16 +31,9 @@ class Accuracy(_Accuracy):
         process_group: Optional[Any] = None,
         dist_sync_fn: Callable = None,
     ):
-        rank_zero_warn(
-            "This `Accuracy` was deprecated in v1.3.0 in favor of `torchmetrics.Accuracy`."
-            " It will be removed in v1.5.0", DeprecationWarning
-        )
-        super().__init__(
-            threshold=threshold,
-            top_k=top_k,
-            subset_accuracy=subset_accuracy,
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
+        """
+        This implementation refers to :class:`~torchmetrics.Accuracy`.
+
+        .. deprecated::
+            Use :class:`~torchmetrics.Accuracy`. Will be removed in v1.5.0.
+        """

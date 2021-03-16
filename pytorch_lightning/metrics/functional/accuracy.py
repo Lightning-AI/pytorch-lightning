@@ -16,9 +16,10 @@ from typing import Optional
 import torch
 from torchmetrics.functional import accuracy as _accuracy
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.deprecation import deprecated
 
 
+@deprecated(target=_accuracy, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def accuracy(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -26,20 +27,7 @@ def accuracy(
     top_k: Optional[int] = None,
     subset_accuracy: bool = False,
 ) -> torch.Tensor:
-    r"""
-    This implementation refers to :class:`~torchmetrics.functional.accuracy`.
-
-    .. warning:: This metric is deprecated since v1.3.0, use ``torchmetrics.functional.accuracy``. Will be removed in v1.5.0.
     """
-
-    rank_zero_warn(
-        "This `accuracy` was deprecated in v1.3.0 in favor of `torchmetrics.functional.accuracy`."
-        " It will be removed in v1.5.0", DeprecationWarning
-    )
-    return _accuracy(
-        preds=preds,
-        target=target,
-        threshold=threshold,
-        top_k=top_k,
-        subset_accuracy=subset_accuracy,
-    )
+    .. deprecated::
+        Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
+    """
