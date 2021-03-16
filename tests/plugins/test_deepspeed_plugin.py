@@ -222,7 +222,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires GPU machine")
 @pytest.mark.skipif(not _DEEPSPEED_AVAILABLE, reason="DeepSpeed not available.")
-def test_deepspeed_config(tmpdir, deepspeed_zero_config):
+def test_deepspeed_config(tmpdir, deepspeed_config):
     """
         Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
         and saves the model weights to load correctly.
