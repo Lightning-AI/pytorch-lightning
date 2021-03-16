@@ -414,7 +414,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
 @RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
     """
-        Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
+        Test to ensure with Stage 3 and multiple GPUs that we can save/load a model, resuming from a checkpoint
     """
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
