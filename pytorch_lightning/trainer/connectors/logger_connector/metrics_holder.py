@@ -15,8 +15,7 @@ import numbers
 from typing import Any
 
 import torch
-
-from pytorch_lightning.metrics.metric import Metric
+from torchmetrics import Metric
 
 
 class MetricsHolder:

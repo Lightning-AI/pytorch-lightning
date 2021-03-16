@@ -5,9 +5,10 @@ import numpy as np
 import pytest
 import torch
 from sklearn.metrics import precision_score, recall_score
+from torchmetrics import Metric
 from torchmetrics.classification.checks import _input_format_classification
 
-from pytorch_lightning.metrics import Metric, Precision, Recall
+from pytorch_lightning.metrics import Precision, Recall
 from pytorch_lightning.metrics.functional import precision, precision_recall, recall
 from tests.metrics.classification.inputs import _input_binary, _input_binary_prob
 from tests.metrics.classification.inputs import _input_multiclass as _input_mcls

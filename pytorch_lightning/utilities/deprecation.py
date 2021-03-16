@@ -34,22 +34,31 @@ def get_func_arguments_and_types(func: Callable) -> List[Tuple[str, Tuple, Any]]
     return name_type_default
 
 
-def deprecated_func(target_func: Callable, ver_deprecate: str = "", ver_remove: str = "") -> Callable:
+def _deprecated(target: Callable, ver_deprecate: str = "", ver_remove: str = "") -> Callable:
+    """
+    Decorate a function or class ``__init__`` with warning message
+     and pass all arguments directly to the target class/method.
+     """
 
     def inner_function(func):
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            target_func_str = f'{target_func.__module__}.{target_func.__name__}'
+            is_class = inspect.isclass(target)
+            target_func = target.__init__ if is_class else target
+            target_str = f'{target.__module__}.{target.__name__}'
+            func_name = func.__qualname__.split('.')[-2] if is_class else func.__name__
             rank_zero_warn(
-                f"This `{func.__name__}` was deprecated since v{ver_deprecate} in favor of `{target_func_str}`."
+                f"This `{func_name}` was deprecated since v{ver_deprecate} in favor of `{target_str}`."
                 f" It will be removed in v{ver_remove}.", DeprecationWarning
             )
+
             if args:  # in case any args passed move them to kwargs
                 # parse only the argument names
                 cls_arg_names = [arg[0] for arg in get_func_arguments_and_types(func)]
                 # convert args to kwargs
                 kwargs.update({k: v for k, v in zip(cls_arg_names, args)})
+
             target_args = [arg[0] for arg in get_func_arguments_and_types(target_func)]
             assert all(arg in target_args for arg in kwargs), \
                 "Failed mapping, arguments missing in target func: %s" % [arg not in target_args for arg in kwargs]

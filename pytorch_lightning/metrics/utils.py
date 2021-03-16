@@ -24,20 +24,20 @@ from torchmetrics.utilities.data import to_onehot as __to_onehot
 from torchmetrics.utilities.distributed import class_reduce as __class_reduce
 from torchmetrics.utilities.distributed import reduce as __reduce
 
-from pytorch_lightning.utilities.deprecation import deprecated_func
+from pytorch_lightning.utilities.deprecation import _deprecated
 
 
-@deprecated_func(target_func=__dim_zero_cat, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@_deprecated(target=__dim_zero_cat, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def dim_zero_cat(x):
     pass
 
 
-@deprecated_func(target_func=__dim_zero_sum, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@_deprecated(target=__dim_zero_sum, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def dim_zero_sum(x):
     pass
 
 
-@deprecated_func(target_func=__dim_zero_mean, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@_deprecated(target=__dim_zero_mean, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def dim_zero_mean(x):
     pass
 
@@ -71,7 +71,7 @@ def get_group_indexes(idx: torch.Tensor) -> List[torch.Tensor]:
     return [torch.tensor(x, dtype=torch.int64) for x in indexes.values()]
 
 
-@deprecated_func(target_func=__to_onehot, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@_deprecated(target=__to_onehot, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def to_onehot(label_tensor: torch.Tensor, num_classes: Optional[int] = None) -> torch.Tensor:
     """
     .. deprecated::
@@ -79,7 +79,7 @@ def to_onehot(label_tensor: torch.Tensor, num_classes: Optional[int] = None) -> 
     """
 
 
-@deprecated_func(target_func=__select_topk, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@_deprecated(target=__select_topk, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch.Tensor:
     """
     .. deprecated::
@@ -87,7 +87,7 @@ def select_topk(prob_tensor: torch.Tensor, topk: int = 1, dim: int = 1) -> torch
     """
 
 
-@deprecated_func(target_func=__to_categorical, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@_deprecated(target=__to_categorical, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
     """
     .. deprecated::
@@ -95,7 +95,7 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
     """
 
 
-@deprecated_func(target_func=__get_num_classes, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@_deprecated(target=__get_num_classes, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def get_num_classes(pred: torch.Tensor, target: torch.Tensor, num_classes: Optional[int] = None) -> int:
     """
     .. deprecated::
@@ -103,7 +103,7 @@ def get_num_classes(pred: torch.Tensor, target: torch.Tensor, num_classes: Optio
     """
 
 
-@deprecated_func(target_func=__reduce, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@_deprecated(target=__reduce, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
     """
     .. deprecated::
@@ -111,7 +111,7 @@ def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
     """
 
 
-@deprecated_func(target_func=__class_reduce, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@_deprecated(target=__class_reduce, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def class_reduce(
     num: torch.Tensor, denom: torch.Tensor, weights: torch.Tensor, class_reduction: str = "none"
 ) -> torch.Tensor:

@@ -1,13 +1,13 @@
 import pytest
 
-from pytorch_lightning.utilities.deprecation import deprecated_func
+from pytorch_lightning.utilities.deprecation import _deprecated
 
 
 def my_sum(a, b=3):
     return a + b
 
 
-@deprecated_func(target_func=my_sum, ver_deprecate="0.1", ver_remove="0.5")
+@_deprecated(target=my_sum, ver_deprecate="0.1", ver_remove="0.5")
 def dep_sum(a, b):
     pass
 
