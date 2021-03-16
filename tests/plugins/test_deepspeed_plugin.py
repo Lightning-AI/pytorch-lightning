@@ -181,8 +181,7 @@ def test_deepspeed_defaults(tmpdir):
     assert isinstance(plugin.config["zero_optimization"], dict)
 
 
-@RunIf(deepspeed=True)
-@mock.patch('torch.distributed.is_initialized', return_value=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_invalid_deepspeed_defaults_no_precision(dist_initialized_mock, tmpdir):
     """Test to ensure that using defaults, if precision is not set to 16, we throw an exception."""
     model = BoringModel()
