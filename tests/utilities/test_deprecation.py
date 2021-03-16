@@ -20,7 +20,7 @@ def dep2_sum(a, b):
 
 def test_deprecated_func():
     with pytest.deprecated_call(
-        match='This `dep_sum` was deprecated since v0.1 in favor of `tests.utilities.test_deprecation.my_sum`.'
+        match='The `dep_sum` was deprecated since v0.1 in favor of `tests.utilities.test_deprecation.my_sum`.'
         ' It will be removed in v0.5.'
     ):
         assert dep_sum(2, b=5) == 7
@@ -31,7 +31,7 @@ def test_deprecated_func():
 
     # and does not affect other functions
     with pytest.deprecated_call(
-        match='This `dep2_sum` was deprecated since v0.1 in favor of `tests.utilities.test_deprecation.my_sum`.'
+        match='The `dep2_sum` was deprecated since v0.1 in favor of `tests.utilities.test_deprecation.my_sum`.'
         ' It will be removed in v0.5.'
     ):
         assert dep2_sum(2) == 5
