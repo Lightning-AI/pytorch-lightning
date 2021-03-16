@@ -52,7 +52,6 @@ def test_deprecated_func_incomplete():
     with pytest.raises(TypeError, match="missing 1 required positional argument: 'b'"):
         dep2_sum(2)
 
-
     # check that the warning is raised only once per function
     with no_warning_call(DeprecationWarning):
         assert dep2_sum(2, 1) == 3
@@ -83,8 +82,8 @@ class PastCls:
 
 def test_deprecated_class():
     with pytest.deprecated_call(
-            match='The `PastCls` was deprecated since v0.2 in favor of `tests.utilities.test_deprecation.NewCls`.'
-                  ' It will be removed in v0.4.'
+        match='The `PastCls` was deprecated since v0.2 in favor of `tests.utilities.test_deprecation.NewCls`.'
+        ' It will be removed in v0.4.'
     ):
         past = PastCls(2)
     assert past.my_c == 2
