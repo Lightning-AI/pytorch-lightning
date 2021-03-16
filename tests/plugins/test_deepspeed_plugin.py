@@ -1,16 +1,20 @@
 import json
 import os
+from pytorch_lightning.core import datamodule
 
 import pytest
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
-
+from torch import nn
+from pytorch_lightning.metrics import Accuracy 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.runif import RunIf
 
 
@@ -369,6 +373,24 @@ class ModelParallelBoringModel(BoringModel):
         self.linear = torch.nn.Linear(32, 2)
 
 
+class ModelParallelClassificationModel(ClassificationModel):
+
+    def __init__(self, lr=0.01):
+        super().__init__()
+
+        self.lr = lr
+        self.train_acc = Accuracy()
+        self.valid_acc = Accuracy()
+        self.test_acc = Accuracy()
+
+    def on_model_parallel_setup(self) -> None:
+        for i in range(3):
+            setattr(self, f"layer_{i}", nn.Linear(32, 32))
+            setattr(self, f"layer_{i}a", nn.ReLU())
+        setattr(self, "layer_end", nn.Linear(32, 3))
+
+
+
 @RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     """
@@ -384,6 +406,37 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     )
     trainer.fit(model)
     trainer.test(model)
+
+    _assert_save_model_is_equal(model, tmpdir, trainer)
+
+
+@pytest.mark.skipif("Currently failing")
+@RunIf(min_gpus=2, deepspeed=True)
+def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
+    """
+        Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
+    """
+    model = ModelParallelClassificationModel()
+    dm = ClassifDataModule()
+    trainer = Trainer(
+        max_epochs=2,
+        plugins=[DeepSpeedPlugin(stage=3, zero_optimization=True)],
+        default_root_dir=tmpdir,
+        gpus=2,
+        fast_dev_run=True,
+        precision=16,
+    )
+    trainer.fit(model, datamodule=dm)
+
+    trainer = Trainer(
+        plugins=[DeepSpeedPlugin(stage=3, zero_optimization=True)],
+        default_root_dir=tmpdir,
+        gpus=2,
+        fast_dev_run=True,
+        precision=16,
+        resume_from_checkpoint=trainer.checkpoint_callback.best_model_path,
+    )
+    trainer.fit(model, datamodule=dm)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
