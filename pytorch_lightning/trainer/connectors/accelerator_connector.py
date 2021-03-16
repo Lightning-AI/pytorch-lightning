@@ -279,7 +279,7 @@ class AcceleratorConnector(object):
 
     @property
     def is_distributed(self) -> bool:
-        is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
+        is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_smdistributed
         if self.on_tpu:
             is_distributed |= self.training_type_plugin.is_distributed
         return is_distributed
