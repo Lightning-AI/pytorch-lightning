@@ -16,7 +16,7 @@ from typing import Optional, Tuple
 import numpy as np
 import torch
 from torchmetrics.classification.checks import _basic_input_validation, _check_shape_and_type_consistency, \
-    _check_num_classes_binary
+    _check_num_classes_binary, _check_num_classes_mc
 from torchmetrics.utilities.data import select_topk, to_onehot
 
 from pytorch_lightning.utilities import LightningEnum
@@ -52,38 +52,6 @@ class MDMCAverageMethod(LightningEnum):
 
     GLOBAL = "global"
     SAMPLEWISE = "samplewise"
-
-
-def _check_num_classes_mc(
-    preds: torch.Tensor, target: torch.Tensor, num_classes: int, is_multiclass: bool, implied_classes: int
-):
-    """
-    This checks that the consistency of `num_classes` with the data
-    and `is_multiclass` param for (multi-dimensional) multi-class data.
-    """
-
-    if num_classes == 1 and is_multiclass is not False:
-        raise ValueError(
-            "You have set `num_classes=1`, but predictions are integers."
-            " If you want to convert (multi-dimensional) multi-class data with 2 classes"
-            " to binary/multi-label, set `is_multiclass=False`."
-        )
-    if num_classes > 1:
-        if is_multiclass is False:
-            if implied_classes != num_classes:
-                raise ValueError(
-                    "You have set `is_multiclass=False`, but the implied number of classes "
-                    " (from shape of inputs) does not match `num_classes`. If you are trying to"
-                    " transform multi-dim multi-class data with 2 classes to multi-label, `num_classes`"
-                    " should be either None or the product of the size of extra dimensions (...)."
-                    " See Input Types in Metrics documentation."
-                )
-        if num_classes <= target.max():
-            raise ValueError("The highest label in `target` should be smaller than `num_classes`.")
-        if num_classes <= preds.max():
-            raise ValueError("The highest label in `preds` should be smaller than `num_classes`.")
-        if preds.shape != target.shape and num_classes != implied_classes:
-            raise ValueError("The size of C dimension of `preds` does not match `num_classes`.")
 
 
 def _check_num_classes_ml(num_classes: int, is_multiclass: bool, implied_classes: int):
