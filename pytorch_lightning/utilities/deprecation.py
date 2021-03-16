@@ -34,7 +34,7 @@ def get_func_arguments_and_types(func: Callable) -> List[Tuple[str, Tuple, Any]]
     return name_type_default
 
 
-def _deprecated(target: Callable, ver_deprecate: str = "", ver_remove: str = "") -> Callable:
+def deprecated(target: Callable, ver_deprecate: str = "", ver_remove: str = "") -> Callable:
     """
     Decorate a function or class ``__init__`` with warning message
      and pass all arguments directly to the target class/method.
@@ -51,7 +51,7 @@ def _deprecated(target: Callable, ver_deprecate: str = "", ver_remove: str = "")
                 target_str = f'{target.__module__}.{target.__name__}'
                 func_name = func.__qualname__.split('.')[-2] if is_class else func.__name__
                 rank_zero_warn(
-                    f"This `{func_name}` was deprecated since v{ver_deprecate} in favor of `{target_str}`."
+                    f"The `{func_name}` was deprecated since v{ver_deprecate} in favor of `{target_str}`."
                     f" It will be removed in v{ver_remove}.", DeprecationWarning
                 )
                 inner_function.warned = True

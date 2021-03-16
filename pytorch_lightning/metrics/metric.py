@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from torchmetrics import Metric as _Metric
 from torchmetrics.collections import MetricCollection as _MetricCollection
 
-from pytorch_lightning.utilities.deprecation import _deprecated
+from pytorch_lightning.utilities.deprecation import deprecated
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 
@@ -51,6 +51,6 @@ class MetricCollection(_MetricCollection):
         Use :class:`torchmetrics.MetricCollection`. Will be removed in v1.5.0.
     """
 
-    @_deprecated(target=_MetricCollection, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated(target=_MetricCollection, ver_deprecate="1.3.0", ver_remove="1.5.0")
     def __init__(self, metrics: Union[List[Metric], Tuple[Metric], Dict[str, Metric]]):
         pass
