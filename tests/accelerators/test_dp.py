@@ -237,7 +237,7 @@ def test_dp_test(tmpdir):
     assert torch.all(torch.eq(old_weights, new_weights))
 
 
-@RunIf(min_gpus=2)
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_training_step_dict(tmpdir):
     """
     This test verify dp properly reduce dictionaries
