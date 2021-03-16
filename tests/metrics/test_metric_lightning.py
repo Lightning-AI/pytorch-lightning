@@ -1,5 +1,5 @@
 import torch
-from torchmetrics import Metric
+from torchmetrics import Metric, MetricCollection
 
 from pytorch_lightning import Trainer
 from tests.helpers.boring_model import BoringModel
