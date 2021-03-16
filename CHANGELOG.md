@@ -68,6 +68,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated metrics in favor of `torchmetrics` ([#6505](https://github.com/PyTorchLightning/pytorch-lightning/pull/6505),
 
     [#6530](https://github.com/PyTorchLightning/pytorch-lightning/pull/6530),
+  
+    [#6547](https://github.com/PyTorchLightning/pytorch-lightning/pull/6547),
 
 )
 
