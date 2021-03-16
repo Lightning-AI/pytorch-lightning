@@ -12,9 +12,24 @@ def dep_sum(a, b):
     pass
 
 
+@_deprecated(target=my_sum, ver_deprecate="0.1", ver_remove="0.5")
+def dep2_sum(a, b):
+    pass
+
+
 def test_deprecated_func():
     with pytest.deprecated_call(
         match='This `dep_sum` was deprecated since v0.1 in favor of `tests.utilities.test_deprecation.my_sum`.'
         ' It will be removed in v0.5.'
     ):
         assert dep_sum(2, b=5) == 7
+
+    with pytest.warns(None) as record:
+        assert dep_sum(2, b=5) == 7
+    assert len(record) == 0
+
+    with pytest.deprecated_call(
+        match='This `dep2_sum` was deprecated since v0.1 in favor of `tests.utilities.test_deprecation.my_sum`.'
+        ' It will be removed in v0.5.'
+    ):
+        assert dep2_sum(2) == 5

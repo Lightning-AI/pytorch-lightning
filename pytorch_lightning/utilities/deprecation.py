@@ -43,15 +43,18 @@ def _deprecated(target: Callable, ver_deprecate: str = "", ver_remove: str = "")
     def inner_function(func):
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapped_fn(*args, **kwargs):
             is_class = inspect.isclass(target)
             target_func = target.__init__ if is_class else target
-            target_str = f'{target.__module__}.{target.__name__}'
-            func_name = func.__qualname__.split('.')[-2] if is_class else func.__name__
-            rank_zero_warn(
-                f"This `{func_name}` was deprecated since v{ver_deprecate} in favor of `{target_str}`."
-                f" It will be removed in v{ver_remove}.", DeprecationWarning
-            )
+            # warn user only once in lifetime
+            if not getattr(inner_function, 'warned', False):
+                target_str = f'{target.__module__}.{target.__name__}'
+                func_name = func.__qualname__.split('.')[-2] if is_class else func.__name__
+                rank_zero_warn(
+                    f"This `{func_name}` was deprecated since v{ver_deprecate} in favor of `{target_str}`."
+                    f" It will be removed in v{ver_remove}.", DeprecationWarning
+                )
+                inner_function.warned = True
 
             if args:  # in case any args passed move them to kwargs
                 # parse only the argument names
@@ -65,6 +68,6 @@ def _deprecated(target: Callable, ver_deprecate: str = "", ver_remove: str = "")
             # all args were already moved to kwargs
             return target_func(**kwargs)
 
-        return wrapper
+        return wrapped_fn
 
     return inner_function
