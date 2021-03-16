@@ -81,7 +81,7 @@ class DataConnector(object):
 
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.attach_datamodule(model, datamodule)
+        self.attach_datamodule(model, datamodule, 'fit')
         self._validate_data_hooks(model)
 
     def __enforce_datamodule_dataloader_override(self, train_dataloader, val_dataloaders, datamodule):
