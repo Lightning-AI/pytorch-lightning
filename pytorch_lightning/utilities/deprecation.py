@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 from functools import wraps
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, List, Tuple, Optional
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -34,7 +34,7 @@ def get_func_arguments_and_types(func: Callable) -> List[Tuple[str, Tuple, Any]]
     return name_type_default
 
 
-def deprecated(target: Callable, ver_deprecate: str = "", ver_remove: str = "") -> Callable:
+def deprecated(target: Callable, ver_deprecate: Optional[str] = "", ver_remove: Optional[str] = "") -> Callable:
     """
     Decorate a function or class ``__init__`` with warning message
      and pass all arguments directly to the target class/method.
