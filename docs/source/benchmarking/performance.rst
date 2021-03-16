@@ -186,7 +186,7 @@ Most UNIX-based operating systems provide direct access to tmpfs through a mount
 Zero Grad ``set_to_none=True``
 ------------------------------
 
-In order to modestly improve performance, once can override :func:`~pytorch_lightning.trainer.core.lightning.LightningModule.optimizer_zero_grad`.
+In order to modestly improve performance, once can override :func:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`
 
 For a more detailed explanation of pro / cons of this technique,
 read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`__ documentation by the PyTorch team.
