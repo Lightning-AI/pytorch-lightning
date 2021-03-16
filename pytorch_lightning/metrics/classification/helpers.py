@@ -15,8 +15,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import torch
-from torchmetrics.classification.checks import _basic_input_validation, _check_shape_and_type_consistency, \
-    _check_num_classes_binary, _check_num_classes_mc, _check_num_classes_ml, _check_top_k
+from torchmetrics.classification.checks import _check_classification_inputs
 from torchmetrics.utilities.data import select_topk, to_onehot
 
 from pytorch_lightning.utilities import LightningEnum
@@ -52,103 +51,6 @@ class MDMCAverageMethod(LightningEnum):
 
     GLOBAL = "global"
     SAMPLEWISE = "samplewise"
-
-
-def _check_classification_inputs(
-    preds: torch.Tensor,
-    target: torch.Tensor,
-    threshold: float,
-    num_classes: Optional[int],
-    is_multiclass: bool,
-    top_k: Optional[int],
-) -> str:
-    """Performs error checking on inputs for classification.
-
-    This ensures that preds and target take one of the shape/type combinations that are
-    specified in ``_input_format_classification`` docstring. It also checks the cases of
-    over-rides with ``is_multiclass`` by checking (for multi-class and multi-dim multi-class
-    cases) that there are only up to 2 distinct labels.
-
-    In case where preds are floats (probabilities), it is checked whether they are in [0,1] interval.
-
-    When ``num_classes`` is given, it is checked that it is consitent with input cases (binary,
-    multi-label, ...), and that, if availible, the implied number of classes in the ``C``
-    dimension is consistent with it (as well as that max label in target is smaller than it).
-
-    When ``num_classes`` is not specified in these cases, consistency of the highest target
-    value against ``C`` dimension is checked for (multi-dimensional) multi-class cases.
-
-    If ``top_k`` is set (not None) for inputs that do not have probability predictions (and
-    are not binary), an error is raised. Similarly if ``top_k`` is set to a number that
-    is higher than or equal to the ``C`` dimension of ``preds``, an error is raised.
-
-    Preds and target tensors are expected to be squeezed already - all dimensions should be
-    greater than 1, except perhaps the first one (``N``).
-
-    Args:
-        preds: Tensor with predictions (labels or probabilities)
-        target: Tensor with ground truth labels, always integers (labels)
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0,1) predictions, in the case of binary or multi-label inputs.
-        num_classes:
-            Number of classes. If not explicitly set, the number of classes will be infered
-            either from the shape of inputs, or the maximum label in the ``target`` and ``preds``
-            tensor, where applicable.
-        top_k:
-            Number of highest probability entries for each sample to convert to 1s - relevant
-            only for inputs with probability predictions. The default value (``None``) will be
-            interepreted as 1 for these inputs. If this parameter is set for multi-label inputs,
-            it will take precedence over threshold.
-
-            Should be left unset (``None``) for inputs with label predictions.
-        is_multiclass:
-            Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be.
-
-
-    Return:
-        case: The case the inputs fall in, one of 'binary', 'multi-class', 'multi-label' or
-            'multi-dim multi-class'
-    """
-
-    # Baisc validation (that does not need case/type information)
-    _basic_input_validation(preds, target, threshold, is_multiclass)
-
-    # Check that shape/types fall into one of the cases
-    case, implied_classes = _check_shape_and_type_consistency(preds, target)
-
-    # For (multi-dim) multi-class case with prob preds, check that preds sum up to 1
-    if case in (DataType.MULTICLASS, DataType.MULTIDIM_MULTICLASS) and preds.is_floating_point():
-        if not torch.isclose(preds.sum(dim=1), torch.ones_like(preds.sum(dim=1))).all():
-            raise ValueError("Probabilities in `preds` must sum up to 1 accross the `C` dimension.")
-
-    # Check consistency with the `C` dimension in case of multi-class data
-    if preds.shape != target.shape:
-        if is_multiclass is False and implied_classes != 2:
-            raise ValueError(
-                "You have set `is_multiclass=False`, but have more than 2 classes in your data,"
-                " based on the C dimension of `preds`."
-            )
-        if target.max() >= implied_classes:
-            raise ValueError(
-                "The highest label in `target` should be smaller than the size of the `C` dimension of `preds`."
-            )
-
-    # Check that num_classes is consistent
-    if num_classes:
-        if case == DataType.BINARY:
-            _check_num_classes_binary(num_classes, is_multiclass)
-        elif case in (DataType.MULTICLASS, DataType.MULTIDIM_MULTICLASS):
-            _check_num_classes_mc(preds, target, num_classes, is_multiclass, implied_classes)
-        elif case.MULTILABEL:
-            _check_num_classes_ml(num_classes, is_multiclass, implied_classes)
-
-    # Check that top_k is consistent
-    if top_k is not None:
-        _check_top_k(top_k, case, implied_classes, is_multiclass, preds.is_floating_point())
-
-    return case
 
 
 def _input_format_classification(
