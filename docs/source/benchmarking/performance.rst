@@ -183,8 +183,8 @@ Most UNIX-based operating systems provide direct access to tmpfs through a mount
         datamodule = MyDataModule(data_root="/dev/shm/my_data")
 
 
-Zero Grad ``set_to_none=True`
------------------------------
+Zero Grad ``set_to_none=True``
+------------------------------
 
 In order to modestly improve performance, once can override :func:`~pytorch_lightning.trainer.core.lightning.LightningModule.optimizer_zero_grad`.
 
