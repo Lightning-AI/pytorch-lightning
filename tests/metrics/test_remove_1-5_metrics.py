@@ -16,9 +16,10 @@
 import pytest
 import torch
 
-from pytorch_lightning.metrics import Accuracy, AUC, AUROC, MetricCollection, ROC
+from pytorch_lightning.metrics import Accuracy, MetricCollection, AveragePrecision
+from pytorch_lightning.metrics.functional import average_precision
+from pytorch_lightning.metrics import AUC, AUROC, MetricCollection, ROC
 from pytorch_lightning.metrics.functional import auc, auroc, roc
-from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
 
 
@@ -98,3 +99,15 @@ def test_v1_5_metric_auc_auroc():
     auroc.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert auroc(preds, target) == torch.tensor(0.5)
+
+
+def test_v1_5_metric_precisions():
+    AveragePrecision.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        AveragePrecision()
+
+    pred = torch.tensor([0, 1, 2, 3])
+    target = torch.tensor([0, 1, 1, 1])
+    average_precision.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert average_precision(pred, target, pos_label=1) == torch.tensor(1.)
