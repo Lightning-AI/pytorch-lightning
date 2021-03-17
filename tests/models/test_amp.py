@@ -17,6 +17,7 @@ from unittest import mock
 import pytest
 import torch
 from torch import optim
+from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
