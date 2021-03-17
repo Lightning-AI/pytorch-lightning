@@ -58,7 +58,7 @@ def test_v1_5_metric_accuracy():
     preds = torch.tensor([0.13, 0.26, 0.08, 0.19, 0.34])
     target = torch.tensor([0, 0, 1, 1, 1])
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert accuracy(preds=torch.tensor([0, 1]), target=torch.tensor([0, 1])) == torch.tensor(1.)
+        assert accuracy(preds, target) == torch.tensor(1.)
 
     Accuracy.__init__.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
