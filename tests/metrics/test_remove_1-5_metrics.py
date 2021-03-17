@@ -16,8 +16,8 @@
 import pytest
 import torch
 
-from pytorch_lightning.metrics import Precision, Recall
-from pytorch_lightning.metrics.functional import precision, recall, precision_recall
+from pytorch_lightning.metrics import Precision, Recall, PrecisionRecallCurve
+from pytorch_lightning.metrics.functional import precision, recall, precision_recall, precision_recall_curve
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics import Accuracy, AveragePrecision
 from pytorch_lightning.metrics.functional import average_precision
@@ -117,6 +117,10 @@ def test_v1_5_metric_precision_recall():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         Recall()
 
+    PrecisionRecallCurve.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        PrecisionRecallCurve()
+
     pred = torch.tensor([0, 1, 2, 3])
     target = torch.tensor([0, 1, 1, 1])
     average_precision.warned = False
@@ -134,3 +138,7 @@ def test_v1_5_metric_precision_recall():
     precision_recall.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert precision_recall(pred, target) == (torch.tensor(0.5000), torch.tensor(0.5000))
+
+    precision_recall_curve.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert precision_recall_curve(pred, target) == (torch.tensor(0.5000), torch.tensor(0.5000))
