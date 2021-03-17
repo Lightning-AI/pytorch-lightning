@@ -91,14 +91,13 @@ class CheckpointConnector:
             return False
 
         checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
-            checkpoint_path, map_location=lambda storage, loc: storage)
+            checkpoint_path, map_location=lambda storage, loc: storage
+        )
 
         model = self.trainer.lightning_module
 
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
-
-        print(checkpoint)
 
         # restore training state
         self.restore_training_state(checkpoint, load_optimizer_states)

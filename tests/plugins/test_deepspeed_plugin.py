@@ -21,7 +21,7 @@ from tests.helpers.runif import RunIf
 
 def test_deepspeed_lightning_module(tmpdir):
     """
-        Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly.
+    Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly.
     """
 
     model = BoringModel()
@@ -39,7 +39,7 @@ def test_deepspeed_lightning_module(tmpdir):
 @RunIf(min_gpus=1)
 def test_deepspeed_lightning_module_precision(tmpdir):
     """
-        Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision 16.
+    Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision 16.
     """
 
     model = BoringModel()
@@ -89,7 +89,7 @@ def deepspeed_zero_config(deepspeed_config):
 @pytest.mark.parametrize("input", ("deepspeed", DeepSpeedPlugin))
 def test_deepspeed_plugin_string(tmpdir, input):
     """
-        Test to ensure that the plugin can be passed via string or instance, and parallel devices is correctly set.
+    Test to ensure that the plugin can be passed via string or instance, and parallel devices is correctly set.
     """
 
     trainer = Trainer(
@@ -133,8 +133,8 @@ def test_deepspeed_plugin_env(tmpdir, monkeypatch, deepspeed_config):
 )
 def test_deepspeed_precision_choice(amp_backend, tmpdir):
     """
-        Test to ensure precision plugin is also correctly chosen.
-        DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
+    Test to ensure precision plugin is also correctly chosen.
+    DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
     """
 
     trainer = Trainer(
@@ -165,7 +165,7 @@ def test_deepspeed_with_invalid_config_path(tmpdir):
 @RunIf(deepspeed=True)
 def test_deepspeed_with_env_path(tmpdir, monkeypatch, deepspeed_config):
     """
-        Test to ensure if we pass an env variable, we load the config from the path.
+    Test to ensure if we pass an env variable, we load the config from the path.
     """
     config_path = os.path.join(tmpdir, 'temp.json')
     with open(config_path, 'w') as f:
@@ -223,8 +223,10 @@ def test_warn_deepspeed_override_backward(tmpdir):
 
 @RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_run_configure_optimizers(tmpdir):
-    """Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
-        whilst using configure_optimizers for optimizers and schedulers."""
+    """
+    Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
+    whilst using configure_optimizers for optimizers and schedulers.
+    """
 
     class TestModel(BoringModel):
 
@@ -254,8 +256,8 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 @RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     """
-        Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
-        and saves the model weights to load correctly.
+    Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
+    and saves the model weights to load correctly.
     """
 
     class TestModel(BoringModel):
@@ -348,7 +350,7 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 @RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
-        Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
+    Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
     """
     model = BoringModel()
     trainer = Trainer(
@@ -376,9 +378,10 @@ class ModelParallelBoringModel(BoringModel):
 
 class ModelParallelClassificationModel(LightningModule):
 
-    def __init__(self, lr=0.01):
+    def __init__(self, lr: float = 0.01, num_blocks: int = 3):
         super().__init__()
         self.lr = lr
+        self.num_blocks = num_blocks
 
         self.train_acc = Accuracy()
         self.valid_acc = Accuracy()
@@ -388,15 +391,10 @@ class ModelParallelClassificationModel(LightningModule):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.BatchNorm1d(32), nn.LeakyReLU())
 
     def on_model_parallel_setup(self) -> None:
-        for i in range(3):
-            setattr(self, f"block_{i}", self.make_block())
-        setattr(self, "layer_end", nn.Linear(32, 3))
+        self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
 
     def forward(self, x):
-        x = self.block_0(x)
-        x = self.block_1(x)
-        x = self.block_2(x)
-        x = self.layer_end(x)
+        x = self.model(x)
         logits = F.softmax(x, dim=1)
         return logits
 
@@ -429,7 +427,7 @@ class ModelParallelClassificationModel(LightningModule):
 @RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     """
-        Test to ensure that DeepSpeed with multiple GPUs works, without ZeRO Optimization as this requires compilation.
+    Test to ensure ZeRO Stage 3 works with a parallel model.
     """
     model = ModelParallelBoringModel()
     trainer = Trainer(
@@ -448,7 +446,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
 @RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
     """
-        Test to ensure with Stage 3 and multiple GPUs that we can save/load a model, resuming from a checkpoint
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model, resuming from a checkpoint
     """
     seed_everything(42)
     model = ModelParallelClassificationModel(lr=0.1)
@@ -480,9 +478,9 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
 
 
 @RunIf(min_gpus=2, deepspeed=True)
-def test_deepspeed_multigpu_stage_2_checkpointing_accumated_grad_batches(tmpdir, deepspeed_config):
+def test_deepspeed_multigpu_stage_2_checkpointing_accumulated_grad_batches(tmpdir, deepspeed_config):
     """
-        Test to ensure with Stage 3 and multiple GPUs that we can save/load a model, resuming from a checkpoint
+    Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
     seed_everything(42)
 
@@ -491,7 +489,6 @@ def test_deepspeed_multigpu_stage_2_checkpointing_accumated_grad_batches(tmpdir,
         def on_train_batch_start(
             self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
         ) -> None:
-
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps
 
@@ -528,7 +525,7 @@ def test_deepspeed_multigpu_stage_2_checkpointing_accumated_grad_batches(tmpdir,
 @RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
     """
-        Test to ensure we can use DeepSpeed with just test.
+    Test to ensure we can use DeepSpeed with just test using ZeRO Stage 3.
     """
     model = ModelParallelBoringModel()
     trainer = Trainer(
