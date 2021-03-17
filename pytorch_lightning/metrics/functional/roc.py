@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import List, Optional, Sequence, Tuple, Union
 
-import torch
+from torch import Tensor
 from torchmetrics.functional import roc as _roc
 
 from pytorch_lightning.utilities.deprecation import deprecated
@@ -21,13 +21,12 @@ from pytorch_lightning.utilities.deprecation import deprecated
 
 @deprecated(target=_roc, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def roc(
-    preds: torch.Tensor,
-    target: torch.Tensor,
+    preds: Tensor,
+    target: Tensor,
     num_classes: Optional[int] = None,
     pos_label: Optional[int] = None,
     sample_weights: Optional[Sequence] = None,
-) -> Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor], Tuple[List[torch.Tensor], List[torch.Tensor],
-                                                                  List[torch.Tensor]],]:
+) -> Union[Tuple[Tensor, Tensor, Tensor], Tuple[List[Tensor], List[Tensor], List[Tensor]]]:
     """
     .. deprecated::
         Use :func:`torchmetrics.functional.roc`. Will be removed in v1.5.0.
