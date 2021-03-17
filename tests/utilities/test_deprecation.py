@@ -30,7 +30,7 @@ def dep3_sum(a, b=4):
 def test_deprecated_func():
     with pytest.deprecated_call(
         match='`tests.utilities.test_deprecation.dep_sum` was deprecated since v0.1 in favor'
-              ' of `tests.utilities.test_deprecation.my_sum`. It will be removed in v0.5.'
+        ' of `tests.utilities.test_deprecation.my_sum`. It will be removed in v0.5.'
     ):
         assert dep_sum(2) == 7
 
@@ -41,7 +41,7 @@ def test_deprecated_func():
     # and does not affect other functions
     with pytest.deprecated_call(
         match='`tests.utilities.test_deprecation.dep3_sum` was deprecated since v0.1 in favor'
-              ' of `tests.utilities.test_deprecation.my2_sum`. It will be removed in v0.5.'
+        ' of `tests.utilities.test_deprecation.my2_sum`. It will be removed in v0.5.'
     ):
         assert dep3_sum(2, 1) == 3
 
@@ -61,7 +61,7 @@ def test_deprecated_func_incomplete():
     # does not affect other functions
     with pytest.deprecated_call(
         match='`tests.utilities.test_deprecation.dep2_sum` was deprecated since v0.1 in favor'
-              ' of `tests.utilities.test_deprecation.my2_sum`. It will be removed in v0.5.'
+        ' of `tests.utilities.test_deprecation.my2_sum`. It will be removed in v0.5.'
     ):
         assert dep2_sum(b=2, a=1) == 3
 
@@ -83,7 +83,7 @@ class PastCls:
 def test_deprecated_class():
     with pytest.deprecated_call(
         match='`tests.utilities.test_deprecation.PastCls` was deprecated since v0.2 in favor'
-              ' of `tests.utilities.test_deprecation.NewCls`. It will be removed in v0.4.'
+        ' of `tests.utilities.test_deprecation.NewCls`. It will be removed in v0.4.'
     ):
         past = PastCls(2)
     assert past.my_c == 2

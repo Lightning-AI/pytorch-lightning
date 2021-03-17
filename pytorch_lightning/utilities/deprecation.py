@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 from functools import wraps
-from typing import Any, Callable, List, Tuple, Optional
+from typing import Any, Callable, List, Optional, Tuple
 
 from pytorch_lightning.utilities import rank_zero_warn
 

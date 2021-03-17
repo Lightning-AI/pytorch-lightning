@@ -16,7 +16,7 @@
 import pytest
 import torch
 
-from pytorch_lightning.metrics import Accuracy, MetricCollection, AUC, AUROC
+from pytorch_lightning.metrics import Accuracy, AUC, AUROC, MetricCollection
 from pytorch_lightning.metrics.functional import auc, auroc
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
@@ -46,7 +46,7 @@ def test_v1_5_metrics_collection():
     MetricCollection.__init__.warned = False
     with pytest.deprecated_call(
         match="`pytorch_lightning.metrics.metric.MetricCollection` was deprecated since v1.3.0 in favor"
-              " of `torchmetrics.collections.MetricCollection`. It will be removed in v1.5.0."
+        " of `torchmetrics.collections.MetricCollection`. It will be removed in v1.5.0."
     ):
         metrics = MetricCollection([Accuracy()])
     assert metrics(preds, target) == {'Accuracy': torch.tensor(0.1250)}
@@ -65,7 +65,7 @@ def test_v1_5_metric_accuracy():
         Accuracy()
 
 
-def test_v1_5_metric_auc():
+def test_v1_5_metric_auc_auroc():
     AUC.__init__.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         AUC()
