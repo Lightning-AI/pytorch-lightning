@@ -16,7 +16,10 @@
 import pytest
 import torch
 
-from pytorch_lightning.metrics import Accuracy, MetricCollection, AveragePrecision
+from pytorch_lightning.metrics import Precision, Recall
+from pytorch_lightning.metrics.functional import precision, recall, precision_recall
+from pytorch_lightning.metrics.functional.accuracy import accuracy
+from pytorch_lightning.metrics import Accuracy, AveragePrecision
 from pytorch_lightning.metrics.functional import average_precision
 from pytorch_lightning.metrics import AUC, AUROC, MetricCollection, ROC
 from pytorch_lightning.metrics.functional import auc, auroc, roc
@@ -101,13 +104,33 @@ def test_v1_5_metric_auc_auroc():
         assert auroc(preds, target) == torch.tensor(0.5)
 
 
-def test_v1_5_metric_precisions():
+def test_v1_5_metric_precision_recall():
     AveragePrecision.__init__.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         AveragePrecision()
+
+    Precision.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        Precision()
+
+    Recall.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        Recall()
 
     pred = torch.tensor([0, 1, 2, 3])
     target = torch.tensor([0, 1, 1, 1])
     average_precision.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert average_precision(pred, target, pos_label=1) == torch.tensor(1.)
+        assert average_precision(pred, target) == torch.tensor(1.)
+
+    precision.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert precision(pred, target) == torch.tensor(0.5)
+
+    recall.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert recall(pred, target) == torch.tensor(0.5)
+
+    precision_recall.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert precision_recall(pred, target) == (torch.tensor(0.5000), torch.tensor(0.5000))
