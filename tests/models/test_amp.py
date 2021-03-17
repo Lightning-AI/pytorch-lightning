@@ -35,22 +35,21 @@ class AMPTestModel(BoringModel):
         assert output.dtype == torch.float16
         loss = self.loss(batch, output)
         return {"loss": loss}
-    
+
     def training_step(self, batch, batch_idx):
         return self._step(batch, batch_idx)
-    
+
     def validation_step(self, batch, batch_idx):
         self._step(batch, batch_idx)
-        
+
     def test_step(self, batch, batch_idx):
         self._step(batch, batch_idx)
-        
+
     def predict(self, batch, batch_idx):
         assert torch.is_autocast_enabled()
         output = self(batch)
         assert output.dtype == torch.float16
         return output
-        
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
