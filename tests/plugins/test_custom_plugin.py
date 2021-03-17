@@ -1,3 +1,5 @@
+import pytest
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
 from tests.helpers import BoringModel
@@ -9,7 +11,7 @@ class CustomParallelPlugin(DDPPlugin):
         # Set to None so it will be overwritten by the accelerator connector.
         self.sync_batchnorm = None
 
-
+@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
 def test_sync_batchnorm_set(tmpdir):
     """Tests if sync_batchnorm is automatically set for custom plugin."""
     model = BoringModel()
