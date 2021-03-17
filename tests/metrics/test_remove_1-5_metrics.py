@@ -55,10 +55,10 @@ def test_v1_5_metrics_collection():
 def test_v1_5_metric_accuracy():
     accuracy.warned = False
 
-    preds = torch.tensor([0.13, 0.26, 0.08, 0.19, 0.34])
+    preds = torch.tensor([0, 0, 1, 0, 1])
     target = torch.tensor([0, 0, 1, 1, 1])
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert accuracy(preds, target) == torch.tensor(1.)
+        assert accuracy(preds, target) == torch.tensor(0.8)
 
     Accuracy.__init__.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
@@ -84,12 +84,17 @@ def test_v1_5_metric_auc_auroc():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert auc(x, y) == torch.tensor(4.)
 
-    preds = torch.tensor([0.13, 0.26, 0.08, 0.19, 0.34])
-    target = torch.tensor([0, 0, 1, 1, 1])
+    preds = torch.tensor([0, 1, 2, 3])
+    target = torch.tensor([0, 1, 1, 1])
     roc.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert roc(preds, target, pos_label=1) == torch.tensor(0.5)
+        fpr, tpr, thresholds = roc(preds, target, pos_label=1)
+        assert torch.equal(fpr, torch.tensor([0., 0., 0., 0., 1.]))
+        assert torch.allclose(tpr, torch.tensor([0.0000, 0.3333, 0.6667, 1.0000, 1.0000]), atol=1e-4)
+        assert torch.equal(thresholds, torch.tensor([4, 3, 2, 1, 0]))
 
+    preds = torch.tensor([0.13, 0.26, 0.08, 0.19, 0.34])
+    target = torch.tensor([0, 0, 1, 1, 1])
     auroc.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert auroc(preds, target, pos_label=1) == torch.tensor(0.5)
+        assert auroc(preds, target) == torch.tensor(0.5)
