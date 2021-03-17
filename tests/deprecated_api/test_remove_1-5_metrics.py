@@ -43,7 +43,7 @@ def test_v1_5_metric_accuracy():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert accuracy(preds=torch.tensor([0, 1]), target=torch.tensor([0, 1])) == torch.tensor(1.)
 
-    Accuracy.warned = False
+    Accuracy.__init__.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         Accuracy()
 
@@ -51,6 +51,8 @@ def test_v1_5_metric_accuracy():
 def test_v1_5_metrics_collection():
     target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
     preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
+
+    MetricCollection.__init__.warned = False
     with pytest.deprecated_call(
         match="`pytorch_lightning.metrics.metric.MetricCollection` was deprecated since v1.3.0 in favor"
               " of `torchmetrics.collections.MetricCollection`. It will be removed in v1.5.0."
