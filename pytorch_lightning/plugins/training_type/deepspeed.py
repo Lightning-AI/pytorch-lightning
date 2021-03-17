@@ -279,7 +279,6 @@ class DeepSpeedPlugin(DDPPlugin):
             optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, optimizer, _, lr_scheduler = deepspeed.initialize(
-            args=SimpleNamespace(local_rank=self.local_rank),
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
@@ -310,6 +309,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
 
     def _initialize_deepspeed_inference(self, model):
+        # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
         if "optimizer" not in self.config:
             rank_zero_info(
@@ -318,6 +318,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
             optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
         inference_config = {
+            # todo: this is required for DeepSpeed throughput timers
             'train_micro_batch_size_per_gpu': 1,
             'fp16': self.config['fp16'],
         }
@@ -441,7 +442,11 @@ class DeepSpeedPlugin(DDPPlugin):
         return cfg
 
     def _filepath_to_dir(self, filepath: str):
-        return filepath.split('.')[0]
+        return os.path.dirname(filepath)
+
+    @property
+    def deepspeed_engine(self):
+        return self.model
 
     def save_checkpoint(self, filepath: str, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -451,12 +456,13 @@ class DeepSpeedPlugin(DDPPlugin):
             weights_only: saving model weights only
         """
         if torch.distributed.get_world_size() > 1:
+            # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
             client_state = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
             save_dir = self._filepath_to_dir(filepath)
             _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
             client_state = {k: v for k, v in client_state.items() if k not in _exclude_keys}
-            self.model.save_checkpoint(save_dir, client_state=client_state)
+            self.deepspeed_engine.save_checkpoint(save_dir, client_state=client_state)
         else:
             self.lightning_module.trainer.checkpoint_connector.save_checkpoint(filepath)
 
@@ -469,7 +475,8 @@ class DeepSpeedPlugin(DDPPlugin):
             save_dir = self._filepath_to_dir(ckpt_path)
 
             if self.zero_stage_3:
-                self.model.optimizer._partition_all_parameters()
+                # TODO: Currently required as this call is missing within the deepspeed engine.
+                self.deepspeed_engine.optimizer._partition_all_parameters()
 
             _, client_state = self.model.load_checkpoint(
                 save_dir, load_optimizer_states=load_optimizer_states, load_lr_scheduler_states=load_optimizer_states
@@ -487,7 +494,7 @@ class DeepSpeedPlugin(DDPPlugin):
         return {}, False
 
     def _accumulated_batches_reached(self, trainer):
-        return (trainer.total_batch_idx) % trainer.accumulate_grad_batches == 0
+        return trainer.total_batch_idx % trainer.accumulate_grad_batches == 0
 
     def increment_accumulated_grad_global_step(self, trainer):
         if self._original_accumulate_grad_batches is None:
