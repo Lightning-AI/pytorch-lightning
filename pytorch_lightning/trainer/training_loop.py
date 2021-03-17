@@ -646,7 +646,10 @@ class TrainLoop:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
         # lightning module hook
-        splits = self.tbptt_split_batch(batch)
+        if _PYSYFT_AVAILABLE:
+            splits = [batch]  # TODO: fix tbptt_split_batch to handle the Pointers
+        else:
+            splits = self.tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
             if is_syft_initialized():
