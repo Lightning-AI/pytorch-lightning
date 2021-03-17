@@ -41,10 +41,10 @@ class AMPTestModel(BoringModel):
         return self._step(batch, batch_idx)
 
     def validation_step(self, batch, batch_idx):
-        self._step(batch, batch_idx)
+        return self._step(batch, batch_idx)
 
     def test_step(self, batch, batch_idx):
-        self._step(batch, batch_idx)
+        return self._step(batch, batch_idx)
 
     def predict(self, batch, batch_idx):
         assert torch.is_autocast_enabled()
