@@ -547,8 +547,6 @@ class TrainLoop:
             if self._num_training_batches_reached(is_last_batch):
                 break
 
-
-
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 

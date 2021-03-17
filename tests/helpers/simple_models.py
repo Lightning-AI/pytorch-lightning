@@ -14,7 +14,6 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch import distributed as dist
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.metrics import Accuracy, MeanSquaredError
@@ -28,7 +27,7 @@ class ClassificationModel(LightningModule):
         self.lr = lr
         for i in range(3):
             setattr(self, f"layer_{i}", nn.Linear(32, 32))
-            setattr(self, f"layer_{i}a", torch.nn.ReLU())
+            setattr(self, f"layer_{i}a", nn.ReLU())
         setattr(self, "layer_end", nn.Linear(32, 3))
 
         self.train_acc = Accuracy()
