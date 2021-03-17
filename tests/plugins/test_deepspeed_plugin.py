@@ -386,9 +386,10 @@ class ModelParallelClassificationModel(LightningModule):
         self.train_acc = Accuracy()
         self.valid_acc = Accuracy()
         self.test_acc = Accuracy()
+        self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
 
     def make_block(self):
-        return nn.Sequential(nn.Linear(32, 32, bias=False), nn.BatchNorm1d(32), nn.LeakyReLU())
+        return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
 
     def on_model_parallel_setup(self) -> None:
         self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
@@ -538,12 +539,12 @@ def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
     trainer.test(model)
 
 
-def _assert_save_model_is_equal(model, tmpdir, trainer):
+def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
     checkpoint_path = os.path.join(tmpdir, 'model.pt')
     trainer.save_checkpoint(checkpoint_path)
     # carry out the check only on rank 0
     if trainer.global_rank == 0:
-        saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
+        saved_model = cls.load_from_checkpoint(checkpoint_path)
         if model.dtype == torch.half:
             saved_model = saved_model.half()  # model is loaded in float32 as default, move it to float16
         model = model.cpu()

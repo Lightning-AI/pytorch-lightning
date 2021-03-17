@@ -632,8 +632,6 @@ class TrainLoop:
                         opt_idx=opt_idx,
                     )
 
-                    self.trainer.training_type_plugin.on_batch
-
                 # ------------------------------
                 # BACKWARD PASS
                 # ------------------------------
