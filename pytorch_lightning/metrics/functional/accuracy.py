@@ -14,8 +14,8 @@
 from typing import Optional, Tuple
 
 import torch
-
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
+from torchmetrics.classification.checks import _input_format_classification
+from torchmetrics.utilities.enums import DataType
 
 
 def _accuracy_update(
@@ -71,8 +71,6 @@ def accuracy(
     accuracy by default, which counts all labels or sub-samples separately. This can be
     changed to subset accuracy (which requires all labels or sub-samples in the sample to
     be correctly predicted) by setting ``subset_accuracy=True``.
-
-    Accepts all input types listed in :ref:`extensions/metrics:input types`.
 
     Args:
         preds: Predictions from model (probabilities, or labels)
