@@ -22,18 +22,18 @@ COPY ./ ./pytorch-lightning/
 
 # install dependencies
 RUN \
-    # Disable cache
     #conda install "pip>20.1" && \
-    #pip config set global.cache-dir false && \
-    if [ -n $LIGHTNING_VERSION ] ; then \
+    if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
         mv pytorch-lightning-*/ pytorch-lightning ; \
         rm *.zip ; \
     fi && \
+    # fixme, unfreeze
+    pip install "torchtext==0.6" && \
     pip install ./pytorch-lightning["extra"] --no-cache-dir && \
-    rm -rf pytorch-lightning && \
+    rm -rf pytorch-lightning
 
 RUN python --version && \
     pip --version && \
