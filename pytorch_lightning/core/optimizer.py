@@ -77,6 +77,9 @@ class LightningOptimizer:
 
     @property
     def param_groups(self):
+        # Syft Optimizers don't have param_groups available yet
+        if not hasattr(self._optimizer, "param_groups"):
+            return []
         return self._optimizer.param_groups
 
     @param_groups.setter
