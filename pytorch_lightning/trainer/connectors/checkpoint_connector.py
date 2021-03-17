@@ -121,7 +121,7 @@ class CheckpointConnector:
         # restore model state_dict
         model.load_state_dict(checkpoint['state_dict'])
 
-    def restore_training_state(self, checkpoint, load_optimizer_states: bool):
+    def restore_training_state(self, checkpoint, load_optimizer_states: bool = True):
         """
         Restore trainer state.
         Model will get its change to update

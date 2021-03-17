@@ -297,6 +297,8 @@ class DeepSpeedPlugin(DDPPlugin):
         if self.zero_stage_3:
             with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
                 self.lightning_module.trainer.call_hook("on_model_parallel_setup")
+        else:
+            self.lightning_module.trainer.call_hook("on_model_parallel_setup")
 
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get('activation_checkpointing'):
@@ -319,8 +321,11 @@ class DeepSpeedPlugin(DDPPlugin):
             optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
         inference_config = {
             'train_micro_batch_size_per_gpu': 1,
-            'fp16': self.config['fp16'],
         }
+        if 'fp16' in self.config:
+            inference_config.update({
+                "fp16": self.config["fp16"]
+            })
         if self.zero_stage_3:
             inference_config.update({
                 "zero_allow_untested_optimizer": self.config['zero_allow_untested_optimizer'],
