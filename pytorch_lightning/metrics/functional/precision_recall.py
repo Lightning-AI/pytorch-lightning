@@ -15,8 +15,8 @@ from typing import Optional
 
 import torch
 from torchmetrics.functional import precision as _precision
-from torchmetrics.functional import recall as _recall
 from torchmetrics.functional import precision_recall as _precision_recall
+from torchmetrics.functional import recall as _recall
 
 from pytorch_lightning.utilities.deprecation import deprecated
 

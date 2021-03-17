@@ -13,8 +13,6 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
-import torch
-
 from torchmetrics import Precision as _Precision
 from torchmetrics import Recall as _Recall
 
