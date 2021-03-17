@@ -7,12 +7,12 @@ import time
 import typing
 
 _this_year = time.strftime("%Y")
-__version__ = "1.3.0dev"
-__author__ = "William Falcon et al."
-__author_email__ = "waf2107@columbia.edu"
-__license__ = "Apache-2.0"
-__copyright__ = f"Copyright (c) 2018-{_this_year}, {__author__}."
-__homepage__ = "https://github.com/PyTorchLightning/pytorch-lightning"
+__version__ = '1.3.0dev'
+__author__ = 'William Falcon et al.'
+__author_email__ = 'waf2107@columbia.edu'
+__license__ = 'Apache-2.0'
+__copyright__ = f'Copyright (c) 2018-{_this_year}, {__author__}.'
+__homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
 # this has to be simple string, see: https://github.com/pypa/twine/issues/522
 __docs__ = (
     "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers."
@@ -77,19 +77,19 @@ elif not __LIGHTNING_SETUP__:  # pragma: no-cover
     from pytorch_lightning.utilities.seed import seed_everything
 
     __all__ = [
-        "Trainer",
-        "LightningDataModule",
-        "LightningModule",
-        "Callback",
-        "seed_everything",
-        "metrics",
+        'Trainer',
+        'LightningDataModule',
+        'LightningModule',
+        'Callback',
+        'seed_everything',
+        'metrics',
     ]
 else:
     sys.stdout.write(
-        f"Partial import of `{__name__}` during the build process.\n"
+        f'Partial import of `{__name__}` during the build process.\n'
     )  # pragma: no-cover
     # We are not importing the rest of the lightning during the build process, as it may not be compiled yet
 
 
 # for compatibility with namespace packages
-__import__("pkg_resources").declare_namespace(__name__)
+__import__('pkg_resources').declare_namespace(__name__)
