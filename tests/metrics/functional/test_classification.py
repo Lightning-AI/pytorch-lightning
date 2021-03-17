@@ -3,7 +3,6 @@ import torch
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import dice_score
-from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
 
 
 @pytest.mark.parametrize(['sample_weight', 'pos_label', "exp_shape"], [
