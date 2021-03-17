@@ -64,9 +64,11 @@ class SingleDevicePlugin(TrainingTypePlugin):
 
         self._model.to(self.root_device)
 
+    def pre_dispatch(self) -> None:
+        self.model_to_device()
+
     def connect(self, model: torch.nn.Module) -> torch.nn.Module:
         self._model = model
-        self.model_to_device()
         return self.model
 
     @property
