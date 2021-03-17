@@ -17,6 +17,7 @@ import pytest
 import torch
 
 from pytorch_lightning.metrics import Accuracy, MetricCollection, AUC, AUROC
+from pytorch_lightning.metrics.functional import auc, auroc
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
 
@@ -53,6 +54,9 @@ def test_v1_5_metrics_collection():
 
 def test_v1_5_metric_accuracy():
     accuracy.warned = False
+
+    preds = torch.tensor([0.13, 0.26, 0.08, 0.19, 0.34])
+    target = torch.tensor([0, 0, 1, 1, 1])
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert accuracy(preds=torch.tensor([0, 1]), target=torch.tensor([0, 1])) == torch.tensor(1.)
 
@@ -70,6 +74,14 @@ def test_v1_5_metric_auc():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         AUROC()
 
-    # auc.warned = False
-    # with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-    #     assert accuracy(preds=torch.tensor([0, 1]), target=torch.tensor([0, 1])) == torch.tensor(1.)
+    x = torch.tensor([0, 1, 2, 3])
+    y = torch.tensor([0, 1, 2, 2])
+    auc.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert auc(x, y) == torch.tensor(4.)
+
+    preds = torch.tensor([0.13, 0.26, 0.08, 0.19, 0.34])
+    target = torch.tensor([0, 0, 1, 1, 1])
+    auroc.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert auroc(preds, target, pos_label=1) == torch.tensor(0.5)
