@@ -1,57 +1,9 @@
 import pytest
 import torch
-from torchmetrics.utilities.data import get_num_classes, to_categorical, to_onehot
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import dice_score
 from pytorch_lightning.metrics.functional.precision_recall_curve import _binary_clf_curve
-
-
-def test_onehot():
-    test_tensor = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
-    expected = torch.stack([
-        torch.cat([torch.eye(5, dtype=int), torch.zeros((5, 5), dtype=int)]),
-        torch.cat([torch.zeros((5, 5), dtype=int), torch.eye(5, dtype=int)])
-    ])
-
-    assert test_tensor.shape == (2, 5)
-    assert expected.shape == (2, 10, 5)
-
-    onehot_classes = to_onehot(test_tensor, num_classes=10)
-    onehot_no_classes = to_onehot(test_tensor)
-
-    assert torch.allclose(onehot_classes, onehot_no_classes)
-
-    assert onehot_classes.shape == expected.shape
-    assert onehot_no_classes.shape == expected.shape
-
-    assert torch.allclose(expected.to(onehot_no_classes), onehot_no_classes)
-    assert torch.allclose(expected.to(onehot_classes), onehot_classes)
-
-
-def test_to_categorical():
-    test_tensor = torch.stack([
-        torch.cat([torch.eye(5, dtype=int), torch.zeros((5, 5), dtype=int)]),
-        torch.cat([torch.zeros((5, 5), dtype=int), torch.eye(5, dtype=int)])
-    ]).to(torch.float)
-
-    expected = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
-    assert expected.shape == (2, 5)
-    assert test_tensor.shape == (2, 10, 5)
-
-    result = to_categorical(test_tensor)
-
-    assert result.shape == expected.shape
-    assert torch.allclose(result, expected.to(result.dtype))
-
-
-@pytest.mark.parametrize(['pred', 'target', 'num_classes', 'expected_num_classes'], [
-    pytest.param(torch.rand(32, 10, 28, 28), torch.randint(10, (32, 28, 28)), 10, 10),
-    pytest.param(torch.rand(32, 10, 28, 28), torch.randint(10, (32, 28, 28)), None, 10),
-    pytest.param(torch.rand(32, 28, 28), torch.randint(10, (32, 28, 28)), None, 10),
-])
-def test_get_num_classes(pred, target, num_classes, expected_num_classes):
-    assert get_num_classes(pred, target, num_classes) == expected_num_classes
 
 
 @pytest.mark.parametrize(['sample_weight', 'pos_label', "exp_shape"], [
