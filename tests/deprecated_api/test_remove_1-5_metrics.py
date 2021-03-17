@@ -17,6 +17,7 @@ import pytest
 import torch
 
 from pytorch_lightning.metrics import Accuracy, MetricCollection
+from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
 
 
@@ -38,11 +39,11 @@ def test_v1_5_metrics_utils():
 
 
 def test_v1_5_metric_accuracy():
-    from pytorch_lightning.metrics.functional.accuracy import accuracy
+    accuracy.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert accuracy(preds=torch.tensor([0, 1]), target=torch.tensor([0, 1])) == torch.tensor(1.)
 
-    from pytorch_lightning.metrics import Accuracy
+    Accuracy.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         Accuracy()
 
