@@ -41,8 +41,8 @@ def test_v1_5_0_metrics_collection():
     target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
     preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
     with pytest.deprecated_call(
-        match="The `MetricCollection` was deprecated since v1.3.0 in favor"
-        " of `torchmetrics.collections.MetricCollection`. It will be removed in v1.5.0"
+        match="`pytorch_lightning.metrics.metric.MetricCollection` was deprecated since v1.3.0 in favor"
+              " of `torchmetrics.collections.MetricCollection`. It will be removed in v1.5.0."
     ):
         metrics = MetricCollection([Accuracy()])
     assert metrics(preds, target) == {'Accuracy': torch.Tensor([0.1250])[0]}
