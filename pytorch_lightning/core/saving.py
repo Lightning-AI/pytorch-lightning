@@ -60,6 +60,7 @@ class ModelIO(object):
         map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
+        update_checkpoint: bool = True,
         **kwargs,
     ):
         r"""
@@ -93,6 +94,8 @@ class ModelIO(object):
                 `hparams` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
                 returned by this module's state dict. Default: `True`.
+            update_checkpoint: Whether to update the checkpoint `on hyper_parameters` key
+                with \*\*kwargs
             kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
@@ -151,8 +154,10 @@ class ModelIO(object):
         # for past checkpoint need to add the new key
         if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
             checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = {}
+
         # override the hparams with values that were passed in
-        checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
+        if update_checkpoint:
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
         model = cls._load_model_state(checkpoint, strict=strict, **kwargs)
         return model
