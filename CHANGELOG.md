@@ -77,6 +77,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
     [#6515](https://github.com/PyTorchLightning/pytorch-lightning/pull/6515),
 
+    [#6572](https://github.com/PyTorchLightning/pytorch-lightning/pull/6572),
+
 )
 
 
