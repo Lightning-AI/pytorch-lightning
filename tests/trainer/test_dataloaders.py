@@ -1214,7 +1214,6 @@ def test_request_dataloader(tmpdir):
             assert isinstance(self.trainer.val_dataloaders[0], DataLoaderWrapper)
             self.on_val_batch_start_called = True
 
-    # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
