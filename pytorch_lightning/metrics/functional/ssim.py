@@ -15,8 +15,8 @@ from typing import Optional, Sequence, Tuple
 
 import torch
 from torch.nn import functional as F
-
-from pytorch_lightning.metrics.utils import _check_same_shape, reduce
+from torchmetrics.utilities import reduce
+from torchmetrics.utilities.checks import _check_same_shape
 
 
 def _gaussian(kernel_size: int, sigma: int, dtype: torch.dtype, device: torch.device):
@@ -142,6 +142,18 @@ def ssim(
 
     Return:
         Tensor with SSIM score
+
+    Raises:
+        TypeError:
+            If ``preds`` and ``target`` don't have the same data type.
+        ValueError:
+            If ``preds`` and ``target`` don't have ``BxCxHxW shape``.
+        ValueError:
+            If the length of ``kernel_size`` or ``sigma`` is not ``2``.
+        ValueError:
+            If one of the elements of ``kernel_size`` is not an ``odd positive number``.
+        ValueError:
+            If one of the elements of ``sigma`` is not a ``positive number``.
 
     Example:
         >>> from pytorch_lightning.metrics.functional import ssim

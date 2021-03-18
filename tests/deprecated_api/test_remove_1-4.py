@@ -24,7 +24,7 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.plugins.environments import TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import LightningEnvironment
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -130,16 +130,6 @@ def test_v1_4_0_deprecated_metrics():
     with pytest.deprecated_call(match='will be removed in v1.4'):
         precision_recall(torch.randint(0, 2, (10, 3, 3)), torch.randint(0, 2, (10, 3, 3)))
 
-    # Testing deprecation of class_reduction arg in the *new* precision
-    from pytorch_lightning.metrics.functional import precision
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        precision(torch.randint(0, 2, (10, )), torch.randint(0, 2, (10, )), class_reduction='micro')
-
-    # Testing deprecation of class_reduction arg in the *new* recall
-    from pytorch_lightning.metrics.functional import recall
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        recall(torch.randint(0, 2, (10, )), torch.randint(0, 2, (10, )), class_reduction='micro')
-
     from pytorch_lightning.metrics.functional.classification import auc
     with pytest.deprecated_call(match='will be removed in v1.4'):
         auc(torch.rand(10, ).sort().values, torch.rand(10, ))
@@ -188,7 +178,7 @@ def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
         plugins=[
             CustomDDPPlugin(
                 parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
-                cluster_environment=TorchElasticEnvironment(),
+                cluster_environment=LightningEnvironment(),
             )
         ]
     )

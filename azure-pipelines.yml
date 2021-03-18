@@ -71,11 +71,6 @@ jobs:
         python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
       displayName: 'Env details'
 
-    # todo: require proper fix in docker image
-    - bash: |
-        pip install torchtext==0.7 -U
-      displayName: 'HotFix'
-
     - bash: |
         wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
         unzip -o legacy/checkpoints.zip -d legacy/
@@ -83,7 +78,7 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50
+        python -m pytest pytorch_lightning tests -v --cov=pytorch_lightning --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
 
     - bash: |
@@ -93,17 +88,37 @@ jobs:
     - bash: |
         python -m coverage report
         python -m coverage xml
-        codecov --token=$(CODECOV_TOKEN) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
+        python -m coverage html
+        python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
+        ls -l
       displayName: 'Statistics'
+
+    - task: PublishTestResults@2
+      displayName: 'Publish test results'
+      inputs:
+        testResultsFiles: '$(Build.StagingDirectory)/test-results.xml'
+        testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
+      condition: succeededOrFailed()
+
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish coverage report'
+      inputs:
+        codeCoverageTool: 'cobertura'
+        summaryFileLocation: 'coverage.xml'
+        reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
+        testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
+      condition: succeededOrFailed()
 
     - bash: |
         python -m pytest benchmarks -v --maxfail=2 --durations=0
       displayName: 'Testing: benchmarks'
 
-    # todo: put this back just when TorchVision can download datasets
-    #- bash: |
-    #    python -m pytest pl_examples -v --maxfail=2 --durations=0
-    #    python setup.py install --user --quiet
-    #    bash pl_examples/run_ddp-example.sh
-    #    pip uninstall -y pytorch-lightning
-    #  displayName: 'Examples'
+    - bash: |
+        python -m pytest pl_examples -v --maxfail=2 --durations=0
+        python setup.py install --user --quiet
+        bash pl_examples/run_ddp-example.sh
+        cd pl_examples/basic_examples
+        bash submit_ddp_job.sh
+        bash submit_ddp2_job.sh
+        pip uninstall -y pytorch-lightning
+      displayName: 'Examples'

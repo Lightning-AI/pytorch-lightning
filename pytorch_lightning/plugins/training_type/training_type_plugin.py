@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
@@ -33,11 +33,20 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self) -> None:
         self._model = None
         self._results = None
-        self.global_rank = 0
 
-    @abstractmethod
     def connect(self, model: 'Module') -> None:
-        """Called by the accelerator to connect it with this plugin"""
+        """Called by the accelerator to connect the accelerator and the model with this plugin"""
+        self.model = model
+
+    def setup_environment(self) -> None:
+        """
+        Setup any processes or distributed connections.
+        This is called before the LightningModule/DataModule setup hook
+        which allows the user to access the accelerator environment before setup is complete.
+        """
+
+    def setup(self, model: 'Module') -> None:
+        """Called by the accelerator to finish setup."""
 
     @property
     @abstractmethod
@@ -77,9 +86,13 @@ class TrainingTypePlugin(Plugin, ABC):
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes"""
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        """Reduce the early stopping decision across all possibly spawned processes"""
-        return should_stop
+    @abstractmethod
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """Perform a all_gather on all processes """
+
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        """Reduce the early stopping decision across all processes"""
+        return decision
 
     def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""
@@ -121,9 +134,9 @@ class TrainingTypePlugin(Plugin, ABC):
         # double dispatch to initiate the training loop
         self._results = trainer.run_train()
 
-    def start_testing(self, trainer: 'Trainer') -> None:
+    def start_evaluating(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_test()
+        self._results = trainer.run_evaluate()
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the predicting loop
@@ -153,7 +166,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step_end(self, output):
         return output
 
-    def on_save(self, checkpoint: dict) -> dict:
+    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
         return checkpoint
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
@@ -171,10 +184,11 @@ class TrainingTypePlugin(Plugin, ABC):
         optimizer.step(closure=lambda_closure, **kwargs)
 
     @property
-    def setup_optimizers_after_dispatch(self) -> bool:
+    def setup_optimizers_in_pre_dispatch(self) -> bool:
         """
         Override to delay setting optimizers and schedulers till after dispatch.
         This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
-        Returns: True if delaying setup optimizers till after dispatch, False to call within setup.
+        However this may break certain precision plugins such as APEX which require optimizers to be set.
+        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return False

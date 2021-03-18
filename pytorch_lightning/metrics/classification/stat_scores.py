@@ -14,9 +14,9 @@
 from typing import Any, Callable, Optional, Tuple
 
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_compute, _stat_scores_update
-from pytorch_lightning.metrics.metric import Metric
 
 
 class StatScores(Metric):
@@ -27,8 +27,6 @@ class StatScores(Metric):
     The reduction method (how the statistics are aggregated) is controlled by the
     ``reduce`` parameter, and additionally by the ``mdmc_reduce`` parameter in the
     multi-dimensional multi-class case.
-
-    Accepts all inputs listed in :ref:`extensions/metrics:input types`.
 
     Args:
         threshold:
@@ -70,8 +68,7 @@ class StatScores(Metric):
             Defines how the multi-dimensional multi-class inputs are handeled. Should be
             one of the following:
 
-            - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional
-              multi-class (see :ref:`extensions/metrics:input types` for the definition of input types).
+            - ``None`` [default]: Should be left unchanged if your data is not multi-dimensional multi-class.
 
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then the outputs are concatenated together. In each
@@ -85,9 +82,7 @@ class StatScores(Metric):
 
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be. See the parameter's
-            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
-            for a more detailed explanation and examples.
+            than what they appear to be.
 
         compute_on_step:
             Forward only calls ``update()`` and return ``None`` if this is set to ``False``.
@@ -100,6 +95,19 @@ class StatScores(Metric):
         dist_sync_fn:
             Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the allgather.
+
+    Raises:
+        ValueError:
+            If ``threshold`` is not a ``float`` between ``0`` and ``1``.
+        ValueError:
+            If ``reduce`` is none of ``"micro"``, ``"macro"`` or ``"samples"``.
+        ValueError:
+            If ``mdmc_reduce`` is none of ``None``, ``"samplewise"``, ``"global"``.
+        ValueError:
+            If ``reduce`` is set to ``"macro"`` and ``num_classes`` is not provided.
+        ValueError:
+            If ``num_classes`` is set
+            and ``ignore_index`` is not in the range ``0`` <= ``ignore_index`` < ``num_classes``.
 
     Example:
 
@@ -175,8 +183,7 @@ class StatScores(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`extensions/metrics:input types` for more information
-        on input types.
+        Update state with predictions and targets.
 
         Args:
             preds: Predictions from model (probabilities or labels)

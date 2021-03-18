@@ -19,7 +19,7 @@ import inspect
 import logging
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, List, Optional, Tuple, Union, Dict
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.utils.prune as pytorch_prune
@@ -27,7 +27,7 @@ from torch import nn
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_debug
+from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
