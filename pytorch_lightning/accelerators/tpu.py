@@ -1,6 +1,7 @@
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 import torch
+from torch._six import inf
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -12,6 +13,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
+    from torch_xla._patched_functions import clip_grad_norm_
 
 if TYPE_CHECKING:
     from pytorch_lightning.core.lightning import LightningModule
@@ -55,3 +57,11 @@ class TPUAccelerator(Accelerator):
         if torch.distributed.is_initialized():
             return xm.all_gather(tensor, group=group, sync_grads=sync_grads)
         return tensor
+
+    def clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
+
+        model = self.lightning_module
+        parameters = model.parameters()
+        max_norm = grad_clip_val
+
+        clip_grad_norm_(parameters, max_norm, norm_type)
