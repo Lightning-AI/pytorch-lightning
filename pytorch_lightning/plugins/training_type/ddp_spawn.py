@@ -77,8 +77,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         return distributed_sampler_kwargs
 
     def setup(self, model):
-        self._model = model
-
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
 
         # pass in a state q
