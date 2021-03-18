@@ -65,6 +65,14 @@ class Accelerator(object):
         self.lr_schedulers: Sequence = []
         self.optimizer_frequencies: Sequence = []
 
+    def setup_environment(self) -> None:
+        """
+        Setup any processes or distributed connections.
+        This is called before the LightningModule/DataModule setup hook
+        which allows the user to access the accelerator environment before setup is complete.
+        """
+        self.training_type_plugin.setup_environment()
+
     def setup(self, trainer: 'Trainer', model: LightningModule) -> None:
         """
         Connects the plugins to the training process, creates optimizers

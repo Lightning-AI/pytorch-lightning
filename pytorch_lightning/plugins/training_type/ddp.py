@@ -83,6 +83,7 @@ class DDPPlugin(ParallelPlugin):
     def setup(self, model):
         self._model = model
 
+    def setup_environment(self):
         # start the other scripts
         if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
             self._call_children_scripts()

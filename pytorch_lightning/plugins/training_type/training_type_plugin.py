@@ -38,6 +38,13 @@ class TrainingTypePlugin(Plugin, ABC):
     def connect(self, model: 'Module') -> None:
         """Called by the accelerator to connect it with this plugin"""
 
+    def setup_environment(self) -> None:
+        """
+        Setup any processes or distributed connections.
+        This is called before the LightningModule/DataModule setup hook
+        which allows the user to access the accelerator environment before setup is complete.
+        """
+
     @property
     @abstractmethod
     def on_gpu(self) -> bool:

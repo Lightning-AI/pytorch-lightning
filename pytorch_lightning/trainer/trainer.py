@@ -429,8 +429,9 @@ class Trainer(
         # SET UP TRAINING
         # ----------------------------
         self.call_hook("on_before_accelerator_backend_setup", model)
-        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
+        self.accelerator.setup_environment()
         self.call_setup_hook(model)
+        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
