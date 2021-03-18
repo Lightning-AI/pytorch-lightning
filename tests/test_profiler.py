@@ -321,4 +321,4 @@ def test_pytorch_profiler_nested(tmpdir):
             'aten::ones', 'a', 'aten::add', 'aten::empty', 'aten::zero_', 'b', 'c', 'aten::zeros', 'aten::fill_'
         }
 
-    assert events_name == expected
+    assert events_name == expected, (events_name, torch.__version__, platform.system())
