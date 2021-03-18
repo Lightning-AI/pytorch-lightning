@@ -120,6 +120,12 @@ class ModelIO(object):
                 hparams_file='/path/to/hparams_file.yaml'
             )
 
+            # or load weights without updating hyperparameters
+            MyLightningModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                update_checkpoint=False
+            )
+
             # override some of the params with new values
             MyLightningModule.load_from_checkpoint(
                 PATH,
