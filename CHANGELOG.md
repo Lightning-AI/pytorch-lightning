@@ -72,7 +72,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated metrics in favor of `torchmetrics` ([#6505](https://github.com/PyTorchLightning/pytorch-lightning/pull/6505),
 
     [#6530](https://github.com/PyTorchLightning/pytorch-lightning/pull/6530),
-  
+
     [#6547](https://github.com/PyTorchLightning/pytorch-lightning/pull/6547),
 
     [#6515](https://github.com/PyTorchLightning/pytorch-lightning/pull/6515),
@@ -159,6 +159,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed an exception in the layer summary when the model contains torch.jit scripted submodules ([#6511](https://github.com/PyTorchLightning/pytorch-lightning/pull/6511))
+
+
+- Update Gradient Clipping for the TPU Accelerator ([#6576](https://github.com/PyTorchLightning/pytorch-lightning/pull/6576))
 
 
 ## [1.2.3] - 2021-03-09
