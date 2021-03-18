@@ -65,6 +65,10 @@ class Accelerator(object):
         self.lr_schedulers: Sequence = []
         self.optimizer_frequencies: Sequence = []
 
+    def connect(self, model: LightningModule) -> None:
+        """Transfers ownership of the model to this plugin"""
+        self.training_type_plugin.connect(model)
+
     def setup_environment(self) -> None:
         """
         Setup any processes or distributed connections.
@@ -81,9 +85,9 @@ class Accelerator(object):
             trainer: the trainer instance to connect to
             model: the model to train
         """
-        self.connect_training_type_plugin(self.training_type_plugin, model)
+        self.setup_training_type_plugin(self.training_type_plugin, model)
         self.setup_optimizers(trainer)
-        self.connect_precision_plugin(self.precision_plugin)
+        self.setup_precision_plugin(self.precision_plugin)
 
     def start_training(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
@@ -340,14 +344,11 @@ class Accelerator(object):
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
-        """Attaches the training type plugin to the accelerator.
-        Also transfers ownership of the model to this plugin
+    def setup_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+        """Attaches the training type plugin to the accelerator."""
+        plugin.setup(model)
 
-        """
-        plugin.connect(model)
-
-    def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
+    def setup_precision_plugin(self, plugin: PrecisionPlugin) -> None:
         """Attaches the precision plugin to the accelerator"""
         model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
