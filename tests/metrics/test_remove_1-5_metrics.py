@@ -25,7 +25,7 @@ from pytorch_lightning.metrics import (
     Precision,
     PrecisionRecallCurve,
     Recall,
-    ROC,
+    ROC, ConfusionMatrix,
 )
 from pytorch_lightning.metrics.functional import (
     auc,
@@ -35,7 +35,7 @@ from pytorch_lightning.metrics.functional import (
     precision_recall,
     precision_recall_curve,
     recall,
-    roc,
+    roc, confusion_matrix,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
@@ -162,3 +162,15 @@ def test_v1_5_metric_precision_recall():
         assert torch.equal(prec, torch.tensor([1., 1., 1., 1.]))
         assert torch.allclose(rc, torch.tensor([1., 0.6667, 0.3333, 0.]), atol=1e-4)
         assert torch.equal(thrs, torch.tensor([1, 2, 3]))
+
+
+# def test_v1_5_metric_classif():
+#     ConfusionMatrix.__init__.warned = False
+#     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+#         ConfusionMatrix()
+#
+#     pred = torch.tensor([0, 1, 2, 3])
+#     target = torch.tensor([0, 1, 1, 1])
+#     confusion_matrix.warned = False
+#     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+#         assert torch.equal(confusion_matrix(pred, target))
