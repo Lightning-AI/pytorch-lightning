@@ -31,6 +31,7 @@ from pytorch_lightning.metrics import (
     PrecisionRecallCurve,
     Recall,
     ROC,
+    StatScores,
 )
 from pytorch_lightning.metrics.functional import (
     auc,
@@ -46,6 +47,7 @@ from pytorch_lightning.metrics.functional import (
     precision_recall_curve,
     recall,
     roc,
+    stat_scores,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
@@ -174,7 +176,7 @@ def test_v1_5_metric_precision_recall():
         assert torch.equal(thrs, torch.tensor([1, 2, 3]))
 
 
-def test_v1_5_metric_classif():
+def test_v1_5_metric_classif_mix():
     ConfusionMatrix.__init__.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         ConfusionMatrix(num_classes=1)
@@ -190,6 +192,10 @@ def test_v1_5_metric_classif():
     HammingDistance.__init__.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         HammingDistance()
+
+    StatScores.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        StatScores()
 
     target = torch.tensor([1, 1, 0, 0])
     preds = torch.tensor([0, 1, 0, 0])
@@ -211,7 +217,13 @@ def test_v1_5_metric_classif():
     preds = torch.tensor([[0, 1], [0, 1]])
     hamming_distance.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert hamming_distance(preds, target) == torch.tensor(0.2500)
+        assert hamming_distance(preds, target) == torch.tensor(0.25)
+
+    preds = torch.tensor([1, 0, 2, 1])
+    target = torch.tensor([1, 1, 2, 0])
+    stat_scores.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.equal(stat_scores(preds, target, reduce='micro'), torch.tensor([2, 2, 6, 2, 4]))
 
 
 def test_v1_5_metric_detect():
