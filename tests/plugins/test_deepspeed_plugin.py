@@ -181,7 +181,7 @@ def test_deepspeed_defaults(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
-def test_invalid_deepspeed_defaults_no_precision(dist_initialized_mock, tmpdir):
+def test_invalid_deepspeed_defaults_no_precision(tmpdir):
     """Test to ensure that using defaults, if precision is not set to 16, we throw an exception."""
     model = BoringModel()
     trainer = Trainer(
