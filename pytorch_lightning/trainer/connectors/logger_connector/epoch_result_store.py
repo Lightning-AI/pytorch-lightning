@@ -14,7 +14,7 @@
 import logging
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from weakref import CallableProxyType, proxy
+from weakref import proxy
 
 import torch
 
@@ -66,7 +66,7 @@ class HookResultStore:
     Those data structures enables us to reduce properly Result object when batch loop is finished.
     """
 
-    def __init__(self, fx_name: str, all_gather_fn: CallableProxyType) -> None:
+    def __init__(self, fx_name: str, all_gather_fn: Callable) -> None:
         self._fx_name = fx_name
         self._all_gather_fn = all_gather_fn
         self._internals = {}
@@ -310,7 +310,7 @@ class EpochResultStore:
             info = self.info
             fx_name = info["fx_name"]
 
-            all_gather_fn = proxy(self.trainer.lightning_module.all_gather)
+            all_gather_fn = self.trainer.lightning_module.all_gather
             self._internals.setdefault(fx_name, HookResultStore(fx_name, all_gather_fn))
 
             # attach capture batch_size
