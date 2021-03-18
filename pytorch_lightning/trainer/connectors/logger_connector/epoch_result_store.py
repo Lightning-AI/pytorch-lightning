@@ -14,7 +14,7 @@
 import logging
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from weakref import proxy
+from weakref import CallableProxyType, proxy
 
 import torch
 
@@ -66,7 +66,7 @@ class HookResultStore:
     Those data structures enables us to reduce properly Result object when batch loop is finished.
     """
 
-    def __init__(self, fx_name: str, all_gather_fn: Callable) -> None:
+    def __init__(self, fx_name: str, all_gather_fn: CallableProxyType) -> None:
         self._fx_name = fx_name
         self._all_gather_fn = all_gather_fn
         self._internals = {}
@@ -126,7 +126,7 @@ class HookResultStore:
         metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
         if (
             torch.distributed.is_available() and torch.distributed.is_initialized()
-            and self._all_gather_fn.__self__.trainer.world_size > 1
+            and torch.distributed.get_world_size() > 1
         ):
             for non_metric_key in opt_metric.get_non_metrics_keys():
                 if non_metric_key in metrics_to_log and non_metric_key not in warning_cache.warned_metrics:
@@ -310,7 +310,7 @@ class EpochResultStore:
             info = self.info
             fx_name = info["fx_name"]
 
-            all_gather_fn = self.trainer.lightning_module.all_gather
+            all_gather_fn = proxy(self.trainer.lightning_module.all_gather)
             self._internals.setdefault(fx_name, HookResultStore(fx_name, all_gather_fn))
 
             # attach capture batch_size
