@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM nvcr.io/nvidia/pytorch:20.12-py3
+FROM nvcr.io/nvidia/pytorch:21.02-py3
 
 MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
