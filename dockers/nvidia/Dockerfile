@@ -30,8 +30,6 @@ RUN \
         mv pytorch-lightning-*/ pytorch-lightning ; \
         rm *.zip ; \
     fi && \
-    # fixme, unfreeze
-    pip install "torchtext==0.6" && \
     pip install ./pytorch-lightning["extra"] --no-cache-dir && \
     rm -rf pytorch-lightning
 
