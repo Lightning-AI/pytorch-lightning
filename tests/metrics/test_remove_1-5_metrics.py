@@ -107,10 +107,10 @@ def test_v1_5_metric_auc_auroc():
     target = torch.tensor([0, 1, 1, 1])
     roc.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        fpr, tpr, thresholds = roc(preds, target, pos_label=1)
+        fpr, tpr, thrs = roc(preds, target, pos_label=1)
         assert torch.equal(fpr, torch.tensor([0., 0., 0., 0., 1.]))
         assert torch.allclose(tpr, torch.tensor([0.0000, 0.3333, 0.6667, 1.0000, 1.0000]), atol=1e-4)
-        assert torch.equal(thresholds, torch.tensor([4, 3, 2, 1, 0]))
+        assert torch.equal(thrs, torch.tensor([4, 3, 2, 1, 0]))
 
     preds = torch.tensor([0.13, 0.26, 0.08, 0.19, 0.34])
     target = torch.tensor([0, 0, 1, 1, 1])
@@ -152,8 +152,13 @@ def test_v1_5_metric_precision_recall():
 
     precision_recall.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert precision_recall(pred, target) == (torch.tensor(0.5000), torch.tensor(0.5000))
+        prec, rc = precision_recall(pred, target)
+        assert prec == torch.tensor(0.5)
+        assert rc == torch.tensor(0.5)
 
     precision_recall_curve.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert precision_recall_curve(pred, target) == (torch.tensor(0.5000), torch.tensor(0.5000))
+        prec, rc, thrs = precision_recall_curve(pred, target)
+        assert torch.equal(prec, torch.tensor([1., 1., 1., 1.]))
+        assert torch.allclose(rc, torch.tensor([1., 0.6667, 0.3333, 0.]), atol=1e-4)
+        assert torch.equal(thrs, torch.tensor([1, 2, 3]))
