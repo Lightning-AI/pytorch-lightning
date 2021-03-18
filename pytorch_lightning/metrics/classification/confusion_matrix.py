@@ -17,6 +17,7 @@ from torchmetrics import ConfusionMatrix as _ConfusionMatrix
 
 from pytorch_lightning.utilities.deprecation import deprecated
 
+
 class ConfusionMatrix(_ConfusionMatrix):
 
     @deprecated(target=_ConfusionMatrix, ver_deprecate="1.3.0", ver_remove="1.5.0")

@@ -21,21 +21,29 @@ from pytorch_lightning.metrics import (
     AUC,
     AUROC,
     AveragePrecision,
+    ConfusionMatrix,
+    F1,
+    FBeta,
+    IoU,
     MetricCollection,
     Precision,
     PrecisionRecallCurve,
     Recall,
-    ROC, ConfusionMatrix, IoU,
+    ROC,
 )
 from pytorch_lightning.metrics.functional import (
     auc,
     auroc,
     average_precision,
+    confusion_matrix,
+    f1,
+    fbeta,
+    iou,
     precision,
     precision_recall,
     precision_recall_curve,
     recall,
-    roc, confusion_matrix, iou,
+    roc,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
@@ -169,13 +177,29 @@ def test_v1_5_metric_classif():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         ConfusionMatrix(num_classes=1)
 
+    FBeta.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        FBeta(num_classes=1)
+
+    F1.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        F1(num_classes=1)
+
     target = torch.tensor([1, 1, 0, 0])
     preds = torch.tensor([0, 1, 0, 0])
-    confusion_matrix(preds, target, num_classes=2)
-
     confusion_matrix.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert torch.equal(confusion_matrix(preds, target, num_classes=2), torch.tensor([[2., 0.], [1., 1.]]))
+
+    target = torch.tensor([0, 1, 2, 0, 1, 2])
+    preds = torch.tensor([0, 2, 1, 0, 0, 1])
+    fbeta.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.allclose(fbeta(preds, target, num_classes=3, beta=0.5), torch.tensor(0.3333), atol=1e-4)
+
+    f1.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.allclose(f1(preds, target, num_classes=3), torch.tensor(0.3333), atol=1e-4)
 
 
 def test_v1_5_metric_detect():
