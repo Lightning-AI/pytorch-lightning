@@ -1,7 +1,6 @@
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 import torch
-from torch._six import inf
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
