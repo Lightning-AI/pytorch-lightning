@@ -107,6 +107,42 @@ be returned.
             batch_a = batch["a"]
             batch_b = batch["b"]
 
+
+.. testcode::
+
+    class LitModel(LightningModule):
+
+        def train_dataloader(self):
+
+            loader_a = torch.utils.data.DataLoader(range(8), batch_size=4)
+            loader_b = torch.utils.data.DataLoader(range(16), batch_size=4)
+            loader_c = torch.utils.data.DataLoader(range(32), batch_size=4)
+            loader_c = torch.utils.data.DataLoader(range(64), batch_size=4)
+
+            # pass loaders as a nested dict. This will create batches like this:
+            loaders = {
+                'loaders_a_b': {
+                    'a': loader_a,
+                    'b': loader_b
+                },
+                'loaders_c_d': {
+                    'c': loader_c,
+                    'd': loader_d
+                }
+            }
+            return loaders
+
+        def training_step(self, batch, batch_idx):
+            # access the data
+            batch_a_b = batch["loaders_a_b"]
+            batch_c_d = batch["loaders_c_d"]
+
+            batch_a = batch_a_b["a"]
+            batch_b = batch_a_b["a"]
+
+            batch_c = batch_c_d["c"]
+            batch_d = batch_c_d["d"]
+
 ----------
 
 Test/Val dataloaders
