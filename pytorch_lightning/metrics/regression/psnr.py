@@ -14,10 +14,10 @@
 from typing import Any, Optional, Sequence, Tuple, Union
 
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning import utilities
 from pytorch_lightning.metrics.functional.psnr import _psnr_compute, _psnr_update
-from pytorch_lightning.metrics.metric import Metric
 
 
 class PSNR(Metric):

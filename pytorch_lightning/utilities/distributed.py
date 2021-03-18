@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 
 if torch.distributed.is_available():
     from torch.distributed import group, ReduceOp
+
 else:
 
     class ReduceOp:

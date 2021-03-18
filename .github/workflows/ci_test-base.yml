@@ -51,9 +51,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade --user pip
-        pip install --requirement ./requirements.txt --quiet  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        pip install --requirement ./requirements/test.txt --quiet --upgrade-strategy only-if-needed
-        # pip install tox coverage
+        pip install --requirement ./requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install "pytest>6.0" "pytest-cov>2.10" --upgrade-strategy only-if-needed
         python --version
         pip --version
         pip list
@@ -69,7 +68,7 @@ jobs:
     - name: Test Package [only]
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        python -m pytest pytorch_lightning -v --cov=pytorch_lightning --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2

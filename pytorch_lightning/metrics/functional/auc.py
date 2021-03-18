@@ -14,8 +14,7 @@
 from typing import Tuple
 
 import torch
-
-from pytorch_lightning.metrics.utils import _stable_1d_sort
+from torchmetrics.utilities.data import _stable_1d_sort
 
 
 def _auc_update(x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -62,6 +61,14 @@ def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> torch.Tensor
 
     Return:
         Tensor containing AUC score (float)
+
+    Raises:
+        ValueError:
+            If both ``x`` and ``y`` tensors are not ``1d``.
+        ValueError:
+            If both ``x`` and ``y`` don't have the same numnber of elements.
+        ValueError:
+            If ``x`` tesnsor is neither increasing or decreasing.
 
     Example:
         >>> from pytorch_lightning.metrics.functional import auc

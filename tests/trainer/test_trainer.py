@@ -603,7 +603,9 @@ def test_benchmark_option(tmpdir):
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
 @pytest.mark.parametrize("fn", ("validate", "test"))
 def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
+
     class TestModel(BoringModel):
+
         def validation_step(self, batch, batch_idx):
             self.log("foo", -batch_idx)
             return super().validation_step(batch, batch_idx)
