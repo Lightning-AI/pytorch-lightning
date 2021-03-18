@@ -16,13 +16,28 @@
 import pytest
 import torch
 
-from pytorch_lightning.metrics import Precision, Recall, PrecisionRecallCurve
-from pytorch_lightning.metrics.functional import precision, recall, precision_recall, precision_recall_curve
+from pytorch_lightning.metrics import (
+    Accuracy,
+    AUC,
+    AUROC,
+    AveragePrecision,
+    MetricCollection,
+    Precision,
+    PrecisionRecallCurve,
+    Recall,
+    ROC,
+)
+from pytorch_lightning.metrics.functional import (
+    auc,
+    auroc,
+    average_precision,
+    precision,
+    precision_recall,
+    precision_recall_curve,
+    recall,
+    roc,
+)
 from pytorch_lightning.metrics.functional.accuracy import accuracy
-from pytorch_lightning.metrics import Accuracy, AveragePrecision
-from pytorch_lightning.metrics.functional import average_precision
-from pytorch_lightning.metrics import AUC, AUROC, MetricCollection, ROC
-from pytorch_lightning.metrics.functional import auc, auroc, roc
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
 
 
