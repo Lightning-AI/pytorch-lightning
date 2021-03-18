@@ -14,8 +14,7 @@
 from typing import Tuple, Union
 
 import torch
-
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
+from torchmetrics.classification.checks import _input_format_classification
 
 
 def _hamming_distance_update(
@@ -50,8 +49,6 @@ def hamming_distance(preds: torch.Tensor, target: torch.Tensor, threshold: float
     This is the same as ``1-accuracy`` for binary data, while for all other types of inputs it
     treats each possible label separately - meaning that, for example, multi-class data is
     treated as if it were multi-label.
-
-    Accepts all input types listed in :ref:`extensions/metrics:input types`.
 
     Args:
         preds: Predictions from model

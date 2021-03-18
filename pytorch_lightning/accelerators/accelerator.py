@@ -20,8 +20,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
 if TYPE_CHECKING:
@@ -80,8 +80,8 @@ class Accelerator(object):
     def start_training(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
 
-    def start_testing(self, trainer: 'Trainer') -> None:
-        self.training_type_plugin.start_testing(trainer)
+    def start_evaluating(self, trainer: 'Trainer') -> None:
+        self.training_type_plugin.start_evaluating(trainer)
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_predicting(trainer)
@@ -323,7 +323,7 @@ class Accelerator(object):
             trainer: the Trainer, these optimizers should be connected to
             model: the model to be optimized by the created optimizers
         """
-        if trainer.testing:
+        if trainer.state not in (TrainerState.FITTING, TrainerState.TUNING):
             return
         optimizers, lr_schedulers, optimizer_frequencies = self.training_type_plugin.init_optimizers(
             trainer=trainer, model=self.lightning_module
@@ -379,7 +379,7 @@ class Accelerator(object):
         return getattr(self.training_type_plugin, 'optimizer_state', lambda x: x.state_dict())(optimizer)
 
     def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
-        return checkpoint
+        return self.training_type_plugin.on_save(checkpoint)
 
     def barrier(self, name: Optional[str] = None) -> None:
         self.training_type_plugin.barrier(name=name)
@@ -404,7 +404,7 @@ class Accelerator(object):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return self.training_type_plugin.all_gather(tensor, group=group, sync_grads=sync_grads)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Wraps the dataloader if necessary
@@ -417,7 +417,7 @@ class Accelerator(object):
     @property
     def results(self) -> Any:
         """
-        The results of the last training/testing run will be cached within the training type plugin.
+        The results of the last run will be cached within the training type plugin.
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
         return self.training_type_plugin.results

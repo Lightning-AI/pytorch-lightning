@@ -56,7 +56,7 @@ def simple_profiler():
     pytest.param("b", [2]),
     pytest.param("c", [1]),
 ])
-def test_simple_profiler_durations(simple_profiler, action, expected):
+def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
 
     for duration in expected:
@@ -73,7 +73,7 @@ def test_simple_profiler_durations(simple_profiler, action, expected):
     pytest.param("b", [2]),
     pytest.param("c", [1]),
 ])
-def test_simple_profiler_iterable_durations(simple_profiler, action, expected):
+def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 
@@ -128,7 +128,7 @@ def advanced_profiler(tmpdir):
     pytest.param("b", [2]),
     pytest.param("c", [1]),
 ])
-def test_advanced_profiler_durations(advanced_profiler, action, expected):
+def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
 
     for duration in expected:
         with advanced_profiler.profile(action):
@@ -146,7 +146,7 @@ def test_advanced_profiler_durations(advanced_profiler, action, expected):
     pytest.param("b", [2]),
     pytest.param("c", [1]),
 ])
-def test_advanced_profiler_iterable_durations(advanced_profiler, action, expected):
+def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
     iterable = _sleep_generator(expected)
 

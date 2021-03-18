@@ -14,9 +14,9 @@
 from typing import Any, Callable, Optional
 
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning.metrics.functional.hamming_distance import _hamming_distance_compute, _hamming_distance_update
-from pytorch_lightning.metrics.metric import Metric
 
 
 class HammingDistance(Metric):
@@ -35,8 +35,6 @@ class HammingDistance(Metric):
     treats each possible label separately - meaning that, for example, multi-class data is
     treated as if it were multi-label.
 
-    Accepts all input types listed in :ref:`extensions/metrics:input types`.
-
     Args:
         threshold:
             Threshold probability value for transforming probability predictions to binary
@@ -52,6 +50,10 @@ class HammingDistance(Metric):
         dist_sync_fn:
             Callback that performs the allgather operation on the metric state. When ``None``, DDP
             will be used to perform the all gather.
+
+    Raises:
+        ValueError:
+            If ``threshold`` is not between ``0`` and ``1``.
 
     Example:
 
@@ -88,8 +90,7 @@ class HammingDistance(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets. See :ref:`extensions/metrics:input types` for more information
-        on input types.
+        Update state with predictions and targets.
 
         Args:
             preds: Predictions from model (probabilities, or labels)

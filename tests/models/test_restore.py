@@ -167,10 +167,7 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
-            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[
-                checkpoint,
-                callback_capture,
-            ]
+            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[checkpoint, callback_capture]
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
@@ -453,7 +450,7 @@ def test_dp_resume(tmpdir):
 
             # if model and state loaded correctly, predictions will be good even though we
             # haven't trained with the new loaded model
-            new_trainer._running_stage = RunningStage.EVALUATING
+            new_trainer._running_stage = RunningStage.VALIDATING
 
             dataloader = self.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
