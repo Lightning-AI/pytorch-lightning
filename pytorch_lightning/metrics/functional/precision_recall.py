@@ -14,8 +14,8 @@
 from typing import Optional
 
 import torch
+from torchmetrics.classification.stat_scores import _reduce_stat_scores
 
-from pytorch_lightning.metrics.classification.helpers import _reduce_stat_scores
 from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update
 from pytorch_lightning.utilities import rank_zero_warn
 
