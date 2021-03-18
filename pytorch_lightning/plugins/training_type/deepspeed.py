@@ -324,9 +324,7 @@ class DeepSpeedPlugin(DDPPlugin):
             'train_micro_batch_size_per_gpu': 1,
         }
         if 'fp16' in self.config:
-            inference_config.update({
-                "fp16": self.config["fp16"]
-            })
+            inference_config.update({"fp16": self.config["fp16"]})
         if self.zero_stage_3:
             inference_config.update({
                 "zero_allow_untested_optimizer": self.config['zero_allow_untested_optimizer'],
@@ -494,9 +492,7 @@ class DeepSpeedPlugin(DDPPlugin):
             # hook: give user access to checkpoint if needed.
             self.lightning_module.on_load_checkpoint(client_state)
             return client_state, False
-        else:
-            super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
-        return {}, False
+        return super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
 
     def _accumulated_batches_reached(self, trainer):
         return trainer.total_batch_idx % trainer.accumulate_grad_batches == 0
