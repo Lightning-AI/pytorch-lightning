@@ -19,8 +19,6 @@ from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_w
 
 class DeprecatedDistDeviceAttributes:
 
-    _distrib_type: DistributedType
-    _device_type: DeviceType
     num_gpus: int
     accelerator_connector: AcceleratorConnector
 
@@ -135,7 +133,7 @@ class DeprecatedDistDeviceAttributes:
 class DeprecatedTrainerAttributes:
 
     accelerator: Accelerator
-    lightning_module = LightningModule
+    lightning_module: LightningModule
     sanity_checking: bool
 
     @property

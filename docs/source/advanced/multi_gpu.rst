@@ -332,7 +332,6 @@ There are cases in which it is NOT possible to use DDP. Examples are:
 
 - Jupyter Notebook, Google COLAB, Kaggle, etc.
 - You have a nested script without a root package
-- Your script needs to invoke both `.fit` and `.test`, or one of them multiple times
 
 In these situations you should use `dp` or `ddp_spawn` instead.
 
@@ -698,24 +697,23 @@ To use DeepSpeed, you first need to install DeepSpeed using the commands below.
 
 .. code-block:: bash
 
-    pip install deepspeed mpi4py
+    pip install deepspeed
 
 If you run into an issue with the install or later in training, ensure that the CUDA version of the pytorch you've installed matches your locally installed CUDA (you can see which one has been recognized by running ``nvcc --version``).
-Additionally if you run into any issues installing m4py, ensure you have openmpi installed using ``sudo apt install libopenmpi-dev`` or ``brew install mpich`` before running ``pip install mpi4py``.
 
 .. note::
     Currently ``resume_from_checkpoint`` and manual optimization are not supported.
 
     DeepSpeed currently only supports single optimizer, single scheduler within the training loop.
 
-ZeRO-Offload
-""""""""""""
+DeepSpeed ZeRO Stage 2
+""""""""""""""""""""""
 
-Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tutorials/zero-offload/>`_. ZeRO-Offload leverages the host CPU to offload optimizer memory/computation, reducing the overall memory consumption.
-For even more speed benefit, they offer an optimized CPU version of ADAM to run the offloaded computation, which is faster than the standard PyTorch implementation. By default we enable ZeRO-Offload.
+By default, we enable `DeepSpeed ZeRO Stage 2 <https://www.deepspeed.ai/tutorials/zero/#zero-overview>`_, which partitions your optimizer states (Stage 1) and your gradients (Stage 2) across your GPUs to reduce memory. In most cases, this is more efficient or at parity with DDP, primarily due to the optimized custom communications written by the DeepSpeed team.
+As a result, benefits can also be seen on a single GPU. Do note that the default bucket sizes allocate around ``3.6GB`` of VRAM to use during distributed communications, which can be tweaked when instantiating the plugin described in a few sections below.
 
 .. note::
-    To use ZeRO-Offload, you must use ``precision=16`` or set precision via `the DeepSpeed config. <https://www.deepspeed.ai/docs/config-json/#fp16-training-options>`_.
+    To use ZeRO, you must use ``precision=16``.
 
 .. code-block:: python
 
@@ -723,6 +721,24 @@ For even more speed benefit, they offer an optimized CPU version of ADAM to run 
 
     model = MyModel()
     trainer = Trainer(gpus=4, plugins='deepspeed', precision=16)
+    trainer.fit(model)
+
+
+DeepSpeed ZeRO Stage 2 Offload
+""""""""""""""""""""""""""""""
+
+Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tutorials/zero-offload/>`_. ZeRO-Offload leverages the host CPU to offload optimizer memory/computation, reducing the overall memory consumption.
+
+.. note::
+    To use ZeRO-Offload, you must use ``precision=16``.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True), precision=16)
     trainer.fit(model)
 
 
@@ -741,7 +757,7 @@ You can also modify the ZeRO-Offload parameters via the plugin as below.
     from pytorch_lightning.plugins import DeepSpeedPlugin
 
     model = MyModel()
-    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(allgather_bucket_size=5e8, reduce_bucket_size=5e8), precision=16)
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8), precision=16)
     trainer.fit(model)
 
 
@@ -753,11 +769,30 @@ You can also modify the ZeRO-Offload parameters via the plugin as below.
 
     The plugin sets a reasonable default of ``2e8``, which should work for most low VRAM GPUs (less than ``7GB``), allocating roughly ``3.6GB`` of VRAM as buffer. Higher VRAM GPUs should aim for values around ``5e8``.
 
+For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM called `DeepSpeedCPUAdam <https://deepspeed.readthedocs.io/en/latest/optimizers.html#adam-cpu>`_ to run the offloaded computation, which is faster than the standard PyTorch implementation.
+
+.. code-block:: python
+
+    import pytorch_lightning
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    from deepspeed.ops.adam import DeepSpeedCPUAdam
+
+    class MyModel(pl.LightningModule):
+        ...
+        def configure_optimizers(self):
+            # DeepSpeedCPUAdam provides 5x to 7x speedup over torch.optim.adam(w)
+            return DeepSpeedCPUAdam(self.parameters())
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True), precision=16)
+    trainer.fit(model)
+
 
 Custom DeepSpeed Config
 """""""""""""""""""""""
 
-DeepSpeed allows use of custom DeepSpeed optimizers and schedulers defined within a config file. This allows you to enable optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_.
+In some cases you may want to define your own DeepSpeed Config, to access all parameters defined. We've exposed most of the important parameters, however, there may be debugging parameters to enable. Also, DeepSpeed allows the use of custom DeepSpeed optimizers and schedulers defined within a config file that is supported.
 
 .. note::
     All plugin default parameters will be ignored when a config object is passed.

@@ -137,7 +137,7 @@ class HookResultStore:
                             "doesn't appear to be the same accross all processes. "
                             "HINT: One could either do: `self.log(..., sync_dist=True, sync_fn=torch.mean)`"
                             " to force mean reduction across processes which can be inaccurate or implement"
-                            " a `pytorch_lightning.metrics.Metric`"
+                            " a `torchmetrics.Metric`"
                         )
                     warning_cache.warned_metrics.append(non_metric_key)
 

@@ -360,9 +360,9 @@ def test_trainer_model_hook_system(tmpdir):
             self.called.append(inspect.currentframe().f_code.co_name)
             super().on_validation_epoch_start()
 
-        def on_validation_epoch_end(self):
+        def on_validation_epoch_end(self, outputs):
             self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_validation_epoch_end()
+            super().on_validation_epoch_end(outputs)
 
         def on_test_start(self):
             self.called.append(inspect.currentframe().f_code.co_name)
@@ -380,9 +380,9 @@ def test_trainer_model_hook_system(tmpdir):
             self.called.append(inspect.currentframe().f_code.co_name)
             super().on_test_epoch_start()
 
-        def on_test_epoch_end(self):
+        def on_test_epoch_end(self, outputs):
             self.called.append(inspect.currentframe().f_code.co_name)
-            super().on_test_epoch_end()
+            super().on_test_epoch_end(outputs)
 
         def on_validation_model_eval(self):
             self.called.append(inspect.currentframe().f_code.co_name)
@@ -466,7 +466,23 @@ def test_trainer_model_hook_system(tmpdir):
         'on_fit_end',
         'teardown',
     ]
+    assert model.called == expected
 
+    model = HookedModel()
+
+    trainer.validate(model, verbose=False)
+    expected = [
+        'on_validation_model_eval',
+        'on_validation_start',
+        'on_validation_epoch_start',
+        'on_validation_batch_start',
+        'on_validation_batch_end',
+        'on_validation_epoch_end',
+        'on_epoch_end',
+        'on_validation_end',
+        'on_validation_model_train',
+        'teardown',
+    ]
     assert model.called == expected
 
     model = HookedModel()

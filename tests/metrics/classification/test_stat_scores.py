@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 import torch
 from sklearn.metrics import multilabel_confusion_matrix
+from torchmetrics.classification.checks import _input_format_classification
 
 from pytorch_lightning.metrics import StatScores
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification
 from pytorch_lightning.metrics.functional import stat_scores
 from tests.metrics.classification.inputs import _input_binary, _input_binary_prob, _input_multiclass
 from tests.metrics.classification.inputs import _input_multiclass_prob as _input_mccls_prob

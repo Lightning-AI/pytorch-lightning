@@ -15,11 +15,12 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 
 import torch
+from torchmetrics.utilities import class_reduce, reduce
+from torchmetrics.utilities.data import get_num_classes, to_categorical
 
 from pytorch_lightning.metrics.functional.auc import auc as __auc
 from pytorch_lightning.metrics.functional.auroc import auroc as __auroc
 from pytorch_lightning.metrics.functional.iou import iou as __iou
-from pytorch_lightning.metrics.utils import class_reduce, get_num_classes, reduce, to_categorical
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -77,6 +78,9 @@ def stat_scores_multiple_classes(
 
     .. warning :: Deprecated in favor of :func:`~pytorch_lightning.metrics.functional.stat_scores`
 
+    Raises:
+        ValueError:
+            If ``reduction`` is not one of ``"none"``, ``"sum"`` or ``"elementwise_mean"``.
     """
 
     rank_zero_warn(
@@ -438,6 +442,16 @@ def multiclass_auroc(
 
     Return:
         Tensor containing ROCAUC score
+
+    Raises:
+        ValueError:
+            If ``pred`` don't sum up to ``1`` over classes for ``Multiclass AUROC``.
+        ValueError:
+            If number of classes found in ``target`` does not equal the number of
+            columns in ``pred``.
+        ValueError:
+            If number of classes deduced from ``pred`` does not equal the number of
+            classes passed in ``num_classes``.
 
     Example:
 
