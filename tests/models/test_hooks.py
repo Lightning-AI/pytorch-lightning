@@ -466,7 +466,6 @@ def test_trainer_model_hook_system(tmpdir):
         'on_fit_end',
         'teardown',
     ]
-
     assert model.called == expected
 
     model2 = HookedModel()

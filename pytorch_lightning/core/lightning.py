@@ -1053,7 +1053,7 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def predict(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
         """
         Use this function with trainer.predict(...). Override if you need to add any processing logic.
         """

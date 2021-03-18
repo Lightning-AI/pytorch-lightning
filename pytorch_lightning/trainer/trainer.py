@@ -579,11 +579,11 @@ class Trainer(
         model.train()
         torch.set_grad_enabled(True)
 
-        # hook
-        self.train_loop.on_train_start()
-
         # reload data when needed
         self.train_loop.reset_train_val_dataloaders(model)
+
+        # hook
+        self.train_loop.on_train_start()
 
         try:
             if self.train_loop.should_skip_training():
@@ -645,9 +645,6 @@ class Trainer(
         # reset cached results
         self.logger_connector.reset()
 
-        # hook
-        self.evaluation_loop.on_evaluation_start()
-
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
@@ -661,6 +658,9 @@ class Trainer(
         model = self.lightning_module
         model.zero_grad()
         torch.set_grad_enabled(False)
+
+        # hook
+        self.evaluation_loop.on_evaluation_start()
 
         # set up the eval loop
         self.evaluation_loop.setup(model, max_batches, dataloaders)

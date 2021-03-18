@@ -16,14 +16,13 @@ import multiprocessing
 import platform
 from abc import ABC
 from copy import deepcopy
-from typing import Callable, Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -394,7 +393,8 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        model.trainer.call_hook(f"on_request_{stage}_dataloader")
+        if model.trainer is not None:
+            model.trainer.call_hook(f"on_request_{stage}_dataloader")
         dataloader: DataLoader = getattr(model, f'{stage}_dataloader')()
         dataloader = self._flatten_dl_only(dataloader)
         self.accelerator.barrier('get_dataloaders')
