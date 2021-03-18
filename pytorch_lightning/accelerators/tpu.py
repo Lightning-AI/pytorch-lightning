@@ -57,10 +57,15 @@ class TPUAccelerator(Accelerator):
             return xm.all_gather(tensor, group=group, sync_grads=sync_grads)
         return tensor
 
-    def clip_gradients(self, optimizer: Optimizer, grad_clip_val: Union[float, int], norm_type: float = 2.0):
+    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0):
 
         model = self.lightning_module
         parameters = model.parameters()
+
+        grad_clip_val = float(clip_val)
+        if grad_clip_val <= 0:
+            return
+
         max_norm = grad_clip_val
 
         clip_grad_norm_(parameters, max_norm, norm_type)
