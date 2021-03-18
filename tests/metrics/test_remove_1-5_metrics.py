@@ -24,6 +24,7 @@ from pytorch_lightning.metrics import (
     ConfusionMatrix,
     F1,
     FBeta,
+    HammingDistance,
     IoU,
     MetricCollection,
     Precision,
@@ -38,6 +39,7 @@ from pytorch_lightning.metrics.functional import (
     confusion_matrix,
     f1,
     fbeta,
+    hamming_distance,
     iou,
     precision,
     precision_recall,
@@ -185,6 +187,10 @@ def test_v1_5_metric_classif():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         F1(num_classes=1)
 
+    HammingDistance.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        HammingDistance()
+
     target = torch.tensor([1, 1, 0, 0])
     preds = torch.tensor([0, 1, 0, 0])
     confusion_matrix.warned = False
@@ -200,6 +206,12 @@ def test_v1_5_metric_classif():
     f1.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert torch.allclose(f1(preds, target, num_classes=3), torch.tensor(0.3333), atol=1e-4)
+
+    target = torch.tensor([[0, 1], [1, 1]])
+    preds = torch.tensor([[0, 1], [0, 1]])
+    hamming_distance.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert hamming_distance(preds, target) == torch.tensor(0.2500)
 
 
 def test_v1_5_metric_detect():
