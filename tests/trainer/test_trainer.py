@@ -1447,11 +1447,11 @@ def test_trainer_predict_no_return(tmpdir):
 
     class CustomBoringModel(BoringModel):
 
-        def predict(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
             if (batch_idx + 1) % 2 == 0:
                 return
 
-            return super().predict(batch, batch_idx, dataloader_idx)
+            return super().predict_step(batch, batch_idx, dataloader_idx)
 
     with pytest.warns(UserWarning, match='predict returned None'):
         predict(tmpdir, None, None, 1, model=CustomBoringModel())
