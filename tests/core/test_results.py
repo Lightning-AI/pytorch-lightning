@@ -47,15 +47,14 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
     assert res["test_tensor"].item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
 
-@pytest.mark.parametrize("result_cls", [Result])
 @RunIf(skip_windows=True)
-def test_result_reduce_ddp(result_cls):
+def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
     tutils.reset_seed()
     tutils.set_random_master_port()
 
     worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize, result_cls), nprocs=worldsize)
+    mp.spawn(_ddp_test_fn, args=(worldsize, Result), nprocs=worldsize)
 
 
 @pytest.mark.parametrize(
@@ -74,7 +73,7 @@ def test_result_reduce_ddp(result_cls):
         pytest.param(0, True, 1, id='full_loop_single_gpu', marks=RunIf(min_gpus=1))
     ]
 )
-def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
+def test_result_obj_predictions(tmpdir, test_option: int, do_train: bool, gpus: int):
 
     class CustomBoringModel(BoringModel):
 

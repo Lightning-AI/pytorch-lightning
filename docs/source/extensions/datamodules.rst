@@ -80,7 +80,7 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
             self.data_dir = data_dir
             self.batch_size = batch_size
 
-        def setup(self, stage=None):
+        def setup(self, stage: Optional[str] = None):
             self.mnist_test = MNIST(self.data_dir, train=False)
             mnist_full = MNIST(self.data_dir, train=True)
             self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
@@ -138,7 +138,7 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
             MNIST(self.data_dir, train=True, download=True)
             MNIST(self.data_dir, train=False, download=True)
 
-        def setup(self, stage=None):
+        def setup(self, stage: Optional[str] = None):
 
             # Assign train/val datasets for use in dataloaders
             if stage == 'fit' or stage is None:
@@ -382,12 +382,12 @@ still ensures the method runs on the correct devices)
 
     dm = MNISTDataModule()
     dm.prepare_data()
-    dm.setup('fit')
+    dm.setup(stage='fit')
 
     model = Model(num_classes=dm.num_classes, width=dm.width, vocab=dm.vocab)
     trainer.fit(model, dm)
 
-    dm.setup('test')
+    dm.setup(stage='test')
     trainer.test(datamodule=dm)
 
 ----------------
@@ -403,7 +403,7 @@ You can of course use DataModules in plain PyTorch code as well.
     dm.prepare_data()
 
     # splits/transforms
-    dm.setup('fit')
+    dm.setup(stage='fit')
 
     # use data
     for batch in dm.train_dataloader():
@@ -412,7 +412,7 @@ You can of course use DataModules in plain PyTorch code as well.
         ...
 
     # lazy load test data
-    dm.setup('test')
+    dm.setup(stage='test')
     for batch in dm.test_dataloader():
         ...
 

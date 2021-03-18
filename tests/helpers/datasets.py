@@ -69,6 +69,7 @@ class MNIST(Dataset):
         train: bool = True,
         normalize: tuple = (0.1307, 0.3081),
         download: bool = True,
+        **kwargs,
     ):
         super().__init__()
         self.root = root

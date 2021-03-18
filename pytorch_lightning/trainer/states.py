@@ -21,20 +21,20 @@ class TrainerState(LightningEnum):
     functions such as `trainer.fit()` and `trainer.test().
 
     >>> # you can compare the type with a string
-    >>> TrainerState.FITTING == 'FITTING'
+    >>> TrainerState.FITTING == 'fit'
     True
     >>> # which is case insensitive
-    >>> TrainerState.FINISHED == 'finished'
+    >>> TrainerState.FINISHED == 'FINISHED'
     True
     """
-    INITIALIZING = 'INITIALIZING'  # trainer creation
-    FITTING = 'FITTING'  # trainer.fit()
-    VALIDATING = 'VALIDATING'  # trainer.validate()
-    TESTING = 'TESTING'  # trainer.test()
-    PREDICTING = 'PREDICTING'  # trainer.predict()
-    TUNING = 'TUNING'  # trainer.tune()
-    FINISHED = 'FINISHED'
-    INTERRUPTED = 'INTERRUPTED'
+    INITIALIZING = 'initializing'  # trainer creation
+    FITTING = 'fit'  # trainer.fit()
+    VALIDATING = 'validate'  # trainer.validate()
+    TESTING = 'test'  # trainer.test()
+    PREDICTING = 'predict'  # trainer.predict()
+    TUNING = 'tune'  # trainer.tune()
+    FINISHED = 'finished'
+    INTERRUPTED = 'interrupted'
 
     @property
     def stopped(self) -> bool:

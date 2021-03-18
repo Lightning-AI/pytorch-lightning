@@ -14,8 +14,9 @@
 from typing import Optional
 
 import torch
+from torchmetrics.classification.checks import _input_format_classification
+from torchmetrics.utilities.enums import DataType
 
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.utilities import rank_zero_warn
 
 

@@ -355,9 +355,11 @@ class ProgressBar(ProgressBarBase):
 
     def init_validation_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for validation. """
+        # The main progress bar doesn't exist in `trainer.validate()`
+        has_main_bar = self.main_progress_bar is not None
         bar = tqdm(
             desc='Validating',
-            position=(2 * self.process_position + 1),
+            position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
@@ -426,7 +428,8 @@ class ProgressBar(ProgressBarBase):
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+        if self.main_progress_bar is not None:
+            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):
@@ -479,8 +482,10 @@ class ProgressBar(ProgressBarBase):
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
-    def _update_bar(self, bar):
+    def _update_bar(self, bar: Optional[tqdm]) -> None:
         """ Updates the bar by the refresh rate without overshooting. """
+        if bar is None:
+            return
         if bar.total is not None:
             delta = min(self.refresh_rate, bar.total - bar.n)
         else:

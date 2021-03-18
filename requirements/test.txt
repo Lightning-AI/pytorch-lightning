@@ -1,11 +1,11 @@
-coverage>=5.0
+coverage>5.2.0
 codecov>=2.1
-pytest>=5.0
-# pytest-cov
+pytest>=6.0
+pytest-cov>2.10
+# pytest-xdist
 flake8>=3.6
 check-manifest
 twine==3.2
-# scipy>=0.13.3
 scikit-learn>=0.22.2
 scikit-image>=0.17.2
 isort>=5.6.4

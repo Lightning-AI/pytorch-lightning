@@ -14,8 +14,8 @@
 from typing import Optional
 
 import torch
+from torchmetrics.classification.stat_scores import _reduce_stat_scores
 
-from pytorch_lightning.metrics.classification.helpers import _reduce_stat_scores
 from pytorch_lightning.metrics.functional.stat_scores import _stat_scores_update
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -60,7 +60,7 @@ def precision(
 
     The reduction method (how the precision scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
-    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
+    multi-dimensional multi-class case.
 
     Args:
         preds: Predictions from model (probabilities or labels)
@@ -91,11 +91,9 @@ def precision(
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then averaged over samples.
               The computation for each sample is done by treating the flattened extra axes ``...``
-              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
-              and computing the metric for the sample based on that.
+              as the ``N`` dimension within the sample, and computing the metric for the sample based on that.
 
             - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
-              (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
@@ -119,9 +117,7 @@ def precision(
             Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be. See the parameter's
-            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
-            for a more detailed explanation and examples.
+            than what they appear to be.
 
         class_reduction:
             .. warning :: This parameter is deprecated, use ``average``. Will be removed in v1.4.0.
@@ -132,6 +128,18 @@ def precision(
         - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
         - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
           of classes
+
+    Raises:
+        ValueError:
+            If ``average`` is not one of ``"micro"``, ``"macro"``, ``"weighted"``,
+            ``"samples"``, ``"none"`` or ``None``.
+        ValueError:
+            If ``mdmc_average`` is not one of ``None``, ``"samplewise"``, ``"global"``.
+        ValueError:
+            If ``average`` is set but ``num_classes`` is not provided.
+        ValueError:
+            If ``num_classes`` is set
+            and ``ignore_index`` is not in the range ``[0, num_classes)``.
 
     Example:
 
@@ -222,7 +230,7 @@ def recall(
 
     The reduction method (how the recall scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
-    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
+    multi-dimensional multi-class case.
 
     Args:
         preds: Predictions from model (probabilities, or labels)
@@ -253,11 +261,9 @@ def recall(
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then averaged over samples.
               The computation for each sample is done by treating the flattened extra axes ``...``
-              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
-              and computing the metric for the sample based on that.
+              as the ``N`` dimension within the sample, and computing the metric for the sample based on that.
 
             - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
-              (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
@@ -281,9 +287,7 @@ def recall(
             Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be. See the parameter's
-            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
-            for a more detailed explanation and examples.
+            than what they appear to be.
 
         class_reduction:
             .. warning :: This parameter is deprecated, use ``average``. Will be removed in v1.4.0.
@@ -294,6 +298,18 @@ def recall(
         - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element tensor will be returned
         - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C`` stands  for the number
           of classes
+
+    Raises:
+        ValueError:
+            If ``average`` is not one of ``"micro"``, ``"macro"``, ``"weighted"``,
+            ``"samples"``, ``"none"`` or ``None``.
+        ValueError:
+            If ``mdmc_average`` is not one of ``None``, ``"samplewise"``, ``"global"``.
+        ValueError:
+            If ``average`` is set but ``num_classes`` is not provided.
+        ValueError:
+            If ``num_classes`` is set
+            and ``ignore_index`` is not in the range ``[0, num_classes)``.
 
     Example:
 
@@ -370,7 +386,7 @@ def precision_recall(
 
     The reduction method (how the recall scores are aggregated) is controlled by the
     ``average`` parameter, and additionally by the ``mdmc_average`` parameter in the
-    multi-dimensional multi-class case. Accepts all inputs listed in :ref:`extensions/metrics:input types`.
+    multi-dimensional multi-class case.
 
     Args:
         preds: Predictions from model (probabilities, or labels)
@@ -401,11 +417,9 @@ def precision_recall(
             - ``'samplewise'``: In this case, the statistics are computed separately for each
               sample on the ``N`` axis, and then averaged over samples.
               The computation for each sample is done by treating the flattened extra axes ``...``
-              (see :ref:`extensions/metrics:input types`) as the ``N`` dimension within the sample,
-              and computing the metric for the sample based on that.
+              as the ``N`` dimension within the sample, and computing the metric for the sample based on that.
 
             - ``'global'``: In this case the ``N`` and ``...`` dimensions of the inputs
-              (see :ref:`extensions/metrics:input types`)
               are flattened into a new ``N_X`` sample axis, i.e. the inputs are treated as if they
               were ``(N_X, C)``. From here on the ``average`` parameter applies as usual.
 
@@ -429,9 +443,7 @@ def precision_recall(
             Should be left unset (``None``) for inputs with label predictions.
         is_multiclass:
             Used only in certain special cases, where you want to treat inputs as a different type
-            than what they appear to be. See the parameter's
-            :ref:`documentation section <extensions/metrics:using the is_multiclass parameter>`
-            for a more detailed explanation and examples.
+            than what they appear to be.
 
         class_reduction:
             .. warning :: This parameter is deprecated, use ``average``. Will be removed in v1.4.0.
@@ -443,6 +455,18 @@ def precision_recall(
         - If ``average in ['micro', 'macro', 'weighted', 'samples']``, they are a single element tensor
         - If ``average in ['none', None]``, they are a tensor of shape ``(C, )``, where ``C`` stands for
           the number of classes
+
+    Raises:
+        ValueError:
+            If ``average`` is not one of ``"micro"``, ``"macro"``, ``"weighted"``,
+            ``"samples"``, ``"none"`` or ``None``.
+        ValueError:
+            If ``mdmc_average`` is not one of ``None``, ``"samplewise"``, ``"global"``.
+        ValueError:
+            If ``average`` is set but ``num_classes`` is not provided.
+        ValueError:
+            If ``num_classes`` is set
+            and ``ignore_index`` is not in the range ``[0, num_classes)``.
 
     Example:
 
