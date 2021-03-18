@@ -25,7 +25,7 @@ from pytorch_lightning.metrics import (
     Precision,
     PrecisionRecallCurve,
     Recall,
-    ROC, ConfusionMatrix,
+    ROC, ConfusionMatrix, IoU,
 )
 from pytorch_lightning.metrics.functional import (
     auc,
@@ -35,7 +35,7 @@ from pytorch_lightning.metrics.functional import (
     precision_recall,
     precision_recall_curve,
     recall,
-    roc, confusion_matrix,
+    roc, confusion_matrix, iou,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
@@ -164,13 +164,28 @@ def test_v1_5_metric_precision_recall():
         assert torch.equal(thrs, torch.tensor([1, 2, 3]))
 
 
-# def test_v1_5_metric_classif():
-#     ConfusionMatrix.__init__.warned = False
-#     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-#         ConfusionMatrix()
-#
-#     pred = torch.tensor([0, 1, 2, 3])
-#     target = torch.tensor([0, 1, 1, 1])
-#     confusion_matrix.warned = False
-#     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-#         assert torch.equal(confusion_matrix(pred, target))
+def test_v1_5_metric_classif():
+    ConfusionMatrix.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        ConfusionMatrix(num_classes=1)
+
+    target = torch.tensor([1, 1, 0, 0])
+    preds = torch.tensor([0, 1, 0, 0])
+    confusion_matrix(preds, target, num_classes=2)
+
+    confusion_matrix.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.equal(confusion_matrix(preds, target, num_classes=2), torch.tensor([[2., 0.], [1., 1.]]))
+
+
+def test_v1_5_metric_detect():
+    IoU.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        IoU(num_classes=1)
+
+    target = torch.randint(0, 2, (10, 25, 25))
+    pred = torch.tensor(target)
+    pred[2:5, 7:13, 9:15] = 1 - pred[2:5, 7:13, 9:15]
+    iou.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.allclose(iou(pred, target), torch.tensor(0.9660), atol=1e-4)
