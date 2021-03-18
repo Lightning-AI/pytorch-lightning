@@ -378,7 +378,7 @@ class ModelParallelBoringModel(BoringModel):
 
 class ModelParallelClassificationModel(LightningModule):
 
-    def __init__(self, lr: float = 0.01, num_blocks: int = 3):
+    def __init__(self, lr: float = 0.01, num_blocks: int = 5):
         super().__init__()
         self.lr = lr
         self.num_blocks = num_blocks
@@ -386,7 +386,6 @@ class ModelParallelClassificationModel(LightningModule):
         self.train_acc = Accuracy()
         self.valid_acc = Accuracy()
         self.test_acc = Accuracy()
-        self.model = nn.Sequential(*(self.make_block() for x in range(self.num_blocks)), nn.Linear(32, 3))
 
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
@@ -396,6 +395,8 @@ class ModelParallelClassificationModel(LightningModule):
 
     def forward(self, x):
         x = self.model(x)
+        # Ensure output is in float32 for softmax operation
+        x = x.float()
         logits = F.softmax(x, dim=1)
         return logits
 
@@ -404,25 +405,29 @@ class ModelParallelClassificationModel(LightningModule):
         logits = self.forward(x)
         loss = F.cross_entropy(logits, y)
         self.log('train_loss', loss, prog_bar=True)
-        self.log('train_acc', self.train_acc(logits.argmax(-1), y), prog_bar=True)
+        self.log('train_acc', self.train_acc(logits, y), prog_bar=True, sync_dist=True)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        self.log('val_loss', F.cross_entropy(logits, y), prog_bar=False)
-        self.log('val_acc', self.valid_acc(logits.argmax(-1), y), prog_bar=True)
+        self.log('val_loss', F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
+        self.log('val_acc', self.valid_acc(logits, y), prog_bar=True, sync_dist=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self.forward(x)
-        self.log('test_loss', F.cross_entropy(logits, y), prog_bar=False)
-        self.log('test_acc', self.test_acc(logits.argmax(-1), y), prog_bar=True)
+        self.log('test_loss', F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
+        self.log('test_acc', self.test_acc(logits, y), prog_bar=True, sync_dist=True)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
-        return [optimizer], [lr_scheduler]
+
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
+        return [optimizer], [{
+            'scheduler': lr_scheduler,
+            'interval': 'step',
+        }]
 
 
 @RunIf(min_gpus=2, deepspeed=True)
@@ -447,15 +452,16 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
 @RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
     """
-    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model, resuming from a checkpoint
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    and see convergence.
     """
     seed_everything(42)
-    model = ModelParallelClassificationModel(lr=0.1)
+    model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
         max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3, zero_optimization=True)],
+        plugins=[DeepSpeedPlugin(stage=3)],
         default_root_dir=tmpdir,
         gpus=2,
         precision=16,
@@ -463,23 +469,18 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
         callbacks=[ck]
     )
     trainer.fit(model, datamodule=dm)
+
     results = trainer.test(model, datamodule=dm)
-    print(results)
-    results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
-    print(results)
-    trainer = Trainer(
-        max_epochs=1,
-        plugins=[DeepSpeedPlugin(stage=3, zero_optimization=True, cpu_offload=True)],
-        default_root_dir=tmpdir,
-        gpus=2,
-        precision=16,
-        resume_from_checkpoint=ck.best_model_path,
-    )
-    trainer.fit(model, datamodule=dm)
+    assert results[0]['test_acc'] > 0.7
+
+    saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
+    assert saved_results[0]['test_acc'] > 0.7
+    assert saved_results == results
 
 
 @RunIf(min_gpus=2, deepspeed=True)
-def test_deepspeed_multigpu_stage_2_checkpointing_accumulated_grad_batches(tmpdir, deepspeed_config):
+@pytest.mark.parametrize('cpu_offload', [True, False])
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload):
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
@@ -493,34 +494,18 @@ def test_deepspeed_multigpu_stage_2_checkpointing_accumulated_grad_batches(tmpdi
             deepspeed_engine = trainer.training_type_plugin.model
             assert trainer.global_step == deepspeed_engine.global_steps
 
-    model = ModelParallelClassificationModel(lr=0.1)
+    model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     trainer = Trainer(
         max_epochs=5,
-        plugins=[DeepSpeedPlugin(stage=2, zero_optimization=False, cpu_offload=True)],
+        plugins=[DeepSpeedPlugin(stage=2, cpu_offload=cpu_offload)],
         gpus=2,
         limit_val_batches=2,
-        precision=32,
+        precision=16,
         accumulate_grad_batches=2,
         callbacks=[VerificationCallback()]
     )
     trainer.fit(model, datamodule=dm)
-    results = trainer.test(datamodule=dm)
-
-    trainer = Trainer(
-        max_epochs=3,
-        plugins=[DeepSpeedPlugin(stage=2, zero_optimization=True, cpu_offload=True)],
-        default_root_dir=tmpdir,
-        gpus=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        precision=16,
-        resume_from_checkpoint=trainer.checkpoint_callback.best_model_path,
-        callbacks=[VerificationCallback()]
-    )
-    results = trainer.test(model, datamodule=dm)
-    # todo (tchaton) resolve different metrics
-    print(results)
 
 
 @RunIf(min_gpus=2, deepspeed=True)

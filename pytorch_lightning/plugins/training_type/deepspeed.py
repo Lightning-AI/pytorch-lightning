@@ -203,6 +203,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self.loss_scale_window = loss_scale_window
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
+        self.on_model_parallel_setup_called = False
 
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
@@ -293,11 +294,13 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model = model
 
     def _call_model_parallel_setup(self):
-        if self.zero_stage_3:
-            with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
+        if not self.on_model_parallel_setup_called:
+            if self.zero_stage_3:
+                with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
+                    self.lightning_module.trainer.call_hook("on_model_parallel_setup")
+            else:
                 self.lightning_module.trainer.call_hook("on_model_parallel_setup")
-        else:
-            self.lightning_module.trainer.call_hook("on_model_parallel_setup")
+            self.on_model_parallel_setup_called = True
 
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get('activation_checkpointing'):
