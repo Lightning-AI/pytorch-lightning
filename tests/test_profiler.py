@@ -304,10 +304,9 @@ def test_pytorch_profiler_nested(tmpdir):
 
     events_name = {e.name for e in pytorch_profiler.function_events}
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
-        expected = {
-            'signed char', 'add', 'profiler::_record_function_exit', 'bool', 'char', 'profiler::_record_function_enter'
-        }
+    expected = {
+        'signed char', 'add', 'profiler::_record_function_exit', 'bool', 'char', 'profiler::_record_function_enter'
+    }
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
         expected = {'add', 'zeros', 'ones', 'zero_', 'b', 'fill_', 'c', 'a', 'empty'}
