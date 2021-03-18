@@ -79,11 +79,10 @@ class Accelerator(object):
 
     def setup(self, trainer: 'Trainer', model: LightningModule) -> None:
         """
-        Connects the plugins to the training process, creates optimizers
-
+        Setup plugins for the trainer fit and creates optimizers.
         Args:
-            trainer: the trainer instance to connect to
-            model: the model to train
+            trainer: the trainer instance
+            model: the LightningModule
         """
         self.setup_training_type_plugin(self.training_type_plugin, model)
         self.setup_optimizers(trainer)
