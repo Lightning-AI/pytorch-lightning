@@ -136,7 +136,7 @@ def test_swa_callback_1_gpu(tmpdir):
 
 @RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("batchnorm", (True, False))
-def test_swa_callback(tmpdir, batchnorm):
+def test_swa_callback(tmpdir, batchnorm: bool):
     train_with_swa(tmpdir, batchnorm=batchnorm)
 
 
@@ -155,7 +155,7 @@ def test_swa_raises():
 @pytest.mark.parametrize('stochastic_weight_avg', [False, True])
 @pytest.mark.parametrize('use_callbacks', [False, True])
 @RunIf(min_torch="1.6.0")
-def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks, stochastic_weight_avg):
+def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochastic_weight_avg: bool):
     """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer"""
 
     class TestModel(BoringModel):

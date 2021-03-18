@@ -15,8 +15,9 @@ from distutils.version import LooseVersion
 from typing import Optional, Sequence, Tuple
 
 import torch
+from torchmetrics.classification.checks import _input_format_classification
+from torchmetrics.utilities.enums import DataType
 
-from pytorch_lightning.metrics.classification.helpers import _input_format_classification, DataType
 from pytorch_lightning.metrics.functional.auc import auc
 from pytorch_lightning.metrics.functional.roc import roc
 from pytorch_lightning.utilities import LightningEnum
@@ -164,6 +165,18 @@ def auroc(
             If not ``None``, calculates standardized partial AUC over the
             range [0, max_fpr]. Should be a float between 0 and 1.
         sample_weight: sample weights for each data point
+
+    Raises:
+        ValueError:
+            If ``max_fpr`` is not a ``float`` in the range ``(0, 1]``.
+        RuntimeError:
+            If ``PyTorch version`` is ``below 1.6`` since max_fpr requires `torch.bucketize`
+            which is not available below 1.6.
+        ValueError:
+            If ``max_fpr`` is not set to ``None`` and the mode is ``not binary``
+            since partial AUC computation is not available in multilabel/multiclass.
+        ValueError:
+            If ``average`` is none of ``None``, ``"macro"`` or ``"weighted"``.
 
     Example (binary case):
 
