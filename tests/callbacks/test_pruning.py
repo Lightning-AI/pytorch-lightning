@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from collections import OrderedDict
 from logging import INFO
 
@@ -22,7 +21,7 @@ from torch import nn
 from torch.nn import Sequential
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks import ModelPruning, ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -274,6 +273,7 @@ def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog):
     seed_everything(0)
 
     class TestPruning(ModelPruning):
+
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             super().on_save_checkpoint(trainer, pl_module, checkpoint)
             assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]

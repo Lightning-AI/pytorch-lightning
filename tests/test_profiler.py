@@ -217,14 +217,11 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     """Ensure errors are raised where expected."""
 
     action = "test_step"
-    with pytest.raises(ValueError):
-        pytorch_profiler.stop(action)
-
     pytorch_profiler.start(action)
     pytorch_profiler.stop(action)
 
     with pytest.raises(MisconfigurationException, match="profiled_functions` and `PyTorchProfiler.record"):
-        PyTorchProfiler(profiled_functions=[], record_functions=[])
+        PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
 
 
 @RunIf(min_gpus=2, special=True)
@@ -248,8 +245,6 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
     )
     trainer.fit(model)
 
-    assert len(profiler.summary()) > 0
-    profiler.describe()
     data = Path(profiler.output_fname).read_text()
     assert len(data) > 0
 
@@ -278,15 +273,13 @@ def test_pytorch_profiler_trainer(tmpdir, use_output_filename):
     enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
 
     if enabled:
-        assert len(profiler.summary()) > 0
-        expected = {'validation_step', 'training_step_and_backward', 'training_step', 'backward'}
-        assert set(profiler.profiled_actions.keys()) == expected
+        expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
+        for name in expected:
+            assert len([e for e in profiler.function_events if name == e.name]) > 0
     else:
-        assert profiler.summary() is None
-        assert set(profiler.profiled_actions.keys()) == set()
+        assert profiler.function_events is None
 
     if use_output_filename:
-        profiler.describe()
         data = Path(profiler.output_fname).read_text()
         assert len(data) > 0
 
@@ -307,29 +300,26 @@ def test_pytorch_profiler_nested(tmpdir):
         with pytorch_profiler.profile("c"):
             _ = a + b
 
-    actual = {k: [e.name for e in events] for k, events in pytorch_profiler.function_events.items()}
-    if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
-        actual = {k: [e.replace("aten::", "") for e in events] for k, events in actual.items()}
+    pytorch_profiler.describe()
 
-    # From PyTorch 1.8.0, less operation are being traced.
+    events_name = {e.name for e in pytorch_profiler.function_events}
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
+        expected = {
+            'signed char', 'add', 'profiler::_record_function_exit', 'bool', 'char', 'profiler::_record_function_enter'
+        }
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        expected = {'add', 'zeros', 'ones', 'zero_', 'b', 'fill_', 'c', 'a', 'empty'}
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+        expected = {
+            'aten::zeros', 'aten::add', 'aten::zero_', 'c', 'b', 'a', 'aten::fill_', 'aten::empty', 'aten::ones'
+        }
+
     if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
         expected = {
-            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'add'],
-            'b': ['zeros', 'empty', 'zero_'],
-            'c': ['add'],
-        }
-    # From PyTorch 1.6.0, more operation are being traced.
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        expected = {
-            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty'],
-            'b': ['zeros', 'empty', 'zero_', 'fill_'],
-            'c': ['add', 'empty'],
-        }
-    else:
-        expected = {
-            'a': ['add'],
-            'b': [],
-            'c': ['add'],
+            'aten::ones', 'a', 'aten::add', 'aten::empty', 'aten::zero_', 'b', 'c', 'aten::zeros', 'aten::fill_'
         }
 
-    assert actual == expected
+    assert events_name == expected

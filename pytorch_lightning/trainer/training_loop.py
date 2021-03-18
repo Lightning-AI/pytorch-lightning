@@ -121,10 +121,12 @@ class TrainLoop:
         self.trainer.callback_connector.attach_model_logging_functions(model)
 
     def on_train_end(self):
+        print("before", self._teardown_already_run)
         if self._teardown_already_run:
             return
 
         self._teardown_already_run = True
+        print("after", self._teardown_already_run)
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step

@@ -15,10 +15,10 @@
 import inspect
 import logging
 import os
-from typing import List, Optional, Union, Type, Any, Tuple, Dict
+from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
-from torch.autograd.profiler import record_function, EventList, parse_event_records
+from torch.autograd.profiler import EventList, record_function
 
 from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities import rank_zero_only
@@ -44,6 +44,7 @@ class PyTorchProfiler(BaseProfiler):
         "self_cuda_memory_usage",
         "count",
     )
+    ACTION_NAME_START = "on_fit_start"
 
     def __init__(
         self,
@@ -54,9 +55,9 @@ class PyTorchProfiler(BaseProfiler):
         path_to_export_trace: Optional[str] = None,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        record_functions: Optional[List[str]] = None,
+        record_functions: List[str] = [],
         local_rank: Optional[int] = None,
-        profiled_functions: Optional[List[str]] = None,
+        profiled_functions: List[str] = [],
         **profiler_kwargs: Any,
     ) -> None:
         """
@@ -117,7 +118,7 @@ class PyTorchProfiler(BaseProfiler):
         record_functions = self.__deprecation_check(profiled_functions, record_functions)
 
         self.output_fname = output_filename
-        self.record_functions = record_functions or self.RECORD_FUNCTIONS
+        self.record_functions = record_functions + list(self.RECORD_FUNCTIONS)
         self.sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
         self.group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self.row_limit = row_limit
@@ -137,24 +138,21 @@ class PyTorchProfiler(BaseProfiler):
                 f"Found sort_by_key: {self.sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-        self.stack: List[Tuple[str, record_function]] = []
+        self.recording_map: Dict[str, record_function] = {}
         self.profiler: Optional[_PROFILER] = None
-        self.function_events: Dict[str, EventList] = {}
+        self.function_events: Optional[EventList] = None
+        self._profiler_instantiated: bool = False
 
         super().__init__(local_rank=local_rank)
 
-    def __deprecation_check(
-        self,
-        profiled_functions: Optional[List[str]],
-        record_functions: Optional[List[str]]
-    ) -> Optional[List[str]]:
+    def __deprecation_check(self, profiled_functions: List[str] = [], record_functions: List[str] = []) -> List[str]:
         if profiled_functions is not None:
             rank_zero_warn(
                 "`PyTorchProfiler.profiled_functions` has been renamed to"
                 " `record_functions` in v1.3 and will be removed in v1.5", DeprecationWarning
             )
-            if record_functions is None:
-                record_functions = profiled_functions
+            if (len(record_functions) == 0 or len(profiled_functions) == 0):
+                record_functions += profiled_functions
             else:
                 raise MisconfigurationException(
                     "You set `PytorchProfiler.profiled_functions` and `PyTorchProfiler.record_functions`."
@@ -181,19 +179,59 @@ class PyTorchProfiler(BaseProfiler):
         self.describe = rank_zero_only(self.describe)
 
     def start(self, action_name: str) -> None:
-        if action_name not in self.record_functions:
-            return
+        if not self._profiler_instantiated:
 
-        if self.profiler is None:
             self._create_profilers()
 
             self.profiler.__enter__()
             if self._parent_profiler is not None:
                 self._parent_profiler.__enter__()
 
-        recording = record_function(action_name)
-        self.stack.append((action_name, recording))
-        recording.__enter__()
+            self._profiler_instantiated = True
+
+        if (
+            action_name in self.record_functions and action_name != self.ACTION_NAME_START
+            and action_name not in self.recording_map
+        ):
+            recording = record_function(action_name)
+            recording.__enter__()
+            self.recording_map[action_name] = recording
+
+    def stop(self, action_name: str) -> None:
+        if action_name in self.recording_map:
+            self.recording_map[action_name].__exit__(None, None, None)
+
+    def summary(self) -> str:
+        if not self.profiler_kwargs.get("enabled", True) or self.emit_nvtx:
+            return ""
+
+        local_rank = 0 if self.local_rank is None else self.local_rank
+        recorded_stats = {}
+        self.profiler.__exit__(None, None, None)
+        self.function_events = self.profiler.function_events
+        if self._parent_profiler is not None:
+            self._parent_profiler.__exit__(None, None, None)
+            self._parent_profiler = None
+        self.function_events = self.profiler.function_events
+        self.profiler = None
+
+        # next line is a workaround for a pytorch issue (fixed on master, still present
+        # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
+        # parent event for detach`
+        self.function_events.populate_cpu_children = lambda: None
+
+        if self.export_to_chrome:
+            filename = f"{self.function_events.name}_{local_rank}_trace.json"
+            path_to_trace = (
+                filename if self.path_to_export_trace is None else os.path.join(self.path_to_export_trace, filename)
+            )
+            self.function_events.export_chrome_trace(path_to_trace)
+
+        data = self.function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
+        table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
+        recorded_stats["records"] = table
+
+        return self.stats_to_str(recorded_stats)
 
     def _create_profilers(self) -> None:
         if self.emit_nvtx:
@@ -208,77 +246,9 @@ class PyTorchProfiler(BaseProfiler):
         kwargs = {k: v for k, v in self.profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
 
-    def stop(self, action_name: str) -> None:
-        if self.profiler is None or action_name not in self.record_functions:
-            return
-
-        if not self.stack or self.stack[-1][0] != action_name:
-            raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
-
-        action_name, recording = self.stack.pop()
-        recording.__exit__(None, None, None)
-
-        self.function_events[action_name] = self.thing()
-        self.profiler.function_events = None
-
-        if not self.stack:
+    def __del__(self):
+        if self.profiler is not None:
             self.profiler.__exit__(None, None, None)
             if self._parent_profiler is not None:
                 self._parent_profiler.__exit__(None, None, None)
-
-    def thing(self):
-        """TODO: Adapted from ..."""
-        profiler = self.profiler
-        kind = torch.autograd.ProfilerState.CUDA if profiler.use_cuda else torch.autograd.ProfilerState.CPU
-        config = torch.autograd.ProfilerConfig(
-            kind,
-            profiler.record_shapes,
-            profiler.profile_memory,
-            profiler.with_stack
-        )
-
-        records = torch.autograd._disable_profiler()
-
-        function_events = EventList(
-            parse_event_records(records),
-            use_cuda=profiler.use_cuda,
-            profile_memory=profiler.profile_memory
-        )
-        if profiler.with_stack:
-            function_events.set_backward_stacktraces()
-
-        torch.autograd._enable_profiler(config)
-
-        return function_events
-
-    def summary(self) -> str:
-        if not self.profiler_kwargs.get("enabled", True) or self.emit_nvtx:
-            return ""
-
-        local_rank = 0 if self.local_rank is None else self.local_rank
-        recorded_stats = {}
-        function_events = self.profiler.function_events
-
-        # next line is a workaround for a pytorch issue (fixed on master, still present
-        # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
-        # parent event for detach`
-        function_events.populate_cpu_children = lambda: None
-
-        if self.export_to_chrome:
-            filename = f"{function_events.name}_{local_rank}_trace.json"
-            path_to_trace = (
-                filename
-                if self.path_to_export_trace is None else os.path.join(self.path_to_export_trace, filename)
-            )
-            function_events.export_chrome_trace(path_to_trace)
-
-        data = function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
-        table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
-        recorded_stats[action_name] = table
-
-        return self.stats_to_str(recorded_stats)
-
-    def __del__(self) -> None:
         super().__del__()
-        self.profiler.__exit__(None, None, None)
-        self._parent_profiler.__exit__(None, None, None)
