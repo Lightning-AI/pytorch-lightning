@@ -32,6 +32,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnShardedPlugin,
     DeepSpeedPlugin,
     DeepSpeedPrecisionPlugin,
+    DoublePrecisionPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
@@ -317,9 +318,10 @@ class AcceleratorConnector(object):
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
 
-        if self.precision == 32:
+        if self.precision == 64:
+            return DoublePrecisionPlugin()
+        elif self.precision == 32:
             return PrecisionPlugin()
-
         elif self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()

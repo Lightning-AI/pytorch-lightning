@@ -227,7 +227,8 @@ class Trainer(
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
-            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
+            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
+                TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
