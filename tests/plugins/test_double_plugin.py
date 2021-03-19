@@ -1,6 +1,9 @@
+import pickle
+
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.plugins import DoublePrecisionPlugin
 from tests.helpers import BoringModel
 
 
@@ -30,6 +33,7 @@ class DoublePrecisionBoringModel(BoringModel):
 
 def test_double_precision(tmpdir):
     model = DoublePrecisionBoringModel()
+    original_forward = model.forward
 
     trainer = Trainer(
         max_epochs=2,
@@ -41,3 +45,10 @@ def test_double_precision(tmpdir):
         log_every_n_steps=1,
     )
     trainer.fit(model)
+
+    assert model.forward == original_forward
+
+
+def test_double_precision_pickle(tmpdir):
+    double_precision = DoublePrecisionPlugin()
+    pickle.dumps(double_precision)

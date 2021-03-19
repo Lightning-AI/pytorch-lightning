@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import wraps
+from functools import wraps, partial
 from typing import Any, Callable, Sequence, Tuple, TYPE_CHECKING
 
 import torch
@@ -36,12 +36,19 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         return tensor
 
     @staticmethod
-    def _patch_forward(old_forward: Callable) -> Callable:
+    def _teardown(model: 'Module', old_forward: Callable) -> None:
+        model.forward = old_forward
+
+    def _patch_forward(self, model: 'Module') -> None:
+        old_forward = model.forward
+
         @wraps(old_forward)
         def new_forward(*args, **kwargs) -> Any:
             return old_forward(*apply_to_collection(args, torch.Tensor, DoublePrecisionPlugin._to_double_precision),
                                **apply_to_collection(kwargs, torch.Tensor, DoublePrecisionPlugin._to_double_precision))
-        return new_forward
+
+        model.forward = new_forward
+        self.post_dispatch = partial(DoublePrecisionPlugin._teardown, model, old_forward)
 
     def connect(
         self,
@@ -52,5 +59,5 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         """Converts the model to double precision and wraps the forward to convert incoming floating point data.
         Does not alter `optimizers` or `lr_schedulers`."""
         model = model.to(dtype=torch.float64)
-        model.forward = DoublePrecisionPlugin._patch_forward(model.forward)
+        self._patch_forward(model)
         return model, optimizers, lr_schedulers
