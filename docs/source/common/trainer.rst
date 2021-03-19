@@ -1157,7 +1157,7 @@ precision
 
 |
 
-Double precision, full precision (32) or half precision (16).
+Double precision (64), full precision (32) or half precision (16).
 Can be used on CPU, GPU or TPUs.
 
 If used on TPU will use torch.bfloat16 but tensor printing
