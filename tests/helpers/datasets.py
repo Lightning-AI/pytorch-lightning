@@ -22,8 +22,6 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from tests import PATH_DATASETS
-
 
 class MNIST(Dataset):
     """
@@ -62,7 +60,7 @@ class MNIST(Dataset):
 
     def __init__(
         self,
-        root: str = PATH_DATASETS,
+        root: str,
         train: bool = True,
         normalize: tuple = (0.1307, 0.3081),
         download: bool = True,
