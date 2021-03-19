@@ -35,12 +35,12 @@ class TPUAccelerator(Accelerator):
         Function to gather a tensor from several distributed processes
         Args:
             tensor: tensor of shape (batch, ...)
-            group: the process group to gather results from. Defaults to all processes (world)
-            sync_grads: flag that allows users to synchronize gradients for all_gather op
+            group: not available with TPUs
+            sync_grads: not available with TPUs
         Return:
             A tensor of shape (world_size, batch, ...)
         """
         # todo: Add support for backward with all_gather
-        if torch.distributed.is_initialized():
-            return xm.all_gather(tensor, group=group, sync_grads=sync_grads)
+        if isinstance(self.training_type_plugin, TPUSpawnPlugin) and self.training_type_plugin.is_distributed:
+            return xm.all_gather(tensor).view(-1, *tensor.shape)
         return tensor
