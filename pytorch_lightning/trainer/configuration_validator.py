@@ -101,7 +101,7 @@ class ConfigValidator(object):
         if has_step and not has_loader:
             rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {stage} loop')
 
-    def __verify_predict_loop_configuration(self, model):
+    def __verify_predict_loop_configuration(self, model: LightningModule) -> None:
 
         has_predict_dataloader = is_overridden('predict_dataloader', model)
         if not has_predict_dataloader:
