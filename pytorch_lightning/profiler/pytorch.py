@@ -15,6 +15,7 @@
 import inspect
 import logging
 import os
+from functools import partial
 from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
@@ -28,6 +29,60 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 log = logging.getLogger(__name__)
 
 _PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
+
+
+class RegisterRecordFunction:
+    """
+    While profiling autograd operations, this class will add label with module name
+    around the forward function.
+    The Lightning PyTorch Profiler will activate this feature automatically.
+    It can be deactivated as follows:
+    Example::
+        from pytorch_lightning.profilers import PyTorchProfiler
+        profiler = PyTorchProfiler(record_module_names=False)
+        Trainer(profiler=profiler)
+    It can be used outside of Lightning as follows:
+    Example::
+        from pytorch_lightning import Trainer, seed_everything
+        with RegisterRecordFunction(model):
+            out = model(batch)
+    """
+
+    def __init__(self, model):
+        self._model = model
+        self._records = {}
+        self.handles = {}
+
+    def _start_recording_forward(self, module, input, module_name: str = None, is_built_in: bool = None):
+        if module_name is not None:
+            record_name = module_name if is_built_in else f"{type(module)}: {module_name}"
+            self._records[record_name] = record_function(record_name).__enter__()
+        return input
+
+    def _stop_recording_forward(self, module, input, result, module_name: str = None, is_built_in: bool = None):
+        if module_name is not None:
+            record_name = module_name if is_built_in else f"{type(module)}: {module_name}"
+            self._records[record_name].__exit__(None, None, None)
+        return result
+
+    def __enter__(self):
+        built_in_modules = dir(torch.nn)
+        for module_name, module in self._model.named_modules():
+            if module_name != '':
+                is_built_in = module in built_in_modules
+                pre_forward_handle = module.register_forward_pre_hook(
+                    partial(self._start_recording_forward, module_name=module_name, is_built_in=is_built_in)
+                )
+                post_forward_handle = module.register_forward_hook(
+                    partial(self._stop_recording_forward, module_name=module_name, is_built_in=is_built_in)
+                )
+
+                self.handles[module_name] = [pre_forward_handle, post_forward_handle]
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
+        for handles in self.handles.values():
+            for h in handles:
+                h.remove()
 
 
 class PyTorchProfiler(BaseProfiler):
@@ -60,6 +115,7 @@ class PyTorchProfiler(BaseProfiler):
         record_functions: List[str] = [],
         local_rank: Optional[int] = None,
         profiled_functions: List[str] = [],
+        record_module_names: bool = True,
         **profiler_kwargs: Any,
     ) -> None:
         """
@@ -107,6 +163,8 @@ class PyTorchProfiler(BaseProfiler):
 
             profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
 
+            record_module_names: Whether to add module names while recording autograd operation.
+
         Raises:
             MisconfigurationException:
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``, or
@@ -127,6 +185,9 @@ class PyTorchProfiler(BaseProfiler):
         self.emit_nvtx = emit_nvtx
         self.export_to_chrome = export_to_chrome
         self.path_to_export_trace = path_to_export_trace
+        self.record_module_names = record_module_names
+        self.lightning_module = None  # set by ProfilerConnector
+        self.register = None
         self.profiler_kwargs = profiler_kwargs
 
         if self.export_to_chrome and self.path_to_export_trace is None:
@@ -191,6 +252,10 @@ class PyTorchProfiler(BaseProfiler):
 
             self._profiler_instantiated = True
 
+            if self.record_module_names and self.lightning_module is not None:
+                self.register = RegisterRecordFunction(self.lightning_module)
+                self.register.__enter__()
+
         if (
             action_name in self.record_functions and action_name != self.ACTION_NAME_START
             and action_name not in self.recording_map
@@ -213,10 +278,14 @@ class PyTorchProfiler(BaseProfiler):
         self.profiler.__exit__(None, None, None)
         self.function_events = self.profiler.function_events
         self.profiler = None
+        self._profiler_instantiated = False
 
         if self._parent_profiler is not None:
             self._parent_profiler.__exit__(None, None, None)
             self._parent_profiler = None
+
+        if self.register is not None:
+            self.register.__exit__(None, None, None)
 
         if self.export_to_chrome:
             filename = f"{local_rank}_trace.json"

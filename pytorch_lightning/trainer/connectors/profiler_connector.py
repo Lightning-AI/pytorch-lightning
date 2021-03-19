@@ -13,6 +13,7 @@
 # limitations under the License
 
 from typing import Union
+from weakref import proxy
 
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -57,4 +58,5 @@ class ProfilerConnector:
     def on_train_start(self, trainer):
         if not isinstance(trainer.profiler, PassThroughProfiler):
             local_rank = trainer.local_rank if trainer.world_size > 1 else None
+            self.trainer.profiler.lightning_module = proxy(self.trainer.lightning_module)
             self.trainer.profiler.on_train_start(local_rank=local_rank, log_dir=self.trainer.log_dir)

@@ -25,6 +25,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
+from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -265,6 +266,7 @@ def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
 
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
+    print(tmpdir)
 
 
 def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
