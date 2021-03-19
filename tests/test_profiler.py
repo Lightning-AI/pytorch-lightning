@@ -306,6 +306,22 @@ def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
     assert len(data) > 0
 
 
+@RunIf(min_gpus=1, special=True)
+def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+    """
+    This test check emit_nvtx is correctly supported
+    """
+    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        gpus=1,
+    )
+    trainer.fit(model)
+
+
 def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
