@@ -123,7 +123,7 @@ class BaseProfiler(AbstractProfiler, ABC):
 
     def __del__(self) -> None:
         """Close profiler's stream."""
-        if self.output_file:
+        if getattr(self, "output_file") is not None:
             self.output_file.close()
 
 
