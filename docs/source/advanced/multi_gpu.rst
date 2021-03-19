@@ -267,7 +267,7 @@ Lightning allows multiple ways of training
 - TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
 
 .. note::
-    If you request multiple GPUs or nodes without setting a mode, DDP will be automatically used.
+    If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
 
 For a deeper understanding of what Lightning is doing, feel free to read this
 `guide <https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_.
@@ -361,9 +361,6 @@ In  this case, we can use DDP2 which behaves like DP in a machine and DDP across
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 `ddp_spawn` is exactly like `ddp` except that it uses .spawn to start the training processes.
-
-.. note::
-    If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be the default.
 
 .. warning:: It is STRONGLY recommended to use `DDP` for speed and performance.
 
