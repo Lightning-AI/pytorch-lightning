@@ -14,45 +14,12 @@
 from typing import Optional
 
 import torch
-from torchmetrics.classification.checks import _input_format_classification
-from torchmetrics.utilities.enums import DataType
+from torchmetrics.functional import confusion_matrix as _confusion_matrix
 
-from pytorch_lightning.utilities import rank_zero_warn
-
-
-def _confusion_matrix_update(
-    preds: torch.Tensor, target: torch.Tensor, num_classes: int, threshold: float = 0.5
-) -> torch.Tensor:
-    preds, target, mode = _input_format_classification(preds, target, threshold)
-    if mode not in (DataType.BINARY, DataType.MULTILABEL):
-        preds = preds.argmax(dim=1)
-        target = target.argmax(dim=1)
-    unique_mapping = (target.view(-1) * num_classes + preds.view(-1)).to(torch.long)
-    bins = torch.bincount(unique_mapping, minlength=num_classes**2)
-    confmat = bins.reshape(num_classes, num_classes)
-    return confmat
+from pytorch_lightning.utilities.deprecation import deprecated
 
 
-def _confusion_matrix_compute(confmat: torch.Tensor, normalize: Optional[str] = None) -> torch.Tensor:
-    allowed_normalize = ('true', 'pred', 'all', 'none', None)
-    assert normalize in allowed_normalize, \
-        f"Argument average needs to one of the following: {allowed_normalize}"
-    confmat = confmat.float()
-    if normalize is not None and normalize != 'none':
-        if normalize == 'true':
-            cm = confmat / confmat.sum(axis=1, keepdim=True)
-        elif normalize == 'pred':
-            cm = confmat / confmat.sum(axis=0, keepdim=True)
-        elif normalize == 'all':
-            cm = confmat / confmat.sum()
-        nan_elements = cm[torch.isnan(cm)].nelement()
-        if nan_elements != 0:
-            cm[torch.isnan(cm)] = 0
-            rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
-        return cm
-    return confmat
-
-
+@deprecated(target=_confusion_matrix, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def confusion_matrix(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -61,38 +28,6 @@ def confusion_matrix(
     threshold: float = 0.5
 ) -> torch.Tensor:
     """
-    Computes the confusion matrix. Works with binary, multiclass, and multilabel data.
-    Accepts probabilities from a model output or integer class values in prediction.
-    Works with multi-dimensional preds and target.
-
-    If preds and target are the same shape and preds is a float tensor, we use the ``self.threshold`` argument
-    to convert into integer labels. This is the case for binary and multi-label probabilities.
-
-    If preds has an extra dimension as in the case of multi-class scores we perform an argmax on ``dim=1``.
-
-    Args:
-        preds: (float or long tensor), Either a ``(N, ...)`` tensor with labels or
-            ``(N, C, ...)`` where C is the number of classes, tensor with labels/probabilities
-        target: ``target`` (long tensor), tensor with shape ``(N, ...)`` with ground true labels
-        num_classes: Number of classes in the dataset.
-        normalize: Normalization mode for confusion matrix. Choose from
-
-            - ``None`` or ``'none'``: no normalization (default)
-            - ``'true'``: normalization over the targets (most commonly used)
-            - ``'pred'``: normalization over the predictions
-            - ``'all'``: normalization over the whole matrix
-
-        threshold:
-            Threshold value for binary or multi-label probabilities. default: 0.5
-
-    Example:
-
-        >>> from pytorch_lightning.metrics.functional import confusion_matrix
-        >>> target = torch.tensor([1, 1, 0, 0])
-        >>> preds = torch.tensor([0, 1, 0, 0])
-        >>> confusion_matrix(preds, target, num_classes=2)
-        tensor([[2., 0.],
-                [1., 1.]])
+    .. deprecated::
+        Use :func:`torchmetrics.functional.confusion_matrix`. Will be removed in v1.5.0.
     """
-    confmat = _confusion_matrix_update(preds, target, num_classes, threshold)
-    return _confusion_matrix_compute(confmat, normalize)
