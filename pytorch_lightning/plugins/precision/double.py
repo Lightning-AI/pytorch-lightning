@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import wraps
 from typing import Any, Callable, Sequence, Tuple, TYPE_CHECKING
 
 import torch
@@ -36,6 +37,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
 
     @staticmethod
     def _patch_forward(old_forward: Callable) -> Callable:
+        @wraps(old_forward)
         def new_forward(*args, **kwargs) -> Any:
             return old_forward(*apply_to_collection(args, torch.Tensor, DoublePrecisionPlugin._to_double_precision),
                                **apply_to_collection(kwargs, torch.Tensor, DoublePrecisionPlugin._to_double_precision))
