@@ -245,6 +245,12 @@ class PyTorchProfiler(BaseProfiler):
 
     def start(self, action_name: str) -> None:
         if not self._profiler_instantiated:
+            
+            # close profiler is already opened
+            try:
+                torch.autograd._disable_profiler()
+            except (AttributeError, RuntimeError):
+                pass
 
             self._create_profilers()
 
