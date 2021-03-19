@@ -208,6 +208,12 @@ class PyTorchProfiler(BaseProfiler):
         self.function_events: Optional[EventList] = None
         self._profiler_instantiated: bool = False
 
+        # disable profiler if the user already created a profiler
+        try:
+            torch.autograd._disable_profiler()
+        except RuntimeError:
+            pass
+
         super().__init__(local_rank=local_rank)
 
     def __deprecation_check(self, profiled_functions: List[str] = [], record_functions: List[str] = []) -> List[str]:
@@ -323,5 +329,10 @@ class PyTorchProfiler(BaseProfiler):
         try:
             self._parent_profiler.__exit__(None, None, None)
         except (AttributeError, RuntimeError):
+            pass
+        # disable profiler if the user already created a profiler
+        try:
+            torch.autograd._disable_profiler()
+        except RuntimeError:
             pass
         super().__del__()
