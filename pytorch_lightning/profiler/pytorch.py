@@ -318,10 +318,10 @@ class PyTorchProfiler(BaseProfiler):
     def __del__(self):
         try:
             self.profiler.__exit__(None, None, None)
-        except RuntimeError:
+        except (AttributeError, RuntimeError):
             pass
         try:
             self._parent_profiler.__exit__(None, None, None)
-        except RuntimeError:
+        except (AttributeError, RuntimeError):
             pass
         super().__del__()
