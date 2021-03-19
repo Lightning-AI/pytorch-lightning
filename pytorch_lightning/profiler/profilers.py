@@ -56,6 +56,7 @@ class BaseProfiler(AbstractProfiler, ABC):
         # the profiler can be used outside of lightning
         # that's why we call `on_train_start` manually
         self.on_train_start(local_rank=local_rank, log_dir=log_dir)
+        self.output_file = None
 
     def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None):
         """
@@ -132,6 +133,7 @@ class PassThroughProfiler(BaseProfiler):
     This class should be used when you don't want the (small) overhead of profiling.
     The Trainer uses this class by default.
     """
+
     def start(self, action_name: str) -> None:
         pass
 
