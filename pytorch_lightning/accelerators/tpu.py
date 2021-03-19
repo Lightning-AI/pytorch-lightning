@@ -14,6 +14,8 @@ if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
     from torch_xla._patched_functions import clip_grad_norm_
 
+    xla_clip_grad_norm_ = clip_grad_norm_
+
 if TYPE_CHECKING:
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.trainer.trainer import Trainer
@@ -68,4 +70,4 @@ class TPUAccelerator(Accelerator):
 
         max_norm = grad_clip_val
 
-        clip_grad_norm_(parameters, max_norm, norm_type)
+        xla_clip_grad_norm_(parameters, max_norm, norm_type)
