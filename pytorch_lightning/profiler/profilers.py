@@ -53,10 +53,10 @@ class BaseProfiler(AbstractProfiler, ABC):
 
     def __init__(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
         self.output_fname = getattr(self, "output_fname", None)
+        self.output_file = None
         # the profiler can be used outside of lightning
         # that's why we call `on_train_start` manually
         self.on_train_start(local_rank=local_rank, log_dir=log_dir)
-        self.output_file = None
 
     def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None):
         """
@@ -68,7 +68,6 @@ class BaseProfiler(AbstractProfiler, ABC):
         self.prepare_file()
 
     def prepare_file(self) -> None:
-        self.output_file = None
         if self.output_fname:
             fs = get_filesystem(self.output_fname)
             self.output_file = fs.open(self.output_fname, "w")
