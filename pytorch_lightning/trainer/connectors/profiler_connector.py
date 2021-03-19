@@ -54,8 +54,6 @@ class ProfilerConnector:
                     " `Trainer`, it can only be 'simple' or 'advanced'"
                 )
         self.trainer.profiler = profiler or PassThroughProfiler()
-        if isinstance(self.trainer.profiler, PyTorchProfiler):
-            self.trainer.profiler = proxy(self.trainer.profiler)
 
     def on_train_start(self, trainer):
         if not isinstance(trainer.profiler, PassThroughProfiler):
