@@ -12,6 +12,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
+    from torch_xla._patched_functions import clip_grad_norm_
+
+    xla_clip_grad_norm_ = clip_grad_norm_
 
 
 class TPUAccelerator(Accelerator):
@@ -44,3 +47,16 @@ class TPUAccelerator(Accelerator):
         if isinstance(self.training_type_plugin, TPUSpawnPlugin) and self.training_type_plugin.is_distributed:
             return xm.all_gather(tensor).view(-1, *tensor.shape)
         return tensor
+
+    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0):
+
+        model = self.lightning_module
+        parameters = model.parameters()
+
+        grad_clip_val = float(clip_val)
+        if grad_clip_val <= 0:
+            return
+
+        max_norm = grad_clip_val
+
+        xla_clip_grad_norm_(parameters, max_norm, norm_type)
