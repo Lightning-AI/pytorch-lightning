@@ -7,7 +7,7 @@ from tests.helpers import BoringModel
 class DoublePrecisionBoringModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
-        output = self((batch, torch.ones_like(batch).long()))  # Add some non-floating point data
+        output = self((batch, torch.ones_like(batch).long()))  # Add some non floating-point data
         loss = self.loss(batch, output)
         return {"loss": loss}
 
