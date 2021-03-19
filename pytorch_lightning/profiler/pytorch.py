@@ -314,3 +314,14 @@ class PyTorchProfiler(BaseProfiler):
         init_parameters = inspect.signature(profiler.__init__).parameters
         kwargs = {k: v for k, v in self.profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
+
+    def __del__(self):
+        try:
+            self.profiler.__exit__(None, None, None)
+        except RuntimeError:
+            pass
+        try:
+            self._parent_profiler.__exit__(None, None, None)
+        except RuntimeError:
+            pass
+        super().__del__()
