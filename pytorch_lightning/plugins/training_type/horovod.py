@@ -150,7 +150,7 @@ class HorovodPlugin(ParallelPlugin):
 
         if reduce_op in (None, "avg", "mean"):
             reduce_op = hvd.Average
-        elif reduce_op == "sum" or reduce_op == ReduceOp.SUM:
+        elif reduce_op in ("sum", ReduceOp.SUM):
             reduce_op = hvd.Sum
         else:
             raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
