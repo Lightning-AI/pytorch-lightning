@@ -22,10 +22,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from tests import _PROJECT_ROOT
-
-#: local path to test datasets
-PATH_DATASETS = os.path.join(_PROJECT_ROOT, 'Datasets')
+from tests import PATH_DATASETS
 
 
 class MNIST(Dataset):
