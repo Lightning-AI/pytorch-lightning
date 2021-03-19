@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Sequence, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Sequence, Tuple, TYPE_CHECKING
 
 import torch
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from torch.optim import Optimizer
 
 
-def _to_double_precision(tensor: torch.Tensor):
+def _to_double_precision(tensor: torch.Tensor) -> torch.Tensor:
     if tensor.is_floating_point():
         return tensor.to(dtype=torch.float64)
     return tensor
@@ -42,8 +42,8 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
         """Converts the model to double precision and wraps the forward to convert incoming floating point data.
         Does not alter `optimizers` or `lr_schedulers`."""
-        def patch_forward(old_forward):
-            def new_forward(*args, **kwargs):
+        def patch_forward(old_forward: Callable) -> Callable:
+            def new_forward(*args, **kwargs) -> Any:
                 return old_forward(*apply_to_collection(args, torch.Tensor, _to_double_precision),
                                    **apply_to_collection(kwargs, torch.Tensor, _to_double_precision))
             return new_forward
