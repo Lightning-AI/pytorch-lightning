@@ -13,7 +13,6 @@
 # limitations under the License
 
 from typing import Union
-from weakref import proxy
 
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
