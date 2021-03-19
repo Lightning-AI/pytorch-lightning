@@ -24,7 +24,7 @@ try:
     from pytorch_lightning import info, setup_tools
 except ImportError:
     # alternative https://stackoverflow.com/a/67692/4521646
-    sys.path.append("torchmetrics")
+    sys.path.append("pytorch_lightning")
     import info
     import setup_tools
 
