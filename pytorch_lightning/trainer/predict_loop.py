@@ -86,6 +86,9 @@ class PredictLoop(object):
         return
 
     def on_predict_epoch_end(self):
+        if self.trainer.profiler is not None:
+            self.trainer.profiler.describe()
+
         self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
 
         results = self._predictions

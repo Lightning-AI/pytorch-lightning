@@ -14,6 +14,7 @@
 """Profiler to check if there are any bottlenecks in your code."""
 import inspect
 import logging
+import os
 from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
@@ -31,7 +32,9 @@ _PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, 
 
 class PyTorchProfiler(BaseProfiler):
 
-    RECORD_FUNCTIONS = ("training_step_and_backward", "training_step", "backward", "validation_step", "test_step")
+    RECORD_FUNCTIONS = (
+        "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict"
+    )
     AVAILABLE_SORT_KEYS = (
         "cpu_time",
         "cuda_time",
@@ -50,7 +53,7 @@ class PyTorchProfiler(BaseProfiler):
         output_filename: Optional[str] = None,
         group_by_input_shapes: bool = False,
         emit_nvtx: bool = False,
-        export_to_chrome: bool = False,
+        export_to_chrome: bool = True,
         path_to_export_trace: Optional[str] = None,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
@@ -199,6 +202,7 @@ class PyTorchProfiler(BaseProfiler):
     def stop(self, action_name: str) -> None:
         if action_name in self.recording_map:
             self.recording_map[action_name].__exit__(None, None, None)
+            del self.recording_map[action_name]
 
     def summary(self) -> str:
         if not self.profiler_kwargs.get("enabled", True) or self.emit_nvtx:
@@ -208,19 +212,14 @@ class PyTorchProfiler(BaseProfiler):
         recorded_stats = {}
         self.profiler.__exit__(None, None, None)
         self.function_events = self.profiler.function_events
+        self.profiler = None
+
         if self._parent_profiler is not None:
             self._parent_profiler.__exit__(None, None, None)
             self._parent_profiler = None
-        self.function_events = self.profiler.function_events
-        self.profiler = None
-
-        # next line is a workaround for a pytorch issue (fixed on master, still present
-        # on 1.7). Without it the code fails with `AssertionError: There is already a CPU
-        # parent event for detach`
-        self.function_events.populate_cpu_children = lambda: None
 
         if self.export_to_chrome:
-            filename = f"{self.function_events.name}_{local_rank}_trace.json"
+            filename = f"{local_rank}_trace.json"
             path_to_trace = (
                 filename if self.path_to_export_trace is None else os.path.join(self.path_to_export_trace, filename)
             )
@@ -244,3 +243,12 @@ class PyTorchProfiler(BaseProfiler):
         init_parameters = inspect.signature(profiler.__init__).parameters
         kwargs = {k: v for k, v in self.profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
+
+    def __del__(self):
+        if self.profiler is not None:
+            self.profiler.__exit__(None, None, None)
+        if self._parent_profiler is not None:
+            self._parent_profiler.__exit__(None, None, None)
+        for recording in self.recording_map.values():
+            recording.__exit__(None, None, None)
+        super().__del__()

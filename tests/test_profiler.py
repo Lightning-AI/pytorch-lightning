@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import os
+import platform
 import time
 from distutils.version import LooseVersion
 from pathlib import Path
@@ -225,12 +226,8 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
 
 
 @RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir):
+def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
-
-    output_filename = os.path.join(tmpdir, "profiler.txt")
-
-    profiler = PyTorchProfiler(output_filename=output_filename)
 
     model = BoringModel()
     trainer = Trainer(
@@ -238,27 +235,19 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
         default_root_dir=tmpdir,
         limit_train_batches=6,
         limit_val_batches=6,
-        profiler=profiler,
+        profiler=pytorch_profiler,
         accelerator="ddp",
         gpus=2,
         logger=TensorBoardLogger(tmpdir)
     )
     trainer.fit(model)
 
-    data = Path(profiler.output_fname).read_text()
+    data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
 
 
-@pytest.mark.parametrize("use_output_filename", [True])
-def test_pytorch_profiler_trainer(tmpdir, use_output_filename):
-    """Ensure that the profiler can be given to the training and default step are properly recorded. """
-
-    if use_output_filename:
-        output_filename = os.path.join(tmpdir, "profiler.txt")
-    else:
-        output_filename = None
-
-    profiler = PyTorchProfiler(output_filename=output_filename)
+def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
+    """Ensure that the profiler can be given to the trainer and training, validation steps are properly recorded. """
 
     model = BoringModel()
     trainer = Trainer(
@@ -266,22 +255,53 @@ def test_pytorch_profiler_trainer(tmpdir, use_output_filename):
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
-        profiler=profiler,
+        profiler=pytorch_profiler,
     )
     trainer.fit(model)
 
-    enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
+    expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
+    for name in expected:
+        assert len([e for e in pytorch_profiler.function_events if name == e.name]) > 0
 
-    if enabled:
-        expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
-        for name in expected:
-            assert len([e for e in profiler.function_events if name == e.name]) > 0
-    else:
-        assert profiler.function_events is None
+    data = Path(pytorch_profiler.output_fname).read_text()
+    assert len(data) > 0
 
-    if use_output_filename:
-        data = Path(profiler.output_fname).read_text()
-        assert len(data) > 0
+
+def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
+    """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_test_batches=2,
+        profiler=pytorch_profiler,
+    )
+    trainer.test(model)
+
+    assert len([e for e in pytorch_profiler.function_events if 'test_step' == e.name]) > 0
+
+    data = Path(pytorch_profiler.output_fname).read_text()
+    assert len(data) > 0
+
+
+def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
+    """Ensure that the profiler can be given to the trainer and predict function are properly recorded. """
+
+    model = BoringModel()
+    model.predict_dataloader = model.train_dataloader
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_test_batches=2,
+        profiler=pytorch_profiler,
+    )
+    trainer.predict(model)
+
+    assert len([e for e in pytorch_profiler.function_events if 'predict' == e.name]) > 0
+
+    data = Path(pytorch_profiler.output_fname).read_text()
+    assert len(data) > 0
 
 
 def test_pytorch_profiler_nested(tmpdir):
