@@ -189,6 +189,8 @@ class PyTorchProfiler(BaseProfiler):
         self.lightning_module = None  # set by ProfilerConnector
         self.register = None
         self.profiler_kwargs = profiler_kwargs
+        self.profiler = None
+        self._parent_profiler = None
 
         if self.export_to_chrome and self.path_to_export_trace is None:
             rank_zero_warn(
@@ -312,12 +314,3 @@ class PyTorchProfiler(BaseProfiler):
         init_parameters = inspect.signature(profiler.__init__).parameters
         kwargs = {k: v for k, v in self.profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
-
-    def __del__(self):
-        if self.profiler is not None:
-            self.profiler.__exit__(None, None, None)
-        if self._parent_profiler is not None:
-            self._parent_profiler.__exit__(None, None, None)
-        for recording in self.recording_map.values():
-            recording.__exit__(None, None, None)
-        super().__del__()
