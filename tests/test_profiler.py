@@ -197,14 +197,9 @@ def test_advanced_profiler_value_errors(advanced_profiler):
     advanced_profiler.stop(action)
 
 
-@pytest.fixture
-def pytorch_profiler(tmpdir):
-    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
-    return profiler
-
-
-def test_pytorch_profiler_describe(pytorch_profiler):
+def test_pytorch_profiler_describe(tmpdir):
     """Ensure the profiler won't fail when reporting the summary."""
+    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     with pytorch_profiler.profile("test_step"):
         pass
 
@@ -214,9 +209,9 @@ def test_pytorch_profiler_describe(pytorch_profiler):
     assert len(data) > 0
 
 
-def test_pytorch_profiler_value_errors(pytorch_profiler):
+def test_pytorch_profiler_value_errors(tmpdir):
     """Ensure errors are raised where expected."""
-
+    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     action = "test_step"
     pytorch_profiler.start(action)
     pytorch_profiler.stop(action)
@@ -226,9 +221,9 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
 
 
 @RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_ddp(tmpdir):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
-
+    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     model = BoringModel()
     trainer = Trainer(
         max_epochs=1,
@@ -246,9 +241,9 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     assert len(data) > 0
 
 
-def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_fit(tmpdir):
     """Ensure that the profiler can be given to the trainer and training, validation steps are properly recorded. """
-
+    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -268,9 +263,9 @@ def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
     print(tmpdir)
 
 
-def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_test(tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
-
+    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -286,9 +281,9 @@ def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
     assert len(data) > 0
 
 
-def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_predict(tmpdir):
     """Ensure that the profiler can be given to the trainer and predict function are properly recorded. """
-
+    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     model = BoringModel()
     model.predict_dataloader = model.train_dataloader
     trainer = Trainer(
