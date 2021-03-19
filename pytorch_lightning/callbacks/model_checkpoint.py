@@ -186,6 +186,7 @@ class ModelCheckpoint(Callback):
         every_n_train_steps: Optional[int] = None,
         every_n_val_epochs: Optional[int] = None,
         period: Optional[int] = None,
+        storage_options: Optional[Dict] = None
     ):
         super().__init__()
         self.monitor = monitor
@@ -194,6 +195,7 @@ class ModelCheckpoint(Callback):
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
+        self.storage_options = storage_options or {}
         self._last_global_step_saved = -1
         self.current_score = None
         self.best_k_models = {}
@@ -329,7 +331,7 @@ class ModelCheckpoint(Callback):
 
     def __init_ckpt_dir(self, dirpath, filename, save_top_k):
 
-        self._fs = get_filesystem(str(dirpath) if dirpath else '')
+        self._fs = get_filesystem(str(dirpath) if dirpath else '', **self.storage_options)
 
         if (
             save_top_k is not None and save_top_k > 0 and dirpath is not None and self._fs.isdir(dirpath)
@@ -337,8 +339,11 @@ class ModelCheckpoint(Callback):
         ):
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
-        if dirpath and self._fs.protocol == 'file':
-            dirpath = os.path.realpath(dirpath)
+        if dirpath:
+            if self._fs.protocol == 'file':
+                dirpath = os.path.realpath(dirpath)
+            else:
+                dirpath = dirpath.split("://", 1)[-1]
 
         self.dirpath: Union[str, None] = dirpath or None
         self.filename = filename or None

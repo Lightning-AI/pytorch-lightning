@@ -85,13 +85,13 @@ class CheckpointConnector:
         All restored states are listed in return value description of `dump_checkpoint`.
         """
         # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
-        fs = get_filesystem(checkpoint_path)
+        fs = get_filesystem(checkpoint_path, **self._storage_options)
         if not fs.exists(checkpoint_path):
             rank_zero_warn("No checkpoint file exists at `resume_from_checkpoint`. Start from scratch")
             return False
 
         # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
-        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage, **self._storage_options)
 
         # acquire the model
         model = self.trainer.lightning_module
@@ -201,7 +201,7 @@ class CheckpointConnector:
     def hpc_save(self, folderpath: str, logger):
         # make sure the checkpoint folder exists
         folderpath = str(folderpath)  # because the tests pass a path object
-        fs = get_filesystem(folderpath)
+        fs = get_filesystem(folderpath, **self._storage_options)
         fs.makedirs(folderpath, exist_ok=True)
 
         # save logger to make sure we get all the metrics
@@ -224,7 +224,7 @@ class CheckpointConnector:
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
-            atomic_save(checkpoint, filepath)
+            atomic_save(checkpoint, filepath, **self._storage_options)
         except AttributeError as err:
             if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
@@ -232,7 +232,7 @@ class CheckpointConnector:
                 'warning, `hyper_parameters` dropped from checkpoint.'
                 f' An attribute is not picklable {err}'
             )
-            atomic_save(checkpoint, filepath)
+            atomic_save(checkpoint, filepath, **self._storage_options)
 
         return filepath
 
@@ -331,7 +331,7 @@ class CheckpointConnector:
         """
 
         # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
-        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage, **self._storage_options)
 
         # acquire the model
         model = self.trainer.lightning_module
@@ -360,7 +360,7 @@ class CheckpointConnector:
         """
 
         # check directory existence
-        fs = get_filesystem(dir_path)
+        fs = get_filesystem(dir_path, **self._storage_options)
         if not fs.exists(dir_path):
             return None
 
@@ -401,7 +401,7 @@ class CheckpointConnector:
             if self.trainer.training_type_plugin:
                 checkpoint = self.trainer.training_type_plugin.on_save(checkpoint)
             try:
-                atomic_save(checkpoint, filepath)
+                atomic_save(checkpoint, filepath, **self._storage_options)
             except AttributeError as err:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
@@ -409,4 +409,11 @@ class CheckpointConnector:
                     'Warning, `hyper_parameters` dropped from checkpoint.'
                     f' An attribute is not picklable {err}'
                 )
-                atomic_save(checkpoint, filepath)
+                atomic_save(checkpoint, filepath, **self._storage_options)
+
+    @property
+    def _storage_options(self):
+        try:
+            return self.trainer.checkpoint_callback.storage_options
+        except AttributeError:
+            return {}

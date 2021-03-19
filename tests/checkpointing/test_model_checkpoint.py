@@ -18,6 +18,7 @@ import pickle
 import re
 from argparse import Namespace
 from logging import INFO
+from os.path import join
 from pathlib import Path
 from typing import Union
 from unittest import mock
@@ -1241,3 +1242,59 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
 def test_model_checkpoint_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* but got unknown_option"):
         ModelCheckpoint(mode="unknown_option")
+
+
+def test_model_checkpoint_supports_fsspec_parameters(tmpdir):
+    import fsspec
+    from fsspec.registry import register_implementation
+
+    class FakeCloudStorage(fsspec.AbstractFileSystem):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._fs = fsspec.filesystem("file")
+            self.storage_options = storage_options
+
+        def ls(self, path, detail=True, **kwargs):
+            return self._fs.ls(join(tmpdir, path), detail, **kwargs)
+
+        def cp_file(self, path1, path2, **kwargs):
+            self._fs.cp_file(join(tmpdir, path1), join(tmpdir, path2), **kwargs)
+
+        def _rm(self, path):
+            self._fs._rm(join(tmpdir, path))
+
+        def created(self, path):
+            return self._fs.created(join(tmpdir, path))
+
+        def modified(self, path):
+            return self._fs.modified(join(tmpdir, path))
+
+        def makedirs(self, path, exist_ok=False):
+            self._fs.makedirs(join(tmpdir, path), exist_ok=exist_ok)
+
+    register_implementation("fake", FakeCloudStorage)
+
+    storage_options = {"username": "test", "password": "secret"}
+
+    mc = ModelCheckpoint(
+        dirpath="fake://checkpoints",
+        save_top_k=-1,
+        monitor="epoch",
+        filename="test",
+        storage_options=storage_options
+    )
+    trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        default_root_dir=tmpdir,
+        callbacks=[mc],
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(BoringModel())
+
+    assert mc.dirpath == "checkpoints"
+    assert mc._fs.storage_options == storage_options

@@ -21,28 +21,28 @@ import fsspec
 import torch
 
 
-def load(path_or_url: Union[str, IO, Path], map_location=None):
+def load(path_or_url: Union[str, IO, Path], map_location=None, **storage_options):
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)
     if str(path_or_url).startswith("http"):
         return torch.hub.load_state_dict_from_url(str(path_or_url), map_location=map_location)
-    fs = get_filesystem(path_or_url)
+    fs = get_filesystem(path_or_url, **storage_options)
     with fs.open(path_or_url, "rb") as f:
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: Union[str, Path]):
+def get_filesystem(path: Union[str, Path], **storage_options):
     path = str(path)
     if "://" in path:
         # use the fileystem from the protocol specified
-        return fsspec.filesystem(path.split(":", 1)[0])
+        return fsspec.filesystem(path.split(":", 1)[0], **storage_options)
     else:
         # use local filesystem
         return fsspec.filesystem("file")
 
 
-def atomic_save(checkpoint, filepath: str):
+def atomic_save(checkpoint, filepath: str, **storage_options):
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
@@ -51,6 +51,7 @@ def atomic_save(checkpoint, filepath: str):
             accepts.
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
+        storage_options: The set of options forwarded to ``fsspec.open`` call.
     """
 
     bytesbuffer = io.BytesIO()
@@ -61,5 +62,5 @@ def atomic_save(checkpoint, filepath: str):
         torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
     else:
         torch.save(checkpoint, bytesbuffer)
-    with fsspec.open(filepath, "wb") as f:
+    with fsspec.open(filepath, "wb", **storage_options) as f:
         f.write(bytesbuffer.getvalue())
