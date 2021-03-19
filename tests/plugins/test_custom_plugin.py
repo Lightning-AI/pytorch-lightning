@@ -16,7 +16,6 @@ class CustomParallelPlugin(DDPPlugin):
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
 def test_sync_batchnorm_set(tmpdir):
     """Tests if sync_batchnorm is automatically set for custom plugin."""
     model = BoringModel()
