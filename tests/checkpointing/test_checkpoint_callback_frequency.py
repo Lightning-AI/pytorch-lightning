@@ -117,7 +117,7 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
             self.log('my_loss', batch_idx * (1 + local_rank), on_epoch=True)
             return super().training_step(batch, batch_idx)
 
-        def training_epoch_end(self, outputs) -> None:
+        def training_epoch_end(self, outputsƒ) -> None:
             data = str(self.global_rank)
             obj = [[data], (data, ), set(data)]
             out = self.trainer.training_type_plugin.broadcast(obj)
