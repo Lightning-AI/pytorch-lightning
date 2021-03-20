@@ -23,6 +23,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
+from pytorch_lightning.trainer.progress import TrainLoopProgress
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
@@ -50,6 +51,7 @@ class TrainLoop:
         self._multiple_trainloader_mode = multiple_trainloader_mode
         self._skip_backward = False
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
+        self._progress = TrainLoopProgress()
 
     def on_trainer_init(
         self,
@@ -175,6 +177,8 @@ class TrainLoop:
 
         # update training progress in trainer
         self.trainer.current_epoch = epoch
+        self._progress.reset_batch_in_epoch()
+        self._progress.reset_step_in_epoch()
 
         model = self.trainer.lightning_module
 
@@ -202,6 +206,9 @@ class TrainLoop:
         self.trainer.call_hook("on_train_epoch_start")
 
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
+        # Update batch progress
+        self._progress.bump_batch()
+
         # hook
         self.trainer.call_hook('on_train_batch_end', batch_end_outputs, batch, batch_idx, dataloader_idx)
         self.trainer.call_hook('on_batch_end')
@@ -794,6 +801,7 @@ class TrainLoop:
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self, epoch_output):
+        self._progress.bump_epoch()
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
@@ -807,6 +815,7 @@ class TrainLoop:
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
             self.trainer.global_step += 1
+            self._progress.bump_step()
 
     def _accumulated_batches_reached(self):
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
