@@ -320,6 +320,10 @@ class Trainer(
         self.predict_loop = PredictLoop(self)
 
         # training state
+        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
+            raise MisconfigurationException(
+                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
+            )
         self.weights_summary = weights_summary
         self.shown_warnings = set()
 
@@ -542,13 +546,7 @@ class Trainer(
         ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if (
-            self.is_global_zero and self.weights_summary is not None and not self.testing
-            and self.weights_summary not in ModelSummary.MODES
-        ):
-            raise MisconfigurationException(
-                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
-            )
+        if (self.is_global_zero and self.weights_summary is not None and not self.testing):
             ref_model.summarize(mode=self.weights_summary)
 
         # restore training and model before hpc is called
