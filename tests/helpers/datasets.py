@@ -42,7 +42,7 @@ class MNIST(Dataset):
             downloaded again.
 
     Examples:
-        >>> dataset = MNIST(download=True)
+        >>> dataset = MNIST(".", download=True)
         >>> len(dataset)
         60000
         >>> torch.bincount(dataset.targets)
@@ -147,7 +147,7 @@ class TrialMNIST(MNIST):
         kwargs: Same as MNIST
 
     Examples:
-        >>> dataset = TrialMNIST(download=True)
+        >>> dataset = TrialMNIST(".", download=True)
         >>> len(dataset)
         300
         >>> sorted(set([d.item() for d in dataset.targets]))
@@ -156,7 +156,7 @@ class TrialMNIST(MNIST):
         tensor([100, 100, 100])
     """
 
-    def __init__(self, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs):
+    def __init__(self, root: str, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs):
         # number of examples per class
         self.num_samples = num_samples
         # take just a subset of MNIST dataset
@@ -164,7 +164,7 @@ class TrialMNIST(MNIST):
 
         self.cache_folder_name = f"digits-{'-'.join(str(d) for d in self.digits)}_nb-{self.num_samples}"
 
-        super().__init__(normalize=(0.5, 1.0), **kwargs)
+        super().__init__(root, normalize=(0.5, 1.0), **kwargs)
 
     @staticmethod
     def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor, num_samples: int, digits: Sequence):
