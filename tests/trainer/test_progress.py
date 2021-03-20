@@ -14,7 +14,7 @@
 
 import pytest
 
-from pytorch_lightning.trainer.progress import LoopProgress, Progress, TrainLoopProgress
+from pytorch_lightning.trainer.progress import LoopProgress, TrainLoopProgress
 
 
 def test_invalid_progress_increment(tmpdir):
