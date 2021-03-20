@@ -80,7 +80,6 @@ jobs:
     - name: Statistics
       if: success()
       run: |
-        coverage combine
         coverage report
         coverage xml
 
