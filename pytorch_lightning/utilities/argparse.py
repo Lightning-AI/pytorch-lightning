@@ -242,9 +242,6 @@ def add_argparse_args(
         if arg == 'track_grad_norm':
             use_type = float
 
-        if arg_default is inspect._empty:
-            arg_default = None
-
         parser.add_argument(
             f'--{arg}',
             dest=arg,
@@ -291,10 +288,7 @@ def _gpus_allowed_type(x) -> Union[int, str]:
 
 
 def _gpus_arg_default(x) -> Union[int, str]:
-    if ',' in x:
-        return str(x)
-    else:
-        return int(x)
+    return _gpus_allowed_type(x)
 
 
 def _int_or_float_type(x) -> Union[int, float]:

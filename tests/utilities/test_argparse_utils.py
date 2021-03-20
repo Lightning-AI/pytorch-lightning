@@ -12,6 +12,9 @@ from pytorch_lightning.utilities.argparse import (
     get_abbrev_qualified_cls_name,
     parse_argparser,
     parse_args_from_docstring,
+    _gpus_allowed_type,
+    _gpus_arg_default,
+    _int_or_float_type
 )
 
 
@@ -200,3 +203,13 @@ def test_add_argparse_args_no_argument_group():
     args = parser.parse_args(fake_argv)
     assert args.main_arg == "abc"
     assert args.my_parameter == 2
+
+
+def test_gpus_arg_default():
+    assert _gpus_arg_default('1,2') == '1,2'
+    assert _gpus_arg_default('1') == 1
+
+
+def test_int_or_float_type():
+    assert isinstance(_int_or_float_type('0.0'), float)
+    assert isinstance(_int_or_float_type('0'), int)
