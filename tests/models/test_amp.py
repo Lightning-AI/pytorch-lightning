@@ -39,7 +39,7 @@ class AMPTestModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         output = self._step(batch, batch_idx)
-        return {"loss", output}
+        return {"loss": output}
 
     def validation_step(self, batch, batch_idx):
         output = self._step(batch, batch_idx)
