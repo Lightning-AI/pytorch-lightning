@@ -78,7 +78,7 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
-        python -m pytest pytorch_lightning tests -v --cov=pytorch_lightning --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
 
     - bash: |
@@ -86,7 +86,7 @@ jobs:
       displayName: 'Testing: special'
 
     - bash: |
-        # python -m coverage combine
+        python -m coverage combine
         python -m coverage report
         python -m coverage xml
         python -m coverage html

@@ -134,8 +134,7 @@ jobs:
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        # todo: after moving parallel and thread to coonfing, drop these options
-        python -m pytest pytorch_lightning tests -v --cov=pytorch_lightning --parallel-mode --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        python -m pytest pytorch_lightning tests -v --cov=pytorch_lightning --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Examples
       run: |
@@ -151,6 +150,7 @@ jobs:
     - name: Statistics
       if: success()
       run: |
+        coverage combine
         coverage report
         coverage xml
 

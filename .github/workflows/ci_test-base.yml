@@ -68,8 +68,7 @@ jobs:
     - name: Test Package [only]
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        # todo: after moving parallel and thread to coonfing, drop these options
-        python -m pytest pytorch_lightning -v --cov=pytorch_lightning --parallel-mode --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        python -m pytest pytorch_lightning -v --cov=pytorch_lightning --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2
@@ -81,6 +80,7 @@ jobs:
     - name: Statistics
       if: success()
       run: |
+        coverage combine
         coverage report
         coverage xml
 
