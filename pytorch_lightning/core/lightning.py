@@ -109,6 +109,7 @@ class LightningModule(
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
         self._automatic_optimization: bool = True
+        self._param_requires_grad_state = dict()
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -1328,7 +1329,7 @@ class LightningModule(
                         if param in self._param_requires_grad_state:
                             param.requires_grad = self._param_requires_grad_state[param]
         # save memory
-        del self._param_requires_grad_state
+        self._param_requires_grad_state = dict()
 
     def optimizer_step(
         self,
