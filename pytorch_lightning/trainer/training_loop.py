@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 class TrainLoop:
 
-    def __init__(self, trainer, multiple_trainloader_mode):
+    def __init__(self, trainer, multiple_trainloader_mode: str):
         self.trainer = trainer
         self.early_stopping_accumulator = None
         self.checkpoint_accumulator = None
