@@ -67,7 +67,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
                 # Value has been passed as a flag => It is currently None, so we need to set it to True
                 # We always set to True, regardless of the default value.
                 # Users must pass False directly, but when passing nothing True is assumed.
-                # i.e. the only way to disable somthing that defaults to True is to use the long form:
+                # i.e. the only way to disable something that defaults to True is to use the long form:
                 # "--a_default_true_arg False" becomes False, while "--a_default_false_arg" becomes None,
                 # which then becomes True here.
 

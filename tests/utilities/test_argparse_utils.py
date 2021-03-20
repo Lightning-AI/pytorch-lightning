@@ -1,15 +1,47 @@
 import io
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from typing import List
 
 import pytest
+from unittest.mock import MagicMock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
+    from_argparse_args,
     get_abbrev_qualified_cls_name,
+    parse_argparser,
     parse_args_from_docstring,
 )
+
+
+class ArgparseExample:
+    def __init__(self, a: int = 0, b: str = '', c: bool = False):
+        self.a = a
+        self.b = b
+        self.c = c
+
+
+def test_from_argparse_args():
+    args = Namespace(a=1, b='test', c=True, d='not valid')
+    my_instance = from_argparse_args(ArgparseExample, args)
+    assert my_instance.a == 1
+    assert my_instance.b == 'test'
+    assert my_instance.c
+
+    parser = ArgumentParser()
+    mock_trainer = MagicMock()
+    _ = from_argparse_args(mock_trainer, parser)
+    mock_trainer.parse_argparser.assert_called_once_with(parser)
+
+
+def test_parse_argparser():
+    args = Namespace(a=1, b='test', c=None, d='not valid')
+    new_args = parse_argparser(ArgparseExample, args)
+    assert new_args.a == 1
+    assert new_args.b == 'test'
+    assert new_args.c
+    assert new_args.d == 'not valid'
 
 
 def test_parse_args_from_docstring_normal():
