@@ -327,6 +327,18 @@ def test_trainer_model_hook_system(tmpdir):
             self.called.append(inspect.currentframe().f_code.co_name)
             super().on_train_end()
 
+        def on_before_batch_transfer(self, batch, dataloader_idx):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            return super().on_before_batch_transfer(batch, dataloader_idx)
+
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            return super().transfer_batch_to_device(batch, device, dataloader_idx)
+
+        def on_after_batch_transfer(self, batch, dataloader_idx):
+            self.called.append(inspect.currentframe().f_code.co_name)
+            return super().on_after_batch_transfer(batch, dataloader_idx)
+
         def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
             self.called.append(inspect.currentframe().f_code.co_name)
             super().on_train_batch_start(batch, batch_idx, dataloader_idx)
@@ -437,6 +449,9 @@ def test_trainer_model_hook_system(tmpdir):
         'on_validation_start',
         'on_validation_epoch_start',
         'on_validation_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_validation_batch_end',
         'on_validation_epoch_end',
         'on_epoch_end',
@@ -446,10 +461,16 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_start',
         'on_train_epoch_start',
         'on_train_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_before_zero_grad',
         'on_after_backward',
         'on_train_batch_end',
         'on_train_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_before_zero_grad',
         'on_after_backward',
         'on_train_batch_end',
@@ -459,6 +480,9 @@ def test_trainer_model_hook_system(tmpdir):
         'on_validation_start',
         'on_validation_epoch_start',
         'on_validation_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_validation_batch_end',
         'on_validation_epoch_end',
         'on_epoch_end',
@@ -479,6 +503,9 @@ def test_trainer_model_hook_system(tmpdir):
         'on_validation_start',
         'on_validation_epoch_start',
         'on_validation_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_validation_batch_end',
         'on_validation_epoch_end',
         'on_epoch_end',
@@ -496,6 +523,9 @@ def test_trainer_model_hook_system(tmpdir):
         'on_test_start',
         'on_test_epoch_start',
         'on_test_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_test_batch_end',
         'on_test_epoch_end',
         'on_epoch_end',

@@ -178,7 +178,7 @@ class Accelerator(object):
         kwargs = self.to_device(kwargs)
 
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
-            return self.training_type_plugin.training_step(**kwargs)
+            return self.training_type_plugin.training_step(*kwargs.values())
 
     def post_training_step(self) -> None:
         self.training_type_plugin.post_training_step()
@@ -197,7 +197,7 @@ class Accelerator(object):
         kwargs = self.to_device(kwargs)
 
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
-            return self.training_type_plugin.validation_step(**kwargs)
+            return self.training_type_plugin.validation_step(*kwargs.values())
 
     def test_step(self, kwargs: Dict[str, Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
         """The actual test step.
@@ -213,7 +213,7 @@ class Accelerator(object):
         kwargs = self.to_device(kwargs)
 
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
-            return self.training_type_plugin.test_step(**kwargs)
+            return self.training_type_plugin.test_step(*kwargs.values())
 
     def predict(self, kwargs: Dict[str, Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
         """The actual predict step.
@@ -229,7 +229,7 @@ class Accelerator(object):
         kwargs = self.to_device(kwargs)
 
         with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
-            return self.training_type_plugin.predict(**kwargs)
+            return self.training_type_plugin.predict(*kwargs.values())
 
     def training_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the training step

@@ -808,9 +808,9 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
 
     class TestModel(BoringModel):
 
-        def training_step(self, *args, **kwargs):
+        def training_step(self, *args):
             self.log("foo", torch.tensor(self.current_epoch), on_step=False, on_epoch=True, prog_bar=True)
-            return super().training_step(*args, **kwargs)
+            return super().training_step(*args)
 
         def on_train_epoch_end(self, *_):
             self.on_train_epoch_end_called = True
