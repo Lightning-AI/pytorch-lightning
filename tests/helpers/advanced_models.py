@@ -166,7 +166,7 @@ class BasicGAN(LightningModule):
         return [opt_g, opt_d], []
 
     def train_dataloader(self):
-        return DataLoader(TrialMNIST(train=True, download=True), batch_size=16)
+        return DataLoader(TrialMNIST(root=PATH_DATASETS, train=True, download=True), batch_size=16)
 
 
 class ParityModuleRNN(LightningModule):
