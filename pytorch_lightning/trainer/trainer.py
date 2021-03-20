@@ -351,7 +351,6 @@ class Trainer(
             max_steps,
             min_steps,
             num_sanity_val_steps,
-            weights_summary,
         )
         self.evaluation_loop.on_trainer_init()
 
@@ -543,11 +542,11 @@ class Trainer(
         ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            if self.weights_summary in ModelSummary.MODES:
-                ref_model.summarize(mode=self.weights_summary)
-            else:
-                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+        if self.is_global_zero and self.weights_summary is not None and not self.testing and self.weights_summary not in ModelSummary.MODES:
+            raise MisconfigurationException(
+                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
+            )
+            ref_model.summarize(mode=self.weights_summary)
 
         # restore training and model before hpc is called
         self.checkpoint_connector.restore_weights()
