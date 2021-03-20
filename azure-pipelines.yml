@@ -87,7 +87,6 @@ jobs:
       displayName: 'Testing: special'
 
     - bash: |
-        python -m coverage combine
         python -m coverage report
         python -m coverage xml
         python -m coverage html
