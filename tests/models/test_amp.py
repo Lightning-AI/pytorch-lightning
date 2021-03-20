@@ -35,16 +35,19 @@ class AMPTestModel(BoringModel):
         output = self(batch)
         assert output.dtype == torch.float16
         loss = self.loss(batch, output)
-        return {"loss": loss}
+        return loss
 
     def training_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx)
+        output = self._step(batch, batch_idx)
+        return {"loss", output}
 
     def validation_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx)
+        output = self._step(batch, batch_idx)
+        return {"x": output}
 
     def test_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx)
+        output = self._step(batch, batch_idx)
+        return {"y": output}
 
     def predict(self, batch, batch_idx):
         assert torch.is_autocast_enabled()
