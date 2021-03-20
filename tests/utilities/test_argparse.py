@@ -1,9 +1,9 @@
 import io
 from argparse import ArgumentParser, Namespace
 from typing import List
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import MagicMock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.argparse import (
@@ -12,7 +12,6 @@ from pytorch_lightning.utilities.argparse import (
     get_abbrev_qualified_cls_name,
     parse_argparser,
     parse_args_from_docstring,
-    _gpus_allowed_type,
     _gpus_arg_default,
     _int_or_float_type
 )
