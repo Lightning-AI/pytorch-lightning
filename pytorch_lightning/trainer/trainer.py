@@ -542,7 +542,10 @@ class Trainer(
         ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if self.is_global_zero and self.weights_summary is not None and not self.testing and self.weights_summary not in ModelSummary.MODES:
+        if (
+            self.is_global_zero and self.weights_summary is not None and not self.testing
+            and self.weights_summary not in ModelSummary.MODES
+        ):
             raise MisconfigurationException(
                 f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
             )
