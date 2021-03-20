@@ -82,6 +82,7 @@ jobs:
       displayName: 'Testing: standard'
 
     - bash: |
+        python -c "fname = 'setup.cfg' ; lines = [line for line in open(fname).readlines() if not line.startswith('parallel = True')] ; open(fname, 'w').writelines(lines)"
         sh tests/special_tests.sh
       displayName: 'Testing: special'
 
