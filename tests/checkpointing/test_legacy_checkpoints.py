@@ -18,9 +18,9 @@ import sys
 import pytest
 
 from pytorch_lightning import Trainer
-from tests import LEGACY_PATH
+from tests import PATH_LEGACY
 
-LEGACY_CHECKPOINTS_PATH = os.path.join(LEGACY_PATH, 'checkpoints')
+LEGACY_CHECKPOINTS_PATH = os.path.join(PATH_LEGACY, 'checkpoints')
 CHECKPOINT_EXTENSION = ".ckpt"
 
 
