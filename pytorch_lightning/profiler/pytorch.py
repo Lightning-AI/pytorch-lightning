@@ -16,7 +16,7 @@ import inspect
 import logging
 import os
 from functools import partial
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import torch
 from torch.autograd.profiler import EventList, record_function
@@ -25,6 +25,7 @@ from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 
 log = logging.getLogger(__name__)
 
@@ -85,11 +86,69 @@ class RegisterRecordFunction:
                 h.remove()
 
 
+if _TORCH_GREATER_EQUAL_1_8:
+    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
+
+    class ScheduleWrapper:
+        """
+        This class is used to override the schedule logic from the profiler and perform
+        recording for both `training_step`, `validation_step`.
+        """
+
+        def __init__(self, schedule: Callable) -> None:
+            self._schedule = schedule
+            self._num_training_step_and_backward = 0
+            self._num_validation_step = 0
+            self._training_step_and_backward_reached_end = False
+            self._validation_step_reached_end = False
+            # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
+            self._current_action = None
+
+        @property
+        def num_step(self) -> int:
+            if self._current_action == "training_step_and_backward":
+                return self._num_training_step_and_backward
+            elif self._current_action == "validation_step":
+                return self._num_validation_step
+            else:
+                return 0
+
+        def _step(self) -> None:
+            if self._current_action == "training_step_and_backward":
+                self._num_training_step_and_backward += 1
+            elif self._current_action == "validation_step" and self._num_training_step_and_backward > 0:
+                # skip sanity check
+                self._num_validation_step += 1
+
+        @property
+        def has_finished(self) -> bool:
+            if self._current_action == "training_step_and_backward":
+                return self._training_step_and_backward_reached_end
+            elif self._current_action == "validation_step":
+                return self._validation_step_reached_end
+            return False
+
+        def __call__(self, num_step: int) -> 'ProfilerAction':
+            # ignore the provided input. Keep internal state instead.
+            if self.has_finished:
+                return ProfilerAction.NONE
+
+            self._step()
+            action = self._schedule(self.num_step)
+            if action == ProfilerAction.RECORD_AND_SAVE:
+                if self._current_action == "training_step_and_backward":
+                    self._training_step_and_backward_reached_end = True
+                elif self._current_action == "validation_step":
+                    self._validation_step_reached_end = True
+            return action
+
+
 class PyTorchProfiler(BaseProfiler):
 
     RECORD_FUNCTIONS = (
         "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict"
     )
+    STEP_FUNCTIONS = ("training_step_and_backward", "validation_step", "test_step", "predict")
     AVAILABLE_SORT_KEYS = (
         "cpu_time",
         "cuda_time",
@@ -116,6 +175,12 @@ class PyTorchProfiler(BaseProfiler):
         local_rank: Optional[int] = None,
         profiled_functions: List[str] = [],
         record_module_names: bool = True,
+        schedule: Optional[Callable] = None,
+        on_trace_ready: Optional[Callable] = None,
+        export_to_flame_graph: bool = True,
+        with_flops: bool = True,
+        metric: str = 'self_cpu_time_total',
+        activities: Optional[List] = None,
         **profiler_kwargs: Any,
     ) -> None:
         """
@@ -165,6 +230,18 @@ class PyTorchProfiler(BaseProfiler):
 
             record_module_names: Whether to add module names while recording autograd operation.
 
+            schedule: Whether to apply a scheduling regime for recording. Available for PyTorch 1.8
+
+            on_trace_ready: Whether apply a hook when the trace is ready. Available for PyTorch 1.8
+
+            export_to_flame_graph: Whether to export to flame. Available for PyTorch 1.8
+
+            with_flops: Whether to record flops. Available for PyTorch 1.8
+
+            metric: Record metric. Available for PyTorch 1.8
+
+            activities: Activites to be recorded. Available for PyTorch 1.8
+
         Raises:
             MisconfigurationException:
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``, or
@@ -177,20 +254,61 @@ class PyTorchProfiler(BaseProfiler):
 
         record_functions = self.__deprecation_check(profiled_functions, record_functions)
 
+        if (not _TORCH_GREATER_EQUAL_1_8):
+            rank_zero_warn(
+                "Arguments `schedule`, `on_trace_ready`, `export_to_flame_graph`, `with_flops`, `metric` "
+                "will be used only with PyTorch 1.8"
+            )
+
+        # common arguments
         self.output_fname = output_filename
         self.record_functions = record_functions + list(self.RECORD_FUNCTIONS)
         self.sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
         self.group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self.row_limit = row_limit
-        self.emit_nvtx = emit_nvtx
         self.export_to_chrome = export_to_chrome
         self.path_to_export_trace = path_to_export_trace
         self.record_module_names = record_module_names
+        self.profiler: Optional[_PROFILER] = None
         self.lightning_module = None  # set by ProfilerConnector
         self.register = None
-        self.profiler_kwargs = profiler_kwargs
-        self.profiler = None
+        self.recording_map: Dict[str, record_function] = {}
+        self._profiler_instantiated: bool = False
+        self.on_trace_ready = None
         self._parent_profiler = None
+        self.schedule = None
+
+        if _TORCH_GREATER_EQUAL_1_8:
+            if schedule is not None:
+                if not isinstance(schedule, Callable):
+                    raise MisconfigurationException(f"Found schedule: {schedule}. Schedule should be a callable.")
+                action = schedule(0)
+                if not isinstance(action, ProfilerAction):
+                    raise MisconfigurationException(
+                        f"Found schedule: {schedule}. "
+                        "Schedule should be a callable returning `torch.profiler.ProfilerAction`. "
+                    )
+
+            if isinstance(sort_by_key, str) and sort_by_key not in self.AVAILABLE_SORT_KEYS:
+                raise MisconfigurationException(
+                    f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
+                )
+            self.record_functions_managers = {}
+            self.activities = activities or [ProfilerActivity.CPU] + [ProfilerActivity.CUDA] * torch.cuda.is_available()
+
+            schedule = schedule or torch.profiler.schedule(wait=1, warmup=1, active=2)
+            self.schedule = ScheduleWrapper(schedule)
+            self.on_trace_ready = on_trace_ready
+            self.export_to_flame_graph = export_to_flame_graph
+            self.with_flops = with_flops
+            self.metric = metric
+            self.emit_nvtx = False
+
+        else:
+            self.emit_nvtx = emit_nvtx
+            self.function_events: Optional[EventList] = None
+
+        self.profiler_kwargs = profiler_kwargs
 
         if self.export_to_chrome and self.path_to_export_trace is None:
             rank_zero_warn(
@@ -202,11 +320,6 @@ class PyTorchProfiler(BaseProfiler):
             raise MisconfigurationException(
                 f"Found sort_by_key: {self.sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
-
-        self.recording_map: Dict[str, record_function] = {}
-        self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional[EventList] = None
-        self._profiler_instantiated: bool = False
 
         super().__init__(output_filename=output_filename, local_rank=local_rank)
 
@@ -274,10 +387,34 @@ class PyTorchProfiler(BaseProfiler):
             recording.__enter__()
             self.recording_map[action_name] = recording
 
+        if self.schedule is not None:
+            self.schedule._current_action = action_name
+
     def stop(self, action_name: str) -> None:
         if action_name in self.recording_map:
             self.recording_map[action_name].__exit__(None, None, None)
             del self.recording_map[action_name]
+
+        if not _TORCH_GREATER_EQUAL_1_8:
+            return
+
+        if action_name in self.STEP_FUNCTIONS:
+            if self.schedule is not None:
+                self.schedule._current_action = action_name
+
+            def on_trace_ready(profiler):
+                local_rank = 0 if self.local_rank is None else self.local_rank
+                filename = f"{action_name}_{local_rank}"
+
+                if self.export_to_chrome:
+                    tensorboard_trace_handler(self.path_to_export_trace, filename)(profiler)
+
+                if self.export_to_flame_graph:
+                    path = os.path.join(self.path_to_export_trace, f"{filename}.stack")
+                    profiler.export_stacks(path, metric=self.metric)
+
+            self.profiler.on_trace_ready = on_trace_ready
+            self.profiler.step()
 
     def summary(self) -> str:
         if not self.profiler_kwargs.get("enabled", True):
@@ -321,8 +458,10 @@ class PyTorchProfiler(BaseProfiler):
             self._parent_profiler = self._create_profiler(torch.cuda.profiler.profile)
             self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
         else:
-            self._parent_profiler = None
-            self.profiler = self._create_profiler(torch.autograd.profiler.profile)
+            if _TORCH_GREATER_EQUAL_1_8:
+                self.profiler = self._create_profiler(torch.profiler.profile)
+            else:
+                self.profiler = self._create_profiler(torch.autograd.profiler.profile)
 
     def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
