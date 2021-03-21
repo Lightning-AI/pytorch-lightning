@@ -49,6 +49,7 @@ def _sleep_generator(durations):
 @pytest.fixture
 def simple_profiler():
     profiler = SimpleProfiler()
+    profiler.prepare_file()
     return profiler
 
 
@@ -120,7 +121,9 @@ def test_simple_profiler_value_errors(simple_profiler):
 
 @pytest.fixture
 def advanced_profiler(tmpdir):
-    return AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    profiler.prepare_file()
+    return profiler
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -199,6 +202,7 @@ def test_advanced_profiler_value_errors(advanced_profiler):
 def test_pytorch_profiler_describe(tmpdir):
     """Ensure the profiler won't fail when reporting the summary."""
     pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
+    pytorch_profiler.prepare_file()
     with pytorch_profiler.profile("test_step"):
         pass
 
@@ -255,14 +259,12 @@ def test_pytorch_profiler_trainer_fit(tmpdir):
         profiler=pytorch_profiler,
     )
     trainer.fit(model)
-
     expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
     for name in expected:
         assert len([e for e in pytorch_profiler.function_events if name == e.name]) > 0
 
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
-    print(tmpdir)
     pytorch_profiler.teardown()
 
 
@@ -310,12 +312,12 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     """
     This test check emit_nvtx is correctly supported
     """
-    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+    pytorch_profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
     trainer = Trainer(
         fast_dev_run=True,
-        profiler=profiler,
+        profiler=pytorch_profiler,
         gpus=1,
     )
     trainer.fit(model)
@@ -331,6 +333,7 @@ def test_pytorch_profiler_nested(tmpdir):
         use_cuda=torch.cuda.is_available(),
         output_filename=os.path.join(tmpdir, "profiler.txt")
     )
+    pytorch_profiler.prepare_file()
 
     with pytorch_profiler.profile("a"):
         a = torch.ones(42)

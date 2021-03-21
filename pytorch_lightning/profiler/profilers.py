@@ -51,6 +51,8 @@ class BaseProfiler(AbstractProfiler, ABC):
     If you wish to write a custom profiler, you should inherit from this class.
     """
 
+    _ACTIONS_TO_PREPARE_FILE = ('on_train_start', 'on_validation_step', 'on_test_start', 'on_predict_start')
+
     def __init__(
         self,
         output_filename: Optional[str] = None,
@@ -59,6 +61,8 @@ class BaseProfiler(AbstractProfiler, ABC):
     ) -> None:
         self.output_fname = output_filename
         self.output_file = None
+        self._file_prepared = False
+        self.write_streams = []
         # the profiler can be used outside of lightning
         # that's why we call `on_train_start` manually
         self.on_train_start(local_rank=local_rank, log_dir=log_dir)
@@ -70,13 +74,14 @@ class BaseProfiler(AbstractProfiler, ABC):
         """
         self.local_rank = local_rank
         self.log_dir = log_dir
-        self.prepare_file()
 
     def prepare_file(self) -> None:
-        if self.output_fname and self.output_file is None:
-            fs = get_filesystem(self.output_fname)
-            self.output_file = fs.open(self.output_fname, "w")
-        self.write_streams = [self.output_file.write] if self.output_file else [log.info]
+        if not self._file_prepared:
+            if self.output_fname and self.output_file is None:
+                fs = get_filesystem(self.output_fname)
+                self.output_file = fs.open(self.output_fname, "w")
+            self.write_streams = [self.output_file.write] if self.output_file else [log.info]
+        self._file_prepared = True
 
     @contextmanager
     def profile(self, action_name: str) -> None:
@@ -92,6 +97,9 @@ class BaseProfiler(AbstractProfiler, ABC):
         stop once you exit the code block.
         """
         try:
+            # Needs to be created after spawn processes
+            if action_name in self._ACTIONS_TO_PREPARE_FILE and not self._file_prepared:
+                self.prepare_file()
             self.start(action_name)
             yield action_name
         finally:

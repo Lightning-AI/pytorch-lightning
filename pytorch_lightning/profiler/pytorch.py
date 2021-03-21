@@ -244,7 +244,9 @@ class PyTorchProfiler(BaseProfiler):
         self.describe = rank_zero_only(self.describe)
 
     def start(self, action_name: str) -> None:
-        if not self._profiler_instantiated:
+        if not self._profiler_instantiated and action_name in (
+            list(self._ACTIONS_TO_PREPARE_FILE) + list(self.record_functions)
+        ):
 
             # close profiler if it is already opened
             try:
@@ -265,7 +267,7 @@ class PyTorchProfiler(BaseProfiler):
                 self.register.__enter__()
 
         if (
-            action_name in self.record_functions and action_name != self.ACTION_NAME_START
+            self._profiler_instantiated and action_name in self.record_functions
             and action_name not in self.recording_map
         ):
             recording = record_function(action_name)
