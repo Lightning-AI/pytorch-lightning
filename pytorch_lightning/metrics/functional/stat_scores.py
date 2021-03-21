@@ -17,10 +17,10 @@ import torch
 from deprecate import deprecated
 from torchmetrics.functional import stat_scores as _stat_scores
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
-@deprecated(target=_stat_scores, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+@deprecated(target=_stat_scores, **_DEPRECATION_ARGS)
 def stat_scores(
     preds: torch.Tensor,
     target: torch.Tensor,

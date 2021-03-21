@@ -17,12 +17,12 @@ from deprecate import deprecated
 from torchmetrics import Metric as _Metric
 from torchmetrics.collections import MetricCollection as _MetricCollection
 
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
 class Metric(_Metric):
 
-    @deprecated(target=_Metric, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+    @deprecated(target=_Metric, **_DEPRECATION_ARGS)
     def __init__(
         self,
         compute_on_step: bool = True,
@@ -38,7 +38,7 @@ class Metric(_Metric):
 
 class MetricCollection(_MetricCollection):
 
-    @deprecated(target=_MetricCollection, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+    @deprecated(target=_MetricCollection, **_DEPRECATION_ARGS)
     def __init__(self, metrics: Union[List[Metric], Tuple[Metric], Dict[str, Metric]]):
         """
         .. deprecated::

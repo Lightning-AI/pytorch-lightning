@@ -15,10 +15,10 @@ import torch
 from deprecate import deprecated
 from torchmetrics.functional import hamming_distance as _hamming_distance
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
-@deprecated(target=_hamming_distance, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+@deprecated(target=_hamming_distance, **_DEPRECATION_ARGS)
 def hamming_distance(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
     """
     .. deprecated::

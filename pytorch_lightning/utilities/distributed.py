@@ -15,7 +15,7 @@
 import logging
 import os
 import warnings
-from functools import wraps
+from functools import wraps, partial
 from typing import Any, Optional, Union
 
 import torch
@@ -63,6 +63,7 @@ def _debug(*args, **kwargs):
 rank_zero_debug = rank_zero_only(_debug)
 rank_zero_info = rank_zero_only(_info)
 rank_zero_warn = rank_zero_only(_warn)
+rank_zero_deprecation = partial(rank_zero_warn, category=DeprecationWarning)
 
 
 def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):

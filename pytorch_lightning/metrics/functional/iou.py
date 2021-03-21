@@ -17,10 +17,10 @@ import torch
 from deprecate import deprecated
 from torchmetrics.functional import iou as _iou
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
-@deprecated(target=_iou, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+@deprecated(target=_iou, **_DEPRECATION_ARGS)
 def iou(
     pred: torch.Tensor,
     target: torch.Tensor,

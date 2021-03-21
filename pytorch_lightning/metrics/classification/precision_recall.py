@@ -17,12 +17,12 @@ from deprecate import deprecated
 from torchmetrics import Precision as _Precision
 from torchmetrics import Recall as _Recall
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
 class Precision(_Precision):
 
-    @deprecated(target=_Precision, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+    @deprecated(target=_Precision, **_DEPRECATION_ARGS)
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -48,7 +48,7 @@ class Precision(_Precision):
 
 class Recall(_Recall):
 
-    @deprecated(target=_Recall, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+    @deprecated(target=_Recall, **_DEPRECATION_ARGS)
     def __init__(
         self,
         num_classes: Optional[int] = None,

@@ -16,12 +16,12 @@ from typing import Any, Callable, Optional
 from deprecate import deprecated
 from torchmetrics import StatScores as _StatScores
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
 class StatScores(_StatScores):
 
-    @deprecated(target=_StatScores, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+    @deprecated(target=_StatScores, **_DEPRECATION_ARGS)
     def __init__(
         self,
         threshold: float = 0.5,

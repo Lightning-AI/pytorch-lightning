@@ -15,10 +15,10 @@ import torch
 from deprecate import deprecated
 from torchmetrics.functional import auc as _auc
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
-@deprecated(target=_auc, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+@deprecated(target=_auc, **_DEPRECATION_ARGS)
 def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> torch.Tensor:
     """
     .. deprecated::

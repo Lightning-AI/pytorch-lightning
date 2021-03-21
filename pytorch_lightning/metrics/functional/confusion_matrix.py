@@ -17,10 +17,10 @@ import torch
 from deprecate import deprecated
 from torchmetrics.functional import confusion_matrix as _confusion_matrix
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
-@deprecated(target=_confusion_matrix, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+@deprecated(target=_confusion_matrix, **_DEPRECATION_ARGS)
 def confusion_matrix(
     preds: torch.Tensor,
     target: torch.Tensor,

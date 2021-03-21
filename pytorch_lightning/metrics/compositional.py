@@ -14,26 +14,23 @@
 from typing import Callable, Union
 
 import torch
+from deprecate import deprecated
 from torchmetrics import Metric
-from torchmetrics.metric import CompositionalMetric as __CompositionalMetric
+from torchmetrics.metric import CompositionalMetric as _CompositionalMetric
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
-class CompositionalMetric(__CompositionalMetric):
-    """
-    .. deprecated::
-        Use :class:`torchmetrics.metric.CompositionalMetric`. Will be removed in v1.5.0.
-    """
+class CompositionalMetric(_CompositionalMetric):
 
+    @deprecated(target=_CompositionalMetric, **_DEPRECATION_ARGS)
     def __init__(
         self,
         operator: Callable,
         metric_a: Union[Metric, int, float, torch.Tensor],
         metric_b: Union[Metric, int, float, torch.Tensor, None],
     ):
-        rank_zero_warn(
-            "This `CompositionalMetric` was deprecated since v1.3.0 in favor of"
-            " `torchmetrics.metric.CompositionalMetric`. It will be removed in v1.5.0", DeprecationWarning
-        )
-        super().__init__(operator=operator, metric_a=metric_a, metric_b=metric_b)
+        """
+        .. deprecated::
+            Use :class:`torchmetrics.metric.CompositionalMetric`. Will be removed in v1.5.0.
+        """

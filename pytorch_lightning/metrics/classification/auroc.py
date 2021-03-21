@@ -16,12 +16,12 @@ from typing import Any, Callable, Optional
 from deprecate import deprecated
 from torchmetrics import AUROC as _AUROC
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
 class AUROC(_AUROC):
 
-    @deprecated(target=_AUROC, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+    @deprecated(target=_AUROC, **_DEPRECATION_ARGS)
     def __init__(
         self,
         num_classes: Optional[int] = None,

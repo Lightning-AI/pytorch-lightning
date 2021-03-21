@@ -17,10 +17,10 @@ import torch
 from deprecate import deprecated
 from torchmetrics.functional import average_precision as _average_precision
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
-@deprecated(target=_average_precision, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+@deprecated(target=_average_precision, **_DEPRECATION_ARGS)
 def average_precision(
     preds: torch.Tensor,
     target: torch.Tensor,

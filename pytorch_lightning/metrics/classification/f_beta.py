@@ -17,12 +17,12 @@ from deprecate import deprecated
 from torchmetrics import F1 as _F1
 from torchmetrics import FBeta as _FBeta
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
 
 
 class FBeta(_FBeta):
 
-    @deprecated(target=_FBeta, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+    @deprecated(target=_FBeta, **_DEPRECATION_ARGS)
     def __init__(
         self,
         num_classes: int,
@@ -44,7 +44,7 @@ class FBeta(_FBeta):
 
 class F1(_F1):
 
-    @deprecated(target=_F1, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
+    @deprecated(target=_F1, **_DEPRECATION_ARGS)
     def __init__(
         self,
         num_classes: int,
