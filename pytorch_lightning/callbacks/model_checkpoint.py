@@ -228,8 +228,8 @@ class ModelCheckpoint(Callback):
                 " has been removed. Support for the old signature will be removed in v1.5", DeprecationWarning
             )
 
-        epoch = trainer.current_epoch
-        global_step = trainer.global_step
+        epoch = trainer.current_epoch - trainer.training
+        global_step = trainer.global_step - trainer.training
 
         from pytorch_lightning.trainer.states import TrainerState
         if (
@@ -249,7 +249,7 @@ class ModelCheckpoint(Callback):
         self._last_global_step_saved = global_step
 
         # what can be monitored
-        monitor_candidates = self._monitor_candidates(trainer)
+        monitor_candidates = self._monitor_candidates(trainer, epoch=epoch, step=global_step)
 
         # callback supports multiple simultaneous modes
         # here we call each mode sequentially
@@ -364,8 +364,6 @@ class ModelCheckpoint(Callback):
     def _format_checkpoint_name(
         cls,
         filename: Optional[str],
-        epoch: int,
-        step: int,
         metrics: Dict[str, Any],
         prefix: str = "",
         auto_insert_metric_name: bool = True
@@ -377,7 +375,6 @@ class ModelCheckpoint(Callback):
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
         if len(groups) >= 0:
-            metrics.update({"epoch": epoch, 'step': step})
             for group in groups:
                 name = group[1:]
 
@@ -393,7 +390,7 @@ class ModelCheckpoint(Callback):
 
         return filename
 
-    def format_checkpoint_name(self, epoch: int, step: int, metrics: Dict[str, Any], ver: Optional[int] = None) -> str:
+    def format_checkpoint_name(self, metrics: Dict[str, Any], ver: Optional[int] = None) -> str:
         """Generate a filename according to the defined template.
 
         Example::
@@ -423,8 +420,6 @@ class ModelCheckpoint(Callback):
         """
         filename = self._format_checkpoint_name(
             self.filename,
-            epoch,
-            step,
             metrics,
             auto_insert_metric_name=self.auto_insert_metric_name)
 
@@ -509,23 +504,21 @@ class ModelCheckpoint(Callback):
     def _get_metric_interpolated_filepath_name(
         self,
         monitor_candidates: Dict[str, Any],
-        epoch: int,
-        step: int,
         trainer,
         del_filepath: Optional[str] = None,
     ) -> str:
-        filepath = self.format_checkpoint_name(epoch, step, monitor_candidates)
+        filepath = self.format_checkpoint_name(monitor_candidates)
 
         version_cnt = self.STARTING_VERSION
         while self.file_exists(filepath, trainer) and filepath != del_filepath:
-            filepath = self.format_checkpoint_name(epoch, step, monitor_candidates, ver=version_cnt)
+            filepath = self.format_checkpoint_name(monitor_candidates, ver=version_cnt)
             version_cnt += 1
 
         return filepath
 
-    def _monitor_candidates(self, trainer):
+    def _monitor_candidates(self, trainer, epoch: int, step: int):
         monitor_candidates = deepcopy(trainer.logger_connector.callback_metrics)
-        monitor_candidates.update(step=trainer.global_step, epoch=trainer.current_epoch)
+        monitor_candidates.update(epoch=epoch, step=step)
         return monitor_candidates
 
     def _save_last_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
@@ -534,8 +527,6 @@ class ModelCheckpoint(Callback):
 
         filepath = self._format_checkpoint_name(
             self.CHECKPOINT_NAME_LAST,
-            trainer.current_epoch,
-            trainer.global_step,
             monitor_candidates,
         )
         filepath = os.path.join(self.dirpath, f"{filepath}{self.FILE_EXTENSION}")
@@ -574,8 +565,6 @@ class ModelCheckpoint(Callback):
 
         filepath = self._get_metric_interpolated_filepath_name(
             monitor_candidates,
-            trainer.current_epoch,
-            trainer.global_step,
             trainer,
         )
         self._save_model(trainer, filepath)
@@ -607,7 +596,7 @@ class ModelCheckpoint(Callback):
         if isinstance(current, torch.Tensor) and torch.isnan(current):
             current = torch.tensor(float('inf' if self.mode == "min" else '-inf'))
 
-        filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, epoch, step, trainer, del_filepath)
+        filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer, del_filepath)
 
         # save the current score
         self.current_score = current

@@ -131,6 +131,59 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
     trainer.fit(model)
 
 
+def test_correct_step_and_epoch(tmpdir):
+    class TestModel(BoringModel):
+        def on_pretrain_routine_end(self) -> None:
+            assert self.trainer.global_step == 4
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2)
+    assert trainer.current_epoch == 0
+    assert trainer.global_step == 0
+
+    trainer.fit(model)
+    assert trainer.current_epoch == 2
+    assert trainer.global_step == 4
+
+    ckpt = str(tmpdir / "model.ckpt")
+    trainer.save_checkpoint(ckpt)
+    assert torch.load(ckpt)["global_step"] == 4
+
+    trainer = Trainer(default_root_dir=tmpdir, resume_from_checkpoint=ckpt, max_epochs=4, limit_train_batches=2)
+    # TODO
+    assert trainer.current_epoch == 0
+    assert trainer.global_step == 0
+
+    trainer.fit(TestModel())
+    assert trainer.current_epoch == 4
+    assert trainer.global_step == 8
+
+
+def test_fit_twice(tmpdir):
+    epochs = []
+
+    class TestModel(BoringModel):
+        epochs = []
+        def on_train_epoch_end(self, *_):
+            epochs.append(self.current_epoch)
+
+    trainer = Trainer(
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        default_root_dir=tmpdir,
+        checkpoint_callback=False,
+        logger=False,
+        weights_summary=None,
+        progress_bar_refresh_rate=0,
+    )
+    trainer.fit(TestModel())
+    trainer.max_epochs = 4
+    trainer.fit(TestModel())
+
+    assert epochs == list(range(4))
+
+
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
     """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
     dm = ClassifDataModule()

@@ -124,11 +124,12 @@ class TrainLoop:
             return
         self._teardown_already_run = True
 
-        # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
-        # when a checkpoint was saved at the last step
-        self.trainer.global_step -= 1
+        # check if the epoch finished
+        epoch_finished = self.trainer.max_steps is None or self.trainer.max_steps >= self.trainer.global_step
+        if epoch_finished:
+            self.trainer.current_epoch += 1
+
         self.check_checkpoint_callback(should_update=True, is_last=True)
-        self.trainer.global_step += 1
 
         # hook
         self.trainer.call_hook("on_train_end")
@@ -508,6 +509,9 @@ class TrainLoop:
             # -----------------------------------------
             self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
+            # progress global step according to grads progress
+            self.increment_accumulated_grad_global_step()
+
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
@@ -546,9 +550,6 @@ class TrainLoop:
             # stop epoch if we limited the number of training batches
             if self._num_training_batches_reached(is_last_batch):
                 break
-
-            # progress global step according to grads progress
-            self.increment_accumulated_grad_global_step()
 
         # epoch end hook
         self.run_on_epoch_end_hook(epoch_output)

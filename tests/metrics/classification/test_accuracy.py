@@ -173,3 +173,11 @@ def test_wrong_params(top_k, threshold):
 
     with pytest.raises(ValueError):
         accuracy(preds, target, threshold=threshold, top_k=top_k)
+
+def test_kk():
+    from tests.helpers import BoringModel
+    from pytorch_lightning import Trainer
+
+    model = BoringModel()
+    trainer = Trainer(max_epochs=4, min_epochs=10)
+    trainer.fit(model)
