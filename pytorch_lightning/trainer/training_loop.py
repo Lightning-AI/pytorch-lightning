@@ -20,7 +20,6 @@ import numpy as np
 import torch
 
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
