@@ -447,7 +447,7 @@ class PyTorchProfiler(BaseProfiler):
             self.function_events = self.profiler.function_events
         else:
             self.function_events = self.profiler.events()
-       
+
         self.profiler = None
         self._profiler_instantiated = False
 

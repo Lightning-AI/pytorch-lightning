@@ -26,9 +26,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
@@ -252,7 +252,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
             assert 'validation_step_0' in files[2]
         else:
             assert 'training_step_and_backward_1' in files[1]
-            assert 'validation_step_1' in files[3]            
+            assert 'validation_step_1' in files[3]
 
 
 def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
@@ -283,7 +283,9 @@ def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
 
 def test_pytorch_profiler_trainer_test(tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir)
+    pytorch_profiler = PyTorchProfiler(
+        output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir
+    )
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -304,7 +306,9 @@ def test_pytorch_profiler_trainer_test(tmpdir):
 
 def test_pytorch_profiler_trainer_predict(tmpdir):
     """Ensure that the profiler can be given to the trainer and predict function are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir)
+    pytorch_profiler = PyTorchProfiler(
+        output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir
+    )
     model = BoringModel()
     model.predict_dataloader = model.train_dataloader
     trainer = Trainer(
@@ -322,7 +326,6 @@ def test_pytorch_profiler_trainer_predict(tmpdir):
     else:
         files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
         assert 'predict_0' in files[0]
-
 
 
 @RunIf(min_gpus=1, special=True)
