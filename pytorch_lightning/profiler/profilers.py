@@ -51,8 +51,6 @@ class BaseProfiler(AbstractProfiler, ABC):
     If you wish to write a custom profiler, you should inherit from this class.
     """
 
-    _ACTIONS_TO_PREPARE_FILE = ('on_train_start', 'on_validation_step', 'on_test_start', 'on_predict_start')
-
     def __init__(
         self,
         output_filename: Optional[str] = None,
@@ -97,9 +95,6 @@ class BaseProfiler(AbstractProfiler, ABC):
         stop once you exit the code block.
         """
         try:
-            # Needs to be created after spawn processes
-            if action_name in self._ACTIONS_TO_PREPARE_FILE and not self._file_prepared:
-                self.prepare_file()
             self.start(action_name)
             yield action_name
         finally:
@@ -119,6 +114,7 @@ class BaseProfiler(AbstractProfiler, ABC):
 
     def describe(self) -> None:
         """Logs a profile report after the conclusion of the training run."""
+        self.prepare_file()
         for write in self.write_streams:
             write(self.summary())
         if self.output_file:
@@ -139,6 +135,7 @@ class BaseProfiler(AbstractProfiler, ABC):
         """Close profiler's stream."""
         if self.output_file:
             self.output_file.close()
+        self.write_streams = []
 
 
 class PassThroughProfiler(BaseProfiler):

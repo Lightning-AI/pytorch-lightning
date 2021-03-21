@@ -101,7 +101,7 @@ class PyTorchProfiler(BaseProfiler):
         "self_cuda_memory_usage",
         "count",
     )
-    ACTION_NAME_START = "on_fit_start"
+    START_RECORD_FUNCTIONS = ('on_train_start', 'on_validation_step', 'on_test_start', 'on_predict_start')
 
     def __init__(
         self,
@@ -245,7 +245,7 @@ class PyTorchProfiler(BaseProfiler):
 
     def start(self, action_name: str) -> None:
         if not self._profiler_instantiated and action_name in (
-            list(self._ACTIONS_TO_PREPARE_FILE) + list(self.record_functions)
+            list(self.START_RECORD_FUNCTIONS) + list(self.record_functions)
         ):
 
             # close profiler if it is already opened
