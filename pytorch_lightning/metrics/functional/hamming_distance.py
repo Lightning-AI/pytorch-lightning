@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from deprecate import deprecated
 from torchmetrics.functional import hamming_distance as _hamming_distance
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_hamming_distance, **_DEPRECATION_ARGS)
+@deprecated_metrics(target=_hamming_distance)
 def hamming_distance(preds: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> torch.Tensor:
     """
     .. deprecated::

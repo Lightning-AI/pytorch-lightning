@@ -13,15 +13,14 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
-from deprecate import deprecated
 from torchmetrics import Accuracy as _Accuracy
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class Accuracy(_Accuracy):
 
-    @deprecated(target=_Accuracy, **_DEPRECATION_ARGS)
+    @deprecated_metrics(target=_Accuracy)
     def __init__(
         self,
         threshold: float = 0.5,

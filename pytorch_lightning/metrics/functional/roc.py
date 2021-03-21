@@ -13,14 +13,13 @@
 # limitations under the License.
 from typing import List, Optional, Sequence, Tuple, Union
 
-from deprecate import deprecated
 from torch import Tensor
 from torchmetrics.functional import roc as _roc
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_roc, **_DEPRECATION_ARGS)
+@deprecated_metrics(target=_roc)
 def roc(
     preds: Tensor,
     target: Tensor,

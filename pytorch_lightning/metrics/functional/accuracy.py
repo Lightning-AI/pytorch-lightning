@@ -14,13 +14,12 @@
 from typing import Optional
 
 import torch
-from deprecate import deprecated
 from torchmetrics.functional import accuracy as _accuracy
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_accuracy, **_DEPRECATION_ARGS)
+@deprecated_metrics(target=_accuracy)
 def accuracy(
     preds: torch.Tensor,
     target: torch.Tensor,

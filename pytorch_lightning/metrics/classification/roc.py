@@ -13,15 +13,14 @@
 # limitations under the License.
 from typing import Any, Optional
 
-from deprecate import deprecated
 from torchmetrics import ROC as _ROC
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class ROC(_ROC):
 
-    @deprecated(target=_ROC, **_DEPRECATION_ARGS)
+    @deprecated_metrics(target=_ROC)
     def __init__(
         self,
         num_classes: Optional[int] = None,

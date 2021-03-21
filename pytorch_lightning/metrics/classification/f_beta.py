@@ -13,16 +13,15 @@
 # limitations under the License.
 from typing import Any, Optional
 
-from deprecate import deprecated
 from torchmetrics import F1 as _F1
 from torchmetrics import FBeta as _FBeta
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class FBeta(_FBeta):
 
-    @deprecated(target=_FBeta, **_DEPRECATION_ARGS)
+    @deprecated_metrics(target=_FBeta)
     def __init__(
         self,
         num_classes: int,
@@ -44,7 +43,7 @@ class FBeta(_FBeta):
 
 class F1(_F1):
 
-    @deprecated(target=_F1, **_DEPRECATION_ARGS)
+    @deprecated_metrics(target=_F1)
     def __init__(
         self,
         num_classes: int,

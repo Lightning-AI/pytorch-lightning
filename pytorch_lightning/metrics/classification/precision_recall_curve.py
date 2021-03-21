@@ -13,15 +13,14 @@
 # limitations under the License.
 from typing import Any, Optional
 
-from deprecate import deprecated
 from torchmetrics import PrecisionRecallCurve as _PrecisionRecallCurve
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class PrecisionRecallCurve(_PrecisionRecallCurve):
 
-    @deprecated(target=_PrecisionRecallCurve, **_DEPRECATION_ARGS)
+    @deprecated_metrics(target=_PrecisionRecallCurve)
     def __init__(
         self,
         num_classes: Optional[int] = None,

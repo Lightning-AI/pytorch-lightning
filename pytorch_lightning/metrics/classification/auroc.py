@@ -13,15 +13,14 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
-from deprecate import deprecated
 from torchmetrics import AUROC as _AUROC
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class AUROC(_AUROC):
 
-    @deprecated(target=_AUROC, **_DEPRECATION_ARGS)
+    @deprecated_metrics(target=_AUROC)
     def __init__(
         self,
         num_classes: Optional[int] = None,

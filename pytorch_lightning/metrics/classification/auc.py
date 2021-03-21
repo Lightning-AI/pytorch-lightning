@@ -13,15 +13,14 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
-from deprecate import deprecated
 from torchmetrics import AUC as _AUC
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class AUC(_AUC):
 
-    @deprecated(target=_AUC, **_DEPRECATION_ARGS)
+    @deprecated_metrics(target=_AUC)
     def __init__(
         self,
         reorder: bool = False,

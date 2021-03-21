@@ -13,15 +13,14 @@
 # limitations under the License.
 from typing import Any, Optional
 
-from deprecate import deprecated
 from torchmetrics import ConfusionMatrix as _ConfusionMatrix
 
-from pytorch_lightning.metrics.utils import _DEPRECATION_ARGS
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class ConfusionMatrix(_ConfusionMatrix):
 
-    @deprecated(target=_ConfusionMatrix, **_DEPRECATION_ARGS)
+    @deprecated_metrics(target=_ConfusionMatrix)
     def __init__(
         self,
         num_classes: int,
