@@ -3,11 +3,17 @@ from typing import Any, Union
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.plugins import DDPPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment
+from pytorch_lightning.utilities import move_data_to_device
+
+
+class AcceleratedOptimizer(Optimizer):
+
 
 
 class AcceleratorV3:
@@ -23,6 +29,11 @@ class AcceleratorV3:
         )
         self.precision_plugin = PrecisionPlugin()
 
+    @property
+    def device(self):
+        # the device on the local rank
+        return self.training_type_plugin.root_device
+
     def setup(self, *objects: Union[nn.Module, Optimizer, DataLoader]):
         # wrap all objects passed in and return them in the same order
         wrapped_objects = []
@@ -37,7 +48,8 @@ class AcceleratorV3:
 
     def setup_model(self, model: nn.Module):
         # user can call this method independently instead of the general purpose setup method
-        pass
+        model = self.training_type_plugin.setup_model(model)
+        return model
 
     def setup_optimizer(self, *optimizers: Optimizer):
         # user can call this method independently instead of the general purpose setup method
@@ -45,7 +57,16 @@ class AcceleratorV3:
 
     def setup_dataloader(self, *dataloaders: DataLoader):
         # user can call this method independently instead of the general purpose setup method
-        pass
+        return [self.training_type_plugin.setup_dataloader(dataloader) for dataloader in dataloaders]
+
+    def backward(self, tensor: Tensor, *args, **kwargs):
+        # TODO: precision plugin backward
+        return tensor.backward(*args, **kwargs)
+
+    def to_device(self, obj: Union[nn.Module, Tensor]) -> Union[nn.Module, Tensor]:
+        if isinstance(obj, nn.Module):
+            return obj.to(self.device)
+        return move_data_to_device(obj, device=self.device)
 
     def sync(self, data: Any) -> Any:
         pass
@@ -58,9 +79,6 @@ class AcceleratorV3:
 
     def broadcast_decision(self, decision: bool):
         return False
-
-    def data_to_device(self, data: Any):
-        pass
 
     def save_checkpoint(self, filepath):
         pass

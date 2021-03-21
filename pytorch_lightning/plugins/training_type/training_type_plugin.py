@@ -15,6 +15,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
+import torch.nn as nn
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -47,6 +48,13 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def setup(self, model: 'Module') -> None:
         """Called by the accelerator to finish setup."""
+
+    def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
+        """Called by the accelerator. The plugin wraps and modifies the dataloader as needed."""
+        return dataloader
+
+    def setup_model(self, model: nn.Module) -> nn.Module:
+        return model
 
     @property
     @abstractmethod

@@ -21,14 +21,17 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import torch
 import torch.distributed as torch_distrib
+import torch.nn as nn
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader, DistributedSampler
 
 from pytorch_lightning.distributed import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.data_loading import replace_sampler
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE, _TORCH_GREATER_EQUAL_1_7, rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -89,6 +92,22 @@ class DDPPlugin(ParallelPlugin):
         self.task_idx = self.cluster_environment.local_rank()
 
         self.setup_distributed()
+
+    def setup_model(self, model: nn.Module) -> DistributedDataParallel:
+        self.setup_distributed()  # setup distributed if it is not already initialized
+        model = DistributedDataParallel(
+            model,
+            device_ids=self.determine_ddp_device_ids(),
+            **self._ddp_kwargs,
+        )
+        return model
+
+    def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
+        self.setup_distributed()  # setup distributed if it is not already initialized
+        kwargs = self.distributed_sampler_kwargs
+        sampler = DistributedSampler(dataloader.dataset, **kwargs)
+        dataloader = replace_sampler(dataloader, sampler)
+        return dataloader
 
     def _call_children_scripts(self):
 
@@ -162,6 +181,9 @@ class DDPPlugin(ParallelPlugin):
             sleep(delay)
 
     def setup_distributed(self):
+        if torch.distributed.is_initialized():
+            return
+
         # TODO: check if needed
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
@@ -220,11 +242,7 @@ class DDPPlugin(ParallelPlugin):
 
     def configure_ddp(self):
         self.pre_configure_ddp()
-        self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model),
-            device_ids=self.determine_ddp_device_ids(),
-            **self._ddp_kwargs,
-        )
+        self._model = self.setup_model(LightningDistributedModule(self.model))
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
