@@ -99,6 +99,8 @@ if _TORCH_GREATER_EQUAL_1_8:
             self._schedule = schedule
             self._num_training_step_and_backward = 0
             self._num_validation_step = 0
+            self._num_test_step = 0
+            self._num_predict_step = 0
             self._training_step_and_backward_reached_end = False
             self._validation_step_reached_end = False
             # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
@@ -110,6 +112,10 @@ if _TORCH_GREATER_EQUAL_1_8:
                 return self._num_training_step_and_backward
             elif self._current_action == "validation_step":
                 return self._num_validation_step
+            elif self._current_action == "test_step":
+                return self._num_test_step
+            elif self._current_action == "predict":
+                return self._num_predict_step
             else:
                 return 0
 
@@ -119,6 +125,10 @@ if _TORCH_GREATER_EQUAL_1_8:
             elif self._current_action == "validation_step" and self._num_training_step_and_backward > 0:
                 # skip sanity check
                 self._num_validation_step += 1
+            elif self._current_action == "test_step":
+                self._num_test_step += 1
+            elif self._current_action == "predict":
+                self._num_predict_step += 1
 
         @property
         def has_finished(self) -> bool:
@@ -437,6 +447,7 @@ class PyTorchProfiler(BaseProfiler):
             self.function_events = self.profiler.function_events
         else:
             self.function_events = self.profiler.events()
+       
         self.profiler = None
         self._profiler_instantiated = False
 

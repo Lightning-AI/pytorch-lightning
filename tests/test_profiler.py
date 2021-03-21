@@ -28,6 +28,7 @@ from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, Simple
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
@@ -200,8 +201,10 @@ def pytorch_profiler(tmpdir):
     return PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
 
 
+@pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="This feature isn't support with PyTorch 1.8 profiler")
 def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
+    pytorch_profiler.start("on_test_start")
     with pytorch_profiler.profile("test_step"):
         pass
 
@@ -238,8 +241,18 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     )
     trainer.fit(model)
 
-    data = Path(pytorch_profiler.output_fname).read_text()
-    assert len(data) > 0
+    if not _TORCH_GREATER_EQUAL_1_8:
+        data = Path(pytorch_profiler.output_fname).read_text()
+        assert len(data) > 0
+    else:
+        files = os.listdir(trainer.profiler.path_to_export_trace)
+        files = sorted([file for file in files if file.endswith('.json')])
+        if os.getenv("LOCAL_RANK", "0") == "0":
+            assert 'training_step_and_backward_0' in files[0]
+            assert 'validation_step_0' in files[2]
+        else:
+            assert 'training_step_and_backward_1' in files[1]
+            assert 'validation_step_1' in files[3]            
 
 
 def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
@@ -248,38 +261,50 @@ def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=1,
+        limit_train_batches=5,
+        limit_val_batches=5,
         profiler=pytorch_profiler,
     )
     trainer.fit(model)
-    expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
-    for name in expected:
-        assert len([e for e in pytorch_profiler.function_events if name == e.name]) > 0
 
-    data = Path(pytorch_profiler.output_fname).read_text()
-    assert len(data) > 0
+    if not _TORCH_GREATER_EQUAL_1_8:
+        expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
+        for name in expected:
+            assert len([e for e in pytorch_profiler.function_events if name == e.name]) > 0
+        data = Path(pytorch_profiler.output_fname).read_text()
+        assert len(data) > 0
+    else:
+        files = os.listdir(tmpdir if pytorch_profiler == PyTorchProfiler else trainer.profiler.path_to_export_trace)
+        files = sorted([file for file in files if file.endswith('.json')])
+        assert 'training_step_and_backward_0' in files[0]
+        assert 'validation_step_0' in files[1]
+        assert len(files) == 2
 
 
-def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_test(tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
+    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir)
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_test_batches=2,
+        limit_test_batches=10,
         profiler=pytorch_profiler,
     )
     trainer.test(model)
 
-    assert len([e for e in pytorch_profiler.function_events if 'test_step' == e.name]) > 0
+    if not _TORCH_GREATER_EQUAL_1_8:
+        assert len([e for e in pytorch_profiler.function_events if 'test_step' == e.name]) > 0
+        data = Path(pytorch_profiler.output_fname).read_text()
+        assert len(data) > 0
+    else:
+        files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
+        assert 'test_step_0' in files[0]
 
-    data = Path(pytorch_profiler.output_fname).read_text()
-    assert len(data) > 0
 
-
-def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_predict(tmpdir):
     """Ensure that the profiler can be given to the trainer and predict function are properly recorded. """
+    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir)
     model = BoringModel()
     model.predict_dataloader = model.train_dataloader
     trainer = Trainer(
@@ -290,13 +315,18 @@ def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
     )
     trainer.predict(model)
 
-    assert len([e for e in pytorch_profiler.function_events if 'predict' == e.name]) > 0
+    if not _TORCH_GREATER_EQUAL_1_8:
+        assert len([e for e in pytorch_profiler.function_events if 'predict' == e.name]) > 0
+        data = Path(pytorch_profiler.output_fname).read_text()
+        assert len(data) > 0
+    else:
+        files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
+        assert 'predict_0' in files[0]
 
-    data = Path(pytorch_profiler.output_fname).read_text()
-    assert len(data) > 0
 
 
 @RunIf(min_gpus=1, special=True)
+@pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="This feature isn't support with PyTorch 1.8 profiler")
 def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     """
     This test check emit_nvtx is correctly supported
@@ -313,6 +343,7 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="This feature isn't support with PyTorch 1.8 profiler")
 def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
@@ -349,9 +380,26 @@ def test_pytorch_profiler_nested(tmpdir):
             'aten::zeros', 'aten::add', 'aten::zero_', 'c', 'b', 'a', 'aten::fill_', 'aten::empty', 'aten::ones'
         }
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
-        expected = {
-            'aten::ones', 'a', 'aten::add', 'aten::empty', 'aten::zero_', 'b', 'c', 'aten::zeros', 'aten::fill_'
-        }
-
     assert events_name == expected, (events_name, torch.__version__, platform.system())
+
+
+@pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_8, reason="Need at least PyTorch 1.8")
+@pytest.mark.parametrize('profiler', ('pytorch', PyTorchProfiler))
+def test_pytorch_profiler_trainer_new_api(tmpdir, profiler):
+    """Ensure that the profiler can be given to the training and default step are properly recorded. """
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        profiler=profiler if isinstance(profiler, str) else profiler(path_to_export_trace=tmpdir),
+    )
+    trainer.fit(model)
+
+    files = os.listdir(tmpdir if profiler == PyTorchProfiler else trainer.profiler.path_to_export_trace)
+    files = sorted([file for file in files if file.endswith('.json')])
+    assert 'training_step_and_backward_0' in files[0]
+    assert 'validation_step_0' in files[1]
+    assert len(files) == 2
