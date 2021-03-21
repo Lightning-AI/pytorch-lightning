@@ -58,7 +58,10 @@ class RegisterRecordFunction:
         if module_name is not None:
             full_name = type(module).__module__ + '.' + type(module).__name__
             record_name = f"{full_name}: {module_name}"
-            self._records[record_name] = record_function(f"{full_name}: {module_name}").__enter__()
+            # PyTorch 1.4 ``record_function`` __enter__ doesn't return self     # noqa E265
+            record = record_function(f"{full_name}: {module_name}")
+            record.__enter__()
+            self._records[record_name] = record
         return input
 
     def _stop_recording_forward(self, module, input, result, module_name: str = None):
