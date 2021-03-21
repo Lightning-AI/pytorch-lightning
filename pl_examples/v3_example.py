@@ -46,7 +46,7 @@ opt = parser.parse_args()
 os.makedirs(opt.outf, exist_ok=True)
 
 nc = 1
-device = torch.device("cpu")
+device = torch.device("cuda", index=opt.local_rank)
 ngpu = int(opt.ngpu)
 nz = int(opt.nz)
 ngf = int(opt.ngf)
