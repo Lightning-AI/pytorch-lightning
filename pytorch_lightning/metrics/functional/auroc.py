@@ -14,12 +14,13 @@
 from typing import Optional, Sequence
 
 import torch
+from deprecate import deprecated
 from torchmetrics.functional import auroc as _auroc
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.utilities import rank_zero_warn
 
 
-@deprecated(target=_auroc, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated(target=_auroc, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
 def auroc(
     preds: torch.Tensor,
     target: torch.Tensor,

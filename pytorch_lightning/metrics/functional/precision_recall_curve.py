@@ -14,12 +14,13 @@
 from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
+from deprecate import deprecated
 from torchmetrics.functional import precision_recall_curve as _precision_recall_curve
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.utilities import rank_zero_warn
 
 
-@deprecated(target=_precision_recall_curve, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated(target=_precision_recall_curve, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
 def precision_recall_curve(
     preds: torch.Tensor,
     target: torch.Tensor,

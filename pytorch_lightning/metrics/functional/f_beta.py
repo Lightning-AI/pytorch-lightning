@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from deprecate import deprecated
 from torchmetrics.functional import f1 as _f1
 from torchmetrics.functional import fbeta as _fbeta
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.utilities import rank_zero_warn
 
 
-@deprecated(target=_fbeta, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated(target=_fbeta, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
 def fbeta(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -34,7 +35,7 @@ def fbeta(
     """
 
 
-@deprecated(target=_f1, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated(target=_f1, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
 def f1(
     preds: torch.Tensor,
     target: torch.Tensor,

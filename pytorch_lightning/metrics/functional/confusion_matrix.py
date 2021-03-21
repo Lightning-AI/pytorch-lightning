@@ -14,12 +14,13 @@
 from typing import Optional
 
 import torch
+from deprecate import deprecated
 from torchmetrics.functional import confusion_matrix as _confusion_matrix
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.utilities import rank_zero_warn
 
 
-@deprecated(target=_confusion_matrix, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated(target=_confusion_matrix, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
 def confusion_matrix(
     preds: torch.Tensor,
     target: torch.Tensor,

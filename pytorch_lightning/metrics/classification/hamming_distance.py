@@ -13,14 +13,15 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
+from deprecate import deprecated
 from torchmetrics import HammingDistance as _HammingDistance
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class HammingDistance(_HammingDistance):
 
-    @deprecated(target=_HammingDistance, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated(target=_HammingDistance, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
     def __init__(
         self,
         threshold: float = 0.5,

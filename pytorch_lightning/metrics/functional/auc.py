@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from deprecate import deprecated
 from torchmetrics.functional import auc as _auc
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.utilities import rank_zero_warn
 
 
-@deprecated(target=_auc, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated(target=_auc, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
 def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = False) -> torch.Tensor:
     """
     .. deprecated::

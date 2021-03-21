@@ -14,12 +14,13 @@
 from typing import Optional
 
 import torch
+from deprecate import deprecated
 from torchmetrics.functional import stat_scores as _stat_scores
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.utilities import rank_zero_warn
 
 
-@deprecated(target=_stat_scores, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated(target=_stat_scores, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_warn)
 def stat_scores(
     preds: torch.Tensor,
     target: torch.Tensor,
