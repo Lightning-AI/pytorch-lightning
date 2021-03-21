@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import OrderedDict
+
 import torch
 
 from pytorch_lightning.core.step_result import Result
@@ -127,7 +129,7 @@ class EvaluationLoop(object):
 
     def _build_kwargs(self, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
-        kwargs = {'batch': batch, 'batch_idx': batch_idx}
+        kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
 
         multiple_val_loaders = (
             not self.trainer.testing and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1

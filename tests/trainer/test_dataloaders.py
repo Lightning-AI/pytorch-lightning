@@ -1167,10 +1167,10 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
     Check the correct dataloader_idx inside hooks
     """
 
-    class CustomEvalModelTemplate(EvalModelTemplate):
+    class CustomBoringModel(BoringModel):
 
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+        def __init__(self):
+            super().__init__()
             self.val_call_count = 0
             self.test_call_count = 0
 
@@ -1200,24 +1200,51 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
             self.assert_dataloader_idx_hook(dataloader_idx)
             return super().on_after_batch_transfer(batch, dataloader_idx)
 
+        def training_step(self, batch, batch_idx):
+            return super().training_step(batch['a'], batch_idx)
+
         def validation_step(self, batch, batch_idx, dataloader_idx):
             self.assert_dataloader_idx_hook(dataloader_idx)
-            return self.validation_step__multiple_dataloaders(batch, batch_idx, dataloader_idx)
-
-        def val_dataloader(self):
-            return [self.dataloader(train=False), self.dataloader(train=False)]
-
-        def test_dataloader(self):
-            return [self.dataloader(train=False), self.dataloader(train=False)]
+            out = super().validation_step(batch, batch_idx)
+            loss = out.pop('x')
+            out[f'val_loss_{dataloader_idx}'] = loss
+            return out
 
         def test_step(self, batch, batch_idx, dataloader_idx):
             self.assert_dataloader_idx_hook(dataloader_idx)
-            return self.test_step__multiple_dataloaders(batch, batch_idx, dataloader_idx)
+            out = super().test_step(batch, batch_idx)
+            loss = out.pop('y')
+            out[f'test_loss_{dataloader_idx}'] = loss
+            return out
 
-    model = CustomEvalModelTemplate()
-    model.train_dataloader = model.train_dataloader__multiple_mapping
-    model.training_step = model.training_step__multiple_dataloaders
-    model.validation_epoch_end = None
+        def predict(self, batch, batch_idx, dataloader_idx):
+            self.assert_dataloader_idx_hook(dataloader_idx)
+            return super().predict(batch, batch_idx, dataloader_idx)
+
+        def assert_epoch_end_outputs(self, outputs, mode):
+            assert len(outputs) == 2
+            assert all(f'{mode}_loss_0' in x for x in outputs[0])
+            assert all(f'{mode}_loss_1' in x for x in outputs[1])
+
+        def validation_epoch_end(self, outputs):
+            self.assert_epoch_end_outputs(outputs, mode='val')
+
+        def test_epoch_end(self, outputs):
+            self.assert_epoch_end_outputs(outputs, mode='test')
+
+        def train_dataloader(self):
+            return {'a': DataLoader(RandomDataset(32, 64)), 'b': DataLoader(RandomDataset(32, 64))}
+
+        def val_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+        def test_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+        def predict_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+    model = CustomBoringModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1228,3 +1255,7 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
     assert trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     trainer.test(ckpt_path=None)
+
+    preds = trainer.predict(model)
+    assert len(preds) == 2
+    assert all(len(x) == 5 for x in preds)

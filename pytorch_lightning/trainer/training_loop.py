@@ -837,7 +837,7 @@ class TrainLoop:
 
     def _build_kwargs(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
-        kwargs = OrderedDict({'batch': batch, 'batch_idx': batch_idx})
+        kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
 
         if len(self.trainer.optimizers) > 1:
             if self.trainer.has_arg("training_step", "optimizer_idx"):

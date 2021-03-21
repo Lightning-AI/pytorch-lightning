@@ -67,7 +67,7 @@ class DebuggingConnector:
 
             rank_zero_info(
                 'Running in fast_dev_run mode: will run a full train,'
-                f' val and test loop using {fast_dev_run} batch(es).'
+                f' val, test and prediction loop using {fast_dev_run} batch(es).'
             )
 
         self.trainer.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')

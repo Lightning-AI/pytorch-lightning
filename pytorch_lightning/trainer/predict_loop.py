@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
+
 import torch
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -67,7 +69,8 @@ class PredictLoop(object):
 
     def _build_kwargs(self, batch, batch_idx, dataloader_idx):
         # configure kwargs
-        kwargs = {'batch': batch, 'batch_idx': batch_idx}
+        kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
+
         if self.num_dataloaders:
             kwargs['dataloader_idx'] = dataloader_idx
 

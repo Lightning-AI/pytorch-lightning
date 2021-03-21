@@ -17,6 +17,7 @@ from unittest.mock import PropertyMock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
@@ -534,3 +535,56 @@ def test_trainer_model_hook_system(tmpdir):
         'teardown',
     ]
     assert model.called == expected
+
+
+def test_hooks_with_different_argument_names(tmpdir):
+    """
+    Test that argument names can be anything in the hooks
+    """
+
+    class CustomBoringModel(BoringModel):
+
+        def assert_args(self, x, batch_nb):
+            assert isinstance(x, torch.Tensor)
+            assert x.size() == (1, 32)
+            assert isinstance(batch_nb, int)
+
+        def training_step(self, x1, batch_nb1):
+            self.assert_args(x1, batch_nb1)
+            return super().training_step(x1, batch_nb1)
+
+        def validation_step(self, x2, batch_nb2):
+            self.assert_args(x2, batch_nb2)
+            return super().validation_step(x2, batch_nb2)
+
+        def test_step(self, x3, batch_nb3, dl_idx3):
+            self.assert_args(x3, batch_nb3)
+            assert isinstance(dl_idx3, int)
+            return super().test_step(x3, batch_nb3)
+
+        def predict(self, x4, batch_nb4, dl_idx4):
+            self.assert_args(x4, batch_nb4)
+            assert isinstance(dl_idx4, int)
+            return super().predict(x4, batch_nb4, dl_idx4)
+
+        def test_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+        def predict_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+    model = CustomBoringModel()
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=5,
+    )
+
+    assert trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    trainer.test(ckpt_path=None)
+
+    preds = trainer.predict(model)
+    assert len(preds) == 2
+    assert all(len(x) == 5 for x in preds)
