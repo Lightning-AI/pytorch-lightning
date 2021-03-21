@@ -56,14 +56,14 @@ class RegisterRecordFunction:
 
     def _start_recording_forward(self, module, input, module_name: str = None):
         if module_name is not None:
-            full_name = type(module).__module__ + '.' +  type(module).__name__
+            full_name = type(module).__module__ + '.' + type(module).__name__
             record_name = f"{full_name}: {module_name}"
             self._records[record_name] = record_function(f"{full_name}: {module_name}").__enter__()
         return input
 
     def _stop_recording_forward(self, module, input, result, module_name: str = None):
         if module_name is not None:
-            full_name = type(module).__module__ + '.' +  type(module).__name__
+            full_name = type(module).__module__ + '.' + type(module).__name__
             record_name = f"{full_name}: {module_name}"
             self._records[record_name].__exit__(None, None, None)
         return result
@@ -297,7 +297,7 @@ class PyTorchProfiler(BaseProfiler):
                     f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
                 )
             self.record_functions_managers = {}
-            self.activities = activities or [ProfilerActivity.CPU] + [ProfilerActivity.CUDA] * int(torch.cuda.is_available())
+            self.activities = activities or self._default_activities()
 
             schedule = schedule or torch.profiler.schedule(wait=1, warmup=1, active=2)
             self.schedule = ScheduleWrapper(schedule)
@@ -326,6 +326,12 @@ class PyTorchProfiler(BaseProfiler):
             )
 
         super().__init__(output_filename=output_filename, local_rank=local_rank)
+
+    @staticmethod
+    def _default_activities():
+        if _TORCH_GREATER_EQUAL_1_8:
+            return [ProfilerActivity.CPU] + [ProfilerActivity.CUDA] * int(torch.cuda.is_available())
+        return []
 
     def __deprecation_check(self, profiled_functions: List[str] = [], record_functions: List[str] = []) -> List[str]:
         if profiled_functions is not None:
