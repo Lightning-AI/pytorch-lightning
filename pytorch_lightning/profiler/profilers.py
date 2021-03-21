@@ -136,6 +136,7 @@ class BaseProfiler(AbstractProfiler, ABC):
         if self.output_file:
             self.output_file.close()
         self.write_streams = []
+        self._file_prepared = False
 
 
 class PassThroughProfiler(BaseProfiler):

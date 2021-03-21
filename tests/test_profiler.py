@@ -311,7 +311,6 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
         gpus=1,
     )
     trainer.fit(model)
-    pytorch_profiler.teardown()
 
 
 def test_pytorch_profiler_nested(tmpdir):

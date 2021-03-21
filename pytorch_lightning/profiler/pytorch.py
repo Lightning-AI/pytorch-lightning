@@ -280,14 +280,14 @@ class PyTorchProfiler(BaseProfiler):
             del self.recording_map[action_name]
 
     def summary(self) -> str:
-        if not self.profiler_kwargs.get("enabled", True) or self.emit_nvtx:
+        if not self.profiler_kwargs.get("enabled", True):
             return ""
 
         local_rank = 0 if self.local_rank is None else self.local_rank
-        self.function_events = self.profiler.function_events
 
         self.profiler.__exit__(None, None, None)
-        self.function_events = self.profiler.function_events
+        if not self.emit_nvtx:
+            self.function_events = self.profiler.function_events
         self.profiler = None
         self._profiler_instantiated = False
 
@@ -297,6 +297,9 @@ class PyTorchProfiler(BaseProfiler):
 
         if self.register is not None:
             self.register.__exit__(None, None, None)
+
+        if self.emit_nvtx:
+            return ""
 
         if self.export_to_chrome:
             filename = f"{local_rank}_trace.json"
