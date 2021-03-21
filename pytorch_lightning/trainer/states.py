@@ -29,7 +29,7 @@ class TrainerState(LightningEnum):
     """
     INITIALIZING = 'initializing'  # trainer creation
     FITTING = 'fit'  # trainer.fit()
-    VALIDATING = 'validate'  # trainer.validate()
+    VALIDATING = 'val'  # trainer.validate()
     TESTING = 'test'  # trainer.test()
     PREDICTING = 'predict'  # trainer.predict()
     TUNING = 'tune'  # trainer.tune()
