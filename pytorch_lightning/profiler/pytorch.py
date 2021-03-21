@@ -208,7 +208,7 @@ class PyTorchProfiler(BaseProfiler):
         self.function_events: Optional[EventList] = None
         self._profiler_instantiated: bool = False
 
-        super().__init__(local_rank=local_rank)
+        super().__init__(output_filename=output_filename, local_rank=local_rank)
 
     def __deprecation_check(self, profiled_functions: List[str] = [], record_functions: List[str] = []) -> List[str]:
         if profiled_functions is not None:
@@ -245,8 +245,8 @@ class PyTorchProfiler(BaseProfiler):
 
     def start(self, action_name: str) -> None:
         if not self._profiler_instantiated:
-            
-            # close profiler is already opened
+
+            # close profiler if it is already opened
             try:
                 torch.autograd._disable_profiler()
             except (AttributeError, RuntimeError):
@@ -282,7 +282,8 @@ class PyTorchProfiler(BaseProfiler):
             return ""
 
         local_rank = 0 if self.local_rank is None else self.local_rank
-        recorded_stats = {}
+        self.function_events = self.profiler.function_events
+
         self.profiler.__exit__(None, None, None)
         self.function_events = self.profiler.function_events
         self.profiler = None
@@ -304,6 +305,8 @@ class PyTorchProfiler(BaseProfiler):
 
         data = self.function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
         table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
+
+        recorded_stats = {}
         recorded_stats["records"] = table
 
         return self.stats_to_str(recorded_stats)
@@ -320,3 +323,13 @@ class PyTorchProfiler(BaseProfiler):
         init_parameters = inspect.signature(profiler.__init__).parameters
         kwargs = {k: v for k, v in self.profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
+
+    def teardown(self):
+        if self.profiler is not None:
+            self.profiler.__exit__(None, None, None)
+
+        if self._parent_profiler is not None:
+            self._parent_profiler.__exit__(None, None, None)
+            self._parent_profiler = None
+
+        super().teardown()

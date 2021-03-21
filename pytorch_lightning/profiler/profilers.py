@@ -51,8 +51,13 @@ class BaseProfiler(AbstractProfiler, ABC):
     If you wish to write a custom profiler, you should inherit from this class.
     """
 
-    def __init__(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
-        self.output_fname = getattr(self, "output_fname", None)
+    def __init__(
+        self,
+        output_filename: Optional[str] = None,
+        local_rank: Optional[int] = None,
+        log_dir: Optional[str] = None
+    ) -> None:
+        self.output_fname = output_filename
         self.output_file = None
         # the profiler can be used outside of lightning
         # that's why we call `on_train_start` manually
@@ -110,6 +115,7 @@ class BaseProfiler(AbstractProfiler, ABC):
             write(self.summary())
         if self.output_file:
             self.output_file.flush()
+        self.teardown()
 
     def stats_to_str(self, stats: dict) -> str:
         output = ["Profiler Report"]
@@ -121,12 +127,10 @@ class BaseProfiler(AbstractProfiler, ABC):
             output.append(value)
         return os.linesep.join(output)
 
-    def __del__(self) -> None:
+    def teardown(self) -> None:
         """Close profiler's stream."""
-        try:
+        if self.output_file:
             self.output_file.close()
-        except AttributeError:
-            pass
 
 
 class PassThroughProfiler(BaseProfiler):
@@ -250,10 +254,9 @@ class AdvancedProfiler(BaseProfiler):
             ValueError:
                 If you attempt to stop recording an action which was never started.
         """
-        self.output_fname = output_filename
+        super().__init__(output_filename=output_filename)
         self.profiled_actions = {}
         self.line_count_restriction = line_count_restriction
-        super().__init__()
 
     def start(self, action_name: str) -> None:
         if action_name not in self.profiled_actions:
