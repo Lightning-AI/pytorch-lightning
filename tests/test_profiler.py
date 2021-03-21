@@ -120,8 +120,7 @@ def test_simple_profiler_value_errors(simple_profiler):
 
 @pytest.fixture
 def advanced_profiler(tmpdir):
-    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
-    return profiler
+    return AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -207,6 +206,7 @@ def test_pytorch_profiler_describe(tmpdir):
     pytorch_profiler.describe()
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
+    pytorch_profiler.teardown()
 
 
 def test_pytorch_profiler_value_errors(tmpdir):
@@ -218,6 +218,7 @@ def test_pytorch_profiler_value_errors(tmpdir):
 
     with pytest.raises(MisconfigurationException, match="profiled_functions` and `PyTorchProfiler.record"):
         PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
+    pytorch_profiler.teardown()
 
 
 @RunIf(min_gpus=2, special=True)
@@ -239,6 +240,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
 
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
+    pytorch_profiler.teardown()
 
 
 def test_pytorch_profiler_trainer_fit(tmpdir):
@@ -261,6 +263,7 @@ def test_pytorch_profiler_trainer_fit(tmpdir):
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
     print(tmpdir)
+    pytorch_profiler.teardown()
 
 
 def test_pytorch_profiler_trainer_test(tmpdir):
@@ -279,6 +282,7 @@ def test_pytorch_profiler_trainer_test(tmpdir):
 
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
+    pytorch_profiler.teardown()
 
 
 def test_pytorch_profiler_trainer_predict(tmpdir):
@@ -298,6 +302,7 @@ def test_pytorch_profiler_trainer_predict(tmpdir):
 
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
+    pytorch_profiler.teardown()
 
 
 @RunIf(min_gpus=1, special=True)

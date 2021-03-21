@@ -332,4 +332,10 @@ class PyTorchProfiler(BaseProfiler):
             self._parent_profiler.__exit__(None, None, None)
             self._parent_profiler = None
 
+        if self.register is not None:
+            self.register.__exit__(None, None, None)
+
+        for record in self.recording_map.values():
+            record.__exit__(None, None, None)
+
         super().teardown()
