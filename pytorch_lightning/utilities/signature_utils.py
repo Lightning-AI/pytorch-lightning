@@ -11,23 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
-
-import torch
-from torchmetrics.functional import confusion_matrix as _confusion_matrix
-
-from pytorch_lightning.utilities.deprecation import deprecated
+import inspect
+from typing import Callable
 
 
-@deprecated(target=_confusion_matrix, ver_deprecate="1.3.0", ver_remove="1.5.0")
-def confusion_matrix(
-    preds: torch.Tensor,
-    target: torch.Tensor,
-    num_classes: int,
-    normalize: Optional[str] = None,
-    threshold: float = 0.5
-) -> torch.Tensor:
-    """
-    .. deprecated::
-        Use :func:`torchmetrics.functional.confusion_matrix`. Will be removed in v1.5.0.
-    """
+def is_param_in_hook_signature(hook_fx: Callable, param: str) -> bool:
+    hook_params = list(inspect.signature(hook_fx).parameters)
+    if "args" in hook_params or param in hook_params:
+        return True
+    return False

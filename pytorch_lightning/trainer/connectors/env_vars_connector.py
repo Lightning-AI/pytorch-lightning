@@ -23,6 +23,7 @@ def _defaults_from_env_vars(fn: Callable) -> Callable:
     Decorator for :class:`~pytorch_lightning.trainer.trainer.Trainer` methods for which
     input arguments should be moved automatically to the correct device.
     """
+
     @wraps(fn)
     def insert_env_defaults(self, *args, **kwargs):
         cls = self.__class__  # get the class

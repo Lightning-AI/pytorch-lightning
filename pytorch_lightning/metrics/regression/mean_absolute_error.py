@@ -14,12 +14,12 @@
 from typing import Any, Callable, Optional
 
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning.metrics.functional.mean_absolute_error import (
     _mean_absolute_error_compute,
     _mean_absolute_error_update,
 )
-from pytorch_lightning.metrics.metric import Metric
 
 
 class MeanAbsoluteError(Metric):
