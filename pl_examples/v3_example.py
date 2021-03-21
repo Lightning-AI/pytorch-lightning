@@ -40,6 +40,7 @@ parser.add_argument("--netD", default="", help="path to netD (to continue traini
 parser.add_argument(
     "--outf", default="./lightning_logs", help="folder to output images and model checkpoints"
 )
+parser.add_argument("--local_rank", type=int, default=0)
 
 opt = parser.parse_args()
 os.makedirs(opt.outf, exist_ok=True)
@@ -122,6 +123,8 @@ class Discriminator(nn.Module):
 def main():
     random.seed(123)
     torch.manual_seed(123)
+
+    torch.cuda.set_device(opt.local_rank)
 
     dataset = dset.MNIST(
         root=".",
