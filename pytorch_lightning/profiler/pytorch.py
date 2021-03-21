@@ -54,28 +54,28 @@ class RegisterRecordFunction:
         self._records = {}
         self.handles = {}
 
-    def _start_recording_forward(self, module, input, module_name: str = None, is_built_in: bool = None):
+    def _start_recording_forward(self, module, input, module_name: str = None):
         if module_name is not None:
-            record_name = module_name if is_built_in else f"{type(module)}: {module_name}"
-            self._records[record_name] = record_function(record_name).__enter__()
+            full_name = type(module).__module__ + '.' +  type(module).__name__
+            record_name = f"{full_name}: {module_name}"
+            self._records[record_name] = record_function(f"{full_name}: {module_name}").__enter__()
         return input
 
-    def _stop_recording_forward(self, module, input, result, module_name: str = None, is_built_in: bool = None):
+    def _stop_recording_forward(self, module, input, result, module_name: str = None):
         if module_name is not None:
-            record_name = module_name if is_built_in else f"{type(module)}: {module_name}"
+            full_name = type(module).__module__ + '.' +  type(module).__name__
+            record_name = f"{full_name}: {module_name}"
             self._records[record_name].__exit__(None, None, None)
         return result
 
     def __enter__(self):
-        built_in_modules = dir(torch.nn)
         for module_name, module in self._model.named_modules():
             if module_name != '':
-                is_built_in = module in built_in_modules
                 pre_forward_handle = module.register_forward_pre_hook(
-                    partial(self._start_recording_forward, module_name=module_name, is_built_in=is_built_in)
+                    partial(self._start_recording_forward, module_name=module_name)
                 )
                 post_forward_handle = module.register_forward_hook(
-                    partial(self._stop_recording_forward, module_name=module_name, is_built_in=is_built_in)
+                    partial(self._stop_recording_forward, module_name=module_name)
                 )
 
                 self.handles[module_name] = [pre_forward_handle, post_forward_handle]
@@ -181,6 +181,7 @@ class PyTorchProfiler(BaseProfiler):
         with_flops: bool = True,
         metric: str = 'self_cpu_time_total',
         activities: Optional[List] = None,
+        with_stack: bool = False,
         **profiler_kwargs: Any,
     ) -> None:
         """
@@ -229,6 +230,8 @@ class PyTorchProfiler(BaseProfiler):
             profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
 
             record_module_names: Whether to add module names while recording autograd operation.
+
+            with_stack: record source information (file and line number) for the ops (Introduced in PyTorch 1.7.0)
 
             schedule: Whether to apply a scheduling regime for recording. Available for PyTorch 1.8
 
@@ -294,7 +297,7 @@ class PyTorchProfiler(BaseProfiler):
                     f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
                 )
             self.record_functions_managers = {}
-            self.activities = activities or [ProfilerActivity.CPU] + [ProfilerActivity.CUDA] * torch.cuda.is_available()
+            self.activities = activities or [ProfilerActivity.CPU] + [ProfilerActivity.CUDA] * int(torch.cuda.is_available())
 
             schedule = schedule or torch.profiler.schedule(wait=1, warmup=1, active=2)
             self.schedule = ScheduleWrapper(schedule)
@@ -303,6 +306,7 @@ class PyTorchProfiler(BaseProfiler):
             self.with_flops = with_flops
             self.metric = metric
             self.emit_nvtx = False
+            self.with_stack = export_to_flame_graph or with_stack
 
         else:
             self.emit_nvtx = emit_nvtx
@@ -350,6 +354,10 @@ class PyTorchProfiler(BaseProfiler):
         if local_rank is not None and local_rank > 0 and self.output_fname is None:
             self._rank_zero_only_wrap()
 
+        if self._profiler_instantiated and self.record_module_names and self.lightning_module is not None:
+            self.register = RegisterRecordFunction(self.lightning_module)
+            self.register.__enter__()
+
     def _rank_zero_only_wrap(self) -> None:
         self.start = rank_zero_only(self.start)
         self.stop = rank_zero_only(self.stop)
@@ -374,10 +382,6 @@ class PyTorchProfiler(BaseProfiler):
                 self._parent_profiler.__enter__()
 
             self._profiler_instantiated = True
-
-            if self.record_module_names and self.lightning_module is not None:
-                self.register = RegisterRecordFunction(self.lightning_module)
-                self.register.__enter__()
 
         if (
             self._profiler_instantiated and action_name in self.record_functions
@@ -423,8 +427,10 @@ class PyTorchProfiler(BaseProfiler):
         local_rank = 0 if self.local_rank is None else self.local_rank
 
         self.profiler.__exit__(None, None, None)
-        if not self.emit_nvtx:
+        if not _TORCH_GREATER_EQUAL_1_8:
             self.function_events = self.profiler.function_events
+        else:
+            self.function_events = self.profiler.events()
         self.profiler = None
         self._profiler_instantiated = False
 
@@ -438,7 +444,7 @@ class PyTorchProfiler(BaseProfiler):
         if self.emit_nvtx:
             return ""
 
-        if self.export_to_chrome:
+        if self.export_to_chrome and not _TORCH_GREATER_EQUAL_1_8:
             filename = f"{local_rank}_trace.json"
             path_to_trace = (
                 filename if self.path_to_export_trace is None else os.path.join(self.path_to_export_trace, filename)
@@ -465,7 +471,7 @@ class PyTorchProfiler(BaseProfiler):
 
     def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
-        kwargs = {k: v for k, v in self.profiler_kwargs.items() if k in init_parameters}
+        kwargs = {k: v for k, v in vars(self).items() if k in init_parameters}
         return profiler(**kwargs)
 
     def teardown(self):
