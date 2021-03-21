@@ -21,7 +21,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Optional
+from typing import Dict, Optional
 
 import numpy as np
 
@@ -73,7 +73,7 @@ class BaseProfiler(AbstractProfiler, ABC):
         self.local_rank = local_rank
         self.log_dir = log_dir
 
-    def prepare_file(self) -> None:
+    def _prepare_file(self) -> None:
         if not self._file_prepared:
             if self.output_fname and self.output_file is None:
                 fs = get_filesystem(self.output_fname)
@@ -114,14 +114,14 @@ class BaseProfiler(AbstractProfiler, ABC):
 
     def describe(self) -> None:
         """Logs a profile report after the conclusion of the training run."""
-        self.prepare_file()
+        self._prepare_file()
         for write in self.write_streams:
             write(self.summary())
         if self.output_file:
             self.output_file.flush()
         self.teardown()
 
-    def stats_to_str(self, stats: dict) -> str:
+    def stats_to_str(self, stats: Dict[str, str]) -> str:
         output = ["Profiler Report"]
         for action, value in stats.items():
             header = f"Profile stats for: {action}"

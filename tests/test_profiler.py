@@ -48,9 +48,7 @@ def _sleep_generator(durations):
 
 @pytest.fixture
 def simple_profiler():
-    profiler = SimpleProfiler()
-    profiler.prepare_file()
-    return profiler
+    return SimpleProfiler()
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -121,9 +119,7 @@ def test_simple_profiler_value_errors(simple_profiler):
 
 @pytest.fixture
 def advanced_profiler(tmpdir):
-    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
-    profiler.prepare_file()
-    return profiler
+    return AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -199,10 +195,13 @@ def test_advanced_profiler_value_errors(advanced_profiler):
     advanced_profiler.stop(action)
 
 
-def test_pytorch_profiler_describe(tmpdir):
+@pytest.fixture
+def pytorch_profiler(tmpdir):
+    return PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
+
+
+def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
-    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
-    pytorch_profiler.prepare_file()
     with pytorch_profiler.profile("test_step"):
         pass
 
@@ -210,12 +209,10 @@ def test_pytorch_profiler_describe(tmpdir):
     pytorch_profiler.describe()
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
-    pytorch_profiler.teardown()
 
 
-def test_pytorch_profiler_value_errors(tmpdir):
+def test_pytorch_profiler_value_errors(pytorch_profiler):
     """Ensure errors are raised where expected."""
-    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     action = "test_step"
     pytorch_profiler.start(action)
     pytorch_profiler.stop(action)
@@ -226,9 +223,8 @@ def test_pytorch_profiler_value_errors(tmpdir):
 
 
 @RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir):
+def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     model = BoringModel()
     trainer = Trainer(
         max_epochs=1,
@@ -244,12 +240,10 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
 
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
-    pytorch_profiler.teardown()
 
 
-def test_pytorch_profiler_trainer_fit(tmpdir):
+def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the trainer and training, validation steps are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -265,12 +259,10 @@ def test_pytorch_profiler_trainer_fit(tmpdir):
 
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
-    pytorch_profiler.teardown()
 
 
-def test_pytorch_profiler_trainer_test(tmpdir):
+def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -284,12 +276,10 @@ def test_pytorch_profiler_trainer_test(tmpdir):
 
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
-    pytorch_profiler.teardown()
 
 
-def test_pytorch_profiler_trainer_predict(tmpdir):
+def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the trainer and predict function are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
     model = BoringModel()
     model.predict_dataloader = model.train_dataloader
     trainer = Trainer(
@@ -304,7 +294,6 @@ def test_pytorch_profiler_trainer_predict(tmpdir):
 
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
-    pytorch_profiler.teardown()
 
 
 @RunIf(min_gpus=1, special=True)
@@ -316,6 +305,7 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
         profiler=pytorch_profiler,
         gpus=1,
@@ -333,7 +323,6 @@ def test_pytorch_profiler_nested(tmpdir):
         use_cuda=torch.cuda.is_available(),
         output_filename=os.path.join(tmpdir, "profiler.txt")
     )
-    pytorch_profiler.prepare_file()
 
     with pytorch_profiler.profile("a"):
         a = torch.ones(42)
@@ -367,4 +356,3 @@ def test_pytorch_profiler_nested(tmpdir):
         }
 
     assert events_name == expected, (events_name, torch.__version__, platform.system())
-    pytorch_profiler.teardown()
