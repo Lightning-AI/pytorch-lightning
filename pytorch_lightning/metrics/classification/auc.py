@@ -13,36 +13,14 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
-import torch
-from torchmetrics import Metric
+from torchmetrics import AUC as _AUC
 
-from pytorch_lightning.metrics.functional.auc import _auc_compute, _auc_update
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.deprecation import deprecated
 
 
-class AUC(Metric):
-    r"""
-    Computes Area Under the Curve (AUC) using the trapezoidal rule
+class AUC(_AUC):
 
-    Forward accepts two input tensors that should be 1D and have the same number
-    of elements
-
-    Args:
-        reorder: AUC expects its first input to be sorted. If this is not the case,
-            setting this argument to ``True`` will use a stable sorting algorithm to
-            sort the input in decending order
-        compute_on_step:
-            Forward only calls ``update()`` and return None if this is set to False.
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step.
-        process_group:
-            Specify the process group on which synchronization is called. default: None (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When ``None``, DDP
-            will be used to perform the allgather
-    """
-
+    @deprecated(target=_AUC, ver_deprecate="1.3.0", ver_remove="1.5.0")
     def __init__(
         self,
         reorder: bool = False,
@@ -51,40 +29,9 @@ class AUC(Metric):
         process_group: Optional[Any] = None,
         dist_sync_fn: Callable = None,
     ):
-        super().__init__(
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
-
-        self.reorder = reorder
-
-        self.add_state("x", default=[], dist_reduce_fx=None)
-        self.add_state("y", default=[], dist_reduce_fx=None)
-
-        rank_zero_warn(
-            'Metric `AUC` will save all targets and predictions in buffer.'
-            ' For large datasets this may lead to large memory footprint.'
-        )
-
-    def update(self, x: torch.Tensor, y: torch.Tensor):
         """
-        Update state with predictions and targets.
+        This implementation refers to :class:`~torchmetrics.AUC`.
 
-        Args:
-            x: Predictions from model (probabilities, or labels)
-            y: Ground truth labels
+        .. deprecated::
+            Use :class:`~torchmetrics.AUC`. Will be removed in v1.5.0.
         """
-        x, y = _auc_update(x, y)
-
-        self.x.append(x)
-        self.y.append(y)
-
-    def compute(self) -> torch.Tensor:
-        """
-        Computes AUC based on inputs passed in to ``update`` previously.
-        """
-        x = torch.cat(self.x, dim=0)
-        y = torch.cat(self.y, dim=0)
-        return _auc_compute(x, y, reorder=self.reorder)

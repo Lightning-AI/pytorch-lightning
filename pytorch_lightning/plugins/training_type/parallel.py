@@ -53,14 +53,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     def lightning_module(self):
         return unwrap_lightning_module(self._model)
 
-    @abstractmethod
-    def setup(self, model):
-        raise NotImplementedError
-
-    def connect(self, model, *args, **kwargs):
-        self.setup(model)
-        return self.model
-
     @property
     def is_global_zero(self) -> bool:
         return self.global_rank == 0

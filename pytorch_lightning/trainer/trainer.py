@@ -428,8 +428,10 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
+        self.accelerator.connect(model)
+        self.accelerator.setup_environment()
+        self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
