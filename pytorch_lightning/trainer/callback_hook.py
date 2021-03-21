@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Type
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -243,10 +243,10 @@ class TrainerCallbackHookMixin(ABC):
         callback_states = {}
         for callback in self.callbacks:
             if self.__is_old_signature(callback.on_save_checkpoint):
-                rank_zero_warn(
+                rank_zero_deprecation(
                     "`Callback.on_save_checkpoint` signature has changed in v1.3."
                     " A `checkpoint` parameter has been added."
-                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                    " Support for the old signature will be removed in v1.5"
                 )
                 state = callback.on_save_checkpoint(self, self.lightning_module)  # noqa: parameter-unfilled
             else:

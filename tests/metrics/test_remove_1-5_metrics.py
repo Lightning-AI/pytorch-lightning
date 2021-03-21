@@ -92,9 +92,7 @@ def test_v1_5_metrics_collection():
     preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
 
     MetricCollection.__init__._warned = False
-    with pytest.deprecated_call(
-        match="It will be removed in v1.5.0."
-    ):
+    with pytest.deprecated_call(match="It will be removed in v1.5.0."):
         metrics = MetricCollection([Accuracy()])
     assert metrics(preds, target) == {'Accuracy': torch.tensor(0.1250)}
 
