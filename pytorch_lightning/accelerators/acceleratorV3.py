@@ -1,5 +1,5 @@
 from collections import Callable
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 import torch
 import torch.nn as nn
@@ -14,6 +14,12 @@ from pytorch_lightning.utilities import move_data_to_device
 
 class AcceleratedOptimizer(Optimizer):
 
+    def __init__(self, optimizer: Optimizer):
+        super().__init__(params=optimizer.param_groups, default={})  # TODO: why is it called default and not defaults?
+        self.optimizer = optimizer
+
+    def step(self, closure: Optional[Callable[[], float]]=...) -> Optional[float]:
+        return self.optimizer.step(closure)
 
 
 class AcceleratorV3:
@@ -46,14 +52,14 @@ class AcceleratorV3:
                 wrapped_objects.append(self.setup_dataloader(obj))
         return wrapped_objects
 
-    def setup_model(self, model: nn.Module):
+    def setup_model(self, *models: nn.Module):
         # user can call this method independently instead of the general purpose setup method
-        model = self.training_type_plugin.setup_model(model)
-        return model
+        return [self.training_type_plugin.setup_model(model) for model in models]
 
     def setup_optimizer(self, *optimizers: Optimizer):
         # user can call this method independently instead of the general purpose setup method
-        pass
+        # TODO: let plugin setup optimizer too?
+        return [AcceleratedOptimizer(optimizer) for optimizer in optimizers]
 
     def setup_dataloader(self, *dataloaders: DataLoader):
         # user can call this method independently instead of the general purpose setup method
