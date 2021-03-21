@@ -1856,3 +1856,35 @@ def test_check_val_every_n_epoch_exception(tmpdir):
             max_epochs=1,
             check_val_every_n_epoch=1.2,
         )
+
+
+def test_trainer_attach_data_pipeline_to_model(tmpdir):
+
+    class DataPipeline:
+
+        pass
+
+    class TestDataModule(LightningDataModule):
+
+        data_pipeline = DataPipeline()
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+        def test_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+    class TestCallback(Callback):
+
+        def on_fit_start(self, trainer, pl_module: LightningModule) -> None:
+            """Called when fit begins"""
+            assert isinstance(pl_module.data_pipeline, DataPipeline)
+
+    model = BoringModel()
+    dm = TestDataModule()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[TestCallback()])
+    trainer.fit(model, datamodule=dm)
