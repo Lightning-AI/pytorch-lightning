@@ -546,7 +546,7 @@ class Trainer(
         ref_model.on_pretrain_routine_start()
 
         # print model summary
-        if (self.is_global_zero and self.weights_summary is not None and not self.testing):
+        if self.is_global_zero and self.weights_summary is not None and not self.testing:
             ref_model.summarize(mode=self.weights_summary)
 
         # restore training and model before hpc is called
