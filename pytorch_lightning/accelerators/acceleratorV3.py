@@ -15,10 +15,11 @@ from pytorch_lightning.utilities import move_data_to_device
 class AcceleratedOptimizer(Optimizer):
 
     def __init__(self, optimizer: Optimizer):
-        super().__init__(params=optimizer.param_groups, default={})  # TODO: why is it called default and not defaults?
+        super().__init__(params=optimizer.param_groups, defaults={})
         self.optimizer = optimizer
 
-    def step(self, closure: Optional[Callable[[], float]]=...) -> Optional[float]:
+    def step(self, closure=None):
+        # TODO: do precision magic here
         return self.optimizer.step(closure)
 
 
@@ -45,11 +46,14 @@ class AcceleratorV3:
         wrapped_objects = []
         for obj in objects:
             if isinstance(obj, nn.Module):
-                wrapped_objects.append(self.setup_model(obj))
+                wrapped_objects.extend(self.setup_model(obj))
             if isinstance(obj, Optimizer):
-                wrapped_objects.append(self.setup_optimizer(obj))
+                wrapped_objects.extend(self.setup_optimizer(obj))
             if isinstance(obj, DataLoader):
-                wrapped_objects.append(self.setup_dataloader(obj))
+                wrapped_objects.extend(self.setup_dataloader(obj))
+
+        if len(wrapped_objects) == 1:
+            return wrapped_objects[0]
         return wrapped_objects
 
     def setup_model(self, *models: nn.Module):

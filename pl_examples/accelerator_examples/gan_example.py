@@ -1,3 +1,11 @@
+"""
+DCGAN - Adapted from pytorch/examples
+
+Launch it with this command:
+
+python -m torch.distributed.launch --nproc_per_node=2 gan_example.py
+
+"""
 from __future__ import print_function
 import argparse
 import os
@@ -10,6 +18,11 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
+from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data import DistributedSampler
+
+from pl_examples.accelerator_examples.models import weights_init, Generator, Discriminator
+from pytorch_lightning.accelerators.acceleratorV3 import AcceleratorV3
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -22,9 +35,6 @@ parser.add_argument(
     default=64,
     help="the height / width of the input image to network",
 )
-parser.add_argument("--nz", type=int, default=100, help="size of the latent z vector")
-parser.add_argument("--ngf", type=int, default=64)
-parser.add_argument("--ndf", type=int, default=64)
 parser.add_argument(
     "--niter", type=int, default=25, help="number of epochs to train for"
 )
@@ -45,86 +55,24 @@ parser.add_argument("--local_rank", type=int, default=0)
 opt = parser.parse_args()
 os.makedirs(opt.outf, exist_ok=True)
 
-nc = 1
+# TODO: how do we handle this in Accelerator
 device = torch.device("cuda", index=opt.local_rank)
 ngpu = int(opt.ngpu)
-nz = int(opt.nz)
-ngf = int(opt.ngf)
-ndf = int(opt.ndf)
 
+nz = 100
 
-# custom weights initialization called on netG and netD
-def weights_init(m):
-    classname = m.__class__.__name__
-    if classname.find("Conv") != -1:
-        torch.nn.init.normal_(m.weight, 0.0, 0.02)
-    elif classname.find("BatchNorm") != -1:
-        torch.nn.init.normal_(m.weight, 1.0, 0.02)
-        torch.nn.init.zeros_(m.bias)
-
-
-class Generator(nn.Module):
-    def __init__(self):
-        super(Generator, self).__init__()
-        self.main = nn.Sequential(
-            # input is Z, going into a convolution
-            nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(ngf * 8),
-            nn.ReLU(True),
-            # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf * 4),
-            nn.ReLU(True),
-            # state size. (ngf*4) x 8 x 8
-            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf * 2),
-            nn.ReLU(True),
-            # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf),
-            nn.ReLU(True),
-            # state size. (ngf) x 32 x 32
-            nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
-            nn.Tanh()
-            # state size. (nc) x 64 x 64
-        )
-
-    def forward(self, input):
-        return self.main(input)
-
-class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
-        self.main = nn.Sequential(
-            # input is (nc) x 64 x 64
-            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 32 x 32
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 16 x 16
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, input):
-        output = self.main(input)
-        return output.view(-1, 1).squeeze(1)
 
 def main():
     random.seed(123)
     torch.manual_seed(123)
 
-    torch.cuda.set_device(opt.local_rank)
+    # TODO: how do we handle this in Accelerator
+    # torch.cuda.set_device(opt.local_rank)
+    # TODO: how do we handle this?
+    os.environ["LOCAL_RANK"] = str(opt.local_rank)
+    # os.environ["NODE_RANK"] = str(opt.local_rank)
+
+    accelerator = AcceleratorV3()
 
     dataset = dset.MNIST(
         root=".",
@@ -141,11 +89,22 @@ def main():
         dataset, batch_size=opt.batchSize, shuffle=True, num_workers=opt.workers
     )
 
-    netG = Generator().to(device)
+    dataloader = accelerator.setup(dataloader)
+    assert isinstance(dataloader.sampler, DistributedSampler)
+
+    netG = Generator()
     netG.apply(weights_init)
 
-    netD = Discriminator().to(device)
+    netD = Discriminator()
     netD.apply(weights_init)
+
+    accelerator.to_device(netG)
+    accelerator.to_device(netD)
+
+    netG, netD = accelerator.setup(netG, netD)
+
+    assert isinstance(netG, DistributedDataParallel)
+    assert isinstance(netD, DistributedDataParallel)
 
     criterion = nn.BCELoss()
 
@@ -156,6 +115,8 @@ def main():
     # setup optimizer
     optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
     optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+
+    optimizerG, optimizerG = accelerator.setup(optimizerG, optimizerD)
 
     for epoch in range(opt.niter):
         for i, data in enumerate(dataloader, 0):

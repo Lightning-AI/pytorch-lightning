@@ -95,7 +95,7 @@ class DDPPlugin(ParallelPlugin):
     def setup_model(self, model: nn.Module) -> DistributedDataParallel:
         self.setup_distributed()  # setup distributed if it is not already initialized
         model = DistributedDataParallel(
-            model,
+            model.to(self.root_device),
             device_ids=self.determine_ddp_device_ids(),
             **self._ddp_kwargs,
         )
@@ -218,7 +218,7 @@ class DDPPlugin(ParallelPlugin):
             )
 
     def set_world_ranks(self):
-        self.local_rank = self.task_idx
+        self.local_rank = self.cluster_environment.local_rank()
         self.node_rank = self.cluster_environment.node_rank()
         self.global_rank = self.node_rank * self.num_processes + self.local_rank
         self.world_size = self.num_nodes * self.num_processes
