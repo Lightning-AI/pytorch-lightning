@@ -73,7 +73,7 @@ class BaseProfiler(AbstractProfiler, ABC):
         self.prepare_file()
 
     def prepare_file(self) -> None:
-        if self.output_fname:
+        if self.output_fname and self.output_file is None:
             fs = get_filesystem(self.output_fname)
             self.output_file = fs.open(self.output_fname, "w")
         self.write_streams = [self.output_file.write] if self.output_file else [log.info]
