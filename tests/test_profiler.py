@@ -346,7 +346,6 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="This feature isn't support with PyTorch 1.8 profiler")
 def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
