@@ -54,6 +54,7 @@ class ProfilerConnector:
                 )
         self.trainer.profiler = profiler or PassThroughProfiler()
 
-    def on_train_start(self, trainer):
+    def setup(self) -> None:
+        trainer = self.trainer
         local_rank = trainer.local_rank if trainer.world_size > 1 else None
-        self.trainer.profiler.on_train_start(local_rank=local_rank, log_dir=self.trainer.log_dir)
+        trainer.profiler.setup(stage=trainer._setup_state, local_rank=local_rank, log_dir=trainer.log_dir)

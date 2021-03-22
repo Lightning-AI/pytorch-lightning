@@ -445,13 +445,15 @@ class Trainer(
                                 |                             ||
                          {self.dispatch}                      ||
                                 |                             ||  LIGHTNING
-                {self.accelerator.start_training} or          ||
-                {self.accelerator.start_evaluating} or        ||  FLOW
-                {self.accelerator.start_predicting}           ||
+                  {self.accelerator.start_training}           ||
+                or {self.accelerator.start_evaluating}        ||
+                or {self.accelerator.start_predicting}        ||  FLOW
+                                |                             ||
+                         {self.run_stage}                     ||
                                 |                             ||  DIRECTION
-                        {self.run_train} or                   ||
-                     {self.run_evaluation} or                 ||
-                       {self.run_predict}                     ||
+                        {self.run_train}                      ||
+                     or {self.run_evaluation}                 ||
+                     or {self.run_predict}                    ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
@@ -495,7 +497,7 @@ class Trainer(
         return self.accelerator.results or 1
 
     def pre_dispatch(self):
-        self.accelerator.pre_dispatch()
+        self.accelerator.pre_dispatch(self)
 
         # log hyper-parameters
         if self.logger is not None:
@@ -505,7 +507,7 @@ class Trainer(
             self.logger.save()
 
     def post_dispatch(self):
-        self.accelerator.post_dispatch()
+        self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
 
     def dispatch(self):
@@ -518,6 +520,9 @@ class Trainer(
 
     def run_stage(self):
         results = None
+
+        self.profile_connector.setup()
+
         if self.evaluating:
             results = self.run_evaluate()
         elif self.predicting:
@@ -1062,8 +1067,7 @@ class Trainer(
 
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
-        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
-        state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+        state = self._setup_state
 
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
@@ -1074,11 +1078,8 @@ class Trainer(
         model.setup(stage=state)
 
     def call_teardown_hook(self, model: LightningModule) -> None:
-        if self.state.running:
-            state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-        else:
-            state = None
-
+        state = self._teardown_state
+        self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
 

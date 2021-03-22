@@ -16,14 +16,15 @@ import inspect
 import logging
 import os
 from functools import partial
-from typing import Any, Dict, List, Optional, Type, Union
+from pathlib import Path
+from typing import Any, Dict, Type
+from typing import List, Optional, Union
 
 import torch
 from torch import nn, Tensor
 from torch.autograd.profiler import EventList, record_function
 
 from pytorch_lightning.profiler.profilers import BaseProfiler
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -104,7 +105,8 @@ class PyTorchProfiler(BaseProfiler):
 
     def __init__(
         self,
-        output_filename: Optional[str] = None,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
         group_by_input_shapes: bool = False,
         emit_nvtx: bool = False,
         export_to_chrome: bool = True,
@@ -112,9 +114,9 @@ class PyTorchProfiler(BaseProfiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         record_functions: List[str] = None,
-        local_rank: Optional[int] = None,
-        profiled_functions: List[str] = None,
         record_module_names: bool = True,
+        profiled_functions: Optional[List] = None,
+        output_filename: Optional[str] = None,
         **profiler_kwargs: Any,
     ) -> None:
         """
@@ -122,10 +124,12 @@ class PyTorchProfiler(BaseProfiler):
         different operators inside your model - both on the CPU and GPU
 
         Args:
-            output_filename: optionally save profile results to file instead of printing
-                to std out when training is finished. When using ``ddp``,
-                each rank will stream the profiled operation to their own file
-                with the extension ``_{rank}.txt``
+            dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
+                ``trainer.log_dir`` (from :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`)
+                will be used.
+
+            filename: If present, filename where the profiler results will be saved instead of printing to stdout.
+                The ``.txt`` extension will be used automatically.
 
             group_by_input_shapes: Include operator input shapes and group calls by shape.
 
@@ -157,26 +161,20 @@ class PyTorchProfiler(BaseProfiler):
             record_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
 
-            local_rank: When running in distributed setting, local_rank is used for each process
-                to write to their own file if `output_fname` is provided.
+            record_module_names: Whether to add module names while recording autograd operation.
 
             profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
 
-            record_module_names: Whether to add module names while recording autograd operation.
-
         Raises:
             MisconfigurationException:
-                If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``, or
-                if log file is not a ``.txt`` file.
+                If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
             ValueError:
                 If you attempt to stop recording an action which was never started.
         """
-        if output_filename is not None and not output_filename.endswith(".txt"):
-            raise MisconfigurationException("`output_filename` should be a `.txt` file.")
+        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
         record_functions = self.__deprecation_check(profiled_functions, record_functions)
 
-        self.output_fname = output_filename
         self.profiler: Optional[_PROFILER] = None
         self.function_events: Optional[EventList] = None
 
@@ -206,8 +204,6 @@ class PyTorchProfiler(BaseProfiler):
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-        super().__init__(output_filename=output_filename, local_rank=local_rank)
-
     def __deprecation_check(self, profiled_functions: List[str] = [], record_functions: List[str] = []) -> List[str]:
         if record_functions is None:
             record_functions = []
@@ -229,23 +225,18 @@ class PyTorchProfiler(BaseProfiler):
 
         return record_functions
 
-    def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
-        super().on_train_start(local_rank=local_rank, log_dir=log_dir)
+    def setup(
+        self,
+        stage: Optional[str] = None,
+        local_rank: Optional[int] = None,
+        log_dir: Optional[str] = None
+    ) -> None:
+        super().setup(stage=stage, local_rank=local_rank, log_dir=log_dir)
 
         # if the user didn't provide `path_to_export_trace`,
         # set it as TensorBoardLogger log_dir if exists
-        if self._path_to_export_trace is None:
-            self._path_to_export_trace = log_dir
-
-        # when logging to `log.info`, only perform profiling on rank 0
-        if local_rank is not None and local_rank > 0 and self.output_fname is None:
-            self._rank_zero_only_wrap()
-
-    def _rank_zero_only_wrap(self) -> None:
-        self.start = rank_zero_only(self.start)
-        self.stop = rank_zero_only(self.stop)
-        self.summary = rank_zero_only(self.summary)
-        self.describe = rank_zero_only(self.describe)
+        if self.path_to_export_trace is None:
+            self.path_to_export_trace = log_dir
 
     def start(self, action_name: str) -> None:
         if not self._profiler_instantiated and action_name in (
