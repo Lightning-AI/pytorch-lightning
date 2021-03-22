@@ -55,7 +55,7 @@ def _compare_version(package: str, op, version) -> bool:
         pkg = importlib.import_module(package)
         assert hasattr(pkg, '__version__')
         pkg_version = pkg.__version__
-        return op(pkg_version, LooseVersion(version))
+        return op(LooseVersion(pkg_version), LooseVersion(version))
     except DistributionNotFound:
         return False
 
