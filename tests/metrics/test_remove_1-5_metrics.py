@@ -37,7 +37,7 @@ from pytorch_lightning.metrics import (
     R2Score,
     Recall,
     ROC,
-    StatScores,
+    StatScores, SSIM,
 )
 from pytorch_lightning.metrics.functional import (
     auc,
@@ -59,7 +59,7 @@ from pytorch_lightning.metrics.functional import (
     r2score,
     recall,
     roc,
-    stat_scores,
+    stat_scores, ssim,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
@@ -303,6 +303,10 @@ def test_v1_5_metric_regress():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         R2Score()
 
+    SSIM.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        SSIM()
+
     preds = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
     target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
     psnr.warned = False
@@ -316,3 +320,10 @@ def test_v1_5_metric_regress():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = r2score(preds, target)
         assert torch.allclose(res, torch.tensor(0.9486), atol=1e-4)
+
+    preds = torch.rand([16, 1, 16, 16])
+    target = preds * 0.75
+    ssim.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        res = ssim(preds, target)
+        assert torch.allclose(res, torch.tensor(0.9219), atol=1e-4)
