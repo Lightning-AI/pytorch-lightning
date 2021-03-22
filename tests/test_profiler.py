@@ -14,6 +14,7 @@
 import logging
 import os
 import time
+from copy import deepcopy
 from distutils.version import LooseVersion
 
 import numpy as np
@@ -103,6 +104,12 @@ def test_simple_profiler_value_errors(simple_profiler):
         simple_profiler.start(action)
 
     simple_profiler.stop(action)
+
+
+def test_simple_profiler_deepcopy(tmpdir):
+    simple_profiler = SimpleProfiler(dirpath=tmpdir, filename="test")
+    simple_profiler.describe()
+    assert deepcopy(simple_profiler)
 
 
 def test_simple_profiler_log_dir(tmpdir):
@@ -243,6 +250,11 @@ def test_advanced_profiler_value_errors(advanced_profiler):
     advanced_profiler.stop(action)
 
 
+def test_advanced_profiler_deepcopy(advanced_profiler):
+    advanced_profiler.describe()
+    assert deepcopy(advanced_profiler)
+
+
 @pytest.fixture
 def pytorch_profiler(tmpdir):
     return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
@@ -369,3 +381,8 @@ def test_profiler_teardown(tmpdir, cls):
     trainer.fit(model)
 
     assert profiler._output_file.closed
+
+
+def test_pytorch_profiler_deepcopy(pytorch_profiler):
+    pytorch_profiler.describe()
+    assert deepcopy(pytorch_profiler)

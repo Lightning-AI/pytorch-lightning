@@ -178,12 +178,13 @@ class BaseProfiler(AbstractProfiler):
     def teardown(self, stage: Optional[str] = None) -> None:
         """
         Execute arbitrary post-profiling tear-down steps.
-        
+
         Closes the currently open file and stream.
         """
         self._write_stream = None
         if self._output_file is not None:
             self._output_file.close()
+            self._output_file = None  # can't pickle TextIOWrapper
 
     def __del__(self) -> None:
         self.teardown(stage=self._stage)
