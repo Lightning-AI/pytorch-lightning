@@ -25,6 +25,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
+from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -354,3 +355,40 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
         gpus=1,
     )
     trainer.fit(model)
+
+
+@RunIf(min_torch="1.5.0")
+def test_register_record_function(tmpdir):
+
+    use_cuda = torch.cuda.is_available()
+
+    pytorch_profiler = PyTorchProfiler(
+        export_to_chrome=False,
+        record_functions=["a"],
+        use_cuda=use_cuda,
+        output_filename=os.path.join(tmpdir, "profiler.txt")
+    )
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+
+    model = TestModel()
+    input = torch.rand((1, 32))
+
+    if use_cuda:
+        model = model.cuda()
+        input = input.cuda()
+
+    with pytorch_profiler.profile("a"):
+        with RegisterRecordFunction(model):
+            model(input)
+
+    pytorch_profiler.describe()
+    event_names = [e.name for e in pytorch_profiler.function_events]
+    assert 'torch.nn.modules.container.Sequential: layer' in event_names
+    assert 'torch.nn.modules.linear.Linear: layer.0' in event_names
+    assert 'torch.nn.modules.activation.ReLU: layer.1' in event_names
+    assert 'torch.nn.modules.linear.Linear: layer.2' in event_names

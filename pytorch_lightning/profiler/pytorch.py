@@ -19,6 +19,7 @@ from functools import partial
 from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
+from torch import nn, Tensor
 from torch.autograd.profiler import EventList, record_function
 
 from pytorch_lightning.profiler.profilers import BaseProfiler
@@ -48,33 +49,31 @@ class RegisterRecordFunction:
             out = model(batch)
     """
 
-    def __init__(self, model):
+    def __init__(self, model: nn.Module):
         self._model = model
         self._records = {}
         self.handles = {}
 
-    def _start_recording_forward(self, module, input, module_name: str = None, is_built_in: bool = None):
-        if module_name is not None:
-            record_name = module_name if is_built_in else f"{type(module)}: {module_name}"
-            self._records[record_name] = record_function(record_name).__enter__()
+    def _start_recording_forward(self, module: nn.Module, input: Tensor, record_name: str):
+        record = record_function(record_name)
+        record.__enter__()
+        self._records[record_name] = record
         return input
 
-    def _stop_recording_forward(self, module, input, result, module_name: str = None, is_built_in: bool = None):
-        if module_name is not None:
-            record_name = module_name if is_built_in else f"{type(module)}: {module_name}"
-            self._records[record_name].__exit__(None, None, None)
-        return result
+    def _stop_recording_forward(self, module: nn.Module, input: Tensor, output: Tensor, record_name: str):
+        self._records[record_name].__exit__(None, None, None)
+        return output
 
     def __enter__(self):
-        built_in_modules = dir(torch.nn)
         for module_name, module in self._model.named_modules():
             if module_name != '':
-                is_built_in = module in built_in_modules
+                full_name = type(module).__module__ + '.' + type(module).__name__
+                record_name = f"{full_name}: {module_name}"
                 pre_forward_handle = module.register_forward_pre_hook(
-                    partial(self._start_recording_forward, module_name=module_name, is_built_in=is_built_in)
+                    partial(self._start_recording_forward, record_name=record_name)
                 )
                 post_forward_handle = module.register_forward_hook(
-                    partial(self._stop_recording_forward, module_name=module_name, is_built_in=is_built_in)
+                    partial(self._stop_recording_forward, record_name=record_name)
                 )
 
                 self.handles[module_name] = [pre_forward_handle, post_forward_handle]
@@ -112,9 +111,9 @@ class PyTorchProfiler(BaseProfiler):
         path_to_export_trace: Optional[str] = None,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        record_functions: List[str] = [],
+        record_functions: List[str] = None,
         local_rank: Optional[int] = None,
-        profiled_functions: List[str] = [],
+        profiled_functions: List[str] = None,
         record_module_names: bool = True,
         **profiler_kwargs: Any,
     ) -> None:
@@ -146,7 +145,7 @@ class PyTorchProfiler(BaseProfiler):
             path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
                 By default, it will be save where the file being is being run.
 
-            row_limit: Limit the number of rows in a table, ``0`` is a special value that
+            row_limit: Limit the number of rows in a table, ``-1`` is a special value that
                 removes the limit completely.
 
             sort_by_key: Attribute used to sort entries. By default
@@ -178,7 +177,7 @@ class PyTorchProfiler(BaseProfiler):
         record_functions = self.__deprecation_check(profiled_functions, record_functions)
 
         self.output_fname = output_filename
-        self.record_functions = record_functions + list(self.RECORD_FUNCTIONS)
+        self.record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
         self.sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
         self.group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self.row_limit = row_limit
@@ -211,6 +210,9 @@ class PyTorchProfiler(BaseProfiler):
         super().__init__(output_filename=output_filename, local_rank=local_rank)
 
     def __deprecation_check(self, profiled_functions: List[str] = [], record_functions: List[str] = []) -> List[str]:
+        if record_functions is None:
+            record_functions = []
+
         if profiled_functions is not None:
             rank_zero_warn(
                 "`PyTorchProfiler.profiled_functions` has been renamed to"
@@ -223,6 +225,9 @@ class PyTorchProfiler(BaseProfiler):
                     "You set `PytorchProfiler.profiled_functions` and `PyTorchProfiler.record_functions`."
                     "  Please use only the later."
                 )
+        if record_functions is None:
+            record_functions = []
+
         return record_functions
 
     def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
