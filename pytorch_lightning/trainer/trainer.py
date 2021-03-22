@@ -1085,7 +1085,7 @@ class Trainer(
         else:
             state = None
 
-        self.profiler.teardown(stage=state.value)
+        self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
 
