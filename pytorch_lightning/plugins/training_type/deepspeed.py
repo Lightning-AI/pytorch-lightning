@@ -35,6 +35,7 @@ from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
+    from deepspeed.runtime.zero.stage3 import remove_module_hooks
 
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
@@ -333,6 +334,8 @@ class DeepSpeedPlugin(DDPPlugin):
                 "zero_allow_untested_optimizer": self.config['zero_allow_untested_optimizer'],
                 "zero_optimization": self.config['zero_optimization'],
             })
+        # Remove all module hooks before initializing new model
+        remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
             args=SimpleNamespace(local_rank=self.local_rank),
             model=model,
