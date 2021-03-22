@@ -54,9 +54,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `AbstractProfiler` interface ([#6621](https://github.com/PyTorchLightning/pytorch-lightning/pull/6621))
 
 
-- Added `setup` method to `BaseProfiler` to enable subclasses defining pre-profiling steps ([#6621](https://github.com/PyTorchLightning/pytorch-lightning/pull/6621))
-
-
 - Added `outputs` parameter to callback's `on_validation_epoch_end` & `on_test_epoch_end` hooks ([#6120](https://github.com/PyTorchLightning/pytorch-lightning/pull/6120))
 
 
