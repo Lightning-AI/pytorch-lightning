@@ -159,33 +159,21 @@ class PyTorchProfiler(BaseProfiler):
         self.running_stack = []
         self.profiler = None
 
-        self.output_fname = output_filename
-        self.output_file = None
-        if local_rank is not None:
-            self.on_train_start(local_rank=local_rank)
-            self.on_train_start = super().on_train_start
+        super().__init__(output_filename=output_filename, local_rank=local_rank)
 
-    def on_train_start(self, local_rank: Optional[str] = None):
-        self.local_rank = local_rank
+    def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
+        super().on_train_start(local_rank=local_rank, log_dir=log_dir)
+
+        # if the user didn't provide `path_to_export_trace`,
+        # set it as TensorBoardLogger log_dir if exists
+        if self.path_to_export_trace is None:
+            self.path_to_export_trace = log_dir
 
         # when logging to `log.info`, only perform profiling on rank 0
-        if local_rank != 0 and self.output_fname is None:
-            self.wrap_functions_into_rank_zero_only()
+        if local_rank is not None and local_rank > 0 and self.output_fname is None:
+            self._rank_zero_only_wrap()
 
-        if self.output_fname:
-            if local_rank is not None:
-                if '.txt' not in self.output_fname:
-                    raise MisconfigurationException("Log file should be .txt file.")
-
-                self.output_fname = self.output_fname.replace(".txt", f"_{self.local_rank}.txt")
-
-            fs = get_filesystem(self.output_fname)
-            self.output_file = fs.open(self.output_fname, "w")
-
-        streaming_out = [self.output_file.write] if self.output_file else [log.info]
-        super().__init__(output_streams=streaming_out)
-
-    def wrap_functions_into_rank_zero_only(self):
+    def _rank_zero_only_wrap(self) -> None:
         self.start = rank_zero_only(self.start)
         self.stop = rank_zero_only(self.stop)
         self.summary = rank_zero_only(self.summary)
@@ -284,20 +272,4 @@ class PyTorchProfiler(BaseProfiler):
                 table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
                 recorded_stats[action_name] = table
 
-        # log to standard out
-        output_string = f"{os.linesep}Profiler Report{os.linesep}"
-        for action, stats in recorded_stats.items():
-            output_string += (f"{os.linesep}Profile stats for: {action} rank: {local_rank} {os.linesep}{stats}")
-
-        return output_string
-
-    def describe(self):
-        """Logs a profile report after the conclusion of the training run."""
-        super().describe()
-        if self.output_file:
-            self.output_file.flush()
-
-    def __del__(self):
-        """Close profiler's stream."""
-        if self.output_file:
-            self.output_file.close()
+        return self.stats_to_str(recorded_stats)
