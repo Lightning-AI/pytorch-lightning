@@ -14,7 +14,6 @@
 """General utilities"""
 import importlib
 import operator
-import os
 import platform
 import sys
 from distutils.version import LooseVersion
@@ -22,9 +21,6 @@ from importlib.util import find_spec
 
 import torch
 from pkg_resources import DistributionNotFound
-
-
-SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', 0))
 
 
 def _module_available(module_path: str) -> bool:
@@ -53,18 +49,17 @@ def _compare_version(package: str, op, version) -> bool:
     >>> _compare_version("torch", operator.ge, "0.1")
     True
     """
-    if SPHINX_MOCK_REQUIREMENTS:
-        return True
-    if not _module_available(package):
-        return False
     try:
         pkg = importlib.import_module(package)
     except DistributionNotFound:
         return False
     try:
         pkg_version = LooseVersion(pkg.__version__)
-    except (AttributeError, ):
+    except AttributeError:
         # in case version is not defined always return True as likely it is mocked call
+        return True
+    if pkg_version.endswith("__version__"):
+        # this is mock by sphinx, so it shall return True ro generate all summaries
         return True
     return op(pkg_version, LooseVersion(version))
 
