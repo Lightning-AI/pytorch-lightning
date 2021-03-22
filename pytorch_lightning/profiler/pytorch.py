@@ -177,35 +177,34 @@ class PyTorchProfiler(BaseProfiler):
         record_functions = self.__deprecation_check(profiled_functions, record_functions)
 
         self.output_fname = output_filename
-        self.record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
-        self.sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self.group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
-        self.row_limit = row_limit
-        self.emit_nvtx = emit_nvtx
-        self.export_to_chrome = export_to_chrome
-        self.path_to_export_trace = path_to_export_trace
-        self.record_module_names = record_module_names
-        self.lightning_module = None  # set by ProfilerConnector
-        self.register = None
-        self.profiler_kwargs = profiler_kwargs
-        self.profiler = None
-        self._parent_profiler = None
+        self.profiler: Optional[_PROFILER] = None
+        self.function_events: Optional[EventList] = None
 
-        if self.export_to_chrome and self.path_to_export_trace is None:
+        self._record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
+        self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
+        self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
+        self._row_limit = row_limit
+        self._emit_nvtx = emit_nvtx
+        self._export_to_chrome = export_to_chrome
+        self._path_to_export_trace = path_to_export_trace
+        self._record_module_names = record_module_names
+        self._lightning_module = None  # set by ProfilerConnector
+        self._register = None
+        self._profiler_kwargs = profiler_kwargs
+        self._parent_profiler = None
+        self._recording_map: Dict[str, record_function] = {}
+        self._profiler_instantiated: bool = False
+
+        if self._export_to_chrome and self._path_to_export_trace is None:
             rank_zero_warn(
                 "The exported trace would be saved locally as `path_to_export_trace` is None."
                 " Note: Each functions will generate its own traced file."
             )
 
-        if self.sort_by_key not in self.AVAILABLE_SORT_KEYS:
+        if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
-                f"Found sort_by_key: {self.sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
+                f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
-
-        self.recording_map: Dict[str, record_function] = {}
-        self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional[EventList] = None
-        self._profiler_instantiated: bool = False
 
         super().__init__(output_filename=output_filename, local_rank=local_rank)
 
@@ -235,8 +234,8 @@ class PyTorchProfiler(BaseProfiler):
 
         # if the user didn't provide `path_to_export_trace`,
         # set it as TensorBoardLogger log_dir if exists
-        if self.path_to_export_trace is None:
-            self.path_to_export_trace = log_dir
+        if self._path_to_export_trace is None:
+            self._path_to_export_trace = log_dir
 
         # when logging to `log.info`, only perform profiling on rank 0
         if local_rank is not None and local_rank > 0 and self.output_fname is None:
@@ -250,7 +249,7 @@ class PyTorchProfiler(BaseProfiler):
 
     def start(self, action_name: str) -> None:
         if not self._profiler_instantiated and action_name in (
-            list(self.START_RECORD_FUNCTIONS) + list(self.record_functions)
+            list(self.START_RECORD_FUNCTIONS) + list(self._record_functions)
         ):
 
             # close profiler if it is already opened
@@ -267,31 +266,31 @@ class PyTorchProfiler(BaseProfiler):
 
             self._profiler_instantiated = True
 
-            if self.record_module_names and self.lightning_module is not None:
-                self.register = RegisterRecordFunction(self.lightning_module)
-                self.register.__enter__()
+            if self._record_module_names and self._lightning_module is not None:
+                self._register = RegisterRecordFunction(self._lightning_module)
+                self._register.__enter__()
 
         if (
-            self._profiler_instantiated and action_name in self.record_functions
-            and action_name not in self.recording_map
+            self._profiler_instantiated and action_name in self._record_functions
+            and action_name not in self._recording_map
         ):
             recording = record_function(action_name)
             recording.__enter__()
-            self.recording_map[action_name] = recording
+            self._recording_map[action_name] = recording
 
     def stop(self, action_name: str) -> None:
-        if action_name in self.recording_map:
-            self.recording_map[action_name].__exit__(None, None, None)
-            del self.recording_map[action_name]
+        if action_name in self._recording_map:
+            self._recording_map[action_name].__exit__(None, None, None)
+            del self._recording_map[action_name]
 
     def summary(self) -> str:
-        if not self.profiler_kwargs.get("enabled", True):
+        if not self._profiler_kwargs.get("enabled", True):
             return ""
 
         local_rank = 0 if self.local_rank is None else self.local_rank
 
         self.profiler.__exit__(None, None, None)
-        if not self.emit_nvtx:
+        if not self._emit_nvtx:
             self.function_events = self.profiler.function_events
         self.profiler = None
         self._profiler_instantiated = False
@@ -300,21 +299,21 @@ class PyTorchProfiler(BaseProfiler):
             self._parent_profiler.__exit__(None, None, None)
             self._parent_profiler = None
 
-        if self.register is not None:
-            self.register.__exit__(None, None, None)
+        if self._register is not None:
+            self._register.__exit__(None, None, None)
 
-        if self.emit_nvtx:
+        if self._emit_nvtx:
             return ""
 
-        if self.export_to_chrome:
+        if self._export_to_chrome:
             filename = f"{local_rank}_trace.json"
             path_to_trace = (
-                filename if self.path_to_export_trace is None else os.path.join(self.path_to_export_trace, filename)
+                filename if self._path_to_export_trace is None else os.path.join(self._path_to_export_trace, filename)
             )
             self.function_events.export_chrome_trace(path_to_trace)
 
-        data = self.function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
-        table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
+        data = self.function_events.key_averages(group_by_input_shapes=self._group_by_input_shapes)
+        table = data.table(sort_by=self._sort_by_key, row_limit=self._row_limit)
 
         recorded_stats = {}
         recorded_stats["records"] = table
@@ -322,7 +321,7 @@ class PyTorchProfiler(BaseProfiler):
         return self.stats_to_str(recorded_stats)
 
     def _create_profilers(self) -> None:
-        if self.emit_nvtx:
+        if self._emit_nvtx:
             self._parent_profiler = self._create_profiler(torch.cuda.profiler.profile)
             self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
         else:
@@ -331,7 +330,7 @@ class PyTorchProfiler(BaseProfiler):
 
     def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
-        kwargs = {k: v for k, v in self.profiler_kwargs.items() if k in init_parameters}
+        kwargs = {k: v for k, v in vars(self).items() if k in init_parameters}
         return profiler(**kwargs)
 
     def teardown(self):
@@ -342,10 +341,10 @@ class PyTorchProfiler(BaseProfiler):
             self._parent_profiler.__exit__(None, None, None)
             self._parent_profiler = None
 
-        if self.register is not None:
-            self.register.__exit__(None, None, None)
+        if self._register is not None:
+            self._register.__exit__(None, None, None)
 
-        for record in self.recording_map.values():
+        for record in self._recording_map.values():
             record.__exit__(None, None, None)
 
         super().teardown()
