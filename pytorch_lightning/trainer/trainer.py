@@ -445,7 +445,7 @@ class Trainer(
                                 |                             ||
                          {self.dispatch}                      ||
                                 |                             ||  LIGHTNING
-                {self.accelerator.start_training}             ||
+                  {self.accelerator.start_training}           ||
                 or {self.accelerator.start_evaluating}        ||
                 or {self.accelerator.start_predicting}        ||  FLOW
                                 |                             ||
@@ -453,7 +453,7 @@ class Trainer(
                                 |                             ||  DIRECTION
                         {self.run_train}                      ||
                      or {self.run_evaluation}                 ||
-                     or  {self.run_predict}                   ||
+                     or {self.run_predict}                    ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
@@ -1065,7 +1065,7 @@ class Trainer(
 
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
-        state = self.setup_state
+        state = self._setup_state
 
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
@@ -1076,7 +1076,7 @@ class Trainer(
         model.setup(stage=state)
 
     def call_teardown_hook(self, model: LightningModule) -> None:
-        state = self.teardown_state
+        state = self._teardown_state
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)

@@ -162,11 +162,11 @@ class PyTorchProfiler(BaseProfiler):
         self.output_fname = output_filename
         self.output_file = None
         if local_rank is not None:
-            self.setup(None, local_rank, None)
+            self.setup(local_rank=local_rank)
             self.setup = super().setup
 
-    def setup(self, stage: str, local_rank: Optional[int], log_dir: Optional[str]):
-        super().setup(stage, local_rank, log_dir)
+    def setup(self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None):
+        super().setup(stage=stage, local_rank=local_rank, log_dir=log_dir)
 
         # when logging to `log.info`, only perform profiling on rank 0
         if local_rank != 0 and self.output_fname is None:

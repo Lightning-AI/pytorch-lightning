@@ -55,7 +55,12 @@ class BaseProfiler(ABC):
     def stop(self, action_name: str) -> None:
         """Defines how to record the duration once an action is complete."""
 
-    def setup(self, stage: str, local_rank: Optional[int], log_dir: Optional[str]):
+    def setup(
+        self,
+        stage: Optional[str] = None,
+        local_rank: Optional[int] = None,
+        log_dir: Optional[str] = None
+    ) -> None:
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
         self.stage = stage
         self.local_rank = local_rank
@@ -63,6 +68,7 @@ class BaseProfiler(ABC):
 
     def teardown(self, stage: Optional[str] = None) -> None:
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
+        self.stage = stage
         if self.output_file:
             self.output_file.close()
             self.output_file = None
