@@ -29,6 +29,7 @@ from pytorch_lightning.metrics import (
     IoU,
     MeanAbsoluteError,
     MeanSquaredError,
+    MeanSquaredLogError,
     MetricCollection,
     Precision,
     PrecisionRecallCurve,
@@ -48,6 +49,7 @@ from pytorch_lightning.metrics.functional import (
     iou,
     mean_absolute_error,
     mean_squared_error,
+    mean_squared_log_error,
     precision,
     precision_recall,
     precision_recall_curve,
@@ -259,11 +261,16 @@ def test_v1_5_metric_regress():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         MeanSquaredError()
 
+    MeanSquaredLogError.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        MeanSquaredLogError()
+
     target = torch.tensor([3, -0.5, 2, 7])
     preds = torch.tensor([2.5, 0.0, 2, 8])
     explained_variance.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
-        assert torch.allclose(explained_variance(preds, target), torch.tensor(0.9572), atol=1e-4)
+        res = explained_variance(preds, target)
+        assert torch.allclose(res, torch.tensor(0.9572), atol=1e-4)
 
     x = torch.tensor([0., 1, 2, 3])
     y = torch.tensor([0., 1, 2, 2])
@@ -278,3 +285,8 @@ def test_v1_5_metric_regress():
     mean_squared_error.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert mean_squared_error(x, y) == 0.25
+
+    mean_squared_log_error.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        res = mean_squared_log_error(x, y)
+        assert torch.allclose(res, torch.tensor(0.0207), atol=1e-4)
