@@ -370,17 +370,16 @@ def test_profiler_teardown(tmpdir, cls):
     This test checks if profiler teardown method is called when trainer is exiting.
     """
     class TestCallback(Callback):
-
         def on_fit_end(self, trainer, *args, **kwargs) -> None:
-            assert trainer.profiler._output_file is not None
+            # describe sets it to None
+            assert trainer.profiler._output_file is None
 
     profiler = cls(dirpath=tmpdir, filename="profiler")
-
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler=profiler, callbacks=[TestCallback()])
     trainer.fit(model)
 
-    assert profiler._output_file.closed
+    assert profiler._output_file is None
 
 
 def test_pytorch_profiler_deepcopy(pytorch_profiler):
