@@ -11,37 +11,43 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pickle
 
 import torch
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DoublePrecisionPlugin
-from tests.helpers import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomFloatIntDataset
 
 
 class DoublePrecisionBoringModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
-        assert batch.dtype == torch.float32
-        output = self((batch, torch.ones_like(batch).long()))  # Add some non floating-point data
+        float_data, int_data = batch
+        assert float_data.dtype == torch.float64
+        output = self(float_data)
         loss = self.loss(batch, output)
         return {"loss": loss}
+
+    def validation_step(self, batch, batch_idx):
+        assert batch.dtype == torch.float64
+        output = self(batch)
+        loss = self.loss(batch, output)
+        return {"x": loss}
+
+    def test_step(self, batch, batch_idx):
+        assert batch.dtype == torch.float64
+        output = self(batch)
+        loss = self.loss(batch, output)
+        return {"y": loss}
 
     def on_fit_start(self):
         assert self.layer.weight.dtype == torch.float64
 
-    def forward(self, x):
-        try:
-            x, ones = x  # training
-            assert ones.dtype == torch.long
-        except ValueError:
-            pass  # test / val
-        assert x.dtype == torch.float64
-        return super().forward(x)
-
     def on_after_backward(self):
         assert self.layer.weight.grad.dtype == torch.float64
+
+    def train_dataloader(self):
+        return DataLoader(RandomFloatIntDataset(32, 64))
 
 
 def test_double_precision(tmpdir):
@@ -60,8 +66,3 @@ def test_double_precision(tmpdir):
     trainer.fit(model)
 
     assert model.forward == original_forward
-
-
-def test_double_precision_pickle(tmpdir):
-    double_precision = DoublePrecisionPlugin()
-    pickle.dumps(double_precision)

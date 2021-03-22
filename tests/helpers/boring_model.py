@@ -47,6 +47,20 @@ class RandomDictStringDataset(Dataset):
         return self.len
 
 
+class RandomFloatIntDataset(Dataset):
+
+    def __init__(self, size, length):
+        self.len = length
+        self.float_data = torch.randn(length, size)
+        self.int_data = torch.randint(1, size)
+
+    def __getitem__(self, index):
+        return self.float_data[index], self.int_data[index]
+
+    def __len__(self):
+        return self.len
+
+
 class RandomDataset(Dataset):
 
     def __init__(self, size, length):
