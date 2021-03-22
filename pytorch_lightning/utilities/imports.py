@@ -51,7 +51,7 @@ def _compare_version(package: str, op, version) -> bool:
     """
     try:
         pkg = importlib.import_module(package)
-    except DistributionNotFound:
+    except (ModuleNotFoundError, DistributionNotFound):
         return False
     try:
         pkg_version = LooseVersion(pkg.__version__)
