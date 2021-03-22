@@ -141,6 +141,7 @@ class TrainLoop:
             self.trainer.logger.finalize("success")
 
         # summarize profile results
+        # todo (tchaton) All ranks should call describe.
         if self.trainer.global_rank == 0:
             self.trainer.profiler.describe()
 
