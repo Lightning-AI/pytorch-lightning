@@ -21,7 +21,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -68,7 +68,7 @@ class BaseProfiler(AbstractProfiler):
         # that's why we call `on_train_start` manually
         self.on_train_start(local_rank=local_rank, log_dir=log_dir)
 
-    def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None):
+    def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
         """
         This function is used by the Trainer to inject local_rank with `DDP`
         and `TensorBoardLogger` log_dir in the profiler.
@@ -141,7 +141,7 @@ class BaseProfiler(AbstractProfiler):
         self.write_streams = []
         self._file_prepared = False
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.teardown()
 
     def start(self, action_name: str) -> None:
@@ -179,7 +179,7 @@ class SimpleProfiler(BaseProfiler):
     the mean duration of each action and the total time spent over the entire training run.
     """
 
-    def __init__(self, output_filename: Optional[str] = None, extended: bool = True):
+    def __init__(self, output_filename: Optional[str] = None, extended: bool = True) -> None:
         """
         Args:
             output_filename: optionally save profile results to file instead of printing
@@ -190,11 +190,10 @@ class SimpleProfiler(BaseProfiler):
                 If you attempt to start an action which has already started, or
                 if you attempt to stop recording an action which was never started.
         """
-        self.output_fname = output_filename
-        self.current_actions = {}
+        self.current_actions: Dict[str, float] = {}
         self.recorded_durations = defaultdict(list)
         self.extended = extended
-        super().__init__()
+        super().__init__(output_filename=output_filename)
         self.start_time = time.monotonic()
 
     def start(self, action_name: str) -> None:
@@ -210,7 +209,7 @@ class SimpleProfiler(BaseProfiler):
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
 
-    def make_report(self):
+    def _make_report(self) -> Tuple[list, float]:
         total_duration = time.monotonic() - self.start_time
         report = [[a, d, 100. * np.sum(d) / total_duration] for a, d in self.recorded_durations.items()]
         report.sort(key=lambda x: x[2], reverse=True)
@@ -233,7 +232,7 @@ class SimpleProfiler(BaseProfiler):
                 output_string += log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
                 output_string_len = len(output_string)
                 output_string += f"{sep}{'-' * output_string_len}"
-                report, total_duration = self.make_report()
+                report, total_duration = self._make_report()
                 output_string += log_row("Total", "-", "_", f"{total_duration:.5}", "100 %")
                 output_string += f"{sep}{'-' * output_string_len}"
                 for action, durations, duration_per in report:
@@ -265,7 +264,7 @@ class AdvancedProfiler(BaseProfiler):
     verbose and you should only use this if you want very detailed reports.
     """
 
-    def __init__(self, output_filename: Optional[str] = None, line_count_restriction: float = 1.0):
+    def __init__(self, output_filename: Optional[str] = None, line_count_restriction: float = 1.0) -> None:
         """
         Args:
             output_filename: optionally save profile results to file instead of printing

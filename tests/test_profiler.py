@@ -316,3 +316,21 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
         gpus=1,
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize("cls", (SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
+def test_profiler_teardown(tmpdir, cls):
+    """
+    This test checks if profiler teardown method is called when trainer is exiting.
+    """
+    profiler = cls(output_filename=os.path.join(tmpdir, "profiler.txt"))
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        profiler=profiler,
+    )
+    trainer.fit(model)
+
+    assert profiler.output_file.closed
