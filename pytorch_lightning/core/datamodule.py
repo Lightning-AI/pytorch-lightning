@@ -16,7 +16,6 @@
 import functools
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
-from copy import deepcopy
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 from torch.utils.data import DataLoader, Dataset
