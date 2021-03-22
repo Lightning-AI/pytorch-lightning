@@ -1,19 +1,18 @@
 from collections import Callable
-from typing import Any, Union, Optional
+from contextlib import contextmanager
+from typing import Any, Union
 
-import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-
-from pytorch_lightning.plugins import DDPPlugin, PrecisionPlugin
-from pytorch_lightning.plugins.environments import LightningEnvironment
+from pytorch_lightning.trainer.connectors.accelerator_connector import (
+    AcceleratorConnector,
+)
 from pytorch_lightning.utilities import move_data_to_device
 
 
-class AcceleratedOptimizer(Optimizer):
-
+class AutomatedOptimizer(Optimizer):
     def __init__(self, optimizer: Optimizer):
         super().__init__(params=optimizer.param_groups, defaults={})
         self.optimizer = optimizer
@@ -23,18 +22,45 @@ class AcceleratedOptimizer(Optimizer):
         return self.optimizer.step(closure)
 
 
-class AcceleratorV3:
-
-    def __init__(self):
-        # hardcoded for a start
-        # this also needs to incorporate some of the accelerator connectors logic for argument handling
-        self.training_type_plugin = DDPPlugin(
-            parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
-            num_nodes=1,
-            cluster_environment=LightningEnvironment(),
+class Automator:
+    def __init__(
+        self,
+        accelerator=None,
+        plugin=None,
+        gpus=None,
+        tpus=None,
+        num_processes=None,
+        num_nodes=1,
+        precision=32,
+        amp_backend: str = "native",
+        amp_level: str = "O2",
+    ):
+        backend_connector = AcceleratorConnector(
+            gpus=gpus,
+            tpu_cores=tpus,
+            num_processes=num_processes,
+            distributed_backend=accelerator,
+            num_nodes=num_nodes,
+            precision=precision,
+            amp_type=amp_backend,
+            amp_level=amp_level,
+            plugins=[plugin],
+            # TODO:
+            deterministic=False,
             sync_batchnorm=False,
+            benchmark=False,
+            replace_sampler_ddp=True,
+            auto_select_gpus=False,
         )
-        self.precision_plugin = PrecisionPlugin()
+        self.accelerator = backend_connector.select_accelerator()
+
+    @property
+    def training_type_plugin(self):
+        return self.accelerator.training_type_plugin
+
+    @property
+    def precision_plugin(self):
+        return self.accelerator.precision_plugin
 
     @property
     def device(self):
@@ -63,15 +89,33 @@ class AcceleratorV3:
     def setup_optimizer(self, *optimizers: Optimizer):
         # user can call this method independently instead of the general purpose setup method
         # TODO: let plugin setup optimizer too?
-        return [AcceleratedOptimizer(optimizer) for optimizer in optimizers]
+        return [AutomatedOptimizer(optimizer) for optimizer in optimizers]
 
     def setup_dataloader(self, *dataloaders: DataLoader):
         # user can call this method independently instead of the general purpose setup method
-        return [self.training_type_plugin.setup_dataloader(dataloader) for dataloader in dataloaders]
+        return [
+            self.training_type_plugin.setup_dataloader(dataloader)
+            for dataloader in dataloaders
+        ]
 
     def backward(self, tensor: Tensor, *args, **kwargs):
         # TODO: precision plugin backward
         return tensor.backward(*args, **kwargs)
+
+    @contextmanager
+    def forward_context(self):
+        # basically only for autocast and block ddp sync
+        yield
+
+    @contextmanager
+    def backward_context(self, *args, **kwargs):
+        # necessary for deepspeed backward + scaler in AMP
+        yield
+
+    @contextmanager
+    def optimizer_step_context(self, *args, **kwargs):
+        # necessary for deepspeed + scaling
+        yield
 
     def to_device(self, obj: Union[nn.Module, Tensor]) -> Union[nn.Module, Tensor]:
         if isinstance(obj, nn.Module):

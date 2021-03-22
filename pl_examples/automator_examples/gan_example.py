@@ -22,7 +22,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler
 
 from pl_examples.accelerator_examples.models import weights_init, Generator, Discriminator
-from pytorch_lightning.accelerators.acceleratorV3 import AcceleratorV3
+from pytorch_lightning.accelerators.acceleratorV3 import Automator
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -66,13 +66,13 @@ def main():
     random.seed(123)
     torch.manual_seed(123)
 
-    # TODO: how do we handle this in Accelerator
+    # TODO: how do we handle this in Accelerator?
     # torch.cuda.set_device(opt.local_rank)
     # TODO: how do we handle this?
     os.environ["LOCAL_RANK"] = str(opt.local_rank)
     # os.environ["NODE_RANK"] = str(opt.local_rank)
 
-    accelerator = AcceleratorV3()
+    automator = Automator(gpus=2, accelerator="ddp")
 
     dataset = dset.MNIST(
         root=".",
@@ -89,7 +89,7 @@ def main():
         dataset, batch_size=opt.batchSize, shuffle=True, num_workers=opt.workers
     )
 
-    dataloader = accelerator.setup(dataloader)
+    dataloader = automator.setup(dataloader)
     assert isinstance(dataloader.sampler, DistributedSampler)
 
     netG = Generator()
@@ -98,10 +98,10 @@ def main():
     netD = Discriminator()
     netD.apply(weights_init)
 
-    accelerator.to_device(netG)
-    accelerator.to_device(netD)
+    automator.to_device(netG)
+    automator.to_device(netD)
 
-    netG, netD = accelerator.setup(netG, netD)
+    netG, netD = automator.setup(netG, netD)
 
     assert isinstance(netG, DistributedDataParallel)
     assert isinstance(netD, DistributedDataParallel)
@@ -116,7 +116,7 @@ def main():
     optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
     optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-    optimizerG, optimizerG = accelerator.setup(optimizerG, optimizerD)
+    optimizerG, optimizerG = automator.setup(optimizerG, optimizerD)
 
     for epoch in range(opt.niter):
         for i, data in enumerate(dataloader, 0):
