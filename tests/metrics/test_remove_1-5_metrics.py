@@ -22,6 +22,7 @@ from pytorch_lightning.metrics import (
     AUROC,
     AveragePrecision,
     ConfusionMatrix,
+    ExplainedVariance,
     F1,
     FBeta,
     HammingDistance,
@@ -31,13 +32,14 @@ from pytorch_lightning.metrics import (
     PrecisionRecallCurve,
     Recall,
     ROC,
-    StatScores, ExplainedVariance,
+    StatScores,
 )
 from pytorch_lightning.metrics.functional import (
     auc,
     auroc,
     average_precision,
     confusion_matrix,
+    explained_variance,
     f1,
     fbeta,
     hamming_distance,
@@ -47,7 +49,7 @@ from pytorch_lightning.metrics.functional import (
     precision_recall_curve,
     recall,
     roc,
-    stat_scores, explained_variance,
+    stat_scores,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
