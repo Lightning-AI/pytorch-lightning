@@ -1191,15 +1191,15 @@ def test_request_dataloader(tmpdir):
 
         def __init__(self):
             super().__init__()
-            self.on_request_train_dataloader_called = False
+            self.on_train_dataloader_called = False
             self.on_train_batch_start_called = False
             self.on_request_val_dataloader_called = False
             self.on_val_batch_start_called = False
 
-        def on_request_train_dataloader(self) -> None:
+        def on_train_dataloader(self) -> None:
             loader = self.train_dataloader()
             self.train_dataloader = DataLoaderFunc(DataLoaderWrapper(loader))
-            self.on_request_train_dataloader_called = True
+            self.on_train_dataloader_called = True
 
         def on_train_batch_start(self, batch, batch_idx: int, dataloader_idx: int) -> None:
             assert isinstance(self.trainer.train_dataloader.loaders, DataLoaderWrapper)
@@ -1223,7 +1223,7 @@ def test_request_dataloader(tmpdir):
     model = TestModel()
     trainer.fit(model)
     trainer.test(model)
-    assert model.on_request_train_dataloader_called
+    assert model.on_train_dataloader_called
     assert model.on_train_batch_start_called
     assert model.on_request_val_dataloader_called
     assert model.on_val_batch_start_called
