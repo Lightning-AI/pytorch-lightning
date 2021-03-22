@@ -69,7 +69,7 @@ def main():
     os.environ["LOCAL_RANK"] = str(opt.local_rank)
     # os.environ["NODE_RANK"] = str(opt.local_rank)
 
-    automator = Automator()
+    automator = Automator(gpus=2, accelerator="ddp")
 
     dataset = dset.MNIST(
         root=".",
