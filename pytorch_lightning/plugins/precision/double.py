@@ -43,7 +43,7 @@ class _DoublePrecisionPatch:
         return data
 
     @staticmethod
-    def _move_float_tensors_to_double(collection: Any):
+    def _move_float_tensors_to_double(collection: Any) -> Any:
         return apply_to_collection(
             collection, torch.Tensor, function=_DoublePrecisionPatch._to_double_precision
         )
