@@ -344,7 +344,7 @@ class AdvancedProfiler(BaseProfiler):
                 If you attempt to stop recording an action which was never started.
         """
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
-        self.profiled_actions = {}
+        self.profiled_actions: Dict[str, cProfile.Profile] = {}
         self.line_count_restriction = line_count_restriction
 
     def start(self, action_name: str) -> None:
@@ -366,3 +366,7 @@ class AdvancedProfiler(BaseProfiler):
             ps.print_stats(self.line_count_restriction)
             recorded_stats[action_name] = s.getvalue()
         return self._stats_to_str(recorded_stats)
+
+    def teardown(self, stage: Optional[str] = None) -> None:
+        super().teardown(stage=stage)
+        self.profiled_actions = {}
