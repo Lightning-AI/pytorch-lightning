@@ -90,14 +90,6 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
     assert all(durations < PROFILER_OVERHEAD_MAX_TOLERANCE)
 
 
-def test_simple_profiler_describe(caplog, simple_profiler):
-    """Ensure the profiler won't fail when reporting the summary."""
-    with caplog.at_level(logging.INFO):
-        simple_profiler.describe()
-
-    assert "Profiler Report" in caplog.text
-
-
 def test_simple_profiler_value_errors(simple_profiler):
     """Ensure errors are raised where expected."""
 
@@ -130,6 +122,45 @@ def test_simple_profiler_log_dir(tmpdir):
     assert trainer.log_dir == expected
     assert profiler._log_dir == trainer.log_dir
     assert expected.join("fit-profiler.txt").exists()
+
+
+def test_simple_profiler_distributed_files(tmpdir):
+    """Ensure the proper files are saved in distributed"""
+    profiler = SimpleProfiler(dirpath=tmpdir, filename='profiler')
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        accelerator="ddp_cpu",
+        num_processes=2,
+        profiler=profiler,
+        logger=False,
+    )
+    trainer.fit(model)
+    trainer.test(model)
+
+    actual = set(os.listdir(profiler.dirpath))
+    expected = {'fit-profiler-0.txt', 'fit-profiler-1.txt', 'test-profiler-0.txt', 'test-profiler-1.txt'}
+    assert actual == expected
+
+    for f in profiler.dirpath.listdir():
+        assert f.read_text('utf-8')
+
+
+def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
+    """Ensure that the number of printed logs is correct"""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        profiler=simple_profiler,
+        logger=False,
+    )
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler.profilers"):
+        trainer.fit(model)
+        trainer.test(model)
+
+    assert caplog.text.count("Profiler Report") == 2
 
 
 @pytest.fixture

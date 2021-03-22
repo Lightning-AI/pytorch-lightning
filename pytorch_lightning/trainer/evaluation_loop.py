@@ -15,6 +15,7 @@
 import torch
 
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -98,6 +99,10 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
+
+        if self.trainer.state != TrainerState.FITTING:
+            # summarize profile results
+            self.trainer.profiler.describe()
 
     def reload_evaluation_dataloaders(self):
         model = self.trainer.lightning_module

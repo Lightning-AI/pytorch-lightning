@@ -155,7 +155,7 @@ class BaseProfiler(AbstractProfiler):
         self.teardown(stage=self._stage)
 
     def _stats_to_str(self, stats: Dict[str, str]) -> str:
-        output = ["Profiler Report"]
+        output = [f"{self._stage} " if self._stage is not None else "" + "Profiler report"]
         for action, value in stats.items():
             header = f"Profile stats for: {action}"
             if self._local_rank is not None:
@@ -181,7 +181,6 @@ class BaseProfiler(AbstractProfiler):
         
         Closes the currently open file and stream.
         """
-        assert stage == self._stage
         self._write_stream = None
         if self._output_file is not None:
             self._output_file.close()
@@ -269,7 +268,10 @@ class SimpleProfiler(BaseProfiler):
 
     def summary(self) -> str:
         sep = os.linesep
-        output_string = f"Profiler Report{sep}"
+        output_string = ""
+        if self._stage is not None:
+            output_string += f"{self._stage.upper()} "
+        output_string += f"Profiler Report{sep}"
 
         if self.extended:
 
