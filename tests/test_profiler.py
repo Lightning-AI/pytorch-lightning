@@ -289,25 +289,6 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
 
 
 @RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
-    """Ensure that the profiler can be given to the training and default step are properly recorded. """
-    model = BoringModel()
-    trainer = Trainer(
-        max_epochs=1,
-        default_root_dir=tmpdir,
-        limit_train_batches=6,
-        limit_val_batches=6,
-        profiler=pytorch_profiler,
-        accelerator="ddp",
-        gpus=2,
-        logger=TensorBoardLogger(tmpdir)
-    )
-    trainer.fit(model)
-
-    path = pytorch_profiler.dirpath / f"{pytorch_profiler.filename}.txt"
-    assert path.read_text("utf-8")
-
-
 def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the trainer and training, validation steps are properly recorded. """
 
@@ -349,7 +330,7 @@ def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
 
     assert len([e for e in pytorch_profiler.function_events if 'test_step' == e.name]) > 0
 
-    path = pytorch_profiler.dirpath / f"{pytorch_profiler.filename}.txt"
+    path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
 
@@ -367,7 +348,7 @@ def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
 
     assert len([e for e in pytorch_profiler.function_events if 'predict' == e.name]) > 0
 
-    path = pytorch_profiler.dirpath / f"{pytorch_profiler.filename}.txt"
+    path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
 

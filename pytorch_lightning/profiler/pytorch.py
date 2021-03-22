@@ -235,8 +235,8 @@ class PyTorchProfiler(BaseProfiler):
 
         # if the user didn't provide `path_to_export_trace`,
         # set it as TensorBoardLogger log_dir if exists
-        if self.path_to_export_trace is None:
-            self.path_to_export_trace = log_dir
+        if self._path_to_export_trace is None:
+            self._path_to_export_trace = log_dir
 
     def start(self, action_name: str) -> None:
         if not self._profiler_instantiated and action_name in (
@@ -278,7 +278,7 @@ class PyTorchProfiler(BaseProfiler):
         if not self._profiler_kwargs.get("enabled", True):
             return ""
 
-        local_rank = 0 if self.local_rank is None else self.local_rank
+        local_rank = 0 if self._local_rank is None else self._local_rank
 
         self.profiler.__exit__(None, None, None)
         if not self._emit_nvtx:
@@ -309,7 +309,7 @@ class PyTorchProfiler(BaseProfiler):
         recorded_stats = {}
         recorded_stats["records"] = table
 
-        return self.stats_to_str(recorded_stats)
+        return self._stats_to_str(recorded_stats)
 
     def _create_profilers(self) -> None:
         if self._emit_nvtx:
@@ -321,10 +321,10 @@ class PyTorchProfiler(BaseProfiler):
 
     def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
-        kwargs = {k: v for k, v in vars(self).items() if k in init_parameters}
+        kwargs = {k: v for k, v in self._profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
 
-    def teardown(self):
+    def teardown(self, stage: Optional[str] = None) -> None:
         if self.profiler is not None:
             self.profiler.__exit__(None, None, None)
 
