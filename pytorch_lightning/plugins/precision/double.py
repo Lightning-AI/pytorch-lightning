@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 class _DoublePrecisionPatch:
-    """Class to handle patching of methods in the `LightningModule` and subsequent teardown.`"""
+    """Class to handle patching of methods in the ``LightningModule`` and subsequent teardown."""
 
     def __init__(self, model: 'Module', method_name: str, old_method: Any) -> None:
         self.model = model
