@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import os
 import time
 from distutils.version import LooseVersion
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -45,8 +43,7 @@ def _sleep_generator(durations):
 
 @pytest.fixture
 def simple_profiler():
-    profiler = SimpleProfiler()
-    return profiler
+    return SimpleProfiler()
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -117,8 +114,7 @@ def test_simple_profiler_value_errors(simple_profiler):
 
 @pytest.fixture
 def advanced_profiler(tmpdir):
-    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
-    return profiler
+    return AdvancedProfiler(dirpath=tmpdir, filename="profiler.txt")
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -179,7 +175,8 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
         pass
     # log to stdout and print to file
     advanced_profiler.describe()
-    data = Path(advanced_profiler.output_fname).read_text()
+    path = advanced_profiler.dirpath / advanced_profiler.filename
+    data = path.read_text("utf-8")
     assert len(data) > 0
 
 
@@ -196,8 +193,7 @@ def test_advanced_profiler_value_errors(advanced_profiler):
 
 @pytest.fixture
 def pytorch_profiler(tmpdir):
-    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
-    return profiler
+    return PyTorchProfiler(dirpath=tmpdir, filename="profiler.txt")
 
 
 def test_pytorch_profiler_describe(pytorch_profiler):
@@ -207,7 +203,8 @@ def test_pytorch_profiler_describe(pytorch_profiler):
 
     # log to stdout and print to file
     pytorch_profiler.describe()
-    data = Path(pytorch_profiler.output_fname).read_text()
+    path = pytorch_profiler.dirpath / pytorch_profiler.filename
+    data = path.read_text("utf-8")
     assert len(data) > 0
 
 
@@ -223,46 +220,32 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
 
 
 @RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize("use_output_filename", [False, True])
-def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
+def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
-
-    if use_output_filename:
-        output_filename = os.path.join(tmpdir, "profiler.txt")
-    else:
-        output_filename = None
-
-    profiler = PyTorchProfiler(output_filename=output_filename)
-
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
-        profiler=profiler,
+        profiler=pytorch_profiler,
         accelerator="ddp",
         gpus=2,
     )
     trainer.fit(model)
 
-    enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
+    assert len(pytorch_profiler.summary()) > 0
+    assert set(pytorch_profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
 
-    if enabled:
-        assert len(profiler.summary()) > 0
-        assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
-    else:
-        assert profiler.summary() is None
-        assert set(profiler.profiled_actions.keys()) == set()
-
-    if use_output_filename:
-        profiler.describe()
-        data = Path(profiler.output_fname).read_text()
-        assert len(data) > 0
+    pytorch_profiler.describe()
+    path = pytorch_profiler.dirpath / pytorch_profiler.filename
+    data = path.read_text("utf-8")
+    assert len(data) > 0
 
 
 def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
     pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"], use_cuda=False, output_filename=os.path.join(tmpdir, "profiler.txt")
+        profiled_functions=["a", "b", "c"], use_cuda=False, dirpath=tmpdir, filename="profiler.txt"
     )
 
     with pytorch_profiler.profile("a"):
@@ -323,7 +306,7 @@ def test_profiler_teardown(tmpdir, cls):
     """
     This test checks if profiler teardown method is called when trainer is exiting.
     """
-    profiler = cls(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    profiler = cls(dirpath=tmpdir, filename="profiler.txt")
 
     model = BoringModel()
     trainer = Trainer(

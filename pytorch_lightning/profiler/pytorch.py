@@ -16,12 +16,12 @@
 import inspect
 import logging
 import os
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
 
 import torch
 
 from pytorch_lightning.profiler.profilers import BaseProfiler
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -45,7 +45,8 @@ class PyTorchProfiler(BaseProfiler):
 
     def __init__(
         self,
-        output_filename: Optional[str] = None,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
         enabled: bool = True,
         use_cuda: bool = False,
         record_shapes: bool = False,
@@ -60,17 +61,18 @@ class PyTorchProfiler(BaseProfiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         profiled_functions: Optional[List] = None,
+        output_filename: Optional[str] = None,
     ):
         """
         This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
         different operators inside your model - both on the CPU and GPU
 
         Args:
+            dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
+                ``trainer.log_dir`` (from :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`)
+                will be used.
 
-            output_filename: optionally save profile results to file instead of printing
-                to std out when training is finished. When using ``ddp``,
-                each rank will stream the profiled operation to their own file
-                with the extension ``_{rank}.txt``
+            filename: If present, filename where the profiler results will be saved instead of printing to stdout.
 
             enabled: Setting this to False makes this context manager a no-op.
 
@@ -154,7 +156,7 @@ class PyTorchProfiler(BaseProfiler):
         self.running_stack = []
         self.profiler = None
 
-        super().__init__(output_filename=output_filename)
+        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
     def setup(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
         super().setup(local_rank=local_rank, log_dir=log_dir)

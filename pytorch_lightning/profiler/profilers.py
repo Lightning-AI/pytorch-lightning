@@ -21,10 +21,12 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Dict, Optional, Tuple
+from pathlib import Path
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
@@ -57,8 +59,23 @@ class BaseProfiler(AbstractProfiler):
     If you wish to write a custom profiler, you should inherit from this class.
     """
 
-    def __init__(self, output_filename: Optional[str] = None) -> None:
-        self.output_fname = output_filename
+    def __init__(
+        self,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
+        output_filename: Optional[str] = None,
+    ) -> None:
+        self.dirpath = dirpath
+        self.filename = filename
+        if output_filename is not None:
+            rank_zero_warn(
+                "`Profiler` signature has changed in v1.3. The `output_filename` parameter has been removed in"
+                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5",
+                DeprecationWarning
+            )
+            filepath = Path(output_filename)
+            self.dirpath = filepath.parent
+            self.filename = filepath.name
         self.output_file = None
         self.local_rank = None
         self.log_dir = None
@@ -102,6 +119,11 @@ class BaseProfiler(AbstractProfiler):
 
     def _prepare_file(self) -> None:
         if not self._file_prepared:
+            if self.filename and self.output_file is None:
+                dirpath = self.dirpath or self.log_dir
+                filepath = os.path.join(dirpath, self.filename)
+                fs = get_filesystem(filepath)
+                self.output_file = fs.open(filepath, "a")
             self.write_streams = [self.output_file.write] if self.output_file else [self._rank_zero_info]
         self._file_prepared = True
 
@@ -177,11 +199,20 @@ class SimpleProfiler(BaseProfiler):
     the mean duration of each action and the total time spent over the entire training run.
     """
 
-    def __init__(self, output_filename: Optional[str] = None, extended: bool = True) -> None:
+    def __init__(
+        self,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
+        extended: bool = True,
+        output_filename: Optional[str] = None,
+    ) -> None:
         """
         Args:
-            output_filename: optionally save profile results to file instead of printing
-                to std out when training is finished.
+            dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
+                ``trainer.log_dir`` (from :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`)
+                will be used.
+
+            filename: If present, filename where the profiler results will be saved instead of printing to stdout.
 
         Raises:
             ValueError:
@@ -191,7 +222,7 @@ class SimpleProfiler(BaseProfiler):
         self.current_actions: Dict[str, float] = {}
         self.recorded_durations = defaultdict(list)
         self.extended = extended
-        super().__init__(output_filename=output_filename)
+        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
         self.start_time = time.monotonic()
 
     def start(self, action_name: str) -> None:
@@ -262,11 +293,21 @@ class AdvancedProfiler(BaseProfiler):
     verbose and you should only use this if you want very detailed reports.
     """
 
-    def __init__(self, output_filename: Optional[str] = None, line_count_restriction: float = 1.0) -> None:
+    def __init__(
+        self,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
+        line_count_restriction: float = 1.0,
+        output_filename: Optional[str] = None,
+    ) -> None:
         """
         Args:
-            output_filename: optionally save profile results to file instead of printing
-                to std out when training is finished.
+            dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
+                ``trainer.log_dir`` (from :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`)
+                will be used.
+
+            filename: If present, filename where the profiler results will be saved instead of printing to stdout.
+
             line_count_restriction: this can be used to limit the number of functions
                 reported for each action. either an integer (to select a count of lines),
                 or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
@@ -275,7 +316,7 @@ class AdvancedProfiler(BaseProfiler):
             ValueError:
                 If you attempt to stop recording an action which was never started.
         """
-        super().__init__(output_filename=output_filename)
+        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
         self.profiled_actions = {}
         self.line_count_restriction = line_count_restriction
 
