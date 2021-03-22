@@ -120,6 +120,7 @@ class PassThroughProfiler(BaseProfiler):
     """
 
     def __init__(self):
+        self.output_file = None
         super().__init__(output_streams=None)
 
     def start(self, action_name: str) -> None:

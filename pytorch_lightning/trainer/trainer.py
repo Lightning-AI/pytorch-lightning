@@ -521,7 +521,7 @@ class Trainer(
     def run_stage(self):
         results = None
 
-        self._run_stage_setup()
+        self.profile_connector.setup()
 
         if self.evaluating:
             results = self.run_evaluate()
@@ -530,9 +530,6 @@ class Trainer(
         else:
             self.run_train()
         return results
-
-    def _run_stage_setup(self):
-        self.profile_connector.on_run_stage_setup()
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
@@ -1068,8 +1065,7 @@ class Trainer(
 
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
-        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
-        state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+        state = self.setup_state
 
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
@@ -1080,11 +1076,7 @@ class Trainer(
         model.setup(stage=state)
 
     def call_teardown_hook(self, model: LightningModule) -> None:
-        if self.state.running:
-            state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-        else:
-            state = None
-
+        state = self.teardown_state
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
