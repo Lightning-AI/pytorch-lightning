@@ -445,13 +445,15 @@ class Trainer(
                                 |                             ||
                          {self.dispatch}                      ||
                                 |                             ||  LIGHTNING
-                {self.accelerator.start_training} or          ||
-                {self.accelerator.start_evaluating} or        ||  FLOW
-                {self.accelerator.start_predicting}           ||
+                {self.accelerator.start_training}             ||
+                or {self.accelerator.start_evaluating}        ||
+                or {self.accelerator.start_predicting}        ||  FLOW
+                                |                             ||
+                         {self.run_stage}                     ||
                                 |                             ||  DIRECTION
-                        {self.run_train} or                   ||
-                     {self.run_evaluation} or                 ||
-                       {self.run_predict}                     ||
+                        {self.run_train}                      ||
+                     or {self.run_evaluation}                 ||
+                     or  {self.run_predict}                   ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
@@ -518,6 +520,9 @@ class Trainer(
 
     def run_stage(self):
         results = None
+
+        self._run_stage_setup()
+
         if self.evaluating:
             results = self.run_evaluate()
         elif self.predicting:
@@ -525,6 +530,9 @@ class Trainer(
         else:
             self.run_train()
         return results
+
+    def _run_stage_setup(self):
+        self.profile_connector.on_run_stage_setup()
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
@@ -1077,7 +1085,7 @@ class Trainer(
         else:
             state = None
 
-        self.profiler.teardown()
+        self.profiler.teardown(stage=state.value)
         self.teardown(stage=state)
         model.teardown(stage=state)
 

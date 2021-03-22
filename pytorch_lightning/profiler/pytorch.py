@@ -162,11 +162,11 @@ class PyTorchProfiler(BaseProfiler):
         self.output_fname = output_filename
         self.output_file = None
         if local_rank is not None:
-            self.on_train_start(local_rank=local_rank)
-            self.on_train_start = super().on_train_start
+            self.setup(None, local_rank, None)
+            self.setup = super().setup
 
-    def on_train_start(self, local_rank: Optional[str] = None):
-        self.local_rank = local_rank
+    def setup(self, stage: str, local_rank: Optional[int], log_dir: Optional[str]):
+        super().setup(stage, local_rank, log_dir)
 
         # when logging to `log.info`, only perform profiling on rank 0
         if local_rank != 0 and self.output_fname is None:
@@ -290,16 +290,3 @@ class PyTorchProfiler(BaseProfiler):
             output_string += (f"{os.linesep}Profile stats for: {action} rank: {local_rank} {os.linesep}{stats}")
 
         return output_string
-
-    def describe(self):
-        """Logs a profile report after the conclusion of the training run."""
-        super().describe()
-        self.teardown()
-
-    def teardown(self) -> None:
-        """Close profiler's stream."""
-        if self.output_file:
-            self.output_file.close()
-
-    def __del__(self):
-        self.teardown()

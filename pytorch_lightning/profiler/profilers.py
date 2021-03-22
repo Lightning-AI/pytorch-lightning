@@ -55,9 +55,17 @@ class BaseProfiler(ABC):
     def stop(self, action_name: str) -> None:
         """Defines how to record the duration once an action is complete."""
 
-    def teardown(self) -> None:
+    def setup(self, stage: str, local_rank: Optional[int], log_dir: Optional[str]):
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
-        pass
+        self.stage = stage
+        self.local_rank = local_rank
+        self.log_dir = log_dir
+
+    def teardown(self, stage: Optional[str] = None) -> None:
+        """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
+        if self.output_file:
+            self.output_file.close()
+            self.output_file = None
 
     @contextmanager
     def profile(self, action_name: str) -> None:
@@ -94,13 +102,15 @@ class BaseProfiler(ABC):
         """Logs a profile report after the conclusion of the training run."""
         for write in self.write_streams:
             write(self.summary())
+        if self.output_file is not None:
+            self.output_file.flush()
 
     @abstractmethod
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
-    def on_train_start(self, local_rank: Optional[int] = None):
-        self.local_rank = local_rank
+    def __del__(self):
+        self.teardown(None)
 
 
 class PassThroughProfiler(BaseProfiler):
@@ -212,19 +222,6 @@ class SimpleProfiler(BaseProfiler):
         output_string += os.linesep
         return output_string
 
-    def describe(self):
-        """Logs a profile report after the conclusion of the training run."""
-        super().describe()
-        self.teardown()
-
-    def teardown(self) -> None:
-        """Close profiler's stream."""
-        if self.output_file:
-            self.output_file.close()
-
-    def __del__(self):
-        self.teardown()
-
 
 class AdvancedProfiler(BaseProfiler):
     """
@@ -285,16 +282,3 @@ class AdvancedProfiler(BaseProfiler):
             output_string += f"{os.linesep}Profile stats for: {action}{os.linesep}{stats}"
 
         return output_string
-
-    def describe(self):
-        """Logs a profile report after the conclusion of the training run."""
-        super().describe()
-        self.teardown()
-
-    def teardown(self) -> None:
-        """Close profiler's stream."""
-        if self.output_file:
-            self.output_file.close()
-
-    def __del__(self):
-        self.teardown()
