@@ -298,10 +298,14 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     trainer.fit(model)
 
     assert len(pytorch_profiler.summary()) > 0
-    assert set(pytorch_profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
+    assert set(pytorch_profiler.profiled_actions) == {'training_step_and_backward', 'validation_step'}
 
-    path = pytorch_profiler.dirpath / f"{pytorch_profiler.filename}.txt"
-    assert path.read_text("utf-8")
+    actual = set(os.listdir(pytorch_profiler.dirpath))
+    expected = {f"fit-profiler-{rank}.txt" for rank in (0, 1)}
+    assert actual == expected
+
+    for f in pytorch_profiler.dirpath.listdir():
+        assert f.read_text('utf-8')
 
 
 def test_pytorch_profiler_nested(tmpdir):
