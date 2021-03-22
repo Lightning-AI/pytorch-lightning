@@ -36,8 +36,6 @@ def _module_available(module_path: str) -> bool:
     >>> _module_available('bla.bla')
     False
     """
-    if SPHINX_MOCK_REQUIREMENTS:
-        return True
     try:
         return find_spec(module_path) is not None
     except AttributeError:
