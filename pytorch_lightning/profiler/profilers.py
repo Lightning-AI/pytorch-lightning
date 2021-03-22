@@ -45,6 +45,9 @@ class AbstractProfiler(ABC):
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
+    def setup(self) -> None:
+        """Execute arbitrary pre-profiling set-up steps as defined by subclass."""
+
     def teardown(self) -> None:
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
 
@@ -54,35 +57,13 @@ class BaseProfiler(AbstractProfiler):
     If you wish to write a custom profiler, you should inherit from this class.
     """
 
-    def __init__(
-        self,
-        output_filename: Optional[str] = None,
-        local_rank: Optional[int] = None,
-        log_dir: Optional[str] = None
-    ) -> None:
+    def __init__(self, output_filename: Optional[str] = None) -> None:
         self.output_fname = output_filename
         self.output_file = None
-        self._file_prepared = False
+        self.local_rank = None
+        self.log_dir = None
         self.write_streams = []
-        # the profiler can be used outside of lightning
-        # that's why we call `on_train_start` manually
-        self.on_train_start(local_rank=local_rank, log_dir=log_dir)
-
-    def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
-        """
-        This function is used by the Trainer to inject local_rank with `DDP`
-        and `TensorBoardLogger` log_dir in the profiler.
-        """
-        self.local_rank = local_rank
-        self.log_dir = log_dir
-
-    def _prepare_file(self) -> None:
-        if not self._file_prepared:
-            if self.output_fname and self.output_file is None:
-                fs = get_filesystem(self.output_fname)
-                self.output_file = fs.open(self.output_fname, "w")
-            self.write_streams = [self.output_file.write] if self.output_file else [log.info]
-        self._file_prepared = True
+        self._file_prepared = False
 
     @contextmanager
     def profile(self, action_name: str) -> None:
@@ -115,6 +96,14 @@ class BaseProfiler(AbstractProfiler):
                 self.stop(action_name)
                 break
 
+    def _prepare_file(self) -> None:
+        if not self._file_prepared:
+            if self.output_fname and self.output_file is None:
+                fs = get_filesystem(self.output_fname)
+                self.output_file = fs.open(self.output_fname, "w")
+            self.write_streams = [self.output_file.write] if self.output_file else [log.info]
+        self._file_prepared = True
+
     def describe(self) -> None:
         """Logs a profile report after the conclusion of the training run."""
         self._prepare_file()
@@ -124,7 +113,7 @@ class BaseProfiler(AbstractProfiler):
             self.output_file.flush()
         self.teardown()
 
-    def stats_to_str(self, stats: Dict[str, str]) -> str:
+    def _stats_to_str(self, stats: Dict[str, str]) -> str:
         output = ["Profiler Report"]
         for action, value in stats.items():
             header = f"Profile stats for: {action}"
@@ -133,6 +122,14 @@ class BaseProfiler(AbstractProfiler):
             output.append(header)
             output.append(value)
         return os.linesep.join(output)
+
+    def setup(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
+        """
+        This function is used by the Trainer to inject local_rank with `DDP`
+        and `TensorBoardLogger` log_dir in the profiler.
+        """
+        self.local_rank = local_rank
+        self.log_dir = log_dir
 
     def teardown(self) -> None:
         """Close profiler's stream."""
@@ -299,4 +296,4 @@ class AdvancedProfiler(BaseProfiler):
             ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats('cumulative')
             ps.print_stats(self.line_count_restriction)
             recorded_stats[action_name] = s.getvalue()
-        return self.stats_to_str(recorded_stats)
+        return self._stats_to_str(recorded_stats)

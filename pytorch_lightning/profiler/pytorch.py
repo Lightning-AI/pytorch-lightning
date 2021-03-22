@@ -60,7 +60,6 @@ class PyTorchProfiler(BaseProfiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         profiled_functions: Optional[List] = None,
-        local_rank: Optional[int] = None,
     ):
         """
         This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
@@ -115,9 +114,6 @@ class PyTorchProfiler(BaseProfiler):
             profiled_functions: list of profiled functions which will create a context manager on.
                 Any other will be pass through.
 
-            local_rank: When running in distributed setting, local_rank is used for each process
-                to write to their own file if `output_fname` is provided.
-
         Raises:
             MisconfigurationException:
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``, or
@@ -158,10 +154,10 @@ class PyTorchProfiler(BaseProfiler):
         self.running_stack = []
         self.profiler = None
 
-        super().__init__(output_filename=output_filename, local_rank=local_rank)
+        super().__init__(output_filename=output_filename)
 
-    def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
-        super().on_train_start(local_rank=local_rank, log_dir=log_dir)
+    def setup(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
+        super().setup(local_rank=local_rank, log_dir=log_dir)
 
         # if the user didn't provide `path_to_export_trace`,
         # set it as TensorBoardLogger log_dir if exists
@@ -271,4 +267,4 @@ class PyTorchProfiler(BaseProfiler):
                 table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
                 recorded_stats[action_name] = table
 
-        return self.stats_to_str(recorded_stats)
+        return self._stats_to_str(recorded_stats)

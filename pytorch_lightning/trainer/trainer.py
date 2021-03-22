@@ -1068,6 +1068,9 @@ class Trainer(
             if not called:
                 self.datamodule.setup(stage=state)
 
+        local_rank = self.local_rank if self.world_size > 1 else None
+        self.profiler.setup(local_rank=local_rank)
+
         self.setup(model, stage=state)
         model.setup(stage=state)
 

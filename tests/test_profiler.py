@@ -196,7 +196,7 @@ def test_advanced_profiler_value_errors(advanced_profiler):
 
 @pytest.fixture
 def pytorch_profiler(tmpdir):
-    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
+    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
     return profiler
 
 
