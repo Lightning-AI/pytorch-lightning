@@ -137,8 +137,6 @@ jobs:
         python -m pytest pytorch_lightning tests --cov=pytorch_lightning -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Examples
-      env:
-        PL_USE_MOCKED_MNIST: "1"
       run: |
         python -m pytest pl_examples -v --durations=10
 
