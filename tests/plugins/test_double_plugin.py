@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 
 import torch
 from torch.utils.data import DataLoader
@@ -50,9 +51,22 @@ class DoublePrecisionBoringModel(BoringModel):
         return DataLoader(RandomFloatIntDataset(32, 64))
 
 
-def test_double_precision(tmpdir):
-    model = DoublePrecisionBoringModel()
-    original_forward = model.forward
+class DoublePrecisionBoringModelNoForward(BoringModel):
+
+    def training_step(self, batch, batch_idx):
+        assert batch.dtype == torch.float64
+        output = self.layer(batch)
+        loss = self.loss(batch, output)
+        return {"loss": loss}
+
+
+@pytest.mark.parametrize(
+    ['boring_model'],
+    [(DoublePrecisionBoringModel,), (DoublePrecisionBoringModelNoForward,)]
+)
+def test_double_precision(tmpdir, boring_model):
+    model = boring_model()
+    original_training_step = model.training_step
 
     trainer = Trainer(
         max_epochs=2,
@@ -65,4 +79,4 @@ def test_double_precision(tmpdir):
     )
     trainer.fit(model)
 
-    assert model.forward == original_forward
+    assert model.training_step == original_training_step
