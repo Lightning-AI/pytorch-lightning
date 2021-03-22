@@ -61,13 +61,13 @@ class BaseProfiler(ABC):
         local_rank: Optional[int] = None,
         log_dir: Optional[str] = None
     ) -> None:
-        """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
+        """Execute arbitrary pre-profiling set-up steps."""
         self.stage = stage
         self.local_rank = local_rank
         self.log_dir = log_dir
 
     def teardown(self, stage: Optional[str] = None) -> None:
-        """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
+        """Execute arbitrary post-profiling tear-down steps."""
         self.stage = stage
         if self.output_file:
             self.output_file.close()
