@@ -103,4 +103,6 @@ jobs:
         # cd pl_examples/basic_examples
         # bash submit_ddp_job.sh
         # bash submit_ddp2_job.sh
+      env:
+        PL_USE_MOCKED_MNIST: "1"
       displayName: 'Examples'
