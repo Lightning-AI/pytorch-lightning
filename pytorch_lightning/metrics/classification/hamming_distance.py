@@ -13,59 +13,14 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
-import torch
-from torchmetrics import Metric
+from torchmetrics import HammingDistance as _HammingDistance
 
-from pytorch_lightning.metrics.functional.hamming_distance import _hamming_distance_compute, _hamming_distance_update
+from pytorch_lightning.utilities.deprecation import deprecated
 
 
-class HammingDistance(Metric):
-    r"""
-    Computes the average `Hamming distance <https://en.wikipedia.org/wiki/Hamming_distance>`_ (also
-    known as Hamming loss) between targets and predictions:
+class HammingDistance(_HammingDistance):
 
-    .. math::
-        \text{Hamming distance} = \frac{1}{N \cdot L}\sum_i^N \sum_l^L 1(y_{il} \neq \hat{y_{il}})
-
-    Where :math:`y` is a tensor of target values, :math:`\hat{y}` is a tensor of predictions,
-    and :math:`\bullet_{il}` refers to the :math:`l`-th label of the :math:`i`-th sample of that
-    tensor.
-
-    This is the same as ``1-accuracy`` for binary data, while for all other types of inputs it
-    treats each possible label separately - meaning that, for example, multi-class data is
-    treated as if it were multi-label.
-
-    Args:
-        threshold:
-            Threshold probability value for transforming probability predictions to binary
-            (0 or 1) predictions, in the case of binary or multi-label inputs.
-        compute_on_step:
-            Forward only calls ``update()`` and return ``None`` if this is set to ``False``.
-        dist_sync_on_step:
-            Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step.
-        process_group:
-            Specify the process group on which synchronization is called.
-            default: ``None`` (which selects the entire world)
-        dist_sync_fn:
-            Callback that performs the allgather operation on the metric state. When ``None``, DDP
-            will be used to perform the all gather.
-
-    Raises:
-        ValueError:
-            If ``threshold`` is not between ``0`` and ``1``.
-
-    Example:
-
-        >>> from pytorch_lightning.metrics import HammingDistance
-        >>> target = torch.tensor([[0, 1], [1, 1]])
-        >>> preds = torch.tensor([[0, 1], [0, 1]])
-        >>> hamming_distance = HammingDistance()
-        >>> hamming_distance(preds, target)
-        tensor(0.2500)
-
-    """
-
+    @deprecated(target=_HammingDistance, ver_deprecate="1.3.0", ver_remove="1.5.0")
     def __init__(
         self,
         threshold: float = 0.5,
@@ -74,35 +29,9 @@ class HammingDistance(Metric):
         process_group: Optional[Any] = None,
         dist_sync_fn: Callable = None,
     ):
-        super().__init__(
-            compute_on_step=compute_on_step,
-            dist_sync_on_step=dist_sync_on_step,
-            process_group=process_group,
-            dist_sync_fn=dist_sync_fn,
-        )
-
-        self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
-
-        if not 0 < threshold < 1:
-            raise ValueError("The `threshold` should lie in the (0,1) interval.")
-        self.threshold = threshold
-
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
-        Update state with predictions and targets.
+        This implementation refers to :class:`~torchmetrics.HammingDistance`.
 
-        Args:
-            preds: Predictions from model (probabilities, or labels)
-            target: Ground truth labels
+        .. deprecated::
+            Use :class:`~torchmetrics.HammingDistance`. Will be removed in v1.5.0.
         """
-        correct, total = _hamming_distance_update(preds, target, self.threshold)
-
-        self.correct += correct
-        self.total += total
-
-    def compute(self) -> torch.Tensor:
-        """
-        Computes hamming distance based on inputs passed in to ``update`` previously.
-        """
-        return _hamming_distance_compute(self.correct, self.total)

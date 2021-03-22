@@ -21,21 +21,33 @@ from pytorch_lightning.metrics import (
     AUC,
     AUROC,
     AveragePrecision,
+    ConfusionMatrix,
+    F1,
+    FBeta,
+    HammingDistance,
+    IoU,
     MetricCollection,
     Precision,
     PrecisionRecallCurve,
     Recall,
     ROC,
+    StatScores,
 )
 from pytorch_lightning.metrics.functional import (
     auc,
     auroc,
     average_precision,
+    confusion_matrix,
+    f1,
+    fbeta,
+    hamming_distance,
+    iou,
     precision,
     precision_recall,
     precision_recall_curve,
     recall,
     roc,
+    stat_scores,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
@@ -162,3 +174,66 @@ def test_v1_5_metric_precision_recall():
         assert torch.equal(prec, torch.tensor([1., 1., 1., 1.]))
         assert torch.allclose(rc, torch.tensor([1., 0.6667, 0.3333, 0.]), atol=1e-4)
         assert torch.equal(thrs, torch.tensor([1, 2, 3]))
+
+
+def test_v1_5_metric_classif_mix():
+    ConfusionMatrix.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        ConfusionMatrix(num_classes=1)
+
+    FBeta.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        FBeta(num_classes=1)
+
+    F1.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        F1(num_classes=1)
+
+    HammingDistance.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        HammingDistance()
+
+    StatScores.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        StatScores()
+
+    target = torch.tensor([1, 1, 0, 0])
+    preds = torch.tensor([0, 1, 0, 0])
+    confusion_matrix.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.equal(confusion_matrix(preds, target, num_classes=2), torch.tensor([[2., 0.], [1., 1.]]))
+
+    target = torch.tensor([0, 1, 2, 0, 1, 2])
+    preds = torch.tensor([0, 2, 1, 0, 0, 1])
+    fbeta.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.allclose(fbeta(preds, target, num_classes=3, beta=0.5), torch.tensor(0.3333), atol=1e-4)
+
+    f1.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.allclose(f1(preds, target, num_classes=3), torch.tensor(0.3333), atol=1e-4)
+
+    target = torch.tensor([[0, 1], [1, 1]])
+    preds = torch.tensor([[0, 1], [0, 1]])
+    hamming_distance.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert hamming_distance(preds, target) == torch.tensor(0.25)
+
+    preds = torch.tensor([1, 0, 2, 1])
+    target = torch.tensor([1, 1, 2, 0])
+    stat_scores.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.equal(stat_scores(preds, target, reduce='micro'), torch.tensor([2, 2, 6, 2, 4]))
+
+
+def test_v1_5_metric_detect():
+    IoU.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        IoU(num_classes=1)
+
+    target = torch.randint(0, 2, (10, 25, 25))
+    pred = torch.tensor(target)
+    pred[2:5, 7:13, 9:15] = 1 - pred[2:5, 7:13, 9:15]
+    iou.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert torch.allclose(iou(pred, target), torch.tensor(0.9660), atol=1e-4)

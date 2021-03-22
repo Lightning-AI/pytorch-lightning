@@ -53,10 +53,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.tpu_local_core_rank = 0
         self.start_method = None
 
-    def connect(self, model: torch.nn.Module) -> torch.nn.Module:
+    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
         self.create_mp_queue()
-        self._model = model
-        return self._model
+        return self.model
 
     def create_mp_queue(self):
         self.start_method = 'fork'
