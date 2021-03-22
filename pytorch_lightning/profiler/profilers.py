@@ -22,7 +22,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union, TextIO, Callable
+from typing import Dict, Optional, Tuple, Union, TextIO, Callable, Any
 
 import numpy as np
 
@@ -48,11 +48,11 @@ class AbstractProfiler(ABC):
         """Create profiler summary in text format."""
 
     @abstractmethod
-    def setup(self) -> None:
+    def setup(self, **kwargs: Any) -> None:
         """Execute arbitrary pre-profiling set-up steps as defined by subclass."""
 
     @abstractmethod
-    def teardown(self) -> None:
+    def teardown(self, **kwargs: Any) -> None:
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
 
 

@@ -137,10 +137,11 @@ def test_simple_profiler_distributed_files(tmpdir):
         logger=False,
     )
     trainer.fit(model)
+    trainer.validate(model)
     trainer.test(model)
 
     actual = set(os.listdir(profiler.dirpath))
-    expected = {'fit-profiler-0.txt', 'fit-profiler-1.txt', 'test-profiler-0.txt', 'test-profiler-1.txt'}
+    expected = {f"{stage}-profiler-{rank}.txt" for stage in ("fit", "validate", "test") for rank in (0, 1)}
     assert actual == expected
 
     for f in profiler.dirpath.listdir():
