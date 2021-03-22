@@ -155,7 +155,6 @@ class PyTorchProfiler(BaseProfiler):
         self.context_names = {}
         self.running_stack = []
         self.profiler = None
-        self._parent_profiler = None
 
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
@@ -263,11 +262,3 @@ class PyTorchProfiler(BaseProfiler):
 
         return self._stats_to_str(recorded_stats)
 
-    def teardown(self) -> None:
-        if self.profiler is not None:
-            self.profiler.__exit__(None, None, None)
-
-        if self._parent_profiler is not None:
-            self._parent_profiler.__exit__(None, None, None)
-
-        return super().teardown()
