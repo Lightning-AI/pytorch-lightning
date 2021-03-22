@@ -61,10 +61,12 @@ def _compare_version(package: str, op, version) -> bool:
         pkg = importlib.import_module(package)
     except DistributionNotFound:
         return False
-    if not hasattr(pkg, '__version__'):
+    try:
+        pkg_version = LooseVersion(pkg.__version__)
+    except (AttributeError, ):
         # in case version is not defined always return True as likely it is mocked call
         return True
-    return op(LooseVersion(pkg.__version__), LooseVersion(version))
+    return op(pkg_version, LooseVersion(version))
 
 
 _IS_WINDOWS = platform.system() == "Windows"
