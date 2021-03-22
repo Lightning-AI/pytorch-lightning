@@ -104,9 +104,7 @@ def test_double_precision(tmpdir, boring_model):
     trainer = Trainer(
         max_epochs=2,
         default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_test_batches=2,
-        limit_val_batches=2,
+        fast_dev_run=2,
         precision=64,
         log_every_n_steps=1,
     )
