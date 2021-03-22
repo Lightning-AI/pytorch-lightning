@@ -54,9 +54,6 @@ parser.add_argument("--local_rank", type=int, default=0)
 
 opt = parser.parse_args()
 os.makedirs(opt.outf, exist_ok=True)
-
-# TODO: how do we handle this in Accelerator
-device = torch.device("cuda", index=opt.local_rank)
 ngpu = int(opt.ngpu)
 
 nz = 100
@@ -72,7 +69,7 @@ def main():
     os.environ["LOCAL_RANK"] = str(opt.local_rank)
     # os.environ["NODE_RANK"] = str(opt.local_rank)
 
-    automator = Automator(gpus=2, accelerator="ddp")
+    automator = Automator()
 
     dataset = dset.MNIST(
         root=".",
@@ -90,7 +87,7 @@ def main():
     )
 
     dataloader = automator.setup(dataloader)
-    assert isinstance(dataloader.sampler, DistributedSampler)
+    # assert isinstance(dataloader.sampler, DistributedSampler)
 
     netG = Generator()
     netG.apply(weights_init)
@@ -103,12 +100,12 @@ def main():
 
     netG, netD = automator.setup(netG, netD)
 
-    assert isinstance(netG, DistributedDataParallel)
-    assert isinstance(netD, DistributedDataParallel)
+    # assert isinstance(netG, DistributedDataParallel)
+    # assert isinstance(netD, DistributedDataParallel)
 
     criterion = nn.BCELoss()
 
-    fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=device)
+    fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=automator.device)
     real_label = 1
     fake_label = 0
 
@@ -125,10 +122,10 @@ def main():
             ###########################
             # train with real
             netD.zero_grad()
-            real_cpu = data[0].to(device)
+            real_cpu = automator.to_device(data[0])
             batch_size = real_cpu.size(0)
             label = torch.full(
-                (batch_size,), real_label, dtype=real_cpu.dtype, device=device
+                (batch_size,), real_label, dtype=real_cpu.dtype, device=automator.device
             )
 
             output = netD(real_cpu)
@@ -137,7 +134,7 @@ def main():
             D_x = output.mean().item()
 
             # train with fake
-            noise = torch.randn(batch_size, nz, 1, 1, device=device)
+            noise = torch.randn(batch_size, nz, 1, 1, device=automator.device)
             fake = netG(noise)
             label.fill_(fake_label)
             output = netD(fake.detach())

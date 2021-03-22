@@ -29,7 +29,7 @@ class Automator:
         plugin=None,
         gpus=None,
         tpus=None,
-        num_processes=None,
+        num_processes=1,
         num_nodes=1,
         precision=32,
         amp_backend: str = "native",
@@ -44,7 +44,7 @@ class Automator:
             precision=precision,
             amp_type=amp_backend,
             amp_level=amp_level,
-            plugins=[plugin],
+            plugins=plugin,
             # TODO:
             deterministic=False,
             sync_batchnorm=False,
