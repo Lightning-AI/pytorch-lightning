@@ -170,15 +170,17 @@ class BaseProfiler(AbstractProfiler):
         local_rank: Optional[int] = None,
         log_dir: Optional[str] = None,
     ) -> None:
-        """
-        This function is used by the Trainer to inject the local_rank on distributed and `TensorBoardLogger.log_dir`.
-        """
+        """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
         self._log_dir = log_dir
 
     def teardown(self, stage: Optional[str] = None) -> None:
-        """Close a stage's file and streams."""
+        """
+        Execute arbitrary post-profiling tear-down steps.
+        
+        Closes currently open file and stream.
+        """
         assert stage == self._stage
         self._write_stream = None
         if self._output_file is not None:
