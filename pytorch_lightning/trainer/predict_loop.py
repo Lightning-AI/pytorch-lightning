@@ -65,7 +65,7 @@ class PredictLoop(object):
             length = len(dataloaders[0])
         return length
 
-    def predict(self, batch, batch_idx, dataloader_idx):
+    def predict_step(self, batch, batch_idx, dataloader_idx):
         # configure args
         args = [batch, batch_idx]
         if self.num_dataloaders:
@@ -74,7 +74,7 @@ class PredictLoop(object):
         model_ref = self.trainer.lightning_module
 
         model_ref._current_fx_name = "predict"
-        predictions = self.trainer.accelerator.predict(args)
+        predictions = self.trainer.accelerator.predict_step(args)
 
         if predictions is None:
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")

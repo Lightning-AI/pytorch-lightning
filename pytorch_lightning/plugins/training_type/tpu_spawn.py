@@ -295,7 +295,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def test_step(self, *args, **kwargs):
         return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
+    def predict_step(self, *args, **kwargs):
         return self.lightning_module.predict_step(*args, **kwargs)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
