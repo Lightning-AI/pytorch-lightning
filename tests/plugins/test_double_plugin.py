@@ -14,10 +14,24 @@
 import pytest
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModel, RandomDataset, RandomFloatIntDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
+
+
+class RandomFloatIntDataset(Dataset):
+
+    def __init__(self, size, length):
+        self.len = length
+        self.float_data = torch.randn(length, size)
+        self.int_data = torch.randint(10, (length, 1))
+
+    def __getitem__(self, index):
+        return self.float_data[index], self.int_data[index]
+
+    def __len__(self):
+        return self.len
 
 
 class DoublePrecisionBoringModel(BoringModel):
