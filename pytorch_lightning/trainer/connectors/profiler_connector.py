@@ -14,8 +14,6 @@
 
 from typing import Union
 
-from transformers import TrainerState
-
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
