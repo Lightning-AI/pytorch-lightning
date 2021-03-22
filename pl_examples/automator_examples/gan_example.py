@@ -21,8 +21,8 @@ import torchvision.utils as vutils
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler
 
-from pl_examples.accelerator_examples.models import weights_init, Generator, Discriminator
-from pytorch_lightning.accelerators.acceleratorV3 import Automator
+from pl_examples.automator_examples.models import weights_init, Generator, Discriminator
+from pytorch_lightning.automator.automator import Automator
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
