@@ -107,7 +107,7 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
 
 
 def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
-    r"""Scans the Trainer signature and returns argument names, types and default values.
+    r"""Scans the class signature and returns argument names, types and default values.
 
     Returns:
         List with tuples of 3 values:
@@ -119,11 +119,11 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         >>> args = get_init_arguments_and_types(Trainer)
 
     """
-    trainer_default_params = inspect.signature(cls).parameters
+    cls_default_params = inspect.signature(cls).parameters
     name_type_default = []
-    for arg in trainer_default_params:
-        arg_type = trainer_default_params[arg].annotation
-        arg_default = trainer_default_params[arg].default
+    for arg in cls_default_params:
+        arg_type = cls_default_params[arg].annotation
+        arg_default = cls_default_params[arg].default
         try:
             arg_types = tuple(arg_type.__args__)
         except AttributeError:

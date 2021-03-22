@@ -33,11 +33,20 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self) -> None:
         self._model = None
         self._results = None
-        self.global_rank = 0
 
-    @abstractmethod
     def connect(self, model: 'Module') -> None:
-        """Called by the accelerator to connect it with this plugin"""
+        """Called by the accelerator to connect the accelerator and the model with this plugin"""
+        self.model = model
+
+    def setup_environment(self) -> None:
+        """
+        Setup any processes or distributed connections.
+        This is called before the LightningModule/DataModule setup hook
+        which allows the user to access the accelerator environment before setup is complete.
+        """
+
+    def setup(self, model: 'Module') -> None:
+        """Called by the accelerator to finish setup."""
 
     @property
     @abstractmethod
@@ -77,9 +86,13 @@ class TrainingTypePlugin(Plugin, ABC):
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes"""
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        """Reduce the early stopping decision across all possibly spawned processes"""
-        return should_stop
+    @abstractmethod
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """Perform a all_gather on all processes """
+
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        """Reduce the early stopping decision across all processes"""
+        return decision
 
     def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""

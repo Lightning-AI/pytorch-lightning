@@ -137,6 +137,7 @@ def test_multiple_eval_dataloader(tmpdir, ckpt_path):
     """Verify multiple evaluation dataloaders."""
 
     class MultipleTestDataloaderModel(EvalModelTemplate):
+
         def test_dataloader(self):
             return [self.dataloader(train=False), self.dataloader(train=False)]
 

@@ -1020,11 +1020,13 @@ This is the pseudocode to describe how all the hooks are called during a call to
 .. code-block:: python
 
     def fit(...):
-        on_fit_start()
-
         if global_rank == 0:
             # prepare data is called on GLOBAL_ZERO only
             prepare_data()
+
+        configure_callbacks()
+
+        on_fit_start()
 
         for gpu/tpu in gpu/tpus:
             train_on_device(model.copy())
