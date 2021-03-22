@@ -112,7 +112,6 @@ class DDPPlugin(ParallelPlugin):
 
         # bookkeeping of spawned processes
         assert self.global_rank == 0
-        self._check_can_spawn_children()
         self._has_spawned_children = True
 
         # DDP Environment variables
@@ -209,13 +208,6 @@ class DDPPlugin(ParallelPlugin):
         # set the ranks and devices
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
-
-    def _check_can_spawn_children(self):
-        if self._has_spawned_children:
-            raise RuntimeError(
-                "You tried to run `.fit` or `.test` multiple times in the same script."
-                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
-            )
 
     def set_world_ranks(self):
         self.local_rank = self.cluster_environment.local_rank()

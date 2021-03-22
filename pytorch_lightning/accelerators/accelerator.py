@@ -14,6 +14,7 @@
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
+import torch.nn as nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -88,6 +89,12 @@ class Accelerator(object):
         self.setup_optimizers(trainer)
         self.setup_precision_plugin(self.precision_plugin)
 
+    def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
+        return self.training_type_plugin.setup_dataloader(dataloader)
+
+    def setup_model(self, model: nn.Module) -> nn.Module:
+        return self.training_type_plugin.setup_model(model)
+
     def start_training(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
 
@@ -130,6 +137,12 @@ class Accelerator(object):
     @property
     def root_device(self) -> torch.device:
         return self.training_type_plugin.root_device
+
+    def wrap_model(self, model: nn.Module) -> nn.Module:
+        return self.training_type_plugin.wrap_model(model)
+
+    def unwrap_model(self, model: nn.Module) -> nn.Module:
+        return self.training_type_plugin.unwrap_model(model)
 
     def teardown(self) -> None:
         """This method is called to teardown the training process.
@@ -174,7 +187,7 @@ class Accelerator(object):
         """
         args[0] = self.to_device(args[0])
 
-        with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
+        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
             return self.training_type_plugin.training_step(*args)
 
     def post_training_step(self) -> None:
@@ -195,7 +208,7 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
+        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
             return self.training_type_plugin.validation_step(*args)
 
     def test_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
@@ -213,7 +226,7 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
+        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
             return self.training_type_plugin.test_step(*args)
 
     def predict(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
@@ -231,7 +244,7 @@ class Accelerator(object):
 
         args[0] = batch
 
-        with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
+        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
             return self.training_type_plugin.predict(*args)
 
     def training_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:

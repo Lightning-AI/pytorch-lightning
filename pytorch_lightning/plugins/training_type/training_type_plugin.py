@@ -28,6 +28,17 @@ if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
 
 
+def call_hook(model: nn.Module, name: str, *args, **kwargs) -> Any:
+    """
+    Call a hook on the model if it is available.
+
+    Return:
+        None if hook is undefined, and the result of the hook otherwise.
+    """
+    if hasattr(model, name) and callable(model.name):
+        return getattr(model, name)(*args, **kwargs)
+
+
 class TrainingTypePlugin(Plugin, ABC):
     """A Plugin to change the behaviour of the training, validation and test-loop."""
 
@@ -54,6 +65,12 @@ class TrainingTypePlugin(Plugin, ABC):
         return dataloader
 
     def setup_model(self, model: nn.Module) -> nn.Module:
+        return self.wrap_model(model)
+
+    def wrap_model(self, model: nn.Module) -> nn.Module:
+        return model
+
+    def unwrap_model(self, model: nn.Module) -> nn.Module:
         return model
 
     @property

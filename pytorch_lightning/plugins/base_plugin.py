@@ -26,21 +26,7 @@ class Plugin(ABC):
         """Hook to do something after the training/evaluation/prediction finishes."""
 
     @contextlib.contextmanager
-    def train_step_context(self) -> Generator:
-        """A contextmanager for the trainstep"""
+    def forward_context(self) -> Generator:
+        """A contextmanager for managing model forward/training_step/evaluation_step/predict_step"""
         yield
 
-    @contextlib.contextmanager
-    def val_step_context(self) -> Generator:
-        """A contextmanager for the validation step"""
-        yield
-
-    @contextlib.contextmanager
-    def test_step_context(self) -> Generator:
-        """A contextmanager for the teststep"""
-        yield
-
-    @contextlib.contextmanager
-    def predict_context(self) -> Generator:
-        """A contextmanager for the predict step"""
-        yield
