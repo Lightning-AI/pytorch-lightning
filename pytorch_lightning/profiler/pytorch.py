@@ -155,6 +155,7 @@ class PyTorchProfiler(BaseProfiler):
         self.context_names = {}
         self.running_stack = []
         self.profiler = None
+        self._parent_profiler = None
 
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
@@ -206,6 +207,7 @@ class PyTorchProfiler(BaseProfiler):
             # when running ``emit_nvtx``, PyTorch requires 2 context manager.
             # The parent_profiler is being closed too.
             self._parent_profiler.__exit__(None, None, None)
+            self._parent_profiler = None
             return
 
         function_events = self.profiler.function_events
@@ -260,3 +262,12 @@ class PyTorchProfiler(BaseProfiler):
                 recorded_stats[action_name] = table
 
         return self._stats_to_str(recorded_stats)
+
+    def teardown(self) -> None:
+        if self.profiler is not None:
+            self.profiler.__exit__(None, None, None)
+
+        if self._parent_profiler is not None:
+            self._parent_profiler.__exit__(None, None, None)
+
+        return super().teardown()

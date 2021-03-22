@@ -47,9 +47,11 @@ class AbstractProfiler(ABC):
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
+    @abstractmethod
     def setup(self) -> None:
         """Execute arbitrary pre-profiling set-up steps as defined by subclass."""
 
+    @abstractmethod
     def teardown(self) -> None:
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
 
@@ -128,7 +130,7 @@ class BaseProfiler(AbstractProfiler):
         self._file_prepared = True
 
     def describe(self) -> None:
-        """Logs a profile report after the conclusion of the training run."""
+        """Logs a profile report after the conclusion of run."""
         self._prepare_file()
         for write in self.write_streams:
             write(self.summary())
@@ -187,9 +189,6 @@ class PassThroughProfiler(BaseProfiler):
 
     def summary(self) -> str:
         return ""
-
-    def teardown(self) -> None:
-        pass
 
 
 class SimpleProfiler(BaseProfiler):

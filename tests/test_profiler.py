@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import os
 import time
 from distutils.version import LooseVersion
 
@@ -20,7 +21,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler, PyTorchProfiler
+from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -254,10 +255,11 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     assert len(pytorch_profiler.summary()) > 0
     assert set(pytorch_profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
 
-    pytorch_profiler.describe()
-    path = pytorch_profiler.dirpath / pytorch_profiler.filename
-    data = path.read_text("utf-8")
-    assert len(data) > 0
+    # todo (tchaton) add support for all ranks
+    if os.getenv("LOCAL_RANK") == "0":
+        path = pytorch_profiler.dirpath / pytorch_profiler.filename
+        data = path.read_text("utf-8")
+        assert len(data) > 0
 
 
 def test_pytorch_profiler_nested(tmpdir):
