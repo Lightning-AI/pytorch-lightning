@@ -56,8 +56,7 @@ def _compare_version(package: str, op, version) -> bool:
     try:
         pkg_version = LooseVersion(pkg.__version__)
     except AttributeError:
-        # in case version is not defined always return True as likely it is mocked call
-        return True
+        return False
     if str(pkg_version).endswith("__version__"):
         # this is mock by sphinx, so it shall return True ro generate all summaries
         return True
