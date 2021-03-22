@@ -48,7 +48,9 @@ class DoublePrecisionBoringModel(BoringModel):
         assert self.layer.weight.grad.dtype == torch.float64
 
     def train_dataloader(self):
-        return DataLoader(RandomFloatIntDataset(32, 64))
+        dataset = RandomFloatIntDataset(32, 64)
+        assert dataset.float_data.dtype == torch.float32  # Don't start with double data
+        return DataLoader(dataset)
 
 
 class DoublePrecisionBoringModelNoForward(BoringModel):
