@@ -43,7 +43,8 @@ def _module_available(module_path: str) -> bool:
 
 
 def _compare_version(package: str, op, version) -> bool:
-    """Compare package version with some requirements
+    """
+    Compare package version with some requirements
 
     >>> _compare_version("torch", operator.ge, "0.1")
     True
