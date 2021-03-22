@@ -59,7 +59,7 @@ class _DoublePrecisionPatch:
                 **_DoublePrecisionPatch._move_float_tensors_to_double(kwargs)
             )
 
-        setattr(model, method_name, new_method)
+        setattr(model, method_name, new_method if callable(old_method) else old_method)
         return _DoublePrecisionPatch(model, method_name, old_method)
 
 
