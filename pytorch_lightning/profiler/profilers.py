@@ -22,7 +22,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union, TextIO, Callable, Any
+from typing import Any, Callable, Dict, Optional, TextIO, Tuple, Union
 
 import numpy as np
 
@@ -155,7 +155,8 @@ class BaseProfiler(AbstractProfiler):
         self.teardown(stage=self._stage)
 
     def _stats_to_str(self, stats: Dict[str, str]) -> str:
-        output = [f"{self._stage} " if self._stage is not None else "" + "Profiler Report"]
+        stage = f"{self._stage.upper()} " if self._stage is not None else ""
+        output = [stage + "Profiler Report"]
         for action, value in stats.items():
             header = f"Profile stats for: {action}"
             if self._local_rank is not None:
@@ -370,3 +371,11 @@ class AdvancedProfiler(BaseProfiler):
     def teardown(self, stage: Optional[str] = None) -> None:
         super().teardown(stage=stage)
         self.profiled_actions = {}
+
+    def __reduce__(self):
+        # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
+        return (
+            self.__class__,
+            tuple(),
+            dict(dirpath=self.dirpath, filename=self.filename, line_count_restriction=self.line_count_restriction),
+        )

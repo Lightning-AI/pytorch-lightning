@@ -21,7 +21,7 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -284,6 +284,18 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     pytorch_profiler.stop(action)
 
 
+def test_advanced_profiler_cprofile_deepcopy(tmpdir):
+    """Checks for pickle issue reported in #6522"""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        profiler="advanced",
+        stochastic_weight_avg=True,
+    )
+    trainer.fit(model)
+
+
 @RunIf(min_gpus=2, special=True)
 def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
@@ -373,7 +385,9 @@ def test_profiler_teardown(tmpdir, cls):
     """
     This test checks if profiler teardown method is called when trainer is exiting.
     """
+
     class TestCallback(Callback):
+
         def on_fit_end(self, trainer, *args, **kwargs) -> None:
             # describe sets it to None
             assert trainer.profiler._output_file is None
