@@ -1609,19 +1609,19 @@ def test_profiler_teardown(tmpdir):
     This test checks if profiler teardown method is called when
     trainer is exiting.
     """
-    profilerSimple = SimpleProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
-    profilerAdvanced = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
-    profilerPytorch = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
+    simple_profiler = SimpleProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    advanced_profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
+    pytorch_profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
 
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        profiler=profilerSimple,
+        profiler=simple_profiler,
     )
     trainer.fit(model)
 
-    assert profilerSimple.output_file.closed
+    assert simple_profiler.output_file.closed
 
     model = BoringModel()
     trainer = Trainer(
@@ -1631,7 +1631,7 @@ def test_profiler_teardown(tmpdir):
     )
     trainer.fit(model)
 
-    assert profilerAdvanced.output_file.closed
+    assert advanced_profiler.output_file.closed
 
     model = BoringModel()
     trainer = Trainer(
@@ -1641,7 +1641,7 @@ def test_profiler_teardown(tmpdir):
     )
     trainer.fit(model)
 
-    assert profilerPytorch.output_file.closed
+    assert pytorch_profiler.output_file.closed
 
 
 @pytest.mark.parametrize(
