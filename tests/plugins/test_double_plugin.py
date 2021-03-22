@@ -17,7 +17,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModel, RandomFloatIntDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomFloatIntDataset
 
 
 class DoublePrecisionBoringModel(BoringModel):
@@ -41,6 +41,10 @@ class DoublePrecisionBoringModel(BoringModel):
         loss = self.loss(batch, output)
         return {"y": loss}
 
+    def predict(self, batch, batch_idx, dataloader_idx=None):
+        assert batch.dtype == torch.float64
+        return self(batch)
+
     def on_fit_start(self):
         assert self.layer.weight.dtype == torch.float64
 
@@ -52,14 +56,41 @@ class DoublePrecisionBoringModel(BoringModel):
         assert dataset.float_data.dtype == torch.float32  # Don't start with double data
         return DataLoader(dataset)
 
+    def predict_dataloader(self):
+        return DataLoader(RandomDataset(32, 64))
+
 
 class DoublePrecisionBoringModelNoForward(BoringModel):
 
     def training_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
+        assert output.dtype == torch.float64
         loss = self.loss(batch, output)
         return {"loss": loss}
+
+    def validation_step(self, batch, batch_idx):
+        assert batch.dtype == torch.float64
+        output = self.layer(batch)
+        assert output.dtype == torch.float64
+        loss = self.loss(batch, output)
+        return {"x": loss}
+
+    def test_step(self, batch, batch_idx):
+        assert batch.dtype == torch.float64
+        output = self.layer(batch)
+        assert output.dtype == torch.float64
+        loss = self.loss(batch, output)
+        return {"y": loss}
+
+    def predict(self, batch, batch_idx, dataloader_idx=None):
+        assert batch.dtype == torch.float64
+        output = self.layer(batch)
+        assert output.dtype == torch.float64
+        return output
+
+    def predict_dataloader(self):
+        return DataLoader(RandomDataset(32, 64))
 
 
 @pytest.mark.parametrize(
@@ -80,5 +111,7 @@ def test_double_precision(tmpdir, boring_model):
         log_every_n_steps=1,
     )
     trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model)
 
     assert model.training_step == original_training_step
