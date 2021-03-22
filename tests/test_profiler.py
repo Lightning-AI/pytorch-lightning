@@ -131,6 +131,7 @@ def test_simple_profiler_log_dir(tmpdir):
     assert expected.join("fit-profiler.txt").exists()
 
 
+@RunIf(skip_windows=True)
 def test_simple_profiler_distributed_files(tmpdir):
     """Ensure the proper files are saved in distributed"""
     profiler = SimpleProfiler(dirpath=tmpdir, filename='profiler')
@@ -299,7 +300,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     assert len(pytorch_profiler.summary()) > 0
     assert set(pytorch_profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
 
-    path = pytorch_profiler.dirpath / pytorch_profiler.filename
+    path = pytorch_profiler.dirpath / f"{pytorch_profiler.filename}.txt"
     data = path.read_text("utf-8")
     assert len(data) > 0
 
