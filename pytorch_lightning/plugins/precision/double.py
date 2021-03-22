@@ -49,7 +49,7 @@ class _DoublePrecisionPatch:
         )
 
     @staticmethod
-    def patch(model: 'Module', method_name: str) -> _DoublePrecisionPatch:
+    def patch(model: 'Module', method_name: str) -> '_DoublePrecisionPatch':
         old_method = getattr(model, method_name)
 
         @wraps(old_method)
