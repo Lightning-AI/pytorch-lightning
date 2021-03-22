@@ -148,8 +148,7 @@ class BaseProfiler(AbstractProfiler):
 
     def setup(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
         """
-        This function is used by the Trainer to inject local_rank with `DDP`
-        and `TensorBoardLogger` log_dir in the profiler.
+        This function is used by the Trainer to inject the local_rank on distributed and `TensorBoardLogger.log_dir`.
         """
         self.local_rank = local_rank
         self.log_dir = log_dir
@@ -219,10 +218,10 @@ class SimpleProfiler(BaseProfiler):
                 If you attempt to start an action which has already started, or
                 if you attempt to stop recording an action which was never started.
         """
+        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
         self.current_actions: Dict[str, float] = {}
         self.recorded_durations = defaultdict(list)
         self.extended = extended
-        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
         self.start_time = time.monotonic()
 
     def start(self, action_name: str) -> None:

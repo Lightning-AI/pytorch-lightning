@@ -112,6 +112,25 @@ def test_simple_profiler_value_errors(simple_profiler):
     simple_profiler.stop(action)
 
 
+def test_simple_profiler_log_dir(tmpdir):
+    """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present"""
+    profiler = SimpleProfiler(filename="profiler.txt")
+    assert profiler.log_dir is None
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        profiler=profiler,
+    )
+    trainer.fit(model)
+
+    expected = tmpdir / "lightning_logs" / "version_0"
+    assert trainer.log_dir == expected
+    assert profiler.log_dir == trainer.log_dir
+    assert expected.join("profiler.txt").exists()
+
+
 @pytest.fixture
 def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler.txt")
