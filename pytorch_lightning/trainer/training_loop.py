@@ -102,9 +102,6 @@ class TrainLoop:
         # hook
         self.trainer.call_hook("on_train_start")
 
-        # provide rank to profiler
-        self.trainer.profile_connector.on_train_start(self.trainer)
-
     def setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
         if hasattr(model, "hparams"):
