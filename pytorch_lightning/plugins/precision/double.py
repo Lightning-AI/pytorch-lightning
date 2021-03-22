@@ -64,7 +64,7 @@ class _DoublePrecisionPatch:
 
 
 class DoublePrecisionPlugin(PrecisionPlugin):
-    """Plugin for training with double (`torch.float64`) precision."""
+    """Plugin for training with double (``torch.float64``) precision."""
 
     precision: int = 64
 
