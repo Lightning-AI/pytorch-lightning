@@ -255,11 +255,9 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     assert len(pytorch_profiler.summary()) > 0
     assert set(pytorch_profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
 
-    # todo (tchaton) add support for all ranks
-    if os.getenv("LOCAL_RANK") == "0":
-        path = pytorch_profiler.dirpath / pytorch_profiler.filename
-        data = path.read_text("utf-8")
-        assert len(data) > 0
+    path = pytorch_profiler.dirpath / pytorch_profiler.filename
+    data = path.read_text("utf-8")
+    assert len(data) > 0
 
 
 def test_pytorch_profiler_nested(tmpdir):

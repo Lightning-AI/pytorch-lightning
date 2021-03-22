@@ -179,7 +179,7 @@ class BaseProfiler(AbstractProfiler):
         """
         Execute arbitrary post-profiling tear-down steps.
         
-        Closes currently open file and stream.
+        Closes the currently open file and stream.
         """
         assert stage == self._stage
         self._write_stream = None
