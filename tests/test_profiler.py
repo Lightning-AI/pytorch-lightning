@@ -301,8 +301,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     assert set(pytorch_profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
 
     path = pytorch_profiler.dirpath / f"{pytorch_profiler.filename}.txt"
-    data = path.read_text("utf-8")
-    assert len(data) > 0
+    assert path.read_text("utf-8")
 
 
 def test_pytorch_profiler_nested(tmpdir):
