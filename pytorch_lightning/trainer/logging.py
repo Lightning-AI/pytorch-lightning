@@ -14,12 +14,11 @@
 
 import inspect
 from abc import ABC
-from typing import Mapping, Union
+from typing import Mapping
 
 import torch
 
-from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.utilities import DeviceType, DistributedType
+from pytorch_lightning.utilities import DistributedType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.memory import recursive_detach
 
@@ -28,17 +27,8 @@ class TrainerLoggingMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    current_epoch: int
-    _device_type: DeviceType
     _distrib_type: DistributedType
-    log_gpu_memory:...
-    logger: Union[LightningLoggerBase, bool]
-    global_step: int
-    global_rank: int
-    default_root_dir: str
-    slurm_job_id: int
     num_gpus: int
-    logged_metrics:...
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}

@@ -38,7 +38,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
-from pytorch_lightning.trainer.connectors.env_vars_connector import overwrite_by_env_vars
+from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
@@ -83,7 +83,7 @@ class Trainer(
     DeprecatedTrainerAttributes,
 ):
 
-    @overwrite_by_env_vars
+    @_defaults_from_env_vars
     def __init__(
         self,
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
@@ -197,11 +197,13 @@ class Trainer(
 
             gradient_clip_val: 0 means don't clip.
 
-            limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
+            limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches)
 
-            limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
+            limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches)
 
-            limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
+            limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches)
+
+            limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches)
 
             logger: Logger (or iterable collection of loggers) for experiment tracking.
 
@@ -220,7 +222,7 @@ class Trainer(
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
-            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int).
+            overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
@@ -425,8 +427,10 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
+        self.accelerator.connect(model)
+        self.accelerator.setup_environment()
+        self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
@@ -440,13 +444,15 @@ class Trainer(
                                 |                             ||
                          {self.dispatch}                      ||
                                 |                             ||  LIGHTNING
-                {self.accelerator.start_training} or          ||
-                {self.accelerator.start_evaluating} or        ||  FLOW
-                {self.accelerator.start_predicting}           ||
+                  {self.accelerator.start_training}           ||
+                or {self.accelerator.start_evaluating}        ||
+                or {self.accelerator.start_predicting}        ||  FLOW
+                                |                             ||
+                         {self.run_stage}                     ||
                                 |                             ||  DIRECTION
-                        {self.run_train} or                   ||
-                     {self.run_evaluation} or                 ||
-                       {self.run_predict}                     ||
+                        {self.run_train}                      ||
+                     or {self.run_evaluation}                 ||
+                     or {self.run_predict}                    ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
@@ -490,7 +496,7 @@ class Trainer(
         return self.accelerator.results or 1
 
     def pre_dispatch(self):
-        self.accelerator.pre_dispatch()
+        self.accelerator.pre_dispatch(self)
 
         # log hyper-parameters
         if self.logger is not None:
@@ -500,7 +506,7 @@ class Trainer(
             self.logger.save()
 
     def post_dispatch(self):
-        self.accelerator.post_dispatch()
+        self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
 
     def dispatch(self):
@@ -513,6 +519,9 @@ class Trainer(
 
     def run_stage(self):
         results = None
+
+        self.profile_connector.setup()
+
         if self.evaluating:
             results = self.run_evaluate()
         elif self.predicting:
@@ -753,10 +762,10 @@ class Trainer(
 
     def run_predict(self):
         # prepare dataloaders
-        dataloaders, max_batches = self.predict_loop.get_predict_dataloaders(None)
+        dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
         # check if we want to skip this evaluation
-        if self.predict_loop.should_skip_predict(dataloaders, max_batches):
+        if self.predict_loop.should_skip_predict(max_batches):
             return []
 
         # ref model
@@ -1056,8 +1065,7 @@ class Trainer(
 
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
-        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
-        state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+        state = self._setup_state
 
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
@@ -1068,11 +1076,8 @@ class Trainer(
         model.setup(stage=state)
 
     def call_teardown_hook(self, model: LightningModule) -> None:
-        if self.state.running:
-            state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-        else:
-            state = None
-
+        state = self._teardown_state
+        self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
 

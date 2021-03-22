@@ -28,17 +28,16 @@ class PredictLoop(object):
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []
 
-    def get_predict_dataloaders(self, max_batches):
+    def get_predict_dataloaders(self):
         self.trainer.reset_predict_dataloader(self.trainer.lightning_module)
 
         dataloaders = self.trainer.predict_dataloaders
-        if max_batches is None:
-            max_batches = self.trainer.num_predict_batches
+        max_batches = self.trainer.num_predict_batches
 
         return dataloaders, max_batches
 
-    def should_skip_predict(self, dataloaders, max_batches):
-        return dataloaders is None or not sum(max_batches)
+    def should_skip_predict(self, max_batches):
+        return sum(max_batches) == 0
 
     def on_predict_model_eval(self, *_, **__):
         model_ref = self.trainer.lightning_module

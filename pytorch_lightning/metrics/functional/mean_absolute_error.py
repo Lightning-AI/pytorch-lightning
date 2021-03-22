@@ -14,8 +14,7 @@
 from typing import Tuple
 
 import torch
-
-from pytorch_lightning.metrics.utils import _check_same_shape
+from torchmetrics.utilities.checks import _check_same_shape
 
 
 def _mean_absolute_error_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, int]:

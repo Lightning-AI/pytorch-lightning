@@ -75,12 +75,14 @@ Here's the pseudocode for what the trainer does under the hood (showing the trai
         # train step
         loss = training_step(batch)
 
+        # clear gradients
+        optimizer.zero_grad()
+
         # backward
         loss.backward()
 
-        # apply and clear grads
+        # update parameters
         optimizer.step()
-        optimizer.zero_grad()
 
         losses.append(loss)
 

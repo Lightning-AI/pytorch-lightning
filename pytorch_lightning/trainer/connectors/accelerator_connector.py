@@ -273,6 +273,10 @@ class AcceleratorConnector(object):
 
     @property
     def is_distributed(self) -> bool:
+        # Used for custom plugins.
+        # Custom plugins should implement is_distributed property.
+        if hasattr(self.training_type_plugin, 'is_distributed') and not self.on_tpu:
+            return self.training_type_plugin.is_distributed
         is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
         if self.on_tpu:
             is_distributed |= self.training_type_plugin.is_distributed
@@ -425,6 +429,11 @@ class AcceleratorConnector(object):
 
         if hasattr(training_type, 'num_nodes') and getattr(training_type, 'num_nodes') is None:
             training_type.num_nodes = self.num_nodes
+
+        # Automatically set sync_batchnorm if None.
+        # Useful for custom plugins.
+        if hasattr(training_type, 'sync_batchnorm') and getattr(training_type, 'sync_batchnorm') is None:
+            training_type.sync_batchnorm = self.sync_batchnorm
 
         return training_type
 
