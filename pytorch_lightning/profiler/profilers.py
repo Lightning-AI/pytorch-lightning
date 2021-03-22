@@ -155,7 +155,7 @@ class BaseProfiler(AbstractProfiler):
         self.teardown(stage=self._stage)
 
     def _stats_to_str(self, stats: Dict[str, str]) -> str:
-        output = [f"{self._stage} " if self._stage is not None else "" + "Profiler report"]
+        output = [f"{self._stage} " if self._stage is not None else "" + "Profiler Report"]
         for action, value in stats.items():
             header = f"Profile stats for: {action}"
             if self._local_rank is not None:
