@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -327,14 +327,15 @@ def test_profiler_teardown(tmpdir, cls):
     """
     This test checks if profiler teardown method is called when trainer is exiting.
     """
+    class TestCallback(Callback):
+
+        def on_fit_end(self, trainer, *args, **kwargs) -> None:
+            assert trainer.profiler._output_file is not None
+
     profiler = cls(dirpath=tmpdir, filename="profiler")
 
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        profiler=profiler,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler=profiler, callbacks=[TestCallback()])
     trainer.fit(model)
 
     assert profiler._output_file.closed

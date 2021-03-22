@@ -110,6 +110,7 @@ class HorovodPlugin(ParallelPlugin):
 
     def start_predicting(self, trainer):
         with ExitStack():
+            # set up training routine
             self._results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user

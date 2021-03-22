@@ -53,3 +53,8 @@ class ProfilerConnector:
                     " `Trainer`, it can only be 'simple' or 'advanced'"
                 )
         self.trainer.profiler = profiler or PassThroughProfiler()
+
+    def setup(self) -> None:
+        trainer = self.trainer
+        local_rank = trainer.local_rank if trainer.world_size > 1 else None
+        trainer.profiler.setup(stage=trainer._setup_state, local_rank=local_rank, log_dir=trainer.log_dir)

@@ -445,7 +445,7 @@ class Trainer(
                                 |                             ||
                          {self.dispatch}                      ||
                                 |                             ||  LIGHTNING
-                {self.accelerator.start_training}             ||
+                  {self.accelerator.start_training}           ||
                 or {self.accelerator.start_evaluating}        ||
                 or {self.accelerator.start_predicting}        ||  FLOW
                                 |                             ||
@@ -453,7 +453,7 @@ class Trainer(
                                 |                             ||  DIRECTION
                         {self.run_train}                      ||
                      or {self.run_evaluation}                 ||
-                     or  {self.run_predict}                   ||
+                     or {self.run_predict}                    ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
@@ -518,13 +518,10 @@ class Trainer(
         else:
             self.accelerator.start_training(self)
 
-    def _on_run_stage_setup(self):
-        self.profiler.setup(self.state, local_rank=self.local_rank if self.world_size > 1 else None, log_dir=self.log_dir)
-
     def run_stage(self):
         results = None
 
-        self._on_run_stage_setup()
+        self.profile_connector.setup()
 
         if self.evaluating:
             results = self.run_evaluate()
@@ -1068,8 +1065,7 @@ class Trainer(
 
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
-        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
-        state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+        state = self._setup_state
 
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
@@ -1080,11 +1076,7 @@ class Trainer(
         model.setup(stage=state)
 
     def call_teardown_hook(self, model: LightningModule) -> None:
-        if self.state.running:
-            state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-        else:
-            state = None
-
+        state = self._teardown_state
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
