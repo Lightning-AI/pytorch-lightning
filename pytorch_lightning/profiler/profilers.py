@@ -96,12 +96,13 @@ class BaseProfiler(AbstractProfiler):
                 self.stop(action_name)
                 break
 
+    def _rank_zero_info(self, *args, **kwargs) -> None:
+        if self.local_rank in (None, 0):
+            log.info(*args, **kwargs)
+
     def _prepare_file(self) -> None:
         if not self._file_prepared:
-            if self.output_fname and self.output_file is None:
-                fs = get_filesystem(self.output_fname)
-                self.output_file = fs.open(self.output_fname, "w")
-            self.write_streams = [self.output_file.write] if self.output_file else [log.info]
+            self.write_streams = [self.output_file.write] if self.output_file else [self._rank_zero_info]
         self._file_prepared = True
 
     def describe(self) -> None:

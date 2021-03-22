@@ -164,16 +164,6 @@ class PyTorchProfiler(BaseProfiler):
         if self.path_to_export_trace is None:
             self.path_to_export_trace = log_dir
 
-        # when logging to `log.info`, only perform profiling on rank 0
-        if local_rank is not None and local_rank > 0 and self.output_fname is None:
-            self._rank_zero_only_wrap()
-
-    def _rank_zero_only_wrap(self) -> None:
-        self.start = rank_zero_only(self.start)
-        self.stop = rank_zero_only(self.stop)
-        self.summary = rank_zero_only(self.summary)
-        self.describe = rank_zero_only(self.describe)
-
     def start(self, action_name: str) -> None:
         if action_name not in self.profiled_functions:
             return
