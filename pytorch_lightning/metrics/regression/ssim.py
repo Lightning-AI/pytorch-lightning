@@ -34,8 +34,8 @@ class SSIM(_SSIM):
         process_group: Optional[Any] = None,
     ):
         """
-        This implementation refers to :class:`~torchmetrics.Accuracy`.
+        This implementation refers to :class:`~torchmetrics.SSIM`.
 
         .. deprecated::
-            Use :class:`~torchmetrics.Accuracy`. Will be removed in v1.5.0.
+            Use :class:`~torchmetrics.SSIM`. Will be removed in v1.5.0.
         """

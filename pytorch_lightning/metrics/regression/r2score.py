@@ -32,8 +32,8 @@ class R2Score(_R2Score):
         dist_sync_fn: Callable = None,
     ):
         """
-        This implementation refers to :class:`~torchmetrics.Accuracy`.
+        This implementation refers to :class:`~torchmetrics.R2Score`.
 
         .. deprecated::
-            Use :class:`~torchmetrics.Accuracy`. Will be removed in v1.5.0.
+            Use :class:`~torchmetrics.R2Score`. Will be removed in v1.5.0.
         """
