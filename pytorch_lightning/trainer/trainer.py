@@ -519,7 +519,7 @@ class Trainer(
             self.accelerator.start_training(self)
 
     def _on_run_stage_setup(self):
-        self.profiler.setup(local_rank=self.local_rank if self.world_size > 1 else None, log_dir=self.log_dir)
+        self.profiler.setup(self.state, local_rank=self.local_rank if self.world_size > 1 else None, log_dir=self.log_dir)
 
     def run_stage(self):
         results = None
@@ -1085,7 +1085,7 @@ class Trainer(
         else:
             state = None
 
-        self.profiler.teardown()
+        self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
 

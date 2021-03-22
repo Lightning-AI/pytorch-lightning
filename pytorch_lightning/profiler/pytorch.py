@@ -73,6 +73,7 @@ class PyTorchProfiler(BaseProfiler):
                 will be used.
 
             filename: If present, filename where the profiler results will be saved instead of printing to stdout.
+                The ``.txt`` extension will be used automatically.
 
             enabled: Setting this to False makes this context manager a no-op.
 
@@ -118,8 +119,7 @@ class PyTorchProfiler(BaseProfiler):
 
         Raises:
             MisconfigurationException:
-                If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``, or
-                if log file is not a ``.txt`` file.
+                If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
             ValueError:
                 If you attempt to stop recording an action which was never started.
         """
@@ -158,8 +158,13 @@ class PyTorchProfiler(BaseProfiler):
 
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
-    def setup(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
-        super().setup(local_rank=local_rank, log_dir=log_dir)
+    def setup(
+        self,
+        stage: Optional[str] = None,
+        local_rank: Optional[int] = None,
+        log_dir: Optional[str] = None
+    ) -> None:
+        super().setup(stage=stage, local_rank=local_rank, log_dir=log_dir)
 
         # if the user didn't provide `path_to_export_trace`,
         # set it as TensorBoardLogger log_dir if exists
@@ -234,7 +239,7 @@ class PyTorchProfiler(BaseProfiler):
     def summary(self) -> str:
         recorded_stats = {}
         output_string = ''
-        local_rank = '0' if self.local_rank is None else self.local_rank
+        local_rank = '0' if self._local_rank is None else self._local_rank
 
         if not self.enabled:
             return output_string
@@ -261,4 +266,3 @@ class PyTorchProfiler(BaseProfiler):
                 recorded_stats[action_name] = table
 
         return self._stats_to_str(recorded_stats)
-

@@ -208,7 +208,7 @@ def test_v1_5_0_old_on_test_epoch_end(tmpdir):
 
 @pytest.mark.parametrize("cls", (BaseProfiler, SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
 def test_v1_5_0_profiler_output_filename(tmpdir, cls):
-    filepath = str(tmpdir / "test")
+    filepath = str(tmpdir / "test.txt")
     with pytest.deprecated_call(match="`output_filename` parameter has been removed"):
         profiler = cls(output_filename=filepath)
     assert profiler.dirpath == tmpdir

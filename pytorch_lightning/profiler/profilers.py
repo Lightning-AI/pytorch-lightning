@@ -22,7 +22,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union, TextIO, Callable
 
 import numpy as np
 
@@ -77,12 +77,13 @@ class BaseProfiler(AbstractProfiler):
             )
             filepath = Path(output_filename)
             self.dirpath = filepath.parent
-            self.filename = filepath.name
-        self.output_file = None
-        self.local_rank = None
-        self.log_dir = None
-        self.write_streams = []
-        self._file_prepared = False
+            self.filename = filepath.stem
+
+        self._output_file: Optional[TextIO] = None
+        self._write_stream: Optional[Callable] = None
+        self._local_rank: Optional[int] = None
+        self._log_dir: Optional[str] = None
+        self._stage: Optional[str] = None
 
     @contextmanager
     def profile(self, action_name: str) -> None:
@@ -116,51 +117,72 @@ class BaseProfiler(AbstractProfiler):
                 break
 
     def _rank_zero_info(self, *args, **kwargs) -> None:
-        if self.local_rank in (None, 0):
+        if self._local_rank in (None, 0):
             log.info(*args, **kwargs)
 
-    def _prepare_file(self) -> None:
-        if not self._file_prepared:
-            if self.filename and self.output_file is None:
-                dirpath = self.dirpath or self.log_dir
-                filepath = os.path.join(dirpath, self.filename)
-                fs = get_filesystem(filepath)
-                self.output_file = fs.open(filepath, "a")
-            self.write_streams = [self.output_file.write] if self.output_file else [self._rank_zero_info]
-        self._file_prepared = True
+    def _prepare_filename(self) -> str:
+        filename = ""
+        if self._stage is not None:
+            filename += f"{self._stage}-"
+        filename += self.filename
+        if self._local_rank is not None:
+            filename += f"-{self._local_rank}"
+        filename += ".txt"
+        return filename
+
+    def _prepare_streams(self) -> None:
+        if self._write_stream is not None:
+            return
+        if self.filename:
+            dirpath = self.dirpath or self._log_dir
+            filepath = os.path.join(dirpath, self._prepare_filename())
+            fs = get_filesystem(filepath)
+            file = fs.open(filepath, "a")
+            self._output_file = file
+            self._write_stream = file.write
+        else:
+            self._write_stream = self._rank_zero_info
 
     def describe(self) -> None:
         """Logs a profile report after the conclusion of run."""
-        self._prepare_file()
-        for write in self.write_streams:
-            write(self.summary())
-        if self.output_file:
-            self.output_file.flush()
-        self.teardown()
+        # there are pickling issues with open file handles in Python 3.6
+        # so to avoid them, we open and close the files within this function
+        # by calling `_prepare_streams` and `teardown`
+        self._prepare_streams()
+        self._write_stream(self.summary())
+        if self._output_file is not None:
+            self._output_file.flush()
+        self.teardown(stage=self._stage)
 
     def _stats_to_str(self, stats: Dict[str, str]) -> str:
         output = ["Profiler Report"]
         for action, value in stats.items():
             header = f"Profile stats for: {action}"
-            if getattr(self, "local_rank", None) is not None:
-                header += f" rank: {self.local_rank}"
+            if self._local_rank is not None:
+                header += f" rank: {self._local_rank}"
             output.append(header)
             output.append(value)
         return os.linesep.join(output)
 
-    def setup(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
+    def setup(
+        self,
+        stage: Optional[str] = None,
+        local_rank: Optional[int] = None,
+        log_dir: Optional[str] = None,
+    ) -> None:
         """
         This function is used by the Trainer to inject the local_rank on distributed and `TensorBoardLogger.log_dir`.
         """
-        self.local_rank = local_rank
-        self.log_dir = log_dir
+        self._stage = stage
+        self._local_rank = local_rank
+        self._log_dir = log_dir
 
-    def teardown(self) -> None:
-        """Close profiler's stream."""
-        if self.output_file:
-            self.output_file.close()
-        self.write_streams = []
-        self._file_prepared = False
+    def teardown(self, stage: Optional[str] = None) -> None:
+        """Close a stage's file and streams."""
+        assert stage == self._stage
+        self._write_stream = None
+        if self._output_file is not None:
+            self._output_file.close()
 
     def __del__(self) -> None:
         self.teardown()
@@ -211,6 +233,7 @@ class SimpleProfiler(BaseProfiler):
                 will be used.
 
             filename: If present, filename where the profiler results will be saved instead of printing to stdout.
+                The ``.txt`` extension will be used automatically.
 
         Raises:
             ValueError:
@@ -305,6 +328,7 @@ class AdvancedProfiler(BaseProfiler):
                 will be used.
 
             filename: If present, filename where the profiler results will be saved instead of printing to stdout.
+                The ``.txt`` extension will be used automatically.
 
             line_count_restriction: this can be used to limit the number of functions
                 reported for each action. either an integer (to select a count of lines),

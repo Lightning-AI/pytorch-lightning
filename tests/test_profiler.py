@@ -115,8 +115,8 @@ def test_simple_profiler_value_errors(simple_profiler):
 
 def test_simple_profiler_log_dir(tmpdir):
     """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present"""
-    profiler = SimpleProfiler(filename="profiler.txt")
-    assert profiler.log_dir is None
+    profiler = SimpleProfiler(filename="profiler")
+    assert profiler._log_dir is None
 
     model = BoringModel()
     trainer = Trainer(
@@ -128,13 +128,13 @@ def test_simple_profiler_log_dir(tmpdir):
 
     expected = tmpdir / "lightning_logs" / "version_0"
     assert trainer.log_dir == expected
-    assert profiler.log_dir == trainer.log_dir
-    assert expected.join("profiler.txt").exists()
+    assert profiler._log_dir == trainer.log_dir
+    assert expected.join("fit-profiler.txt").exists()
 
 
 @pytest.fixture
 def advanced_profiler(tmpdir):
-    return AdvancedProfiler(dirpath=tmpdir, filename="profiler.txt")
+    return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -195,7 +195,7 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
         pass
     # log to stdout and print to file
     advanced_profiler.describe()
-    path = advanced_profiler.dirpath / advanced_profiler.filename
+    path = advanced_profiler.dirpath / f"{advanced_profiler.filename}.txt"
     data = path.read_text("utf-8")
     assert len(data) > 0
 
@@ -213,7 +213,7 @@ def test_advanced_profiler_value_errors(advanced_profiler):
 
 @pytest.fixture
 def pytorch_profiler(tmpdir):
-    return PyTorchProfiler(dirpath=tmpdir, filename="profiler.txt")
+    return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
 
 def test_pytorch_profiler_describe(pytorch_profiler):
@@ -223,7 +223,7 @@ def test_pytorch_profiler_describe(pytorch_profiler):
 
     # log to stdout and print to file
     pytorch_profiler.describe()
-    path = pytorch_profiler.dirpath / pytorch_profiler.filename
+    path = pytorch_profiler.dirpath / f"{pytorch_profiler.filename}.txt"
     data = path.read_text("utf-8")
     assert len(data) > 0
 
@@ -266,7 +266,7 @@ def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
     pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"], use_cuda=False, dirpath=tmpdir, filename="profiler.txt"
+        profiled_functions=["a", "b", "c"], use_cuda=False, dirpath=tmpdir, filename="profiler"
     )
 
     with pytorch_profiler.profile("a"):
@@ -327,7 +327,7 @@ def test_profiler_teardown(tmpdir, cls):
     """
     This test checks if profiler teardown method is called when trainer is exiting.
     """
-    profiler = cls(dirpath=tmpdir, filename="profiler.txt")
+    profiler = cls(dirpath=tmpdir, filename="profiler")
 
     model = BoringModel()
     trainer = Trainer(
@@ -337,4 +337,4 @@ def test_profiler_teardown(tmpdir, cls):
     )
     trainer.fit(model)
 
-    assert profiler.output_file.closed
+    assert profiler._output_file.closed
