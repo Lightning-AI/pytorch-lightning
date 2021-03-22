@@ -252,8 +252,8 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
         assert profiler.summary() is None
         assert set(profiler.profiled_actions.keys()) == set()
 
-    if use_output_filename:
-        profiler.describe()
+    # todo (tchaton) add support for all ranks
+    if use_output_filename and os.getenv("LOCAL_RANK") == "0":
         data = Path(profiler.output_fname).read_text()
         assert len(data) > 0
 

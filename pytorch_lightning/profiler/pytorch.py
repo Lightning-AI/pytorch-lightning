@@ -294,8 +294,7 @@ class PyTorchProfiler(BaseProfiler):
     def describe(self):
         """Logs a profile report after the conclusion of the training run."""
         super().describe()
-        if self.output_file:
-            self.output_file.flush()
+        self.teardown()
 
     def teardown(self) -> None:
         """Close profiler's stream."""
