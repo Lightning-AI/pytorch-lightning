@@ -185,7 +185,7 @@ class BaseProfiler(AbstractProfiler):
             self._output_file.close()
 
     def __del__(self) -> None:
-        self.teardown()
+        self.teardown(stage=self._stage)
 
     def start(self, action_name: str) -> None:
         raise NotImplementedError
