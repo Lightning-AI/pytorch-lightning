@@ -517,9 +517,7 @@ class Trainer(
             self.accelerator.start_training(self)
 
     def on_run_stage_setup(self):
-        # setup profiler with the rank info and log_dir
-        local_rank = self.local_rank if self.world_size > 1 else None
-        self.profiler.setup(local_rank=local_rank, log_dir=self.log_dir)
+        self.profiler.setup(local_rank=self.local_rank if self.world_size > 1 else None, log_dir=self.log_dir)
 
     def run_stage(self):
         results = None
