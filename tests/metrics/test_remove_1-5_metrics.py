@@ -32,7 +32,7 @@ from pytorch_lightning.metrics import (
     PrecisionRecallCurve,
     Recall,
     ROC,
-    StatScores, MeanAbsoluteError,
+    StatScores, MeanAbsoluteError, MeanSquaredError,
 )
 from pytorch_lightning.metrics.functional import (
     auc,
@@ -49,7 +49,7 @@ from pytorch_lightning.metrics.functional import (
     precision_recall_curve,
     recall,
     roc,
-    stat_scores, mean_absolute_error,
+    stat_scores, mean_absolute_error, mean_squared_error,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.utils import get_num_classes, select_topk, to_categorical, to_onehot
@@ -250,6 +250,10 @@ def test_v1_5_metric_regress():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         MeanAbsoluteError()
 
+    MeanSquaredError.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        MeanSquaredError()
+
     target = torch.tensor([3, -0.5, 2, 7])
     preds = torch.tensor([2.5, 0.0, 2, 8])
     explained_variance.warned = False
@@ -261,3 +265,7 @@ def test_v1_5_metric_regress():
     mean_absolute_error.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert mean_absolute_error(x, y) == 0.25
+
+    mean_squared_error.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        assert mean_squared_error(x, y) == 0.25
