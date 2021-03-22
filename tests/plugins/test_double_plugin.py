@@ -94,8 +94,8 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
 
 
 @pytest.mark.parametrize(
-    ['boring_model'],
-    [(DoublePrecisionBoringModel,), (DoublePrecisionBoringModelNoForward,)]
+    'boring_model',
+    (DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward)
 )
 def test_double_precision(tmpdir, boring_model):
     model = boring_model()
