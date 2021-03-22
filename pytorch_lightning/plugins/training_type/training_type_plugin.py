@@ -182,3 +182,13 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
         optimizer.step(closure=lambda_closure, **kwargs)
+
+    @property
+    def setup_optimizers_in_pre_dispatch(self) -> bool:
+        """
+        Override to delay setting optimizers and schedulers till after dispatch.
+        This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
+        However this may break certain precision plugins such as APEX which require optimizers to be set.
+        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+        """
+        return False
