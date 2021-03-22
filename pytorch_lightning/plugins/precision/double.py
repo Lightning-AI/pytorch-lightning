@@ -33,7 +33,7 @@ class _DoublePrecisionPatch:
         self.method_name = method_name
         self.old_method = old_method
 
-    def teardown(self):
+    def teardown(self) -> None:
         setattr(self.model, self.method_name, self.old_method)
 
     @staticmethod
