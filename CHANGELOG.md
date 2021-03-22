@@ -92,6 +92,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
     [#6636](https://github.com/PyTorchLightning/pytorch-lightning/pull/6636),
 
+    [#6637](https://github.com/PyTorchLightning/pytorch-lightning/pull/6637),
+
 )
 
 

@@ -37,7 +37,8 @@ from pytorch_lightning.metrics import (
     R2Score,
     Recall,
     ROC,
-    StatScores, SSIM,
+    SSIM,
+    StatScores,
 )
 from pytorch_lightning.metrics.functional import (
     auc,
@@ -59,7 +60,8 @@ from pytorch_lightning.metrics.functional import (
     r2score,
     recall,
     roc,
-    stat_scores, ssim,
+    ssim,
+    stat_scores,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
