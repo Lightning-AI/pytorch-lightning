@@ -39,7 +39,7 @@ class _DoublePrecisionPatch:
     @staticmethod
     def _to_double_precision(data: torch.Tensor) -> torch.Tensor:
         if data.is_floating_point():
-            return data.to(dtype=torch.float64)
+            return data.double()
         return data
 
     @staticmethod
