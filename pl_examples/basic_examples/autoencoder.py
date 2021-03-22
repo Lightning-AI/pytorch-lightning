@@ -39,7 +39,7 @@ class LitAutoEncoder(pl.LightningModule):
     )
     """
 
-    def __init__(self, hidden_dim):
+    def __init__(self, hidden_dim: int = 64):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(28 * 28, hidden_dim),
