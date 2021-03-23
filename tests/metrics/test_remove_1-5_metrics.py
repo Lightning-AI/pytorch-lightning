@@ -61,7 +61,7 @@ from pytorch_lightning.metrics.functional import (
     recall,
     roc,
     ssim,
-    stat_scores, bleu_score,
+    stat_scores, bleu_score, embedding_similarity,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
@@ -339,3 +339,12 @@ def test_v1_5_metric_others():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = bleu_score(translate_corpus, reference_corpus)
     assert torch.allclose(res, torch.tensor(0.7598), atol=1e-4)
+
+    embeddings = torch.tensor([[1., 2., 3., 4.], [1., 2., 3., 4.], [4., 5., 6., 7.]])
+    embedding_similarity.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        res = embedding_similarity(embeddings)
+    assert torch.allclose(res, torch.tensor([[0.0000, 1.0000, 0.9759],
+            [1.0000, 0.0000, 0.9759],
+            [0.9759, 0.9759, 0.0000]]), atol=1e-4)
+
