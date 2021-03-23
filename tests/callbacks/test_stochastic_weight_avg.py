@@ -31,13 +31,14 @@ if _TORCH_GREATER_EQUAL_1_6:
 
     class SwaTestModel(BoringModel):
 
-        def __init__(self, batchnorm: bool = True):
+        def __init__(self, batchnorm: bool = True, interval: str = "epoch"):
             super().__init__()
             layers = [nn.Linear(32, 32)]
             if batchnorm:
                 layers.append(nn.BatchNorm1d(32))
             layers += [nn.ReLU(), nn.Linear(32, 2)]
             self.layer = nn.Sequential(*layers)
+            self.interval = interval
 
         def training_step(self, batch, batch_idx):
             output = self.forward(batch)
@@ -47,13 +48,12 @@ if _TORCH_GREATER_EQUAL_1_6:
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
-    class SWATestModelStep(SwaTestModel):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return {
                 "optimizer": optimizer,
                 "scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1),
-                "interval": "step",
+                "interval": self.interval,
             }
 
     class SwaTestCallback(StochasticWeightAveraging):
@@ -103,11 +103,8 @@ if _TORCH_GREATER_EQUAL_1_6:
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, step=False):
-    if step:
-        model = SWATestModelStep(batchnorm=batchnorm)
-    else:
-        model = SwaTestModel(batchnorm=batchnorm)
+def train_with_swa(tmpdir, batchnorm=True, accelerator=None, gpus=None, num_processes=1, interval="epoch"):
+    model = SwaTestModel(batchnorm=batchnorm, interval=interval)
     swa_start = 2
     max_epochs = 5
     swa_callback = SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1)
@@ -158,9 +155,9 @@ def test_swa_callback(tmpdir, batchnorm: bool):
 
 
 @RunIf(min_torch="1.6.0")
-@pytest.mark.parametrize("step", (True, False))
-def test_swa_callback_scheduler_step(tmpdir, step: bool):
-    train_with_swa(tmpdir, step=step)
+@pytest.mark.parametrize("interval", ("epoch", "step"))
+def test_swa_callback_scheduler_step(tmpdir, interval: bool):
+    train_with_swa(tmpdir, interval=interval)
 
 
 @RunIf(min_torch="1.6.0")
