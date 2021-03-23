@@ -383,3 +383,18 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
         mock_clip_grad_norm.assert_called()
     else:
         mock_clip_grad_norm.assert_not_called()
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_if_test_works_with_checkpoint_false(tmpdir):
+    """
+    Ensure that model trains properly when
+    `checkpoint_callback` is set to False.
+    """
+
+    # Train a model on TPU
+    model = BoringModel()
+    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"

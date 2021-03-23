@@ -130,7 +130,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             rendezvous(f"pl.Trainer.{name}")
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
-        best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
+        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
+        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         if self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
