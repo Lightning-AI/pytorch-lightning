@@ -99,7 +99,6 @@ class BaseProfiler(AbstractProfiler):
         stop once you exit the code block.
         """
         try:
-            print(action_name)
             self.start(action_name)
             yield action_name
         finally:
