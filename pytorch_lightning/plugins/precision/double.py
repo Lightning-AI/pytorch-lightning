@@ -48,8 +48,8 @@ class _DoublePrecisionPatch:
             collection, torch.Tensor, function=_DoublePrecisionPatch._to_double_precision
         )
 
-    @staticmethod
-    def patch(model: 'Module', method_name: str) -> '_DoublePrecisionPatch':
+    @classmethod
+    def patch(cls, model: 'Module', method_name: str) -> '_DoublePrecisionPatch':
         old_method = getattr(model, method_name)
 
         @wraps(old_method)
