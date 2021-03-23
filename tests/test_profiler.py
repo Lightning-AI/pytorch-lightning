@@ -312,9 +312,9 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     )
     trainer.fit(model)
 
-    expected = ['validation_step']
+    expected = {'validation_step'}
     if not _KINETO_AVAILABLE:
-        expected += ['training_step_and_backward', 'training_step', 'backward']
+        expected |= {'training_step_and_backward', 'training_step', 'backward'}
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
 
@@ -396,7 +396,7 @@ def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
     pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"], use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None
+        record_functions={"a", "b", "c"}, use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None
     )
 
     with pytorch_profiler.profile("a"):
@@ -450,7 +450,7 @@ def test_register_record_function(tmpdir):
     use_cuda = torch.cuda.is_available()
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
-        record_functions=["a"],
+        record_functions={"a"},
         use_cuda=use_cuda,
         dirpath=tmpdir,
         filename="profiler",

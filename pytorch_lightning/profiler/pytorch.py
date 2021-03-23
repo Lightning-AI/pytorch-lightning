@@ -172,11 +172,11 @@ if _KINETO_AVAILABLE:
 
 class PyTorchProfiler(BaseProfiler):
 
-    RECORD_FUNCTIONS = [
+    RECORD_FUNCTIONS = {
         "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict_step"
-    ]
-    STEP_FUNCTIONS = ["training_step_and_backward", "validation_step", "test_step", "predict_step"]
-    AVAILABLE_SORT_KEYS = [
+    }
+    STEP_FUNCTIONS = {"training_step_and_backward", "validation_step", "test_step", "predict_step"}
+    AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
         "cpu_time_total",
@@ -186,8 +186,8 @@ class PyTorchProfiler(BaseProfiler):
         "self_cpu_memory_usage",
         "self_cuda_memory_usage",
         "count",
-    ]
-    START_RECORD_FUNCTIONS = ['on_train_start', 'on_validation_start', 'on_test_start', 'on_predict_start']
+    }
+    START_RECORD_FUNCTIONS = {'on_train_start', 'on_validation_start', 'on_test_start', 'on_predict_start'}
 
     def __init__(
         self,
@@ -198,7 +198,7 @@ class PyTorchProfiler(BaseProfiler):
         export_to_chrome: bool = True,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        record_functions: List[str] = None,
+        record_functions: Set[str] = None,
         record_module_names: bool = True,
         profiled_functions: Optional[List] = None,
         output_filename: Optional[str] = None,
@@ -240,7 +240,7 @@ class PyTorchProfiler(BaseProfiler):
                 ``cuda_time_total``, ``cpu_memory_usage``, ``cuda_memory_usage``,
                 ``self_cpu_memory_usage``, ``self_cuda_memory_usage``, ``count``.
 
-            record_functions: list of profiled functions which will create a context manager on.
+            record_functions: Set of profiled functions which will create a context manager on.
                 Any other will be pass through.
 
             record_module_names: Whether to add module names while recording autograd operation.
@@ -261,8 +261,8 @@ class PyTorchProfiler(BaseProfiler):
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self._record_functions_start = set(record_functions + self.START_RECORD_FUNCTIONS)
-        self._record_functions = set(record_functions + self.RECORD_FUNCTIONS)
+        self._record_functions_start = record_functions | self.START_RECORD_FUNCTIONS
+        self._record_functions = record_functions | self.RECORD_FUNCTIONS
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
 
@@ -308,10 +308,10 @@ class PyTorchProfiler(BaseProfiler):
     def __deprecation_check(
         self,
         profiled_functions: Optional[List[str]],
-        record_functions: Optional[List[str]],
-    ) -> List[str]:
+        record_functions: Optional[Set[str]],
+    ) -> Set[str]:
         if record_functions is None:
-            record_functions = []
+            record_functions = set()
 
         if profiled_functions is not None:
             rank_zero_warn(
@@ -319,7 +319,7 @@ class PyTorchProfiler(BaseProfiler):
                 " `record_functions` in v1.3 and will be removed in v1.5", DeprecationWarning
             )
             if not record_functions:
-                record_functions += profiled_functions
+                record_functions |= set(profiled_functions)
             else:
                 raise MisconfigurationException(
                     "You set `PytorchProfiler.profiled_functions` and `PyTorchProfiler.record_functions`."
@@ -341,12 +341,8 @@ class PyTorchProfiler(BaseProfiler):
         return []
 
     @property
-    def start_action_names(self) -> Set[str]:
-        return set(self.START_RECORD_FUNCTIONS) | self._record_functions
-
-    @property
     def step_action_names(self) -> Set[str]:
-        return set(self.STEP_FUNCTIONS) | self._record_functions
+        return self.STEP_FUNCTIONS | self._record_functions
 
     def start(self, action_name: str) -> None:
         if self.profiler is None and action_name in self._record_functions_start:
