@@ -25,7 +25,7 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -44,8 +44,6 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.states import RunningStage
 log = logging.getLogger(__name__)
 
 
@@ -69,7 +67,6 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
-        "running_stage",
         "global_rank",
         "local_rank",
         "logger",
@@ -108,6 +105,7 @@ class LightningModule(
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
         self._automatic_optimization: bool = True
+        self._param_requires_grad_state = dict()
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -171,10 +169,6 @@ class LightningModule(
         If False you are responsible for calling .backward, .step, zero_grad.
         """
         return self._automatic_optimization
-
-    @property
-    def running_stage(self) -> Optional["RunningStage"]:
-        return self.trainer._running_stage if self.trainer else None
 
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
@@ -1060,7 +1054,7 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def predict(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
         """
         Use this function with trainer.predict(...). Override if you need to add any processing logic.
         """
@@ -1318,7 +1312,7 @@ class LightningModule(
                         if param in self._param_requires_grad_state:
                             param.requires_grad = self._param_requires_grad_state[param]
         # save memory
-        del self._param_requires_grad_state
+        self._param_requires_grad_state = dict()
 
     def optimizer_step(
         self,

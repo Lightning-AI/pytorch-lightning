@@ -180,7 +180,7 @@ def test_deepspeed_defaults(tmpdir):
     assert isinstance(plugin.config["zero_optimization"], dict)
 
 
-@RunIf(deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_invalid_deepspeed_defaults_no_precision(tmpdir):
     """Test to ensure that using defaults, if precision is not set to 16, we throw an exception."""
     model = BoringModel()
@@ -195,7 +195,7 @@ def test_invalid_deepspeed_defaults_no_precision(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_warn_deepspeed_override_backward(tmpdir):
     """Test to ensure that if the backward hook in the LightningModule is overridden, we throw a warning."""
 
@@ -216,7 +216,7 @@ def test_warn_deepspeed_override_backward(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_run_configure_optimizers(tmpdir):
     """Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
         whilst using configure_optimizers for optimizers and schedulers."""
@@ -246,7 +246,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     """
         Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
@@ -280,7 +280,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_custom_precision_params(tmpdir):
     """Ensure if we modify the FP16 parameters via the DeepSpeedPlugin, the deepspeed config contains these changes."""
 
@@ -301,7 +301,7 @@ def test_deepspeed_custom_precision_params(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
     """Ensure if we use a config and turn off cpu_offload, that this is set to False within the config."""
 

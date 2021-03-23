@@ -49,9 +49,9 @@ class DataParallelPlugin(ParallelPlugin):
 
         else:
 
-            def _reduce(tensor: torch.Tensor):
-                dtype_tensor = tensor.dtype
-                return tensor.float().mean().type(dtype_tensor)
+            def _reduce(t: torch.Tensor):
+                dtype_tensor = t.dtype
+                return t.float().mean().type(dtype_tensor)
 
             tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
 
@@ -71,8 +71,8 @@ class DataParallelPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        return should_stop
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        return decision
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -83,7 +83,7 @@ class DataParallelPlugin(ParallelPlugin):
     def test_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
+    def predict_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
     def training_step_end(self, output):

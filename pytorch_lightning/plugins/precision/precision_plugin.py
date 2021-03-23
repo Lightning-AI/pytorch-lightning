@@ -117,12 +117,12 @@ class PrecisionPlugin(Plugin):
         clip_grad_func(optimizer, clip_val)
 
     def clip_grad_by_value(self, optimizer: 'Optimizer', clip_val: Union[int, float]) -> None:
-        """ clip gradient by value """
+        """Clip gradients by value"""
         parameters = list(self.master_params(optimizer))
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
     def clip_grad_by_norm(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
-        """ clip gradient by norm """
+        """Clip gradients by norm"""
         # TODO: separate TPU case from here
         if clip_val is None:
             return

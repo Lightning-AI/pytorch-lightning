@@ -23,6 +23,7 @@ import torch.multiprocessing as mp
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -52,10 +53,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.tpu_local_core_rank = 0
         self.start_method = None
 
-    def connect(self, model: torch.nn.Module) -> torch.nn.Module:
+    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
         self.create_mp_queue()
-        self._model = model
-        return self._model
+        return self.model
 
     def create_mp_queue(self):
         self.start_method = 'fork'
@@ -111,7 +111,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         trainer.save_checkpoint = self.save_checkpoint
         self.barrier()
 
-        results = trainer.train_or_test_or_predict()
+        results = trainer.run_stage()
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
@@ -130,7 +130,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             rendezvous(f"pl.Trainer.{name}")
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
-        # TODO: is there a better way than accessing callback through model -> trainer -> callback?
         best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
 
         if self.mp_queue is not None:
@@ -138,8 +137,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
             # save the last weights
             last_path = None
-            # TODO: is there a better way than accessing trainer through model -> trainer?
-            if not self.lightning_module.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+            if (
+                self.lightning_module.trainer.state == TrainerState.FITTING and best_model_path is not None
+                and len(best_model_path) > 0
+            ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 self.save(self.lightning_module.state_dict(), last_path)
 
@@ -201,12 +202,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             model.trainer.save_checkpoint(path)
             return path
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        should_stop = torch.tensor(int(should_stop), device=self.lightning_module.device)
-        stop = xm.mesh_reduce('stop_signal', should_stop, sum)
-        rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
-        should_stop = int(stop.item()) == self.world_size
-        return should_stop
+    def reduce_decision(self, decision: bool) -> bool:
+        decision = torch.tensor(int(decision), device=self.device)
+        decision = self.reduce(decision, "sum")
+        decision = bool(decision == self.world_size)
+        return decision
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
@@ -241,7 +241,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # todo, pass also bets score
 
         # load last weights
-        if last_path and not self.lightning_module.trainer.testing:
+        if last_path and model.trainer.state == TrainerState.FITTING:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
@@ -254,14 +254,13 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         model = self.lightning_module
 
         # load weights if not interrupted
-        # TODO: check for trainer reference
-        if on_colab_kaggle() and not model.trainer.testing:
+        if on_colab_kaggle() and model.trainer.state == TrainerState.FITTING:
             self.load_spawn_weights(model)
 
         self._model = model
 
     def _close_logger(self, trainer) -> None:
-        if hasattr(trainer, "logger"):
+        if trainer.logger is not None:
             trainer.logger.finalize("success")
 
     @property
@@ -279,7 +278,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
-    def start_testing(self, trainer) -> None:
+    def start_evaluating(self, trainer) -> None:
         self._close_logger(trainer)
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
@@ -295,8 +294,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def test_step(self, *args, **kwargs):
         return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
-        return self.lightning_module.predict(*args, **kwargs)
+    def predict_step(self, *args, **kwargs):
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         """Save model/training states as a checkpoint file through state-dump and file-write.
