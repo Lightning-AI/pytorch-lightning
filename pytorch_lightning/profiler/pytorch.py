@@ -34,6 +34,12 @@ if TYPE_CHECKING:
 
     from pytorch_lightning.core.lightning import LightningModule
 
+if TYPE_CHECKING:
+    from torch.autograd.profiler import EventList
+    from torch.utils.hooks import RemovableHandle
+
+    from pytorch_lightning.core.lightning import LightningModule
+
 log = logging.getLogger(__name__)
 
 _PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
@@ -175,7 +181,7 @@ class PyTorchProfiler(BaseProfiler):
     RECORD_FUNCTIONS = (
         "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict_step"
     )
-    STEP_FUNCTIONS = ("training_step_and_backward", "validation_step", "test_step", "predict")
+    STEP_FUNCTIONS = ("training_step_and_backward", "validation_step", "test_step", "predict_step")
     AVAILABLE_SORT_KEYS = (
         "cpu_time",
         "cuda_time",
@@ -260,7 +266,7 @@ class PyTorchProfiler(BaseProfiler):
 
         if isinstance(sort_by_key, str) and sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
-                f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
+                f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)

@@ -21,6 +21,7 @@ from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
@@ -437,3 +438,27 @@ class Accelerator(object):
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
         return self.training_type_plugin.results
+
+    # todo: remove in v1.5
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+        """
+        Attaches the training type plugin to the accelerator.
+        Also transfers ownership of the model to this plugin
+
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
+        """
+        rank_zero_warn('Accelerator method `connect_training_type_plugin` was deprecated in v1.3.'
+                       ' It will be removed in v1.5.')
+        self.setup_training_type_plugin(plugin, model)
+
+    # todo: remove in v1.5
+    def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
+        """Attaches the precision plugin to the accelerator
+
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
+        """
+        rank_zero_warn('Accelerator method `connect_precision_plugin` was deprecated in v1.3.'
+                       ' It will be removed in v1.5.')
+        self.setup_precision_plugin(plugin)

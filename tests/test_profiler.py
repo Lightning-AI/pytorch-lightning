@@ -477,6 +477,43 @@ def test_register_record_function(tmpdir):
     assert 'torch.nn.modules.linear.Linear: layer.2' in event_names
 
 
+@RunIf(min_torch="1.5.0")
+def test_register_record_function(tmpdir):
+
+    use_cuda = torch.cuda.is_available()
+    pytorch_profiler = PyTorchProfiler(
+        export_to_chrome=False,
+        record_functions=["a"],
+        use_cuda=use_cuda,
+        dirpath=tmpdir,
+        filename="profiler",
+    )
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.ReLU(), torch.nn.Linear(8, 2))
+
+    model = TestModel()
+    input = torch.rand((1, 8))
+
+    if use_cuda:
+        model = model.cuda()
+        input = input.cuda()
+
+    with pytorch_profiler.profile("a"):
+        with RegisterRecordFunction(model):
+            model(input)
+
+    pytorch_profiler.describe()
+    event_names = [e.name for e in pytorch_profiler.function_events]
+    assert 'torch.nn.modules.container.Sequential: layer' in event_names
+    assert 'torch.nn.modules.linear.Linear: layer.0' in event_names
+    assert 'torch.nn.modules.activation.ReLU: layer.1' in event_names
+    assert 'torch.nn.modules.linear.Linear: layer.2' in event_names
+
+
 @pytest.mark.parametrize("cls", (SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
 def test_profiler_teardown(tmpdir, cls):
     """
