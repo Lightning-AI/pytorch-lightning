@@ -87,7 +87,7 @@ class LoggerConnector:
         return metrics_holder.metrics
 
     def set_metrics(self, key: str, val: Dict) -> None:
-        metrics_holder: MetricsHolder = getattr(self, f"_{key}", None)
+        metrics_holder: MetricsHolder = getattr(self, f"_{key}")
         metrics_holder.reset(val)
 
     def reset(self) -> None:
