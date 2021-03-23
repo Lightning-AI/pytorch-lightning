@@ -80,23 +80,3 @@ def test_get_model_gpu(tmpdir):
         gpus=1,
     )
     trainer.fit(model)
-
-
-@RunIf(min_gpus=1, skip_windows=True)
-def test_get_model_ddp_gpu(tmpdir):
-    """
-    Tests that `trainer.lightning_module` extracts the model correctly when using GPU + ddp accelerators
-    """
-
-    model = TrainerGetModel()
-
-    limit_train_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        gpus=1,
-    )
-    trainer.fit(model)
-    return 1

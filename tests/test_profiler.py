@@ -130,10 +130,10 @@ def test_simple_profiler_log_dir(tmpdir):
     )
     trainer.fit(model)
 
-    expected = profiler.dirpath
+    expected = tmpdir / "lightning_logs" / "version_0"
     assert trainer.log_dir == expected
     assert profiler._log_dir == trainer.log_dir
-    assert Path(os.path.join(profiler.dirpath, "fit-profiler.txt")).exists()
+    assert expected.join("fit-profiler.txt").exists()
 
 
 @RunIf(skip_windows=True)
@@ -280,15 +280,10 @@ def test_pytorch_profiler_describe(pytorch_profiler):
     assert len(data) > 0
 
 
-def test_pytorch_profiler_value_errors(pytorch_profiler):
+def test_pytorch_profiler_raises(pytorch_profiler):
     """Ensure errors are raised where expected."""
-    action = "test_step"
-    pytorch_profiler.start(action)
-    pytorch_profiler.stop(action)
-
     with pytest.raises(MisconfigurationException, match="profiled_functions` and `PyTorchProfiler.record"):
         PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
-    pytorch_profiler.teardown()
 
 
 @pytest.mark.skipif(reason="Segmentation fault (core dumped)")
@@ -306,9 +301,8 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
 
 
 @RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir):
+def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(dirpath=None, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -329,14 +323,15 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
         assert len(pytorch_profiler.summary()) > 0
         assert set(pytorch_profiler.profiled_actions) == {'training_step_and_backward', 'validation_step'}
 
-        files = sorted(f for f in os.listdir(pytorch_profiler.dirpath) if "fit" in f)
-        rank = int(os.getenv("LOCAL_RANK", "0"))
+        trainer.accelerator.barrier()
+
+        files = set(os.listdir(pytorch_profiler.dirpath))
+        rank = int(os.getenv("LOCAL_RANK", 0))
         expected = f"fit-profiler-{rank}.txt"
-        assert files[rank] == expected
+        assert expected in files
 
         path = os.path.join(pytorch_profiler.dirpath, expected)
-        data = Path(path).read_text("utf-8")
-        assert len(data) > 0
+        assert Path(path).read_text()
     else:
         files = os.listdir(trainer.profiler.dirpath)
         files = sorted([file for file in files if file.endswith('.json')])
@@ -477,7 +472,7 @@ def test_register_record_function(tmpdir):
         use_cuda=use_cuda,
         output_filename=os.path.join(tmpdir, "profiler.txt"),
         schedule=None,
-        #on_trace_ready=None,
+        on_trace_ready=None,
     )
 
     class TestModel(BoringModel):

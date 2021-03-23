@@ -126,7 +126,7 @@ class BaseProfiler(AbstractProfiler):
             filename += f"{self._stage}-"
         filename += str(self.filename)
         if self._local_rank is not None:
-            filename += f"-{self.local_rank}"
+            filename += f"-{self._local_rank}"
         filename += ".txt"
         return filename
 
@@ -134,8 +134,7 @@ class BaseProfiler(AbstractProfiler):
         if self._write_stream is not None:
             return
         if self.filename:
-            dirpath = self.dirpath or self._log_dir
-            filepath = os.path.join(dirpath, self._prepare_filename())
+            filepath = os.path.join(self.dirpath, self._prepare_filename())
             fs = get_filesystem(filepath)
             file = fs.open(filepath, "a")
             self._output_file = file
@@ -175,8 +174,7 @@ class BaseProfiler(AbstractProfiler):
         self._stage = stage
         self._local_rank = local_rank
         self._log_dir = log_dir
-        if self.dirpath is None:
-            self.dirpath = self._log_dir
+        self.dirpath = self.dirpath or log_dir
 
     def teardown(self, stage: Optional[str] = None) -> None:
         """
@@ -202,8 +200,8 @@ class BaseProfiler(AbstractProfiler):
         raise NotImplementedError
 
     @property
-    def local_rank(self):
-        return '0' if self._local_rank is None else self._local_rank
+    def local_rank(self) -> int:
+        return 0 if self._local_rank is None else self._local_rank
 
 
 class PassThroughProfiler(BaseProfiler):
