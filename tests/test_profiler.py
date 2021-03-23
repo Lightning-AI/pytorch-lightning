@@ -268,7 +268,7 @@ def pytorch_profiler(tmpdir):
 
 def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
-    with pytorch_profiler.profile("test_step"):
+    with pytorch_profiler.profile("on_test_start"):
         pass
 
     # log to stdout and print to file
@@ -366,10 +366,11 @@ def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
 def test_pytorch_profiler_trainer_validate(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the trainer and validate function are properly recorded. """
     model = BoringModel()
+    model.val_dataloader = model.train_dataloader
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_test_batches=2,
+        limit_val_batches=2,
         profiler=pytorch_profiler,
     )
     trainer.validate(model)

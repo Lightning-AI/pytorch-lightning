@@ -109,7 +109,7 @@ class PyTorchProfiler(BaseProfiler):
         "self_cuda_memory_usage",
         "count",
     )
-    START_RECORD_FUNCTIONS = ('on_train_start', 'on_validation_step', 'on_test_start', 'on_predict_start')
+    START_RECORD_FUNCTIONS = ('on_train_start', 'on_validation_start', 'on_test_start', 'on_predict_start')
 
     def __init__(
         self,
@@ -285,7 +285,11 @@ class PyTorchProfiler(BaseProfiler):
             path_to_trace = (
                 filename if self._path_to_export_trace is None else os.path.join(self._path_to_export_trace, filename)
             )
-            self.function_events.export_chrome_trace(path_to_trace)
+            if self.function_events is not None and len(self.function_events) > 0:
+                self.function_events.export_chrome_trace(path_to_trace)
+
+        if self.function_events is None or len(self.function_events) > 0:
+            return ""
 
         data = self.function_events.key_averages(group_by_input_shapes=self._group_by_input_shapes)
         table = data.table(sort_by=self._sort_by_key, row_limit=self._row_limit)
