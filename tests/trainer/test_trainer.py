@@ -1450,6 +1450,19 @@ def test_trainer_predict_no_return(tmpdir):
         predict(tmpdir, None, None, 1, model=CustomBoringModel())
 
 
+def test_trainer_predict_grad(tmpdir):
+    class CustomBoringModel(BoringModel):
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            assert batch.expand_as(batch).grad_fn is None
+            return super().predict_step(batch, batch_idx, dataloader_idx)
+
+    predict(tmpdir, None, None, 1, model=CustomBoringModel())
+
+    x = torch.zeros(1, requires_grad=True)
+    assert x.expand_as(x).grad_fn is not None
+
+
 @pytest.mark.parametrize('datamodule', [False, True])
 def test_trainer_predict_cpu(tmpdir, datamodule):
     predict(tmpdir, None, None, 1, datamodule=datamodule)
