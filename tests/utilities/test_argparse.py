@@ -7,13 +7,13 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.argparse import (
+    _gpus_arg_default,
+    _int_or_float_type,
     add_argparse_args,
     from_argparse_args,
     get_abbrev_qualified_cls_name,
     parse_argparser,
     parse_args_from_docstring,
-    _gpus_arg_default,
-    _int_or_float_type
 )
 
 

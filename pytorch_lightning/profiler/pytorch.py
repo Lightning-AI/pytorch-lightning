@@ -203,7 +203,8 @@ class PyTorchProfiler(BaseProfiler):
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-    def __deprecation_check(self, profiled_functions: List[str] = [], record_functions: List[str] = []) -> List[str]:
+    def __deprecation_check(self, profiled_functions: Optional[List[str]],
+                            record_functions: Optional[List[str]]) -> List[str]:
         if record_functions is None:
             record_functions = []
 

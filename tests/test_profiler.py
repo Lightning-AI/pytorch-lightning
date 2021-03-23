@@ -391,11 +391,7 @@ def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
     pytorch_profiler = PyTorchProfiler(
-        export_to_chrome=False,
-        record_functions=["a", "b", "c"],
-        use_cuda=torch.cuda.is_available(),
-        dirpath=tmpdir,
-        filename="profiler",
+        profiled_functions=["a", "b", "c"], use_cuda=False, dirpath=tmpdir, filename="profiler"
     )
 
     with pytorch_profiler.profile("a"):

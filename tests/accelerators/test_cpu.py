@@ -2,6 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.plugins import SingleDevicePlugin
