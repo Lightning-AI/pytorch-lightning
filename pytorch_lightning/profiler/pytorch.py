@@ -390,7 +390,7 @@ class PyTorchProfiler(BaseProfiler):
             self._recording_map[action_name].__exit__(None, None, None)
             del self._recording_map[action_name]
 
-        if not _TORCH_GREATER_EQUAL_1_8:
+        if not _TORCH_GREATER_EQUAL_1_8 or self._emit_nvtx:
             return
 
         if action_name in self.step_action_names:
@@ -454,6 +454,8 @@ class PyTorchProfiler(BaseProfiler):
         return profiler(**kwargs)
 
     def _cache_functions_events(self):
+        if self._emit_nvtx:
+            return
         if _TORCH_GREATER_EQUAL_1_8:
             self.function_events = self.profiler.events()
         else:
