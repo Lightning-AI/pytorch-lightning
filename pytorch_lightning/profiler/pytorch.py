@@ -280,16 +280,15 @@ class PyTorchProfiler(BaseProfiler):
 
         self._delete_profilers()
 
+        if not self.function_events:
+            return ""
+
         if self._export_to_chrome:
             filename = f"{self.local_rank}_trace.json"
             path_to_trace = (
                 filename if self._path_to_export_trace is None else os.path.join(self._path_to_export_trace, filename)
             )
-            if self.function_events is not None and len(self.function_events) > 0:
-                self.function_events.export_chrome_trace(path_to_trace)
-
-        if self.function_events is None or len(self.function_events) > 0:
-            return ""
+            self.function_events.export_chrome_trace(path_to_trace)
 
         data = self.function_events.key_averages(group_by_input_shapes=self._group_by_input_shapes)
         table = data.table(sort_by=self._sort_by_key, row_limit=self._row_limit)
