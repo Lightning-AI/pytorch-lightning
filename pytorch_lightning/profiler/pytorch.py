@@ -331,9 +331,10 @@ class PyTorchProfiler(BaseProfiler):
     @staticmethod
     def _default_schedule() -> Optional[callable]:
         if _KINETO_AVAILABLE:
+            # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=2)
 
-    def _default_activities(self) -> List[ProfilerActivity]:
+    def _default_activities(self) -> List['ProfilerActivity']:
         activities = []
         if not _KINETO_AVAILABLE:
             return activities
