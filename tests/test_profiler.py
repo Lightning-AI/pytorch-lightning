@@ -383,8 +383,8 @@ def test_pytorch_profiler_trainer_predict(tmpdir):
 
     if not _TORCH_GREATER_EQUAL_1_8:
         assert len([e for e in pytorch_profiler.function_events if 'predict' == e.name]) > 0
-        data = Path(pytorch_profiler.output_fname).read_text()
-        assert len(data) > 0
+        path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
+        assert path.read_text("utf-8")
     else:
         files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
         assert 'predict_0' in files[0]
@@ -545,5 +545,6 @@ def test_profiler_teardown(tmpdir, cls):
 @pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="currently not supported for PyTorch 1.8")
 def test_pytorch_profiler_deepcopy(pytorch_profiler):
     pytorch_profiler.start("on_train_start")
+    torch.tensor(1)
     pytorch_profiler.describe()
     assert deepcopy(pytorch_profiler)

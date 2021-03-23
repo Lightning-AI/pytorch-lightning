@@ -265,6 +265,7 @@ class PyTorchProfiler(BaseProfiler):
         self._parent_profiler = None
         self._recording_map: Dict[str, record_function] = {}
         self._profiler_instantiated: bool = False
+        self._schedule: Optional[ScheduleWrapper] = None
 
         if _TORCH_GREATER_EQUAL_1_8:
             schedule = profiler_kwargs.get("schedule", None)
