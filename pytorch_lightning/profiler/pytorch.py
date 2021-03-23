@@ -115,10 +115,10 @@ if _KINETO_AVAILABLE:
             self._current_action: Optional[str] = None
             self._start_action_name: Optional[str] = None
 
-        def setup(self, start_action_name: str):
+        def setup(self, start_action_name: str) -> None:
             self._start_action_name = start_action_name
 
-        def pre_step(self, current_action: str):
+        def pre_step(self, current_action: str) -> None:
             self._current_action = current_action
 
         @property
@@ -129,7 +129,7 @@ if _KINETO_AVAILABLE:
                 return self._num_validation_step
             elif self._current_action == "test_step":
                 return self._num_test_step
-            elif self._current_action == "predict":
+            elif self._current_action == "predict_step":
                 return self._num_predict_step
             else:
                 return 0
@@ -144,7 +144,7 @@ if _KINETO_AVAILABLE:
                     self._num_validation_step += 1
             elif self._current_action == "test_step":
                 self._num_test_step += 1
-            elif self._current_action == "predict":
+            elif self._current_action == "predict_step":
                 self._num_predict_step += 1
 
         @property
