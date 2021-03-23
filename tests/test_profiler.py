@@ -316,8 +316,6 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events)
 
-    trainer.accelerator.barrier()
-
     files = set(os.listdir(pytorch_profiler.dirpath))
     expected = f"fit-profiler-{trainer.local_rank}.txt"
     assert expected in files
