@@ -26,7 +26,6 @@ class AutomatedOptimizer(Optimizer):
         print("running automated step")
         output = self._accelerator.run_optimizer_step(
             self.optimizer,
-            optimizer_idx=0,  # TODO: remove optimizer_idx
             lambda_closure=closure,
             **kwargs,
         )
