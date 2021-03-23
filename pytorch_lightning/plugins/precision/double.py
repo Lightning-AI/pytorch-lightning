@@ -53,7 +53,7 @@ class _DoublePrecisionPatch:
         old_method = getattr(model, method_name)
 
         @wraps(old_method)
-        def new_method(*args, **kwargs) -> Any:
+        def new_method(*args: Any, **kwargs: Any) -> Any:
             return old_method(
                 *_DoublePrecisionPatch._move_float_tensors_to_double(args),
                 **_DoublePrecisionPatch._move_float_tensors_to_double(kwargs)
