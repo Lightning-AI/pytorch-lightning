@@ -78,14 +78,14 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         lr_schedulers: Sequence[Any],
     ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
         """Converts the model to double precision and wraps the `training_step`, `validation_step`, `test_step`,
-        `predict`, and `forward` methods to convert incoming floating point data to double. Does not alter `optimizers`
-        or `lr_schedulers`."""
+        `predict_step`, and `forward` methods to convert incoming floating point data to double. Does not alter
+        `optimizers` or `lr_schedulers`."""
         model = model.to(dtype=torch.float64)
         if isinstance(model, LightningModule):
             self.patches.append(_DoublePrecisionPatch.patch(model, 'training_step'))
             self.patches.append(_DoublePrecisionPatch.patch(model, 'validation_step'))
             self.patches.append(_DoublePrecisionPatch.patch(model, 'test_step'))
-            self.patches.append(_DoublePrecisionPatch.patch(model, 'predict'))
+            self.patches.append(_DoublePrecisionPatch.patch(model, 'predict_step'))
         self.patches.append(_DoublePrecisionPatch.patch(model, 'forward'))
 
         return super().connect(model, optimizers, lr_schedulers)

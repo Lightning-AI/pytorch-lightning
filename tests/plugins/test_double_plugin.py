@@ -55,7 +55,7 @@ class DoublePrecisionBoringModel(BoringModel):
         loss = self.loss(batch, output)
         return {"y": loss}
 
-    def predict(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
         assert batch.dtype == torch.float64
         return self(batch)
 
@@ -97,7 +97,7 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
         loss = self.loss(batch, output)
         return {"y": loss}
 
-    def predict(self, batch, batch_idx, dataloader_idx=None):
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
         assert batch.dtype == torch.float64
         output = self.layer(batch)
         assert output.dtype == torch.float64
