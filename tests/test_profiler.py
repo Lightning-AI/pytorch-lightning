@@ -13,10 +13,10 @@
 # limitations under the License.
 import logging
 import os
-from pathlib import Path
 import time
 from copy import deepcopy
 from distutils.version import LooseVersion
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -285,6 +285,7 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     pytorch_profiler.stop(action)
 
 
+@RunIf(min_torch="1.6.0")
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522"""
     model = BoringModel()
@@ -320,7 +321,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
     rank = int(os.getenv("LOCAL_RANK", "0"))
     expected = f"fit-profiler-{rank}.txt"
     assert files[rank] == expected
-    
+
     path = os.path.join(pytorch_profiler.dirpath, expected)
     data = Path(path).read_text("utf-8")
     assert len(data) > 0
