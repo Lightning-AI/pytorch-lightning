@@ -294,14 +294,14 @@ class PyTorchProfiler(BaseProfiler):
         self._schedule: Optional[ScheduleWrapper] = None
 
         if _KINETO_AVAILABLE:
-            self.__init_kento(profiler_kwargs)
+            self.__init_kineto(profiler_kwargs)
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-    def __init_kento(self, profiler_kwargs: Any):
+    def __init_kineto(self, profiler_kwargs: Any):
         has_schedule = "schedule" in profiler_kwargs
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
