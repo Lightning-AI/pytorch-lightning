@@ -250,7 +250,8 @@ class PyTorchProfiler(BaseProfiler):
         Raises:
             MisconfigurationException:
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
-            TODO: update this
+                If arg ``schedule`` is not a ``Callable``.
+                If arg ``schedule`` does not return a ``torch.profiler.ProfilerAction``.
         """
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
@@ -333,7 +334,7 @@ class PyTorchProfiler(BaseProfiler):
         if _KINETO_AVAILABLE:
             return torch.profiler.schedule(wait=1, warmup=1, active=2)
 
-    def _default_activities(self) -> List[ProfilerActivity]:
+    def _default_activities(self) -> List['ProfilerActivity']:
         activities = []
         if not _KINETO_AVAILABLE:
             return activities
