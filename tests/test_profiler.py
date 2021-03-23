@@ -339,7 +339,7 @@ def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
     )
     trainer.test(model)
 
-    assert len([e for e in pytorch_profiler.function_events if 'test_step' == e.name]) > 0
+    assert sum(e.name == 'test_step' for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -357,7 +357,7 @@ def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
     )
     trainer.predict(model)
 
-    assert len([e for e in pytorch_profiler.function_events if 'predict' == e.name]) > 0
+    assert sum(e.name == 'predict_step' for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -374,7 +374,7 @@ def test_pytorch_profiler_trainer_validate(tmpdir, pytorch_profiler):
     )
     trainer.validate(model)
 
-    assert len([e for e in pytorch_profiler.function_events if 'validation_step' == e.name]) > 0
+    assert sum(e.name == 'validation_step' for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"validate-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
