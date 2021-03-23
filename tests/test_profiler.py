@@ -27,6 +27,7 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -504,6 +505,7 @@ def test_profiler_teardown(tmpdir, cls):
     assert profiler._output_file is None
 
 
+@pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="currently not supported for PyTorch 1.8")
 def test_pytorch_profiler_deepcopy(pytorch_profiler):
     pytorch_profiler.start("on_train_start")
     pytorch_profiler.describe()
