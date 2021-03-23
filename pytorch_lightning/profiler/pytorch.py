@@ -187,6 +187,7 @@ class PyTorchProfiler(BaseProfiler):
         self._path_to_export_trace = path_to_export_trace
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
+        self._record_functions_start = set(record_functions + list(self.START_RECORD_FUNCTIONS))
         self._record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
@@ -243,7 +244,7 @@ class PyTorchProfiler(BaseProfiler):
             self._path_to_export_trace = log_dir
 
     def start(self, action_name: str) -> None:
-        if self.profiler is None and action_name in self._record_functions:
+        if self.profiler is None and action_name in self._record_functions_start:
 
             # close profiler if it is already opened. might happen if 2 profilers
             # are created and the first one did not call `describe`
@@ -277,7 +278,6 @@ class PyTorchProfiler(BaseProfiler):
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
             return ""
 
-        self.function_events = self.profiler.function_events
         self._delete_profilers()
 
         if self._export_to_chrome:
@@ -308,9 +308,13 @@ class PyTorchProfiler(BaseProfiler):
         kwargs = {k: v for k, v in self._profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
 
+    def _cache_functions_events(self):
+        self.function_events = self.profiler.function_events
+
     def _delete_profilers(self) -> None:
         if self.profiler is not None:
             self.profiler.__exit__(None, None, None)
+            self._cache_functions_events()
             self.profiler = None
 
         if self._parent_profiler is not None:
