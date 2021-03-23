@@ -104,6 +104,7 @@ if _TORCH_GREATER_EQUAL_1_8:
             self._validation_step_reached_end = False
             # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
             self._current_action = None
+            self._start_action_name = None
 
         @property
         def num_step(self) -> int:
@@ -121,9 +122,11 @@ if _TORCH_GREATER_EQUAL_1_8:
         def _step(self) -> None:
             if self._current_action == "training_step_and_backward":
                 self._num_training_step_and_backward += 1
-            elif self._current_action == "validation_step" and self._num_training_step_and_backward > 0:
-                # skip sanity check
-                self._num_validation_step += 1
+            elif self._current_action == "validation_step":
+                if self._start_action_name == "on_train_start" and self._num_training_step_and_backward > 0:
+                    self._num_validation_step += 1
+                else:
+                    self._num_validation_step += 1
             elif self._current_action == "test_step":
                 self._num_test_step += 1
             elif self._current_action == "predict":
@@ -169,7 +172,7 @@ class PyTorchProfiler(BaseProfiler):
         "self_cuda_memory_usage",
         "count",
     )
-    START_RECORD_FUNCTIONS = ('on_train_start', 'on_validation_step', 'on_test_start', 'on_predict_start')
+    START_RECORD_FUNCTIONS = ('on_train_start', 'on_validation_start', 'on_test_start', 'on_predict_start')
 
     def __init__(
         self,
@@ -265,8 +268,11 @@ class PyTorchProfiler(BaseProfiler):
         self._parent_profiler = None
         self._recording_map: Dict[str, record_function] = {}
         self._profiler_instantiated: bool = False
+        self._start_action_name: Optional[str] = None
 
         if _TORCH_GREATER_EQUAL_1_8:
+            has_schedule = "schedule" in profiler_kwargs
+            self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
             schedule = profiler_kwargs.get("schedule", None)
             activities = profiler_kwargs.get("activities", None)
             if schedule is not None:
@@ -279,15 +285,17 @@ class PyTorchProfiler(BaseProfiler):
                         "Schedule should be a callable returning `torch.profiler.ProfilerAction`. "
                     )
 
-            self._profiler_kwargs["schedule"] = self._schedule = ScheduleWrapper(schedule or self._default_schedule())
+            schedule = schedule if has_schedule else self._default_schedule()
+            self._profiler_kwargs["schedule"] = self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
             self._profiler_kwargs["activities"] = activities or self._default_activities()
             self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", True)
             self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
+            self._profiler_kwargs["with_stack"] = profiler_kwargs.get("with_stack", True) or self._export_to_flame_graph
 
         if self._export_to_chrome and self._path_to_export_trace is None:
             rank_zero_warn(
                 "The exported trace would be saved locally as `path_to_export_trace` is None."
-                " Note: Each functions will generate its own traced file."
+                " Note: Each functions will generate its own traced file.", UserWarning
             )
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
@@ -339,9 +347,17 @@ class PyTorchProfiler(BaseProfiler):
         if self._path_to_export_trace is None:
             self._path_to_export_trace = log_dir
 
+    @property
+    def start_action_names(self):
+        return set(list(self.START_RECORD_FUNCTIONS) + list(self._record_functions))
+
+    @property
+    def step_action_names(self):
+        return set(list(self.STEP_FUNCTIONS) + list(self._record_functions))
+
     def start(self, action_name: str) -> None:
         if not self._profiler_instantiated and action_name in (
-            list(self.START_RECORD_FUNCTIONS) + list(self._record_functions)
+            self.start_action_names
         ):
 
             # close profiler if it is already opened
@@ -350,9 +366,14 @@ class PyTorchProfiler(BaseProfiler):
             except (AttributeError, RuntimeError):
                 pass
 
+            self._start_action_name = action_name
+
             self._create_profilers()
 
-            self.profiler.__enter__()
+            profiler = self.profiler.__enter__()
+            if profiler is not None:
+                self.profiler = profiler
+
             if self._parent_profiler is not None:
                 self._parent_profiler.__enter__()
 
@@ -372,6 +393,7 @@ class PyTorchProfiler(BaseProfiler):
 
         if self._schedule is not None:
             self._schedule._current_action = action_name
+            self._schedule._start_action_name = self._start_action_name
 
     def stop(self, action_name: str) -> None:
         if action_name in self._recording_map:
@@ -381,7 +403,7 @@ class PyTorchProfiler(BaseProfiler):
         if not _TORCH_GREATER_EQUAL_1_8:
             return
 
-        if action_name in self.STEP_FUNCTIONS:
+        if action_name in self.step_action_names:
             if self._schedule is not None:
                 self._schedule._current_action = action_name
 
@@ -389,14 +411,22 @@ class PyTorchProfiler(BaseProfiler):
                 local_rank = 0 if self.local_rank is None else self.local_rank
                 filename = f"{action_name}_{local_rank}"
 
-                if self._export_to_chrome:
-                    tensorboard_trace_handler(self._path_to_export_trace, filename)(profiler)
+                dirpath = self._path_to_export_trace or self.dirpath or self._log_dir
 
-                if self._export_to_flame_graph:
-                    path = os.path.join(self._path_to_export_trace, f"{filename}.stack")
-                    profiler.export_stacks(path, metric=self._metric)
+                if dirpath is not None:
+                    if self._export_to_chrome:
+                        tensorboard_trace_handler(dirpath, filename)(profiler)
 
-            self.profiler.on_trace_ready = on_trace_ready
+                    if self._export_to_flame_graph:
+                        path = os.path.join(dirpath, f"{filename}.stack")
+                        profiler.export_stacks(path, metric=self._metric)
+                else:
+                    rank_zero_warn(
+                        f"The Profiler failed to export trace as ``path_to_export_trace`` and ``dirpath`` and ``log_dir`` are None",
+                        UserWarning)
+            
+            if not self._has_on_trace_ready:
+                self.profiler.on_trace_ready = on_trace_ready
             self.profiler.step()
 
     def summary(self) -> str:
@@ -405,7 +435,17 @@ class PyTorchProfiler(BaseProfiler):
 
         self.profiler.__exit__(None, None, None)
         if _TORCH_GREATER_EQUAL_1_8:
-            self.function_events = self.profiler.events()
+            try:
+                self.function_events = self.profiler.events()
+            except AssertionError as e:
+                if self._schedule is not None:
+                    rank_zero_warn(
+                        f"The 1.8+ PyTorch Profiler uses a schedule to record trace. "
+                        "It didn't perform enough steps on {self.step_action_names}"
+                        "HINT: Perform enough step or do: PyTorchProfiler(schedule=None)",
+                        UserWarning)
+                raise e
+
         elif not self._emit_nvtx:
             self.function_events = self.profiler.function_events
 
