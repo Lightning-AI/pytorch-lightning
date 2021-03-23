@@ -112,8 +112,14 @@ if _TORCH_GREATER_EQUAL_1_8:
             self._training_step_and_backward_reached_end = False
             self._validation_step_reached_end = False
             # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
-            self._current_action = None
-            self._start_action_name = None
+            self._current_action: Optional[str] = None
+            self._start_action_name: Optional[str] = None
+
+        def setup(self, start_action_name: str):
+            self._start_action_name = start_action_name
+
+        def pre_step(self, current_action: str):
+            self._current_action = current_action
 
         @property
         def num_step(self) -> int:
@@ -378,7 +384,8 @@ class PyTorchProfiler(BaseProfiler):
             except (AttributeError, RuntimeError):
                 pass
 
-            self._start_action_name = action_name
+            if self._schedule is not None:
+                self._schedule.setup(action_name)
 
             self._create_profilers()
 
@@ -404,8 +411,7 @@ class PyTorchProfiler(BaseProfiler):
             self._recording_map[action_name] = recording
 
         if self._schedule is not None:
-            self._schedule._current_action = action_name
-            self._schedule._start_action_name = self._start_action_name
+            self._schedule.pre_step(action_name)
 
     def stop(self, action_name: str) -> None:
         if action_name in self._recording_map:
