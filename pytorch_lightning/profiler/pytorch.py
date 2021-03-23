@@ -96,7 +96,7 @@ class RegisterRecordFunction:
 class PyTorchProfiler(BaseProfiler):
 
     RECORD_FUNCTIONS = (
-        "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict"
+        "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict_step"
     )
     AVAILABLE_SORT_KEYS = (
         "cpu_time",

@@ -353,7 +353,7 @@ def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
     )
     trainer.predict(model)
 
-    assert sum(e.name == 'predict' for e in pytorch_profiler.function_events)
+    assert sum(e.name == 'predict_step' for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
