@@ -130,7 +130,7 @@ def main():
 
             output = netD(real_cpu)
             errD_real = criterion(output, label)
-            errD_real.backward()
+            automator.backward(errD_real)
             D_x = output.mean().item()
 
             # train with fake
@@ -139,7 +139,7 @@ def main():
             label.fill_(fake_label)
             output = netD(fake.detach())
             errD_fake = criterion(output, label)
-            errD_fake.backward()
+            automator.backward(errD_fake)
             D_G_z1 = output.mean().item()
             errD = errD_real + errD_fake
             optimizerD.step()
@@ -151,7 +151,7 @@ def main():
             label.fill_(real_label)  # fake labels are real for generator cost
             output = netD(fake)
             errG = criterion(output, label)
-            errG.backward()
+            automator.backward(errG)
             D_G_z2 = output.mean().item()
             optimizerG.step()
 

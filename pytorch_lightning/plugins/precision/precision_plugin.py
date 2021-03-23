@@ -98,6 +98,12 @@ class PrecisionPlugin(Plugin):
     def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
 
+    def run_pre_optimizer_step(self, optimizer: "Optimizer"):
+        """ Lightning-independent pre optimizer step logic. """
+
+    def run_post_optimizer_step(self, optimizer: "Optimizer"):
+        """ Lightning-independent post optimizer step logic. """
+
     def clip_gradients(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
         """Clips the gradients to a specific value"""
         if clip_val is None:

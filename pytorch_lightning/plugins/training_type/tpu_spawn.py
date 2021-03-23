@@ -14,11 +14,12 @@
 import io
 import os
 import re
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union, Callable
 
 import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
+from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -270,6 +271,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             "nprocs": len(self.parallel_devices),
             "start_method": self.start_method
         }
+
+    def optimizer_step(self, optimizer: Optimizer, lambda_closure: Callable, **kwargs):
+        xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
     def start_training(self, trainer) -> None:
         # todo: precision pluging is call in accelerator setup and should be moved

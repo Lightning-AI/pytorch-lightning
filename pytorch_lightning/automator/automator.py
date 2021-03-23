@@ -1,11 +1,14 @@
+from weakref import proxy
 from collections import Callable
 from contextlib import contextmanager
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.trainer.connectors.accelerator_connector import (
     AcceleratorConnector,
 )
@@ -13,13 +16,21 @@ from pytorch_lightning.utilities import move_data_to_device
 
 
 class AutomatedOptimizer(Optimizer):
-    def __init__(self, optimizer: Optimizer):
+    def __init__(self, optimizer: Optimizer, accelerator: Accelerator):
         super().__init__(params=optimizer.param_groups, defaults={})
         self.optimizer = optimizer
+        self._accelerator = accelerator
 
-    def step(self, closure=None):
+    def step(self, closure=None, **kwargs: Any):
         # TODO: do precision magic here
-        return self.optimizer.step(closure)
+        print("running automated step")
+        output = self._accelerator.run_optimizer_step(
+            self.optimizer,
+            optimizer_idx=0,  # TODO: remove optimizer_idx
+            lambda_closure=closure,
+            **kwargs,
+        )
+        return output
 
 
 class Automator:
@@ -89,33 +100,34 @@ class Automator:
     def setup_optimizer(self, *optimizers: Optimizer):
         # user can call this method independently instead of the general purpose setup method
         # TODO: let plugin setup optimizer too?
-        return [AutomatedOptimizer(optimizer) for optimizer in optimizers]
+        return [AutomatedOptimizer(optimizer=optimizer, accelerator=self.accelerator) for optimizer in optimizers]
 
     def setup_dataloader(self, *dataloaders: DataLoader):
         # user can call this method independently instead of the general purpose setup method
-        return [
+        dataloaders = [
             self.training_type_plugin.setup_dataloader(dataloader)
             for dataloader in dataloaders
         ]
+        return dataloaders
 
     def backward(self, tensor: Tensor, *args, **kwargs):
         # TODO: precision plugin backward
+        # self.precision_plugin.backward()
         return tensor.backward(*args, **kwargs)
 
     @contextmanager
     def forward_context(self):
-        # basically only for autocast and block ddp sync
-        yield
+        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
+            yield
 
-    @contextmanager
-    def backward_context(self, *args, **kwargs):
-        # necessary for deepspeed backward + scaler in AMP
-        yield
-
-    @contextmanager
-    def optimizer_step_context(self, *args, **kwargs):
-        # necessary for deepspeed + scaling
-        yield
+    # @contextmanager
+    # def backward_context(self, *args, **kwargs):
+    #     yield
+    #
+    # @contextmanager
+    # def optimizer_step_context(self, *args, **kwargs):
+    #     # necessary for deepspeed + scaling
+    #     yield
 
     def to_device(self, obj: Union[nn.Module, Tensor]) -> Union[nn.Module, Tensor]:
         if isinstance(obj, nn.Module):
@@ -126,12 +138,13 @@ class Automator:
         pass
 
     def reduce_data(self, data: Any) -> Any:
-        pass
+        self.training_type_plugin.reduce(data)
 
-    def reduce_decision(self, decision: bool):
-        return False
+    def reduce_decision(self, decision: bool) -> bool:
+        return self.training_type_plugin.reduce_boolean_decision(decision)
 
     def broadcast_decision(self, decision: bool):
+        # return self.training_type_plugin.broadcast_boolean_decision(decision)
         return False
 
     def save_checkpoint(self, filepath):

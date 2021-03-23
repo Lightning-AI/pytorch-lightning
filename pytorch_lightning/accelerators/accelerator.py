@@ -309,14 +309,18 @@ class Accelerator(object):
             self.lightning_module, optimizer, opt_idx, lambda_closure, **kwargs
         )
         if make_optimizer_step:
-            self.run_optimizer_step(optimizer, opt_idx, lambda_closure, **kwargs)
+            self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
         self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
         self.training_type_plugin.post_optimizer_step(optimizer, opt_idx, **kwargs)
 
     def run_optimizer_step(
-        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
+        self, optimizer: Optimizer, lambda_closure: Callable, **kwargs: Any
     ) -> None:
+        """Lightning-independent optimizer step logic"""
+        self.precision_plugin.run_pre_optimizer_step(optimizer)
         self.training_type_plugin.optimizer_step(optimizer, lambda_closure=lambda_closure, **kwargs)
+        self.precision_plugin.run_post_optimizer_step(optimizer)
+        # TODO: do we need to call training_type_plugin.post_optimizer_step?
 
     def optimizer_zero_grad(self, current_epoch: int, batch_idx: int, optimizer: Optimizer, opt_idx: int) -> None:
         """Zeros all model parameter's gradients"""
