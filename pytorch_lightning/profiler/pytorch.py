@@ -415,7 +415,7 @@ class PyTorchProfiler(BaseProfiler):
                         path = os.path.join(self.dirpath, f"{filename}.stack")
                         profiler.export_stacks(path, metric=self._metric)
                 else:
-                    rank_zero_warn("The Profiler failed to export trace as " "``dirpath``is None", UserWarning)
+                    rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")
 
             if not self._has_on_trace_ready:
                 self.profiler.on_trace_ready = on_trace_ready

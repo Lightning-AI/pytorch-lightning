@@ -17,7 +17,6 @@ import platform
 import time
 from copy import deepcopy
 from distutils.version import LooseVersion
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -285,7 +284,8 @@ def test_pytorch_profiler_raises(pytorch_profiler):
         PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
 
 
-@pytest.mark.skipif(reason="Segmentation fault (core dumped)")
+# TODO: address this
+@pytest.mark.skip(reason="Segmentation fault (core dumped)")
 @RunIf(min_torch="1.6.0")
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522"""
@@ -325,23 +325,21 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     expected = f"fit-profiler-{trainer.local_rank}.txt"
     assert expected in files
 
-    path = os.path.join(pytorch_profiler.dirpath, expected)
-    assert Path(path).read_text()
+    path = pytorch_profiler.dirpath / expected
+    assert path.read_text("utf-8")
 
     if _TORCH_GREATER_EQUAL_1_8_1:
         files = os.listdir(pytorch_profiler.dirpath)
-        files = sorted([file for file in files if file.endswith('.json')])
+        files = [file for file in files if file.endswith('.json')]
+        assert len(files) == 2, files
         local_rank = trainer.local_rank
         assert any(f'training_step_{local_rank}' in f for f in files)
         assert any(f'validation_step_{local_rank}' in f for f in files)
-        assert len(files) == 2
 
 
 def test_pytorch_profiler_trainer_test(tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(
-        output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir, schedule=None
-    )
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -351,7 +349,8 @@ def test_pytorch_profiler_trainer_test(tmpdir):
     )
     trainer.test(model)
 
-    assert len([e for e in pytorch_profiler.function_events if 'test_step' == e.name]) > 0
+    assert sum(e.name == 'test_step' for e in pytorch_profiler.function_events)
+
     path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
@@ -362,9 +361,7 @@ def test_pytorch_profiler_trainer_test(tmpdir):
 
 def test_pytorch_profiler_trainer_predict(tmpdir):
     """Ensure that the profiler can be given to the trainer and predict function are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(
-        output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir, schedule=None
-    )
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()
     model.predict_dataloader = model.train_dataloader
     trainer = Trainer(
@@ -439,6 +436,22 @@ def test_pytorch_profiler_nested(tmpdir):
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 
+@RunIf(min_gpus=1, special=True)
+def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+    """
+    This test check emit_nvtx is correctly supported
+    """
+    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        gpus=1,
+    )
+    trainer.fit(model)
+
+
 @RunIf(min_torch="1.5.0")
 def test_register_record_function(tmpdir):
 
@@ -447,7 +460,8 @@ def test_register_record_function(tmpdir):
         export_to_chrome=False,
         record_functions=["a"],
         use_cuda=use_cuda,
-        output_filename=os.path.join(tmpdir, "profiler.txt"),
+        dirpath=tmpdir,
+        filename="profiler",
         schedule=None,
         on_trace_ready=None,
     )
@@ -540,19 +554,3 @@ def test_pytorch_profiler_deepcopy(tmpdir):
     torch.tensor(1)
     pytorch_profiler.describe()
     assert deepcopy(pytorch_profiler)
-
-
-@RunIf(min_gpus=1, special=True)
-def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
-    """
-    This test check emit_nvtx is correctly supported
-    """
-    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
-
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        profiler=profiler,
-        gpus=1,
-    )
-    trainer.fit(model)
