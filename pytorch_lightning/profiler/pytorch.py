@@ -261,8 +261,8 @@ class PyTorchProfiler(BaseProfiler):
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self._record_functions_start = set(record_functions + list(self.START_RECORD_FUNCTIONS))
-        self._record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
+        self._record_functions_start = set(record_functions + self.START_RECORD_FUNCTIONS)
+        self._record_functions = set(record_functions + self.RECORD_FUNCTIONS)
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
 
@@ -278,21 +278,21 @@ class PyTorchProfiler(BaseProfiler):
         if _KINETO_AVAILABLE:
             has_schedule = "schedule" in profiler_kwargs
             self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
+
             schedule = profiler_kwargs.get("schedule", None)
-            activities = profiler_kwargs.get("activities", None)
             if schedule is not None:
                 if not isinstance(schedule, Callable):
-                    raise MisconfigurationException(f"Found schedule: {schedule}. Schedule should be a callable.")
+                    raise MisconfigurationException(f"Schedule should be a callable. Found: {schedule}")
                 action = schedule(0)
                 if not isinstance(action, ProfilerAction):
                     raise MisconfigurationException(
-                        f"Found schedule: {schedule}. "
-                        "Schedule should be a callable returning `torch.profiler.ProfilerAction`. "
+                        f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
                     )
-
             schedule = schedule if has_schedule else self._default_schedule()
             self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
             self._profiler_kwargs["schedule"] = self._schedule
+
+            activities = profiler_kwargs.get("activities", None)
             self._profiler_kwargs["activities"] = activities or self._default_activities()
             self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", False)
             self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
@@ -330,11 +330,11 @@ class PyTorchProfiler(BaseProfiler):
 
     @staticmethod
     def _default_schedule() -> Optional[callable]:
-        if _TORCH_GREATER_EQUAL_1_8_1:
+        if _KINETO_AVAILABLE:
             return torch.profiler.schedule(wait=1, warmup=1, active=2)
 
     def _default_activities(self) -> list:
-        if _TORCH_GREATER_EQUAL_1_8_1:
+        if _KINETO_AVAILABLE:
             activities = [ProfilerActivity.CPU] * self._profiler_kwargs.get("use_cpu", True)
             activities += [ProfilerActivity.CUDA] * self._profiler_kwargs.get("use_cuda", torch.cuda.is_available())
             return activities
