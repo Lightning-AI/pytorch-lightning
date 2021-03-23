@@ -312,7 +312,8 @@ class PyTorchProfiler(BaseProfiler):
         return profiler(**kwargs)
 
     def _cache_functions_events(self):
-        self.function_events = self.profiler.function_events
+        if not self._emit_nvtx:
+            self.function_events = self.profiler.function_events
 
     def _delete_profilers(self) -> None:
         if self.profiler is not None:
