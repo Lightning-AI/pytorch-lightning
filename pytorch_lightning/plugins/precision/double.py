@@ -60,7 +60,7 @@ class _DoublePrecisionPatch:
             )
 
         setattr(model, method_name, new_method if callable(old_method) else old_method)
-        return _DoublePrecisionPatch(model, method_name, old_method)
+        return cls(model, method_name, old_method)
 
 
 class DoublePrecisionPlugin(PrecisionPlugin):
