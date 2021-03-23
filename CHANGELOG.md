@@ -168,6 +168,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed comparing required versions ([#6434](https://github.com/PyTorchLightning/pytorch-lightning/pull/6434))
 
 
+- Fixed checkpoint callback issue with TPUs when set False ([#6654](https://github.com/PyTorchLightning/pytorch-lightning/pull/6654))
+
+
 ## [1.2.4] - 2021-03-16
 
 ### Changed
