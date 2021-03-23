@@ -372,11 +372,6 @@ def test_pytorch_profiler_trainer_predict(tmpdir):
 
     assert sum(e.name == 'predict_step' for e in pytorch_profiler.function_events)
 
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, profiler=pytorch_profiler, gpus=int(torch.cuda.is_available())
-    )
-    trainer.fit(model)
     path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
