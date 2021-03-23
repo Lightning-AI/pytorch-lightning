@@ -113,6 +113,8 @@ class ScheduleWrapper:
         self._num_predict_step = 0
         self._training_step_and_backward_reached_end = False
         self._validation_step_reached_end = False
+        self._test_step_reached_end = False
+        self._predict_step_reached_end = False
         # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
         self._current_action: Optional[str] = None
         self._start_action_name: Optional[str] = None
@@ -155,6 +157,10 @@ class ScheduleWrapper:
             return self._training_step_and_backward_reached_end
         elif self._current_action == "validation_step":
             return self._validation_step_reached_end
+        elif self._current_action == "test_step":
+            return self._test_step_reached_end
+        elif self._current_action == "predict_step":
+            return self._predict_step_reached_end
         return False
 
     def __call__(self, num_step: int) -> 'ProfilerAction':
@@ -169,6 +175,10 @@ class ScheduleWrapper:
                 self._training_step_and_backward_reached_end = True
             elif self._current_action == "validation_step":
                 self._validation_step_reached_end = True
+            elif self._current_action == "test_step":
+                self._test_step_reached_end = True
+            elif self._current_action == "predict_step":
+                self._predict_step_reached_end = True
         return action
 
 
@@ -294,14 +304,14 @@ class PyTorchProfiler(BaseProfiler):
         self._schedule: Optional[ScheduleWrapper] = None
 
         if _KINETO_AVAILABLE:
-            self.__init_kento(profiler_kwargs)
+            self.__init_kineto__(profiler_kwargs)
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-    def __init_kento(self, profiler_kwargs: Any):
+    def __init_kineto__(self, profiler_kwargs: Any):
         has_schedule = "schedule" in profiler_kwargs
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
