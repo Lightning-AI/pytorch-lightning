@@ -14,6 +14,7 @@
 import logging
 import os
 import time
+from copy import deepcopy
 from distutils.version import LooseVersion
 from pathlib import Path
 
@@ -21,8 +22,7 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import Callback
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -46,8 +46,7 @@ def _sleep_generator(durations):
 
 @pytest.fixture
 def simple_profiler():
-    profiler = SimpleProfiler()
-    return profiler
+    return SimpleProfiler()
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -93,14 +92,6 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
     assert all(durations < PROFILER_OVERHEAD_MAX_TOLERANCE)
 
 
-def test_simple_profiler_describe(caplog, simple_profiler):
-    """Ensure the profiler won't fail when reporting the summary."""
-    with caplog.at_level(logging.INFO):
-        simple_profiler.describe()
-
-    assert "Profiler Report" in caplog.text
-
-
 def test_simple_profiler_value_errors(simple_profiler):
     """Ensure errors are raised where expected."""
 
@@ -116,10 +107,75 @@ def test_simple_profiler_value_errors(simple_profiler):
     simple_profiler.stop(action)
 
 
+def test_simple_profiler_deepcopy(tmpdir):
+    simple_profiler = SimpleProfiler(dirpath=tmpdir, filename="test")
+    simple_profiler.describe()
+    assert deepcopy(simple_profiler)
+
+
+def test_simple_profiler_log_dir(tmpdir):
+    """Ensure the profiler dirpath defaults to `trainer.log_dir` when not present"""
+    profiler = SimpleProfiler(filename="profiler")
+    assert profiler._log_dir is None
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        profiler=profiler,
+    )
+    trainer.fit(model)
+
+    expected = profiler.dirpath
+    assert trainer.log_dir == expected
+    assert profiler._log_dir == trainer.log_dir
+    assert Path(os.path.join(profiler.dirpath, "fit-profiler.txt")).exists()
+
+
+@RunIf(skip_windows=True)
+def test_simple_profiler_distributed_files(tmpdir):
+    """Ensure the proper files are saved in distributed"""
+    profiler = SimpleProfiler(dirpath=tmpdir, filename='profiler')
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        accelerator="ddp_cpu",
+        num_processes=2,
+        profiler=profiler,
+        logger=False,
+    )
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+
+    actual = set(os.listdir(profiler.dirpath))
+    expected = {f"{stage}-profiler-{rank}.txt" for stage in ("fit", "validate", "test") for rank in (0, 1)}
+    assert actual == expected
+
+    for f in profiler.dirpath.listdir():
+        assert f.read_text('utf-8')
+
+
+def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
+    """Ensure that the number of printed logs is correct"""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        profiler=simple_profiler,
+        logger=False,
+    )
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler.profilers"):
+        trainer.fit(model)
+        trainer.test(model)
+
+    assert caplog.text.count("Profiler Report") == 2
+
+
 @pytest.fixture
 def advanced_profiler(tmpdir):
-    profiler = AdvancedProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"))
-    return profiler
+    return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
 @pytest.mark.parametrize(["action", "expected"], [
@@ -180,7 +236,8 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
         pass
     # log to stdout and print to file
     advanced_profiler.describe()
-    data = Path(advanced_profiler.output_fname).read_text()
+    path = advanced_profiler.dirpath / f"{advanced_profiler.filename}.txt"
+    data = path.read_text("utf-8")
     assert len(data) > 0
 
 
@@ -195,10 +252,14 @@ def test_advanced_profiler_value_errors(advanced_profiler):
     advanced_profiler.stop(action)
 
 
+def test_advanced_profiler_deepcopy(advanced_profiler):
+    advanced_profiler.describe()
+    assert deepcopy(advanced_profiler)
+
+
 @pytest.fixture
 def pytorch_profiler(tmpdir):
-    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
-    return profiler
+    return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
 
 def test_pytorch_profiler_describe(pytorch_profiler):
@@ -208,7 +269,8 @@ def test_pytorch_profiler_describe(pytorch_profiler):
 
     # log to stdout and print to file
     pytorch_profiler.describe()
-    data = Path(pytorch_profiler.output_fname).read_text()
+    path = pytorch_profiler.dirpath / f"{pytorch_profiler.filename}.txt"
+    data = path.read_text("utf-8")
     assert len(data) > 0
 
 
@@ -223,47 +285,53 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     pytorch_profiler.stop(action)
 
 
-@RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize("use_output_filename", [False, True])
-def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
-    """Ensure that the profiler can be given to the training and default step are properly recorded. """
-
-    if use_output_filename:
-        output_filename = os.path.join(tmpdir, "profiler.txt")
-    else:
-        output_filename = None
-
-    profiler = PyTorchProfiler(output_filename=output_filename)
-
+@RunIf(min_torch="1.6.0")
+def test_advanced_profiler_cprofile_deepcopy(tmpdir):
+    """Checks for pickle issue reported in #6522"""
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
-        profiler=profiler,
+        profiler="advanced",
+        stochastic_weight_avg=True,
+    )
+    trainer.fit(model)
+
+
+@RunIf(min_gpus=2, special=True)
+def test_pytorch_profiler_trainer_ddp(tmpdir):
+    """Ensure that the profiler can be given to the training and default step are properly recorded. """
+    pytorch_profiler = PyTorchProfiler(dirpath=None, filename="profiler")
+    model = BoringModel()
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        profiler=pytorch_profiler,
         accelerator="ddp",
         gpus=2,
     )
     trainer.fit(model)
 
-    enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
+    assert len(pytorch_profiler.summary()) > 0
+    assert set(pytorch_profiler.profiled_actions) == {'training_step_and_backward', 'validation_step'}
 
-    if enabled:
-        assert len(profiler.summary()) > 0
-        assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
-    else:
-        assert profiler.summary() is None
-        assert set(profiler.profiled_actions.keys()) == set()
+    files = sorted(f for f in os.listdir(pytorch_profiler.dirpath) if "fit" in f)
+    rank = int(os.getenv("LOCAL_RANK", "0"))
+    expected = f"fit-profiler-{rank}.txt"
+    assert files[rank] == expected
 
-    # todo (tchaton) add support for all ranks
-    if use_output_filename and os.getenv("LOCAL_RANK") == "0":
-        data = Path(profiler.output_fname).read_text()
-        assert len(data) > 0
+    path = os.path.join(pytorch_profiler.dirpath, expected)
+    data = Path(path).read_text("utf-8")
+    assert len(data) > 0
 
 
 def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
     pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"], use_cuda=False, output_filename=os.path.join(tmpdir, "profiler.txt")
+        profiled_functions=["a", "b", "c"], use_cuda=False, dirpath=tmpdir, filename="profiler"
     )
 
     with pytorch_profiler.profile("a"):
@@ -327,13 +395,18 @@ def test_profiler_teardown(tmpdir, cls):
 
     class TestCallback(Callback):
 
-        def on_fit_end(self, trainer, pl_module) -> None:
-            assert trainer.profiler.output_file is not None
+        def on_fit_end(self, trainer, *args, **kwargs) -> None:
+            # describe sets it to None
+            assert trainer.profiler._output_file is None
 
-    profiler = cls(output_filename=os.path.join(tmpdir, "profiler.txt"))
-
+    profiler = cls(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, profiler=profiler, callbacks=[TestCallback()])
     trainer.fit(model)
 
-    assert profiler.output_file is None
+    assert profiler._output_file is None
+
+
+def test_pytorch_profiler_deepcopy(pytorch_profiler):
+    pytorch_profiler.describe()
+    assert deepcopy(pytorch_profiler)
