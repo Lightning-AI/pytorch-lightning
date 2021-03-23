@@ -26,7 +26,7 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8_1
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -265,7 +265,7 @@ def pytorch_profiler(tmpdir):
     return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
 
-@RunIf(max_torch="1.8.0")
+@RunIf(max_torch="1.8.1")
 def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
     with pytorch_profiler.profile("on_test_start"):
@@ -312,9 +312,10 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     )
     trainer.fit(model)
 
-    expected = ['validation_step']
-    if not _TORCH_GREATER_EQUAL_1_8:
-        expected += ['training_step_and_backward', 'training_step', 'backward']
+    if _TORCH_GREATER_EQUAL_1_8_1:
+        expected = ('validation_step', )
+    else:
+        expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
 
@@ -325,7 +326,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     path = pytorch_profiler.dirpath / expected
     assert path.read_text("utf-8")
 
-    if _TORCH_GREATER_EQUAL_1_8:
+    if _TORCH_GREATER_EQUAL_1_8_1:
         files = os.listdir(pytorch_profiler.dirpath)
         files = [file for file in files if file.endswith('.json')]
         assert len(files) == 2, files
@@ -351,8 +352,8 @@ def test_pytorch_profiler_trainer_test(tmpdir):
     path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
-    if _TORCH_GREATER_EQUAL_1_8:
-        files = [file for file in os.listdir(tmpdir) if file.endswith('.json')]
+    if _TORCH_GREATER_EQUAL_1_8_1:
+        files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
         assert any(f'test_step_{trainer.local_rank}' in f for f in files)
 
 

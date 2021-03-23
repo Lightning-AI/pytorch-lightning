@@ -26,7 +26,7 @@ from torch.autograd.profiler import record_function
 from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8_1
 
 if TYPE_CHECKING:
     from torch.autograd.profiler import EventList
@@ -100,7 +100,7 @@ class RegisterRecordFunction:
         self._handles = {}
 
 
-if _TORCH_GREATER_EQUAL_1_8:
+if _TORCH_GREATER_EQUAL_1_8_1:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
     class ScheduleWrapper:
@@ -287,7 +287,7 @@ class PyTorchProfiler(BaseProfiler):
         self._start_action_name: Optional[str] = None
         self._schedule: Optional[ScheduleWrapper] = None
 
-        if _TORCH_GREATER_EQUAL_1_8:
+        if _TORCH_GREATER_EQUAL_1_8_1:
             has_schedule = "schedule" in profiler_kwargs
             self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
             schedule = profiler_kwargs.get("schedule", None)
@@ -317,11 +317,11 @@ class PyTorchProfiler(BaseProfiler):
 
     @staticmethod
     def _default_schedule() -> Optional[Callable]:
-        if _TORCH_GREATER_EQUAL_1_8:
+        if _TORCH_GREATER_EQUAL_1_8_1:
             return torch.profiler.schedule(wait=1, warmup=1, active=2)
 
     def _default_activities(self) -> List:
-        if _TORCH_GREATER_EQUAL_1_8:
+        if _TORCH_GREATER_EQUAL_1_8_1:
             activities = [ProfilerActivity.CPU] * self._profiler_kwargs.get("use_cpu", True)
             activities += [ProfilerActivity.CUDA] * self._profiler_kwargs.get("use_cuda", torch.cuda.is_available())
             return activities
@@ -396,7 +396,7 @@ class PyTorchProfiler(BaseProfiler):
             self._recording_map[action_name].__exit__(None, None, None)
             del self._recording_map[action_name]
 
-        if not _TORCH_GREATER_EQUAL_1_8 or self._emit_nvtx:
+        if not _TORCH_GREATER_EQUAL_1_8_1 or self._emit_nvtx:
             return
 
         if action_name in self.step_action_names:
@@ -430,7 +430,7 @@ class PyTorchProfiler(BaseProfiler):
         if not self.function_events:
             return ""
 
-        if self._export_to_chrome and not _TORCH_GREATER_EQUAL_1_8:
+        if self._export_to_chrome and not _TORCH_GREATER_EQUAL_1_8_1:
             filename = f"{self.local_rank}_trace.json"
             path_to_trace = (filename if self.dirpath is None else os.path.join(self.dirpath, filename))
             self.function_events.export_chrome_trace(path_to_trace)
@@ -447,7 +447,7 @@ class PyTorchProfiler(BaseProfiler):
             self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
         else:
             self._parent_profiler = None
-            if _TORCH_GREATER_EQUAL_1_8:
+            if _TORCH_GREATER_EQUAL_1_8_1:
                 self.profiler = self._create_profiler(torch.profiler.profile)
             else:
                 self.profiler = self._create_profiler(torch.autograd.profiler.profile)
@@ -462,7 +462,7 @@ class PyTorchProfiler(BaseProfiler):
     def _cache_functions_events(self):
         if self._emit_nvtx:
             return
-        if _TORCH_GREATER_EQUAL_1_8:
+        if _TORCH_GREATER_EQUAL_1_8_1:
             self.function_events = self.profiler.events()
         else:
             self.function_events = self.profiler.function_events
