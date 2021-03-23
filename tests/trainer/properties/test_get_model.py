@@ -84,8 +84,7 @@ def test_get_model_gpu(tmpdir):
 
 
 @RunIf(min_gpus=1, skip_windows=True)
-@DDPLauncher.run("--accelerator [accelerator]", max_epochs=["1"], accelerator=["ddp", "ddp_spawn"])
-def test_get_model_ddp_gpu(tmpdir, args=None):
+def test_get_model_ddp_gpu(tmpdir):
     """
     Tests that `trainer.lightning_module` extracts the model correctly when using GPU + ddp accelerators
     """
@@ -99,7 +98,6 @@ def test_get_model_ddp_gpu(tmpdir, args=None):
         limit_val_batches=2,
         max_epochs=1,
         gpus=1,
-        accelerator=args.accelerator
     )
     trainer.fit(model)
     return 1
