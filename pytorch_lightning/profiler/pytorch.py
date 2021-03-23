@@ -328,4 +328,4 @@ class PyTorchProfiler(BaseProfiler):
             self.stop(k)
         self._recording_map = {}
 
-        super().teardown()
+        super().teardown(stage=stage)
