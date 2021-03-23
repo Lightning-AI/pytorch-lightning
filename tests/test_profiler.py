@@ -316,12 +316,10 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events)
 
-    assert len(pytorch_profiler.summary()) > 0
-    assert set(pytorch_profiler.profiled_actions) == {'training_step_and_backward', 'validation_step'}
+    trainer.accelerator.barrier()
 
     files = set(os.listdir(pytorch_profiler.dirpath))
-    rank = int(os.getenv("LOCAL_RANK", 0))
-    expected = f"fit-profiler-{rank}.txt"
+    expected = f"fit-profiler-{trainer.local_rank}.txt"
     assert expected in files
 
     path = os.path.join(pytorch_profiler.dirpath, expected)
