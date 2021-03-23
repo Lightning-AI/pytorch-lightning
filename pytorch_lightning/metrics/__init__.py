@@ -39,7 +39,6 @@ from pytorch_lightning.metrics.regression import (  # noqa: F401
     R2Score,
     SSIM,
 )
-from pytorch_lightning.metrics.retrieval import RetrievalMAP  # noqa: F401
 
 warn(
     "`pytorch_lightning.metrics.*` module has been renamed to `torchmetrics.*` and split off to its own package"
