@@ -348,7 +348,8 @@ def test_pytorch_profiler_trainer_test(tmpdir):
     )
     trainer.test(model)
 
-    assert sum('test_step' == e.name for e in pytorch_profiler.function_events)
+    assert sum(e.name == 'test_step' for e in pytorch_profiler.function_events)
+
     path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
@@ -432,6 +433,22 @@ def test_pytorch_profiler_nested(tmpdir):
         }
 
     assert events_name == expected, (events_name, torch.__version__, platform.system())
+
+
+@RunIf(min_gpus=1, special=True)
+def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
+    """
+    This test check emit_nvtx is correctly supported
+    """
+    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        gpus=1,
+    )
+    trainer.fit(model)
 
 
 @RunIf(min_torch="1.5.0")
@@ -536,19 +553,3 @@ def test_pytorch_profiler_deepcopy(tmpdir):
     torch.tensor(1)
     pytorch_profiler.describe()
     assert deepcopy(pytorch_profiler)
-
-
-@RunIf(min_gpus=1, special=True)
-def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
-    """
-    This test check emit_nvtx is correctly supported
-    """
-    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
-
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        profiler=profiler,
-        gpus=1,
-    )
-    trainer.fit(model)
