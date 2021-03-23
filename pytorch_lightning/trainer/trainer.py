@@ -762,6 +762,8 @@ class Trainer(
         return eval_loop_results
 
     def run_predict(self):
+        self.predict_loop.on_predict_start()
+
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -784,7 +786,6 @@ class Trainer(
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dataloader = self.accelerator.process_dataloader(dataloader)
             dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
-
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue
@@ -794,9 +795,11 @@ class Trainer(
                     break
 
                 # lightning module methods
-                with self.profiler.profile("predict"):
-                    self.predict_loop.predict(batch, batch_idx, dataloader_idx)
+                with self.profiler.profile("predict_step"):
+                    self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
+
         results = self.predict_loop.on_predict_epoch_end()
+        self.predict_loop.on_predict_end()
         return results
 
     def run_sanity_check(self, ref_model):
