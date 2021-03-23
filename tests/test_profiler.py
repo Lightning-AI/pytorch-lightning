@@ -504,5 +504,6 @@ def test_profiler_teardown(tmpdir, cls):
 @pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="currently not supported for PyTorch 1.8")
 def test_pytorch_profiler_deepcopy(pytorch_profiler):
     pytorch_profiler.start("on_train_start")
+    torch.tensor(1)
     pytorch_profiler.describe()
     assert deepcopy(pytorch_profiler)
