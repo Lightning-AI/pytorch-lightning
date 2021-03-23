@@ -17,8 +17,7 @@ import logging
 import os
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Type
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 import torch
 from torch import nn, Tensor
@@ -226,10 +225,7 @@ class PyTorchProfiler(BaseProfiler):
         return record_functions
 
     def setup(
-        self,
-        stage: Optional[str] = None,
-        local_rank: Optional[int] = None,
-        log_dir: Optional[str] = None
+        self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None
     ) -> None:
         super().setup(stage=stage, local_rank=local_rank, log_dir=log_dir)
 
@@ -308,7 +304,6 @@ class PyTorchProfiler(BaseProfiler):
 
         recorded_stats = {}
         recorded_stats["records"] = table
-
         return self._stats_to_str(recorded_stats)
 
     def _create_profilers(self) -> None:

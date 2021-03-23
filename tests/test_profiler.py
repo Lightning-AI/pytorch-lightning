@@ -17,13 +17,13 @@ import platform
 import time
 from copy import deepcopy
 from distutils.version import LooseVersion
+from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, Callback
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -129,10 +129,10 @@ def test_simple_profiler_log_dir(tmpdir):
     )
     trainer.fit(model)
 
-    expected = tmpdir / "lightning_logs" / "version_0"
+    expected = profiler.dirpath
     assert trainer.log_dir == expected
     assert profiler._log_dir == trainer.log_dir
-    assert expected.join("fit-profiler.txt").exists()
+    assert Path(os.path.join(profiler.dirpath, "fit-profiler.txt")).exists()
 
 
 @RunIf(skip_windows=True)
@@ -288,14 +288,29 @@ def test_pytorch_profiler_value_errors(pytorch_profiler):
     pytorch_profiler.teardown()
 
 
-@RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
-    """Ensure that the profiler can be given to the trainer and training, validation steps are properly recorded. """
-
+@RunIf(min_torch="1.6.0")
+def test_advanced_profiler_cprofile_deepcopy(tmpdir):
+    """Checks for pickle issue reported in #6522"""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
+        profiler="advanced",
+        stochastic_weight_avg=True,
+    )
+    trainer.fit(model)
+
+
+@RunIf(min_gpus=2, special=True)
+def test_pytorch_profiler_trainer_ddp(tmpdir):
+    """Ensure that the profiler can be given to the training and default step are properly recorded. """
+    pytorch_profiler = PyTorchProfiler(dirpath=None, filename="profiler")
+    model = BoringModel()
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
         profiler=pytorch_profiler,
         accelerator="ddp",
         gpus=2,
@@ -309,12 +324,14 @@ def test_pytorch_profiler_trainer_fit(tmpdir, pytorch_profiler):
     assert len(pytorch_profiler.summary()) > 0
     assert set(pytorch_profiler.profiled_actions) == {'training_step_and_backward', 'validation_step'}
 
-    actual = set(os.listdir(pytorch_profiler.dirpath))
-    expected = {f"fit-profiler-{rank}.txt" for rank in (0, 1)}
-    assert actual == expected
+    files = sorted(f for f in os.listdir(pytorch_profiler.dirpath) if "fit" in f)
+    rank = int(os.getenv("LOCAL_RANK", "0"))
+    expected = f"fit-profiler-{rank}.txt"
+    assert files[rank] == expected
 
-    for f in pytorch_profiler.dirpath.listdir():
-        assert f.read_text('utf-8')
+    path = os.path.join(pytorch_profiler.dirpath, expected)
+    data = Path(path).read_text("utf-8")
+    assert len(data) > 0
 
 
 def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
@@ -349,6 +366,23 @@ def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
     assert len([e for e in pytorch_profiler.function_events if 'predict' == e.name]) > 0
 
     path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
+    assert path.read_text("utf-8")
+
+
+def test_pytorch_profiler_trainer_validate(tmpdir, pytorch_profiler):
+    """Ensure that the profiler can be given to the trainer and validate function are properly recorded. """
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_test_batches=2,
+        profiler=pytorch_profiler,
+    )
+    trainer.validate(model)
+
+    assert len([e for e in pytorch_profiler.function_events if 'validation_step' == e.name]) > 0
+
+    path = pytorch_profiler.dirpath / f"validate-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
 
@@ -455,7 +489,9 @@ def test_profiler_teardown(tmpdir, cls):
     """
     This test checks if profiler teardown method is called when trainer is exiting.
     """
+
     class TestCallback(Callback):
+
         def on_fit_end(self, trainer, *args, **kwargs) -> None:
             # describe sets it to None
             assert trainer.profiler._output_file is None
@@ -469,5 +505,6 @@ def test_profiler_teardown(tmpdir, cls):
 
 
 def test_pytorch_profiler_deepcopy(pytorch_profiler):
+    pytorch_profiler.start("on_train_start")
     pytorch_profiler.describe()
     assert deepcopy(pytorch_profiler)

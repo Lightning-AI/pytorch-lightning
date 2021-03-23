@@ -749,9 +749,6 @@ class Trainer(
         with self.profiler.profile(f"run_{self._running_stage}_evaluation"):
             eval_loop_results, _ = self.run_evaluation()
 
-        if self.profiler is not None:
-            self.profiler.describe()
-
         if len(eval_loop_results) == 0:
             return 1
 
