@@ -428,8 +428,10 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
+        self.accelerator.connect(model)
+        self.accelerator.setup_environment()
+        self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
@@ -443,13 +445,15 @@ class Trainer(
                                 |                             ||
                          {self.dispatch}                      ||
                                 |                             ||  LIGHTNING
-                {self.accelerator.start_training} or          ||
-                {self.accelerator.start_evaluating} or        ||  FLOW
-                {self.accelerator.start_predicting}           ||
+                  {self.accelerator.start_training}           ||
+                or {self.accelerator.start_evaluating}        ||
+                or {self.accelerator.start_predicting}        ||  FLOW
+                                |                             ||
+                         {self.run_stage}                     ||
                                 |                             ||  DIRECTION
-                        {self.run_train} or                   ||
-                     {self.run_evaluation} or                 ||
-                       {self.run_predict}                     ||
+                        {self.run_train}                      ||
+                     or {self.run_evaluation}                 ||
+                     or {self.run_predict}                    ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
@@ -493,7 +497,7 @@ class Trainer(
         return self.accelerator.results or 1
 
     def pre_dispatch(self):
-        self.accelerator.pre_dispatch()
+        self.accelerator.pre_dispatch(self)
 
         # log hyper-parameters
         if self.logger is not None:
@@ -503,7 +507,7 @@ class Trainer(
             self.logger.save()
 
     def post_dispatch(self):
-        self.accelerator.post_dispatch()
+        self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
 
     def dispatch(self):
@@ -516,6 +520,9 @@ class Trainer(
 
     def run_stage(self):
         results = None
+
+        self.profile_connector.setup()
+
         if self.evaluating:
             results = self.run_evaluate()
         elif self.predicting:
@@ -755,6 +762,8 @@ class Trainer(
         return eval_loop_results
 
     def run_predict(self):
+        self.predict_loop.on_predict_start()
+
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -777,7 +786,6 @@ class Trainer(
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dataloader = self.accelerator.process_dataloader(dataloader)
             dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
-
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue
@@ -787,10 +795,15 @@ class Trainer(
                     break
 
                 # lightning module methods
-                with self.profiler.profile("predict"):
-                    self.predict_loop.predict(batch, batch_idx, dataloader_idx)
+                with self.profiler.profile("predict_step"):
+                    self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
+        self.predict_loop.on_predict_end()
+
+        # re-enable grads
+        torch.set_grad_enabled(True)
+
         return results
 
     def run_sanity_check(self, ref_model):
@@ -1058,8 +1071,7 @@ class Trainer(
 
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
-        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
-        state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+        state = self._setup_state
 
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
@@ -1070,11 +1082,8 @@ class Trainer(
         model.setup(stage=state)
 
     def call_teardown_hook(self, model: LightningModule) -> None:
-        if self.state.running:
-            state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-        else:
-            state = None
-
+        state = self._teardown_state
+        self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
 

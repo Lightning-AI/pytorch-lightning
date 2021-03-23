@@ -53,10 +53,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.tpu_local_core_rank = 0
         self.start_method = None
 
-    def connect(self, model: torch.nn.Module) -> torch.nn.Module:
+    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
         self.create_mp_queue()
-        self._model = model
-        return self._model
+        return self.model
 
     def create_mp_queue(self):
         self.start_method = 'fork'
@@ -295,8 +294,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def test_step(self, *args, **kwargs):
         return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
-        return self.lightning_module.predict(*args, **kwargs)
+    def predict_step(self, *args, **kwargs):
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         """Save model/training states as a checkpoint file through state-dump and file-write.
