@@ -250,8 +250,6 @@ class PyTorchProfiler(BaseProfiler):
         Raises:
             MisconfigurationException:
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
-            ValueError:
-                If you attempt to stop recording an action which was never started.
         """
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
@@ -270,6 +268,7 @@ class PyTorchProfiler(BaseProfiler):
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
+        self._record_functions_start = set(record_functions + list(self.START_RECORD_FUNCTIONS))
         self._record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
@@ -351,11 +350,12 @@ class PyTorchProfiler(BaseProfiler):
         return set(list(self.STEP_FUNCTIONS) + list(self._record_functions))
 
     def start(self, action_name: str) -> None:
-        if not self._profiler_instantiated and action_name in (self.start_action_names):
+        if self.profiler is None and action_name in self._record_functions_start:
 
-            # close profiler if it is already opened
+            # close profiler if it is already opened. might happen if 2 profilers
+            # are created and the first one did not call `describe`
             try:
-                torch.autograd._disable_profiler()
+                torch.autograd._disable_profiler()  # noqa
             except (AttributeError, RuntimeError):
                 pass
 
@@ -371,8 +371,7 @@ class PyTorchProfiler(BaseProfiler):
             if self._parent_profiler is not None:
                 self._parent_profiler.__enter__()
 
-            if self._record_module_names and self._lightning_module is not None:
-                self._register = RegisterRecordFunction(self._lightning_module)
+            if self._register is not None:
                 self._register.__enter__()
 
         if (
@@ -410,65 +409,30 @@ class PyTorchProfiler(BaseProfiler):
                         path = os.path.join(self.dirpath, f"{filename}.stack")
                         profiler.export_stacks(path, metric=self._metric)
                 else:
-                    rank_zero_warn(
-                        "The Profiler failed to export trace as "
-                        "``dirpath``is None", UserWarning
-                    )
+                    rank_zero_warn("The Profiler failed to export trace as " "``dirpath``is None", UserWarning)
 
             if not self._has_on_trace_ready:
                 self.profiler.on_trace_ready = on_trace_ready
             self.profiler.step()
 
     def summary(self) -> str:
-        if not self._profiler_kwargs.get("enabled", True):
+        if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
             return ""
 
-        self.profiler.__exit__(None, None, None)
-        
-        if _TORCH_GREATER_EQUAL_1_8:
-            try:
-                function_events = self.profiler.events()
-                if self.function_events is not None:
-                    self.function_events += function_events
-                else:
-                    self.function_events = function_events
-            except AssertionError as e:
-                if self._schedule is not None:
-                    rank_zero_warn(
-                        "The 1.8+ PyTorch Profiler uses a schedule to record trace. "
-                        f"It didn't perform enough steps on {self.step_action_names}"
-                        "HINT: Perform enough step or do: PyTorchProfiler(schedule=None)", UserWarning
-                    )
-                raise e
+        self._delete_profilers()
 
-        elif not self._emit_nvtx:
-            self.function_events = self.profiler.function_events
-
-        self.profiler = None
-        self._profiler_instantiated = False
-
-        if self._parent_profiler is not None:
-            self._parent_profiler.__exit__(None, None, None)
-            self._parent_profiler = None
-
-        if self._register is not None:
-            self._register.__exit__(None, None, None)
-
-        if self._emit_nvtx:
+        if not self.function_events:
             return ""
 
         if self._export_to_chrome and not _TORCH_GREATER_EQUAL_1_8:
             filename = f"{self.local_rank}_trace.json"
-            path_to_trace = (
-                filename if self.dirpath is None else os.path.join(self.dirpath, filename)
-            )
+            path_to_trace = (filename if self.dirpath is None else os.path.join(self.dirpath, filename))
             self.function_events.export_chrome_trace(path_to_trace)
 
         data = self.function_events.key_averages(group_by_input_shapes=self._group_by_input_shapes)
         table = data.table(sort_by=self._sort_by_key, row_limit=self._row_limit)
 
-        recorded_stats = {}
-        recorded_stats["records"] = table
+        recorded_stats = {"records": table}
         return self._stats_to_str(recorded_stats)
 
     def _create_profilers(self) -> None:
@@ -476,19 +440,24 @@ class PyTorchProfiler(BaseProfiler):
             self._parent_profiler = self._create_profiler(torch.cuda.profiler.profile)
             self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
         else:
-            if _TORCH_GREATER_EQUAL_1_8:
-                self.profiler = self._create_profiler(torch.profiler.profile)
-            else:
-                self.profiler = self._create_profiler(torch.autograd.profiler.profile)
+            self._parent_profiler = None
+            self.profiler = self._create_profiler(torch.autograd.profiler.profile)
+        if self._record_module_names and self._lightning_module is not None:
+            self._register = RegisterRecordFunction(self._lightning_module)
 
     def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
         kwargs = {k: v for k, v in self._profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def _cache_functions_events(self):
+        self.function_events = self.profiler.function_events
+
+    def _delete_profilers(self) -> None:
         if self.profiler is not None:
             self.profiler.__exit__(None, None, None)
+            self._cache_functions_events()
+            self.profiler = None
 
         if self._parent_profiler is not None:
             self._parent_profiler.__exit__(None, None, None)
@@ -496,8 +465,13 @@ class PyTorchProfiler(BaseProfiler):
 
         if self._register is not None:
             self._register.__exit__(None, None, None)
+            self._register = None
 
-        for record in self._recording_map.values():
-            record.__exit__(None, None, None)
+    def teardown(self, stage: Optional[str] = None) -> None:
+        self._delete_profilers()
 
-        super().teardown()
+        for k in self._recording_map:
+            self.stop(k)
+        self._recording_map = {}
+
+        super().teardown(stage=stage)

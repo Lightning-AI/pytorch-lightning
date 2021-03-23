@@ -269,9 +269,8 @@ def pytorch_profiler(tmpdir):
 @pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="This feature isn't support with PyTorch 1.8 profiler")
 def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
-    pytorch_profiler.start("on_test_start")
-    with pytorch_profiler.profile("test_step"):
-        pass
+    with pytorch_profiler.profile("on_test_start"):
+        torch.tensor(0)
 
     # log to stdout and print to file
     pytorch_profiler.describe()
@@ -314,22 +313,21 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         gpus=2,
     )
     trainer.fit(model)
-    
+
     if _TORCH_GREATER_EQUAL_1_8:
-        expected = ('validation_step',)
+        expected = ('validation_step', )
     else:
         expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
     for name in expected:
-        assert len([e for e in pytorch_profiler.function_events if name == e.name]) > 0, name
+        assert sum(e.name == name for e in pytorch_profiler.function_events), name
 
     files = set(os.listdir(pytorch_profiler.dirpath))
-    rank = int(os.getenv("LOCAL_RANK", 0))
-    expected = f"fit-profiler-{rank}.txt"
+    expected = f"fit-profiler-{trainer.local_rank}.txt"
     assert expected in files
 
     path = os.path.join(pytorch_profiler.dirpath, expected)
     assert Path(path).read_text()
-    
+
     if _TORCH_GREATER_EQUAL_1_8:
         files = os.listdir(pytorch_profiler.dirpath)
         files = sorted([file for file in files if file.endswith('.json')])
@@ -353,7 +351,6 @@ def test_pytorch_profiler_trainer_test(tmpdir):
     )
     trainer.test(model)
 
-    import pdb; pdb.set_trace()
     assert len([e for e in pytorch_profiler.function_events if 'test_step' == e.name]) > 0
     path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -379,29 +376,11 @@ def test_pytorch_profiler_trainer_predict(tmpdir):
     )
     trainer.predict(model)
 
-    if not _TORCH_GREATER_EQUAL_1_8:
-        assert len([e for e in pytorch_profiler.function_events if 'predict_step' == e.name]) > 0
-        path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
-        assert path.read_text("utf-8")
-    else:
-        files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
-        assert 'predict_0' in files[0]
-
-
-@RunIf(min_gpus=1, special=True)
-@pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="This feature isn't support with PyTorch 1.8 profiler")
-def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
-    """
-    This test check emit_nvtx is correctly supported
-    """
-    pytorch_profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+    assert sum(e.name == 'predict_step' for e in pytorch_profiler.function_events)
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        profiler=pytorch_profiler,
-        gpus=1,
+        default_root_dir=tmpdir, fast_dev_run=True, profiler=pytorch_profiler, gpus=int(torch.cuda.is_available())
     )
     trainer.fit(model)
     path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
@@ -419,7 +398,7 @@ def test_pytorch_profiler_trainer_validate(tmpdir, pytorch_profiler):
     )
     trainer.validate(model)
 
-    assert len([e for e in pytorch_profiler.function_events if 'validation_step' == e.name]) > 0
+    assert sum(e.name == 'validation_step' for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"validate-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
@@ -465,7 +444,6 @@ def test_pytorch_profiler_nested(tmpdir):
 def test_register_record_function(tmpdir):
 
     use_cuda = torch.cuda.is_available()
-
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
         record_functions=["a"],
@@ -479,10 +457,10 @@ def test_register_record_function(tmpdir):
 
         def __init__(self):
             super().__init__()
-            self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+            self.layer = torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.ReLU(), torch.nn.Linear(8, 2))
 
     model = TestModel()
-    input = torch.rand((1, 32))
+    input = torch.rand((1, 8))
 
     if use_cuda:
         model = model.cuda()
