@@ -29,7 +29,6 @@ if _TORCH_GREATER_EQUAL_1_6:
     from pytorch_lightning.callbacks import StochasticWeightAveraging
     from torch.optim.swa_utils import SWALR
 
-
     class SwaTestModel(BoringModel):
 
         def __init__(self, batchnorm: bool = True):
@@ -48,7 +47,6 @@ if _TORCH_GREATER_EQUAL_1_6:
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
-
     class SWATestModelStep(SwaTestModel):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -57,7 +55,6 @@ if _TORCH_GREATER_EQUAL_1_6:
                 "scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1),
                 "interval": "step",
             }
-
 
     class SwaTestCallback(StochasticWeightAveraging):
         update_parameters_calls: int = 0
