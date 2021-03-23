@@ -386,8 +386,8 @@ def test_pytorch_profiler_trainer_predict(tmpdir):
 
     if not _TORCH_GREATER_EQUAL_1_8:
         assert len([e for e in pytorch_profiler.function_events if 'predict' == e.name]) > 0
-        data = Path(pytorch_profiler.output_fname).read_text()
-        assert len(data) > 0
+        path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
+        assert path.read_text("utf-8")
     else:
         files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
         assert 'predict_0' in files[0]

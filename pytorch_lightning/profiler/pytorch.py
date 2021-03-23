@@ -269,6 +269,7 @@ class PyTorchProfiler(BaseProfiler):
         self._recording_map: Dict[str, record_function] = {}
         self._profiler_instantiated: bool = False
         self._start_action_name: Optional[str] = None
+        self._schedule: Optional[ScheduleWrapper] = None
 
         if _TORCH_GREATER_EQUAL_1_8:
             has_schedule = "schedule" in profiler_kwargs
