@@ -834,6 +834,10 @@ class Trainer(
                     self.predict_loop.predict(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
+
+        # re-enable grads
+        torch.set_grad_enabled(True)
+
         return results
 
     def run_sanity_check(self, ref_model):

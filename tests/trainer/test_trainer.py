@@ -1410,12 +1410,12 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=True):
+def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
-    model = BoringModel()
-    datamodule = TestLightningDataModule(dataloaders)
+    model = model or BoringModel()
+    dm = TestLightningDataModule(dataloaders)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1428,7 +1428,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
         plugins=plugins,
     )
     if datamodule:
-        results = trainer.predict(model, datamodule=datamodule)
+        results = trainer.predict(model, datamodule=dm)
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
@@ -1437,6 +1437,19 @@ def predict(tmpdir, accelerator, gpus, num_processes, plugins=None, datamodule=T
     assert len(results) == 2
     assert len(results[0]) == num_samples
     assert results[0][0].shape == torch.Size([1, 2])
+
+
+def test_trainer_predict_grad(tmpdir):
+    class CustomBoringModel(BoringModel):
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            assert batch.expand_as(batch).grad_fn is None
+            return super().predict_step(batch, batch_idx, dataloader_idx)
+
+    predict(tmpdir, None, None, 1, model=CustomBoringModel())
+
+    x = torch.zeros(1, requires_grad=True)
+    assert x.expand_as(x).grad_fn is not None
 
 
 @pytest.mark.parametrize('datamodule', [False, True])
