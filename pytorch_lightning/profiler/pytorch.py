@@ -333,12 +333,15 @@ class PyTorchProfiler(BaseProfiler):
         if _KINETO_AVAILABLE:
             return torch.profiler.schedule(wait=1, warmup=1, active=2)
 
-    def _default_activities(self) -> list:
-        if _KINETO_AVAILABLE:
-            activities = [ProfilerActivity.CPU] * self._profiler_kwargs.get("use_cpu", True)
-            activities += [ProfilerActivity.CUDA] * self._profiler_kwargs.get("use_cuda", torch.cuda.is_available())
+    def _default_activities(self) -> List[ProfilerActivity]:
+        activities = []
+        if not _KINETO_AVAILABLE:
             return activities
-        return []
+        if self._profiler_kwargs.get("use_cpu", True):
+            activities.append(ProfilerActivity.CPU)
+        if self._profiler_kwargs.get("use_cuda", torch.cuda.is_available()):
+            activities.append(ProfilerActivity.CUDA)
+        return activities
 
     @property
     def step_action_names(self) -> Set[str]:
