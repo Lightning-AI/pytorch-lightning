@@ -170,7 +170,7 @@ def precision(
 ) -> torch.Tensor:
     """
     .. deprecated::
-        Use :func:`torchmetrics.functional.precision_recall`. Will be removed in v1.4.0.
+        Use :func:`torchmetrics.functional.precision`. Will be removed in v1.4.0.
     """
     rank_zero_warn(
         "This `precision` was deprecated in v1.2.0 in favor of"
@@ -190,7 +190,7 @@ def recall(
 ) -> torch.Tensor:
     """
     .. deprecated::
-        Use :func:`torchmetrics.functional.precision_recall`. Will be removed in v1.4.0.
+        Use :func:`torchmetrics.functional.recall`. Will be removed in v1.4.0.
     """
     rank_zero_warn(
         "This `recall` was deprecated in v1.2.0 in favor of"
