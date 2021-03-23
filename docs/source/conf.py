@@ -183,7 +183,6 @@ html_theme_options = {
     'collapse_navigation': False,
     'display_version': True,
     'logo_only': False,
-    'gitlab_url': info.__homepage__,
 }
 
 html_logo = '_static/images/logo.svg'
