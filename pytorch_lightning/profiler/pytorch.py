@@ -173,7 +173,7 @@ if _TORCH_GREATER_EQUAL_1_8:
 class PyTorchProfiler(BaseProfiler):
 
     RECORD_FUNCTIONS = (
-        "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict"
+        "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict_step"
     )
     STEP_FUNCTIONS = ("training_step_and_backward", "validation_step", "test_step", "predict")
     AVAILABLE_SORT_KEYS = (
@@ -196,7 +196,6 @@ class PyTorchProfiler(BaseProfiler):
         group_by_input_shapes: bool = False,
         emit_nvtx: bool = False,
         export_to_chrome: bool = True,
-        path_to_export_trace: Optional[str] = None,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         record_functions: List[str] = None,
@@ -232,9 +231,6 @@ class PyTorchProfiler(BaseProfiler):
             export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
                 It will generate a ``.json`` file which can be read by Chrome.
 
-            path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
-                By default, it will be save where the file being is being run.
-
             row_limit: Limit the number of rows in a table, ``-1`` is a special value that
                 removes the limit completely.
 
@@ -269,20 +265,15 @@ class PyTorchProfiler(BaseProfiler):
                 f"Found sort_by_key: {sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-        self._record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
-        self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self._emit_nvtx = emit_nvtx
         self._export_to_chrome = export_to_chrome
-        self._path_to_export_trace = path_to_export_trace
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
         self._record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
 
-        self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional['EventList'] = None
         self._lightning_module: Optional['LightningModule'] = None  # set by ProfilerConnector
         self._register: Optional[RegisterRecordFunction] = None
         self._parent_profiler: Optional[_PROFILER] = None
@@ -313,12 +304,6 @@ class PyTorchProfiler(BaseProfiler):
             self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", True)
             self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
             self._profiler_kwargs["with_stack"] = profiler_kwargs.get("with_stack", True) or self._export_to_flame_graph
-
-        if self._export_to_chrome and self._path_to_export_trace is None:
-            rank_zero_warn(
-                "The exported trace would be saved locally as `path_to_export_trace` is None."
-                " Note: Each functions will generate its own traced file.", UserWarning
-            )
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
@@ -357,16 +342,6 @@ class PyTorchProfiler(BaseProfiler):
 
         return record_functions
 
-    def setup(
-        self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None
-    ) -> None:
-        super().setup(stage=stage, local_rank=local_rank, log_dir=log_dir)
-
-        # if the user didn't provide `path_to_export_trace`,
-        # set it as TensorBoardLogger log_dir if exists
-        if self._path_to_export_trace is None:
-            self._path_to_export_trace = log_dir
-
     @property
     def start_action_names(self):
         return set(list(self.START_RECORD_FUNCTIONS) + list(self._record_functions))
@@ -396,14 +371,12 @@ class PyTorchProfiler(BaseProfiler):
             if self._parent_profiler is not None:
                 self._parent_profiler.__enter__()
 
-            self._profiler_instantiated = True
-
             if self._record_module_names and self._lightning_module is not None:
                 self._register = RegisterRecordFunction(self._lightning_module)
                 self._register.__enter__()
 
         if (
-            self._profiler_instantiated and action_name in self._record_functions
+            self.profiler is not None and action_name in self._record_functions
             and action_name not in self._recording_map
         ):
             recording = record_function(action_name)
@@ -429,19 +402,17 @@ class PyTorchProfiler(BaseProfiler):
                 local_rank = 0 if self.local_rank is None else self.local_rank
                 filename = f"{action_name}_{local_rank}"
 
-                dirpath = self._path_to_export_trace or self.dirpath or self._log_dir
-
-                if dirpath is not None:
+                if self.dirpath is not None:
                     if self._export_to_chrome:
-                        tensorboard_trace_handler(dirpath, filename)(profiler)
+                        tensorboard_trace_handler(self.dirpath, filename)(profiler)
 
                     if self._export_to_flame_graph:
-                        path = os.path.join(dirpath, f"{filename}.stack")
+                        path = os.path.join(self.dirpath, f"{filename}.stack")
                         profiler.export_stacks(path, metric=self._metric)
                 else:
                     rank_zero_warn(
-                        "The Profiler failed to export trace as ``path_to_export_trace`` "
-                        "and ``dirpath`` and ``log_dir`` are None", UserWarning
+                        "The Profiler failed to export trace as "
+                        "``dirpath``is None", UserWarning
                     )
 
             if not self._has_on_trace_ready:
@@ -453,9 +424,14 @@ class PyTorchProfiler(BaseProfiler):
             return ""
 
         self.profiler.__exit__(None, None, None)
+        
         if _TORCH_GREATER_EQUAL_1_8:
             try:
-                self.function_events = self.profiler.events()
+                function_events = self.profiler.events()
+                if self.function_events is not None:
+                    self.function_events += function_events
+                else:
+                    self.function_events = function_events
             except AssertionError as e:
                 if self._schedule is not None:
                     rank_zero_warn(
@@ -484,7 +460,7 @@ class PyTorchProfiler(BaseProfiler):
         if self._export_to_chrome and not _TORCH_GREATER_EQUAL_1_8:
             filename = f"{self.local_rank}_trace.json"
             path_to_trace = (
-                filename if self._path_to_export_trace is None else os.path.join(self._path_to_export_trace, filename)
+                filename if self.dirpath is None else os.path.join(self.dirpath, filename)
             )
             self.function_events.export_chrome_trace(path_to_trace)
 

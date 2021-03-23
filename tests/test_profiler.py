@@ -301,9 +301,8 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
 
 
 @RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir):
+def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(dirpath=None, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -315,27 +314,29 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
         gpus=2,
     )
     trainer.fit(model)
-
-    if not _TORCH_GREATER_EQUAL_1_8:
-        expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
-        for name in expected:
-            assert len([e for e in pytorch_profiler.function_events if name == e.name]) > 0
-
-        files = set(os.listdir(pytorch_profiler.dirpath))
-        rank = int(os.getenv("LOCAL_RANK", 0))
-        expected = f"fit-profiler-{rank}.txt"
-        assert expected in files
-
-        path = os.path.join(pytorch_profiler.dirpath, expected)
-        assert Path(path).read_text()
+    
+    if _TORCH_GREATER_EQUAL_1_8:
+        expected = ('validation_step',)
     else:
-        files = os.listdir(pytorch_profiler._log_dir)
+        expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
+    for name in expected:
+        assert len([e for e in pytorch_profiler.function_events if name == e.name]) > 0, name
+
+    files = set(os.listdir(pytorch_profiler.dirpath))
+    rank = int(os.getenv("LOCAL_RANK", 0))
+    expected = f"fit-profiler-{rank}.txt"
+    assert expected in files
+
+    path = os.path.join(pytorch_profiler.dirpath, expected)
+    assert Path(path).read_text()
+    
+    if _TORCH_GREATER_EQUAL_1_8:
+        files = os.listdir(pytorch_profiler.dirpath)
         files = sorted([file for file in files if file.endswith('.json')])
         local_rank = trainer.local_rank
-        print(files)
-        assert f'training_step_{local_rank}' in files[local_rank]
-        assert f'validation_step_{local_rank}' in files[local_rank + 2]
-        assert len(files) == 4
+        assert any(f'training_step_{local_rank}' in f for f in files)
+        assert any(f'validation_step_{local_rank}' in f for f in files)
+        assert len(files) == 2
 
 
 def test_pytorch_profiler_trainer_test(tmpdir):
@@ -352,12 +353,14 @@ def test_pytorch_profiler_trainer_test(tmpdir):
     )
     trainer.test(model)
 
-    if not _TORCH_GREATER_EQUAL_1_8:
-        assert len([e for e in pytorch_profiler.function_events if 'test_step' == e.name]) > 0
-        path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
-        assert path.read_text("utf-8")
-    else:
+    import pdb; pdb.set_trace()
+    assert len([e for e in pytorch_profiler.function_events if 'test_step' == e.name]) > 0
+    path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
+    assert path.read_text("utf-8")
+
+    if _TORCH_GREATER_EQUAL_1_8:
         files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
+        assert any(f'validation_step_{trainer.local_rank}' in f for f in files)
         assert 'test_step_0' in files[0]
 
 
@@ -377,7 +380,7 @@ def test_pytorch_profiler_trainer_predict(tmpdir):
     trainer.predict(model)
 
     if not _TORCH_GREATER_EQUAL_1_8:
-        assert len([e for e in pytorch_profiler.function_events if 'predict' == e.name]) > 0
+        assert len([e for e in pytorch_profiler.function_events if 'predict_step' == e.name]) > 0
         path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
         assert path.read_text("utf-8")
     else:
