@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
+import contextlib
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
@@ -432,3 +433,15 @@ class Accelerator(object):
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
         return self.training_type_plugin.results
+
+    @contextlib.contextmanager
+    def model_parallel_context(self) -> Generator:
+        """
+        Provide hook to create modules in a parallel aware context. This is useful for when we'd like to
+        shard the model instantly, which is useful for extremely large models which can save memory and
+        initialization time.
+
+        Returns: Model parallel context.
+        """
+        with self.training_type_plugin.model_parallel_context():
+            yield

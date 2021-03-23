@@ -433,6 +433,7 @@ class Trainer(
         self.accelerator.setup_environment()
         self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
+        self.call_model_parallel_hook(model)  # allow user to setup in model parallel environment
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1074,6 +1075,13 @@ class Trainer(
 
         self.setup(model, stage=state)
         model.setup(stage=state)
+
+    def call_model_parallel_hook(self, model: LightningModule) -> None:
+        if not hasattr(self.lightning_module, 'is_model_parallel_setup'):
+            self.on_model_parallel_setup(model)
+            with self.accelerator.model_parallel_context():
+                model.on_model_parallel_setup()
+            self.lightning_module.is_model_parallel_setup = True
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state

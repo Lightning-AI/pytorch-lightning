@@ -334,6 +334,13 @@ class ModelHooks:
 
         """
 
+    def on_model_parallel_setup(self) -> None:
+        """
+        Hook to create modules in a parallel aware context. This is useful for when using sharded plugins,
+        where we'd like to shard the model instantly, which is useful for extremely large models
+        which can save memory and initialization time.
+        """
+
 
 class DataHooks:
     """Hooks to be used for data related stuff."""
