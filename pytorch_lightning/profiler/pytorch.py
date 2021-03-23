@@ -441,7 +441,10 @@ class PyTorchProfiler(BaseProfiler):
             self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
         else:
             self._parent_profiler = None
-            self.profiler = self._create_profiler(torch.autograd.profiler.profile)
+            if _TORCH_GREATER_EQUAL_1_8:
+                self.profiler = self._create_profiler(torch.profiler.profile)
+            else:
+                self.profiler = self._create_profiler(torch.autograd.profiler.profile)
         if self._record_module_names and self._lightning_module is not None:
             self._register = RegisterRecordFunction(self._lightning_module)
 
@@ -451,7 +454,10 @@ class PyTorchProfiler(BaseProfiler):
         return profiler(**kwargs)
 
     def _cache_functions_events(self):
-        self.function_events = self.profiler.function_events
+        if _TORCH_GREATER_EQUAL_1_8:
+            self.function_events = self.profiler.events()
+        else:
+            self.function_events = self.profiler.function_events
 
     def _delete_profilers(self) -> None:
         if self.profiler is not None:

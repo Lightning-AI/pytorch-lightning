@@ -340,7 +340,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
 def test_pytorch_profiler_trainer_test(tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
     pytorch_profiler = PyTorchProfiler(
-        output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir
+        output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir, schedule=None
     )
     model = BoringModel()
     trainer = Trainer(
@@ -357,21 +357,20 @@ def test_pytorch_profiler_trainer_test(tmpdir):
 
     if _TORCH_GREATER_EQUAL_1_8:
         files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
-        assert any(f'validation_step_{trainer.local_rank}' in f for f in files)
-        assert 'test_step_0' in files[0]
+        assert any(f'test_step_{trainer.local_rank}' in f for f in files)
 
 
 def test_pytorch_profiler_trainer_predict(tmpdir):
     """Ensure that the profiler can be given to the trainer and predict function are properly recorded. """
     pytorch_profiler = PyTorchProfiler(
-        output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir
+        output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0, path_to_export_trace=tmpdir, schedule=None
     )
     model = BoringModel()
     model.predict_dataloader = model.train_dataloader
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_test_batches=2,
+        limit_predict_batches=2,
         profiler=pytorch_profiler,
     )
     trainer.predict(model)
