@@ -437,22 +437,22 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
 def test_register_record_function(tmpdir):
 
     use_cuda = torch.cuda.is_available()
-
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
         record_functions=["a"],
         use_cuda=use_cuda,
-        output_filename=os.path.join(tmpdir, "profiler.txt")
+        dirpath=tmpdir,
+        filename="profiler",
     )
 
     class TestModel(BoringModel):
 
         def __init__(self):
             super().__init__()
-            self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+            self.layer = torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.ReLU(), torch.nn.Linear(8, 2))
 
     model = TestModel()
-    input = torch.rand((1, 32))
+    input = torch.rand((1, 8))
 
     if use_cuda:
         model = model.cuda()
