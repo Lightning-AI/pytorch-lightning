@@ -312,10 +312,9 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     )
     trainer.fit(model)
 
-    if _KINETO_AVAILABLE:
-        expected = ('validation_step', )
-    else:
-        expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
+    expected = ['validation_step']
+    if not _KINETO_AVAILABLE:
+        expected += ['training_step_and_backward', 'training_step', 'backward']
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
 

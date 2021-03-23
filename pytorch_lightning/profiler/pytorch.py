@@ -172,11 +172,11 @@ if _KINETO_AVAILABLE:
 
 class PyTorchProfiler(BaseProfiler):
 
-    RECORD_FUNCTIONS = (
+    RECORD_FUNCTIONS = [
         "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict_step"
-    )
-    STEP_FUNCTIONS = ("training_step_and_backward", "validation_step", "test_step", "predict_step")
-    AVAILABLE_SORT_KEYS = (
+    ]
+    STEP_FUNCTIONS = ["training_step_and_backward", "validation_step", "test_step", "predict_step"]
+    AVAILABLE_SORT_KEYS = [
         "cpu_time",
         "cuda_time",
         "cpu_time_total",
@@ -186,8 +186,8 @@ class PyTorchProfiler(BaseProfiler):
         "self_cpu_memory_usage",
         "self_cuda_memory_usage",
         "count",
-    )
-    START_RECORD_FUNCTIONS = ('on_train_start', 'on_validation_start', 'on_test_start', 'on_predict_start')
+    ]
+    START_RECORD_FUNCTIONS = ['on_train_start', 'on_validation_start', 'on_test_start', 'on_predict_start']
 
     def __init__(
         self,
@@ -342,11 +342,11 @@ class PyTorchProfiler(BaseProfiler):
 
     @property
     def start_action_names(self) -> Set[str]:
-        return set(self.START_RECORD_FUNCTIONS + self._record_functions)
+        return set(self.START_RECORD_FUNCTIONS) | self._record_functions
 
     @property
     def step_action_names(self) -> Set[str]:
-        return set(self.STEP_FUNCTIONS + self._record_functions)
+        return set(self.STEP_FUNCTIONS) | self._record_functions
 
     def start(self, action_name: str) -> None:
         if self.profiler is None and action_name in self._record_functions_start:
