@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import contextlib
 import json
 import logging
 import os
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Generator
 
 import torch
 
@@ -64,33 +64,33 @@ class DeepSpeedPlugin(DDPPlugin):
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(
-        self,
-        zero_optimization: bool = True,
-        stage: int = 2,
-        cpu_offload: bool = False,
-        cpu_offload_params: bool = False,
-        cpu_offload_use_pin_memory: bool = False,
-        contiguous_gradients: bool = True,
-        overlap_comm: bool = True,
-        allgather_partitions: bool = True,
-        reduce_scatter: bool = True,
-        allgather_bucket_size: int = 2e8,
-        reduce_bucket_size: int = 2e8,
-        zero_allow_untested_optimizer: bool = True,
-        config: Optional[Union[Path, str, dict]] = None,
-        logging_level: int = logging.WARN,
-        num_nodes: int = 1,
-        parallel_devices: Optional[List[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        loss_scale: float = 0,
-        initial_scale_power: int = 32,
-        loss_scale_window: int = 1000,
-        hysteresis: int = 2,
-        min_loss_scale: int = 1,
-        partition_activations: bool = False,
-        cpu_checkpointing: bool = False,
-        contiguous_memory_optimization: bool = False,
-        synchronize_checkpoint_boundary: bool = False,
+            self,
+            zero_optimization: bool = True,
+            stage: int = 2,
+            cpu_offload: bool = False,
+            cpu_offload_params: bool = False,
+            cpu_offload_use_pin_memory: bool = False,
+            contiguous_gradients: bool = True,
+            overlap_comm: bool = True,
+            allgather_partitions: bool = True,
+            reduce_scatter: bool = True,
+            allgather_bucket_size: int = 2e8,
+            reduce_bucket_size: int = 2e8,
+            zero_allow_untested_optimizer: bool = True,
+            config: Optional[Union[Path, str, dict]] = None,
+            logging_level: int = logging.WARN,
+            num_nodes: int = 1,
+            parallel_devices: Optional[List[torch.device]] = None,
+            cluster_environment: Optional[ClusterEnvironment] = None,
+            loss_scale: float = 0,
+            initial_scale_power: int = 32,
+            loss_scale_window: int = 1000,
+            hysteresis: int = 2,
+            min_loss_scale: int = 1,
+            partition_activations: bool = False,
+            cpu_checkpointing: bool = False,
+            contiguous_memory_optimization: bool = False,
+            synchronize_checkpoint_boundary: bool = False,
     ) -> None:
         """
 
@@ -204,7 +204,6 @@ class DeepSpeedPlugin(DDPPlugin):
         self.loss_scale_window = loss_scale_window
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
-        self.on_model_parallel_setup_called = False
 
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
@@ -236,8 +235,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
         if self.on_gpu:
             torch.cuda.set_device(self.root_device)
-
-        self._call_model_parallel_setup()
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
@@ -283,14 +280,13 @@ class DeepSpeedPlugin(DDPPlugin):
         self.lightning_module.trainer.schedulers = [lr_scheduler]
         self.model = model
 
-    def _call_model_parallel_setup(self):
-        if not self.on_model_parallel_setup_called:
-            if self.zero_stage_3:
-                with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
-                    self.lightning_module.trainer.call_hook("on_model_parallel_setup")
-            else:
-                self.lightning_module.trainer.call_hook("on_model_parallel_setup")
-            self.on_model_parallel_setup_called = True
+    @contextlib.contextmanager
+    def model_parallel_context(self) -> Generator:
+        if self.zero_stage_3:
+            with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
+                yield
+        else:
+            super().model_parallel_context()
 
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get('activation_checkpointing'):
@@ -419,9 +415,9 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException("To use DeepSpeed ZeRO Optimization, you must set precision=16.")
 
     def _create_default_config(
-        self, zero_optimization: bool, zero_allow_untested_optimizer: bool, partition_activations: bool,
-        cpu_checkpointing: bool, contiguous_memory_optimization: bool, synchronize_checkpoint_boundary: bool,
-        **zero_kwargs
+            self, zero_optimization: bool, zero_allow_untested_optimizer: bool, partition_activations: bool,
+            cpu_checkpointing: bool, contiguous_memory_optimization: bool, synchronize_checkpoint_boundary: bool,
+            **zero_kwargs
     ) -> Dict:
         cfg = {
             'activation_checkpointing': {

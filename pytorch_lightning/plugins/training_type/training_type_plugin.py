@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING, Union, Generator
 
 import torch
 from torch.nn import Module
@@ -209,3 +210,14 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def increment_accumulated_grad_global_step(self, trainer) -> None:
         trainer.global_step += 1
+
+    @contextlib.contextmanager
+    def model_parallel_context(self) -> Generator:
+        """
+        Provide hook to create modules in a parallel aware context. This is useful for when we'd like to
+        shard the model instantly, which is useful for extremely large models which can save memory and
+        initialization time.
+
+        Returns: Model parallel context.
+        """
+        yield
