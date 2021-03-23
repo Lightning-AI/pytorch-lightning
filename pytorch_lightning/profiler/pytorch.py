@@ -34,6 +34,9 @@ if TYPE_CHECKING:
 
     from pytorch_lightning.core.lightning import LightningModule
 
+if _KINETO_AVAILABLE:
+    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
+
 log = logging.getLogger(__name__)
 
 _PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
@@ -94,80 +97,79 @@ class RegisterRecordFunction:
         self._handles = {}
 
 
-if _KINETO_AVAILABLE:
-    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
+class ScheduleWrapper:
+    """
+    This class is used to override the schedule logic from the profiler and perform
+    recording for both `training_step`, `validation_step`.
+    """
 
-    class ScheduleWrapper:
-        """
-        This class is used to override the schedule logic from the profiler and perform
-        recording for both `training_step`, `validation_step`.
-        """
+    def __init__(self, schedule: Callable) -> None:
+        if not _KINETO_AVAILABLE:
+            raise ModuleNotFoundError("You are trying to use `ScheduleWrapper` which require kineto install.")
+        self._schedule = schedule
+        self._num_training_step_and_backward = 0
+        self._num_validation_step = 0
+        self._num_test_step = 0
+        self._num_predict_step = 0
+        self._training_step_and_backward_reached_end = False
+        self._validation_step_reached_end = False
+        # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
+        self._current_action: Optional[str] = None
+        self._start_action_name: Optional[str] = None
 
-        def __init__(self, schedule: Callable) -> None:
-            self._schedule = schedule
-            self._num_training_step_and_backward = 0
-            self._num_validation_step = 0
-            self._num_test_step = 0
-            self._num_predict_step = 0
-            self._training_step_and_backward_reached_end = False
-            self._validation_step_reached_end = False
-            # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
-            self._current_action: Optional[str] = None
-            self._start_action_name: Optional[str] = None
+    def setup(self, start_action_name: str) -> None:
+        self._start_action_name = start_action_name
 
-        def setup(self, start_action_name: str) -> None:
-            self._start_action_name = start_action_name
+    def pre_step(self, current_action: str) -> None:
+        self._current_action = current_action
 
-        def pre_step(self, current_action: str) -> None:
-            self._current_action = current_action
+    @property
+    def num_step(self) -> int:
+        if self._current_action == "training_step_and_backward":
+            return self._num_training_step_and_backward
+        elif self._current_action == "validation_step":
+            return self._num_validation_step
+        elif self._current_action == "test_step":
+            return self._num_test_step
+        elif self._current_action == "predict_step":
+            return self._num_predict_step
+        else:
+            return 0
 
-        @property
-        def num_step(self) -> int:
-            if self._current_action == "training_step_and_backward":
-                return self._num_training_step_and_backward
-            elif self._current_action == "validation_step":
-                return self._num_validation_step
-            elif self._current_action == "test_step":
-                return self._num_test_step
-            elif self._current_action == "predict_step":
-                return self._num_predict_step
+    def _step(self) -> None:
+        if self._current_action == "training_step_and_backward":
+            self._num_training_step_and_backward += 1
+        elif self._current_action == "validation_step":
+            if self._start_action_name == "on_train_start" and self._num_training_step_and_backward > 0:
+                self._num_validation_step += 1
             else:
-                return 0
+                self._num_validation_step += 1
+        elif self._current_action == "test_step":
+            self._num_test_step += 1
+        elif self._current_action == "predict_step":
+            self._num_predict_step += 1
 
-        def _step(self) -> None:
+    @property
+    def has_finished(self) -> bool:
+        if self._current_action == "training_step_and_backward":
+            return self._training_step_and_backward_reached_end
+        elif self._current_action == "validation_step":
+            return self._validation_step_reached_end
+        return False
+
+    def __call__(self, num_step: int) -> 'ProfilerAction':
+        # ignore the provided input. Keep internal state instead.
+        if self.has_finished:
+            return ProfilerAction.NONE
+
+        self._step()
+        action = self._schedule(self.num_step)
+        if action == ProfilerAction.RECORD_AND_SAVE:
             if self._current_action == "training_step_and_backward":
-                self._num_training_step_and_backward += 1
+                self._training_step_and_backward_reached_end = True
             elif self._current_action == "validation_step":
-                if self._start_action_name == "on_train_start" and self._num_training_step_and_backward > 0:
-                    self._num_validation_step += 1
-                else:
-                    self._num_validation_step += 1
-            elif self._current_action == "test_step":
-                self._num_test_step += 1
-            elif self._current_action == "predict_step":
-                self._num_predict_step += 1
-
-        @property
-        def has_finished(self) -> bool:
-            if self._current_action == "training_step_and_backward":
-                return self._training_step_and_backward_reached_end
-            elif self._current_action == "validation_step":
-                return self._validation_step_reached_end
-            return False
-
-        def __call__(self, num_step: int) -> 'ProfilerAction':
-            # ignore the provided input. Keep internal state instead.
-            if self.has_finished:
-                return ProfilerAction.NONE
-
-            self._step()
-            action = self._schedule(self.num_step)
-            if action == ProfilerAction.RECORD_AND_SAVE:
-                if self._current_action == "training_step_and_backward":
-                    self._training_step_and_backward_reached_end = True
-                elif self._current_action == "validation_step":
-                    self._validation_step_reached_end = True
-            return action
+                self._validation_step_reached_end = True
+        return action
 
 
 class PyTorchProfiler(BaseProfiler):
