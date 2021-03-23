@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import os
+from pathlib import Path
 import time
 from copy import deepcopy
 from distutils.version import LooseVersion
@@ -297,12 +298,15 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
 
 
 @RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_ddp(tmpdir):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
+    pytorch_profiler = PyTorchProfiler(dirpath=None, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
+        max_epochs=1,
         default_root_dir=tmpdir,
-        fast_dev_run=True,
+        limit_train_batches=2,
+        limit_val_batches=2,
         profiler=pytorch_profiler,
         accelerator="ddp",
         gpus=2,
@@ -312,12 +316,14 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     assert len(pytorch_profiler.summary()) > 0
     assert set(pytorch_profiler.profiled_actions) == {'training_step_and_backward', 'validation_step'}
 
-    actual = set(os.listdir(pytorch_profiler.dirpath))
-    expected = {f"fit-profiler-{rank}.txt" for rank in (0, 1)}
-    assert actual == expected
-
-    for f in pytorch_profiler.dirpath.listdir():
-        assert f.read_text('utf-8')
+    files = sorted(f for f in os.listdir(pytorch_profiler.dirpath) if "fit" in f)
+    rank = int(os.getenv("LOCAL_RANK", "0"))
+    expected = f"fit-profiler-{rank}.txt"
+    assert files[rank] == expected
+    
+    path = os.path.join(pytorch_profiler.dirpath, expected)
+    data = Path(path).read_text("utf-8")
+    assert len(data) > 0
 
 
 def test_pytorch_profiler_nested(tmpdir):

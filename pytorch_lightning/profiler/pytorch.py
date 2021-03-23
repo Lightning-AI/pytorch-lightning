@@ -239,7 +239,6 @@ class PyTorchProfiler(BaseProfiler):
     def summary(self) -> str:
         recorded_stats = {}
         output_string = ''
-        local_rank = '0' if self._local_rank is None else self._local_rank
 
         if not self.enabled:
             return output_string
@@ -252,7 +251,7 @@ class PyTorchProfiler(BaseProfiler):
             function_events.populate_cpu_children = lambda: None
 
             if self.export_to_chrome:
-                filename = f"{action_name}_{local_rank}_trace.json"
+                filename = f"{action_name}_{self.local_rank}_trace.json"
                 path_to_trace = filename if self.path_to_export_trace is None \
                     else os.path.join(self.path_to_export_trace, filename)
                 function_events.export_chrome_trace(path_to_trace)
@@ -264,5 +263,4 @@ class PyTorchProfiler(BaseProfiler):
                 data = function_events.key_averages(group_by_input_shapes=self.group_by_input_shapes)
                 table = data.table(sort_by=self.sort_by_key, row_limit=self.row_limit)
                 recorded_stats[action_name] = table
-
         return self._stats_to_str(recorded_stats)
