@@ -130,10 +130,10 @@ def test_simple_profiler_log_dir(tmpdir):
     )
     trainer.fit(model)
 
-    expected = profiler.dirpath
+    expected = tmpdir / "lightning_logs" / "version_0"
     assert trainer.log_dir == expected
     assert profiler._log_dir == trainer.log_dir
-    assert Path(os.path.join(profiler.dirpath, "fit-profiler.txt")).exists()
+    assert expected.join("fit-profiler.txt").exists()
 
 
 @RunIf(skip_windows=True)
@@ -278,15 +278,10 @@ def test_pytorch_profiler_describe(pytorch_profiler):
     assert len(data) > 0
 
 
-def test_pytorch_profiler_value_errors(pytorch_profiler):
+def test_pytorch_profiler_raises(pytorch_profiler):
     """Ensure errors are raised where expected."""
-    action = "test_step"
-    pytorch_profiler.start(action)
-    pytorch_profiler.stop(action)
-
     with pytest.raises(MisconfigurationException, match="profiled_functions` and `PyTorchProfiler.record"):
         PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
-    pytorch_profiler.teardown()
 
 
 @RunIf(min_torch="1.6.0")
@@ -303,9 +298,8 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
 
 
 @RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir):
+def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
-    pytorch_profiler = PyTorchProfiler(dirpath=None, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
         max_epochs=1,
@@ -320,19 +314,18 @@ def test_pytorch_profiler_trainer_ddp(tmpdir):
 
     expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
     for name in expected:
-        assert len([e for e in pytorch_profiler.function_events if name == e.name]) > 0
+        assert sum(e.name == name for e in pytorch_profiler.function_events)
 
     assert len(pytorch_profiler.summary()) > 0
     assert set(pytorch_profiler.profiled_actions) == {'training_step_and_backward', 'validation_step'}
 
-    files = sorted(f for f in os.listdir(pytorch_profiler.dirpath) if "fit" in f)
-    rank = int(os.getenv("LOCAL_RANK", "0"))
+    files = set(os.listdir(pytorch_profiler.dirpath))
+    rank = int(os.getenv("LOCAL_RANK", 0))
     expected = f"fit-profiler-{rank}.txt"
-    assert files[rank] == expected
+    assert expected in files
 
     path = os.path.join(pytorch_profiler.dirpath, expected)
-    data = Path(path).read_text("utf-8")
-    assert len(data) > 0
+    assert Path(path).read_text()
 
 
 def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):

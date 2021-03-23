@@ -275,8 +275,6 @@ class PyTorchProfiler(BaseProfiler):
         if not self._profiler_kwargs.get("enabled", True):
             return ""
 
-        local_rank = 0 if self._local_rank is None else self._local_rank
-
         self.profiler.__exit__(None, None, None)
         if not self._emit_nvtx:
             self.function_events = self.profiler.function_events
@@ -294,7 +292,7 @@ class PyTorchProfiler(BaseProfiler):
             return ""
 
         if self._export_to_chrome:
-            filename = f"{local_rank}_trace.json"
+            filename = f"{self.local_rank}_trace.json"
             path_to_trace = (
                 filename if self._path_to_export_trace is None else os.path.join(self._path_to_export_trace, filename)
             )
