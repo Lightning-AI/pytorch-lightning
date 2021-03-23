@@ -265,7 +265,7 @@ def pytorch_profiler(tmpdir):
     return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
 
-@pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="This feature isn't support with PyTorch 1.8 profiler")
+@RunIf(max_torch="1.8.0")
 def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
     with pytorch_profiler.profile("on_test_start"):
@@ -284,8 +284,6 @@ def test_pytorch_profiler_raises(pytorch_profiler):
         PyTorchProfiler(profiled_functions=["a"], record_functions=["b"])
 
 
-# TODO: address this
-@pytest.mark.skip(reason="Segmentation fault (core dumped)")
 @RunIf(min_torch="1.6.0")
 def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522"""
@@ -343,7 +341,7 @@ def test_pytorch_profiler_trainer_test(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_test_batches=10,
+        limit_test_batches=2,
         profiler=pytorch_profiler,
     )
     trainer.test(model)
@@ -388,7 +386,7 @@ def test_pytorch_profiler_trainer_validate(tmpdir, pytorch_profiler):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_val_batches=5,
+        limit_val_batches=2,
         profiler=pytorch_profiler,
     )
     trainer.validate(model)
@@ -449,45 +447,6 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
         gpus=1,
     )
     trainer.fit(model)
-
-
-@RunIf(min_torch="1.5.0")
-def test_register_record_function(tmpdir):
-
-    use_cuda = torch.cuda.is_available()
-    pytorch_profiler = PyTorchProfiler(
-        export_to_chrome=False,
-        record_functions=["a"],
-        use_cuda=use_cuda,
-        dirpath=tmpdir,
-        filename="profiler",
-        schedule=None,
-        on_trace_ready=None,
-    )
-
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.layer = torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.ReLU(), torch.nn.Linear(8, 2))
-
-    model = TestModel()
-    input = torch.rand((1, 8))
-
-    if use_cuda:
-        model = model.cuda()
-        input = input.cuda()
-
-    with pytorch_profiler.profile("a"):
-        with RegisterRecordFunction(model):
-            model(input)
-
-    pytorch_profiler.describe()
-    event_names = [e.name for e in pytorch_profiler.function_events]
-    assert 'torch.nn.modules.container.Sequential: layer' in event_names
-    assert 'torch.nn.modules.linear.Linear: layer.0' in event_names
-    assert 'torch.nn.modules.activation.ReLU: layer.1' in event_names
-    assert 'torch.nn.modules.linear.Linear: layer.2' in event_names
 
 
 @RunIf(min_torch="1.5.0")
