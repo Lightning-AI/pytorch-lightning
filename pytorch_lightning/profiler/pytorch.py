@@ -294,34 +294,36 @@ class PyTorchProfiler(BaseProfiler):
         self._schedule: Optional[ScheduleWrapper] = None
 
         if _KINETO_AVAILABLE:
-            has_schedule = "schedule" in profiler_kwargs
-            self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
-
-            schedule = profiler_kwargs.get("schedule", None)
-            if schedule is not None:
-                if not isinstance(schedule, Callable):
-                    raise MisconfigurationException(f"Schedule should be a callable. Found: {schedule}")
-                action = schedule(0)
-                if not isinstance(action, ProfilerAction):
-                    raise MisconfigurationException(
-                        f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
-                    )
-            schedule = schedule if has_schedule else self._default_schedule()
-            self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
-            self._profiler_kwargs["schedule"] = self._schedule
-
-            activities = profiler_kwargs.get("activities", None)
-            self._profiler_kwargs["activities"] = activities or self._default_activities()
-            self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", False)
-            self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
-            self._profiler_kwargs["with_stack"] = profiler_kwargs.get(
-                "with_stack", False
-            ) or self._export_to_flame_graph
+            self.__init_kento(profiler_kwargs)
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
+
+    def __init_kento(self, profiler_kwargs: Any):
+        has_schedule = "schedule" in profiler_kwargs
+        self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
+
+        schedule = profiler_kwargs.get("schedule", None)
+        if schedule is not None:
+            if not isinstance(schedule, Callable):
+                raise MisconfigurationException(f"Schedule should be a callable. Found: {schedule}")
+            action = schedule(0)
+            if not isinstance(action, ProfilerAction):
+                raise MisconfigurationException(
+                    f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
+                )
+        schedule = schedule if has_schedule else self._default_schedule()
+        self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
+        self._profiler_kwargs["schedule"] = self._schedule
+
+        activities = profiler_kwargs.get("activities", None)
+        self._profiler_kwargs["activities"] = activities or self._default_activities()
+        self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", False)
+        self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
+        with_stack = profiler_kwargs.get("with_stack", False) or self._export_to_flame_graph
+        self._profiler_kwargs["with_stack"] = with_stack
 
     def __deprecation_check(
         self,
