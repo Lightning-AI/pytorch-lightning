@@ -69,8 +69,8 @@ _TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
 _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
-_TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 
+_KINETO_AVAILABLE = torch.profiler.kineto_available() if _TORCH_GREATER_EQUAL_1_8 else False
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 _DEEPSPEED_AVAILABLE = not _IS_WINDOWS and _module_available('deepspeed')

@@ -26,7 +26,7 @@ from torch.autograd.profiler import record_function
 from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8_1
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
 if TYPE_CHECKING:
     from torch.autograd.profiler import EventList
@@ -94,7 +94,7 @@ class RegisterRecordFunction:
         self._handles = {}
 
 
-if _TORCH_GREATER_EQUAL_1_8_1:
+if _KINETO_AVAILABLE:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
     class ScheduleWrapper:
@@ -275,7 +275,7 @@ class PyTorchProfiler(BaseProfiler):
         self._start_action_name: Optional[str] = None
         self._schedule: Optional[ScheduleWrapper] = None
 
-        if _TORCH_GREATER_EQUAL_1_8_1:
+        if _KINETO_AVAILABLE:
             has_schedule = "schedule" in profiler_kwargs
             self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
             schedule = profiler_kwargs.get("schedule", None)
@@ -294,9 +294,11 @@ class PyTorchProfiler(BaseProfiler):
             self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
             self._profiler_kwargs["schedule"] = self._schedule
             self._profiler_kwargs["activities"] = activities or self._default_activities()
-            self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", True)
+            self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", False)
             self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
-            self._profiler_kwargs["with_stack"] = profiler_kwargs.get("with_stack", True) or self._export_to_flame_graph
+            self._profiler_kwargs["with_stack"] = profiler_kwargs.get(
+                "with_stack", False
+            ) or self._export_to_flame_graph
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
@@ -387,7 +389,7 @@ class PyTorchProfiler(BaseProfiler):
             self._recording_map[action_name].__exit__(None, None, None)
             del self._recording_map[action_name]
 
-        if not _TORCH_GREATER_EQUAL_1_8_1 or self._emit_nvtx:
+        if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
 
         if action_name in self.step_action_names:
@@ -421,7 +423,7 @@ class PyTorchProfiler(BaseProfiler):
         if not self.function_events:
             return ""
 
-        if self._export_to_chrome and not _TORCH_GREATER_EQUAL_1_8_1:
+        if self._export_to_chrome and not _KINETO_AVAILABLE:
             filename = f"{self.local_rank}_trace.json"
             path_to_trace = (filename if self.dirpath is None else os.path.join(self.dirpath, filename))
             self.function_events.export_chrome_trace(path_to_trace)
@@ -439,7 +441,7 @@ class PyTorchProfiler(BaseProfiler):
         else:
             self._parent_profiler = None
             self.profiler = self._create_profiler(
-                torch.profiler.profile if _TORCH_GREATER_EQUAL_1_8_1 else torch.autograd.profiler.profile
+                torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
             )
         if self._record_module_names and self._lightning_module is not None:
             self._register = RegisterRecordFunction(self._lightning_module)
@@ -452,7 +454,7 @@ class PyTorchProfiler(BaseProfiler):
     def _cache_functions_events(self) -> None:
         if self._emit_nvtx:
             return
-        self.function_events = self.profiler.events() if _TORCH_GREATER_EQUAL_1_8_1 else self.profiler.function_events
+        self.function_events = self.profiler.events() if _KINETO_AVAILABLE else self.profiler.function_events
 
     def _delete_profilers(self) -> None:
         if self.profiler is not None:
