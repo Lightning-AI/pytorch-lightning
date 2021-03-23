@@ -38,7 +38,7 @@ DEFAULT_CMD_LINE = (
     "--limit_train_batches", "15",
     "--limit_val_batches", "15",
     "--profiler", "pytorch",
-    "--gpus",  f"{int(torch.cuda.is_available())}",
+    "--gpus", f"{int(torch.cuda.is_available())}",
 )
 
 class ModelToProfile(LightningModule):
