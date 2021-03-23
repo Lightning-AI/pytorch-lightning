@@ -21,10 +21,12 @@ import time
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Dict, Optional
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional, TextIO, Tuple, Union
 
 import numpy as np
 
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
@@ -45,41 +47,43 @@ class AbstractProfiler(ABC):
     def summary(self) -> str:
         """Create profiler summary in text format."""
 
+    @abstractmethod
+    def setup(self, **kwargs: Any) -> None:
+        """Execute arbitrary pre-profiling set-up steps as defined by subclass."""
 
-class BaseProfiler(AbstractProfiler, ABC):
+    @abstractmethod
+    def teardown(self, **kwargs: Any) -> None:
+        """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
+
+
+class BaseProfiler(AbstractProfiler):
     """
     If you wish to write a custom profiler, you should inherit from this class.
     """
 
     def __init__(
         self,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
         output_filename: Optional[str] = None,
-        local_rank: Optional[int] = None,
-        log_dir: Optional[str] = None
     ) -> None:
-        self.output_fname = output_filename
-        self.output_file = None
-        self._file_prepared = False
-        self.write_streams = []
-        # the profiler can be used outside of lightning
-        # that's why we call `on_train_start` manually
-        self.on_train_start(local_rank=local_rank, log_dir=log_dir)
+        self.dirpath = dirpath
+        self.filename = filename
+        if output_filename is not None:
+            rank_zero_warn(
+                "`Profiler` signature has changed in v1.3. The `output_filename` parameter has been removed in"
+                " favor of `dirpath` and `filename`. Support for the old signature will be removed in v1.5",
+                DeprecationWarning
+            )
+            filepath = Path(output_filename)
+            self.dirpath = filepath.parent
+            self.filename = filepath.stem
 
-    def on_train_start(self, local_rank: Optional[int] = None, log_dir: Optional[str] = None):
-        """
-        This function is used by the Trainer to inject local_rank with `DDP`
-        and `TensorBoardLogger` log_dir in the profiler.
-        """
-        self.local_rank = local_rank
-        self.log_dir = log_dir
-
-    def _prepare_file(self) -> None:
-        if not self._file_prepared:
-            if self.output_fname and self.output_file is None:
-                fs = get_filesystem(self.output_fname)
-                self.output_file = fs.open(self.output_fname, "w")
-            self.write_streams = [self.output_file.write] if self.output_file else [log.info]
-        self._file_prepared = True
+        self._output_file: Optional[TextIO] = None
+        self._write_stream: Optional[Callable] = None
+        self._local_rank: Optional[int] = None
+        self._log_dir: Optional[str] = None
+        self._stage: Optional[str] = None
 
     @contextmanager
     def profile(self, action_name: str) -> None:
@@ -112,31 +116,94 @@ class BaseProfiler(AbstractProfiler, ABC):
                 self.stop(action_name)
                 break
 
-    def describe(self) -> None:
-        """Logs a profile report after the conclusion of the training run."""
-        self._prepare_file()
-        for write in self.write_streams:
-            write(self.summary())
-        if self.output_file:
-            self.output_file.flush()
-        self.teardown()
+    def _rank_zero_info(self, *args, **kwargs) -> None:
+        if self._local_rank in (None, 0):
+            log.info(*args, **kwargs)
 
-    def stats_to_str(self, stats: Dict[str, str]) -> str:
-        output = ["Profiler Report"]
+    def _prepare_filename(self) -> str:
+        filename = ""
+        if self._stage is not None:
+            filename += f"{self._stage}-"
+        filename += str(self.filename)
+        if self._local_rank is not None:
+            filename += f"-{self.local_rank}"
+        filename += ".txt"
+        return filename
+
+    def _prepare_streams(self) -> None:
+        if self._write_stream is not None:
+            return
+        if self.filename:
+            dirpath = self.dirpath or self._log_dir
+            filepath = os.path.join(dirpath, self._prepare_filename())
+            fs = get_filesystem(filepath)
+            file = fs.open(filepath, "a")
+            self._output_file = file
+            self._write_stream = file.write
+        else:
+            self._write_stream = self._rank_zero_info
+
+    def describe(self) -> None:
+        """Logs a profile report after the conclusion of run."""
+        # there are pickling issues with open file handles in Python 3.6
+        # so to avoid them, we open and close the files within this function
+        # by calling `_prepare_streams` and `teardown`
+        self._prepare_streams()
+        self._write_stream(self.summary())
+        if self._output_file is not None:
+            self._output_file.flush()
+        self.teardown(stage=self._stage)
+
+    def _stats_to_str(self, stats: Dict[str, str]) -> str:
+        stage = f"{self._stage.upper()} " if self._stage is not None else ""
+        output = [stage + "Profiler Report"]
         for action, value in stats.items():
             header = f"Profile stats for: {action}"
-            if getattr(self, "local_rank", None) is not None:
-                header += f" rank: {self.local_rank}"
+            if self._local_rank is not None:
+                header += f" rank: {self._local_rank}"
             output.append(header)
             output.append(value)
         return os.linesep.join(output)
 
-    def teardown(self) -> None:
-        """Close profiler's stream."""
-        if self.output_file:
-            self.output_file.close()
-        self.write_streams = []
-        self._file_prepared = False
+    def setup(
+        self,
+        stage: Optional[str] = None,
+        local_rank: Optional[int] = None,
+        log_dir: Optional[str] = None,
+    ) -> None:
+        """Execute arbitrary pre-profiling set-up steps."""
+        self._stage = stage
+        self._local_rank = local_rank
+        self._log_dir = log_dir
+        if self.dirpath is None:
+            self.dirpath = self._log_dir
+
+    def teardown(self, stage: Optional[str] = None) -> None:
+        """
+        Execute arbitrary post-profiling tear-down steps.
+
+        Closes the currently open file and stream.
+        """
+        self._write_stream = None
+        if self._output_file is not None:
+            self._output_file.close()
+            self._output_file = None  # can't pickle TextIOWrapper
+
+    def __del__(self) -> None:
+        self.teardown(stage=self._stage)
+
+    def start(self, action_name: str) -> None:
+        raise NotImplementedError
+
+    def stop(self, action_name: str) -> None:
+        raise NotImplementedError
+
+    def summary(self) -> str:
+        raise NotImplementedError
+
+    @property
+    def local_rank(self):
+        return '0' if self._local_rank is None else self._local_rank
 
 
 class PassThroughProfiler(BaseProfiler):
@@ -161,22 +228,31 @@ class SimpleProfiler(BaseProfiler):
     the mean duration of each action and the total time spent over the entire training run.
     """
 
-    def __init__(self, output_filename: Optional[str] = None, extended: bool = True):
+    def __init__(
+        self,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
+        extended: bool = True,
+        output_filename: Optional[str] = None,
+    ) -> None:
         """
         Args:
-            output_filename: optionally save profile results to file instead of printing
-                to std out when training is finished.
+            dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
+                ``trainer.log_dir`` (from :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`)
+                will be used.
+
+            filename: If present, filename where the profiler results will be saved instead of printing to stdout.
+                The ``.txt`` extension will be used automatically.
 
         Raises:
             ValueError:
                 If you attempt to start an action which has already started, or
                 if you attempt to stop recording an action which was never started.
         """
-        self.output_fname = output_filename
-        self.current_actions = {}
+        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
+        self.current_actions: Dict[str, float] = {}
         self.recorded_durations = defaultdict(list)
         self.extended = extended
-        super().__init__()
         self.start_time = time.monotonic()
 
     def start(self, action_name: str) -> None:
@@ -192,7 +268,7 @@ class SimpleProfiler(BaseProfiler):
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
 
-    def make_report(self):
+    def _make_report(self) -> Tuple[list, float]:
         total_duration = time.monotonic() - self.start_time
         report = [[a, d, 100. * np.sum(d) / total_duration] for a, d in self.recorded_durations.items()]
         report.sort(key=lambda x: x[2], reverse=True)
@@ -200,7 +276,10 @@ class SimpleProfiler(BaseProfiler):
 
     def summary(self) -> str:
         sep = os.linesep
-        output_string = f"Profiler Report{sep}"
+        output_string = ""
+        if self._stage is not None:
+            output_string += f"{self._stage.upper()} "
+        output_string += f"Profiler Report{sep}"
 
         if self.extended:
 
@@ -215,7 +294,7 @@ class SimpleProfiler(BaseProfiler):
                 output_string += log_row("Action", "Mean duration (s)", "Num calls", "Total time (s)", "Percentage %")
                 output_string_len = len(output_string)
                 output_string += f"{sep}{'-' * output_string_len}"
-                report, total_duration = self.make_report()
+                report, total_duration = self._make_report()
                 output_string += log_row("Total", "-", "_", f"{total_duration:.5}", "100 %")
                 output_string += f"{sep}{'-' * output_string_len}"
                 for action, durations, duration_per in report:
@@ -247,11 +326,22 @@ class AdvancedProfiler(BaseProfiler):
     verbose and you should only use this if you want very detailed reports.
     """
 
-    def __init__(self, output_filename: Optional[str] = None, line_count_restriction: float = 1.0):
+    def __init__(
+        self,
+        dirpath: Optional[Union[str, Path]] = None,
+        filename: Optional[str] = None,
+        line_count_restriction: float = 1.0,
+        output_filename: Optional[str] = None,
+    ) -> None:
         """
         Args:
-            output_filename: optionally save profile results to file instead of printing
-                to std out when training is finished.
+            dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
+                ``trainer.log_dir`` (from :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`)
+                will be used.
+
+            filename: If present, filename where the profiler results will be saved instead of printing to stdout.
+                The ``.txt`` extension will be used automatically.
+
             line_count_restriction: this can be used to limit the number of functions
                 reported for each action. either an integer (to select a count of lines),
                 or a decimal fraction between 0.0 and 1.0 inclusive (to select a percentage of lines)
@@ -260,8 +350,8 @@ class AdvancedProfiler(BaseProfiler):
             ValueError:
                 If you attempt to stop recording an action which was never started.
         """
-        super().__init__(output_filename=output_filename)
-        self.profiled_actions = {}
+        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
+        self.profiled_actions: Dict[str, cProfile.Profile] = {}
         self.line_count_restriction = line_count_restriction
 
     def start(self, action_name: str) -> None:
@@ -282,4 +372,16 @@ class AdvancedProfiler(BaseProfiler):
             ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats('cumulative')
             ps.print_stats(self.line_count_restriction)
             recorded_stats[action_name] = s.getvalue()
-        return self.stats_to_str(recorded_stats)
+        return self._stats_to_str(recorded_stats)
+
+    def teardown(self, stage: Optional[str] = None) -> None:
+        super().teardown(stage=stage)
+        self.profiled_actions = {}
+
+    def __reduce__(self):
+        # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
+        return (
+            self.__class__,
+            tuple(),
+            dict(dirpath=self.dirpath, filename=self.filename, line_count_restriction=self.line_count_restriction),
+        )

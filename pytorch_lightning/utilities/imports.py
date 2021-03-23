@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
+import importlib
 import operator
 import platform
 import sys
@@ -19,7 +20,7 @@ from distutils.version import LooseVersion
 from importlib.util import find_spec
 
 import torch
-from pkg_resources import DistributionNotFound, get_distribution
+from pkg_resources import DistributionNotFound
 
 
 def _module_available(module_path: str) -> bool:
@@ -42,11 +43,24 @@ def _module_available(module_path: str) -> bool:
 
 
 def _compare_version(package: str, op, version) -> bool:
+    """
+    Compare package version with some requirements
+
+    >>> _compare_version("torch", operator.ge, "0.1")
+    True
+    """
     try:
-        pkg_version = LooseVersion(get_distribution(package).version)
-        return op(pkg_version, LooseVersion(version))
-    except DistributionNotFound:
+        pkg = importlib.import_module(package)
+    except (ModuleNotFoundError, DistributionNotFound):
         return False
+    try:
+        pkg_version = LooseVersion(pkg.__version__)
+    except AttributeError:
+        return False
+    if not (hasattr(pkg_version, "vstring") and hasattr(pkg_version, "version")):
+        # this is mock by sphinx, so it shall return True ro generate all summaries
+        return True
+    return op(pkg_version, LooseVersion(version))
 
 
 _IS_WINDOWS = platform.system() == "Windows"
