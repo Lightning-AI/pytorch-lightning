@@ -380,7 +380,7 @@ class TrainerDataLoadingMixin(ABC):
         if has_loader:
             self.num_predict_batches, self.predict_dataloaders = self._reset_eval_dataloader(model, 'predict')
 
-    def request_dataloader(self, model: LightningModule, stage) -> DataLoader:
+    def request_dataloader(self, model: LightningModule, stage: str) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.
 
         Args:
