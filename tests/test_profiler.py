@@ -301,8 +301,9 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
 
 
 @RunIf(min_gpus=2, special=True)
-def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_ddp(tmpdir):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
+    pytorch_profiler = PyTorchProfiler(dirpath=None, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -320,11 +321,6 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         for name in expected:
             assert len([e for e in pytorch_profiler.function_events if name == e.name]) > 0
 
-        assert len(pytorch_profiler.summary()) > 0
-        assert set(pytorch_profiler.profiled_actions) == {'training_step_and_backward', 'validation_step'}
-
-        trainer.accelerator.barrier()
-
         files = set(os.listdir(pytorch_profiler.dirpath))
         rank = int(os.getenv("LOCAL_RANK", 0))
         expected = f"fit-profiler-{rank}.txt"
@@ -333,10 +329,11 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         path = os.path.join(pytorch_profiler.dirpath, expected)
         assert Path(path).read_text()
     else:
-        files = os.listdir(trainer.profiler.dirpath)
+        files = os.listdir(pytorch_profiler._log_dir)
         files = sorted([file for file in files if file.endswith('.json')])
         local_rank = trainer.local_rank
-        assert f'training_step_and_backward_{local_rank}' in files[local_rank]
+        print(files)
+        assert f'training_step_{local_rank}' in files[local_rank]
         assert f'validation_step_{local_rank}' in files[local_rank + 2]
         assert len(files) == 4
 
