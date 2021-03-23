@@ -34,12 +34,6 @@ if TYPE_CHECKING:
 
     from pytorch_lightning.core.lightning import LightningModule
 
-if TYPE_CHECKING:
-    from torch.autograd.profiler import EventList
-    from torch.utils.hooks import RemovableHandle
-
-    from pytorch_lightning.core.lightning import LightningModule
-
 log = logging.getLogger(__name__)
 
 _PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
@@ -256,18 +250,11 @@ class PyTorchProfiler(BaseProfiler):
         Raises:
             MisconfigurationException:
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
+            TODO: update this
         """
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
         record_functions = self.__deprecation_check(profiled_functions, record_functions)
-
-        self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional[EventList] = None
-
-        if isinstance(sort_by_key, str) and sort_by_key not in self.AVAILABLE_SORT_KEYS:
-            raise MisconfigurationException(
-                f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
-            )
 
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self._emit_nvtx = emit_nvtx
@@ -279,11 +266,12 @@ class PyTorchProfiler(BaseProfiler):
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
 
+        self.profiler: Optional[_PROFILER] = None
+        self.function_events: Optional['EventList'] = None
         self._lightning_module: Optional['LightningModule'] = None  # set by ProfilerConnector
         self._register: Optional[RegisterRecordFunction] = None
         self._parent_profiler: Optional[_PROFILER] = None
         self._recording_map: Dict[str, record_function] = {}
-        self._profiler_instantiated: bool = False
         self._start_action_name: Optional[str] = None
         self._schedule: Optional[ScheduleWrapper] = None
 
