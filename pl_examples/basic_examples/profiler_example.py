@@ -34,12 +34,18 @@ from pl_examples import cli_lightning_logo
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 
 DEFAULT_CMD_LINE = (
-    "--max_epochs", "1",
-    "--limit_train_batches", "15",
-    "--limit_val_batches", "15",
-    "--profiler", "pytorch",
-    "--gpus", f"{int(torch.cuda.is_available())}",
+    "--max_epochs",
+    "1",
+    "--limit_train_batches",
+    "15",
+    "--limit_val_batches",
+    "15",
+    "--profiler",
+    "pytorch",
+    "--gpus",
+    f"{int(torch.cuda.is_available())}",
 )
+
 
 class ModelToProfile(LightningModule):
 

@@ -175,9 +175,19 @@ class ScheduleWrapper:
 class PyTorchProfiler(BaseProfiler):
 
     RECORD_FUNCTIONS = {
-        "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict_step"
+        "training_step_and_backward",
+        "training_step",
+        "backward",
+        "validation_step",
+        "test_step",
+        "predict_step",
     }
-    STEP_FUNCTIONS = {"training_step_and_backward", "validation_step", "test_step", "predict_step"}
+    STEP_FUNCTIONS = {
+        "training_step_and_backward",
+        "validation_step",
+        "test_step",
+        "predict_step",
+    }
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
@@ -189,7 +199,12 @@ class PyTorchProfiler(BaseProfiler):
         "self_cuda_memory_usage",
         "count",
     }
-    START_RECORD_FUNCTIONS = {'on_train_start', 'on_validation_start', 'on_test_start', 'on_predict_start'}
+    START_RECORD_FUNCTIONS = {
+        'on_train_start',
+        'on_validation_start',
+        'on_test_start',
+        'on_predict_start',
+    }
 
     def __init__(
         self,

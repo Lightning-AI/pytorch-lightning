@@ -30,6 +30,7 @@ def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
     """
 
     class TestModel(BoringModel):
+
         def on_fit_start(self):
             if delay_dispatch:
                 # Ensure we haven't setup optimizers if we've delayed dispatch
@@ -41,14 +42,11 @@ def test_plugin_setup_optimizers_in_pre_dispatch(tmpdir, delay_dispatch):
             assert len(self.trainer.optimizers) > 0
 
     class CustomPlugin(SingleDevicePlugin):
+
         @property
         def setup_optimizers_in_pre_dispatch(self) -> bool:
             return delay_dispatch
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        plugins=CustomPlugin(device=torch.device("cpu"))
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, plugins=CustomPlugin(device=torch.device("cpu")))
     trainer.fit(model)
