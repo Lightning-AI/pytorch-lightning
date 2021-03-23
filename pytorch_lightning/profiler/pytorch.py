@@ -342,7 +342,7 @@ class PyTorchProfiler(BaseProfiler):
         return set(list(self.START_RECORD_FUNCTIONS) + list(self._record_functions))
 
     @property
-    def step_action_names(self):
+    def step_action_names(self) -> Set[str]:
         return set(list(self.STEP_FUNCTIONS) + list(self._record_functions))
 
     def start(self, action_name: str) -> None:
