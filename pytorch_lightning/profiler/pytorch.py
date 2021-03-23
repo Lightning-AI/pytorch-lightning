@@ -17,7 +17,7 @@ import logging
 import os
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import nn, Tensor
@@ -303,20 +303,11 @@ class PyTorchProfiler(BaseProfiler):
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-    @staticmethod
-    def _default_schedule() -> Optional[Callable]:
-        if _TORCH_GREATER_EQUAL_1_8_1:
-            return torch.profiler.schedule(wait=1, warmup=1, active=2)
-
-    def _default_activities(self) -> List:
-        if _TORCH_GREATER_EQUAL_1_8_1:
-            activities = [ProfilerActivity.CPU] * self._profiler_kwargs.get("use_cpu", True)
-            activities += [ProfilerActivity.CUDA] * self._profiler_kwargs.get("use_cuda", torch.cuda.is_available())
-            return activities
-        return []
-
-    def __deprecation_check(self, profiled_functions: Optional[List[str]],
-                            record_functions: Optional[List[str]]) -> List[str]:
+    def __deprecation_check(
+        self,
+        profiled_functions: Optional[List[str]],
+        record_functions: Optional[List[str]],
+    ) -> List[str]:
         if record_functions is None:
             record_functions = []
 
@@ -335,13 +326,25 @@ class PyTorchProfiler(BaseProfiler):
 
         return record_functions
 
-    @property
-    def start_action_names(self):
-        return set(list(self.START_RECORD_FUNCTIONS) + list(self._record_functions))
+    @staticmethod
+    def _default_schedule() -> Optional[callable]:
+        if _TORCH_GREATER_EQUAL_1_8_1:
+            return torch.profiler.schedule(wait=1, warmup=1, active=2)
+
+    def _default_activities(self) -> list:
+        if _TORCH_GREATER_EQUAL_1_8_1:
+            activities = [ProfilerActivity.CPU] * self._profiler_kwargs.get("use_cpu", True)
+            activities += [ProfilerActivity.CUDA] * self._profiler_kwargs.get("use_cuda", torch.cuda.is_available())
+            return activities
+        return []
 
     @property
-    def step_action_names(self):
-        return set(list(self.STEP_FUNCTIONS) + list(self._record_functions))
+    def start_action_names(self) -> Set[str]:
+        return set(self.START_RECORD_FUNCTIONS + self._record_functions)
+
+    @property
+    def step_action_names(self) -> Set[str]:
+        return set(self.STEP_FUNCTIONS + self._record_functions)
 
     def start(self, action_name: str) -> None:
         if self.profiler is None and action_name in self._record_functions_start:
@@ -392,15 +395,15 @@ class PyTorchProfiler(BaseProfiler):
                 self._schedule._current_action = action_name
 
             def on_trace_ready(profiler):
-                local_rank = 0 if self.local_rank is None else self.local_rank
-                filename = f"{action_name}_{local_rank}"
+                filename = f"{action_name}_{self.local_rank}"
 
                 if self.dirpath is not None:
                     if self._export_to_chrome:
-                        tensorboard_trace_handler(self.dirpath, filename)(profiler)
+                        handler = tensorboard_trace_handler(self.dirpath, filename)
+                        handler(profiler)
 
                     if self._export_to_flame_graph:
-                        path = os.path.join(self.dirpath, f"{filename}.stack")
+                        path = os.path.join(self.dirpath, self._prepare_filename(extension=".stack"))
                         profiler.export_stacks(path, metric=self._metric)
                 else:
                     rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")
@@ -435,10 +438,9 @@ class PyTorchProfiler(BaseProfiler):
             self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
         else:
             self._parent_profiler = None
-            if _TORCH_GREATER_EQUAL_1_8_1:
-                self.profiler = self._create_profiler(torch.profiler.profile)
-            else:
-                self.profiler = self._create_profiler(torch.autograd.profiler.profile)
+            self.profiler = self._create_profiler(
+                torch.profiler.profile if _TORCH_GREATER_EQUAL_1_8_1 else torch.autograd.profiler.profile
+            )
         if self._record_module_names and self._lightning_module is not None:
             self._register = RegisterRecordFunction(self._lightning_module)
 
@@ -447,13 +449,10 @@ class PyTorchProfiler(BaseProfiler):
         kwargs = {k: v for k, v in self._profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
 
-    def _cache_functions_events(self):
+    def _cache_functions_events(self) -> None:
         if self._emit_nvtx:
             return
-        if _TORCH_GREATER_EQUAL_1_8_1:
-            self.function_events = self.profiler.events()
-        else:
-            self.function_events = self.profiler.function_events
+        self.function_events = self.profiler.events() if _TORCH_GREATER_EQUAL_1_8_1 else self.profiler.function_events
 
     def _delete_profilers(self) -> None:
         if self.profiler is not None:
