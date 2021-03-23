@@ -174,7 +174,7 @@ class BaseProfiler(AbstractProfiler):
         self._stage = stage
         self._local_rank = local_rank
         self._log_dir = log_dir
-        self.dirpath = self.dirpath or local_rank
+        self.dirpath = self.dirpath or log_dir
 
     def teardown(self, stage: Optional[str] = None) -> None:
         """

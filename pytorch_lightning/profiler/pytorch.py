@@ -17,15 +17,21 @@ import logging
 import os
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import nn, Tensor
-from torch.autograd.profiler import EventList, record_function
+from torch.autograd.profiler import record_function
 
 from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if TYPE_CHECKING:
+    from torch.autograd.profiler import EventList
+    from torch.utils.hooks import RemovableHandle
+
+    from pytorch_lightning.core.lightning import LightningModule
 
 log = logging.getLogger(__name__)
 
@@ -34,40 +40,42 @@ _PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, 
 
 class RegisterRecordFunction:
     """
-    While profiling autograd operations, this class will add label with module name
-    around the forward function.
-    The Lightning PyTorch Profiler will activate this feature automatically.
-    It can be deactivated as follows:
+    While profiling autograd operations, this class will add labels for module names around the forward function.
+
+    The Lightning PyTorch Profiler will activate this feature automatically. It can be deactivated as follows:
+
     Example::
         from pytorch_lightning.profilers import PyTorchProfiler
         profiler = PyTorchProfiler(record_module_names=False)
         Trainer(profiler=profiler)
+
     It can be used outside of Lightning as follows:
+
     Example::
         from pytorch_lightning import Trainer, seed_everything
         with RegisterRecordFunction(model):
             out = model(batch)
     """
 
-    def __init__(self, model: nn.Module):
+    def __init__(self, model: nn.Module) -> None:
         self._model = model
-        self._records = {}
-        self.handles = {}
+        self._records: Dict[str, record_function] = {}
+        self._handles: Dict[str, List['RemovableHandle']] = {}
 
-    def _start_recording_forward(self, module: nn.Module, input: Tensor, record_name: str):
+    def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
         record = record_function(record_name)
         record.__enter__()
         self._records[record_name] = record
         return input
 
-    def _stop_recording_forward(self, module: nn.Module, input: Tensor, output: Tensor, record_name: str):
+    def _stop_recording_forward(self, _: nn.Module, __: Tensor, output: Tensor, record_name: str) -> Tensor:
         self._records[record_name].__exit__(None, None, None)
         return output
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         for module_name, module in self._model.named_modules():
-            if module_name != '':
-                full_name = type(module).__module__ + '.' + type(module).__name__
+            if module_name:
+                full_name = f"{type(module).__module__}.{type(module).__name__}"
                 record_name = f"{full_name}: {module_name}"
                 pre_forward_handle = module.register_forward_pre_hook(
                     partial(self._start_recording_forward, record_name=record_name)
@@ -76,12 +84,13 @@ class RegisterRecordFunction:
                     partial(self._stop_recording_forward, record_name=record_name)
                 )
 
-                self.handles[module_name] = [pre_forward_handle, post_forward_handle]
+                self._handles[module_name] = [pre_forward_handle, post_forward_handle]
 
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
-        for handles in self.handles.values():
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        for handles in self._handles.values():
             for h in handles:
                 h.remove()
+        self._handles = {}
 
 
 class PyTorchProfiler(BaseProfiler):
@@ -174,23 +183,23 @@ class PyTorchProfiler(BaseProfiler):
 
         record_functions = self.__deprecation_check(profiled_functions, record_functions)
 
-        self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional[EventList] = None
-
-        self._record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
-        self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
-        self._row_limit = row_limit
         self._emit_nvtx = emit_nvtx
         self._export_to_chrome = export_to_chrome
         self._path_to_export_trace = path_to_export_trace
+        self._row_limit = row_limit
+        self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
+        self._record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
         self._record_module_names = record_module_names
-        self._lightning_module = None  # set by ProfilerConnector
-        self._register = None
         self._profiler_kwargs = profiler_kwargs
-        self._parent_profiler = None
+
+        self.profiler: Optional[_PROFILER] = None
+        self.function_events: Optional['EventList'] = None
+        self._lightning_module: Optional['LightningModule'] = None  # set by ProfilerConnector
+        self._register: Optional[RegisterRecordFunction] = None
+        self._parent_profiler: Optional[_PROFILER] = None
         self._recording_map: Dict[str, record_function] = {}
-        self._profiler_instantiated: bool = False
+        self._profiler_instantiated = False
 
         if self._export_to_chrome and self._path_to_export_trace is None:
             rank_zero_warn(
@@ -203,8 +212,11 @@ class PyTorchProfiler(BaseProfiler):
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-    def __deprecation_check(self, profiled_functions: Optional[List[str]],
-                            record_functions: Optional[List[str]]) -> List[str]:
+    def __deprecation_check(
+        self,
+        profiled_functions: Optional[List[str]],
+        record_functions: Optional[List[str]],
+    ) -> List[str]:
         if record_functions is None:
             record_functions = []
 
@@ -213,15 +225,13 @@ class PyTorchProfiler(BaseProfiler):
                 "`PyTorchProfiler.profiled_functions` has been renamed to"
                 " `record_functions` in v1.3 and will be removed in v1.5", DeprecationWarning
             )
-            if (len(record_functions) == 0 or len(profiled_functions) == 0):
+            if not record_functions:
                 record_functions += profiled_functions
             else:
                 raise MisconfigurationException(
                     "You set `PytorchProfiler.profiled_functions` and `PyTorchProfiler.record_functions`."
                     "  Please use only the later."
                 )
-        if record_functions is None:
-            record_functions = []
 
         return record_functions
 
