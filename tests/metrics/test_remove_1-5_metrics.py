@@ -33,8 +33,11 @@ from pytorch_lightning.metrics import (
     MetricCollection,
     Precision,
     PrecisionRecallCurve,
+    PSNR,
+    R2Score,
     Recall,
     ROC,
+    SSIM,
     StatScores,
 )
 from pytorch_lightning.metrics.functional import (
@@ -53,8 +56,11 @@ from pytorch_lightning.metrics.functional import (
     precision,
     precision_recall,
     precision_recall_curve,
+    psnr,
+    r2score,
     recall,
     roc,
+    ssim,
     stat_scores,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
@@ -290,3 +296,36 @@ def test_v1_5_metric_regress():
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = mean_squared_log_error(x, y)
         assert torch.allclose(res, torch.tensor(0.0207), atol=1e-4)
+
+    PSNR.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        PSNR()
+
+    R2Score.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        R2Score()
+
+    SSIM.__init__.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        SSIM()
+
+    preds = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
+    target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
+    psnr.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        res = psnr(preds, target)
+        assert torch.allclose(res, torch.tensor(2.5527), atol=1e-4)
+
+    target = torch.tensor([3, -0.5, 2, 7])
+    preds = torch.tensor([2.5, 0.0, 2, 8])
+    r2score.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        res = r2score(preds, target)
+        assert torch.allclose(res, torch.tensor(0.9486), atol=1e-4)
+
+    preds = torch.rand([16, 1, 16, 16])
+    target = preds * 0.75
+    ssim.warned = False
+    with pytest.deprecated_call(match='It will be removed in v1.5.0'):
+        res = ssim(preds, target)
+        assert torch.allclose(res, torch.tensor(0.9219), atol=1e-4)
