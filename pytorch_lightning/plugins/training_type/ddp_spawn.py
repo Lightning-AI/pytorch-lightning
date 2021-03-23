@@ -284,7 +284,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def test_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
+    def predict_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
     def post_training_step(self):

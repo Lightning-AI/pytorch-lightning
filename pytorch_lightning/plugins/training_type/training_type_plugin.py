@@ -132,15 +132,15 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def start_training(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the training loop
-        self._results = trainer.run_train()
+        self._results = trainer.run_stage()
 
     def start_evaluating(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_evaluate()
+        self._results = trainer.run_stage()
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the predicting loop
-        self._results = trainer.run_predict()
+        self._results = trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
         return self.lightning_module.training_step(*args, **kwargs)
@@ -154,8 +154,8 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step(self, *args, **kwargs):
         return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
-        return self.lightning_module.predict(*args, **kwargs)
+    def predict_step(self, *args, **kwargs):
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output
@@ -182,3 +182,13 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
         optimizer.step(closure=lambda_closure, **kwargs)
+
+    @property
+    def setup_optimizers_in_pre_dispatch(self) -> bool:
+        """
+        Override to delay setting optimizers and schedulers till after dispatch.
+        This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
+        However this may break certain precision plugins such as APEX which require optimizers to be set.
+        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+        """
+        return False

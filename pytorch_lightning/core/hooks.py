@@ -282,6 +282,18 @@ class ModelHooks:
         """
         # do something at the end of testing
 
+    def on_predict_start(self) -> None:
+        """
+        Called at the beginning of predicting.
+        """
+        # do something at the start of predicting
+
+    def on_predict_end(self) -> None:
+        """
+        Called at the end of predicting.
+        """
+        # do something at the end of predicting
+
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
         """
         Called after optimizer.step() and before optimizer.zero_grad().
@@ -593,6 +605,18 @@ class DataHooks:
             In the case where you return multiple prediction dataloaders, the :meth:`predict`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+
+    def on_train_dataloader(self) -> None:
+        """Called before requesting the train dataloader."""
+
+    def on_val_dataloader(self) -> None:
+        """Called before requesting the val dataloader."""
+
+    def on_test_dataloader(self) -> None:
+        """Called before requesting the test dataloader."""
+
+    def on_predict_dataloader(self) -> None:
+        """Called before requesting the predict dataloader."""
 
     def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """
