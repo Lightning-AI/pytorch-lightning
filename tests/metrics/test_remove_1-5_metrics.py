@@ -44,7 +44,9 @@ from pytorch_lightning.metrics.functional import (
     auc,
     auroc,
     average_precision,
+    bleu_score,
     confusion_matrix,
+    embedding_similarity,
     explained_variance,
     f1,
     fbeta,
@@ -61,7 +63,7 @@ from pytorch_lightning.metrics.functional import (
     recall,
     roc,
     ssim,
-    stat_scores, bleu_score, embedding_similarity,
+    stat_scores,
 )
 from pytorch_lightning.metrics.functional.accuracy import accuracy
 from pytorch_lightning.metrics.functional.mean_relative_error import mean_relative_error
@@ -344,7 +346,6 @@ def test_v1_5_metric_others():
     embedding_similarity.warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = embedding_similarity(embeddings)
-    assert torch.allclose(res, torch.tensor([[0.0000, 1.0000, 0.9759],
-            [1.0000, 0.0000, 0.9759],
-            [0.9759, 0.9759, 0.0000]]), atol=1e-4)
-
+    assert torch.allclose(
+        res, torch.tensor([[0.0000, 1.0000, 0.9759], [1.0000, 0.0000, 0.9759], [0.9759, 0.9759, 0.0000]]), atol=1e-4
+    )

@@ -17,7 +17,6 @@ from torchmetrics import Metric as _Metric
 from torchmetrics.collections import MetricCollection as _MetricCollection
 
 from pytorch_lightning.utilities.deprecation import deprecated
-from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 
 class Metric(_Metric):

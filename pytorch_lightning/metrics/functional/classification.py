@@ -220,7 +220,10 @@ def auc(
 
 # todo: remove in 1.4
 def _auc_decorator() -> Callable:
-    rank_zero_warn("This `_auc_decorator` was deprecated in v1.2.0." " It will be removed in v1.4.0", DeprecationWarning)
+    rank_zero_warn(
+        "This `_auc_decorator` was deprecated in v1.2.0."
+        " It will be removed in v1.4.0", DeprecationWarning
+    )
 
     def wrapper(func_to_decorate: Callable) -> Callable:
 
