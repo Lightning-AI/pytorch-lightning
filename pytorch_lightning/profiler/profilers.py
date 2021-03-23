@@ -125,7 +125,8 @@ class BaseProfiler(AbstractProfiler):
         if self._stage is not None:
             filename += f"{self._stage}-"
         filename += str(self.filename)
-        filename += f"-{self.local_rank}"
+        if self._local_rank is not None:
+            filename += f"-{self.local_rank}"
         filename += ".txt"
         return filename
 
