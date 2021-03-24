@@ -388,10 +388,7 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_if_test_works_with_checkpoint_false(tmpdir):
-    """
-    Ensure that model trains properly when
-    `checkpoint_callback` is set to False.
-    """
+    """Ensure that model trains properly when `checkpoint_callback` is set to False."""
 
     # Train a model on TPU
     model = BoringModel()
