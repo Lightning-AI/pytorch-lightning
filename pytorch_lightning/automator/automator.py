@@ -110,9 +110,7 @@ class Automator:
         return dataloaders
 
     def backward(self, tensor: Tensor, *args, **kwargs):
-        # TODO: precision plugin backward
-        # self.precision_plugin.backward()
-        return tensor.backward(*args, **kwargs)
+        self.accelerator.run_backward(tensor, *args, **kwargs)
 
     @contextmanager
     def forward_context(self):

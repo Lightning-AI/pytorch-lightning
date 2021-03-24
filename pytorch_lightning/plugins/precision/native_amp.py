@@ -49,7 +49,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         *args: Any,
         **kwargs: Any,
     ) -> torch.Tensor:
-        """performs the actual backpropagation
+        """Performs the actual backpropagation
 
         Args:
             model: the model to be optimized
@@ -68,6 +68,12 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             self.scaler.unscale_(optimizer)
 
         return closure_loss
+
+    def run_backward(self, tensor, *args, **kwargs):
+        tensor = self.scaler.scale(tensor)
+        super().run_backward(tensor, *args, **kwargs)
+        # self.scaler.unscale_(optimizer)  # TODO: needed?
+
 
     def pre_optimizer_step(
         self,

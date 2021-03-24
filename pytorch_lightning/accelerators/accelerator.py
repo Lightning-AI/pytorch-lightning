@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, TYPE
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -295,6 +296,12 @@ class Accelerator(object):
         self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, optimizer_idx)
 
         return output
+
+    def run_backward(self, tensor: Tensor, *args, **kwargs) -> None:
+        """ Lightning-independent backward logic """
+        # TODO: Q: We don't need training_type.pre_/post_backward here right? Because we can't automate
+        #   the blocking of "require_backward_grad_sync" for the PyTorch user
+        self.precision_plugin.run_backward(tensor, *args, **kwargs)
 
     def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
         """performs the actual optimizer step.

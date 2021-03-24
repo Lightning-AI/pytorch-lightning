@@ -77,12 +77,16 @@ class PrecisionPlugin(Plugin):
         if automatic_optimization:
             model.backward(closure_loss, optimizer, opt_idx)
         else:
-            closure_loss.backward(*args, **kwargs)
+            self.run_backward(closure_loss, *args, **kwargs)
 
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
 
         return closure_loss
+
+    def run_backward(self, tensor, *args, **kwargs) -> None:
+        """ Lightning-independent backward logic. """
+        tensor.backward(*args, **kwargs)
 
     def pre_optimizer_step(
         self,
