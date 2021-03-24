@@ -150,6 +150,8 @@ def main():
                 # TODO: provide forward context as part of a model wrap
                 output = netD(real_cpu)
 
+            output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
+
             errD_real = criterion(output, label)
             automator.backward(errD_real)
             D_x = output.mean().item()
@@ -162,6 +164,8 @@ def main():
             with automator.forward_context():
                 # TODO: provide forward context as part of a model wrap
                 output = netD(fake.detach())
+
+            output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
 
             errD_fake = criterion(output, label)
             automator.backward(errD_fake)
@@ -177,7 +181,9 @@ def main():
             with automator.forward_context():
                 # TODO: provide forward context as part of a model wrap
                 output = netD(fake)
-                
+
+            output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
+
             errG = criterion(output, label)
             automator.backward(errG)
             D_G_z2 = output.mean().item()
