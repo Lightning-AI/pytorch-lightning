@@ -154,11 +154,9 @@ def main():
             label = torch.full(
                 (batch_size,), real_label, dtype=real_cpu.dtype, device=automator.device
             )
-            # with automator.forward_context():
-            # TODO: provide forward context as part of a model wrap
             output = netD(real_cpu)
 
-            output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
+            # output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
 
             errD_real = criterion(output, label)
             automator.backward(errD_real)
@@ -166,15 +164,9 @@ def main():
 
             # train with fake
             noise = torch.randn(batch_size, nz, 1, 1, device=automator.device)
-
-            # with automator.forward_context():
-            # TODO: provide forward context as part of a model wrap
             fake = netG(noise)
 
             label.fill_(fake_label)
-
-            # with automator.forward_context():
-            # TODO: provide forward context as part of a model wrap
             output = netD(fake.detach())
 
             output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
@@ -190,8 +182,6 @@ def main():
             ###########################
             netG.zero_grad()
             label.fill_(real_label)  # fake labels are real for generator cost
-            # with automator.forward_context():
-            # TODO: provide forward context as part of a model wrap
             output = netD(fake)
 
             output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
