@@ -156,7 +156,7 @@ def main():
             )
             output = netD(real_cpu)
 
-            # output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
+            output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
 
             errD_real = criterion(output, label)
             automator.backward(errD_real)
