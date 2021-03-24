@@ -3,8 +3,7 @@ DCGAN - Adapted from pytorch/examples
 
 Launch it with this command:
 
-python -m torch.distributed.launch --nproc_per_node=2 gan_example.py (--accelerator ddp --gpus 2 \
-    --precision 16 )
+python -m torch.distributed.launch --nproc_per_node=2 gan_example.py --accelerator ddp --gpus 2 --precision 16
 
 """
 from __future__ import print_function
