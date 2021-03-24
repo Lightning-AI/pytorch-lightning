@@ -3,7 +3,8 @@ DCGAN - Adapted from pytorch/examples
 
 Launch it with this command:
 
-python -m torch.distributed.launch --nproc_per_node=2 gan_example.py
+python -m torch.distributed.launch --nproc_per_node=2 gan_example.py (--accelerator ddp --gpus 2 \
+    --precision 16 )
 
 """
 from __future__ import print_function
@@ -44,17 +45,28 @@ parser.add_argument(
 parser.add_argument(
     "--beta1", type=float, default=0.5, help="beta1 for adam. default=0.5"
 )
-parser.add_argument("--ngpu", type=int, default=1, help="number of GPUs to use")
+
 parser.add_argument("--netG", default="", help="path to netG (to continue training)")
 parser.add_argument("--netD", default="", help="path to netD (to continue training)")
 parser.add_argument(
     "--outf", default="./lightning_logs", help="folder to output images and model checkpoints"
 )
+
+
+# ------------------------------------------------------------------------------------------------------------
+# Available Automator Flags
+# ------------------------------------------------------------------------------------------------------------
+parser.add_argument("--accelerator", type=str, default="ddp", choices=["ddp", "ddp_cpu"])
+parser.add_argument("--gpus", type=int, default=0)
+parser.add_argument("--precision", type=int, default=32, choices=[16, 32])
+parser.add_argument("--amp_backend", type=str, default="native", choices=["native"])
+
+# required by torch.distributed.launch
+# TODO: we need a lightning launcher
 parser.add_argument("--local_rank", type=int, default=0)
 
 opt = parser.parse_args()
 os.makedirs(opt.outf, exist_ok=True)
-ngpu = int(opt.ngpu)
 
 nz = 100
 
@@ -69,7 +81,12 @@ def main():
     os.environ["LOCAL_RANK"] = str(opt.local_rank)
     # os.environ["NODE_RANK"] = str(opt.local_rank)
 
-    automator = Automator(gpus=2, accelerator="ddp")
+    automator = Automator(
+        accelerator=opt.accelerator,
+        gpus=opt.gpus,
+        precision=opt.precision,
+        amp_backend=opt.amp_backend,
+    )
 
     dataset = dset.MNIST(
         root=".",
