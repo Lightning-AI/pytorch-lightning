@@ -12,6 +12,7 @@ from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin  # 
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.ipu import IPUPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.rpc import RPCPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin  # noqa: F401
@@ -32,6 +33,7 @@ __all__ = [
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "HorovodPlugin",
+    "IPUPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
