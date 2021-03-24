@@ -23,7 +23,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler
 
 from pl_examples.automator_examples.models import weights_init, Generator, Discriminator
-from pytorch_lightning.automator.automator import Automator
+from pytorch_lightning.automator.automator import Automator, AutomatedModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -122,11 +122,13 @@ def main():
     netG, netD = automator.setup(netG, netD)
 
     if opt.accelerator == "ddp":
-        assert isinstance(netG, DistributedDataParallel)
-        assert isinstance(netD, DistributedDataParallel)
+        assert isinstance(netG, AutomatedModel)
+        assert isinstance(netD, AutomatedModel)
+        assert isinstance(netG.module, DistributedDataParallel)
+        assert isinstance(netD.module, DistributedDataParallel)
     if opt.accelerator == "dp":
-        assert isinstance(netD, DataParallel)
-        assert isinstance(netG, DataParallel)
+        assert isinstance(netD.module, DataParallel)
+        assert isinstance(netG.module, DataParallel)
 
     criterion = nn.BCELoss()
 
