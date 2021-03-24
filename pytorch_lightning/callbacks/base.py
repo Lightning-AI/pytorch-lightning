@@ -109,6 +109,10 @@ class Callback(abc.ABC):
         """Called when the epoch ends."""
         pass
 
+    def on_train_epoch_final_end(self, trainer, pl_module: LightningModule) -> None:
+        """Called when at the very end of train epoch."""
+        pass
+
     def on_batch_start(self, trainer, pl_module: LightningModule) -> None:
         """Called when the training batch begins."""
         pass
