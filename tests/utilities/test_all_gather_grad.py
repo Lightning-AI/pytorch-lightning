@@ -118,16 +118,6 @@ def test_all_gather_sync_grads(tmpdir):
 
     model = TestModel()
 
-    limit_train_batches = 8
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        accumulate_grad_batches=2,
-        gpus=2,
-        accelerator="ddp",
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2)
     trainer.fit(model)
     assert model.training_step_called
