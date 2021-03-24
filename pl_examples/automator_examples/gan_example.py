@@ -146,8 +146,11 @@ def main():
             label = torch.full(
                 (batch_size,), real_label, dtype=real_cpu.dtype, device=automator.device
             )
-            output = netD(real_cpu)
-            errD_real = criterion(output, label)
+            with automator.forward_context():
+                # TODO: provide forward context as part of a model wrap
+                output = netD(real_cpu)
+                errD_real = criterion(output, label)
+
             automator.backward(errD_real)
             D_x = output.mean().item()
 
@@ -155,8 +158,12 @@ def main():
             noise = torch.randn(batch_size, nz, 1, 1, device=automator.device)
             fake = netG(noise)
             label.fill_(fake_label)
-            output = netD(fake.detach())
-            errD_fake = criterion(output, label)
+
+            with automator.forward_context():
+                # TODO: provide forward context as part of a model wrap
+                output = netD(fake.detach())
+                errD_fake = criterion(output, label)
+
             automator.backward(errD_fake)
             D_G_z1 = output.mean().item()
             errD = errD_real + errD_fake
@@ -167,8 +174,10 @@ def main():
             ###########################
             netG.zero_grad()
             label.fill_(real_label)  # fake labels are real for generator cost
-            output = netD(fake)
-            errG = criterion(output, label)
+            with automator.forward_context():
+                # TODO: provide forward context as part of a model wrap
+                output = netD(fake)
+                errG = criterion(output, label)
             automator.backward(errG)
             D_G_z2 = output.mean().item()
             optimizerG.step()
