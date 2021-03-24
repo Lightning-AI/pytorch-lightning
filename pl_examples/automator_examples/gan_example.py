@@ -18,6 +18,7 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
+from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler
 
@@ -106,7 +107,7 @@ def main():
 
     dataloader = automator.setup(dataloader)
 
-    if opt.gpus:
+    if opt.accelerator == "ddp":
         assert isinstance(dataloader.sampler, DistributedSampler)
 
     netG = Generator()
@@ -120,9 +121,12 @@ def main():
 
     netG, netD = automator.setup(netG, netD)
 
-    if opt.gpus:
+    if opt.accelerator == "ddp":
         assert isinstance(netG, DistributedDataParallel)
         assert isinstance(netD, DistributedDataParallel)
+    if opt.accelerator == "dp":
+        assert isinstance(netD, DataParallel)
+        assert isinstance(netG, DataParallel)
 
     criterion = nn.BCELoss()
 
