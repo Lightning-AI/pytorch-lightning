@@ -26,7 +26,7 @@ THRESHOLD = 0.5
 def setup_ddp(rank, world_size):
     """ Setup ddp enviroment """
     os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "8088"
+    os.environ["MASTER_PORT"] = "29501"
 
     if torch.distributed.is_available() and sys.platform not in ("win32", "cygwin"):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
