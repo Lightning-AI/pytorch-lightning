@@ -101,11 +101,6 @@ class CallbackHookNameValidator:
         return {"on_step": [False], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_train_epoch_final_end_log():
-        """Called when at the very end of train epoch."""
-        return {"on_step": [False], "on_epoch": [False, True]}
-
-    @staticmethod
     def _on_validation_epoch_start_log():
         """Called when the epoch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}

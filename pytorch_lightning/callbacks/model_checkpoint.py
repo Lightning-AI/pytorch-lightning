@@ -238,37 +238,6 @@ class ModelCheckpoint(Callback):
             return
         self.save_checkpoint(trainer)
 
-    def on_train_epoch_final_end(self, trainer, pl_module):
-        """
-        at the end of each training epoch, checkpoint only when validation is skipped or disabled
-        """
-        print("aaa: epoch {}, step: {}".format(trainer.current_epoch, trainer.global_step))
-        if (
-            self._should_skip_saving_checkpoint(trainer)
-            or not trainer.checkpoint_connector.has_trained
-        ):
-            return
-        # if validation is disabled or should skip, we checkpoint at end of the training epoch
-        if (
-            trainer.disable_validation
-            or trainer.evaluation_loop.should_skip_evaluation(trainer.num_val_batches)
-        ):
-            self.save_checkpoint(trainer)
-
-    def on_train_end(self, trainer, *args, **kwargs) -> None:
-        """
-        checkpoints can be saved at the end of the trianing
-        """
-        trainer.global_step -= 1
-        if (
-            not self._should_skip_saving_checkpoint(trainer)
-            and trainer.checkpoint_connector.has_trained
-        ):
-            if self.save_last and self.verbose:
-                rank_zero_info("Saving latest checkpoint...")
-            self.save_checkpoint(trainer)
-        trainer.global_step += 1
-
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "monitor": self.monitor,

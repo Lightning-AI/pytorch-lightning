@@ -609,13 +609,7 @@ def test_model_checkpoint_period(tmpdir, period: int):
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs-1)
-    expected = (
-        [f"epoch={e}.ckpt" for e in range(epochs) if not (e + 1) % period and e + 1 != epochs]
-        if period > 0
-        else []
-    )
-    expected.append(final_epoch_ckpt)
+    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % period] if period > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
@@ -637,14 +631,8 @@ def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    # check that the correct ckpts were created
-    final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs-1)
-    expected = (
-        [f"epoch={e}.ckpt" for e in range(epochs) if not (e + 1) % every_n_val_epochs and e + 1 != epochs]
-        if every_n_val_epochs > 0
-        else []
-    )
-    expected.append(final_epoch_ckpt)
+    expected = [f'epoch={e}.ckpt' for e in range(epochs)
+                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
@@ -671,14 +659,8 @@ def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epoc
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    # check that the correct ckpts were created
-    final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs-1)
-    expected = (
-        [f"epoch={e}.ckpt" for e in range(epochs) if not (e + 1) % every_n_val_epochs and e + 1 != epochs]
-        if every_n_val_epochs > 0
-        else []
-    )
-    expected.append(final_epoch_ckpt)
+    expected = [f'epoch={e}.ckpt' for e in range(epochs)
+                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
@@ -834,15 +816,10 @@ def test_model_checkpoint_save_last_warning(
         default_root_dir=tmpdir,
         callbacks=[ckpt],
         max_epochs=max_epochs,
-        val_check_interval=0.1,
     )
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
-    if verbose and save_last and not should_validate:
-        # no validation, hence checkpoint triggered at the end of each training epoch
-        assert caplog.messages.count('Saving latest checkpoint...') == False
-    else:
-        assert caplog.messages.count('Saving latest checkpoint...') == (verbose and save_last)
+    assert caplog.messages.count('Saving latest checkpoint...') == (verbose and save_last)
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
