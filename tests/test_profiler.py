@@ -17,7 +17,6 @@ import platform
 import time
 from copy import deepcopy
 from distutils.version import LooseVersion
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -27,7 +26,7 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -266,6 +265,7 @@ def pytorch_profiler(tmpdir):
     return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
 
+@RunIf(max_torch="1.8.1")
 def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
     with pytorch_profiler.profile("on_test_start"):
@@ -302,30 +302,41 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded. """
     model = BoringModel()
     trainer = Trainer(
-        max_epochs=1,
         default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=5,
         profiler=pytorch_profiler,
         accelerator="ddp",
         gpus=2,
     )
     trainer.fit(model)
 
-    expected = ('validation_step', 'training_step_and_backward', 'training_step', 'backward')
+    expected = {'validation_step'}
+    if not _KINETO_AVAILABLE:
+        expected |= {'training_step_and_backward', 'training_step', 'backward'}
     for name in expected:
-        assert sum(e.name == name for e in pytorch_profiler.function_events)
+        assert sum(e.name == name for e in pytorch_profiler.function_events), name
 
     files = set(os.listdir(pytorch_profiler.dirpath))
     expected = f"fit-profiler-{trainer.local_rank}.txt"
     assert expected in files
 
-    path = os.path.join(pytorch_profiler.dirpath, expected)
-    assert Path(path).read_text()
+    path = pytorch_profiler.dirpath / expected
+    assert path.read_text("utf-8")
+
+    if _KINETO_AVAILABLE:
+        files = os.listdir(pytorch_profiler.dirpath)
+        files = [file for file in files if file.endswith('.json')]
+        assert len(files) == 2, files
+        local_rank = trainer.local_rank
+        assert any(f'training_step_{local_rank}' in f for f in files)
+        assert any(f'validation_step_{local_rank}' in f for f in files)
 
 
-def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_test(tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -340,27 +351,32 @@ def test_pytorch_profiler_trainer_test(tmpdir, pytorch_profiler):
     path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
+    if _KINETO_AVAILABLE:
+        files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
+        assert any(f'test_step_{trainer.local_rank}' in f for f in files)
 
-def test_pytorch_profiler_trainer_predict(tmpdir, pytorch_profiler):
+
+def test_pytorch_profiler_trainer_predict(tmpdir):
     """Ensure that the profiler can be given to the trainer and predict function are properly recorded. """
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()
     model.predict_dataloader = model.train_dataloader
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_test_batches=2,
+        limit_predict_batches=2,
         profiler=pytorch_profiler,
     )
     trainer.predict(model)
 
     assert sum(e.name == 'predict_step' for e in pytorch_profiler.function_events)
-
     path = pytorch_profiler.dirpath / f"predict-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
 
 
-def test_pytorch_profiler_trainer_validate(tmpdir, pytorch_profiler):
+def test_pytorch_profiler_trainer_validate(tmpdir):
     """Ensure that the profiler can be given to the trainer and validate function are properly recorded. """
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -380,7 +396,7 @@ def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context"""
 
     pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"], use_cuda=False, dirpath=tmpdir, filename="profiler"
+        record_functions={"a", "b", "c"}, use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None
     )
 
     with pytorch_profiler.profile("a"):
@@ -409,11 +425,6 @@ def test_pytorch_profiler_nested(tmpdir):
             'aten::zeros', 'aten::add', 'aten::zero_', 'c', 'b', 'a', 'aten::fill_', 'aten::empty', 'aten::ones'
         }
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
-        expected = {
-            'aten::ones', 'a', 'aten::add', 'aten::empty', 'aten::zero_', 'b', 'c', 'aten::zeros', 'aten::fill_'
-        }
-
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 
@@ -439,20 +450,22 @@ def test_register_record_function(tmpdir):
     use_cuda = torch.cuda.is_available()
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
-        record_functions=["a"],
+        record_functions={"a"},
         use_cuda=use_cuda,
         dirpath=tmpdir,
         filename="profiler",
+        schedule=None,
+        on_trace_ready=None,
     )
 
     class TestModel(BoringModel):
 
         def __init__(self):
             super().__init__()
-            self.layer = torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.ReLU(), torch.nn.Linear(8, 2))
+            self.layer = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), torch.nn.Linear(1, 1))
 
     model = TestModel()
-    input = torch.rand((1, 8))
+    input = torch.rand((1, 1))
 
     if use_cuda:
         model = model.cuda()
@@ -490,8 +503,8 @@ def test_profiler_teardown(tmpdir, cls):
     assert profiler._output_file is None
 
 
-@pytest.mark.skipif(_TORCH_GREATER_EQUAL_1_8, reason="currently not supported for PyTorch 1.8")
-def test_pytorch_profiler_deepcopy(pytorch_profiler):
+def test_pytorch_profiler_deepcopy(tmpdir):
+    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler", schedule=None)
     pytorch_profiler.start("on_train_start")
     torch.tensor(1)
     pytorch_profiler.describe()

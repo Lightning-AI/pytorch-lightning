@@ -448,8 +448,10 @@ class Accelerator(object):
         .. deprecated::v1.3
             Will be removed in v1.5.0.
         """
-        rank_zero_warn('Accelerator method `connect_training_type_plugin` was deprecated in v1.3.'
-                       ' It will be removed in v1.5.')
+        rank_zero_warn(
+            'Accelerator method `connect_training_type_plugin` was deprecated in v1.3.'
+            ' It will be removed in v1.5.'
+        )
         self.setup_training_type_plugin(plugin, model)
 
     # todo: remove in v1.5
@@ -459,6 +461,8 @@ class Accelerator(object):
         .. deprecated::v1.3
             Will be removed in v1.5.0.
         """
-        rank_zero_warn('Accelerator method `connect_precision_plugin` was deprecated in v1.3.'
-                       ' It will be removed in v1.5.')
+        rank_zero_warn(
+            'Accelerator method `connect_precision_plugin` was deprecated in v1.3.'
+            ' It will be removed in v1.5.'
+        )
         self.setup_precision_plugin(plugin)

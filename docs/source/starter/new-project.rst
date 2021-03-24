@@ -83,7 +83,7 @@ Step 1: Define LightningModule
 
 .. testcode::
 
-    class LitAutoEncoder(LightningModule):
+    class LitAutoEncoder(pl.LightningModule):
 
         def __init__(self):
             super().__init__()

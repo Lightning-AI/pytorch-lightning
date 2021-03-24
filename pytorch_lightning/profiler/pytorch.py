@@ -17,7 +17,7 @@ import logging
 import os
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import nn, Tensor
@@ -26,12 +26,16 @@ from torch.autograd.profiler import record_function
 from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
 if TYPE_CHECKING:
     from torch.autograd.profiler import EventList
     from torch.utils.hooks import RemovableHandle
 
     from pytorch_lightning.core.lightning import LightningModule
+
+if _KINETO_AVAILABLE:
+    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
 
@@ -93,12 +97,108 @@ class RegisterRecordFunction:
         self._handles = {}
 
 
+class ScheduleWrapper:
+    """
+    This class is used to override the schedule logic from the profiler and perform
+    recording for both `training_step`, `validation_step`.
+    """
+
+    def __init__(self, schedule: Callable) -> None:
+        if not _KINETO_AVAILABLE:
+            raise ModuleNotFoundError("You are trying to use `ScheduleWrapper` which require kineto install.")
+        self._schedule = schedule
+        self._num_training_step_and_backward = 0
+        self._num_validation_step = 0
+        self._num_test_step = 0
+        self._num_predict_step = 0
+        self._training_step_and_backward_reached_end = False
+        self._validation_step_reached_end = False
+        self._test_step_reached_end = False
+        self._predict_step_reached_end = False
+        # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
+        self._current_action: Optional[str] = None
+        self._start_action_name: Optional[str] = None
+
+    def setup(self, start_action_name: str) -> None:
+        self._start_action_name = start_action_name
+
+    def pre_step(self, current_action: str) -> None:
+        self._current_action = current_action
+
+    @property
+    def num_step(self) -> int:
+        if self._current_action == "training_step_and_backward":
+            return self._num_training_step_and_backward
+        elif self._current_action == "validation_step":
+            return self._num_validation_step
+        elif self._current_action == "test_step":
+            return self._num_test_step
+        elif self._current_action == "predict_step":
+            return self._num_predict_step
+        else:
+            return 0
+
+    def _step(self) -> None:
+        if self._current_action == "training_step_and_backward":
+            self._num_training_step_and_backward += 1
+        elif self._current_action == "validation_step":
+            if self._start_action_name == "on_train_start" and self._num_training_step_and_backward > 0:
+                self._num_validation_step += 1
+            else:
+                self._num_validation_step += 1
+        elif self._current_action == "test_step":
+            self._num_test_step += 1
+        elif self._current_action == "predict_step":
+            self._num_predict_step += 1
+
+    @property
+    def has_finished(self) -> bool:
+        if self._current_action == "training_step_and_backward":
+            return self._training_step_and_backward_reached_end
+        elif self._current_action == "validation_step":
+            return self._validation_step_reached_end
+        elif self._current_action == "test_step":
+            return self._test_step_reached_end
+        elif self._current_action == "predict_step":
+            return self._predict_step_reached_end
+        return False
+
+    def __call__(self, num_step: int) -> 'ProfilerAction':
+        # ignore the provided input. Keep internal state instead.
+        if self.has_finished:
+            return ProfilerAction.NONE
+
+        self._step()
+        action = self._schedule(self.num_step)
+        if action == ProfilerAction.RECORD_AND_SAVE:
+            if self._current_action == "training_step_and_backward":
+                self._training_step_and_backward_reached_end = True
+            elif self._current_action == "validation_step":
+                self._validation_step_reached_end = True
+            elif self._current_action == "test_step":
+                self._test_step_reached_end = True
+            elif self._current_action == "predict_step":
+                self._predict_step_reached_end = True
+        return action
+
+
 class PyTorchProfiler(BaseProfiler):
 
-    RECORD_FUNCTIONS = (
-        "training_step_and_backward", "training_step", "backward", "validation_step", "test_step", "predict_step"
-    )
-    AVAILABLE_SORT_KEYS = (
+    RECORD_FUNCTIONS = {
+        "training_step_and_backward",
+        "training_step",
+        "backward",
+        "validation_step",
+        "test_step",
+        "predict_step",
+    }
+    STEP_FUNCTIONS = {
+        "training_step_and_backward",
+        "validation_step",
+        "test_step",
+        "predict_step",
+    }
+    AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
         "cpu_time_total",
@@ -108,8 +208,13 @@ class PyTorchProfiler(BaseProfiler):
         "self_cpu_memory_usage",
         "self_cuda_memory_usage",
         "count",
-    )
-    START_RECORD_FUNCTIONS = ('on_train_start', 'on_validation_start', 'on_test_start', 'on_predict_start')
+    }
+    START_RECORD_FUNCTIONS = {
+        'on_train_start',
+        'on_validation_start',
+        'on_test_start',
+        'on_predict_start',
+    }
 
     def __init__(
         self,
@@ -118,10 +223,9 @@ class PyTorchProfiler(BaseProfiler):
         group_by_input_shapes: bool = False,
         emit_nvtx: bool = False,
         export_to_chrome: bool = True,
-        path_to_export_trace: Optional[str] = None,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        record_functions: List[str] = None,
+        record_functions: Set[str] = None,
         record_module_names: bool = True,
         profiled_functions: Optional[List] = None,
         output_filename: Optional[str] = None,
@@ -154,9 +258,6 @@ class PyTorchProfiler(BaseProfiler):
             export_to_chrome: Whether to export the sequence of profiled operators for Chrome.
                 It will generate a ``.json`` file which can be read by Chrome.
 
-            path_to_export_trace: Directory path to export ``.json`` traces when using ``export_to_chrome=True``.
-                By default, it will be save where the file being is being run.
-
             row_limit: Limit the number of rows in a table, ``-1`` is a special value that
                 removes the limit completely.
 
@@ -166,7 +267,7 @@ class PyTorchProfiler(BaseProfiler):
                 ``cuda_time_total``, ``cpu_memory_usage``, ``cuda_memory_usage``,
                 ``self_cpu_memory_usage``, ``self_cuda_memory_usage``, ``count``.
 
-            record_functions: list of profiled functions which will create a context manager on.
+            record_functions: Set of profiled functions which will create a context manager on.
                 Any other will be pass through.
 
             record_module_names: Whether to add module names while recording autograd operation.
@@ -176,6 +277,8 @@ class PyTorchProfiler(BaseProfiler):
         Raises:
             MisconfigurationException:
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
+                If arg ``schedule`` is not a ``Callable``.
+                If arg ``schedule`` does not return a ``torch.profiler.ProfilerAction``.
         """
         super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
 
@@ -184,11 +287,10 @@ class PyTorchProfiler(BaseProfiler):
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self._emit_nvtx = emit_nvtx
         self._export_to_chrome = export_to_chrome
-        self._path_to_export_trace = path_to_export_trace
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self._record_functions_start = set(record_functions + list(self.START_RECORD_FUNCTIONS))
-        self._record_functions = set(record_functions + list(self.RECORD_FUNCTIONS))
+        self._record_functions_start = record_functions | self.START_RECORD_FUNCTIONS
+        self._record_functions = record_functions | self.RECORD_FUNCTIONS
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
 
@@ -198,25 +300,48 @@ class PyTorchProfiler(BaseProfiler):
         self._register: Optional[RegisterRecordFunction] = None
         self._parent_profiler: Optional[_PROFILER] = None
         self._recording_map: Dict[str, record_function] = {}
+        self._start_action_name: Optional[str] = None
+        self._schedule: Optional[ScheduleWrapper] = None
 
-        if self._export_to_chrome and self._path_to_export_trace is None:
-            rank_zero_warn(
-                "The exported trace would be saved locally as `path_to_export_trace` is None."
-                " Note: Each functions will generate its own traced file."
-            )
+        if _KINETO_AVAILABLE:
+            self.__init_kineto__(profiler_kwargs)
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
+    def __init_kineto__(self, profiler_kwargs: Any):
+        has_schedule = "schedule" in profiler_kwargs
+        self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
+
+        schedule = profiler_kwargs.get("schedule", None)
+        if schedule is not None:
+            if not isinstance(schedule, Callable):
+                raise MisconfigurationException(f"Schedule should be a callable. Found: {schedule}")
+            action = schedule(0)
+            if not isinstance(action, ProfilerAction):
+                raise MisconfigurationException(
+                    f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
+                )
+        schedule = schedule if has_schedule else self._default_schedule()
+        self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
+        self._profiler_kwargs["schedule"] = self._schedule
+
+        activities = profiler_kwargs.get("activities", None)
+        self._profiler_kwargs["activities"] = activities or self._default_activities()
+        self._export_to_flame_graph = profiler_kwargs.get("export_to_flame_graph", False)
+        self._metric = profiler_kwargs.get("metric", "self_cpu_time_total")
+        with_stack = profiler_kwargs.get("with_stack", False) or self._export_to_flame_graph
+        self._profiler_kwargs["with_stack"] = with_stack
+
     def __deprecation_check(
         self,
         profiled_functions: Optional[List[str]],
-        record_functions: Optional[List[str]],
-    ) -> List[str]:
+        record_functions: Optional[Set[str]],
+    ) -> Set[str]:
         if record_functions is None:
-            record_functions = []
+            record_functions = set()
 
         if profiled_functions is not None:
             rank_zero_warn(
@@ -224,7 +349,7 @@ class PyTorchProfiler(BaseProfiler):
                 " `record_functions` in v1.3 and will be removed in v1.5", DeprecationWarning
             )
             if not record_functions:
-                record_functions += profiled_functions
+                record_functions |= set(profiled_functions)
             else:
                 raise MisconfigurationException(
                     "You set `PytorchProfiler.profiled_functions` and `PyTorchProfiler.record_functions`."
@@ -233,15 +358,25 @@ class PyTorchProfiler(BaseProfiler):
 
         return record_functions
 
-    def setup(
-        self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None
-    ) -> None:
-        super().setup(stage=stage, local_rank=local_rank, log_dir=log_dir)
+    @staticmethod
+    def _default_schedule() -> Optional[callable]:
+        if _KINETO_AVAILABLE:
+            # Those schedule defaults allow the profiling overhead to be negligible over training time.
+            return torch.profiler.schedule(wait=1, warmup=1, active=2)
 
-        # if the user didn't provide `path_to_export_trace`,
-        # set it as TensorBoardLogger log_dir if exists
-        if self._path_to_export_trace is None:
-            self._path_to_export_trace = log_dir
+    def _default_activities(self) -> List['ProfilerActivity']:
+        activities = []
+        if not _KINETO_AVAILABLE:
+            return activities
+        if self._profiler_kwargs.get("use_cpu", True):
+            activities.append(ProfilerActivity.CPU)
+        if self._profiler_kwargs.get("use_cuda", torch.cuda.is_available()):
+            activities.append(ProfilerActivity.CUDA)
+        return activities
+
+    @property
+    def step_action_names(self) -> Set[str]:
+        return self.STEP_FUNCTIONS | self._record_functions
 
     def start(self, action_name: str) -> None:
         if self.profiler is None and action_name in self._record_functions_start:
@@ -253,11 +388,18 @@ class PyTorchProfiler(BaseProfiler):
             except (AttributeError, RuntimeError):
                 pass
 
+            if self._schedule is not None:
+                self._schedule.setup(action_name)
+
             self._create_profilers()
 
-            self.profiler.__enter__()
+            profiler = self.profiler.__enter__()
+            if profiler is not None:
+                self.profiler = profiler
+
             if self._parent_profiler is not None:
                 self._parent_profiler.__enter__()
+
             if self._register is not None:
                 self._register.__enter__()
 
@@ -269,10 +411,38 @@ class PyTorchProfiler(BaseProfiler):
             recording.__enter__()
             self._recording_map[action_name] = recording
 
+        if self._schedule is not None:
+            self._schedule.pre_step(action_name)
+
     def stop(self, action_name: str) -> None:
         if action_name in self._recording_map:
             self._recording_map[action_name].__exit__(None, None, None)
             del self._recording_map[action_name]
+
+        if not _KINETO_AVAILABLE or self._emit_nvtx:
+            return
+
+        if action_name in self.step_action_names:
+            if self._schedule is not None:
+                self._schedule._current_action = action_name
+
+            def on_trace_ready(profiler):
+                filename = f"{action_name}_{self.local_rank}"
+
+                if self.dirpath is not None:
+                    if self._export_to_chrome:
+                        handler = tensorboard_trace_handler(self.dirpath, filename)
+                        handler(profiler)
+
+                    if self._export_to_flame_graph:
+                        path = os.path.join(self.dirpath, self._prepare_filename(extension=".stack"))
+                        profiler.export_stacks(path, metric=self._metric)
+                else:
+                    rank_zero_warn("The PyTorchProfiler failed to export trace as `dirpath` is None")
+
+            if not self._has_on_trace_ready:
+                self.profiler.on_trace_ready = on_trace_ready
+            self.profiler.step()
 
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
@@ -283,11 +453,9 @@ class PyTorchProfiler(BaseProfiler):
         if not self.function_events:
             return ""
 
-        if self._export_to_chrome:
+        if self._export_to_chrome and not _KINETO_AVAILABLE:
             filename = f"{self.local_rank}_trace.json"
-            path_to_trace = (
-                filename if self._path_to_export_trace is None else os.path.join(self._path_to_export_trace, filename)
-            )
+            path_to_trace = (filename if self.dirpath is None else os.path.join(self.dirpath, filename))
             self.function_events.export_chrome_trace(path_to_trace)
 
         data = self.function_events.key_averages(group_by_input_shapes=self._group_by_input_shapes)
@@ -302,7 +470,9 @@ class PyTorchProfiler(BaseProfiler):
             self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
         else:
             self._parent_profiler = None
-            self.profiler = self._create_profiler(torch.autograd.profiler.profile)
+            self.profiler = self._create_profiler(
+                torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
+            )
         if self._record_module_names and self._lightning_module is not None:
             self._register = RegisterRecordFunction(self._lightning_module)
 
@@ -311,9 +481,10 @@ class PyTorchProfiler(BaseProfiler):
         kwargs = {k: v for k, v in self._profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
 
-    def _cache_functions_events(self):
-        if not self._emit_nvtx:
-            self.function_events = self.profiler.function_events
+    def _cache_functions_events(self) -> None:
+        if self._emit_nvtx:
+            return
+        self.function_events = self.profiler.events() if _KINETO_AVAILABLE else self.profiler.function_events
 
     def _delete_profilers(self) -> None:
         if self.profiler is not None:
