@@ -44,6 +44,7 @@ class Generator(nn.Module):
         )
 
     def forward(self, input):
+        print("autocast enabled in generator: ", torch.is_autocast_enabled())
         return self.main(input)
 
 
@@ -72,5 +73,6 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, input):
+        print("autocast enabled in discriminator: ", torch.is_autocast_enabled())
         output = self.main(input)
         return output.view(-1, 1).squeeze(1)

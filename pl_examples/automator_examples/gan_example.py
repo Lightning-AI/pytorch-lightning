@@ -103,7 +103,9 @@ def main():
     )
 
     dataloader = automator.setup(dataloader)
-    # assert isinstance(dataloader.sampler, DistributedSampler)
+
+    if opt.gpus:
+        assert isinstance(dataloader.sampler, DistributedSampler)
 
     netG = Generator()
     netG.apply(weights_init)
@@ -116,8 +118,9 @@ def main():
 
     netG, netD = automator.setup(netG, netD)
 
-    # assert isinstance(netG, DistributedDataParallel)
-    # assert isinstance(netD, DistributedDataParallel)
+    if opt.gpus:
+        assert isinstance(netG, DistributedDataParallel)
+        assert isinstance(netD, DistributedDataParallel)
 
     criterion = nn.BCELoss()
 
@@ -143,7 +146,6 @@ def main():
             label = torch.full(
                 (batch_size,), real_label, dtype=real_cpu.dtype, device=automator.device
             )
-
             output = netD(real_cpu)
             errD_real = criterion(output, label)
             automator.backward(errD_real)
