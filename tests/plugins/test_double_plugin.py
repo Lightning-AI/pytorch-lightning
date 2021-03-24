@@ -125,6 +125,5 @@ def test_double_precision(tmpdir, boring_model):
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model)
-    torch.set_grad_enabled(True)  # trainer.predict kills gradient
 
     assert model.training_step == original_training_step
