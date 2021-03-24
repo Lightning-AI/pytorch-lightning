@@ -941,7 +941,8 @@ class Trainer(
 
         if not model_provided and self.fast_dev_run:
             raise MisconfigurationException(
-                f'You cannot execute testing when model is not provided and {self.fast_dev_run=}. Provide model with `trainer.test(model=...)`'
+                f'You cannot execute testing when model is not provided and {self.fast_dev_run=}.'
+                'Provide model with `trainer.test(model=...)`'
             )
 
         if not model_provided:
