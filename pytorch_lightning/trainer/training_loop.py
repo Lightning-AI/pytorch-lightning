@@ -114,12 +114,6 @@ class TrainLoop:
             return
         self._teardown_already_run = True
 
-        # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
-        # when a checkpoint was saved at the last step
-        self.trainer.global_step -= 1
-        self.check_checkpoint_callback(should_update=True, is_last=True)
-        self.trainer.global_step += 1
-
         # hook
         self.trainer.call_hook("on_train_end")
 
@@ -137,28 +131,6 @@ class TrainLoop:
 
         # reset bookkeeping
         self.trainer._running_stage = None
-
-    def check_checkpoint_callback(self, should_update, is_last=False):
-        # TODO bake this logic into the ModelCheckpoint callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
-            callbacks = self.trainer.checkpoint_callbacks
-
-            if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
-                rank_zero_info("Saving latest checkpoint...")
-
-            model = self.trainer.lightning_module
-
-            for cb in callbacks:
-                cb.on_validation_end(self.trainer, model)
-
-    def check_early_stopping_callback(self, should_update):
-        # TODO bake this logic into the EarlyStopping callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
-            callbacks = [c for c in self.trainer.callbacks if isinstance(c, EarlyStopping)]
-            model = self.trainer.lightning_module
-
-            for cb in callbacks:
-                cb.on_validation_end(self.trainer, model)
 
     def on_train_epoch_start(self, epoch):
 
@@ -555,14 +527,13 @@ class TrainLoop:
         if (val_loop_called and not should_check_val) or should_train_only:
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
-        if should_train_only:
-            self.check_checkpoint_callback(True)
-            self.check_early_stopping_callback(True)
-
         if should_check_val:
             self.trainer.validating = True
             self.trainer.run_evaluation(on_epoch=True)
             self.trainer.training = True
+
+        if should_train_only:
+            self.trainer.call_hook('on_train_epoch_final_end')
 
         # increment the global step once
         # progress global step according to grads progress
