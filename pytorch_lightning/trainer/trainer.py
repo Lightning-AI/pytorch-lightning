@@ -942,7 +942,7 @@ class Trainer(
         if not model_provided and ckpt_path == 'best' and self.fast_dev_run:
             raise MisconfigurationException(
                 'You cannot execute testing when the model is not provided and `fast_dev_run=True`. '
-                'Provide model with `trainer.test(model=...)`'
+                'Provide model with `trainer.test(model=...)` or `trainer.test(ckpt_path=...)`'
             )
 
         if not model_provided:
