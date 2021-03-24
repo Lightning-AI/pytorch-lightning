@@ -16,6 +16,8 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torchmetrics import Metric
+import numpy
+import os
 
 import tests.helpers.utils as tutils
 from pytorch_lightning.core.step_result import Result
@@ -96,6 +98,7 @@ def test_result_reduce_ddp():
     tutils.set_random_master_port()
 
     worldsize = 2
+    os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
     mp.spawn(_ddp_test_fn, args=(worldsize, ), nprocs=worldsize)
 
 
