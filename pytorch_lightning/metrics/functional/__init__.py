@@ -21,7 +21,6 @@ from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
     multiclass_auroc,
     stat_scores_multiple_classes,
     to_categorical,
-    to_onehot,
 )
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
 from pytorch_lightning.metrics.functional.explained_variance import explained_variance  # noqa: F401

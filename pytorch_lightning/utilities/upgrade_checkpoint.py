@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
+import logging
 from shutil import copyfile
 
 import torch
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 KEYS_MAPPING = {
@@ -26,6 +26,8 @@ KEYS_MAPPING = {
     "early_stop_callback_wait": (EarlyStopping, "wait_count"),
     "early_stop_callback_patience": (EarlyStopping, "patience"),
 }
+
+log = logging.getLogger(__name__)
 
 
 def upgrade_checkpoint(filepath):

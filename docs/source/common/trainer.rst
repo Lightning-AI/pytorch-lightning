@@ -75,12 +75,14 @@ Here's the pseudocode for what the trainer does under the hood (showing the trai
         # train step
         loss = training_step(batch)
 
+        # clear gradients
+        optimizer.zero_grad()
+
         # backward
         loss.backward()
 
-        # apply and clear grads
+        # update parameters
         optimizer.step()
-        optimizer.zero_grad()
 
         losses.append(loss)
 
@@ -128,10 +130,7 @@ So you can run it like so:
 
     if __name__ == '__main__':
         parser = ArgumentParser()
-        parser = Trainer.add_argparse_args(
-            # group the Trainer arguments together
-            parser.add_argument_group(title="pl.Trainer args")
-        )
+        parser = Trainer.add_argparse_args()
         args = parser.parse_args()
 
         main(args)
@@ -151,6 +150,19 @@ So you can run it like so:
 
 ------------
 
+Validation
+----------
+You can perform an evaluation epoch over the validation set, outside of the training loop,
+using :meth:`pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
+useful if you want to collect new metrics from a model right at its initialization
+or after it has already been trained.
+
+.. code-block:: python
+
+    trainer.validate(val_dataloaders=val_dataloaders)
+
+------------
+
 Testing
 -------
 Once you're done training, feel free to run the test set!
@@ -158,7 +170,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test(test_dataloaders=test_dataloader)
+    trainer.test(test_dataloaders=test_dataloaders)
 
 ------------
 
@@ -254,10 +266,10 @@ You can also modify hardware behavior by subclassing an existing accelerator to 
 
 Example::
 
-    class MyOwnDDP(DDPAccelerator):
+    class MyOwnAcc(Accelerator):
         ...
 
-    Trainer(accelerator=MyOwnDDP())
+    Trainer(accelerator=MyOwnAcc())
 
 .. warning:: Passing in custom accelerators is experimental but work is in progress to enable full compatibility.
 

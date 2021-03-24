@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
-
 import numpy
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
@@ -33,6 +32,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HOROVOD_AVAILABLE,
     _HYDRA_AVAILABLE,
     _HYDRA_EXPERIMENTAL_AVAILABLE,
+    _IS_INTERACTIVE,
     _module_available,
     _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,

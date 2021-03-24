@@ -14,10 +14,16 @@
 
 from abc import ABC
 from copy import deepcopy
-from typing import List
+from inspect import signature
+from typing import Any, Callable, Dict, List, Optional, Type
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 
 class TrainerCallbackHookMixin(ABC):
@@ -27,18 +33,18 @@ class TrainerCallbackHookMixin(ABC):
     callbacks: List[Callback] = []
     lightning_module: LightningModule
 
-    def on_before_accelerator_backend_setup(self, model):
-        """Called in the beginning of fit and test"""
+    def on_before_accelerator_backend_setup(self, model: LightningModule) -> None:
+        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
 
-    def setup(self, model, stage: str):
-        """Called in the beginning of fit and test"""
+    def setup(self, model: LightningModule, stage: Optional[str]) -> None:
+        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.setup(self, model, stage)
 
-    def teardown(self, stage: str):
-        """Called at the end of fit and test"""
+    def teardown(self, stage: Optional[str] = None) -> None:
+        """Called at the end of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.teardown(self, self.lightning_module, stage)
 
@@ -77,8 +83,12 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.lightning_module)
 
-    def on_train_epoch_end(self, outputs):
-        """Called when the epoch ends."""
+    def on_train_epoch_end(self, outputs: List[Any]):
+        """Called when the epoch ends.
+
+        Args:
+            outputs: List of outputs on each ``train`` epoch
+        """
         for callback in self.callbacks:
             callback.on_train_epoch_end(self, self.lightning_module, outputs)
 
@@ -87,20 +97,44 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_validation_epoch_start(self, self.lightning_module)
 
-    def on_validation_epoch_end(self):
-        """Called when the epoch ends."""
+    def on_validation_epoch_end(self, outputs: List[Any]):
+        """Called when the epoch ends.
+
+        Args:
+            outputs: List of outputs on each ``validation`` epoch
+        """
         for callback in self.callbacks:
-            callback.on_validation_epoch_end(self, self.lightning_module)
+            if is_param_in_hook_signature(callback.on_validation_epoch_end, "outputs"):
+                callback.on_validation_epoch_end(self, self.lightning_module, outputs)
+            else:
+                warning_cache.warn(
+                    "`Callback.on_validation_epoch_end` signature has changed in v1.3."
+                    " `outputs` parameter has been added."
+                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                )
+                callback.on_validation_epoch_end(self, self.lightning_module)
 
     def on_test_epoch_start(self):
         """Called when the epoch begins."""
         for callback in self.callbacks:
             callback.on_test_epoch_start(self, self.lightning_module)
 
-    def on_test_epoch_end(self):
-        """Called when the epoch ends."""
+    def on_test_epoch_end(self, outputs: List[Any]):
+        """Called when the epoch ends.
+
+        Args:
+            outputs: List of outputs on each ``test`` epoch
+        """
         for callback in self.callbacks:
-            callback.on_test_epoch_end(self, self.lightning_module)
+            if is_param_in_hook_signature(callback.on_test_epoch_end, "outputs"):
+                callback.on_test_epoch_end(self, self.lightning_module, outputs)
+            else:
+                warning_cache.warn(
+                    "`Callback.on_test_epoch_end` signature has changed in v1.3."
+                    " `outputs` parameter has been added."
+                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                )
+                callback.on_test_epoch_end(self, self.lightning_module)
 
     def on_epoch_start(self):
         """Called when the epoch begins."""
@@ -122,15 +156,15 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_end(self, self.lightning_module)
 
-    def on_pretrain_routine_start(self, model):
-        """Called when the train begins."""
+    def on_pretrain_routine_start(self) -> None:
+        """Called when the pre-train routine begins."""
         for callback in self.callbacks:
-            callback.on_pretrain_routine_start(self, model)
+            callback.on_pretrain_routine_start(self, self.lightning_module)
 
-    def on_pretrain_routine_end(self, model):
-        """Called when the train ends."""
+    def on_pretrain_routine_end(self) -> None:
+        """Called when the pre-train routine ends."""
         for callback in self.callbacks:
-            callback.on_pretrain_routine_end(self, model)
+            callback.on_pretrain_routine_end(self, self.lightning_module)
 
     def on_batch_start(self):
         """Called when the training batch begins."""
@@ -197,14 +231,28 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
-    def on_save_checkpoint(self):
+    @staticmethod
+    def __is_old_signature(fn: Callable) -> bool:
+        parameters = list(signature(fn).parameters)
+        if len(parameters) == 2 and parameters[1] != "args":
+            return True
+        return False
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[Type, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}
         for callback in self.callbacks:
-            callback_class = type(callback)
-            state = callback.on_save_checkpoint(self, self.lightning_module)
+            if self.__is_old_signature(callback.on_save_checkpoint):
+                rank_zero_warn(
+                    "`Callback.on_save_checkpoint` signature has changed in v1.3."
+                    " A `checkpoint` parameter has been added."
+                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                )
+                state = callback.on_save_checkpoint(self, self.lightning_module)  # noqa: parameter-unfilled
+            else:
+                state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback_class] = state
+                callback_states[type(callback)] = state
         return callback_states
 
     def on_load_checkpoint(self, checkpoint):

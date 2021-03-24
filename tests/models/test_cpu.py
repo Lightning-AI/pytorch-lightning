@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import platform
 
-import pytest
 import torch
 
 import tests.helpers.pipelines as tpipes
@@ -24,6 +22,7 @@ from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 
@@ -126,7 +125,7 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     tutils.set_random_master_port()

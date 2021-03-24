@@ -74,6 +74,10 @@ class TestTubeLogger(LightningLoggerBase):
             the user has defined the `self.example_input_array` attribute in their
             model.
         prefix: A string to put at the beginning of metric keys.
+
+    Raises:
+        ImportError:
+            If required TestTube package is not installed on the device.
     """
 
     __test__ = False

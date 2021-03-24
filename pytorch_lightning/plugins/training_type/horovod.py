@@ -15,12 +15,13 @@ from contextlib import ExitStack
 from typing import Any, List, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 from torch.optim.lr_scheduler import _LRScheduler, Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import group, rank_zero_only, ReduceOp
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -95,14 +96,14 @@ class HorovodPlugin(ParallelPlugin):
                 stack.enter_context(optimizer.skip_synchronize())
 
             # set up training routine
-            self._results = trainer.run_train()
+            self._results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
 
-    def start_testing(self, trainer):
+    def start_evaluating(self, trainer):
         with ExitStack():
-            self._results = trainer.run_test()
+            self._results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
@@ -110,13 +111,14 @@ class HorovodPlugin(ParallelPlugin):
     def start_predicting(self, trainer):
         with ExitStack():
             # set up training routine
-            self._results = trainer.run_predict()
+            self._results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
 
     def barrier(self, *args, **kwargs):
-        hvd.join()
+        if torch_distrib.is_initialized():
+            hvd.join()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         obj = hvd.broadcast_object(obj, src)
@@ -157,8 +159,13 @@ class HorovodPlugin(ParallelPlugin):
         hvd.join()
         return hvd.allreduce(tensor, op=reduce_op)
 
-    def gather_all_tensors(self, result: Union[torch.Tensor], group: Optional[Any] = None):
-        if group is not None:
+    def all_gather(
+        self,
+        result: Union[torch.Tensor],
+        group: Optional[Any] = group.WORLD,
+        sync_grads: bool = False
+    ) -> torch.Tensor:
+        if group is not None and group != group.WORLD:
             raise ValueError(
                 "Horovod does not support allgather using a subcommunicator at this time. "
                 "Unset `group`."

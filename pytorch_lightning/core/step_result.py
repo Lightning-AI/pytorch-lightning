@@ -20,8 +20,8 @@ from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional
 
 import torch
 from torch import Tensor
+from torchmetrics import Metric
 
-from pytorch_lightning.metrics import Metric
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 
 
@@ -416,20 +416,22 @@ class Result(Dict):
 
         return result
 
-    def detach(self):
+    def detach(self) -> 'Result':
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
+        return self
 
-    def to(self, *args, **kwargs):
+    def to(self, *args, **kwargs) -> 'Result':
         """Move all self attributes to the given device."""
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.to(*args, **kwargs))
+        return self
 
-    def cpu(self):
+    def cpu(self) -> 'Result':
         """Move all self attributes to CPU."""
-        self.to(torch.device("cpu"))
+        return self.to(torch.device("cpu"))
 
     def __repr__(self):
         self_copy = self.copy()

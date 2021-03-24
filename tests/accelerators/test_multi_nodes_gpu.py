@@ -15,8 +15,9 @@ import os
 import sys
 from unittest import mock
 
-import pytest
 import torch
+
+from tests.helpers.runif import RunIf
 
 ROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
 sys.path.insert(0, ROOT)
@@ -27,9 +28,7 @@ from pytorch_lightning import Trainer  # noqa: E402
 from tests.helpers.boring_model import BoringModel  # noqa: E402
 
 
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(special=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """
     Tests to ensure that the sync_dist flag works with CPU (should just return the original value)
@@ -66,9 +65,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics['bar'] == fake_result
 
 
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(special=True)
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__validation_step__log(tmpdir):
     """

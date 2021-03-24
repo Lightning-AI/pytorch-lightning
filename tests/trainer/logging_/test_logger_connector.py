@@ -29,6 +29,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validat
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Callable:
@@ -368,7 +369,7 @@ def test_call_back_validator(tmpdir):
         validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires two GPUs")
+@RunIf(min_gpus=2)
 def test_epoch_results_cache_dp(tmpdir):
 
     root_device = torch.device("cuda", 0)
@@ -470,3 +471,39 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
     )
     with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize("add_dataloader_idx", [False, True])
+def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
+    """ test that auto_add_dataloader_idx argument works """
+
+    class TestModel(BoringModel):
+
+        def val_dataloader(self):
+            dl = super().val_dataloader()
+            return [dl, dl]
+
+        def validation_step(self, *args, **kwargs):
+            output = super().validation_step(*args[:-1], **kwargs)
+            if add_dataloader_idx:
+                name = "val_loss"
+            else:
+                name = f"val_loss_custom_naming_{args[-1]}"
+
+            self.log(name, output["x"], add_dataloader_idx=add_dataloader_idx)
+            return output
+
+    model = TestModel()
+    model.validation_epoch_end = None
+
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=5)
+    trainer.fit(model)
+    logged = trainer.logged_metrics
+
+    # Check that the correct keys exist
+    if add_dataloader_idx:
+        assert 'val_loss/dataloader_idx_0' in logged
+        assert 'val_loss/dataloader_idx_1' in logged
+    else:
+        assert 'val_loss_custom_naming_0' in logged
+        assert 'val_loss_custom_naming_1' in logged

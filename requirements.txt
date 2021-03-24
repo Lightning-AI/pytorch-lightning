@@ -8,3 +8,4 @@ PyYAML>=5.1, !=5.4.*  # OmegaConf requirement >=5.1
 tqdm>=4.41.0
 fsspec[http]>=0.8.1
 tensorboard>=2.2.0
+torchmetrics>=0.2.0
