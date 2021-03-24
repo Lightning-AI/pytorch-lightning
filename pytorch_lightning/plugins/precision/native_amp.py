@@ -74,7 +74,6 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         super().run_backward(tensor, *args, **kwargs)
         # self.scaler.unscale_(optimizer)  # TODO: needed?
 
-
     def pre_optimizer_step(
         self,
         pl_module: 'LightningModule',

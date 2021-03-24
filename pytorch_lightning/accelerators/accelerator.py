@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import contextmanager
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
@@ -447,3 +448,8 @@ class Accelerator(object):
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
         return self.training_type_plugin.results
+
+    @contextmanager
+    def forward_context(self):
+        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
+            yield

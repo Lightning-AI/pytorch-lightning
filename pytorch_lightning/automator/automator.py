@@ -32,6 +32,23 @@ class AutomatedOptimizer(Optimizer):
         return output
 
 
+class AutomatedModel(nn.Module):
+
+    def __init__(self, module: nn.Module, accelerator: Accelerator):
+        super().__init__()
+        self._module = module
+        self._accelerator = accelerator
+
+    @property
+    def module(self):
+        return self._module
+
+    def forward(self, *args, **kwargs):
+        with self._accelerator.forward_context():
+            output = self.module.forward(*args, **kwargs)
+        return output
+
+
 class Automator:
     def __init__(
         self,
@@ -94,12 +111,20 @@ class Automator:
 
     def setup_model(self, *models: nn.Module):
         # user can call this method independently instead of the general purpose setup method
-        return [self.training_type_plugin.setup_model(model) for model in models]
+        models = [
+            AutomatedModel(module=self.training_type_plugin.setup_model(model), accelerator=self.accelerator)
+            for model in models
+        ]
+        return models
 
     def setup_optimizer(self, *optimizers: Optimizer):
         # user can call this method independently instead of the general purpose setup method
         # TODO: let plugin setup optimizer too?
-        return [AutomatedOptimizer(optimizer=optimizer, accelerator=self.accelerator) for optimizer in optimizers]
+        optimizers = [
+            AutomatedOptimizer(optimizer=optimizer, accelerator=self.accelerator)
+            for optimizer in optimizers
+        ]
+        return optimizers
 
     def setup_dataloader(self, *dataloaders: DataLoader):
         # user can call this method independently instead of the general purpose setup method
@@ -110,11 +135,12 @@ class Automator:
         return dataloaders
 
     def backward(self, tensor: Tensor, *args, **kwargs):
+        # user will call automator.backward(loss) instead of loss.backward()
         self.accelerator.run_backward(tensor, *args, **kwargs)
 
     @contextmanager
     def forward_context(self):
-        with self.precision_plugin.forward_context(), self.training_type_plugin.forward_context():
+        with self.accelerator.forward_context():
             yield
 
     # @contextmanager
@@ -135,7 +161,7 @@ class Automator:
         pass
 
     def reduce_data(self, data: Any) -> Any:
-        self.training_type_plugin.reduce(data)
+        return self.training_type_plugin.reduce(data)
 
     def reduce_decision(self, decision: bool) -> bool:
         return self.training_type_plugin.reduce_boolean_decision(decision)
