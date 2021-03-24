@@ -939,6 +939,11 @@ class Trainer(
         #  Attach dataloaders (if given)
         self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
+        if not model_provided and self.fast_dev_run:
+            raise MisconfigurationException(
+                f"You cannot execute testing when model is not provided and {self.fast_dev_run=}."
+            )
+
         if not model_provided:
             self.tested_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
 
