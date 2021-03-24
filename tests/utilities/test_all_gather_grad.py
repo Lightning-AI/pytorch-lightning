@@ -114,10 +114,7 @@ def test_all_gather_sync_grads(tmpdir):
 
             return loss
 
-    seed_everything(42)
-
     model = TestModel()
-
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2)
     trainer.fit(model)
     assert model.training_step_called
