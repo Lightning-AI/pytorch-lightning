@@ -19,7 +19,7 @@ from torchmetrics import Metric
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-_VALUE = Union[Metric, torch.Tensor, int, float, Any]
+_METRIC_TYPE = Union[Metric, torch.Tensor, int, float, Any]
 
 
 class MetricsHolder:
@@ -31,16 +31,16 @@ class MetricsHolder:
     """
 
     def __init__(self, to_float: bool = False) -> None:
-        self.metrics: Dict[str, _VALUE] = {}
+        self.metrics: Dict[str, _METRIC_TYPE] = {}
         self._to_float = to_float
 
     def update(self, metrics: dict) -> None:
         self.metrics.update(metrics)
 
-    def pop(self, key: str, default: _VALUE) -> _VALUE:
+    def pop(self, key: str, default: _METRIC_TYPE) -> _METRIC_TYPE:
         return self.metrics.pop(key, default)
 
-    def reset(self, metrics: Dict[str, _VALUE]) -> None:
+    def reset(self, metrics: Dict[str, _METRIC_TYPE]) -> None:
         self.metrics = metrics
 
     def convert(self, device: Optional[torch.device]) -> None:
@@ -57,7 +57,7 @@ class MetricsHolder:
             self.metrics[key] = converted
 
     @staticmethod
-    def _convert_to_float(current: _VALUE) -> float:
+    def _convert_to_float(current: _METRIC_TYPE) -> float:
         if isinstance(current, Metric):
             current = current.compute().detach()
 
@@ -70,7 +70,7 @@ class MetricsHolder:
         return current
 
     @staticmethod
-    def _convert_to_tensor(current: _VALUE, device: Optional[torch.device]) -> torch.Tensor:
+    def _convert_to_tensor(current: _METRIC_TYPE, device: Optional[torch.device]) -> torch.Tensor:
         if isinstance(current, Metric):
             current = current.compute().detach()
 
