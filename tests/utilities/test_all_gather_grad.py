@@ -95,3 +95,39 @@ def test_all_gather_collection(tmpdir):
 
     trainer.fit(model)
     assert model.training_epoch_end_called
+
+
+@RunIf(min_gpus=2, skip_windows=True, special=True)
+def test_all_gather_sync_grads(tmpdir):
+
+    class TestModel(BoringModel):
+
+        training_step_called = False
+
+        def training_step(self, batch, batch_idx):
+            self.training_step_called = True
+            tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
+            gathered_tensor = self.all_gather(tensor, sync_grads=True)
+            assert gathered_tensor.shape == torch.Size([2, 2, 2])
+
+            loss = gathered_tensor.sum()
+
+            return loss
+
+    seed_everything(42)
+
+    model = TestModel()
+
+    limit_train_batches = 8
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        accumulate_grad_batches=2,
+        gpus=2,
+        accelerator="ddp",
+    )
+    trainer.fit(model)
+    assert model.training_step_called
