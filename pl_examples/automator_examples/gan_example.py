@@ -82,6 +82,7 @@ def main():
     # TODO: how do we handle this?
     os.environ["LOCAL_RANK"] = str(opt.local_rank)
     # os.environ["NODE_RANK"] = str(opt.local_rank)
+    os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
     automator = Automator(
         accelerator=opt.accelerator,
