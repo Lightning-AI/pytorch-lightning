@@ -158,7 +158,11 @@ def main():
 
             # train with fake
             noise = torch.randn(batch_size, nz, 1, 1, device=automator.device)
-            fake = netG(noise)
+
+            with automator.forward_context():
+                # TODO: provide forward context as part of a model wrap
+                fake = netG(noise)
+
             label.fill_(fake_label)
 
             with automator.forward_context():
