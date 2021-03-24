@@ -12,26 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from abc import ABC
 
 import torch
 from torch import Tensor
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
+log = logging.getLogger(__name__)
 
 
 class TrainerTrainingTricksMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    default_root_dir: str
     lightning_module: LightningModule
-    progress_bar_callback:...
-    on_gpu: bool
 
     def print_nan_gradients(self) -> None:
         model = self.lightning_module

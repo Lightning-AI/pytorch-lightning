@@ -229,8 +229,8 @@ def test_accumulation_and_early_stopping(tmpdir):
 def test_suggestion_parameters_work(tmpdir):
     """ Test that default skipping does not alter results in basic case """
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
 
     # logger file to get meta
     trainer = Trainer(
@@ -238,12 +238,11 @@ def test_suggestion_parameters_work(tmpdir):
         max_epochs=3,
     )
 
-    lrfinder = trainer.tuner.lr_find(model)
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
-    lr2 = lrfinder.suggestion(skip_begin=80)  # way too high, should have an impact
+    lr2 = lrfinder.suggestion(skip_begin=150)  # way too high, should have an impact
 
-    assert lr1 != lr2, \
-        'Skipping parameter did not influence learning rate'
+    assert lr1 != lr2, 'Skipping parameter did not influence learning rate'
 
 
 def test_suggestion_with_non_finite_values(tmpdir):
@@ -272,3 +271,27 @@ def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, auto_lr_find=True)
     with pytest.raises(MisconfigurationException, match='should have one of these fields'):
         trainer.tune(BoringModel())
+
+
+def test_lr_find_with_bs_scale(tmpdir):
+    """ Test that lr_find runs with batch_size_scaling """
+
+    class BoringModelTune(BoringModel):
+
+        def __init__(self, learning_rate=0.1, batch_size=2):
+            super().__init__()
+            self.save_hyperparameters()
+
+    model = BoringModelTune()
+    before_lr = model.hparams.learning_rate
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+    )
+    bs = trainer.tuner.scale_batch_size(model)
+    lr = trainer.tuner.lr_find(model).suggestion()
+
+    assert lr != before_lr
+    assert isinstance(bs, int)

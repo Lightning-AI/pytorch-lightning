@@ -14,7 +14,6 @@
 import inspect
 import os
 import pickle
-import platform
 from unittest import mock
 from unittest.mock import ANY
 
@@ -34,6 +33,7 @@ from pytorch_lightning.loggers import (
 from pytorch_lightning.loggers.base import DummyExperiment
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
 
@@ -332,7 +332,7 @@ class RankZeroLoggerCheck(Callback):
         TestTubeLogger,
     ]
 )
-@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy loggers on global rank > 0"""
     _patch_comet_atexit(monkeypatch)
@@ -404,4 +404,4 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         wandb.run = None
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
+        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0, 'trainer/global_step': 0})

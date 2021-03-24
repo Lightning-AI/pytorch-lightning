@@ -14,7 +14,6 @@
 """LightningDataModule for loading DataLoaders with ease."""
 
 import functools
-import inspect
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
@@ -22,7 +21,8 @@ from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
-from pytorch_lightning.utilities import parsing, rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
 
 
 class _DataModuleWrapper(type):
@@ -54,10 +54,10 @@ class _DataModuleWrapper(type):
 def track_data_hook_calls(fn):
     """A decorator that checks if prepare_data/setup have been called.
 
-    - When dm.prepare_data() is called, dm.has_prepared_data gets set to True
-    - When dm.setup('fit') is called, dm.has_setup_fit gets set to True
-    - When dm.setup('test') is called, dm.has_setup_test gets set to True
-    - When dm.setup() is called without stage arg, both dm.has_setup_fit and dm.has_setup_test get set to True
+    - When ``dm.prepare_data()`` is called, ``dm.has_prepared_data`` gets set to True
+    - When ``dm.setup()``, ``dm.has_setup_{fit,validate,test}`` get set to True
+    - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
+        Its corresponding `dm_has_setup_{stage}` attribute gets set to True
 
     Args:
         fn (function): Function that will be tracked to see if it has been called.
@@ -76,15 +76,15 @@ def track_data_hook_calls(fn):
         if fn.__name__ == "setup":
 
             # Get stage either by grabbing from args or checking kwargs.
-            # If not provided, set call status of 'fit' and 'test' to True.
+            # If not provided, set call status of 'fit', 'validate', and 'test' to True.
             # We do this so __attach_datamodule in trainer.py doesn't mistakenly call setup('test') on trainer.test()
             stage = args[1] if len(args) > 1 else kwargs.get("stage", None)
 
-            if stage == "fit" or stage is None:
-                obj._has_setup_fit = True
-
-            if stage == "test" or stage is None:
-                obj._has_setup_test = True
+            if stage is None:
+                for s in ("fit", "validate", "test"):
+                    setattr(obj, f"_has_setup_{s}", True)
+            else:
+                setattr(obj, f"_has_setup_{stage}", True)
 
         if fn.__name__ == "prepare_data":
             obj._has_prepared_data = True
@@ -155,7 +155,9 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False
         self._has_setup_fit = False
+        self._has_setup_validate = False
         self._has_setup_test = False
+        self._has_setup_predict = False
 
     @property
     def train_transforms(self):
@@ -213,31 +215,49 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         return self.dims
 
     @property
-    def has_prepared_data(self):
-        """Return bool letting you know if datamodule.prepare_data() has been called or not.
+    def has_prepared_data(self) -> bool:
+        """Return bool letting you know if ``datamodule.prepare_data()`` has been called or not.
 
         Returns:
-            bool: True if datamodule.prepare_data() has been called. False by default.
+            bool: True if ``datamodule.prepare_data()`` has been called. False by default.
         """
         return self._has_prepared_data
 
     @property
-    def has_setup_fit(self):
-        """Return bool letting you know if datamodule.setup('fit') has been called or not.
+    def has_setup_fit(self) -> bool:
+        """Return bool letting you know if ``datamodule.setup(stage='fit')`` has been called or not.
 
         Returns:
-            bool: True if datamodule.setup('fit') has been called. False by default.
+            bool: True ``if datamodule.setup(stage='fit')`` has been called. False by default.
         """
         return self._has_setup_fit
 
     @property
-    def has_setup_test(self):
-        """Return bool letting you know if datamodule.setup('test') has been called or not.
+    def has_setup_validate(self) -> bool:
+        """Return bool letting you know if ``datamodule.setup(stage='validate')`` has been called or not.
 
         Returns:
-            bool: True if datamodule.setup('test') has been called. False by default.
+            bool: True if ``datamodule.setup(stage='validate')`` has been called. False by default.
+        """
+        return self._has_setup_validate
+
+    @property
+    def has_setup_test(self) -> bool:
+        """Return bool letting you know if ``datamodule.setup(stage='test')`` has been called or not.
+
+        Returns:
+            bool: True if ``datamodule.setup(stage='test')`` has been called. False by default.
         """
         return self._has_setup_test
+
+    @property
+    def has_setup_predict(self) -> bool:
+        """Return bool letting you know if ``datamodule.setup(stage='predict')`` has been called or not.
+
+        Returns:
+            bool: True if ``datamodule.setup(stage='predict')`` has been called. False by default.
+        """
+        return self._has_setup_predict
 
     @abstractmethod
     def prepare_data(self, *args, **kwargs):
@@ -248,58 +268,13 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         pass
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        r"""Extends existing argparse by default `LightningDataModule` attributes."""
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        added_args = [x.dest for x in parser._actions]
-
-        blacklist = ["kwargs"]
-        depr_arg_names = blacklist + added_args
-        depr_arg_names = set(depr_arg_names)
-
-        allowed_types = (str, int, float, bool)
-
-        # TODO: get "help" from docstring :)
-        for arg, arg_types, arg_default in (
-            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
-        ):
-            arg_types = [at for at in allowed_types if at in arg_types]
-            if not arg_types:
-                # skip argument with not supported type
-                continue
-            arg_kwargs = {}
-            if bool in arg_types:
-                arg_kwargs.update(nargs="?", const=True)
-                # if the only arg type is bool
-                if len(arg_types) == 1:
-                    use_type = parsing.str_to_bool
-                # if only two args (str, bool)
-                elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
-                    use_type = parsing.str_to_bool_or_str
-                else:
-                    # filter out the bool as we need to use more general
-                    use_type = [at for at in arg_types if at is not bool][0]
-            else:
-                use_type = arg_types[0]
-
-            if arg_default == inspect._empty:
-                arg_default = None
-
-            parser.add_argument(
-                f"--{arg}",
-                dest=arg,
-                default=arg_default,
-                type=use_type,
-                help=f"autogenerated by plb.{cls.__name__}",
-                **arg_kwargs,
-            )
-
-        return parser
+    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
+        """Extends existing argparse by default `LightningDataModule` attributes."""
+        return add_argparse_args(cls, parent_parser, **kwargs)
 
     @classmethod
     def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
-        """
-        Create an instance from CLI arguments.
+        """Create an instance from CLI arguments.
 
         Args:
             args: The parser or namespace to take arguments from. Only known arguments will be
@@ -308,22 +283,11 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
              These must be valid DataModule arguments.
 
         Example::
-
             parser = ArgumentParser(add_help=False)
             parser = LightningDataModule.add_argparse_args(parser)
             module = LightningDataModule.from_argparse_args(args)
-
         """
-        if isinstance(args, ArgumentParser):
-            args = cls.parse_argparser(args)
-        params = vars(args)
-
-        # we only want to pass in valid DataModule args, the rest may be user specific
-        valid_kwargs = inspect.signature(cls.__init__).parameters
-        datamodule_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
-        datamodule_kwargs.update(**kwargs)
-
-        return cls(**datamodule_kwargs)
+        return from_argparse_args(cls, args, **kwargs)
 
     @classmethod
     def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
@@ -333,19 +297,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
             List with tuples of 3 values:
             (argument name, set with argument types, argument default value).
         """
-        datamodule_default_params = inspect.signature(cls.__init__).parameters
-        name_type_default = []
-        for arg in datamodule_default_params:
-            arg_type = datamodule_default_params[arg].annotation
-            arg_default = datamodule_default_params[arg].default
-            try:
-                arg_types = tuple(arg_type.__args__)
-            except AttributeError:
-                arg_types = (arg_type, )
-
-            name_type_default.append((arg, arg_types, arg_default))
-
-        return name_type_default
+        return get_init_arguments_and_types(cls)
 
     @classmethod
     def from_datasets(

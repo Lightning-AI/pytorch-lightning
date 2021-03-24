@@ -17,28 +17,47 @@ from unittest import mock
 import pytest
 import torch
 from torch import optim
+from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _APEX_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 class AMPTestModel(BoringModel):
 
-    def training_step(self, batch, batch_idx):
+    def _step(self, batch, batch_idx):
         assert torch.is_autocast_enabled()
         output = self(batch)
         assert output.dtype == torch.float16
         loss = self.loss(batch, output)
-        return {"loss": loss}
+        return loss
+
+    def training_step(self, batch, batch_idx):
+        output = self._step(batch, batch_idx)
+        return {"loss": output}
+
+    def validation_step(self, batch, batch_idx):
+        output = self._step(batch, batch_idx)
+        return {"x": output}
+
+    def test_step(self, batch, batch_idx):
+        output = self._step(batch, batch_idx)
+        return {"y": output}
+
+    def predict(self, batch, batch_idx, dataloader_idx=None):
+        assert torch.is_autocast_enabled()
+        output = self(batch)
+        assert output.dtype == torch.float16
+        return output
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_amp_single_gpu_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
@@ -54,11 +73,13 @@ def test_amp_single_gpu_dp(tmpdir):
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
 
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_amp_single_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
@@ -73,11 +94,13 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 def test_amp_multi_gpu_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
@@ -97,7 +120,7 @@ def test_amp_multi_gpu_dp(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_amp_multi_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
@@ -112,10 +135,12 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 @mock.patch.dict(
     os.environ, {
         "SLURM_NTASKS": "1",
@@ -192,8 +217,7 @@ def test_amp_without_apex(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.skipif(not _APEX_AVAILABLE, reason="test requires apex")
+@RunIf(min_gpus=1, amp_apex=True)
 def test_amp_with_apex(tmpdir):
     """Check calling apex scaling in training."""
 

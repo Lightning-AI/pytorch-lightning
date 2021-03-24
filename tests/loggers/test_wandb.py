@@ -41,22 +41,7 @@ def test_wandb_logger_init(wandb, recwarn):
     logger = WandbLogger()
     logger.log_metrics({'acc': 1.0})
     wandb.init.assert_called_once()
-    wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
-
-    # test sync_step functionality
-    wandb.init().log.reset_mock()
-    wandb.init.reset_mock()
-    wandb.run = None
-    wandb.init().step = 0
-    logger = WandbLogger(sync_step=False)
-    logger.log_metrics({'acc': 1.0})
     wandb.init().log.assert_called_once_with({'acc': 1.0})
-    wandb.init().log.reset_mock()
-    logger.log_metrics({'acc': 1.0}, step=3)
-    wandb.init().log.assert_called_once_with({'acc': 1.0, 'trainer_step': 3})
-
-    # mock wandb step
-    wandb.init().step = 0
 
     # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
@@ -65,13 +50,12 @@ def test_wandb_logger_init(wandb, recwarn):
     logger = WandbLogger()
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init.assert_called_once()
-    wandb.init().log.assert_called_once_with({'acc': 1.0}, step=3)
+    wandb.init().log.assert_called_once_with({'acc': 1.0, 'trainer/global_step': 3})
 
     # continue training on same W&B run and offset step
-    wandb.init().step = 3
     logger.finalize('success')
-    logger.log_metrics({'acc': 1.0}, step=3)
-    wandb.init().log.assert_called_with({'acc': 1.0}, step=6)
+    logger.log_metrics({'acc': 1.0}, step=6)
+    wandb.init().log.assert_called_with({'acc': 1.0, 'trainer/global_step': 6})
 
     # log hyper parameters
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
@@ -87,17 +71,6 @@ def test_wandb_logger_init(wandb, recwarn):
     # watch a model
     logger.watch('model', 'log', 10)
     wandb.init().watch.assert_called_once_with('model', log='log', log_freq=10)
-
-    # verify warning for logging at a previous step
-    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
-    # current step from wandb should be 6 (last logged step)
-    logger.experiment.step = 6
-    # logging at step 2 should raise a warning (step_offset is still 3)
-    logger.log_metrics({'acc': 1.0}, step=2)
-    assert 'Trying to log at a previous step' in get_warnings(recwarn)
-    # logging again at step 2 should not display again the same warning
-    logger.log_metrics({'acc': 1.0}, step=2)
-    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id
