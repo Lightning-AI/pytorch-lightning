@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional
+from typing import Optional
 
 import torch
 from torchmetrics.utilities.data import dim_zero_cat as _dim_zero_cat
@@ -40,35 +40,6 @@ def dim_zero_sum(x):
 @deprecated(target=_dim_zero_mean, ver_deprecate="1.3.0", ver_remove="1.5.0")
 def dim_zero_mean(x):
     pass
-
-
-def get_group_indexes(idx: torch.Tensor) -> List[torch.Tensor]:
-    """
-    Given an integer `torch.Tensor` `idx`, return a `torch.Tensor` of indexes for
-    each different value in `idx`.
-
-    Args:
-        idx: a `torch.Tensor` of integers
-
-    Return:
-        A list of integer `torch.Tensor`s
-
-    Example:
-
-        >>> indexes = torch.tensor([0, 0, 0, 1, 1, 1, 1])
-        >>> groups = get_group_indexes(indexes)
-        >>> groups
-        [tensor([0, 1, 2]), tensor([3, 4, 5, 6])]
-    """
-
-    indexes = dict()
-    for i, _id in enumerate(idx):
-        _id = _id.item()
-        if _id in indexes:
-            indexes[_id] += [i]
-        else:
-            indexes[_id] = [i]
-    return [torch.tensor(x, dtype=torch.int64) for x in indexes.values()]
 
 
 @deprecated(target=_to_onehot, ver_deprecate="1.3.0", ver_remove="1.5.0")

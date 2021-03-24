@@ -52,6 +52,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `AbstractProfiler` interface ([#6621](https://github.com/PyTorchLightning/pytorch-lightning/pull/6621))
 
 
+- Added support for including module names for forward in the autograd trace of `PyTorchProfiler` ([#6349](https://github.com/PyTorchLightning/pytorch-lightning/pull/6349))
+
+
+- Added support for the PyTorch 1.8.1 autograd profiler ([#6618](https://github.com/PyTorchLightning/pytorch-lightning/pull/6618))
+
+
 - Added `outputs` parameter to callback's `on_validation_epoch_end` & `on_test_epoch_end` hooks ([#6120](https://github.com/PyTorchLightning/pytorch-lightning/pull/6120))
 
 
@@ -75,6 +81,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed profilers to save separate report files per state and rank ([#6621](https://github.com/PyTorchLightning/pytorch-lightning/pull/6621))
 
 
+- Changed `PyTorchProfiler` to use `torch.autograd.profiler.record_function` to record functions ([#6349](https://github.com/PyTorchLightning/pytorch-lightning/pull/6349))
+
+
 ### Deprecated
 
 - `period` has been deprecated in favor of `every_n_val_epochs` in the `ModelCheckpoint` callback ([#6146](https://github.com/PyTorchLightning/pytorch-lightning/pull/6146))
@@ -86,24 +95,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `Profiler(output_filename)` in favor of `dirpath` and `filename` ([#6621](https://github.com/PyTorchLightning/pytorch-lightning/pull/6621))
 
 
+- Deprecated `PytorchProfiler(profiled_functions)` in favor of `record_functions` ([#6349](https://github.com/PyTorchLightning/pytorch-lightning/pull/6349))
+
+
 - Deprecated metrics in favor of `torchmetrics` ([#6505](https://github.com/PyTorchLightning/pytorch-lightning/pull/6505),
-
     [#6530](https://github.com/PyTorchLightning/pytorch-lightning/pull/6530),
-
+    [#6540](https://github.com/PyTorchLightning/pytorch-lightning/pull/6540),
     [#6547](https://github.com/PyTorchLightning/pytorch-lightning/pull/6547),
-
     [#6515](https://github.com/PyTorchLightning/pytorch-lightning/pull/6515),
-
     [#6572](https://github.com/PyTorchLightning/pytorch-lightning/pull/6572),
-
     [#6573](https://github.com/PyTorchLightning/pytorch-lightning/pull/6573),
-
     [#6584](https://github.com/PyTorchLightning/pytorch-lightning/pull/6584),
-
     [#6636](https://github.com/PyTorchLightning/pytorch-lightning/pull/6636),
-
     [#6637](https://github.com/PyTorchLightning/pytorch-lightning/pull/6637),
-
+    [#6649](https://github.com/PyTorchLightning/pytorch-lightning/pull/6649),
+    [#6659](https://github.com/PyTorchLightning/pytorch-lightning/pull/6659),
 )
 
 
@@ -180,6 +186,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed comparing required versions ([#6434](https://github.com/PyTorchLightning/pytorch-lightning/pull/6434))
+
+
+- Fixed a bug where gradients were disabled after calling `Trainer.predict` ([#6657](https://github.com/PyTorchLightning/pytorch-lightning/pull/6657))
 
 
 ## [1.2.4] - 2021-03-16

@@ -44,6 +44,8 @@ class PredictLoop(object):
         model_ref.on_predict_model_eval()
 
     def setup(self, model, max_batches, dataloaders):
+        self.trainer.call_hook("on_predict_start")
+
         # copy properties for forward overrides
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
@@ -86,6 +88,8 @@ class PredictLoop(object):
         return
 
     def on_predict_epoch_end(self):
+        self.trainer.profiler.describe()
+
         self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
 
         results = self._predictions

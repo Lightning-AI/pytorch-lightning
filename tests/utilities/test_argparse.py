@@ -18,6 +18,7 @@ from pytorch_lightning.utilities.argparse import (
 
 
 class ArgparseExample:
+
     def __init__(self, a: int = 0, b: str = '', c: bool = False):
         self.a = a
         self.b = b
