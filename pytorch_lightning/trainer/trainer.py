@@ -227,7 +227,8 @@ class Trainer(
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
-            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
+            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
+                TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
@@ -320,6 +321,10 @@ class Trainer(
         self.predict_loop = PredictLoop(self)
 
         # training state
+        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
+            raise MisconfigurationException(
+                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
+            )
         self.weights_summary = weights_summary
         self.shown_warnings = set()
 
@@ -351,7 +356,6 @@ class Trainer(
             max_steps,
             min_steps,
             num_sanity_val_steps,
-            weights_summary,
         )
         self.evaluation_loop.on_trainer_init()
 
@@ -549,10 +553,7 @@ class Trainer(
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            if self.weights_summary in ModelSummary.MODES:
-                ref_model.summarize(mode=self.weights_summary)
-            else:
-                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+            ref_model.summarize(mode=self.weights_summary)
 
         # restore training and model before hpc is called
         self.checkpoint_connector.restore_weights()
