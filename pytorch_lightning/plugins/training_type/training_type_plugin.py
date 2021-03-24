@@ -57,20 +57,14 @@ class TrainingTypePlugin(Plugin, ABC):
         which allows the user to access the accelerator environment before setup is complete.
         """
 
-    def setup(self, model: 'Module') -> None:
+    def setup(self, model: Module) -> None:
         """Called by the accelerator to finish setup."""
 
     def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
         """Called by the accelerator. The plugin wraps and modifies the dataloader as needed."""
         return dataloader
 
-    def setup_model(self, model: nn.Module) -> nn.Module:
-        return self.wrap_model(model)
-
-    def wrap_model(self, model: nn.Module) -> nn.Module:
-        return model
-
-    def unwrap_model(self, model: nn.Module) -> nn.Module:
+    def setup_model(self, model: Module) -> Module:
         return model
 
     @property

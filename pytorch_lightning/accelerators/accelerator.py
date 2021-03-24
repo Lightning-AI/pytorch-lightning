@@ -139,12 +139,6 @@ class Accelerator(object):
     def root_device(self) -> torch.device:
         return self.training_type_plugin.root_device
 
-    def wrap_model(self, model: nn.Module) -> nn.Module:
-        return self.training_type_plugin.wrap_model(model)
-
-    def unwrap_model(self, model: nn.Module) -> nn.Module:
-        return self.training_type_plugin.unwrap_model(model)
-
     def teardown(self) -> None:
         """This method is called to teardown the training process.
         It is the right place to release memory and free other ressources.

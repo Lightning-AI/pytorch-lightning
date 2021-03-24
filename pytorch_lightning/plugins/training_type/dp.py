@@ -14,7 +14,7 @@
 from typing import List, Optional
 
 import torch
-from torch.nn import DataParallel
+from torch.nn import DataParallel, Module
 
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
@@ -30,7 +30,10 @@ class DataParallelPlugin(ParallelPlugin):
     def setup(self, model):
         # model needs to be moved to the device before it is wrapped
         model.to(self.root_device)
-        self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
+        self._model = self.setup_model(LightningParallelModule(model))
+
+    def setup_model(self, model: Module) -> Module:
+        return DataParallel(model, device_ids=self.parallel_devices)
 
     def reduce(self, tensor, *args, **kwargs):
         """
