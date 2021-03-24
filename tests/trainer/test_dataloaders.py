@@ -26,6 +26,7 @@ import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
+from pytorch_lightning.utilities.distributed import replace_sampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -1151,11 +1152,5 @@ def test_replace_sampler_with_multiprocessing_context(tmpdir):
     train = RandomDataset(32, 64)
     context = 'spawn'
     train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
-    trainer = Trainer(
-        max_epochs=1,
-        progress_bar_refresh_rate=20,
-        overfit_batches=5,
-    )
-
-    new_data_loader = trainer.replace_sampler(train, SequentialSampler(train.dataset))
+    new_data_loader = replace_sampler(train, SequentialSampler(train.dataset))
     assert (new_data_loader.multiprocessing_context == train.multiprocessing_context)
