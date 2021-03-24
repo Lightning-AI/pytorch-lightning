@@ -137,6 +137,7 @@ class Automator:
             self.training_type_plugin.setup_dataloader(dataloader)
             for dataloader in dataloaders
         ]
+        dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
         return dataloaders
 
     def backward(self, tensor: Tensor, *args, **kwargs):

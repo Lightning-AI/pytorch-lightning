@@ -95,8 +95,6 @@ def main():
     # automatorG = AutomatedModel(**kargs)
     #
     # automatorD.setup_optimizer(opt, model1)
-
-
     dataset = dset.MNIST(
         root=".",
         download=True,
@@ -112,7 +110,7 @@ def main():
         dataset, batch_size=opt.batchSize, shuffle=True, num_workers=opt.workers
     )
 
-    dataloader = automator.setup(dataloader)
+    dataloader = automator.setup_dataloader(dataloader)
 
     if opt.accelerator == "ddp":
         assert isinstance(dataloader.sampler, DistributedSampler)
