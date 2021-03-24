@@ -12,31 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union, Sequence
 
 import torch
-import torch.nn as nn
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
-
-
-def call_hook(model: nn.Module, name: str, *args, **kwargs) -> Any:
-    """
-    Call a hook on the model if it is available.
-
-    Return:
-        None if hook is undefined, and the result of the hook otherwise.
-    """
-    if hasattr(model, name) and callable(model.name):
-        return getattr(model, name)(*args, **kwargs)
 
 
 class TrainingTypePlugin(Plugin, ABC):
@@ -46,7 +33,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = None
         self._results = None
 
-    def connect(self, model: 'Module') -> None:
+    def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
         self.model = model
 
@@ -64,8 +51,16 @@ class TrainingTypePlugin(Plugin, ABC):
         """Called by the accelerator. The plugin wraps and modifies the dataloader as needed."""
         return dataloader
 
+    def setup_models_and_optimizers(self, models: Sequence[Module], optimizers: Sequence[Optimizer]):
+        models = [self.setup_model(model) for model in models]
+        optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
+        return models, optimizers
+
     def setup_model(self, model: Module) -> Module:
         return model
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        return optimizer
 
     @property
     @abstractmethod
@@ -132,7 +127,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> Module:
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 
@@ -196,7 +191,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return dataloader
 
-    def init_optimizers(self, trainer: "Trainer", model: LightningModule):
+    def init_optimizers(self, trainer: "Trainer", model: Module):
         return trainer.init_optimizers(model)
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):

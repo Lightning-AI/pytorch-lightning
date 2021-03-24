@@ -1,12 +1,13 @@
 from weakref import proxy
 from collections import Callable
 from contextlib import contextmanager
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, Sequence, Tuple
 
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+import torch.multiprocessing as mp
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.trainer.connectors.accelerator_connector import (
@@ -22,7 +23,6 @@ class AutomatedOptimizer(Optimizer):
         self._accelerator = accelerator
 
     def step(self, closure=None, **kwargs: Any):
-        # TODO: do precision magic here
         print("running automated step")
         output = self._accelerator.run_optimizer_step(
             self.optimizer,
@@ -62,6 +62,11 @@ class Automator:
         amp_backend: str = "native",
         amp_level: str = "O2",
     ):
+
+        if accelerator == "ddp_spawn":
+            raise
+
+
         backend_connector = AcceleratorConnector(
             gpus=gpus,
             tpu_cores=tpus,
@@ -81,6 +86,10 @@ class Automator:
         )
         self.accelerator = backend_connector.select_accelerator()
 
+        # TODO: Do we need to initialize distributed at the very beginning
+        #    any reason to delay??
+        self.accelerator.setup_environment()
+
     @property
     def training_type_plugin(self):
         return self.accelerator.training_type_plugin
@@ -94,37 +103,33 @@ class Automator:
         # the device on the local rank
         return self.training_type_plugin.root_device
 
-    def setup(self, *objects: Union[nn.Module, Optimizer, DataLoader]):
+    def setup(
+        self,
+        models: Union[nn.Module, Sequence[nn.Module]],
+        optimizers: Union[Optimizer, Sequence[Optimizer]],
+    ):
         # wrap all objects passed in and return them in the same order
-        wrapped_objects = []
-        for obj in objects:
-            if isinstance(obj, nn.Module):
-                wrapped_objects.extend(self.setup_model(obj))
-            if isinstance(obj, Optimizer):
-                wrapped_objects.extend(self.setup_optimizer(obj))
-            if isinstance(obj, DataLoader):
-                wrapped_objects.extend(self.setup_dataloader(obj))
+        models = [models] if len(models) == 1 else models
+        optimizers = [optimizers] if len(optimizers) == 1 else optimizers
+        models, optimizers = self._setup_models_and_optimizers(models, optimizers)
 
-        if len(wrapped_objects) == 1:
-            return wrapped_objects[0]
-        return wrapped_objects
+        models = models[0] if len(models) == 1 else models
+        optimizers = optimizers[0] if len(optimizers) == 1 else optimizers
+        return models, optimizers
 
-    def setup_model(self, *models: nn.Module):
-        # user can call this method independently instead of the general purpose setup method
+    def _setup_models_and_optimizers(self, models: Sequence[nn.Module], optimizers: Sequence[Optimizer]):
+        # Let accelerator/plugin wrap and connect the models and optimizers
+        models, optimizers = self.training_type_plugin.setup_models_and_optimizers(models, optimizers)
         models = [
-            AutomatedModel(module=self.training_type_plugin.setup_model(model), accelerator=self.accelerator)
+            AutomatedModel(module=model, accelerator=self.accelerator)
             for model in models
         ]
-        return models
-
-    def setup_optimizer(self, *optimizers: Optimizer):
-        # user can call this method independently instead of the general purpose setup method
-        # TODO: let plugin setup optimizer too?
         optimizers = [
-            AutomatedOptimizer(optimizer=optimizer, accelerator=self.accelerator)
+            AutomatedOptimizer(
+                optimizer=optimizer, accelerator=self.accelerator)
             for optimizer in optimizers
         ]
-        return optimizers
+        return models, optimizers
 
     def setup_dataloader(self, *dataloaders: DataLoader):
         # user can call this method independently instead of the general purpose setup method
@@ -148,9 +153,12 @@ class Automator:
     #     yield
     #
     # @contextmanager
-    # def optimizer_step_context(self, *args, **kwargs):
-    #     # necessary for deepspeed + scaling
-    #     yield
+    def optimizer_step_context(self, model=None, optimizer=None):
+        # necessary for deepspeed + scaling
+        temp = optimizer.step
+        optimizer.step = model.step
+        yield
+        optimizer.step = temp
 
     def to_device(self, obj: Union[nn.Module, Tensor]) -> Union[nn.Module, Tensor]:
         if isinstance(obj, nn.Module):
@@ -158,6 +166,7 @@ class Automator:
         return move_data_to_device(obj, device=self.device)
 
     def sync(self, data: Any) -> Any:
+        # all_gather
         pass
 
     def reduce_data(self, data: Any) -> Any:
@@ -174,4 +183,8 @@ class Automator:
         pass
 
     def execute_on_rank(self, func: Callable, rank: int):
+        pass
+
+    def spawn(self, function: Callable, *args: Any):
+        # ctx = mp.spawn(function, args, nprocs=..., ...)
         pass

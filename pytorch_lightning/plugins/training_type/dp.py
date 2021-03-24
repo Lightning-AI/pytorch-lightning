@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 import torch
 from torch.nn import DataParallel, Module
+from torch.optim import Optimizer
 
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
@@ -33,7 +34,7 @@ class DataParallelPlugin(ParallelPlugin):
         self._model = self.setup_model(LightningParallelModule(model))
 
     def setup_model(self, model: Module) -> Module:
-        return DataParallel(model, device_ids=self.parallel_devices)
+        return DataParallel(module=model, device_ids=self.parallel_devices)
 
     def reduce(self, tensor, *args, **kwargs):
         """

@@ -3,6 +3,7 @@ DCGAN - Adapted from pytorch/examples
 
 Launch it with this command:
 
+torchelastic --nproc_per_node=2
 python -m torch.distributed.launch --nproc_per_node=2 gan_example.py --accelerator ddp --gpus 2 --precision 16
 
 """
@@ -89,6 +90,11 @@ def main():
         precision=opt.precision,
         amp_backend=opt.amp_backend,
     )
+    # automatorD = AutomatedModel(**kargs)
+    # automatorG = AutomatedModel(**kargs)
+    #
+    # automatorD.setup_optimizer(opt, model1)
+
 
     dataset = dset.MNIST(
         root=".",
@@ -119,7 +125,10 @@ def main():
     automator.to_device(netG)
     automator.to_device(netD)
 
-    netG, netD = automator.setup(netG, netD)
+    optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+    optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+
+    (netG, netD), (optimizerG, optimizerD) = automator.setup(models=(netG, netD), optimizers=(optimizerG, optimizerD))
 
     if opt.accelerator == "ddp":
         assert isinstance(netG, AutomatedModel)
@@ -136,11 +145,6 @@ def main():
     real_label = 1
     fake_label = 0
 
-    # setup optimizer
-    optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-    optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-
-    optimizerG, optimizerG = automator.setup(optimizerG, optimizerD)
 
     for epoch in range(opt.niter):
         for i, data in enumerate(dataloader, 0):
@@ -155,11 +159,12 @@ def main():
                 (batch_size,), real_label, dtype=real_cpu.dtype, device=automator.device
             )
             output = netD(real_cpu)
-
-            output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
+            output = output.float()  # required if precision = 16
 
             errD_real = criterion(output, label)
+
             automator.backward(errD_real)
+
             D_x = output.mean().item()
 
             # train with fake
@@ -169,13 +174,14 @@ def main():
             label.fill_(fake_label)
             output = netD(fake.detach())
 
-            output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
+            output = output.float()  # required if precision = 16
 
             errD_fake = criterion(output, label)
             automator.backward(errD_fake)
             D_G_z1 = output.mean().item()
             errD = errD_real + errD_fake
-            optimizerD.step()
+
+            optimizerD.step()  # model inside?
 
             ############################
             # (2) Update G network: maximize log(D(G(z)))
@@ -184,10 +190,13 @@ def main():
             label.fill_(real_label)  # fake labels are real for generator cost
             output = netD(fake)
 
-            output = output.float()  # TODO: Hack, autocast gives us half and criterion complains
+            output = output.float()  # required if precision = 16
 
             errG = criterion(output, label)
+
+            # document
             automator.backward(errG)
+
             D_G_z2 = output.mean().item()
             optimizerG.step()
 

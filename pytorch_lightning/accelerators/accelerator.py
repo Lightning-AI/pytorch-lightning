@@ -95,7 +95,7 @@ class Accelerator(object):
         return self.training_type_plugin.setup_dataloader(dataloader)
 
     def setup_model(self, model: nn.Module) -> nn.Module:
-        return self.training_type_plugin.setup_model(model)
+        return self.training_type_plugin.setup_model_and_optimizers(model, None)
 
     def start_training(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_training(trainer)

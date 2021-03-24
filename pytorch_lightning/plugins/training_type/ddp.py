@@ -92,17 +92,15 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
-    def setup_model(self, model: nn.Module) -> DistributedDataParallel:
-        self.setup_distributed()  # setup distributed if it is not already initialized
+    def setup_model(self, model: nn.Module) -> nn.Module:
         model = DistributedDataParallel(
-            model.to(self.root_device),
+            module=model.to(self.root_device),
             device_ids=self.determine_ddp_device_ids(),
             **self._ddp_kwargs,
         )
         return model
 
     def setup_dataloader(self, dataloader: DataLoader) -> DataLoader:
-        self.setup_distributed()  # setup distributed if it is not already initialized
         kwargs = self.distributed_sampler_kwargs
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         dataloader = replace_sampler(dataloader, sampler)
@@ -233,7 +231,7 @@ class DDPPlugin(ParallelPlugin):
 
     def configure_ddp(self):
         self.pre_configure_ddp()
-        self._model = self.setup_model(LightningDistributedModule(self.model))
+        self._model = self.setup_model_and_optimizers(LightningDistributedModule(self.model), None)
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
