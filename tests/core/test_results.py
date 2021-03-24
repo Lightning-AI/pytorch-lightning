@@ -26,6 +26,8 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
+import os
+import numpy
 
 
 def _setup_ddp(rank, worldsize):
@@ -50,6 +52,7 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
     tutils.reset_seed()
+    os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
     tutils.set_random_master_port()
 
     worldsize = 2
