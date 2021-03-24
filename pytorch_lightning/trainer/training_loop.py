@@ -14,12 +14,12 @@
 
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
+from typing import Optional
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 class TrainLoop:
 
-    def __init__(self, trainer, multiple_trainloader_mode):
+    def __init__(self, trainer, multiple_trainloader_mode: str):
         self.trainer = trainer
         self.early_stopping_accumulator = None
         self.checkpoint_accumulator = None
@@ -53,13 +53,12 @@ class TrainLoop:
 
     def on_trainer_init(
         self,
-        max_epochs,
-        min_epochs,
-        max_steps,
-        min_steps,
-        num_sanity_val_steps,
-        weights_summary,
-    ):
+        max_epochs: Optional[int],
+        min_epochs: Optional[int],
+        max_steps: Optional[int],
+        min_steps: Optional[int],
+        num_sanity_val_steps: int,
+    ) -> None:
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.should_stop = False
@@ -81,12 +80,6 @@ class TrainLoop:
             self.trainer.num_sanity_val_steps = float("inf")
         else:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
-
-        self.trainer.weights_summary = weights_summary
-        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
-            raise MisconfigurationException(
-                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, got {weights_summary}"
-            )
 
     @property
     def num_optimizers(self):
@@ -137,9 +130,7 @@ class TrainLoop:
             self.trainer.logger.finalize("success")
 
         # summarize profile results
-        # todo (tchaton) All ranks should call describe.
-        if self.trainer.global_rank == 0:
-            self.trainer.profiler.describe()
+        self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
@@ -745,7 +736,7 @@ class TrainLoop:
 
                 # backward pass
                 if result is not None:
-                    with self.trainer.profiler.profile("model_backward"):
+                    with self.trainer.profiler.profile("backward"):
                         self.backward(result, optimizer, opt_idx)
 
                     # hook - call this hook only

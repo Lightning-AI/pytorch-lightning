@@ -1440,14 +1440,27 @@ def test_trainer_predict_no_return(tmpdir):
 
     class CustomBoringModel(BoringModel):
 
-        def predict(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
             if (batch_idx + 1) % 2 == 0:
                 return
 
-            return super().predict(batch, batch_idx, dataloader_idx)
+            return super().predict_step(batch, batch_idx, dataloader_idx)
 
     with pytest.warns(UserWarning, match='predict returned None'):
         predict(tmpdir, None, None, 1, model=CustomBoringModel())
+
+
+def test_trainer_predict_grad(tmpdir):
+    class CustomBoringModel(BoringModel):
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            assert batch.expand_as(batch).grad_fn is None
+            return super().predict_step(batch, batch_idx, dataloader_idx)
+
+    predict(tmpdir, None, None, 1, model=CustomBoringModel())
+
+    x = torch.zeros(1, requires_grad=True)
+    assert x.expand_as(x).grad_fn is not None
 
 
 @pytest.mark.parametrize('datamodule', [False, True])
@@ -1731,3 +1744,35 @@ def test_check_val_every_n_epoch_exception(tmpdir):
             max_epochs=1,
             check_val_every_n_epoch=1.2,
         )
+
+
+def test_trainer_attach_data_pipeline_to_model(tmpdir):
+
+    class DataPipeline:
+
+        pass
+
+    class TestDataModule(LightningDataModule):
+
+        data_pipeline = DataPipeline()
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+        def test_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+    class TestCallback(Callback):
+
+        def on_fit_start(self, trainer, pl_module: LightningModule) -> None:
+            """Called when fit begins"""
+            assert isinstance(pl_module.data_pipeline, DataPipeline)
+
+    model = BoringModel()
+    dm = TestDataModule()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[TestCallback()])
+    trainer.fit(model, datamodule=dm)
