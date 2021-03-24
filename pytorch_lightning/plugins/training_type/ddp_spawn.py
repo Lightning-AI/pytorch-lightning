@@ -21,7 +21,6 @@ import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
-import numpy
 
 from pytorch_lightning.distributed.dist import LightningDistributed
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -79,7 +78,6 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def setup(self, model):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
 
         # pass in a state q
         smp = mp.get_context("spawn")
