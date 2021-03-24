@@ -55,8 +55,9 @@ parser.add_argument(
 # ------------------------------------------------------------------------------------------------------------
 # Available Automator Flags
 # ------------------------------------------------------------------------------------------------------------
-parser.add_argument("--accelerator", type=str, default="ddp", choices=["ddp", "ddp_cpu"])
+parser.add_argument("--accelerator", type=str, default="ddp", choices=["ddp", "ddp_cpu", "dp"])
 parser.add_argument("--gpus", type=int, default=0)
+parser.add_argument("--num_processes", type=int, default=1)
 parser.add_argument("--precision", type=int, default=32, choices=[16, 32])
 parser.add_argument("--amp_backend", type=str, default="native", choices=["native"])
 
@@ -83,6 +84,7 @@ def main():
     automator = Automator(
         accelerator=opt.accelerator,
         gpus=opt.gpus,
+        num_processes=opt.num_processes,
         precision=opt.precision,
         amp_backend=opt.amp_backend,
     )
