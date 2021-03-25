@@ -489,9 +489,10 @@ class PyTorchProfiler(BaseProfiler):
         if self.profiler is not None:
             self.profiler.__exit__(None, None, None)
             self._cache_functions_events()
-            if self._schedule is not None:
-                self._schedule.reset()
             self.profiler = None
+
+        if self._schedule is not None:
+            self._schedule.reset()
 
         if self._parent_profiler is not None:
             self._parent_profiler.__exit__(None, None, None)
