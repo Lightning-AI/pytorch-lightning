@@ -1077,9 +1077,12 @@ class Trainer(
         model.setup(stage=state)
 
     def call_model_parallel_hook(self, model: LightningModule) -> None:
-        self.on_model_parallel_setup(model)
-        with self.accelerator.model_parallel_context():
-            model.on_model_parallel_setup()
+        # Call model parallel hook if accelerator requests. In some cases
+        # we will not call the hook; the hook has initialized the sharded model for example.
+        if self.accelerator.call_model_parallel_setup_hook:
+            self.on_model_parallel_setup(model)
+            with self.accelerator.model_parallel_context():
+                model.on_model_parallel_setup()
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state

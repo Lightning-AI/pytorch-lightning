@@ -445,3 +445,12 @@ class Accelerator(object):
         """
         with self.training_type_plugin.model_parallel_context():
             yield
+
+    @property
+    def call_model_parallel_setup_hook(self) -> bool:
+        """
+        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
+        This is useful for when we want to shard the model once within fit.
+        Returns: True if we want to call the model parallel setup hook.
+        """
+        return self.training_type_plugin.call_model_parallel_setup_hook
