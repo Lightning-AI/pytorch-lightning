@@ -490,6 +490,6 @@ class Accelerator(object):
         return self.training_type_plugin.call_model_parallel_setup_hook
 
     @call_model_parallel_setup_hook.setter
-    def call_model_parallel_setup_hook(self, mode: bool) -> bool:
+    def call_model_parallel_setup_hook(self, mode: bool) -> None:
         if isinstance(mode, bool):
             self.training_type_plugin.call_model_parallel_setup_hook = mode
