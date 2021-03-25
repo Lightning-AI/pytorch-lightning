@@ -65,7 +65,7 @@ def _run_horovod(trainer_options, on_gpu=False):
 
 
 def _run_horovod_clip_grad_by_value(trainer_options, on_gpu=False):
-    # clip_grad_by_value test
+    """ clip_grad_by_value test """
     trainer_options_clip_grad_val = deepcopy(trainer_options)
     trainer_options_clip_grad_val.update({'gradient_clip_algorithm': 'value'})
     _run_horovod(trainer_options_clip_grad_val, on_gpu)
@@ -86,7 +86,6 @@ def test_horovod_cpu(tmpdir):
         deterministic=True,
     )
     _run_horovod(trainer_options)
-    _run_horovod_clip_grad_by_value(trainer_options)
 
 
 @RunIf(skip_windows=True)
@@ -103,7 +102,6 @@ def test_horovod_cpu_implicit(tmpdir):
         deterministic=True,
     )
     _run_horovod(trainer_options)
-    _run_horovod_clip_grad_by_value(trainer_options)
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)

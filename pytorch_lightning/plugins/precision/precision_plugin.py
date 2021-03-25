@@ -114,7 +114,7 @@ class PrecisionPlugin(Plugin):
     ) -> None:
         """Clips the gradients"""
         clip_grad_func = self.clip_grad_funcs[gradient_clip_algorithm]
-        clip_grad_func(optimizer, clip_val)
+        clip_grad_func(optimizer, clip_val)  # type: ignore
 
     def clip_grad_by_value(self, optimizer: 'Optimizer', clip_val: Union[int, float]) -> None:
         """Clip gradients by value"""

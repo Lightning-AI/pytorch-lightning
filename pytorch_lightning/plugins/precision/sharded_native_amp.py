@@ -37,4 +37,4 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
         if clip_val <= 0:
             return
         optimizer = cast(OSS, optimizer)
-        optimizer.clip_grad_norm(clip_val, norm_type=norm_type)
+        optimizer.clip_grad_norm(clip_val, norm_type=norm_type)  # type: ignore
