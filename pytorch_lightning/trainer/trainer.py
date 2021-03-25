@@ -436,8 +436,8 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
-        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
         self.call_model_parallel_hook(model)  # allow user to setup in model parallel environment
+        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
