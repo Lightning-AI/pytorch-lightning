@@ -21,6 +21,7 @@ from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 
@@ -218,7 +219,7 @@ class Accelerator(object):
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*kwargs.values())
 
-    def predict(self, kwargs: Dict[str, Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def predict_step(self, kwargs: Dict[str, Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
         """The actual predict step.
 
         Args:
@@ -232,7 +233,7 @@ class Accelerator(object):
         kwargs = self.to_device(kwargs)
 
         with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
-            return self.training_type_plugin.predict(*kwargs.values())
+            return self.training_type_plugin.predict_step(*kwargs.values())
 
     def training_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
         """A hook to do something at the end of the training step
@@ -356,9 +357,17 @@ class Accelerator(object):
 
     def to_device(self, kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
         """Pushes the batch to the root device"""
-        kwargs['batch'] = self.batch_to_device(
-            kwargs['batch'], self.root_device, dataloader_idx=kwargs.get('dataloader_idx', None)
+        batch = kwargs['batch']
+  
+        # TODO (tchaton) Better fix
+        is_dict = isinstance(batch, dict)
+        if is_dict:
+            batch = [batch]
+
+        batch = self.batch_to_device(
+            batch, self.root_device, dataloader_idx=kwargs.get('dataloader_idx', None)
         )
+        kwargs['batch'] = batch[0] if is_dict else batch
         return kwargs
 
     @property
@@ -432,3 +441,31 @@ class Accelerator(object):
         In distributed training, we make sure to transfer the results to the appropriate master process.
         """
         return self.training_type_plugin.results
+
+    # todo: remove in v1.5
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+        """
+        Attaches the training type plugin to the accelerator.
+        Also transfers ownership of the model to this plugin
+
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
+        """
+        rank_zero_warn(
+            'Accelerator method `connect_training_type_plugin` was deprecated in v1.3.'
+            ' It will be removed in v1.5.'
+        )
+        self.setup_training_type_plugin(plugin, model)
+
+    # todo: remove in v1.5
+    def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
+        """Attaches the precision plugin to the accelerator
+
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
+        """
+        rank_zero_warn(
+            'Accelerator method `connect_precision_plugin` was deprecated in v1.3.'
+            ' It will be removed in v1.5.'
+        )
+        self.setup_precision_plugin(plugin)

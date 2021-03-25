@@ -495,9 +495,15 @@ def test_log_works_in_val_callback(tmpdir):
             )
 
         def on_epoch_start(self, trainer, pl_module):
-            self.make_logging(
-                pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
+            if trainer.validating:
+                self.make_logging(
+                    pl_module,
+                    'on_epoch_start',
+                    2,
+                    on_steps=self.choices,
+                    on_epochs=self.choices,
+                    prob_bars=self.choices
+                )
 
         def on_validation_epoch_start(self, trainer, pl_module):
             self.make_logging(
@@ -529,7 +535,7 @@ def test_log_works_in_val_callback(tmpdir):
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
-            if not trainer.training:
+            if trainer.validating:
                 self.make_logging(
                     pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
                 )
@@ -567,7 +573,6 @@ def test_log_works_in_val_callback(tmpdir):
         callbacks=[test_callback],
     )
     trainer.fit(model)
-    trainer.test()
 
     assert test_callback.funcs_called_count["on_epoch_start"] == 1
     # assert test_callback.funcs_called_count["on_batch_start"] == 1

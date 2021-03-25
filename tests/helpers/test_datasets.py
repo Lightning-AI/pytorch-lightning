@@ -20,11 +20,13 @@ from tests import PATH_DATASETS
 from tests.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 
 
-@pytest.mark.parametrize('dataset_cls,args', [
-    (MNIST, dict(root=PATH_DATASETS)),
-    (TrialMNIST, dict(root=PATH_DATASETS)),
-    (AverageDataset, dict()),
-])
+@pytest.mark.parametrize(
+    'dataset_cls,args', [
+        (MNIST, dict(root=PATH_DATASETS)),
+        (TrialMNIST, dict(root=PATH_DATASETS)),
+        (AverageDataset, dict()),
+    ]
+)
 def test_pickling_dataset_mnist(tmpdir, dataset_cls, args):
     mnist = dataset_cls(**args)
 

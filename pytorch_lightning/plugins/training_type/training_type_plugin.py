@@ -132,15 +132,15 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def start_training(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the training loop
-        self._results = trainer.run_train()
+        self._results = trainer.run_stage()
 
     def start_evaluating(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_evaluate()
+        self._results = trainer.run_stage()
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the predicting loop
-        self._results = trainer.run_predict()
+        self._results = trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
         return self.lightning_module.training_step(*args, **kwargs)
@@ -154,8 +154,8 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step(self, *args, **kwargs):
         return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
-        return self.lightning_module.predict(*args, **kwargs)
+    def predict_step(self, *args, **kwargs):
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output
