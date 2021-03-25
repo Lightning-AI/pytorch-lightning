@@ -357,9 +357,9 @@ def test_tpu_reduce():
     xmp.spawn(test_reduce, nprocs=8, start_method='fork')
 
 
-@pytest.mark.parametrize("clip_val", [10])
 @RunIf(tpu=True)
 @pl_multi_process_test
+@pytest.mark.parametrize("clip_val", [10])
 @mock.patch("pytorch_lightning.accelerators.tpu.xla_clip_grad_norm_")
 def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
     """
