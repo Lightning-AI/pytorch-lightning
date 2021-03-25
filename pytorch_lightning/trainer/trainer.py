@@ -1086,6 +1086,12 @@ class Trainer(
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state
+
+        if self.datamodule is not None:
+            called = getattr(self.datamodule, f'has_teardown_{state}')
+            if not called:
+                self.datamodule.teardown(stage=state)
+
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
