@@ -93,17 +93,18 @@ def test_model_parallel_setup_called(tmpdir):
     assert model.on_model_parallel_setup_called
 
 
+class DummyModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.on_model_parallel_setup_called = False
+
+    def on_model_parallel_setup(self):
+        self.on_model_parallel_setup_called = True
+
+
 def test_model_parallel_setup_false(tmpdir):
     """Ensure ``on_model_parallel_setup`` is not called, when turned off"""
-
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.on_model_parallel_setup_called = False
-
-        def on_model_parallel_setup(self):
-            self.on_model_parallel_setup_called = True
 
     class CustomPlugin(SingleDevicePlugin):
 
@@ -111,7 +112,7 @@ def test_model_parallel_setup_false(tmpdir):
         def call_model_parallel_setup_hook(self) -> bool:
             return False
 
-    model = TestModel()
+    model = DummyModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
@@ -127,22 +128,13 @@ def test_model_parallel_setup_false(tmpdir):
 def test_model_parallel_setup_called_once(tmpdir):
     """Ensure ``on_model_parallel_setup`` is only called once"""
 
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.on_model_parallel_setup_called = False
-
-        def on_model_parallel_setup(self):
-            self.on_model_parallel_setup_called = True
-
     class CustomPlugin(SingleDevicePlugin):
 
         @property
         def setup_optimizers_in_pre_dispatch(self) -> bool:
             return True
 
-    model = TestModel()
+    model = DummyModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
@@ -164,22 +156,13 @@ def test_model_parallel_setup_when_setup_optimizers_pre_dispatch_false(tmpdir):
     when ``setup_optimizers_in_pre_dispatch`` set False.
     """
 
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.on_model_parallel_setup_called = False
-
-        def on_model_parallel_setup(self):
-            self.on_model_parallel_setup_called = True
-
     class CustomPlugin(SingleDevicePlugin):
 
         @property
         def setup_optimizers_in_pre_dispatch(self) -> bool:
             return False
 
-    model = TestModel()
+    model = DummyModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
