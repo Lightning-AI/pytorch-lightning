@@ -30,12 +30,11 @@ linenos_arr=($linenos)
 
 # tests to skip - space separated
 blocklist='test_pytorch_profiler_nested_emit_nvtx'
+report=''
 
 for i in "${!files_arr[@]}"; do
   file=${files_arr[$i]}
   lineno=${linenos_arr[$i]}
-
-  echo "Found $file:$lineno"
 
   # get code from `@RunIf(special=True)` line to EOF
   test_code=$(tail -n +"$lineno" "$file")
@@ -49,10 +48,12 @@ for i in "${!files_arr[@]}"; do
 
       # check blocklist
       if echo $blocklist | grep --word-regexp "$test_name" > /dev/null; then
+        report+="Skipped\t$file:$lineno::$test_name\n"
         break
       fi
 
       # run the test
+      report+="Ran\t$file:$lineno::$test_name\n"
       python ${defaults} "${file}::${test_name}"
       break
     fi
@@ -60,3 +61,9 @@ for i in "${!files_arr[@]}"; do
 done
 
 nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+
+# echo test report
+printf '=%.s' {1..80}
+printf "\n$report"
+printf '=%.s' {1..80}
+printf '\n'
