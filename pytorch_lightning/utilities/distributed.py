@@ -172,7 +172,7 @@ class AllGatherGrad(torch.autograd.Function):
 
         torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
 
-        return grad_output[torch.distributed.get_rank()]
+        return grad_output[torch.distributed.get_rank()], None
 
 
 def all_gather_ddp_if_available(
