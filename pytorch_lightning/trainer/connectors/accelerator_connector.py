@@ -32,6 +32,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnShardedPlugin,
     DeepSpeedPlugin,
     DeepSpeedPrecisionPlugin,
+    DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
     FullyShardedPlugin,
     HorovodPlugin,
@@ -44,7 +45,12 @@ from pytorch_lightning.plugins import (
     TPUSpawnPlugin,
     TrainingTypePlugin,
 )
-from pytorch_lightning.plugins.environments import ClusterEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import (
+    ClusterEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
@@ -270,6 +276,10 @@ class AcceleratorConnector(object):
 
     @property
     def is_distributed(self) -> bool:
+        # Used for custom plugins.
+        # Custom plugins should implement is_distributed property.
+        if hasattr(self.training_type_plugin, 'is_distributed') and not self.on_tpu:
+            return self.training_type_plugin.is_distributed
         is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
         if self.on_tpu:
             is_distributed |= self.training_type_plugin.is_distributed
@@ -312,7 +322,8 @@ class AcceleratorConnector(object):
 
         if self.precision == 32:
             return PrecisionPlugin()
-
+        elif self.precision == 64:
+            return DoublePrecisionPlugin()
         elif self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
@@ -353,7 +364,7 @@ class AcceleratorConnector(object):
                 log.info("Using APEX 16bit precision.")
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
-        raise NotImplementedError("We only support precisions 32 and 16!")
+        raise NotImplementedError("We only support precisions 64, 32 and 16!")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
@@ -427,6 +438,11 @@ class AcceleratorConnector(object):
         if hasattr(training_type, 'num_nodes') and getattr(training_type, 'num_nodes') is None:
             training_type.num_nodes = self.num_nodes
 
+        # Automatically set sync_batchnorm if None.
+        # Useful for custom plugins.
+        if hasattr(training_type, 'sync_batchnorm') and getattr(training_type, 'sync_batchnorm') is None:
+            training_type.sync_batchnorm = self.sync_batchnorm
+
         return training_type
 
     def select_accelerator(self) -> Accelerator:
@@ -457,17 +473,10 @@ class AcceleratorConnector(object):
             return self._cluster_environment
         if self.is_slurm_managing_tasks:
             env = SLURMEnvironment()
-            # TODO: decouple DDP from SLURM
-            #   refactor and let generic cluster env hold the information about who spawns the processes
-            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
         elif self.is_using_torchelastic:
             env = TorchElasticEnvironment()
-            # TODO: decouple DDP from TE
-            #   refactor and let generic cluster env hold the information about who spawns the processes
-            os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
         else:
-            # TODO: maybe introduce a DefaultEnvironment?
-            env = TorchElasticEnvironment()
+            env = LightningEnvironment()
         return env
 
     def set_distributed_mode(self, distributed_backend: Optional[str] = None):

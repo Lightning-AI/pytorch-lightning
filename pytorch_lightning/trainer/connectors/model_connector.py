@@ -35,5 +35,4 @@ class ModelConnector:
             m._device_type = str(self.trainer._device_type)
             m._distrib_type = str(self.trainer._distrib_type)
             m.use_amp = self.trainer.amp_backend is not None
-            m.testing = self.trainer.testing
             m.precision = self.trainer.precision

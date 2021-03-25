@@ -19,12 +19,13 @@ import inspect
 import logging
 import os
 import tempfile
+import types
 import uuid
 from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -37,14 +38,12 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.states import RunningStage
 log = logging.getLogger(__name__)
 
 
@@ -68,7 +67,6 @@ class LightningModule(
         "on_gpu",
         "current_epoch",
         "global_step",
-        "running_stage",
         "global_rank",
         "local_rank",
         "logger",
@@ -107,6 +105,7 @@ class LightningModule(
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
         self._automatic_optimization: bool = True
+        self._param_requires_grad_state = dict()
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -170,10 +169,6 @@ class LightningModule(
         If False you are responsible for calling .backward, .step, zero_grad.
         """
         return self._automatic_optimization
-
-    @property
-    def running_stage(self) -> Optional["RunningStage"]:
-        return self.trainer._running_stage if self.trainer else None
 
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
@@ -729,10 +724,13 @@ class LightningModule(
         .. code-block:: python
 
             # pseudocode of order
-            out = validation_step()
-            if defined('validation_step_end'):
-                out = validation_step_end(out)
-            out = validation_epoch_end(out)
+            val_outs = []
+            for val_batch in val_data:
+                out = validation_step(val_batch)
+                if defined('validation_step_end'):
+                    out = validation_step_end(out)
+                val_outs.append(out)
+            val_outs = validation_epoch_end(val_outs)
 
 
         .. code-block:: python
@@ -1063,7 +1061,7 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def predict(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
         """
         Use this function with trainer.predict(...). Override if you need to add any processing logic.
         """
@@ -1235,9 +1233,8 @@ class LightningModule(
                 opt_a.step()
         """
         if optimizer is not None:
-            rank_zero_warn(
-                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4",
-                DeprecationWarning
+            rank_zero_deprecation(
+                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4"
             )
 
         # make sure we're using manual opt
@@ -1321,7 +1318,7 @@ class LightningModule(
                         if param in self._param_requires_grad_state:
                             param.requires_grad = self._param_requires_grad_state[param]
         # save memory
-        del self._param_requires_grad_state
+        self._param_requires_grad_state = dict()
 
     def optimizer_step(
         self,
@@ -1595,55 +1592,84 @@ class LightningModule(
             parents_arguments.update(args)
         return self_arguments, parents_arguments
 
-    def save_hyperparameters(self, *args, frame=None) -> None:
-        """Save all model arguments.
+    def save_hyperparameters(
+        self,
+        *args,
+        ignore: Optional[Union[Sequence[str], str]] = None,
+        frame: Optional[types.FrameType] = None
+    ) -> None:
+        """Save model arguments to ``hparams`` attribute.
 
         Args:
             args: single object of `dict`, `NameSpace` or `OmegaConf`
-             or string names or arguments from class `__init__`
+                or string names or arguments from class ``__init__``
+            ignore: an argument name or a list of argument names from
+                class ``__init__`` to be ignored
+            frame: a frame object. Default is None
 
-        >>> class ManuallyArgsModel(LightningModule):
-        ...     def __init__(self, arg1, arg2, arg3):
-        ...         super().__init__()
-        ...         # manually assign arguments
-        ...         self.save_hyperparameters('arg1', 'arg3')
-        ...     def forward(self, *args, **kwargs):
-        ...         ...
-        >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-        >>> model.hparams
-        "arg1": 1
-        "arg3": 3.14
+        Example::
+            >>> class ManuallyArgsModel(LightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # manually assign arguments
+            ...         self.save_hyperparameters('arg1', 'arg3')
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg3": 3.14
 
-        >>> class AutomaticArgsModel(LightningModule):
-        ...     def __init__(self, arg1, arg2, arg3):
-        ...         super().__init__()
-        ...         # equivalent automatic
-        ...         self.save_hyperparameters()
-        ...     def forward(self, *args, **kwargs):
-        ...         ...
-        >>> model = AutomaticArgsModel(1, 'abc', 3.14)
-        >>> model.hparams
-        "arg1": 1
-        "arg2": abc
-        "arg3": 3.14
+            >>> class AutomaticArgsModel(LightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # equivalent automatic
+            ...         self.save_hyperparameters()
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = AutomaticArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg2": abc
+            "arg3": 3.14
 
-        >>> class SingleArgModel(LightningModule):
-        ...     def __init__(self, params):
-        ...         super().__init__()
-        ...         # manually assign single argument
-        ...         self.save_hyperparameters(params)
-        ...     def forward(self, *args, **kwargs):
-        ...         ...
-        >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
-        >>> model.hparams
-        "p1": 1
-        "p2": abc
-        "p3": 3.14
+            >>> class SingleArgModel(LightningModule):
+            ...     def __init__(self, params):
+            ...         super().__init__()
+            ...         # manually assign single argument
+            ...         self.save_hyperparameters(params)
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
+            >>> model.hparams
+            "p1": 1
+            "p2": abc
+            "p3": 3.14
+
+            >>> class ManuallyArgsModel(LightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # pass argument(s) to ignore as a string or in a list
+            ...         self.save_hyperparameters(ignore='arg2')
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg3": 3.14
         """
         if not frame:
             frame = inspect.currentframe().f_back
         init_args = get_init_args(frame)
         assert init_args, "failed to inspect the self init"
+
+        if ignore is not None:
+            if isinstance(ignore, str):
+                ignore = [ignore]
+            if isinstance(ignore, (list, tuple)):
+                ignore = [arg for arg in ignore if isinstance(arg, str)]
+            init_args = {k: v for k, v in init_args.items() if k not in ignore}
+
         if not args:
             # take all arguments
             hp = init_args

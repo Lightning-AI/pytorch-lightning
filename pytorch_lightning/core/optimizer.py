@@ -38,7 +38,7 @@ class LightningOptimizer:
 
     def __init__(self, optimizer: Optimizer):
 
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k != 'step'}
+        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ('step', "__del__")}
 
         # For Horovod
         if hasattr(optimizer, "skip_synchronize"):

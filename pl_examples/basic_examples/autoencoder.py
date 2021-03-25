@@ -20,11 +20,12 @@ from torch import nn
 from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DATASETS_PATH, _TORCHVISION_AVAILABLE, cli_lightning_logo
+from pl_examples import _DATASETS_PATH, _TORCHVISION_AVAILABLE, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
-    from torchvision.datasets.mnist import MNIST
+if _TORCHVISION_MNIST_AVAILABLE:
+    from torchvision.datasets import MNIST
 else:
     from tests.helpers.datasets import MNIST
 
@@ -38,17 +39,17 @@ class LitAutoEncoder(pl.LightningModule):
     )
     """
 
-    def __init__(self):
+    def __init__(self, hidden_dim: int = 64):
         super().__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(28 * 28, 64),
+            nn.Linear(28 * 28, hidden_dim),
             nn.ReLU(),
-            nn.Linear(64, 3),
+            nn.Linear(hidden_dim, 3),
         )
         self.decoder = nn.Sequential(
-            nn.Linear(3, 64),
+            nn.Linear(3, hidden_dim),
             nn.ReLU(),
-            nn.Linear(64, 28 * 28),
+            nn.Linear(hidden_dim, 28 * 28),
         )
 
     def forward(self, x):
@@ -93,7 +94,7 @@ def cli_main():
     # ------------
     parser = ArgumentParser()
     parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--hidden_dim', type=int, default=128)
+    parser.add_argument('--hidden_dim', type=int, default=64)
     parser = pl.Trainer.add_argparse_args(parser)
     args = parser.parse_args()
 
@@ -111,7 +112,7 @@ def cli_main():
     # ------------
     # model
     # ------------
-    model = LitAutoEncoder()
+    model = LitAutoEncoder(args.hidden_dim)
 
     # ------------
     # training

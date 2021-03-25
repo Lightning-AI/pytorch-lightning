@@ -28,8 +28,6 @@ class SLURMConnector:
             signal.signal(signal.SIGTERM, self.term_handler)
 
     def sig_handler(self, signum, frame):  # pragma: no-cover
-        # Todo: required argument `signum` is not used
-        # Todo: required argument `frame` is not used
         if self.trainer.is_global_zero:
             # save weights
             log.info('handling SIGUSR1')
@@ -59,7 +57,5 @@ class SLURMConnector:
             # close experiment to avoid issues
             self.trainer.logger.close()
 
-    def term_handler(self, signum, frame):
-        # Todo: required argument `signum` is not used
-        # Todo: required argument `frame` is not used
+    def term_handler(self, signum, frame):  # pragma: no-cover
         log.info("bypassing sigterm")

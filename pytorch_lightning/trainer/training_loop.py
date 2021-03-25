@@ -14,16 +14,16 @@
 
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
+from typing import Optional
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 class TrainLoop:
 
-    def __init__(self, trainer, multiple_trainloader_mode):
+    def __init__(self, trainer, multiple_trainloader_mode: str):
         self.trainer = trainer
         self.early_stopping_accumulator = None
         self.checkpoint_accumulator = None
@@ -53,16 +53,14 @@ class TrainLoop:
 
     def on_trainer_init(
         self,
-        max_epochs,
-        min_epochs,
-        max_steps,
-        min_steps,
-        num_sanity_val_steps,
-        weights_summary,
-    ):
+        max_epochs: Optional[int],
+        min_epochs: Optional[int],
+        max_steps: Optional[int],
+        min_steps: Optional[int],
+        num_sanity_val_steps: int,
+    ) -> None:
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
-        self.trainer.interrupted = False
         self.trainer.should_stop = False
         self.trainer._state = TrainerState.INITIALIZING
 
@@ -83,12 +81,6 @@ class TrainLoop:
         else:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
 
-        self.trainer.weights_summary = weights_summary
-        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
-            raise MisconfigurationException(
-                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, got {weights_summary}"
-            )
-
     @property
     def num_optimizers(self):
         num_optimizers = len(self.get_optimizers_iterable())
@@ -103,10 +95,7 @@ class TrainLoop:
         # hook
         self.trainer.call_hook("on_train_start")
 
-        # provide rank to profiler
-        self.trainer.profile_connector.on_train_start(self.trainer)
-
-    def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
+    def setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -123,7 +112,6 @@ class TrainLoop:
     def on_train_end(self):
         if self._teardown_already_run:
             return
-
         self._teardown_already_run = True
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
@@ -142,18 +130,20 @@ class TrainLoop:
             self.trainer.logger.finalize("success")
 
         # summarize profile results
-        if self.trainer.global_rank == 0:
-            self.trainer.profiler.describe()
+        self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
+
+        # reset bookkeeping
+        self.trainer._running_stage = None
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
         if should_update and self.trainer.checkpoint_connector.has_trained:
             callbacks = self.trainer.checkpoint_callbacks
 
-            if is_last and any(cb.save_last for cb in callbacks):
+            if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
                 rank_zero_info("Saving latest checkpoint...")
 
             model = self.trainer.lightning_module
@@ -187,7 +177,7 @@ class TrainLoop:
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
 
         # changing gradient according accumulation_scheduler
-        self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.lightning_module)
+        self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
         self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
@@ -309,7 +299,7 @@ class TrainLoop:
         closure_loss = None
         untouched_loss = None
 
-        if self.trainer.train_loop.automatic_optimization:
+        if self.automatic_optimization:
             # accumulate loss
             # (if accumulate_grad_batches = 1 no effect)
             if is_result_obj:
@@ -477,7 +467,6 @@ class TrainLoop:
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
-        should_check_val = False
         val_loop_called = False
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
@@ -513,11 +502,10 @@ class TrainLoop:
             # -----------------------------------------
             should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
+                self.trainer.validating = True
                 self.trainer.run_evaluation()
+                self.trainer.training = True
                 val_loop_called = True
-
-                # reset stage to train
-                self.trainer._running_stage = RunningStage.TRAINING
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -552,7 +540,7 @@ class TrainLoop:
             self.increment_accumulated_grad_global_step()
 
         # epoch end hook
-        self.run_on_epoch_end_hook(epoch_output)
+        self.on_train_epoch_end(epoch_output)
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
@@ -572,10 +560,9 @@ class TrainLoop:
             self.check_early_stopping_callback(True)
 
         if should_check_val:
+            self.trainer.validating = True
             self.trainer.run_evaluation(on_epoch=True)
-
-            # reset stage to train
-            self.trainer._running_stage = RunningStage.TRAINING
+            self.trainer.training = True
 
         # increment the global step once
         # progress global step according to grads progress
@@ -749,7 +736,7 @@ class TrainLoop:
 
                 # backward pass
                 if result is not None:
-                    with self.trainer.profiler.profile("model_backward"):
+                    with self.trainer.profiler.profile("backward"):
                         self.backward(result, optimizer, opt_idx)
 
                     # hook - call this hook only
@@ -795,7 +782,7 @@ class TrainLoop:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
-    def run_on_epoch_end_hook(self, epoch_output):
+    def on_train_epoch_end(self, epoch_output):
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
@@ -842,12 +829,17 @@ class TrainLoop:
 
         if len(self.trainer.optimizers) > 1:
             if self.trainer.has_arg("training_step", "optimizer_idx"):
+                if not self.automatic_optimization:
+                    self.warning_cache.warn(
+                        "`training_step` hook signature has changed in v1.3."
+                        " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
+                        " the old signature will be removed in v1.5", DeprecationWarning
+                    )
                 args.append(opt_idx)
-            else:
-                num_opts = len(self.trainer.optimizers)
+            elif not self.trainer.has_arg("training_step", "optimizer_idx") and self.automatic_optimization:
                 raise ValueError(
-                    f"Your LightningModule defines {num_opts} optimizers but "
-                    f'training_step is missing the "optimizer_idx" argument.'
+                    f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
+                    ' `training_step` is missing the `optimizer_idx` argument.'
                 )
 
         # pass hiddens if using tbptt

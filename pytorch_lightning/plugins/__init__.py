@@ -1,6 +1,7 @@
 from pytorch_lightning.plugins.base_plugin import Plugin  # noqa: F401
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin  # noqa: F401
+from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import (  # noqa: F401
     FullyShardedNativeMixedPrecisionPlugin,
 )
@@ -33,6 +34,7 @@ __all__ = [
     "DDPSpawnPlugin",
     "DeepSpeedPlugin",
     "DeepSpeedPrecisionPlugin",
+    "DoublePrecisionPlugin",
     "FullyShardedPlugin",
     "FullyShardedNativeMixedPrecisionPlugin",
     "HorovodPlugin",
