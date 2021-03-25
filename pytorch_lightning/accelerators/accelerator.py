@@ -443,7 +443,7 @@ class Accelerator(object):
         return self.training_type_plugin.results
 
     # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+    def connect_training_type_plugin(self, model: LightningModule) -> None:
         """
         Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin
@@ -455,10 +455,10 @@ class Accelerator(object):
             'Accelerator method `connect_training_type_plugin` was deprecated in v1.3.'
             ' It will be removed in v1.5.'
         )
-        self.setup_training_type_plugin(plugin, model)
+        self.setup_training_type_plugin(model)
 
     # todo: remove in v1.5
-    def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
+    def connect_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator
 
         .. deprecated::v1.3
@@ -468,4 +468,4 @@ class Accelerator(object):
             'Accelerator method `connect_precision_plugin` was deprecated in v1.3.'
             ' It will be removed in v1.5.'
         )
-        self.setup_precision_plugin(plugin)
+        self.setup_precision_plugin()
