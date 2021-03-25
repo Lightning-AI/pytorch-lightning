@@ -56,6 +56,11 @@ class CallbackHookNameValidator:
         return None
 
     @staticmethod
+    def _on_model_parallel_setup_log():
+        """Called when fit or test begins"""
+        return None
+
+    @staticmethod
     def _teardown_log():
         """Called at the end of fit and test"""
         return None
