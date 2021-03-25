@@ -16,10 +16,10 @@ set -e
 # this environment variable allows special tests to run
 export PL_RUNNING_SPECIAL_TESTS=1
 # python arguments
-defaults="-m coverage run --source pytorch_lightning --append -m pytest --verbose --capture=no"
+defaults='-m coverage run --source pytorch_lightning --append -m pytest --verbose --capture=no'
 
 # find tests marked as `@RunIf(special=True)`
-grep_output=$(grep --recursive --line-number --word-regexp 'tests' --regexp 'special=True' | grep "@RunIf")
+grep_output=$(grep --recursive --line-number --word-regexp 'tests' --regexp 'special=True' | grep '@RunIf')
 # file paths
 files=$(echo "$grep_output" | cut -f1 -d:)
 files_arr=($files)
@@ -28,7 +28,7 @@ linenos=$(echo "$grep_output" | cut -f2 -d:)
 linenos_arr=($linenos)
 
 # tests to skip - space separated
-blocklist="test_pytorch_profiler_nested_emit_nvtx"
+blocklist='test_pytorch_profiler_nested_emit_nvtx'
 
 for i in "${!files_arr[@]}"; do
   file=${files_arr[$i]}
