@@ -86,7 +86,7 @@ def test_horovod_cpu(tmpdir):
     )
     _run_horovod(trainer_options)
 
-
+@RunIf(skip_windows=True)
 def test_horovod_cpu_clip_grad_by_value(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
