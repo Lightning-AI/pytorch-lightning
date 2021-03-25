@@ -34,6 +34,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self) -> None:
         self._model = None
         self._results = None
+        self._call_model_parallel_setup_hook = True
 
     def connect(self, model: 'Module') -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
@@ -212,4 +213,9 @@ class TrainingTypePlugin(Plugin, ABC):
         This is useful for when we want to shard the model once within fit.
         Returns: True if we want to call the model parallel setup hook.
         """
-        return True
+        return self._call_model_parallel_setup_hook
+
+    @call_model_parallel_setup_hook.setter
+    def call_model_parallel_setup_hook(self, mode: bool) -> bool:
+        if isinstance(mode, bool):
+            self._call_model_parallel_setup_hook = mode
