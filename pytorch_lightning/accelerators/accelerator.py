@@ -358,7 +358,7 @@ class Accelerator(object):
     def to_device(self, kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
         """Pushes the batch to the root device"""
         batch = kwargs['batch']
-  
+
         # TODO (tchaton) Better fix
         is_dict = isinstance(batch, dict)
         if is_dict:
