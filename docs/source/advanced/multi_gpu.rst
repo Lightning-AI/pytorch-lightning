@@ -239,6 +239,20 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
     to be in "exclusive mode", such that only one process at a time can access them.
     For more details see the :doc:`trainer guide <../common/trainer>`.
 
+
+Select torch distributed backend
+--------------------------------
+
+By default, Lightning will select the ``nccl`` backend over ``gloo`` when running on GPUs.
+Find more information about PyTorch's supported backends `here <https://pytorch.org/docs/stable/distributed.html>`__.
+
+Lightning exposes an environment variable ``PL_TORCH_DISTRIBUTED_BACKEND`` for the user to change the backend.
+
+.. code-block:: bash
+
+   PL_TORCH_DISTRIBUTED_BACKEND=gloo python train.py ...
+
+
 ----------
 
 Distributed modes
@@ -253,7 +267,7 @@ Lightning allows multiple ways of training
 - TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
 
 .. note::
-    If you request multiple GPUs or nodes without setting a mode, DDP will be automatically used.
+    If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
 
 For a deeper understanding of what Lightning is doing, feel free to read this
 `guide <https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_.
@@ -283,8 +297,6 @@ Distributed Data Parallel
 2. Each GPU gets visibility into a subset of the overall dataset. It will only ever see that subset.
 
 3. Each process inits the model.
-
-.. note:: Make sure to set the random seed before the instantiation of a ``Trainer()`` so that each model initializes with the same weights.
 
 4. Each process performs a full forward and backward pass in parallel.
 
@@ -320,7 +332,6 @@ There are cases in which it is NOT possible to use DDP. Examples are:
 
 - Jupyter Notebook, Google COLAB, Kaggle, etc.
 - You have a nested script without a root package
-- Your script needs to invoke both `.fit` and `.test`, or one of them multiple times
 
 In these situations you should use `dp` or `ddp_spawn` instead.
 
@@ -580,9 +591,9 @@ Below are the possible configurations we support.
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.legacy.ddp_plugin.DDPPlugin.init_ddp_connection`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.init_ddp_connection`.
 
-If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.legacy.ddp_plugin.DDPPlugin.configure_ddp`.
+If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.plugins.training_type.ddp.DDPPlugin.configure_ddp`.
 
 
 ----------
@@ -600,6 +611,8 @@ Lightning currently offers the following methods to leverage model parallelism:
 
 - Sharded Training (partitioning your gradients and optimizer state across multiple GPUs, for reduced memory overhead with **no performance loss**)
 - Sequential Model Parallelism with Checkpointing (partition your :class:`nn.Sequential <torch.nn.Sequential>` module across multiple GPUs, leverage checkpointing and microbatching for further memory improvements and device utilization)
+
+.. _sharded:
 
 Sharded Training
 ^^^^^^^^^^^^^^^^
@@ -668,6 +681,185 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 ----------
 
+.. _deep_speed:
+
+DeepSpeed
+^^^^^^^^^
+
+.. note::
+    The DeepSpeed plugin is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
+
+`DeepSpeed <https://github.com/microsoft/DeepSpeed>`_ is a deep learning training optimization library, providing the means to train massive billion parameter models at scale.
+Using the DeepSpeed plugin, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the DeepSpeed `docs <https://www.deepspeed.ai/tutorials/megatron/>`_.
+DeepSpeed also offers lower level training optimizations, and efficient optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_. We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models).
+
+To use DeepSpeed, you first need to install DeepSpeed using the commands below.
+
+.. code-block:: bash
+
+    pip install deepspeed
+
+If you run into an issue with the install or later in training, ensure that the CUDA version of the pytorch you've installed matches your locally installed CUDA (you can see which one has been recognized by running ``nvcc --version``).
+
+.. note::
+    Currently ``resume_from_checkpoint`` and manual optimization are not supported.
+
+    DeepSpeed currently only supports single optimizer, single scheduler within the training loop.
+
+DeepSpeed ZeRO Stage 2
+""""""""""""""""""""""
+
+By default, we enable `DeepSpeed ZeRO Stage 2 <https://www.deepspeed.ai/tutorials/zero/#zero-overview>`_, which partitions your optimizer states (Stage 1) and your gradients (Stage 2) across your GPUs to reduce memory. In most cases, this is more efficient or at parity with DDP, primarily due to the optimized custom communications written by the DeepSpeed team.
+As a result, benefits can also be seen on a single GPU. Do note that the default bucket sizes allocate around ``3.6GB`` of VRAM to use during distributed communications, which can be tweaked when instantiating the plugin described in a few sections below.
+
+.. note::
+    To use ZeRO, you must use ``precision=16``.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins='deepspeed', precision=16)
+    trainer.fit(model)
+
+
+DeepSpeed ZeRO Stage 2 Offload
+""""""""""""""""""""""""""""""
+
+Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tutorials/zero-offload/>`_. ZeRO-Offload leverages the host CPU to offload optimizer memory/computation, reducing the overall memory consumption.
+
+.. note::
+    To use ZeRO-Offload, you must use ``precision=16``.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True), precision=16)
+    trainer.fit(model)
+
+
+This can also be done via the command line using a Pytorch Lightning script:
+
+.. code-block:: bash
+
+    python train.py --plugins deepspeed --precision 16 --gpus 4
+
+
+You can also modify the ZeRO-Offload parameters via the plugin as below.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8), precision=16)
+    trainer.fit(model)
+
+
+.. note::
+    We suggest tuning the ``allgather_bucket_size`` parameter and ``reduce_bucket_size`` parameter to find optimum parameters based on your model size.
+    These control how large a buffer we limit the model to using when reducing gradients/gathering updated parameters. Smaller values will result in less memory, but tradeoff with speed.
+
+    DeepSpeed allocates a reduce buffer size `multiplied by 4.5x <https://github.com/microsoft/DeepSpeed/blob/master/deepspeed/runtime/zero/stage2.py#L1594-L1607>`_ so take that into consideration when tweaking the parameters.
+
+    The plugin sets a reasonable default of ``2e8``, which should work for most low VRAM GPUs (less than ``7GB``), allocating roughly ``3.6GB`` of VRAM as buffer. Higher VRAM GPUs should aim for values around ``5e8``.
+
+For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM called `DeepSpeedCPUAdam <https://deepspeed.readthedocs.io/en/latest/optimizers.html#adam-cpu>`_ to run the offloaded computation, which is faster than the standard PyTorch implementation.
+
+.. code-block:: python
+
+    import pytorch_lightning
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    from deepspeed.ops.adam import DeepSpeedCPUAdam
+
+    class MyModel(pl.LightningModule):
+        ...
+        def configure_optimizers(self):
+            # DeepSpeedCPUAdam provides 5x to 7x speedup over torch.optim.adam(w)
+            return DeepSpeedCPUAdam(self.parameters())
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True), precision=16)
+    trainer.fit(model)
+
+
+Custom DeepSpeed Config
+"""""""""""""""""""""""
+
+In some cases you may want to define your own DeepSpeed Config, to access all parameters defined. We've exposed most of the important parameters, however, there may be debugging parameters to enable. Also, DeepSpeed allows the use of custom DeepSpeed optimizers and schedulers defined within a config file that is supported.
+
+.. note::
+    All plugin default parameters will be ignored when a config object is passed.
+    All compatible arguments can be seen in the `DeepSpeed docs <https://www.deepspeed.ai/docs/config-json/>`_.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+
+    deepspeed_config = {
+        "zero_allow_untested_optimizer": True,
+        "optimizer": {
+            "type": "OneBitAdam",
+            "params": {
+                "lr": 3e-5,
+                "betas": [0.998, 0.999],
+                "eps": 1e-5,
+                "weight_decay": 1e-9,
+                "cuda_aware": True,
+            },
+        },
+        'scheduler': {
+            "type": "WarmupLR",
+            "params": {
+                "last_batch_iteration": -1,
+                "warmup_min_lr": 0,
+                "warmup_max_lr": 3e-5,
+                "warmup_num_steps": 100,
+            }
+        },
+        "zero_optimization": {
+            "stage": 2, # Enable Stage 2 ZeRO (Optimizer/Gradient state partitioning)
+            "cpu_offload": True, # Enable Offloading optimizer state/calculation to the host CPU
+            "contiguous_gradients": True, # Reduce gradient fragmentation.
+            "overlap_comm": True, # Overlap reduce/backward operation of gradients for speed.
+            "allgather_bucket_size": 2e8, # Number of elements to all gather at once.
+            "reduce_bucket_size": 2e8, # Number of elements we reduce/allreduce at once.
+        }
+    }
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(deepspeed_config), precision=16)
+    trainer.fit(model)
+
+
+We support taking the config as a json formatted file:
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin("/path/to/deepspeed_config.json"), precision=16)
+    trainer.fit(model)
+
+
+You can use also use an environment variable via your PyTorch Lightning script:
+
+.. code-block:: bash
+
+    PL_DEEPSPEED_CONFIG_PATH=/path/to/deepspeed_config.json python train.py --plugins deepspeed
+
+
+----------
+
 .. _sequential-parallelism:
 
 Sequential Model Parallelism with Checkpointing
@@ -679,20 +871,20 @@ In addition, we use Gradient Checkpointing to reduce GPU memory requirements fur
 
 Reference: https://arxiv.org/abs/1811.06965
 
-.. note:: DDPSequentialPlugin is currently supported only for Pytorch 1.6.
+.. note:: RPCSequentialPlugin is currently supported only for Pytorch 1.6.
 
 To get started, install FairScale using the command below. We install a specific branch which contains PyTorch related fixes for Sequential Parallelism.
 
 .. code-block:: bash
 
-     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.1.0.zip
+     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.2.0.zip
 
 To use Sequential Model Parallelism, you must define a  :class:`nn.Sequential <torch.nn.Sequential>` module that defines the layers you wish to parallelize across GPUs.
 This should be kept within the ``sequential_module`` variable within your ``LightningModule`` like below.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins.legacy.ddp_sequential_plugin import DDPSequentialPlugin
+    from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin
     from pytorch_lightning import LightningModule
 
     class MyModel(LightningModule):
@@ -702,7 +894,7 @@ This should be kept within the ``sequential_module`` variable within your ``Ligh
 
     # Split my module across 4 gpus, one layer each
     model = MyModel()
-    plugin = DDPSequentialPlugin(balance=[1, 1, 1, 1])
+    plugin = RPCSequentialPlugin(balance=[1, 1, 1, 1])
     trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
     trainer.fit(model)
 

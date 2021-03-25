@@ -2,16 +2,16 @@
 Use these examples to test how lightning works.
 
 #### MNIST
-Trains MNIST where the model is defined inside the LightningModule.
+Trains MNIST where the model is defined inside the `LightningModule`.
 ```bash
 # cpu
-python mnist.py
+python simple_image_classifier.py
 
 # gpus (any number)
-python mnist.py
+python simple_image_classifier.py --gpus 2
 
 # dataparallel
-python mnist.py --gpus 2 --distributed_backend 'dp'
+python simple_image_classifier.py --gpus 2 --distributed_backend 'dp'
 ```
 
 ---
@@ -19,7 +19,7 @@ python mnist.py --gpus 2 --distributed_backend 'dp'
 The MNIST example above using [NVIDIA DALI](https://developer.nvidia.com/DALI).
 Requires NVIDIA DALI to be installed based on your CUDA version, see [here](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/installation.html).
 ```bash
-python mnist_dali.py
+python dali_image_classifier.py
 ```
 
 ---
@@ -27,13 +27,13 @@ python mnist_dali.py
 Generic image classifier with an arbitrary backbone (ie: a simple system)
 ```bash
 # cpu
-python image_classifier.py
+python backbone_image_classifier.py
 
 # gpus (any number)
-python image_classifier.py --gpus 2
+python backbone_image_classifier.py --gpus 2
 
 # dataparallel
-python image_classifier.py --gpus 2 --distributed_backend 'dp'
+python backbone_image_classifier.py --gpus 2 --distributed_backend 'dp'
 ```
 
 ---

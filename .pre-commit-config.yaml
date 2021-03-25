@@ -34,11 +34,6 @@ repos:
       - id: yapf
         args: [--parallel, --in-place]
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.790
-    hooks:
-      - id: mypy
-
   - repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.3'  # or any later Vulture version
     hooks:

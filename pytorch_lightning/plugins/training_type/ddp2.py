@@ -25,14 +25,26 @@ class DDP2Plugin(DDPPlugin):
         self.task_idx = self.cluster_environment.local_rank()
         # the difference to DDP is that we don't call children processes here
 
-    def reduce(self, output, *args, **kwargs):
-        if isinstance(output, Result):
-            output.dp_reduce()
+    def reduce(self, tensor, *args, **kwargs):
+        """
+        Reduces a tensor from all processes to one aggregated tensor.
+        In DDP2, the reduction here is only across local devices within the node.
 
-        elif isinstance(output, torch.Tensor):
-            output = output.mean()
+        Args:
+            tensor: the tensor to sync and reduce
+            *args: ignored for DDP2
+            **kwargs: ignored for DDP2
 
-        return output
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
+        if isinstance(tensor, Result):
+            tensor.dp_reduce()
+
+        elif isinstance(tensor, torch.Tensor):
+            tensor = tensor.mean()
+
+        return tensor
 
     @property
     def root_device(self):

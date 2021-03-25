@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, Optional, Union
 
 import torch
 
@@ -24,7 +24,7 @@ from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.utilities import DeviceType, flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 class LoggerConnector:
 
-    def __init__(self, trainer, log_gpu_memory: bool):
+    def __init__(self, trainer, log_gpu_memory: Optional[str] = None):
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self._callback_metrics = MetricsHolder()
@@ -40,8 +40,8 @@ class LoggerConnector:
         self._logged_metrics = MetricsHolder()
         self._progress_bar_metrics = MetricsHolder(to_float=True)
         self.eval_loop_results = []
-        self._cached_results = {stage: EpochResultStore(trainer, stage) for stage in RunningStage}
-        self._cached_results[None] = EpochResultStore(trainer, None)
+        self._cached_results = {stage: EpochResultStore(trainer) for stage in RunningStage}
+        self._cached_results[None] = EpochResultStore(trainer)
         self._callback_hook_validator = CallbackHookNameValidator()
 
     @property
@@ -81,16 +81,13 @@ class LoggerConnector:
         return self._cached_results.get(self.trainer._running_stage)  # type: ignore
 
     def get_metrics(self, key: str) -> Dict:
-        metrics_holder = getattr(self, f"_{key}", None)
-        model_ref = self.trainer.get_model()
-        metrics_holder.convert(
-            self.trainer._device_type == DeviceType.TPU,
-            model_ref.device if model_ref is not None else model_ref,
-        )
+        metrics_holder: MetricsHolder = getattr(self, f"_{key}")
+        model = self.trainer.lightning_module
+        metrics_holder.convert(model.device if model is not None else None)
         return metrics_holder.metrics
 
     def set_metrics(self, key: str, val: Dict) -> None:
-        metrics_holder = getattr(self, f"_{key}", None)
+        metrics_holder: MetricsHolder = getattr(self, f"_{key}")
         metrics_holder.reset(val)
 
     def reset(self) -> None:
@@ -101,9 +98,8 @@ class LoggerConnector:
             current_hook_fx_name=hook_fx_name, on_step=on_step, on_epoch=on_epoch
         )
 
-    def on_evaluation_batch_start(self, testing, batch, dataloader_idx, num_dataloaders):
-        # Todo: required argument `testing` is not used
-        model = self.trainer.get_model()
+    def on_evaluation_batch_start(self, batch, dataloader_idx, num_dataloaders):
+        model = self.trainer.lightning_module
         # set dataloader_idx only if multiple ones
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
         # track batch_size
@@ -260,10 +256,9 @@ class LoggerConnector:
         self._track_callback_metrics(deprecated_eval_results)
         self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results)
 
-    def evaluation_epoch_end(self, testing):
-        # Todo: required argument `testing` is not used
+    def evaluation_epoch_end(self):
         # reset dataloader idx
-        model_ref = self.trainer.get_model()
+        model_ref = self.trainer.lightning_module
         model_ref._current_dataloader_idx = None
 
         # setting `has_batch_loop_finished` to True
@@ -289,7 +284,7 @@ class LoggerConnector:
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
     def get_evaluate_epoch_results(self):
-        if not self.trainer.running_sanity_check:
+        if not self.trainer.sanity_checking:
             # log all the metrics as a single dict
             metrics_to_log = self.cached_results.get_epoch_log_metrics()
             if len(metrics_to_log) > 0:
@@ -297,11 +292,14 @@ class LoggerConnector:
 
         self.prepare_eval_loop_results()
 
-        # log results of test
-        if self.trainer.testing and self.trainer.is_global_zero and self.trainer.verbose_test:
+        # log results of evaluation
+        if (
+            self.trainer.state != TrainerState.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
+            and self.trainer.verbose_evaluate
+        ):
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
-                print(f'DATALOADER:{result_idx} TEST RESULTS')
+                print(f'DATALOADER:{result_idx} {self.trainer._running_stage.upper()} RESULTS')
                 pprint({
                     k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
                     for k, v in results.items()
@@ -332,7 +330,7 @@ class LoggerConnector:
                     flat['checkpoint_on'] = flat['val_loss']
                     flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
-                if self.trainer.testing:
+                if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                     self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
         else:
             # with a scalar return, auto set it to "val_loss" for callbacks
@@ -347,7 +345,7 @@ class LoggerConnector:
                 flat['early_stop_on'] = flat['val_loss']
 
             self.trainer.logger_connector.callback_metrics.update(flat)
-            if self.trainer.testing:
+            if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                 self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
     def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
@@ -365,14 +363,14 @@ class LoggerConnector:
         callback_metrics.update(log_metrics)
         callback_metrics.update(prog_bar_metrics)
         self.trainer.logger_connector.callback_metrics.update(callback_metrics)
-        if self.trainer.testing:
+        if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
             self.trainer.logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         if len(dataloader_result_metrics) > 0:
             self.eval_loop_results.append(dataloader_result_metrics)
 
     def __process_eval_epoch_end_results_and_log_legacy(self, eval_results):
-        if self.trainer.running_sanity_check:
+        if self.trainer.sanity_checking:
             return
 
         if eval_results is not None and len(eval_results) > 0:
@@ -408,7 +406,7 @@ class LoggerConnector:
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
 
-        model = self.trainer.get_model()
+        model = self.trainer.lightning_module
 
         epoch_callback_metrics = {}
 

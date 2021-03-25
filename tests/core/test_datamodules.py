@@ -19,7 +19,6 @@ from unittest.mock import PropertyMock
 
 import pytest
 import torch
-import torch.nn.functional as F
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -27,8 +26,9 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
-from tests.helpers.utils import reset_seed, set_random_master_port
+from tests.helpers.utils import reset_seed
 
 
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
@@ -108,13 +108,13 @@ def test_hooks_no_recursion_error(tmpdir):
         dm.prepare_data()
 
 
-def test_base_datamodule(tmpdir):
+def test_helper_boringdatamodule(tmpdir):
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup()
 
 
-def test_base_datamodule_with_verbose_setup(tmpdir):
+def test_helper_boringdatamodule_with_verbose_setup(tmpdir):
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup('fit')
@@ -123,55 +123,67 @@ def test_base_datamodule_with_verbose_setup(tmpdir):
 
 def test_data_hooks_called(tmpdir):
     dm = BoringDataModule()
-    assert dm.has_prepared_data is False
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert not dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
+    assert not dm.has_setup_validate
+    assert not dm.has_setup_predict
 
     dm.prepare_data()
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
+    assert not dm.has_setup_validate
+    assert not dm.has_setup_predict
 
     dm.setup()
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is True
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_test
+    assert dm.has_setup_validate
+    assert not dm.has_setup_predict
 
 
-def test_data_hooks_called_verbose(tmpdir):
+@pytest.mark.parametrize("use_kwarg", (False, True))
+def test_data_hooks_called_verbose(tmpdir, use_kwarg):
     dm = BoringDataModule()
-    assert dm.has_prepared_data is False
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert not dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
 
     dm.prepare_data()
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is False
-    assert dm.has_setup_test is False
+    assert dm.has_prepared_data
+    assert not dm.has_setup_fit
+    assert not dm.has_setup_test
+    assert not dm.has_setup_predict
 
-    dm.setup('fit')
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is False
+    dm.setup(stage='fit') if use_kwarg else dm.setup('fit')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert not dm.has_setup_validate
+    assert not dm.has_setup_test
+    assert not dm.has_setup_predict
 
-    dm.setup('test')
-    assert dm.has_prepared_data is True
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is True
+    dm.setup(stage='validate') if use_kwarg else dm.setup('validate')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_validate
+    assert not dm.has_setup_test
+    assert not dm.has_setup_predict
 
+    dm.setup(stage='test') if use_kwarg else dm.setup('test')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_validate
+    assert dm.has_setup_test
+    assert not dm.has_setup_predict
 
-def test_data_hooks_called_with_stage_kwarg(tmpdir):
-    dm = BoringDataModule()
-    dm.prepare_data()
-    assert dm.has_prepared_data is True
-
-    dm.setup(stage='fit')
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is False
-
-    dm.setup(stage='test')
-    assert dm.has_setup_fit is True
-    assert dm.has_setup_test is True
+    dm.setup(stage='predict') if use_kwarg else dm.setup('predict')
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_validate
+    assert dm.has_setup_test
+    assert dm.has_setup_predict
 
 
 def test_dm_add_argparse_args(tmpdir):
@@ -284,20 +296,6 @@ def test_dm_checkpoint_save(tmpdir):
     assert checkpoint[dm.__class__.__name__] == dm.__class__.__name__
 
 
-def test_test_loop_only(tmpdir):
-    reset_seed()
-
-    dm = BoringDataModule()
-    model = BoringModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        weights_summary=None,
-    )
-    trainer.test(model, datamodule=dm)
-
-
 def test_full_loop(tmpdir):
     reset_seed()
 
@@ -314,116 +312,24 @@ def test_full_loop(tmpdir):
     # fit model
     result = trainer.fit(model, dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert result
-
-    # test
-    result = trainer.test(datamodule=dm)
-    assert result[0]['test_acc'] > 0.6
-
-
-def test_trainer_attached_to_dm(tmpdir):
-    reset_seed()
-
-    dm = BoringDataModule()
-    model = BoringModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        weights_summary=None,
-        deterministic=True,
-    )
-
-    # fit model
-    trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert dm.trainer is not None
+    assert result
 
-    # test
-    result = trainer.test(datamodule=dm)
-    result = result[0]
+    # validate
+    result = trainer.validate(datamodule=dm)
     assert dm.trainer is not None
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_full_loop_single_gpu(tmpdir):
-    reset_seed()
-
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        weights_summary=None,
-        gpus=1,
-        deterministic=True,
-    )
-
-    # fit model
-    result = trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert result
+    assert result[0]['val_acc'] > 0.7
 
     # test
     result = trainer.test(datamodule=dm)
+    assert dm.trainer is not None
     assert result[0]['test_acc'] > 0.6
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_full_loop_dp(tmpdir):
-    set_random_master_port()
-
-    class CustomClassificationModelDP(ClassificationModel):
-
-        def _step(self, batch, batch_idx):
-            x, y = batch
-            logits = self(x)
-            return {'logits': logits, 'y': y}
-
-        def training_step(self, batch, batch_idx):
-            _, y = batch
-            out = self._step(batch, batch_idx)
-            loss = F.cross_entropy(out['logits'], y)
-            return loss
-
-        def validation_step(self, batch, batch_idx):
-            return self._step(batch, batch_idx)
-
-        def test_step(self, batch, batch_idx):
-            return self._step(batch, batch_idx)
-
-        def test_step_end(self, outputs):
-            self.log('test_acc', self.test_acc(outputs['logits'], outputs['y']))
-
-    dm = ClassifDataModule()
-    model = CustomClassificationModelDP()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        weights_summary=None,
-        accelerator='dp',
-        gpus=2,
-        deterministic=True,
-    )
-
-    # fit model
-    result = trainer.fit(model, datamodule=dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert result
-
-    # test
-    result = trainer.test(datamodule=dm)
-    assert result[0]['test_acc'] > 0.6
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 @mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
-def test_dm_transfer_batch_to_device(get_module_mock):
+def test_dm_apply_batch_transfer_handler(get_module_mock):
+    expected_device = torch.device('cuda', 0)
 
     class CustomBatch:
 
@@ -432,14 +338,30 @@ def test_dm_transfer_batch_to_device(get_module_mock):
             self.targets = data[1]
 
     class CurrentTestDM(LightningDataModule):
+        rank = 0
+        transfer_batch_to_device_hook_rank = None
+        on_before_batch_transfer_hook_rank = None
+        on_after_batch_transfer_hook_rank = None
 
-        hook_called = False
+        def on_before_batch_transfer(self, batch, dataloader_idx):
+            self.on_before_batch_transfer_hook_rank = self.rank
+            self.rank += 1
+            batch.samples += 1
+            return batch
 
-        def transfer_batch_to_device(self, data, device):
-            self.hook_called = True
-            data.samples = data.samples.to(device)
-            data.targets = data.targets.to(device)
-            return data
+        def on_after_batch_transfer(self, batch, dataloader_idx):
+            assert batch.samples.device == batch.targets.device == expected_device
+            self.on_after_batch_transfer_hook_rank = self.rank
+            self.rank += 1
+            batch.targets *= 2
+            return batch
+
+        def transfer_batch_to_device(self, batch, device):
+            self.transfer_batch_to_device_hook_rank = self.rank
+            self.rank += 1
+            batch.samples = batch.samples.to(device)
+            batch.targets = batch.targets.to(device)
+            return batch
 
     dm = CurrentTestDM()
     model = BoringModel()
@@ -452,10 +374,18 @@ def test_dm_transfer_batch_to_device(get_module_mock):
     if is_overridden('transfer_batch_to_device', dm):
         model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
-    expected = torch.device('cuda', 0)
-    assert dm.hook_called
-    assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+    model.on_before_batch_transfer = dm.on_before_batch_transfer
+    model.transfer_batch_to_device = dm.transfer_batch_to_device
+    model.on_after_batch_transfer = dm.on_after_batch_transfer
+
+    batch_gpu = trainer.accelerator.batch_to_device(batch, expected_device)
+
+    assert dm.on_before_batch_transfer_hook_rank == 0
+    assert dm.transfer_batch_to_device_hook_rank == 1
+    assert dm.on_after_batch_transfer_hook_rank == 2
+    assert batch_gpu.samples.device == batch_gpu.targets.device == expected_device
+    assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 32))
+    assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
 def test_dm_reload_dataloaders_every_epoch(tmpdir):

@@ -9,7 +9,6 @@ on:
 #      - master
 
 env:
-  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
   IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image

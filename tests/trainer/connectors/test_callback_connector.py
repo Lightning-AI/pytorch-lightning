@@ -42,13 +42,13 @@ def test_checkpoint_callbacks_are_last(tmpdir):
 
 class StatefulCallback0(Callback):
 
-    def on_save_checkpoint(self, trainer, pl_module):
+    def on_save_checkpoint(self, *args):
         return {"content0": 0}
 
 
 class StatefulCallback1(Callback):
 
-    def on_save_checkpoint(self, trainer, pl_module):
+    def on_save_checkpoint(self, *args):
         return {"content1": 1}
 
 

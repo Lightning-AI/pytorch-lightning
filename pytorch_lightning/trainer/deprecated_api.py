@@ -11,18 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 
 
 class DeprecatedDistDeviceAttributes:
 
-    _distrib_type: DistributedType
-    _device_type: DeviceType
-    _running_stage: RunningStage
     num_gpus: int
-    accelerator_connector: BackendConnector
+    accelerator_connector: AcceleratorConnector
 
     @property
     def on_cpu(self) -> bool:
@@ -130,3 +128,33 @@ class DeprecatedDistDeviceAttributes:
         )
         if val:
             self.accelerator_connector._device_type = DeviceType.GPU
+
+
+class DeprecatedTrainerAttributes:
+
+    accelerator: Accelerator
+    lightning_module: LightningModule
+    sanity_checking: bool
+
+    @property
+    def accelerator_backend(self) -> Accelerator:
+        rank_zero_warn(
+            "The `Trainer.accelerator_backend` attribute is deprecated in favor of `Trainer.accelerator`"
+            " since 1.2 and will be removed in v1.4.", DeprecationWarning
+        )
+        return self.accelerator
+
+    def get_model(self) -> LightningModule:
+        rank_zero_warn(
+            "The use of `Trainer.get_model()` is deprecated in favor of `Trainer.lightning_module`"
+            " and will be removed in v1.4.", DeprecationWarning
+        )
+        return self.lightning_module
+
+    @property
+    def running_sanity_check(self) -> bool:
+        rank_zero_warn(
+            "`Trainer.running_sanity_check` has been renamed to `Trainer.sanity_checking`"
+            " and will be removed in v1.5.", DeprecationWarning
+        )
+        return self.sanity_checking

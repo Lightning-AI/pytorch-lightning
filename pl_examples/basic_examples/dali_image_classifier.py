@@ -23,11 +23,18 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import _DALI_AVAILABLE, _TORCHVISION_AVAILABLE, cli_lightning_logo
+from pl_examples import (
+    _DALI_AVAILABLE,
+    _DATASETS_PATH,
+    _TORCHVISION_AVAILABLE,
+    _TORCHVISION_MNIST_AVAILABLE,
+    cli_lightning_logo,
+)
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
-    from torchvision.datasets.mnist import MNIST
+if _TORCHVISION_MNIST_AVAILABLE:
+    from torchvision.datasets import MNIST
 else:
     from tests.helpers.datasets import MNIST
 
@@ -168,10 +175,10 @@ class LitClassifier(pl.LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser = parent_parser.add_argument_group("LitClassifier")
         parser.add_argument('--hidden_dim', type=int, default=128)
         parser.add_argument('--learning_rate', type=float, default=0.0001)
-        return parser
+        return parent_parser
 
 
 def cli_main():
@@ -192,8 +199,8 @@ def cli_main():
     # ------------
     # data
     # ------------
-    dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST('', train=False, download=True, transform=transforms.ToTensor())
+    dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
+    mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     eii_train = ExternalMNISTInputIterator(mnist_train, args.batch_size)

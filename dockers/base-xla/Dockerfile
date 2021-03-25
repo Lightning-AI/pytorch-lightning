@@ -104,6 +104,7 @@ RUN \
     python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)" && \
     # drop TorchVision as it was installed with XLA
     python -c "fname = 'requirements/examples.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torchvision')] ; open(fname, 'w').writelines(lines)" && \
+    python ./requirements/adjust_versions.py ./requirements/extra.txt && \
     pip install --requirement ./requirements/devel.txt --no-cache-dir && \
     cd .. && \
     rm -rf pytorch-lightning && \
@@ -115,4 +116,4 @@ RUN \
     conda info && \
     pip list && \
     python -c "import sys; assert sys.version[:3] == '$PYTHON_VERSION', sys.version" && \
-    python -c "import torch; ver = '$XLA_VERSION' ; ver = dict(nightly='1.8').get(ver, ver) ; assert torch.__version__[:3] == ver, torch.__version__"
+    python -c "import torch; ver = '$XLA_VERSION' ; ver = dict(nightly='1.9').get(ver, ver) ; assert torch.__version__[:3] == ver, torch.__version__"
