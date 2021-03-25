@@ -23,10 +23,10 @@ defaults='-m coverage run --source pytorch_lightning --append -m pytest --verbos
 grep_output=$(grep --recursive --line-number --word-regexp 'tests' --regexp 'special=True' | grep '@RunIf')
 # file paths
 files=$(echo "$grep_output" | cut -f1 -d:)
-files_arr=($files)
+read -a files_arr <<< $files
 # line numbers
 linenos=$(echo "$grep_output" | cut -f2 -d:)
-linenos_arr=($linenos)
+read -a linenos_arr <<< $linenos
 
 # tests to skip - space separated
 blocklist='test_pytorch_profiler_nested_emit_nvtx'
