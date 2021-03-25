@@ -110,7 +110,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 @RunIf(special=True, min_gpus=2)
 @pytest.mark.parametrize("accelerator", ["ddp", pytest.param("horovod", marks=RunIf(horovod=True, skip_windows=True))])
 @pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 0.3, 5)])
-def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
+def test_top_k_distributed(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
 
