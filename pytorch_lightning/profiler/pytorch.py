@@ -17,7 +17,7 @@ import logging
 import os
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import nn, Tensor
@@ -126,7 +126,7 @@ class ScheduleWrapper:
         self._predict_step_reached_end = False
         # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
         self._current_action: Optional[str] = None
-        self._start_action_name: Optional[str] = None        
+        self._start_action_name: Optional[str] = None
 
     @property
     def num_step(self) -> int:
@@ -440,7 +440,7 @@ class PyTorchProfiler(BaseProfiler):
 
             if not self._has_on_trace_ready:
                 self.profiler.on_trace_ready = on_trace_ready
-            
+
             if self._schedule is not None:
                 self.profiler.step_num = self._schedule.num_step
             self.profiler.step()
@@ -450,7 +450,7 @@ class PyTorchProfiler(BaseProfiler):
             return ""
 
         self._delete_profilers()
-        
+
         if self._schedule is not None:
             self._schedule.reset()
 
