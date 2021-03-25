@@ -73,10 +73,7 @@ def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
     )
 
 
-@RunIf(min_gpus=2, fairscale=True)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, fairscale=True, special=True)
 @DDPLauncher.run("--accelerator ddp --gpus 2 --precision 32")
 def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
     plugin_parity_test(
@@ -86,10 +83,7 @@ def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
     )
 
 
-@RunIf(min_gpus=2, fairscale=True)
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
+@RunIf(min_gpus=2, fairscale=True, special=True)
 @DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
 def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
     plugin_parity_test(
