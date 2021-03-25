@@ -197,22 +197,22 @@ def plugin_parity_test(
 @pytest.mark.parametrize(
     'kwargs',
     [
-        pytest.mark.param({'gpus': 1, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=1)),
-        pytest.mark.param(
+        pytest.param({'gpus': 1, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=1)),
+        pytest.param(
             {'gpus': 1, 'precision': 16, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=1, amp_native=True)
         ),
-        pytest.mark.param({'gpus': 2, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=2)),
-        pytest.mark.param(
+        pytest.param({'gpus': 2, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=2)),
+        pytest.param(
             {'gpus': 2, 'precision': 16, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=2, amp_native=True)
         ),
-        pytest.mark.param(
+        pytest.param(
             {'gpus': 2, 'model_cls': SeedTrainLoaderMultipleOptimizersModel},
             marks=[
                 RunIf(min_gpus=2),
                 pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
             ],
         ),
-        pytest.mark.param(
+        pytest.param(
             {'gpus': 2, 'model_cls': SeedTrainLoaderManualModel},
             marks=[
                 RunIf(min_gpus=2),
@@ -230,7 +230,7 @@ def test_ddp_spawn_sharded_plugin(kwargs):
 
 
 @RunIf(min_gpus=2, fairscale=True, special=True)
-@pytest.mark.parametrize('precision', [pytest.mark.param(16, marks=RunIf(amp_native=True)), 32])
+@pytest.mark.parametrize('precision', [pytest.param(16, marks=RunIf(amp_native=True)), 32])
 def test_ddp_sharded_plugin(tmpdir, precision):
     plugin_parity_test(
         gpus=2,
