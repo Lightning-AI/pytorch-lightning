@@ -309,14 +309,14 @@ class PyTorchProfiler(BaseProfiler):
         self._schedule: Optional[ScheduleWrapper] = None
 
         if _KINETO_AVAILABLE:
-            self.__init_kineto__(profiler_kwargs)
+            self._init_kineto(profiler_kwargs)
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
             raise MisconfigurationException(
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
 
-    def __init_kineto__(self, profiler_kwargs: Any):
+    def _init_kineto(self, profiler_kwargs: Any) -> None:
         has_schedule = "schedule" in profiler_kwargs
         self._has_on_trace_ready = "on_trace_ready" in profiler_kwargs
 
@@ -425,11 +425,9 @@ class PyTorchProfiler(BaseProfiler):
                 self._schedule.pre_step(action_name)
 
             def on_trace_ready(profiler):
-                filename = self._prepare_filename(extension="")
-
                 if self.dirpath is not None:
                     if self._export_to_chrome:
-                        handler = tensorboard_trace_handler(self.dirpath, filename)
+                        handler = tensorboard_trace_handler(self.dirpath, self._prepare_filename(extension=""))
                         handler(profiler)
 
                     if self._export_to_flame_graph:
