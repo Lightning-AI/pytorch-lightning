@@ -22,6 +22,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.plugins import DDPSpawnShardedPlugin
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import set_random_master_port
 
 
 class SeedTrainLoaderModel(BoringModel):
@@ -187,33 +188,32 @@ def plugin_parity_test(
     if use_cuda:
         # Assert CUDA memory parity
         assert max_memory_custom <= max_memory_ddp, (
-            f'Custom plugin used too much memory compared to DDP,'
+            'Custom plugin used too much memory compared to DDP, '
             f'Custom Mem: {max_memory_custom}, DDP Mem: {max_memory_ddp}'
         )
 
 
-# yapf: disable - produces very bad formatting
 @RunIf(skip_windows=True, fairscale=True)
 @pytest.mark.parametrize(
     'kwargs',
     [
-        pytest.param({'gpus': 1, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=1)),
+        pytest.param(dict(gpus=1, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=1)),
         pytest.param(
-            {'gpus': 1, 'precision': 16, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=1, amp_native=True)
+            dict(gpus=1, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=1, amp_native=True)
         ),
-        pytest.param({'gpus': 2, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=2)),
+        pytest.param(dict(gpus=2, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=2)),
         pytest.param(
-            {'gpus': 2, 'precision': 16, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=2, amp_native=True)
+            dict(gpus=2, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=2, amp_native=True)
         ),
         pytest.param(
-            {'gpus': 2, 'model_cls': SeedTrainLoaderMultipleOptimizersModel},
+            dict(gpus=2, model_cls=SeedTrainLoaderMultipleOptimizersModel),
             marks=[
                 RunIf(min_gpus=2),
                 pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
             ],
         ),
         pytest.param(
-            {'gpus': 2, 'model_cls': SeedTrainLoaderManualModel},
+            dict(gpus=2, model_cls=SeedTrainLoaderManualModel),
             marks=[
                 RunIf(min_gpus=2),
                 pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
@@ -221,7 +221,6 @@ def plugin_parity_test(
         ),
     ],
 )
-# yapf: enable
 def test_ddp_spawn_sharded_plugin(kwargs):
     if kwargs['gpus'] > 1:
         # TODO: decrease speed diff since only 2 GPUs sharding 2 optimizers
@@ -232,6 +231,7 @@ def test_ddp_spawn_sharded_plugin(kwargs):
 @RunIf(min_gpus=2, fairscale=True, special=True)
 @pytest.mark.parametrize('precision', [pytest.param(16, marks=RunIf(amp_native=True)), 32])
 def test_ddp_sharded_plugin(tmpdir, precision):
+    set_random_master_port()
     plugin_parity_test(
         gpus=2,
         accelerator='ddp',
