@@ -443,7 +443,7 @@ class Accelerator(object):
     @contextlib.contextmanager
     def model_parallel_context(self) -> Generator:
         """
-        Provide hook to create modules in a parallel aware context. This is useful for when we'd like to
+        Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and
         initialization time.
 

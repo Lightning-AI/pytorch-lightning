@@ -1089,8 +1089,8 @@ class Trainer(
         # Call model parallel hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
         if self.accelerator.call_model_parallel_setup_hook:
-            self.on_model_parallel_setup(model)
             with self.accelerator.model_parallel_context():
+                self.on_model_parallel_setup(model)
                 model.on_model_parallel_setup()
             self.accelerator.call_model_parallel_setup_hook = False
 
