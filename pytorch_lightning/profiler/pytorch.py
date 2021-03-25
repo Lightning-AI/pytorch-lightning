@@ -425,7 +425,7 @@ class PyTorchProfiler(BaseProfiler):
                 self._schedule.pre_step(action_name)
 
             def on_trace_ready(profiler):
-                filename = f"{self._stage}_{action_name}_{self.local_rank}"
+                filename = self._prepare_filename(extension="")
 
                 if self.dirpath is not None:
                     if self._export_to_chrome:
@@ -450,9 +450,6 @@ class PyTorchProfiler(BaseProfiler):
             return ""
 
         self._delete_profilers()
-
-        if self._schedule is not None:
-            self._schedule.reset()
 
         if not self.function_events:
             return ""
@@ -494,6 +491,8 @@ class PyTorchProfiler(BaseProfiler):
         if self.profiler is not None:
             self.profiler.__exit__(None, None, None)
             self._cache_functions_events()
+            if self._schedule is not None:
+                self._schedule.reset()
             self.profiler = None
 
         if self._parent_profiler is not None:
