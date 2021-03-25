@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
+import contextlib
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
@@ -439,6 +440,18 @@ class Accelerator(object):
         """
         return self.training_type_plugin.results
 
+    @contextlib.contextmanager
+    def model_parallel_context(self) -> Generator:
+        """
+        Provide hook to create modules in a parallel aware context. This is useful for when we'd like to
+        shard the model instantly, which is useful for extremely large models which can save memory and
+        initialization time.
+
+        Returns: Model parallel context.
+        """
+        with self.training_type_plugin.model_parallel_context():
+            yield
+
     # todo: remove in v1.5
     def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
         """
@@ -466,3 +479,17 @@ class Accelerator(object):
             ' It will be removed in v1.5.'
         )
         self.setup_precision_plugin(plugin)
+
+    @property
+    def call_model_parallel_setup_hook(self) -> bool:
+        """
+        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
+        This is useful for when we want to shard the model once within fit.
+        Returns: True if we want to call the model parallel setup hook.
+        """
+        return self.training_type_plugin.call_model_parallel_setup_hook
+
+    @call_model_parallel_setup_hook.setter
+    def call_model_parallel_setup_hook(self, mode: bool) -> None:
+        if isinstance(mode, bool):
+            self.training_type_plugin.call_model_parallel_setup_hook = mode

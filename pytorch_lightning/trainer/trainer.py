@@ -437,6 +437,7 @@ class Trainer(
         self.accelerator.setup_environment()
         self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
+        self.call_model_parallel_hook(model)  # allow user to setup in model parallel environment
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1083,6 +1084,15 @@ class Trainer(
 
         self.setup(model, stage=state)
         model.setup(stage=state)
+
+    def call_model_parallel_hook(self, model: LightningModule) -> None:
+        # Call model parallel hook if accelerator requests. In some cases
+        # we will not call the hook; the hook has initialized the sharded model for example.
+        if self.accelerator.call_model_parallel_setup_hook:
+            self.on_model_parallel_setup(model)
+            with self.accelerator.model_parallel_context():
+                model.on_model_parallel_setup()
+            self.accelerator.call_model_parallel_setup_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state
