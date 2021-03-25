@@ -84,8 +84,8 @@ def test_horovod_cpu(tmpdir):
         accelerator='horovod',
         deterministic=True,
     )
-    _run_horovod(trainer_options)
     _run_horovod_clip_grad_by_value(trainer_options)
+    _run_horovod(trainer_options)
 
 
 @RunIf(skip_windows=True)
@@ -101,8 +101,8 @@ def test_horovod_cpu_implicit(tmpdir):
         limit_val_batches=0.2,
         deterministic=True,
     )
-    _run_horovod(trainer_options)
     _run_horovod_clip_grad_by_value(trainer_options)
+    _run_horovod(trainer_options)
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
@@ -120,8 +120,8 @@ def test_horovod_multi_gpu(tmpdir):
         deterministic=True,
         accelerator='horovod',
     )
-    _run_horovod(trainer_options, on_gpu=True)
     _run_horovod_clip_grad_by_value(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options, on_gpu=True)
 
 
 # https://discuss.pytorch.org/t/torch-cuda-amp-vs-nvidia-apex/74994
@@ -144,8 +144,8 @@ def test_horovod_apex(tmpdir):
         amp_backend='apex',
         precision=16,
     )
-    _run_horovod(trainer_options, on_gpu=True)
     _run_horovod_clip_grad_by_value(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options, on_gpu=True)
 
 
 @RunIf(min_gpus=2, skip_windows=True, amp_native=True, horovod_nccl=True)
@@ -165,8 +165,8 @@ def test_horovod_amp(tmpdir):
         amp_backend='native',
         precision=16,
     )
-    _run_horovod(trainer_options, on_gpu=True)
     _run_horovod_clip_grad_by_value(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options, on_gpu=True)
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
@@ -184,8 +184,8 @@ def test_horovod_gather(tmpdir):
         deterministic=True,
         accelerator='horovod',
     )
-    _run_horovod(trainer_options, on_gpu=True)
     _run_horovod_clip_grad_by_value(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options, on_gpu=True)
 
 
 @RunIf(min_gpus=1, skip_windows=True, horovod_nccl=True)
