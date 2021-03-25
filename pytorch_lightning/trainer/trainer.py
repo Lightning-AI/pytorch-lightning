@@ -1088,7 +1088,7 @@ class Trainer(
     def call_model_parallel_hook(self, model: LightningModule) -> None:
         # Call model parallel hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
-        if self.accelerator.call_model_parallel_setup_hook:
+        if self.accelerator.call_model_parallel_setup_hook and self.accelerator.setup_optimizers_in_pre_dispatch:
             with self.accelerator.model_parallel_context():
                 self.on_model_parallel_setup(model)
                 model.on_model_parallel_setup()

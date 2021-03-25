@@ -493,3 +493,13 @@ class Accelerator(object):
     def call_model_parallel_setup_hook(self, mode: bool) -> None:
         if isinstance(mode, bool):
             self.training_type_plugin.call_model_parallel_setup_hook = mode
+
+    @property
+    def setup_optimizers_in_pre_dispatch(self) -> bool:
+        """
+        Override to delay setting optimizers and schedulers till after dispatch.
+        This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
+        However this may break certain precision plugins such as APEX which require optimizers to be set.
+        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+        """
+        return self.training_type_plugin.setup_optimizers_in_pre_dispatch
