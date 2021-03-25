@@ -192,45 +192,28 @@ def plugin_parity_test(
         )
 
 
+# yapf: disable - produces very bad formatting
 @RunIf(skip_windows=True, fairscale=True)
 @pytest.mark.parametrize(
     'kwargs',
     [
-        pytest.mark.param({
-            'gpus': 1,
-            'model_cls': SeedTrainLoaderModel,
-        }, marks=RunIf(min_gpus=1)),
-        pytest.mark.param({
-            'gpus': 1,
-            'precision': 16,
-            'model_cls': SeedTrainLoaderModel,
-        },
-                          marks=RunIf(min_gpus=1, amp_native=True)),
-        pytest.mark.param({
-            'gpus': 2,
-            'model_cls': SeedTrainLoaderModel,
-        }, marks=RunIf(min_gpus=2)),
-        pytest.mark.param({
-            'gpus': 2,
-            'precision': 16,
-            'model_cls': SeedTrainLoaderModel,
-        },
-                          marks=RunIf(min_gpus=2, amp_native=True)),
+        pytest.mark.param({'gpus': 1, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=1)),
         pytest.mark.param(
-            {
-                'gpus': 2,
-                'model_cls': SeedTrainLoaderMultipleOptimizersModel,
-            },
+            {'gpus': 1, 'precision': 16, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=1, amp_native=True)
+        ),
+        pytest.mark.param({'gpus': 2, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=2)),
+        pytest.mark.param(
+            {'gpus': 2, 'precision': 16, 'model_cls': SeedTrainLoaderModel}, marks=RunIf(min_gpus=2, amp_native=True)
+        ),
+        pytest.mark.param(
+            {'gpus': 2, 'model_cls': SeedTrainLoaderMultipleOptimizersModel},
             marks=[
                 RunIf(min_gpus=2),
                 pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
             ],
         ),
         pytest.mark.param(
-            {
-                'gpus': 2,
-                'model_cls': SeedTrainLoaderManualModel,
-            },
+            {'gpus': 2, 'model_cls': SeedTrainLoaderManualModel},
             marks=[
                 RunIf(min_gpus=2),
                 pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
@@ -238,6 +221,7 @@ def plugin_parity_test(
         ),
     ],
 )
+# yapf: enable
 def test_ddp_spawn_sharded_plugin(kwargs):
     if kwargs['gpus'] > 1:
         # TODO: decrease speed diff since only 2 GPUs sharding 2 optimizers
