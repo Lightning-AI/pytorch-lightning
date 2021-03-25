@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional
+import contextlib
+from typing import Generator, List, Optional
 
 import torch
 
@@ -22,7 +23,7 @@ from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import auto_wrap, enable_wrap, wrap
+    from fairscale.nn import auto_wrap, default_auto_wrap_policy, enable_wrap, wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     from pytorch_lightning.overrides.fairscale import LightningFullyShardedModule, unwrap_lightning_module_fully_sharded
@@ -123,15 +124,16 @@ class FullyShardedPlugin(DDPPlugin):
             self._process_group = torch.distributed.new_group()
         return self._process_group
 
-    def configure_ddp(self):
+    @contextlib.contextmanager
+    def model_parallel_context(self) -> Generator:
         precision = self.lightning_module.trainer.precision
 
-        # set the device before instantiate the wrapper
-        if self.root_device.type == "cuda":
-            torch.cuda.set_device(self.root_device)
+        def wrap_policy(*args, **kwargs):
+            return default_auto_wrap_policy(*args, **kwargs, min_num_params=self.min_num_params)
 
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
+            auto_wrap_policy=wrap_policy,
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
@@ -142,10 +144,15 @@ class FullyShardedPlugin(DDPPlugin):
             compute_dtype=self.compute_dtype,
             bucket_cap_mb=self.bucket_cap_mb,
         ):
-            # Allow user to manually wrap the lightning modules, and any internal modules
-            # todo: this should somehow be incorporated as a general hook.
-            # currently this also means you have to use fully sharded to load the model as well.
-            self.lightning_module.trainer.call_hook("on_distributed_model_setup")
+            yield
+
+    def configure_ddp(self):
+
+        # set the device before instantiate the wrapper
+        if self.root_device.type == "cuda":
+            torch.cuda.set_device(self.root_device)
+
+        with self.model_parallel_context():
             if self.automatic_module_wrap:
                 self.model = auto_wrap(LightningFullyShardedModule(self.model))
                 if not isinstance(self.model, FullyShardedDataParallel):

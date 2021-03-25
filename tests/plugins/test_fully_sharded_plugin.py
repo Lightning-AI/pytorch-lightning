@@ -12,7 +12,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import auto_wrap, FullyShardedDataParallel
+    from fairscale.nn import auto_wrap, default_auto_wrap_policy, FullyShardedDataParallel
 
 
 @pytest.mark.skipif(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE, reason="Fairscale is not available")
@@ -101,9 +101,13 @@ def test_fully_sharded_plugin_checkpoint_manual_autowrap(automatic_module_wrap, 
 
     class TestModel(BoringModel):
 
-        def on_distributed_model_setup(self) -> None:
+        def on_model_parallel_setup(self) -> None:
             if not automatic_module_wrap:
-                self.layer = auto_wrap(self.layer, min_num_params=1)
+
+                def wrap_policy(*args, **kwargs):
+                    return default_auto_wrap_policy(*args, **kwargs, min_num_params=1)
+
+                self.layer = auto_wrap(self.layer, auto_wrap_policy=wrap_policy)
 
         def on_train_start(self) -> None:
             assert isinstance(self.layer, FullyShardedDataParallel)
