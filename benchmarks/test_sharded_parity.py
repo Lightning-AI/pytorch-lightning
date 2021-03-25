@@ -24,99 +24,9 @@ from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_correctness_one_gpu():
-    plugin_parity_test(
-        gpus=1,
-        model_cls=SeedTrainLoaderModel,
-    )
-
-
-@RunIf(min_gpus=1, skip_windows=True, fairscale=True, amp_native=True)
-def test_ddp_sharded_plugin_correctness_amp_one_gpu():
-    plugin_parity_test(
-        gpus=1,
-        precision=16,
-        model_cls=SeedTrainLoaderModel,
-    )
-
-
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_correctness_multi_gpu():
-    plugin_parity_test(
-        gpus=2,
-        model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
-
-
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True, amp_native=True)
-def test_ddp_sharded_plugin_correctness_amp_multi_gpu():
-    plugin_parity_test(
-        gpus=2,
-        precision=16,
-        model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
-
-
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True, amp_native=True)
-def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
-    plugin_parity_test(
-        gpus=2,
-        precision=16,
-        model_cls=SeedTrainLoaderModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
-
-
-@RunIf(min_gpus=2, fairscale=True, special=True)
-def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir):
-    plugin_parity_test(
-        gpus=2,
-        precision=16,
-        model_cls=SeedTrainLoaderModel,
-    )
-
-
-@RunIf(min_gpus=2, fairscale=True, special=True)
-def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir):
-    plugin_parity_test(
-        gpus=2,
-        precision=16,
-        model_cls=SeedTrainLoaderModel,
-    )
-
-
-@pytest.mark.skip(reason="Current issue with multiple optimizers and FairScale.")
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim():
-    """
-        Ensures same results using multiple optimizers across multiple GPUs
-    """
-    plugin_parity_test(
-        gpus=2,
-        model_cls=SeedTrainLoaderMultipleOptimizersModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
-
-
-@pytest.mark.skip(reason="Current issue with multiple optimizers and FairScale.")
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
-def test_ddp_sharded_plugin_correctness_multi_gpu_multi_optim_manual(tmpdir):
-    """
-        Ensures using multiple optimizers across multiple GPUs with manual optimization
-    """
-    plugin_parity_test(
-        gpus=2,
-        model_cls=SeedTrainLoaderManualModel,
-        max_percent_speed_diff=0.25,  # todo: Increase speed diff since only 2 GPUs sharding 2 optimizers
-    )
-
-
 class SeedTrainLoaderModel(BoringModel):
     """
-        Overrides training loader to ensure we enforce the same seed for all DDP processes.
+    Overrides training loader to ensure we enforce the same seed for all DDP processes.
     """
 
     def train_dataloader(self):
@@ -166,7 +76,7 @@ class SeedTrainLoaderMultipleOptimizersModel(SeedTrainLoaderModel):
     def training_step(self, batch, batch_idx, optimizer_idx):
         output = self.layer(batch)
         loss = self.loss(batch, output)
-        return {"loss": loss}
+        return {'loss': loss}
 
     def training_epoch_end(self, outputs) -> None:
         # outputs should be an array with an entry per optimizer
@@ -212,6 +122,7 @@ def plugin_parity_test(
     model_cls: Type[SeedTrainLoaderModel],
     seed: int = 42,
     gpus: int = 0,
+    accelerator: str = 'ddp_spawn',
     precision: int = 32,
     max_percent_speed_diff: float = 0.1,
 ):
@@ -223,6 +134,7 @@ def plugin_parity_test(
         model_cls: Model class to use for test.
         seed: Seed for generators. Note that this does not handle the seed for data-loading on multi-process.
         gpus: Number of GPUS to enable.
+        accelerator: Accelerator to use.
         precision: Whether to use AMP or normal FP32 training.
         max_percent_speed_diff: The maximum speed difference compared to normal DDP training.
         This is more a safety net for variability in CI which can vary in speed, not for benchmarking.
@@ -239,7 +151,7 @@ def plugin_parity_test(
         max_epochs=1,
         gpus=gpus,
         precision=precision,
-        accelerator='ddp_spawn',
+        accelerator=accelerator,
     )
 
     max_memory_ddp, ddp_time = record_ddp_fit_model_stats(trainer=trainer, model=ddp_model, use_cuda=use_cuda)
@@ -268,11 +180,77 @@ def plugin_parity_test(
     # Assert speed parity by ensuring percentage difference between custom/ddp is below threshold
     percent_diff = (custom_model_time - ddp_time) / custom_model_time
 
-    assert percent_diff <= max_percent_speed_diff, \
-        f'Custom DDP plugin was too slow compared to DDP, Custom Plugin Time: {custom_model_time}, DDP Time: {ddp_time}'
+    assert (
+        percent_diff <= max_percent_speed_diff
+    ), f'Custom DDP plugin was too slow compared to DDP, Custom Plugin Time: {custom_model_time}, DDP Time: {ddp_time}'
 
     if use_cuda:
         # Assert CUDA memory parity
-        assert max_memory_custom <= max_memory_ddp, \
-            f'Custom plugin used too much memory compared to DDP,' \
+        assert max_memory_custom <= max_memory_ddp, (
+            f'Custom plugin used too much memory compared to DDP,'
             f'Custom Mem: {max_memory_custom}, DDP Mem: {max_memory_ddp}'
+        )
+
+
+@RunIf(skip_windows=True, fairscale=True)
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        pytest.mark.param({
+            'gpus': 1,
+            'model_cls': SeedTrainLoaderModel,
+        }, marks=RunIf(min_gpus=1)),
+        pytest.mark.param({
+            'gpus': 1,
+            'precision': 16,
+            'model_cls': SeedTrainLoaderModel,
+        },
+                          marks=RunIf(min_gpus=1, amp_native=True)),
+        pytest.mark.param({
+            'gpus': 2,
+            'model_cls': SeedTrainLoaderModel,
+        }, marks=RunIf(min_gpus=2)),
+        pytest.mark.param({
+            'gpus': 2,
+            'precision': 16,
+            'model_cls': SeedTrainLoaderModel,
+        },
+                          marks=RunIf(min_gpus=2, amp_native=True)),
+        pytest.mark.param(
+            {
+                'gpus': 2,
+                'model_cls': SeedTrainLoaderMultipleOptimizersModel,
+            },
+            marks=[
+                RunIf(min_gpus=2),
+                pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
+            ],
+        ),
+        pytest.mark.param(
+            {
+                'gpus': 2,
+                'model_cls': SeedTrainLoaderManualModel,
+            },
+            marks=[
+                RunIf(min_gpus=2),
+                pytest.mark.skip(reason='TODO: Current issue with multiple optimizers and FairScale.'),
+            ],
+        ),
+    ],
+)
+def test_ddp_spawn_sharded_plugin(kwargs):
+    if kwargs['gpus'] > 1:
+        # TODO: decrease speed diff since only 2 GPUs sharding 2 optimizers
+        kwargs['max_percent_speed_diff'] = 0.25
+    plugin_parity_test(**kwargs)
+
+
+@RunIf(min_gpus=2, fairscale=True, special=True)
+@pytest.mark.parametrize('precision', [pytest.mark.param(16, marks=RunIf(amp_native=True)), 32])
+def test_ddp_sharded_plugin(tmpdir, precision):
+    plugin_parity_test(
+        gpus=2,
+        accelerator='ddp',
+        precision=precision,
+        model_cls=SeedTrainLoaderModel,
+    )
