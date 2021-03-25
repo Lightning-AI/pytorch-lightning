@@ -60,8 +60,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     ]
     if on_gpu:
         cmdline += ['--on-gpu']
-    exit_code = subprocess.call(' '.join(cmdline), shell=True, env=os.environ.copy())
-    assert exit_code == 0
+    subprocess.check_call(' '.join(cmdline), shell=True, env=os.environ.copy())
 
 
 def _run_horovod_clip_grad_by_value(trainer_options, on_gpu=False):
@@ -186,6 +185,7 @@ def test_horovod_gather(tmpdir):
         accelerator='horovod',
     )
     _run_horovod(trainer_options, on_gpu=True)
+    _run_horovod_clip_grad_by_value(trainer_options, on_gpu=True)
 
 
 @RunIf(min_gpus=1, skip_windows=True, horovod_nccl=True)
