@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import time
 from typing import Type
 
@@ -43,7 +42,6 @@ def test_ddp_sharded_plugin_correctness_amp_one_gpu():
     )
 
 
-@pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")
 @RunIf(min_gpus=2, skip_windows=True, fairscale=True)
 def test_ddp_sharded_plugin_correctness_multi_gpu():
     plugin_parity_test(
