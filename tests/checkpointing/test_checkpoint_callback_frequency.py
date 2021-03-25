@@ -17,7 +17,8 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import callbacks, seed_everything, Trainer
+from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -93,7 +94,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 
     model = TestModel()
     trainer = Trainer(
-        callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss', save_top_k=k)],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='my_loss', save_top_k=k)],
         default_root_dir=tmpdir,
         max_epochs=epochs,
         weights_summary=None,
@@ -107,8 +108,9 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 
 @mock.patch('torch.save')
 @RunIf(special=True, min_gpus=2)
+@pytest.mark.parametrize("accelerator", ["ddp", pytest.param("horovod", marks=RunIf(horovod=True, skip_windows=True))])
 @pytest.mark.parametrize(['k', 'epochs', 'val_check_interval', 'expected'], [(1, 1, 1.0, 1), (2, 2, 0.3, 5)])
-def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
+def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
 
@@ -117,16 +119,16 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
             self.log('my_loss', batch_idx * (1 + local_rank), on_epoch=True)
             return super().training_step(batch, batch_idx)
 
-        def training_epoch_end(self, outputs) -> None:
+        def training_epoch_end(self, outputs):
             data = str(self.global_rank)
-            obj = [[data], (data, ), set(data)]
+            obj = [[data], (data, ), {data}]
             out = self.trainer.training_type_plugin.broadcast(obj)
-            assert obj == [[str(self.global_rank)], (str(self.global_rank), ), set(str(self.global_rank))]
-            assert out == [['0'], ('0', ), set('0')]
+            assert obj == [[str(self.global_rank)], (str(self.global_rank), ), {str(self.global_rank)}]
+            assert out == [['0'], ('0', ), {'0'}]
 
     model = TestModel()
     trainer = Trainer(
-        callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss_step', save_top_k=k, mode="max")],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor='my_loss_step', save_top_k=k, mode="max")],
         default_root_dir=tmpdir,
         max_epochs=epochs,
         weights_summary=None,
