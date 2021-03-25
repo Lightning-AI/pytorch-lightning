@@ -1077,11 +1077,9 @@ class Trainer(
         model.setup(stage=state)
 
     def call_model_parallel_hook(self, model: LightningModule) -> None:
-        if not hasattr(self.lightning_module, 'is_model_parallel_setup'):
-            self.on_model_parallel_setup(model)
-            with self.accelerator.model_parallel_context():
-                model.on_model_parallel_setup()
-            self.lightning_module.is_model_parallel_setup = True
+        self.on_model_parallel_setup(model)
+        with self.accelerator.model_parallel_context():
+            model.on_model_parallel_setup()
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state
