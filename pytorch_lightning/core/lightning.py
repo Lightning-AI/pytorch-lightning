@@ -706,10 +706,13 @@ class LightningModule(
         .. code-block:: python
 
             # pseudocode of order
-            out = validation_step()
-            if defined('validation_step_end'):
-                out = validation_step_end(out)
-            out = validation_epoch_end(out)
+            val_outs = []
+            for val_batch in val_data:
+                out = validation_step(val_batch)
+                if defined('validation_step_end'):
+                    out = validation_step_end(out)
+                val_outs.append(out)
+            val_outs = validation_epoch_end(val_outs)
 
 
         .. code-block:: python

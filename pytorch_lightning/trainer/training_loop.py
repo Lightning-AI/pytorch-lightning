@@ -189,7 +189,7 @@ class TrainLoop:
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
 
         # changing gradient according accumulation_scheduler
-        self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.lightning_module)
+        self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
         self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
@@ -555,7 +555,7 @@ class TrainLoop:
             self.increment_accumulated_grad_global_step()
 
         # epoch end hook
-        self.run_on_epoch_end_hook(epoch_output)
+        self.on_train_epoch_end(epoch_output)
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
@@ -798,7 +798,7 @@ class TrainLoop:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
-    def run_on_epoch_end_hook(self, epoch_output):
+    def on_train_epoch_end(self, epoch_output):
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 

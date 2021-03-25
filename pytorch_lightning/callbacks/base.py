@@ -102,11 +102,11 @@ class Callback(abc.ABC):
         pass
 
     def on_epoch_start(self, trainer, pl_module: LightningModule) -> None:
-        """Called when the epoch begins."""
+        """Called when either of train/val/test epoch begins."""
         pass
 
     def on_epoch_end(self, trainer, pl_module: LightningModule) -> None:
-        """Called when the epoch ends."""
+        """Called when either of train/val/test epoch ends."""
         pass
 
     def on_batch_start(self, trainer, pl_module: LightningModule) -> None:
