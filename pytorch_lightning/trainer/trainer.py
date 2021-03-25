@@ -1083,6 +1083,7 @@ class Trainer(
             self.on_model_parallel_setup(model)
             with self.accelerator.model_parallel_context():
                 model.on_model_parallel_setup()
+            self.accelerator.call_model_parallel_setup_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state

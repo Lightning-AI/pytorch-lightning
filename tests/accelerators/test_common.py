@@ -109,3 +109,30 @@ def test_model_parallel_setup_false(tmpdir):
     trainer.fit(model)
 
     assert not model.on_model_parallel_setup_called
+
+
+def test_model_parallel_setup_called_once(tmpdir):
+    """Ensure ``on_model_parallel_setup`` is only called once"""
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.on_model_parallel_setup_called = False
+
+        def on_model_parallel_setup(self):
+            self.on_model_parallel_setup_called = True
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+    )
+    trainer.fit(model)
+
+    assert model.on_model_parallel_setup_called
+    model.on_model_parallel_setup_called = False
+
+    assert not model.on_model_parallel_setup_called

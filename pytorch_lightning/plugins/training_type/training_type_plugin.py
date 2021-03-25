@@ -217,5 +217,4 @@ class TrainingTypePlugin(Plugin, ABC):
 
     @call_model_parallel_setup_hook.setter
     def call_model_parallel_setup_hook(self, mode: bool) -> bool:
-        if isinstance(mode, bool):
-            self._call_model_parallel_setup_hook = mode
+        self._call_model_parallel_setup_hook = mode

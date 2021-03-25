@@ -454,3 +454,8 @@ class Accelerator(object):
         Returns: True if we want to call the model parallel setup hook.
         """
         return self.training_type_plugin.call_model_parallel_setup_hook
+
+    @call_model_parallel_setup_hook.setter
+    def call_model_parallel_setup_hook(self, mode: bool) -> bool:
+        if isinstance(mode, bool):
+            self.training_type_plugin.call_model_parallel_setup_hook = mode
