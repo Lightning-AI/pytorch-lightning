@@ -20,7 +20,6 @@ import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.plugins import DDPSpawnShardedPlugin
-from tests.accelerators import DDPLauncher
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -72,21 +71,19 @@ def test_ddp_string_sharded_plugin_correctness_amp_multi_gpu():
 
 
 @RunIf(min_gpus=2, fairscale=True, special=True)
-@DDPLauncher.run("--accelerator ddp --gpus 2 --precision 32")
-def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir, args=None):
+def test_ddp_sharded_plugin_correctness_multi_gpu_ddp(tmpdir):
     plugin_parity_test(
-        gpus=args.gpus,
-        precision=args.precision,
+        gpus=2,
+        precision=16,
         model_cls=SeedTrainLoaderModel,
     )
 
 
 @RunIf(min_gpus=2, fairscale=True, special=True)
-@DDPLauncher.run("--accelerator ddp --gpus 2  --precision 16")
-def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir, args=None):
+def test_ddp_sharded_plugin_correctness_amp_multi_gpu_ddp(tmpdir):
     plugin_parity_test(
-        gpus=args.gpus,
-        precision=args.precision,
+        gpus=2,
+        precision=16,
         model_cls=SeedTrainLoaderModel,
     )
 
