@@ -46,6 +46,7 @@ TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_
 
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
+    trainer_options = deepcopy(trainer_options)
     num_processes = trainer_options.get('gpus', 2)
     # for Horovod, we interpret `gpus` to be set per worker
     trainer_options.update(gpus=1 if on_gpu else None)
@@ -78,7 +79,7 @@ def test_horovod_cpu(tmpdir):
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         accelerator='horovod',
@@ -96,7 +97,7 @@ def test_horovod_cpu_implicit(tmpdir):
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         deterministic=True,
@@ -113,7 +114,7 @@ def test_horovod_multi_gpu(tmpdir):
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
@@ -135,7 +136,7 @@ def test_horovod_apex(tmpdir):
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
@@ -156,7 +157,7 @@ def test_horovod_amp(tmpdir):
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
@@ -177,7 +178,7 @@ def test_horovod_gather(tmpdir):
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=2,
@@ -206,7 +207,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
     trainer_options = dict(
         default_root_dir=str(tmpdir),
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=1,
@@ -224,7 +225,7 @@ def test_horovod_multi_optimizer(tmpdir):
     trainer = Trainer(
         default_root_dir=str(tmpdir),
         progress_bar_refresh_rate=0,
-        max_epochs=1,
+        max_epochs=2,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         deterministic=True,
@@ -287,7 +288,7 @@ def test_result_reduce_horovod(tmpdir):
             default_root_dir=tmpdir,
             limit_train_batches=2,
             limit_val_batches=2,
-            max_epochs=1,
+            max_epochs=2,
             log_every_n_steps=1,
             weights_summary=None,
             logger=False
@@ -373,7 +374,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
         # fit model
         trainer = Trainer(
             default_root_dir=tmpdir,
-            max_epochs=1,
+            max_epochs=2,
             limit_val_batches=0.5,
             limit_train_batches=0.2,
             accelerator='horovod'
