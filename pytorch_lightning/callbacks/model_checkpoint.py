@@ -387,7 +387,11 @@ class ModelCheckpoint(Callback):
         self.kth_value, self.mode = mode_dict[mode]
 
     def __init_triggers(
-        self, every_n_train_steps: Optional[int], every_n_val_epochs: Optional[int], period: Optional[int], trigger_on_train_end: bool,
+        self,
+        every_n_train_steps: Optional[int],
+        every_n_val_epochs: Optional[int],
+        period: Optional[int],
+        trigger_on_train_end: bool,
     ) -> None:
 
         # Default to running once after each validation epoch if neither

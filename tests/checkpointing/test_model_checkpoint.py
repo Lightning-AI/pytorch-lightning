@@ -623,7 +623,7 @@ def test_model_checkpoint_period(tmpdir, period: int, trigger_on_train_end: bool
         else []
     )
     if trigger_on_train_end and (period == 0 or epochs % period != 0):
-        final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs-1)
+        final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs - 1)
         expected.append(final_epoch_ckpt)
     assert set(os.listdir(tmpdir)) == set(expected)
 
@@ -658,7 +658,7 @@ def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs, trigger
     )
 
     if trigger_on_train_end and (every_n_val_epochs == 0 or epochs % every_n_val_epochs != 0):
-        final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs-1)
+        final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs - 1)
         expected.append(final_epoch_ckpt)
     assert set(os.listdir(tmpdir)) == set(expected)
 
@@ -693,8 +693,8 @@ def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epoc
         if every_n_val_epochs > 0
         else []
     )
-    if trigger_on_train_end and (every_n_val_epochs  == 0 or epochs % every_n_val_epochs != 0):
-        final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs-1)
+    if trigger_on_train_end and (every_n_val_epochs == 0 or epochs % every_n_val_epochs != 0):
+        final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs - 1)
         expected.append(final_epoch_ckpt)
     assert set(os.listdir(tmpdir)) == set(expected)
 
@@ -841,9 +841,15 @@ def test_default_checkpoint_behavior(tmpdir):
 @pytest.mark.parametrize('save_last', [True, False])
 @pytest.mark.parametrize('verbose', [True, False])
 @pytest.mark.parametrize('trigger_on_train_end', [False, True])
-
 def test_model_checkpoint_save_last_warning(
-    tmpdir, caplog, max_epochs: int, every_n_val_epochs: int, should_validate: bool, save_last: bool, verbose: bool, trigger_on_train_end: bool,
+    tmpdir,
+    caplog,
+    max_epochs: int,
+    every_n_val_epochs: int,
+    should_validate: bool,
+    save_last: bool,
+    verbose: bool,
+    trigger_on_train_end: bool,
 ):
     """Tests 'Saving last checkpoint...' log"""
     model = LogInTwoMethods()
