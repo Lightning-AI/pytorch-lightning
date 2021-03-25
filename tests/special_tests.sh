@@ -18,8 +18,8 @@ export PL_RUNNING_SPECIAL_TESTS=1
 # python arguments
 defaults="-m coverage run --source pytorch_lightning --append -m pytest --verbose --capture=no"
 
-# find tests marked as special=True
-grep_output=$(grep --recursive --line-number --word-regexp 'tests' --regexp 'special=True')
+# find tests marked as `@RunIf(special=True)`
+grep_output=$(grep --recursive --line-number --word-regexp 'tests' --regexp 'special=True' | grep "@RunIf")
 # file paths
 files=$(echo "$grep_output" | cut -f1 -d:)
 files_arr=($files)
@@ -34,7 +34,7 @@ for i in "${!files_arr[@]}"; do
   file=${files_arr[$i]}
   lineno=${linenos_arr[$i]}
 
-  # get code from "special=True" line to EOF
+  # get code from `@RunIf(special=True)` line to EOF
   test_code=$(tail -n +"$lineno" "$file")
 
   # read line by line
