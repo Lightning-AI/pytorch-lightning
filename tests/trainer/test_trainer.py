@@ -978,7 +978,7 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
     """
     tutils.reset_seed()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     grad_clip_val = 0.0001
     trainer = Trainer(
         max_steps=10,
