@@ -148,28 +148,3 @@ def test_model_parallel_setup_called_once(tmpdir):
     model.on_model_parallel_setup_called = False
 
     assert not model.on_model_parallel_setup_called
-
-
-def test_model_parallel_setup_when_setup_optimizers_pre_dispatch_false(tmpdir):
-    """
-    Ensure ``on_model_parallel_setup`` is not called,
-    when ``setup_optimizers_in_pre_dispatch`` set False.
-    """
-
-    class CustomPlugin(SingleDevicePlugin):
-
-        @property
-        def setup_optimizers_in_pre_dispatch(self) -> bool:
-            return False
-
-    model = DummyModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-        plugins=CustomPlugin(device=torch.device("cpu"))
-    )
-    trainer.fit(model)
-
-    assert not model.on_model_parallel_setup_called
