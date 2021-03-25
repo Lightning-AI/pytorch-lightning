@@ -39,13 +39,8 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def on_tpu(self) -> bool:
         return True
 
-    def connect(self, model: torch.nn.Module) -> torch.nn.Module:
-        self._model = model
-        self.model_to_device()
-        return self._model
-
     def model_to_device(self) -> None:
-        self._model.to(self.root_device)
+        self.model.to(self.root_device)
 
     def pre_dispatch(self) -> None:
         if isinstance(self.device, int):

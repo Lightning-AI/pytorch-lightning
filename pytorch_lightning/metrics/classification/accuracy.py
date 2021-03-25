@@ -15,12 +15,12 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import Accuracy as _Accuracy
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class Accuracy(_Accuracy):
 
-    @deprecated(target=_Accuracy, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_Accuracy)
     def __init__(
         self,
         threshold: float = 0.5,
