@@ -49,9 +49,9 @@ def _run_horovod(trainer_options, on_gpu=False):
     # for Horovod, we interpret `gpus` to be set per worker
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
-    # todo: Find why coverage breaks CI.
-    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''     # noqa E265
-    # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,   # noqa E265
+    # TODO: find why coverage breaks CI
+    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
+    # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,
     cmdline = [
         'horovodrun', '-np',
         str(num_processes), sys.executable, TEST_SCRIPT, '--trainer-options',
@@ -235,7 +235,7 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
 
 
-@pytest.mark.skipif(reason="CI agent.jobstatus=Succeeded: Permission denied")
+@pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(skip_windows=True, horovod=True)
 def test_result_reduce_horovod(tmpdir):
     """Make sure result logging works with Horovod.
@@ -285,7 +285,7 @@ def test_result_reduce_horovod(tmpdir):
     horovod.run(hvd_test_fn, np=2)
 
 
-@pytest.mark.skipif(reason="CI agent.jobstatus=Succeeded: Permission denied")
+@pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(skip_windows=True, horovod=True, num_gpus=2)
 def test_accuracy_metric_horovod():
     num_batches = 10
