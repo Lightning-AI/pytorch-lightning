@@ -15,12 +15,12 @@ from typing import Any, Optional
 
 from torchmetrics import PrecisionRecallCurve as _PrecisionRecallCurve
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class PrecisionRecallCurve(_PrecisionRecallCurve):
 
-    @deprecated(target=_PrecisionRecallCurve, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_PrecisionRecallCurve)
     def __init__(
         self,
         num_classes: Optional[int] = None,

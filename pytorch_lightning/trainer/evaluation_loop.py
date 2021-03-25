@@ -346,8 +346,7 @@ class EvaluationLoop(object):
                     model_hook_fx(outputs)
                 else:
                     self.warning_cache.warn(
-                        f"`ModelHooks.{hook_name}` signature has changed in v1.3."
-                        " `outputs` parameter has been added."
+                        f"`ModelHooks.{hook_name}` signature has changed in v1.3. `outputs` parameter has been added."
                         " Support for the old signature will be removed in v1.5", DeprecationWarning
                     )
                     model_hook_fx()
