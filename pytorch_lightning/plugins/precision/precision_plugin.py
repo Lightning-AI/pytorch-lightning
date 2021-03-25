@@ -116,8 +116,8 @@ class PrecisionPlugin(Plugin):
         if clip_val is None:
             return
 
-        grad_clip_val = float(clip_val)
-        if grad_clip_val <= 0:
+        clip_val = float(clip_val)
+        if clip_val <= 0:
             return
 
         clip_grad_func = self.clip_grad_funcs[gradient_clip_algorithm]
