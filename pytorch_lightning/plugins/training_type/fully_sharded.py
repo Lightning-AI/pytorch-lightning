@@ -25,10 +25,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import auto_wrap, enable_wrap, wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
-    from pytorch_lightning.overrides.fairscale import (
-        LightningFullyShardedModule,
-        unwrap_lightning_module_fully_sharded,
-    )
+    from pytorch_lightning.overrides.fairscale import LightningFullyShardedModule, unwrap_lightning_module_fully_sharded
 
 
 class FullyShardedPlugin(DDPPlugin):
@@ -191,5 +188,5 @@ class FullyShardedPlugin(DDPPlugin):
         return state_dict
 
     @property
-    def setup_optimizers_after_dispatch(self) -> bool:
+    def setup_optimizers_in_pre_dispatch(self) -> bool:
         return True
