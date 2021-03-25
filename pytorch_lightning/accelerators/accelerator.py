@@ -452,20 +452,6 @@ class Accelerator(object):
         with self.training_type_plugin.model_parallel_context():
             yield
 
-    @property
-    def call_model_parallel_setup_hook(self) -> bool:
-        """
-        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
-        This is useful for when we want to shard the model once within fit.
-        Returns: True if we want to call the model parallel setup hook.
-        """
-        return self.training_type_plugin.call_model_parallel_setup_hook
-
-    @call_model_parallel_setup_hook.setter
-    def call_model_parallel_setup_hook(self, mode: bool) -> bool:
-        if isinstance(mode, bool):
-            self.training_type_plugin.call_model_parallel_setup_hook = mode
-            
     # todo: remove in v1.5
     def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
         """
@@ -493,3 +479,17 @@ class Accelerator(object):
             ' It will be removed in v1.5.'
         )
         self.setup_precision_plugin(plugin)
+
+    @property
+    def call_model_parallel_setup_hook(self) -> bool:
+        """
+        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
+        This is useful for when we want to shard the model once within fit.
+        Returns: True if we want to call the model parallel setup hook.
+        """
+        return self.training_type_plugin.call_model_parallel_setup_hook
+
+    @call_model_parallel_setup_hook.setter
+    def call_model_parallel_setup_hook(self, mode: bool) -> bool:
+        if isinstance(mode, bool):
+            self.training_type_plugin.call_model_parallel_setup_hook = mode
