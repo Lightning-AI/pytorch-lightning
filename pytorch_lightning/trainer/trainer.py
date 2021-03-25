@@ -983,6 +983,7 @@ class Trainer(
                     ' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
                 )
 
+            # only one process running at this point for TPUs, as spawn isn't triggered yet
             if not self._device_type == DeviceType.TPU:
                 self.training_type_plugin.barrier()
 
