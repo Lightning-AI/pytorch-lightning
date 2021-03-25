@@ -33,7 +33,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Update Pip
+    - name: Update pip
       run: |
         # todo: unfreeze PIP after resolving minimal dependencies
         pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
@@ -62,7 +62,7 @@ jobs:
             req = re.sub(ptn, ver, open(fname).read())
             open(fname, 'w').write(req)
 
-        _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.7.1')
+        _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.8.0')
         _req('requirements/extra.txt', r'onnxruntime>=[\d\.]+', 'onnxruntime>=1.7.0')
       shell: python
 
