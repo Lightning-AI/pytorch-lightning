@@ -108,14 +108,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # replace trainer save_checkpoint to use `xm.save`
         trainer.save_checkpoint = self.save_checkpoint
-        self.barrier("pre run stage")
+        self.barrier("pre-run-stage")
 
         results = trainer.run_stage()
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
-        self.barrier("end process")
+        self.barrier("end-process")
 
     def __save_end_of_training_weights(self, model: LightningModule) -> None:
         # when training ends on these platforms dump weights to get out of the main process
