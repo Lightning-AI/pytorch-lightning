@@ -436,8 +436,8 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
-        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
         self.call_model_parallel_hook(model)  # allow user to setup in model parallel environment
+        self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -1088,7 +1088,7 @@ class Trainer(
     def call_model_parallel_hook(self, model: LightningModule) -> None:
         # Call model parallel hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
-        if self.accelerator.call_model_parallel_setup_hook and self.accelerator.setup_optimizers_in_pre_dispatch:
+        if self.accelerator.call_model_parallel_setup_hook:
             with self.accelerator.model_parallel_context():
                 self.on_model_parallel_setup(model)
                 model.on_model_parallel_setup()
