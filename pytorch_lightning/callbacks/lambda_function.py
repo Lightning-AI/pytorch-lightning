@@ -53,7 +53,7 @@ class LambdaCallback(Callback):
         on_train_batch_end: Optional[Callable] = None,
         on_train_epoch_start: Optional[Callable] = None,
         on_train_epoch_end: Optional[Callable] = None,
-        on_train_epoch_final_end: Optional[Callable] = None,
+        on_train_epoch_without_validation_end: Optional[Callable] = None,
         on_validation_epoch_start: Optional[Callable] = None,
         on_validation_epoch_end: Optional[Callable] = None,
         on_test_epoch_start: Optional[Callable] = None,
@@ -156,5 +156,5 @@ class LambdaCallback(Callback):
             self.on_after_backward = on_after_backward
         if on_before_zero_grad is not None:
             self.on_before_zero_grad = on_before_zero_grad
-        if on_train_epoch_final_end is not None:
-            self.on_train_epoch_final_end = on_train_epoch_final_end
+        if on_train_epoch_without_validation_end is not None:
+            self.on_train_epoch_without_validation_end = on_train_epoch_without_validation_end

@@ -533,7 +533,7 @@ class TrainLoop:
             self.trainer.training = True
 
         if should_train_only:
-            self.trainer.call_hook('on_train_epoch_final_end')
+            self.trainer.call_hook('on_train_epoch_without_validation_end')
 
         # increment the global step once
         # progress global step according to grads progress

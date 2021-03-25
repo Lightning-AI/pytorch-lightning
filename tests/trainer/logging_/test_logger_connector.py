@@ -300,7 +300,7 @@ def test_call_back_validator(tmpdir):
         'on_train_batch_start',
         'on_train_end',
         'on_train_epoch_end',
-        'on_train_epoch_final_end',
+        'on_train_epoch_without_validation_end',
         'on_train_epoch_start',
         'on_train_start',
         'on_validation_batch_end',

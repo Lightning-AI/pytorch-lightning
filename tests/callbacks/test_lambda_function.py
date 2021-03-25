@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import pytest
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
 from tests.helpers.boring_model import BoringModel
 
-
-def test_lambda_call(tmpdir):
+@pytest.mark.parametrize('should_validate', [True, False])
+def test_lambda_call(tmpdir, should_validate: bool):
     seed_everything(42)
 
     class CustomModel(BoringModel):
@@ -27,12 +28,15 @@ def test_lambda_call(tmpdir):
             if self.current_epoch > 1:
                 raise KeyboardInterrupt
 
+    model = CustomModel()
     checker = set()
     hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
     hooks_args = {h: (lambda x: lambda *args: checker.add(x))(h) for h in hooks}
     hooks_args["on_save_checkpoint"] = (lambda x: lambda *args: [checker.add(x)])("on_save_checkpoint")
-
-    model = CustomModel()
+    if not should_validate:
+        model.validation_step = None
+    else:
+        hooks.remove("on_train_epoch_without_validation_end")
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,

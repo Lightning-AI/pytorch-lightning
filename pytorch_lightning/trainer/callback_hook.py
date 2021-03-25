@@ -92,12 +92,12 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_end(self, self.lightning_module, outputs)
 
-    def on_train_epoch_final_end(self) -> None:
+    def on_train_epoch_without_validation_end(self) -> None:
         """
-        Called when at the very end of train epoch.
+        Called when at the very end of train epoch where validation is not enabled.
         """
         for callback in self.callbacks:
-            callback.on_train_epoch_final_end(self, self.lightning_module)
+            callback.on_train_epoch_without_validation_end(self, self.lightning_module)
 
     def on_validation_epoch_start(self):
         """Called when the epoch begins."""
