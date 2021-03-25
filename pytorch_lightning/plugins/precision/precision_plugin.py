@@ -113,6 +113,13 @@ class PrecisionPlugin(Plugin):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """Clips the gradients"""
+        if clip_val is None:
+            return
+
+        grad_clip_val = float(clip_val)
+        if grad_clip_val <= 0:
+            return
+
         clip_grad_func = self.clip_grad_funcs[gradient_clip_algorithm]
         clip_grad_func(optimizer, clip_val)  # type: ignore
 
@@ -124,15 +131,8 @@ class PrecisionPlugin(Plugin):
     def clip_grad_by_norm(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
         """Clip gradients by norm"""
         # TODO: separate TPU case from here
-        if clip_val is None:
-            return
-
-        grad_clip_val = float(clip_val)
-        if grad_clip_val <= 0:
-            return
-
         parameters = list(self.master_params(optimizer))
-        max_norm = grad_clip_val
+        max_norm = clip_val
 
         if isinstance(parameters, torch.Tensor):
             parameters = [parameters]

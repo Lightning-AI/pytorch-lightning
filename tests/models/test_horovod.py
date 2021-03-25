@@ -86,6 +86,7 @@ def test_horovod_cpu(tmpdir):
         deterministic=True,
     )
     _run_horovod(trainer_options)
+    _run_horovod_clip_grad_by_value(trainer_options)
 
 
 @RunIf(skip_windows=True)
@@ -102,6 +103,7 @@ def test_horovod_cpu_implicit(tmpdir):
         deterministic=True,
     )
     _run_horovod(trainer_options)
+    _run_horovod_clip_grad_by_value(trainer_options)
 
 
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
