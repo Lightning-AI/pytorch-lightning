@@ -18,6 +18,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
 from tests.helpers.boring_model import BoringModel
 
+
 @pytest.mark.parametrize('should_validate', [True, False])
 def test_lambda_call(tmpdir, should_validate: bool):
     seed_everything(42)
