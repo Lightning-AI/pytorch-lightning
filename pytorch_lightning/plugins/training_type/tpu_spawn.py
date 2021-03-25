@@ -4,7 +4,6 @@ import re
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -96,12 +95,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # replace trainer save_checkpoint to use `xm.save`
         trainer.save_checkpoint = self.save_checkpoint
-        self.barrier()
+        self.barrier("pre-run-stage")
 
         results = trainer.train_or_test_or_predict()
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
+
+        self.barrier("end-process")
 
     def __save_end_of_training_weights(self, model: LightningModule) -> None:
         # when training ends on these platforms dump weights to get out of the main process
@@ -113,12 +114,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._model.to(xm.xla_device())
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if torch_distrib.is_initialized():
-            rendezvous(f"pl.Trainer.{name}")
+        rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
-        # TODO: is there a better way than accessing callback through model -> trainer -> callback?
-        best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
+        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
+        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         if self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
