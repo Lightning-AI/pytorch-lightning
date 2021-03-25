@@ -17,7 +17,7 @@ import logging
 import os
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Generator
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 
@@ -64,33 +64,33 @@ class DeepSpeedPlugin(DDPPlugin):
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(
-            self,
-            zero_optimization: bool = True,
-            stage: int = 2,
-            cpu_offload: bool = False,
-            cpu_offload_params: bool = False,
-            cpu_offload_use_pin_memory: bool = False,
-            contiguous_gradients: bool = True,
-            overlap_comm: bool = True,
-            allgather_partitions: bool = True,
-            reduce_scatter: bool = True,
-            allgather_bucket_size: int = 2e8,
-            reduce_bucket_size: int = 2e8,
-            zero_allow_untested_optimizer: bool = True,
-            config: Optional[Union[Path, str, dict]] = None,
-            logging_level: int = logging.WARN,
-            num_nodes: int = 1,
-            parallel_devices: Optional[List[torch.device]] = None,
-            cluster_environment: Optional[ClusterEnvironment] = None,
-            loss_scale: float = 0,
-            initial_scale_power: int = 32,
-            loss_scale_window: int = 1000,
-            hysteresis: int = 2,
-            min_loss_scale: int = 1,
-            partition_activations: bool = False,
-            cpu_checkpointing: bool = False,
-            contiguous_memory_optimization: bool = False,
-            synchronize_checkpoint_boundary: bool = False,
+        self,
+        zero_optimization: bool = True,
+        stage: int = 2,
+        cpu_offload: bool = False,
+        cpu_offload_params: bool = False,
+        cpu_offload_use_pin_memory: bool = False,
+        contiguous_gradients: bool = True,
+        overlap_comm: bool = True,
+        allgather_partitions: bool = True,
+        reduce_scatter: bool = True,
+        allgather_bucket_size: int = 2e8,
+        reduce_bucket_size: int = 2e8,
+        zero_allow_untested_optimizer: bool = True,
+        config: Optional[Union[Path, str, dict]] = None,
+        logging_level: int = logging.WARN,
+        num_nodes: int = 1,
+        parallel_devices: Optional[List[torch.device]] = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
+        loss_scale: float = 0,
+        initial_scale_power: int = 32,
+        loss_scale_window: int = 1000,
+        hysteresis: int = 2,
+        min_loss_scale: int = 1,
+        partition_activations: bool = False,
+        cpu_checkpointing: bool = False,
+        contiguous_memory_optimization: bool = False,
+        synchronize_checkpoint_boundary: bool = False,
     ) -> None:
         """
 
@@ -415,9 +415,9 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException("To use DeepSpeed ZeRO Optimization, you must set precision=16.")
 
     def _create_default_config(
-            self, zero_optimization: bool, zero_allow_untested_optimizer: bool, partition_activations: bool,
-            cpu_checkpointing: bool, contiguous_memory_optimization: bool, synchronize_checkpoint_boundary: bool,
-            **zero_kwargs
+        self, zero_optimization: bool, zero_allow_untested_optimizer: bool, partition_activations: bool,
+        cpu_checkpointing: bool, contiguous_memory_optimization: bool, synchronize_checkpoint_boundary: bool,
+        **zero_kwargs
     ) -> Dict:
         cfg = {
             'activation_checkpointing': {
@@ -465,15 +465,15 @@ class DeepSpeedPlugin(DDPPlugin):
                                            map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
         if torch.distributed.get_world_size() > 1:
             from pytorch_lightning.trainer.states import TrainerState
-            load_optimizer_states = self.lightning_module.trainer.state == TrainerState.FITTING
+            stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
 
             if self.zero_stage_3:
                 # TODO: Currently required as this call is missing within the deepspeed engine.
                 self.deepspeed_engine.optimizer._partition_all_parameters()
 
-            _, client_state = self.model.load_checkpoint(
-                save_dir, load_optimizer_states=load_optimizer_states, load_lr_scheduler_states=load_optimizer_states
+            _, client_state = self.deepspeed_engine.load_checkpoint(
+                save_dir, load_optimizer_states=stage_is_fit, load_lr_scheduler_states=stage_is_fit
             )
 
             # restore datamodule states
