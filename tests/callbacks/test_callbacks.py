@@ -48,7 +48,7 @@ def test_trainer_callback_hook_system_fit(_, tmpdir):
         call.on_init_end(trainer),
         call.on_before_accelerator_backend_setup(trainer, model),
         call.setup(trainer, model, 'fit'),
-        call.on_model_parallel_setup(model),
+        call.on_model_parallel_setup(trainer, model),
         call.on_fit_start(trainer, model),
         call.on_pretrain_routine_start(trainer, model),
         call.on_pretrain_routine_end(trainer, model),
