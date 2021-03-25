@@ -349,3 +349,15 @@ on_load_checkpoint
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_load_checkpoint
     :noindex:
+
+on_after_backward
+^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_after_backward
+    :noindex:
+
+on_before_zero_grad
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_before_zero_grad
+    :noindex:
