@@ -26,6 +26,9 @@ class TPUHalfPrecisionPlugin(PrecisionPlugin):
 
     precision: int = 16
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def connect(
         self,
         model: 'Module',
