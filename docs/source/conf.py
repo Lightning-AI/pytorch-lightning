@@ -178,8 +178,8 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 # documentation.
 
 html_theme_options = {
-    'pytorch_project': info.__homepage__,
-    'canonical_url': info.__homepage__,
+    'pytorch_project': 'https://pytorchlightning.ai',
+    'canonical_url': info.__docs_url__,
     'collapse_navigation': False,
     'display_version': True,
     'logo_only': False,
@@ -331,6 +331,7 @@ PACKAGE_MAPPING = {
     'comet-ml': 'comet_ml',
     'neptune-client': 'neptune',
     'hydra-core': 'hydra',
+    'pyDeprecate': 'deprecate',
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:

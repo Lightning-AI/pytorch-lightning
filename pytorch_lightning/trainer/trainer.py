@@ -57,7 +57,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -227,7 +227,8 @@ class Trainer(
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
-            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
+            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
+                TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
@@ -320,6 +321,10 @@ class Trainer(
         self.predict_loop = PredictLoop(self)
 
         # training state
+        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
+            raise MisconfigurationException(
+                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
+            )
         self.weights_summary = weights_summary
         self.shown_warnings = set()
 
@@ -351,7 +356,6 @@ class Trainer(
             max_steps,
             min_steps,
             num_sanity_val_steps,
-            weights_summary,
         )
         self.evaluation_loop.on_trainer_init()
 
@@ -550,10 +554,7 @@ class Trainer(
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            if self.weights_summary in ModelSummary.MODES:
-                ref_model.summarize(mode=self.weights_summary)
-            else:
-                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+            ref_model.summarize(mode=self.weights_summary)
 
         # restore training and model before hpc is called
         self.checkpoint_connector.restore_weights()
@@ -763,6 +764,8 @@ class Trainer(
         return eval_loop_results
 
     def run_predict(self):
+        self.predict_loop.on_predict_start()
+
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -785,7 +788,6 @@ class Trainer(
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dataloader = self.accelerator.process_dataloader(dataloader)
             dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
-
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue
@@ -795,10 +797,15 @@ class Trainer(
                     break
 
                 # lightning module methods
-                with self.profiler.profile("predict"):
-                    self.predict_loop.predict(batch, batch_idx, dataloader_idx)
+                with self.profiler.profile("predict_step"):
+                    self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
+        self.predict_loop.on_predict_end()
+
+        # re-enable grads
+        torch.set_grad_enabled(True)
+
         return results
 
     def run_sanity_check(self, ref_model):
@@ -977,7 +984,9 @@ class Trainer(
                     ' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
                 )
 
-            self.training_type_plugin.barrier()
+            # only one process running at this point for TPUs, as spawn isn't triggered yet
+            if not self._device_type == DeviceType.TPU:
+                self.training_type_plugin.barrier()
 
             ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
@@ -1087,6 +1096,12 @@ class Trainer(
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state
+
+        if self.datamodule is not None:
+            called = getattr(self.datamodule, f'has_teardown_{state}')
+            if not called:
+                self.datamodule.teardown(stage=state)
+
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)

@@ -53,7 +53,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         elif trainer and (trainer.sanity_checking or trainer.validating):
             output = self.module.validation_step(*inputs, **kwargs)
         elif trainer and trainer.predicting:
-            output = self.module.predict(*inputs, **kwargs)
+            output = self.module.predict_step(*inputs, **kwargs)
         else:
             output = self.module(*inputs, **kwargs)
 

@@ -44,6 +44,8 @@ class PredictLoop(object):
         model_ref.on_predict_model_eval()
 
     def setup(self, model, max_batches, dataloaders):
+        self.trainer.call_hook("on_predict_start")
+
         # copy properties for forward overrides
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
@@ -65,7 +67,7 @@ class PredictLoop(object):
             length = len(dataloaders[0])
         return length
 
-    def predict(self, batch, batch_idx, dataloader_idx):
+    def predict_step(self, batch, batch_idx, dataloader_idx):
         # configure args
         args = [batch, batch_idx]
         if self.num_dataloaders:
@@ -74,7 +76,7 @@ class PredictLoop(object):
         model_ref = self.trainer.lightning_module
 
         model_ref._current_fx_name = "predict"
-        predictions = self.trainer.accelerator.predict(args)
+        predictions = self.trainer.accelerator.predict_step(args)
 
         if predictions is None:
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
@@ -86,6 +88,8 @@ class PredictLoop(object):
         return
 
     def on_predict_epoch_end(self):
+        self.trainer.profiler.describe()
+
         self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
 
         results = self._predictions
@@ -99,3 +103,11 @@ class PredictLoop(object):
             return results[0]
 
         return results
+
+    def on_predict_start(self):
+        # hook
+        self.trainer.call_hook("on_predict_start")
+
+    def on_predict_end(self):
+        # hook
+        self.trainer.call_hook("on_predict_end")
