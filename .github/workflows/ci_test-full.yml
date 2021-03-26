@@ -19,7 +19,6 @@ jobs:
         requires: ['minimal', 'latest']
         exclude:
           - python-version: 3.9
-            os: windows-2019
             requires: 'minimal'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
@@ -54,17 +53,18 @@ jobs:
         open(fname, 'w').writelines(lines)
       shell: python
 
-    - name: Adjust minimal for Python 3.9
-      if: matrix.requires == 'minimal' && matrix.python-version == 3.9
-      run: |
-        import re
-        def _req(fname, ptn, ver):
-            req = re.sub(ptn, ver, open(fname).read())
-            open(fname, 'w').write(req)
-
-        _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.8.0')
-        _req('requirements/extra.txt', r'onnxruntime>=[\d\.]+', 'onnxruntime>=1.7.0')
-      shell: python
+    # todo: re-enable when allow testing py 3.9 with min config, atm some Hydra issues
+    #- name: Adjust minimal for Python 3.9
+    #  if: matrix.requires == 'minimal' && matrix.python-version == 3.9
+    #  run: |
+    #    import re
+    #    def _req(fname, ptn, ver):
+    #        req = re.sub(ptn, ver, open(fname).read())
+    #        open(fname, 'w').write(req)
+    #
+    #    _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.8.0')
+    #    _req('requirements/extra.txt', r'onnxruntime>=[\d\.]+', 'onnxruntime>=1.7.0')
+    #  shell: python
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
@@ -102,7 +102,6 @@ jobs:
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
     - name: Pull checkpoints from S3
-      # todo: consider adding some caching, but ATM all models have less then 100KB
       run: |
         cd legacy
         # wget is simpler but does not work on Windows
@@ -111,6 +110,7 @@ jobs:
         unzip -o checkpoints.zip
         ls -l checkpoints/
 
+    # todo: re-enable testing with Horovod
     - name: py3.9 - temp skip Horovod
       if: matrix.python-version == 3.9
       run: |
