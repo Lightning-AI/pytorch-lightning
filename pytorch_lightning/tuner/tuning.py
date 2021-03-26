@@ -18,9 +18,10 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
-from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally, lr_find
+from pytorch_lightning.tuner.lr_finder import lr_find
 
 
 class Tuner:
@@ -32,13 +33,20 @@ class Tuner:
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
-    def tune(self, model, train_dataloader, val_dataloaders, datamodule):
+    def setup_trainer(
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: LightningDataModule = None,
+    ):
+        self.trainer.model_connector.copy_trainer_model_properties(model)
         # setup data, etc...
         self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
-
         # hook
         self.trainer.data_connector.prepare_data(model)
 
+    def tune(self, model, train_dataloader, val_dataloaders, datamodule):
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, bool):
@@ -53,7 +61,9 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            self.internal_find_lr(model)
+            self.lr_find(model, update_attr=True)
+
+        self.trainer.state = TrainerState.FINISHED
 
     def scale_batch_size(
         self,
@@ -92,15 +102,16 @@ class Tuner:
                 It is expected that the user has provided a model or datamodule that has a hyperparameter
                 with that name. We will look for this attribute name in the following places
 
-                - `model`
-                - `model.hparams`
-                - `model.datamodule`
-                - `trainer.datamodule` (the datamodule passed to the tune method)
+                - ``model``
+                - ``model.hparams``
+                - ``model.datamodule``
+                - ``trainer.datamodule`` (the datamodule passed to the tune method)
 
             **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
                 or datamodule.
 
         """
+        self.setup_trainer(model, **fit_kwargs)
         return scale_batch_size(
             self.trainer,
             model,
@@ -122,8 +133,10 @@ class Tuner:
         num_training: int = 100,
         mode: str = 'exponential',
         early_stop_threshold: float = 4.0,
-        datamodule: Optional[LightningDataModule] = None
+        datamodule: Optional[LightningDataModule] = None,
+        update_attr: bool = False,
     ):
+        self.setup_trainer(model, train_dataloader, val_dataloaders, datamodule)
         return lr_find(
             self.trainer,
             model,
@@ -135,10 +148,8 @@ class Tuner:
             mode,
             early_stop_threshold,
             datamodule,
+            update_attr,
         )
-
-    def internal_find_lr(self, model: LightningModule):
-        return _run_lr_finder_internally(self.trainer, model)
 
     def pick_multiple_gpus(self, num_gpus: int):
         return pick_multiple_gpus(num_gpus)

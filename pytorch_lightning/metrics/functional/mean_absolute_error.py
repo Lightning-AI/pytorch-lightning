@@ -11,42 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple
 
 import torch
+from torchmetrics.functional import mean_absolute_error as _mean_absolute_error
 
-from pytorch_lightning.metrics.utils import _check_same_shape
-
-
-def _mean_absolute_error_update(preds: torch.Tensor, target: torch.Tensor) -> Tuple[torch.Tensor, int]:
-    _check_same_shape(preds, target)
-    sum_abs_error = torch.sum(torch.abs(preds - target))
-    n_obs = target.numel()
-    return sum_abs_error, n_obs
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-def _mean_absolute_error_compute(sum_abs_error: torch.Tensor, n_obs: int) -> torch.Tensor:
-    return sum_abs_error / n_obs
-
-
+@deprecated_metrics(target=_mean_absolute_error)
 def mean_absolute_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
-    Computes mean absolute error
-
-    Args:
-        pred: estimated labels
-        target: ground truth labels
-
-    Return:
-        Tensor with MAE
-
-    Example:
-
-        >>> x = torch.tensor([0., 1, 2, 3])
-        >>> y = torch.tensor([0., 1, 2, 2])
-        >>> mean_absolute_error(x, y)
-        tensor(0.2500)
-
+    .. deprecated::
+        Use :func:`torchmetrics.functional.mean_absolute_error`. Will be removed in v1.5.0.
     """
-    sum_abs_error, n_obs = _mean_absolute_error_update(preds, target)
-    return _mean_absolute_error_compute(sum_abs_error, n_obs)

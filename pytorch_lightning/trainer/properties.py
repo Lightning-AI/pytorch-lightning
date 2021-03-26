@@ -21,7 +21,6 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.accelerators.accelerator_connector import BackendConnector
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
@@ -29,9 +28,10 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -48,10 +48,11 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _lightning_optimizers = None
     _progress_bar_callback: ProgressBarBase
+    _running_stage: Optional[RunningStage] = None
     _state: TrainerState
     _weights_save_path: str
 
-    accelerator_connector: BackendConnector
+    accelerator_connector: AcceleratorConnector
     callbacks: List[Callback]
     checkpoint_connector: CheckpointConnector
     limit_val_batches: int
@@ -61,11 +62,6 @@ class TrainerProperties(ABC):
     @property
     def accelerator(self) -> Accelerator:
         return self.accelerator_connector.accelerator
-
-    @property
-    def accelerator_backend(self) -> Accelerator:
-        # for backward compatibility
-        return self.accelerator
 
     @property
     def distributed_backend(self) -> Optional[str]:
@@ -138,7 +134,7 @@ class TrainerProperties(ABC):
         else:
             dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
-        dirpath = self.training_type_plugin.broadcast(dirpath)
+        dirpath = self.accelerator.broadcast(dirpath)
         return dirpath
 
     @property
@@ -172,6 +168,14 @@ class TrainerProperties(ABC):
     @property
     def state(self) -> TrainerState:
         return self._state
+
+    @state.setter
+    def state(self, state: TrainerState) -> None:
+        self._state = state
+
+    @property
+    def interrupted(self) -> bool:
+        return self._state == TrainerState.INTERRUPTED
 
     @property
     def is_global_zero(self) -> bool:
@@ -225,8 +229,8 @@ class TrainerProperties(ABC):
         return parse_env_variables(cls)
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        return add_argparse_args(cls, parent_parser)
+    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
+        return add_argparse_args(cls, parent_parser, **kwargs)
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
@@ -245,7 +249,7 @@ class TrainerProperties(ABC):
     @property
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
-        ref_model = self.get_model()
+        ref_model = self.lightning_module
         ref_model = cast(LightningModule, ref_model)
 
         standard_metrics = ref_model.get_progress_bar_dict()
@@ -270,7 +274,7 @@ class TrainerProperties(ABC):
     @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
-        model_ref = self.get_model()
+        model_ref = self.lightning_module
         val_loop_enabled = is_overridden('validation_step', model_ref) and self.limit_val_batches > 0
         return val_loop_enabled
 
@@ -352,11 +356,6 @@ class TrainerProperties(ABC):
         """
         self.accelerator.model = model
 
-    def get_model(self) -> LightningModule:
-        # TODO: rename this to lightning_module (see training type plugin)
-        # backward compatible
-        return self.lightning_module
-
     @property
     def lightning_optimizers(self) -> List[LightningOptimizer]:
         if self._lightning_optimizers is None:
@@ -365,7 +364,7 @@ class TrainerProperties(ABC):
 
     @property
     def lightning_module(self) -> LightningModule:
-        return self.training_type_plugin.lightning_module
+        return self.accelerator.lightning_module
 
     @property
     def optimizers(self) -> Optional[List[Optimizer]]:
@@ -373,6 +372,11 @@ class TrainerProperties(ABC):
 
     @optimizers.setter
     def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
+        # Necessary to rewrap optimizers to lightning
+        # They will be re-created when accessing
+        # the `lightning_optimizers` trainer property
+        self._lightning_optimizers = None
+
         self.accelerator.optimizers = new_optims
 
     @property
@@ -416,6 +420,86 @@ class TrainerProperties(ABC):
     def distributed_sampler_kwargs(self) -> Optional[dict]:
         if isinstance(self.training_type_plugin, ParallelPlugin):
             return self.training_type_plugin.distributed_sampler_kwargs
+
+    @property
+    def training(self) -> bool:
+        return self._running_stage == RunningStage.TRAINING
+
+    @training.setter
+    def training(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TRAINING
+        elif self.training:
+            self._running_stage = None
+
+    @property
+    def testing(self) -> bool:
+        return self._running_stage == RunningStage.TESTING
+
+    @testing.setter
+    def testing(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TESTING
+        elif self.testing:
+            self._running_stage = None
+
+    @property
+    def predicting(self) -> bool:
+        return self._running_stage == RunningStage.PREDICTING
+
+    @predicting.setter
+    def predicting(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.PREDICTING
+        elif self.predicting:
+            self._running_stage = None
+
+    @property
+    def tuning(self) -> bool:
+        return self._running_stage == RunningStage.TUNING
+
+    @tuning.setter
+    def tuning(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.TUNING
+        elif self.tuning:
+            self._running_stage = None
+
+    @property
+    def validating(self) -> bool:
+        return self._running_stage == RunningStage.VALIDATING
+
+    @validating.setter
+    def validating(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.VALIDATING
+        elif self.validating:
+            self._running_stage = None
+
+    @property
+    def evaluating(self) -> bool:
+        return self._running_stage and self._running_stage.evaluating
+
+    @property
+    def sanity_checking(self) -> bool:
+        return self._running_stage == RunningStage.SANITY_CHECKING
+
+    @sanity_checking.setter
+    def sanity_checking(self, val: bool) -> None:
+        if val:
+            self._running_stage = RunningStage.SANITY_CHECKING
+        elif self.sanity_checking:
+            self._running_stage = None
+
+    @property
+    def _setup_state(self) -> TrainerState:
+        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
+        return TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+
+    @property
+    def _teardown_state(self) -> Optional[TrainerState]:
+        if self.state.running:
+            return self._setup_state
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

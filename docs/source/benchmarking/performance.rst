@@ -94,6 +94,21 @@ DP performs three GPU transfers for EVERY batch:
 
 Whereas DDP only performs 1 transfer to sync gradients. Because of this, DDP is MUCH faster than DP.
 
+When using DDP set find_unused_parameters=False
+-----------------------------------------------
+
+By default we have enabled find unused parameters to True. This is for compatibility issues that have arisen in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more information).
+This by default comes with a performance hit, and can be disabled in most cases.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DDPPlugin
+
+    trainer = pl.Trainer(
+        gpus=2,
+        plugins=DDPPlugin(find_unused_parameters=False),
+    )
+
 ----------
 
 16-bit precision
@@ -135,8 +150,50 @@ Refer to the :doc:`distributed computing guide for more details <../advanced/mul
 
 
 Sequential Model Parallelism with Checkpointing
----------------------------------------------------------------------
+-----------------------------------------------
 PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
 Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
 
 For more information, refer to :ref:`sequential-parallelism`.
+
+
+Preload Data Into RAM
+---------------------
+
+When your training or preprocessing requires many operations to be performed on entire dataset(s) it can
+sometimes be beneficial to store all data in RAM given there is enough space.
+However, loading all data at the beginning of the training script has the disadvantage that it can take a long
+time and hence it slows down the development process. Another downside is that in multiprocessing (e.g. DDP)
+the data would get copied in each process.
+One can overcome these problems by copying the data into RAM in advance.
+Most UNIX-based operating systems provide direct access to tmpfs through a mount point typically named ``/dev/shm``.
+
+0.  Increase shared memory if necessary. Refer to the documentation of your OS how to do this.
+
+1.  Copy training data to shared memory:
+
+    .. code-block:: bash
+
+        cp -r /path/to/data/on/disk /dev/shm/
+
+2.  Refer to the new data root in your script or command line arguments:
+
+    .. code-block:: python
+
+        datamodule = MyDataModule(data_root="/dev/shm/my_data")
+
+
+Zero Grad ``set_to_none=True``
+------------------------------
+
+In order to modestly improve performance, once can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
+
+For a more detailed explanation of pros / cons of this technique,
+read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
+
+.. testcode::
+
+    class Model(LightningModule):
+
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+            optimizer.zero_grad(set_to_none=True)

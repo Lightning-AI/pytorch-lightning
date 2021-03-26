@@ -14,15 +14,32 @@
 
 import pytest
 import torch
+from torch import nn
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
 
 
-@pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
+class WeightSharingModule(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.layer_1 = nn.Linear(32, 10, bias=False)
+        self.layer_2 = nn.Linear(10, 32, bias=False)
+        self.layer_3 = nn.Linear(32, 10, bias=False)
+        self.layer_3.weight = self.layer_1.weight
+
+    def forward(self, x):
+        x = self.layer_1(x)
+        x = self.layer_2(x)
+        x = self.layer_3(x)
+        return x
+
+
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_resume_training_on_cpu(tmpdir):
     """ Checks if training can be resumed from a saved checkpoint on CPU"""
@@ -53,7 +70,7 @@ def test_resume_training_on_cpu(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.skipif(not XLADeviceUtils.tpu_device_exists(), reason="test requires TPU machine")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_if_test_works_after_train(tmpdir):
     """ Ensure that .test() works after .fit() """
@@ -62,4 +79,44 @@ def test_if_test_works_after_train(tmpdir):
     model = BoringModel()
     trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.test(model) == 1
+    assert len(trainer.test(model)) == 1
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_weight_tying_warning(tmpdir, capsys=None):
+    """
+    Ensure a warning is thrown if model parameter lengths do not match
+    post moving to device.
+    """
+
+    model = WeightSharingModule()
+    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
+
+    with pytest.warns(UserWarning, match=r'The model layers do not match after moving to the target device.'):
+        result = trainer.fit(model)
+        assert result
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_if_weights_tied(tmpdir, capsys=None):
+    """
+    Test if weights are properly tied on `on_post_move_to_device`.
+    Ensure no warning for parameter mismatch is thrown.
+    """
+
+    class Model(WeightSharingModule):
+
+        def on_post_move_to_device(self):
+            self.layer_3.weight = self.layer_1.weight
+
+    model = Model()
+    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
+
+    with pytest.warns(UserWarning) as warnings:
+        result = trainer.fit(model)
+        assert result
+
+    assert not list(filter(lambda x: 'The model layers do not match' in str(x), warnings.list))
+    assert len(trainer.test(model)) == 1

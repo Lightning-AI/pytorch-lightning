@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
-
 import numpy
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
 from pytorch_lightning.utilities.distributed import (  # noqa: F401
     AllGatherGrad,
+    rank_zero_deprecation,
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
@@ -26,12 +26,14 @@ from pytorch_lightning.utilities.enums import AMPType, DeviceType, DistributedTy
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
     _BOLTS_AVAILABLE,
+    _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_PIPE_AVAILABLE,
     _GROUP_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HYDRA_AVAILABLE,
     _HYDRA_EXPERIMENTAL_AVAILABLE,
+    _IS_INTERACTIVE,
     _module_available,
     _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,

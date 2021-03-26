@@ -12,32 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Generator, Optional, overload, Sequence, Tuple
-
-import torch
-from torch.nn import Module
+from abc import ABC
+from typing import Generator
 
 
 class Plugin(ABC):
     """Basic Plugin class to derive precision and training type plugins from."""
 
-    @abstractmethod
-    def connect(
-        self,
-        model: Module,
-        *args: Sequence,
-        **kwargs: Sequence,
-    ) -> Optional[Tuple[Module, Sequence, Sequence]]:
-        """Connects the plugin with the accelerator (and thereby with trainer and model).
-        Will be called by the accelerator.
-        """
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
 
-    def pre_training(self) -> None:
-        """Hook to do something before the training starts."""
-
-    def post_training(self) -> None:
-        """Hook to do something after the training finishes."""
+    def post_dispatch(self) -> None:
+        """Hook to do something after the training/evaluation/prediction finishes."""
 
     @contextlib.contextmanager
     def train_step_context(self) -> Generator:
@@ -52,4 +38,9 @@ class Plugin(ABC):
     @contextlib.contextmanager
     def test_step_context(self) -> Generator:
         """A contextmanager for the teststep"""
+        yield
+
+    @contextlib.contextmanager
+    def predict_context(self) -> Generator:
+        """A contextmanager for the predict step"""
         yield

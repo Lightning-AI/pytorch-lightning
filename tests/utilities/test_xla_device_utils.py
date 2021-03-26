@@ -17,7 +17,8 @@ from unittest.mock import patch
 import pytest
 
 import pytorch_lightning.utilities.xla_device as xla_utils
-from pytorch_lightning.utilities import _TPU_AVAILABLE, _XLA_AVAILABLE
+from pytorch_lightning.utilities import _XLA_AVAILABLE
+from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
 
 
@@ -27,7 +28,7 @@ def test_tpu_device_absence():
     assert xla_utils.XLADeviceUtils.tpu_device_exists() is None
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires torch_xla to be installed")
+@RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_device_presence():
     """Check tpu_device_exists returns True when TPU is available"""

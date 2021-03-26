@@ -45,14 +45,8 @@ class ConfigureOptimizersPool(ABC):
         optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
         optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
         return [
-            {
-                'optimizer': optimizer1,
-                'frequency': 1
-            },
-            {
-                'optimizer': optimizer2,
-                'frequency': 5
-            },
+            dict(optimizer=optimizer1, frequency=1),
+            dict(optimizer=optimizer2, frequency=5),
         ]
 
     def configure_optimizers__single_scheduler(self):
