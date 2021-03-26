@@ -1777,3 +1777,19 @@ def test_trainer_attach_data_pipeline_to_model(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[TestCallback()])
     trainer.fit(model, datamodule=dm)
+
+
+@pytest.mark.parametrize("fast_dev_run", [True, False])
+def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir, fast_dev_run):
+    model = BoringModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run)
+
+    trainer.fit(model)
+
+    if fast_dev_run:
+        with pytest.raises(MisconfigurationException, match=".*when `fast_dev_run=True`*"):
+            trainer.validate()
+
+        with pytest.raises(MisconfigurationException, match=".*when `fast_dev_run=True`*"):
+            trainer.test()

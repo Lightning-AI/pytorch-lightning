@@ -939,12 +939,6 @@ class Trainer(
         #  Attach dataloaders (if given)
         self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
-        if not model_provided and ckpt_path == 'best' and self.fast_dev_run:
-            raise MisconfigurationException(
-                'You cannot execute testing when the model is not provided and `fast_dev_run=True`. '
-                'Provide model with `trainer.test(model=...)` or `trainer.test(ckpt_path=...)`'
-            )
-
         if not model_provided:
             self.tested_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
 
@@ -962,10 +956,17 @@ class Trainer(
         ckpt_path: Optional[str] = None,
     ) -> Optional[str]:
         # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
-            raise MisconfigurationException(
-                'ckpt_path is "best", but `ModelCheckpoint` is not configured to save the best model.'
-            )
+        if ckpt_path == 'best':
+            if not self.checkpoint_callback.best_model_path and self.fast_dev_run:
+                raise MisconfigurationException(
+                    'You cannot execute `trainer.test()` or trainer.validate()`'
+                    ' when `fast_dev_run=True`.'
+                )
+
+            if not self.checkpoint_callback.best_model_path:
+                raise MisconfigurationException(
+                    'ckpt_path is "best", but `ModelCheckpoint` is not configured to save the best model.'
+                )
 
         # load best weights
         if ckpt_path is not None:
