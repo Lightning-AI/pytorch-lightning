@@ -27,7 +27,7 @@ COPY ./ ./pytorch-lightning/
 RUN \
     mv pytorch-lightning/notebooks . && \
     mv pytorch-lightning/pl_examples . && \
-    #conda install "pip>20.1" && \
+    # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \

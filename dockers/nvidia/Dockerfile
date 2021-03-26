@@ -57,6 +57,9 @@ RUN apt-get update -qq && \
 COPY ./ ./pytorch-lightning/
 
 RUN \
+    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/pl_examples . && \
+    # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
