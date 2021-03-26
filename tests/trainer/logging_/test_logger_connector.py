@@ -487,14 +487,22 @@ def test_can_return_tensor_with_more_than_one_element(tmpdir):
         def validation_step(self, batch, *args, **kwargs):
             return {"val": torch.tensor([0, 1])}
 
+        def validation_epoch_end(self, outputs):
+            # ensure validation step returns still appear here
+            assert len(outputs) == 2
+            assert all(list(d) == ["val"] for d in outputs)  # check keys
+            assert all(torch.equal(d["val"], torch.tensor([0, 1])) for d in outputs)  # check values
+
         def test_step(self, batch, *args, **kwargs):
             return {"test": torch.tensor([0, 1])}
 
-    model = TestModel()
-    model.validation_epoch_end = None
-    model.test_epoch_end = None
+        def test_epoch_end(self, outputs):
+            assert len(outputs) == 2
+            assert all(list(d) == ["test"] for d in outputs)  # check keys
+            assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, progress_bar_refresh_rate=0)
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, progress_bar_refresh_rate=0)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)

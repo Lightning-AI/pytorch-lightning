@@ -331,20 +331,6 @@ class LoggerConnector:
             if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                 self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
-    def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics):
-        # eval loop returns all metrics
-        dataloader_result_metrics = {**prog_bar_metrics, **log_metrics}
-
-        # add metrics to prog bar
-        self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
-
-        # log metrics
-        if len(log_metrics) > 0:
-            self.trainer.logger_connector.log_metrics(log_metrics, {})
-
-        if len(dataloader_result_metrics) > 0:
-            self.eval_loop_results.append(dataloader_result_metrics)
-
     def __process_eval_epoch_end_results_and_log_legacy(self, eval_results):
         if self.trainer.sanity_checking:
             return
@@ -355,17 +341,21 @@ class LoggerConnector:
             if not isinstance(eval_results, list):
                 eval_results = [eval_results]
 
-            num_loaders: int = self.trainer.evaluation_loop.num_dataloaders
-            prog_bar_metrics, log_metrics = {}, {}
-
             for result_idx, result in enumerate(eval_results):
-                _, prog_bar_metrics, log_metrics = self.trainer.process_dict_result(result)
+                _, prog_bar_metrics, log_metrics, _ = self.trainer.process_dict_result(result)
 
-                if num_loaders > 1:
-                    self.__process_eval_epoch_end_results_and_log_legacy_update(prog_bar_metrics, log_metrics)
+                # eval loop returns all metrics
+                dataloader_result_metrics = {**prog_bar_metrics, **log_metrics}
 
-            if num_loaders == 1:
-                self.__process_eval_epoch_end_results_and_log_legacy_update(prog_bar_metrics, log_metrics)
+                # add metrics to prog bar
+                self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
+
+                # log metrics
+                if len(log_metrics) > 0:
+                    self.trainer.logger_connector.log_metrics(log_metrics, {})
+
+                if len(dataloader_result_metrics) > 0:
+                    self.eval_loop_results.append(dataloader_result_metrics)
 
     def on_train_epoch_end(self):
         # inform cached logger connector epoch finished
