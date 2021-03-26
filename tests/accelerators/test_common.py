@@ -74,19 +74,12 @@ def test_model_parallel_setup_called(tmpdir):
             self.on_model_parallel_setup_called = True
             self.layer = torch.nn.Linear(32, 2)
 
-    class CustomPlugin(SingleDevicePlugin):
-
-        @property
-        def setup_optimizers_in_pre_dispatch(self) -> bool:
-            return True
-
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
-        plugins=CustomPlugin(device=torch.device("cpu"))
     )
     trainer.fit(model)
 
@@ -128,19 +121,12 @@ def test_model_parallel_setup_false(tmpdir):
 def test_model_parallel_setup_called_once(tmpdir):
     """Ensure ``on_model_parallel_setup`` is only called once"""
 
-    class CustomPlugin(SingleDevicePlugin):
-
-        @property
-        def setup_optimizers_in_pre_dispatch(self) -> bool:
-            return True
-
     model = DummyModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
-        plugins=CustomPlugin(device=torch.device("cpu"))
     )
     trainer.fit(model)
 
