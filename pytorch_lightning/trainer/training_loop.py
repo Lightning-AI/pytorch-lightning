@@ -114,12 +114,6 @@ class TrainLoop:
             return
         self._teardown_already_run = True
 
-        # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
-        # when a checkpoint was saved at the last step
-        self.trainer.global_step -= 1
-        self.check_checkpoint_callback(should_update=True, is_last=True)
-        self.trainer.global_step += 1
-
         # hook
         self.trainer.call_hook("on_train_end")
 
@@ -142,9 +136,6 @@ class TrainLoop:
         # TODO bake this logic into the ModelCheckpoint callback
         if should_update and self.trainer.checkpoint_connector.has_trained:
             callbacks = self.trainer.checkpoint_callbacks
-
-            if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
-                rank_zero_info("Saving latest checkpoint...")
 
             model = self.trainer.lightning_module
 

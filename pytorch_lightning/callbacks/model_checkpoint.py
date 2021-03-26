@@ -111,6 +111,9 @@ class ModelCheckpoint(Callback):
                This argument has been deprecated in v1.3 and will be removed in v1.5.
 
             Use ``every_n_val_epochs`` instead.
+        trigger_on_train_end: Whether to trigger the save_checkpoint at the end of training.
+            By default, it is turned off.
+
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -186,6 +189,7 @@ class ModelCheckpoint(Callback):
         every_n_train_steps: Optional[int] = None,
         every_n_val_epochs: Optional[int] = None,
         period: Optional[int] = None,
+        trigger_on_train_end: bool = False,
     ):
         super().__init__()
         self.monitor = monitor
@@ -206,7 +210,7 @@ class ModelCheckpoint(Callback):
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
-        self.__init_triggers(every_n_train_steps, every_n_val_epochs, period)
+        self.__init_triggers(every_n_train_steps, every_n_val_epochs, period, trigger_on_train_end)
         self.__validate_init_configuration()
 
     def on_pretrain_routine_start(self, trainer, pl_module):
@@ -238,6 +242,24 @@ class ModelCheckpoint(Callback):
             return
         self.save_checkpoint(trainer)
 
+    def on_train_end(self, trainer, *args, **kwargs) -> None:
+        """
+        checkpoints can be saved at the end of the trianing
+        """
+        if not self._trigger_on_train_end:
+            return
+        # need to temporarily decrease the global step to avoid saving duplicates
+        # when a checkpoint was saved at the last step
+        trainer.global_step -= 1
+        if (
+            not self._should_skip_saving_checkpoint(trainer)
+            and trainer.checkpoint_connector.has_trained
+        ):
+            if self.save_last and self.verbose:
+                rank_zero_info("Saving last checkpoint...")
+            self.save_checkpoint(trainer, is_on_train_end=True)
+        trainer.global_step += 1
+
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "monitor": self.monitor,
@@ -251,7 +273,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
 
-    def save_checkpoint(self, trainer, unused: Optional = None):
+    def save_checkpoint(self, trainer, unused: Optional = None, is_on_train_end: bool = False):
         """
         Performs the main logic around saving a checkpoint.
         This method runs on all ranks, it is the responsibility of `self.save_function`
@@ -266,7 +288,7 @@ class ModelCheckpoint(Callback):
         global_step = trainer.global_step
 
         self._add_backward_monitor_support(trainer)
-        self._validate_monitor_key(trainer)
+        self._validate_monitor_key(trainer, is_on_train_end)
 
         # track epoch when ckpt was last checked
         self._last_global_step_saved = global_step
@@ -356,7 +378,11 @@ class ModelCheckpoint(Callback):
         self.kth_value, self.mode = mode_dict[mode]
 
     def __init_triggers(
-        self, every_n_train_steps: Optional[int], every_n_val_epochs: Optional[int], period: Optional[int]
+        self,
+        every_n_train_steps: Optional[int],
+        every_n_val_epochs: Optional[int],
+        period: Optional[int],
+        trigger_on_train_end: bool = False,
     ) -> None:
 
         # Default to running once after each validation epoch if neither
@@ -378,6 +404,7 @@ class ModelCheckpoint(Callback):
             self._every_n_val_epochs = period
 
         self._period = self._every_n_val_epochs
+        self._trigger_on_train_end = trigger_on_train_end
 
     @property
     def period(self) -> Optional[int]:
@@ -582,13 +609,13 @@ class ModelCheckpoint(Callback):
                 " and use it as `Trainer(callbacks=[mc])`.", DeprecationWarning
             )
 
-    def _validate_monitor_key(self, trainer):
+    def _validate_monitor_key(self, trainer, is_on_train_end: bool):
         metrics = trainer.logger_connector.callback_metrics
-
         # validate metric
-        if self.monitor is not None and not self._is_valid_monitor_key(metrics):
+        if self.monitor is not None and not self._is_valid_monitor_key(metrics) and not is_on_train_end:
             m = (
-                f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
+                f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics "
+                "and it is not triggered on train end:"
                 f" {list(metrics.keys())}. "
                 f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
             )

@@ -453,6 +453,7 @@ def test_model_checkpoint_file_extension(tmpdir):
         dirpath=tmpdir,
         save_top_k=1,
         save_last=True,
+        trigger_on_train_end=True,
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -594,31 +595,16 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
 
 
 @pytest.mark.parametrize("period", list(range(4)))
-def test_model_checkpoint_period(tmpdir, period: int):
-    model = LogInTwoMethods()
-    epochs = 5
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}', save_top_k=-1, period=period)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[checkpoint_callback],
-        max_epochs=epochs,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        logger=False,
-    )
-    trainer.fit(model)
-
-    # check that the correct ckpts were created
-    expected = [f'epoch={e}.ckpt' for e in range(epochs) if not (e + 1) % period] if period > 0 else []
-    assert set(os.listdir(tmpdir)) == set(expected)
-
-
-@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
-def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
+@pytest.mark.parametrize('trigger_on_train_end', [False, True])
+def test_model_checkpoint_period(tmpdir, period: int, trigger_on_train_end: bool):
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
-        dirpath=tmpdir, filename='{epoch}', save_top_k=-1, every_n_val_epochs=every_n_val_epochs
+        dirpath=tmpdir,
+        filename='{epoch}',
+        save_top_k=-1,
+        period=period,
+        trigger_on_train_end=trigger_on_train_end,
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -631,13 +617,55 @@ def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    expected = [f'epoch={e}.ckpt' for e in range(epochs)
-                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
+    expected = (
+        [f"epoch={e}.ckpt" for e in range(epochs) if (e + 1) % period == 0]
+        if period > 0
+        else []
+    )
+    if trigger_on_train_end and (period == 0 or epochs % period != 0):
+        final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs - 1)
+        expected.append(final_epoch_ckpt)
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
 @pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
-def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epochs):
+@pytest.mark.parametrize('trigger_on_train_end', [False, True])
+def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs, trigger_on_train_end: bool):
+    model = LogInTwoMethods()
+    epochs = 5
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmpdir,
+        filename='{epoch}',
+        save_top_k=-1,
+        every_n_val_epochs=every_n_val_epochs,
+        trigger_on_train_end=trigger_on_train_end,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[checkpoint_callback],
+        max_epochs=epochs,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    # check that the correct ckpts were created
+    expected = (
+        [f"epoch={e}.ckpt" for e in range(epochs) if (e + 1) % every_n_val_epochs == 0]
+        if every_n_val_epochs > 0
+        else []
+    )
+
+    if trigger_on_train_end and (every_n_val_epochs == 0 or epochs % every_n_val_epochs != 0):
+        final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs - 1)
+        expected.append(final_epoch_ckpt)
+    assert set(os.listdir(tmpdir)) == set(expected)
+
+
+@pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
+@pytest.mark.parametrize('trigger_on_train_end', [False, True])
+def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epochs, trigger_on_train_end: bool):
     """ Tests that if period is set, it takes precedence over every_n_val_epochs for backwards compatibility. """
     model = LogInTwoMethods()
     epochs = 5
@@ -646,7 +674,8 @@ def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epoc
         filename='{epoch}',
         save_top_k=-1,
         every_n_val_epochs=(2 * every_n_val_epochs),
-        period=every_n_val_epochs
+        period=every_n_val_epochs,
+        trigger_on_train_end=trigger_on_train_end,
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -659,8 +688,14 @@ def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epoc
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    expected = [f'epoch={e}.ckpt' for e in range(epochs)
-                if not (e + 1) % every_n_val_epochs] if every_n_val_epochs > 0 else []
+    expected = (
+        [f"epoch={e}.ckpt" for e in range(epochs) if (e + 1) % every_n_val_epochs == 0]
+        if every_n_val_epochs > 0
+        else []
+    )
+    if trigger_on_train_end and (every_n_val_epochs == 0 or epochs % every_n_val_epochs != 0):
+        final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs - 1)
+        expected.append(final_epoch_ckpt)
     assert set(os.listdir(tmpdir)) == set(expected)
 
 
@@ -801,17 +836,34 @@ def test_default_checkpoint_behavior(tmpdir):
 
 
 @pytest.mark.parametrize('max_epochs', [1, 2])
+@pytest.mark.parametrize('every_n_val_epochs', [2, 3])
 @pytest.mark.parametrize('should_validate', [True, False])
 @pytest.mark.parametrize('save_last', [True, False])
 @pytest.mark.parametrize('verbose', [True, False])
+@pytest.mark.parametrize('trigger_on_train_end', [False, True])
 def test_model_checkpoint_save_last_warning(
-    tmpdir, caplog, max_epochs: int, should_validate: bool, save_last: bool, verbose: bool
+    tmpdir,
+    caplog,
+    max_epochs: int,
+    every_n_val_epochs: int,
+    should_validate: bool,
+    save_last: bool,
+    verbose: bool,
+    trigger_on_train_end: bool,
 ):
-    """Tests 'Saving latest checkpoint...' log"""
+    """Tests 'Saving last checkpoint...' log"""
     model = LogInTwoMethods()
     if not should_validate:
         model.validation_step = None
-    ckpt = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, save_top_k=0, save_last=save_last, verbose=verbose)
+    ckpt = ModelCheckpoint(
+        monitor='early_stop_on',
+        dirpath=tmpdir,
+        every_n_val_epochs=every_n_val_epochs,
+        save_top_k=0,
+        save_last=save_last,
+        verbose=verbose,
+        trigger_on_train_end=trigger_on_train_end,
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[ckpt],
@@ -819,7 +871,10 @@ def test_model_checkpoint_save_last_warning(
     )
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
-    assert caplog.messages.count('Saving latest checkpoint...') == (verbose and save_last)
+    expected = False
+    if save_last and verbose and trigger_on_train_end:
+        expected = (max_epochs % every_n_val_epochs != 0)
+    assert caplog.messages.count('Saving last checkpoint...') == expected
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):

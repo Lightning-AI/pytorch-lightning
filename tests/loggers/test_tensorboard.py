@@ -55,7 +55,7 @@ def test_tensorboard_hparams_reload(tmpdir):
         assert len(yaml_params.keys()) == 2
 
     # verify artifacts
-    assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 1
+    assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 0
 
     # verify tb logs
     event_acc = EventAccumulator(folder_path)
