@@ -490,7 +490,7 @@ class ModelCheckpoint(Callback):
             m = (
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                 f" {list(metrics.keys())}. "
-                f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
+                f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
             raise MisconfigurationException(m)
 
