@@ -29,7 +29,7 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
+from pytorch_lightning.utilities.cloud_io import atomic_save, dump_checkpoint, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
@@ -297,6 +297,9 @@ class CheckpointConnector:
         max_suffix = self.max_ckpt_in_folder(folder_path)
         ckpt_number = max_suffix if max_suffix is not None else 0
         return f'{folder_path}/hpc_ckpt_{ckpt_number}.ckpt'
+
+    def dump_checkpoint(self, weights_only: bool = False) -> dict:
+        return dump_checkpoint(self.trainer, weights_only)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         """Save model/training states as a checkpoint file through state-dump and file-write.
