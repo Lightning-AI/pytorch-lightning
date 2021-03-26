@@ -298,20 +298,3 @@ class CheckpointConnector:
             weights_only: saving model weights only
         """
         self.trainer.accelerator.save_checkpoint(self.trainer, filepath, weights_only)
-        # dump states as a checkpoint dictionary object
-        checkpoint = self.dump_checkpoint(weights_only)
-        if self.trainer.is_global_zero:
-            # write the checkpoint dictionary on the file
-
-            if self.trainer.training_type_plugin:
-                checkpoint = self.trainer.training_type_plugin.on_save(checkpoint)
-            try:
-                atomic_save(checkpoint, filepath)
-            except AttributeError as err:
-                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-                    del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-                rank_zero_warn(
-                    'Warning, `hyper_parameters` dropped from checkpoint.'
-                    f' An attribute is not picklable {err}'
-                )
-                atomic_save(checkpoint, filepath)
