@@ -19,26 +19,15 @@ from typing import Optional, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
-    _OMEGACONF_AVAILABLE,
-    AMPType,
-    DeviceType,
-    rank_zero_info,
-    rank_zero_warn,
-)
-from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, DeviceType, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import atomic_save, dump_checkpoint, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _APEX_AVAILABLE:
     from apex import amp
-
-if _OMEGACONF_AVAILABLE:
-    from omegaconf import Container
 
 
 class CheckpointConnector:
@@ -215,7 +204,7 @@ class CheckpointConnector:
 
         # give model a chance to do something on hpc_save
         model = self.trainer.lightning_module
-        checkpoint = self.dump_checkpoint()
+        checkpoint = dump_checkpoint(self.trainer)
 
         model.on_hpc_save(checkpoint)
 

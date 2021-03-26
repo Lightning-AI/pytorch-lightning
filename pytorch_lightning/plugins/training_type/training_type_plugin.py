@@ -13,19 +13,20 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING, Union, Generator
-from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities import rank_zero_warn
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.utilities.cloud_io import load as pl_load, dump_checkpoint
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import atomic_save, dump_checkpoint
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
@@ -224,7 +225,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         yield
 
-    def save_checkpoint(self, trainer: 'pl.Trainer', filepath:str, weights_only: bool = False) -> None:
+    def save_checkpoint(self, trainer: 'pl.Trainer', filepath: str, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:

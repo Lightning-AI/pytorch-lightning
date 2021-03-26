@@ -18,18 +18,17 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
+
 import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import dump_checkpoint
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.utilities.cloud_io import dump_checkpoint
-
-
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
