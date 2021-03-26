@@ -25,6 +25,8 @@ COPY ./ ./pytorch-lightning/
 
 # install dependencies
 RUN \
+    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/pl_examples . && \
     #conda install "pip>20.1" && \
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
