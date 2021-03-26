@@ -71,9 +71,8 @@ class TrainerLoggingMixin(ABC):
         if isinstance(output, torch.Tensor):
             progress_bar_metrics = {}
             log_metrics = {}
-            callback_metrics = {}
             hiddens = None
-            return output, progress_bar_metrics, log_metrics, callback_metrics, hiddens
+            return output, progress_bar_metrics, log_metrics, hiddens
 
         # ---------------
         # EXTRACT PROGRESS BAR KEYS
@@ -140,7 +139,7 @@ class TrainerLoggingMixin(ABC):
         progress_bar_metrics = recursive_detach(progress_bar_metrics)
         log_metrics = recursive_detach(log_metrics)
 
-        return loss, progress_bar_metrics, log_metrics, {}, hiddens
+        return loss, progress_bar_metrics, log_metrics, hiddens
 
     def reduce_distributed_output(self, output, num_gpus):
         if num_gpus <= 1:
