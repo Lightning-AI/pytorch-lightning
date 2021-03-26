@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, TYPE
 import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-
+import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
@@ -479,3 +479,15 @@ class Accelerator(object):
             ' It will be removed in v1.5.'
         )
         self.setup_precision_plugin(plugin)
+
+    def save_checkpoint(self, trainer: 'pl.Trainer', filepath:str, weights_only: bool = False) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            filepath: write-target file's path
+            weights_only: saving model weights only
+        """
+        self.training_type_plugin.save_checkpoint(trainer, filepath, weights_only)
+
+
+

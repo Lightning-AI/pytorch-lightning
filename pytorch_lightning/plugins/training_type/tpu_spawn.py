@@ -18,7 +18,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
-
+import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
@@ -27,6 +27,9 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.cloud_io import dump_checkpoint
+
+
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -106,8 +109,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         trainer.accelerator.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
 
-        # replace trainer save_checkpoint to use `xm.save`
-        trainer.save_checkpoint = self.save_checkpoint
         self.barrier("pre-run-stage")
 
         results = trainer.run_stage()
@@ -298,7 +299,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def predict_step(self, *args, **kwargs):
         return self.lightning_module.predict_step(*args, **kwargs)
 
-    def save_checkpoint(self, filepath, weights_only: bool = False):
+    def save_checkpoint(self, trainer: 'pl.Trainer', filepath: str, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -306,6 +307,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             weights_only: saving model weights only
         """
         # dump states as a checkpoint dictionary object
-        _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
+        _checkpoint = dump_checkpoint(trainer, weights_only)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
         self.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)

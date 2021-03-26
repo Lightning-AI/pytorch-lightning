@@ -33,6 +33,8 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.cloud_io import dump_checkpoint
+
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -231,7 +233,6 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def pre_dispatch(self):
         self.init_deepspeed()
-        self.lightning_module.trainer.save_checkpoint = self.save_checkpoint
         self.barrier()
 
     def init_deepspeed(self):
@@ -455,7 +456,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def deepspeed_engine(self):
         return self.model
 
-    def save_checkpoint(self, filepath: str, weights_only: bool = False) -> None:
+    def save_checkpoint(self, trainer: 'pl.Trainer', filepath:str, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -465,13 +466,14 @@ class DeepSpeedPlugin(DDPPlugin):
         if torch.distributed.get_world_size() > 1:
             # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
-            client_state = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
+            client_state = dump_checkpoint(trainer, weights_only)
             save_dir = self._filepath_to_dir(filepath)
             _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
             client_state = {k: v for k, v in client_state.items() if k not in _exclude_keys}
             self.deepspeed_engine.save_checkpoint(save_dir, client_state=client_state)
+
         else:
-            self.lightning_module.trainer.checkpoint_connector.save_checkpoint(filepath)
+            super().save_checkpoint(trainer, filepath, weights_only)
 
     def restore_model_state_from_ckpt_path(self,
                                            ckpt_path: str,
