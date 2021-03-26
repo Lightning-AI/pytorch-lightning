@@ -136,7 +136,7 @@ jobs:
       shell: bash
 
     - name: Reinstall Horovod if necessary
-      # re-enable horovod on py3.9 when it will be supported
+      # todo: re-enable horovod on py3.9 when it will be supported
       if: runner.os != 'windows' && matrix.python-version != 3.9
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
