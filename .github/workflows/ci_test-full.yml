@@ -54,14 +54,18 @@ jobs:
         open(fname, 'w').writelines(lines)
       shell: python
 
+    - name: Temp fix 3.9 - Horovod
+      if: matrix.python-version == 3.9
+      run: |
+        pip uninstall -y horovod
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
+
     - name: Adjust minimal for Python 3.9
       if: matrix.requires == 'minimal' && matrix.python-version == 3.9
       run: |
         import re
         def _req(fname, ptn, ver):
             req = re.sub(ptn, ver, open(fname).read())
-            # todo: temporary drop also Horovod
-            req = re.sub(r"horovod[<>=\d\.]+", ver, req)
             open(fname, 'w').write(req)
 
         _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.8.0')
