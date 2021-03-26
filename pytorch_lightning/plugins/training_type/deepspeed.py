@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from collections import OrderedDict
 import json
 import logging
 import os
+from collections import OrderedDict
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -30,15 +31,13 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.cloud_io import dump_checkpoint
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.cloud_io import dump_checkpoint
-
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
-    # from deepspeed.runtime.zero.stage3 import remove_module_hooks
 
 
 def remove_module_hooks(model: torch.nn.Module) -> None:
@@ -298,7 +297,7 @@ class DeepSpeedPlugin(DDPPlugin):
             model_parallel_context = deepspeed.zero.Init(remote_device="cpu", pin_memory=True)
         else:
             model_parallel_context = super().model_parallel_context()
-        
+
         with model_parallel_context:
             yield
 
@@ -456,7 +455,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def deepspeed_engine(self):
         return self.model
 
-    def save_checkpoint(self, trainer: 'pl.Trainer', filepath:str, weights_only: bool = False) -> None:
+    def save_checkpoint(self, trainer: 'pl.Trainer', filepath: str, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:

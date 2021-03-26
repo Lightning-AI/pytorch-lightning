@@ -62,6 +62,7 @@ def _compare_version(package: str, op, version) -> bool:
         return True
     return op(pkg_version, LooseVersion(version))
 
+
 def _is_kineto_available() -> bool:
     _KINETO_AVAILABLE = False
     if _TORCH_GREATER_EQUAL_1_8:
@@ -70,6 +71,7 @@ def _is_kineto_available() -> bool:
         if kineto_available_fx:
             _KINETO_AVAILABLE = kineto_available_fx()
     return _KINETO_AVAILABLE
+
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
