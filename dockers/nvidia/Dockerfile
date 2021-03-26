@@ -54,9 +54,10 @@ RUN apt-get update -qq && \
     rm get-pip.py && \
     pip --version
 
-COPY ./ ./pytorch-lightning/
+COPY ./ /home/pytorch-lightning/
 
 RUN \
+    cd /home  && \
     mv pytorch-lightning/notebooks . && \
     mv pytorch-lightning/pl_examples . && \
     # replace by specific version if asked

@@ -21,10 +21,11 @@ MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 ARG LIGHTNING_VERSION=""
 
-COPY ./ ./pytorch-lightning/
+COPY ./ /home/pytorch-lightning/
 
 # install dependencies
 RUN \
+    cd /home && \
     mv pytorch-lightning/notebooks . && \
     mv pytorch-lightning/pl_examples . && \
     # replace by specific version if asked
