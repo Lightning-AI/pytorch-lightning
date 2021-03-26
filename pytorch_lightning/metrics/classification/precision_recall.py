@@ -16,12 +16,12 @@ from typing import Any, Callable, Optional
 from torchmetrics import Precision as _Precision
 from torchmetrics import Recall as _Recall
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class Precision(_Precision):
 
-    @deprecated(target=_Precision, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_Precision)
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -47,7 +47,7 @@ class Precision(_Precision):
 
 class Recall(_Recall):
 
-    @deprecated(target=_Recall, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_Recall)
     def __init__(
         self,
         num_classes: Optional[int] = None,

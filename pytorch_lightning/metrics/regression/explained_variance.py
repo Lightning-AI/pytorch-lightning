@@ -15,12 +15,12 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import ExplainedVariance as _ExplainedVariance
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class ExplainedVariance(_ExplainedVariance):
 
-    @deprecated(target=_ExplainedVariance, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_ExplainedVariance)
     def __init__(
         self,
         multioutput: str = 'uniform_average',

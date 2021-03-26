@@ -15,10 +15,10 @@
 import torch
 from torchmetrics.functional.regression.mean_relative_error import mean_relative_error as _mean_relative_error
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_mean_relative_error, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_mean_relative_error)
 def mean_relative_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
     .. deprecated::

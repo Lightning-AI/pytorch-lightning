@@ -125,6 +125,8 @@ class EvaluationLoop(object):
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
+        self.trainer.call_hook('on_epoch_start', *args, **kwargs)
+
         if self.trainer.testing:
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
@@ -344,8 +346,7 @@ class EvaluationLoop(object):
                     model_hook_fx(outputs)
                 else:
                     self.warning_cache.warn(
-                        f"`ModelHooks.{hook_name}` signature has changed in v1.3."
-                        " `outputs` parameter has been added."
+                        f"`ModelHooks.{hook_name}` signature has changed in v1.3. `outputs` parameter has been added."
                         " Support for the old signature will be removed in v1.5", DeprecationWarning
                     )
                     model_hook_fx()
