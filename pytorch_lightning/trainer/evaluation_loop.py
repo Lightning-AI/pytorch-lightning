@@ -15,6 +15,7 @@
 import torch
 
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -99,6 +100,10 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
+        if self.trainer.state != TrainerState.FITTING:
+            # summarize profile results
+            self.trainer.profiler.describe()
+
     def reload_evaluation_dataloaders(self):
         model = self.trainer.lightning_module
         if self.trainer.testing:
@@ -120,6 +125,8 @@ class EvaluationLoop(object):
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
+        self.trainer.call_hook('on_epoch_start', *args, **kwargs)
+
         if self.trainer.testing:
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
@@ -339,8 +346,7 @@ class EvaluationLoop(object):
                     model_hook_fx(outputs)
                 else:
                     self.warning_cache.warn(
-                        f"`ModelHooks.{hook_name}` signature has changed in v1.3."
-                        " `outputs` parameter has been added."
+                        f"`ModelHooks.{hook_name}` signature has changed in v1.3. `outputs` parameter has been added."
                         " Support for the old signature will be removed in v1.5", DeprecationWarning
                     )
                     model_hook_fx()

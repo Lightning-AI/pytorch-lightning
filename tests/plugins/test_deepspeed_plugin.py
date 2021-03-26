@@ -420,10 +420,11 @@ class ModelParallelClassificationModel(LightningModule):
         self.log('test_loss', F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log('test_acc', self.test_acc(logits, y), prog_bar=True, sync_dist=True)
 
-    def predict_step(self, batch, batch_idx):
+    def predict_step(self, batch, batch_idx, dataloader_idx=None):
         x, y = batch
         logits = self.forward(x)
-        return self.test_acc(logits, y).compute()
+        self.test_acc(logits, y)
+        return self.test_acc.compute()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -497,7 +498,8 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
 
     dm.predict_dataloader = dm.test_dataloader
     results = trainer.predict(model, datamodule=dm)
-    assert results[0]['test_acc'] > 0.7
+    print(results)
+    assert results[-1] > 0.7
 
 
 @RunIf(min_gpus=2, deepspeed=True)

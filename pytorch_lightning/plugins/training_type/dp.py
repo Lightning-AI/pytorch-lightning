@@ -83,7 +83,7 @@ class DataParallelPlugin(ParallelPlugin):
     def test_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
+    def predict_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
     def training_step_end(self, output):
