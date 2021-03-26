@@ -12,18 +12,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM nvcr.io/nvidia/pytorch:21.02-py3
+FROM nvcr.io/nvidia/cuda:11.2.2-runtime-ubuntu20.04
 
 MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 ARG LIGHTNING_VERSION=""
 
+SHELL ["/bin/bash", "-c"]
+# https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
+ENV \
+    DEBIAN_FRONTEND=noninteractive \
+    TZ=Europe/Prague \
+    PATH="$PATH:/root/.local/bin" \
+    CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
+    MKL_THREADING_LAYER=GNU
+
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        python3 \
+        python3-distutils \
+        python3-dev \
+        pkg-config \
+        cmake \
+        git \
+        wget \
+        curl \
+        unzip \
+        ca-certificates \
+        software-properties-common \
+        libopenmpi-dev \
+    && \
+
+# Cleaning
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /root/.cache && \
+    rm -rf /var/lib/apt/lists/* && \
+
+# Setup PIP
+    update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \
+    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
+    python get-pip.py && \
+    rm get-pip.py && \
+    pip --version
+
 COPY ./ ./pytorch-lightning/
 
-# install dependencies
 RUN \
-    #conda install "pip>20.1" && \
-    pip list | grep torch && \
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
@@ -31,7 +67,12 @@ RUN \
         mv pytorch-lightning-*/ pytorch-lightning ; \
         rm *.zip ; \
     fi && \
-    pip install ./pytorch-lightning["extra"] -U --no-cache-dir && \
+
+# Instalations
+    python -c "fname = './pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
+    pip install -r ./pytorch-lightning/requirements/extra.txt -U --no-cache-dir && \
+    pip install -r ./pytorch-lightning/requirements/examples.txt -U --no-cache-dir && \
+    pip install ./pytorch-lightning --no-cache-dir && \
     rm -rf pytorch-lightning
 
 RUN python --version && \
