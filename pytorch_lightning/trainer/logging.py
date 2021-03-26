@@ -76,20 +76,6 @@ class TrainerLoggingMixin(ABC):
             return output, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 
         # ---------------
-        # EXTRACT CALLBACK KEYS
-        # ---------------
-        # all keys not progress_bar or log are candidates for callbacks
-        callback_metrics = {}
-        if isinstance(output, Mapping):
-            for k, v in output.items():
-                if k not in ['progress_bar', 'log', 'hiddens']:
-                    callback_metrics[k] = v
-
-        if train and self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
-            num_gpus = self.num_gpus
-            callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
-
-        # ---------------
         # EXTRACT PROGRESS BAR KEYS
         # ---------------
         try:
@@ -149,17 +135,12 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         hiddens = output.get('hiddens', None) if isinstance(output, Mapping) else None
 
-        # use every metric passed in as a candidate for callback
-        callback_metrics.update(progress_bar_metrics)
-        callback_metrics.update(log_metrics)
-
         # detach all metrics for callbacks to prevent memory leaks
         # no .item() because it will slow things down
-        callback_metrics = recursive_detach(callback_metrics)
         progress_bar_metrics = recursive_detach(progress_bar_metrics)
         log_metrics = recursive_detach(log_metrics)
 
-        return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
+        return loss, progress_bar_metrics, log_metrics, {}, hiddens
 
     def reduce_distributed_output(self, output, num_gpus):
         if num_gpus <= 1:
