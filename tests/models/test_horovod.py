@@ -51,7 +51,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
     # todo: Find why coverage breaks CI.
-    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''     # noqa E265
+    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''     # noqa E265
     # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,   # noqa E265
     cmdline = [
         'horovodrun', '-np',
@@ -60,14 +60,8 @@ def _run_horovod(trainer_options, on_gpu=False):
     ]
     if on_gpu:
         cmdline += ['--on-gpu']
-    subprocess.check_call(' '.join(cmdline), shell=True, env=os.environ.copy())
-
-
-def _run_horovod_clip_grad_by_value(trainer_options, on_gpu=False):
-    """ clip_grad_by_value test """
-    trainer_options_clip_grad_val = deepcopy(trainer_options)
-    trainer_options_clip_grad_val.update({'gradient_clip_algorithm': 'value'})
-    _run_horovod(trainer_options_clip_grad_val, on_gpu)
+    exit_code = subprocess.call(' '.join(cmdline), shell=True, env=os.environ.copy())
+    assert exit_code == 0
 
 
 @RunIf(skip_windows=True)
@@ -94,6 +88,7 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
+        gradient_clip_algorithm='value',
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
@@ -101,7 +96,7 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
         accelerator='horovod',
         deterministic=True,
     )
-    _run_horovod_clip_grad_by_value(trainer_options)
+    _run_horovod(trainer_options)
 
 
 @RunIf(skip_windows=True)
@@ -145,6 +140,7 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
+        gradient_clip_algorithm='value',
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
@@ -153,7 +149,7 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
         deterministic=True,
         accelerator='horovod',
     )
-    _run_horovod_clip_grad_by_value(trainer_options, on_gpu=True)
+    _run_horovod(trainer_options, on_gpu=True)
 
 
 # https://discuss.pytorch.org/t/torch-cuda-amp-vs-nvidia-apex/74994

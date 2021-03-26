@@ -25,6 +25,3 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     EPSILON: float = 1e-5
     backend: 'AMPType'
     precision: Union[str, int] = "mixed"
-
-    def __init__(self) -> None:
-        super().__init__()
