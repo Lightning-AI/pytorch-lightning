@@ -20,6 +20,15 @@ from typing import IO, Union
 import fsspec
 import torch
 
+import pytorch_lightning as pl
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _OMEGACONF_AVAILABLE, AMPType, DeviceType
+
+if _APEX_AVAILABLE:
+    from apex import amp
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import Container
+
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
     if not isinstance(path_or_url, (str, Path)):
@@ -63,3 +72,92 @@ def atomic_save(checkpoint, filepath: str):
         torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:
         f.write(bytesbuffer.getvalue())
+
+
+def dump_checkpoint(trainer: 'pl.Trainer', weights_only: bool = False) -> dict:
+    """Creating a model checkpoint dictionary object from various component states.
+
+    Args:
+        weights_only: saving model weights only
+
+    Return:
+        structured dictionary: {
+            'epoch':                     training epoch
+            'global_step':               training global step
+            'pytorch-lightning_version': PyTorch Lightning's version
+            'callbacks':                 "callback specific state"[] # if not weights_only
+            'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
+            'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
+            'native_amp_scaling_state':  PT amp's state_dict         # if not weights_only and use native amp
+            'amp_scaling_state':         Apex's state_dict           # if not weights_only and use apex amp
+            'state_dict':                Model's state_dict (e.g. network weights)
+            CHECKPOINT_HYPER_PARAMS_NAME:
+            CHECKPOINT_HYPER_PARAMS_KEY:
+            CHECKPOINT_HYPER_PARAMS_TYPE:
+            something_cool_i_want_to_save: anything you define through model.on_save_checkpoint
+            LightningDataModule.__class__.__name__: pl DataModule's state
+        }
+    """
+
+    # dump epoch/global_step/pytorch-lightning_version
+    current_epoch = trainer.current_epoch
+    global_step = trainer.global_step
+    has_reached_max_steps = trainer.max_steps and trainer.max_steps <= global_step
+
+    global_step += 1
+    if not has_reached_max_steps:
+        current_epoch += 1
+
+    model = trainer.lightning_module
+
+    checkpoint = {
+        'epoch': current_epoch,
+        'global_step': global_step,
+        'pytorch-lightning_version': pl.__version__,
+        'state_dict': model.state_dict(),
+    }
+
+    if not weights_only:
+        # dump callbacks
+        checkpoint['callbacks'] = trainer.on_save_checkpoint(checkpoint)
+
+        optimizer_states = []
+        for i, optimizer in enumerate(trainer.optimizers):
+            # Rely on accelerator to dump optimizer state
+            optimizer_state = trainer.accelerator.optimizer_state(optimizer)
+            optimizer_states.append(optimizer_state)
+
+        checkpoint['optimizer_states'] = optimizer_states
+
+        # dump lr schedulers
+        lr_schedulers = []
+        for scheduler in trainer.lr_schedulers:
+            lr_schedulers.append(scheduler['scheduler'].state_dict())
+        checkpoint['lr_schedulers'] = lr_schedulers
+
+        # dump amp scaling
+        if (
+            trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU
+            and trainer.scaler is not None
+        ):
+            checkpoint['native_amp_scaling_state'] = trainer.scaler.state_dict()
+        elif trainer.amp_backend == AMPType.APEX:
+            checkpoint['amp_scaling_state'] = amp.state_dict()
+
+    # dump hyper-parameters
+    if model.hparams:
+        if hasattr(model, '_hparams_name'):
+            checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
+        # dump arguments
+        if _OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
+            checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
+            checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
+        else:
+            checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
+
+    # give the model a chance to dump a few things
+    model.on_save_checkpoint(checkpoint)
+    if trainer.datamodule is not None:
+        trainer.datamodule.on_save_checkpoint(checkpoint)
+
+    return checkpoint
