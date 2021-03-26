@@ -342,7 +342,7 @@ class LoggerConnector:
                 eval_results = [eval_results]
 
             for result_idx, result in enumerate(eval_results):
-                _, prog_bar_metrics, log_metrics = self.trainer.process_dict_result(result)
+                _, prog_bar_metrics, log_metrics, _ = self.trainer.process_dict_result(result)
 
                 # eval loop returns all metrics
                 dataloader_result_metrics = {**prog_bar_metrics, **log_metrics}
