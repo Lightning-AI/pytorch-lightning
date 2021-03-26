@@ -354,19 +354,22 @@ class TrainLoop:
         result = self.trainer.lightning_module._results
 
         loss = None
+        hiddens = None
+        result["extra"] = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
             loss = training_step_output.pop("loss", None)
+            hiddens = training_step_output.pop("hiddens", None)
             result["extra"] = training_step_output
 
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
             loss = training_step_output
-            result["extra"] = {}
 
         # map to results under the hood
         result.minimize = loss
+        self.trainer.hiddens = hiddens
 
         # track batch for manual reduction with result
         result.track_batch_size(len(split_batch))

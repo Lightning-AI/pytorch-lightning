@@ -14,6 +14,7 @@
 
 import inspect
 from abc import ABC
+from collections import Mapping
 
 import torch
 
@@ -75,9 +76,7 @@ class TrainerLoggingMixin(ABC):
         # --------------------------
         # single scalar returned from a xx_step
         if isinstance(output, torch.Tensor):
-            progress_bar_metrics = {}
-            log_metrics = {}
-            return output, progress_bar_metrics, log_metrics
+            return output, {}, {}, None
 
         # ---------------
         # EXTRACT PROGRESS BAR KEYS
@@ -134,12 +133,19 @@ class TrainerLoggingMixin(ABC):
             if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
                 loss = self.reduce_distributed_output(loss, self.num_gpus)
 
+        # ---------------
+        # EXTRACT HIDDEN
+        # ---------------
+        hiddens = output.get('hiddens', None) if isinstance(output, Mapping) else None
+        if hiddens is not None:
+            hiddens = hiddens.detach()
+
         # detach all metrics for callbacks to prevent memory leaks
         # no .item() because it will slow things down
         progress_bar_metrics = recursive_detach(progress_bar_metrics)
         log_metrics = recursive_detach(log_metrics)
 
-        return loss, progress_bar_metrics, log_metrics
+        return loss, progress_bar_metrics, log_metrics, hiddens
 
     def reduce_distributed_output(self, output, num_gpus):
         if num_gpus <= 1:

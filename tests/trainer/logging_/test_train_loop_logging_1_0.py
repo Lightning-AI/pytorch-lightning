@@ -318,12 +318,7 @@ def test_tbptt_log(tmpdir):
             self.layer = torch.nn.Linear(2, 2)
 
         def training_step(self, batch, batch_idx, hiddens):
-            try:
-                assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            # todo: specify the possible exception
-            except Exception as ex:
-                print(ex)
-
+            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
             self.test_hidden = torch.rand(1)
 
             x_tensor, y_list = batch
