@@ -461,7 +461,7 @@ def test_metric_holder_raises(tmpdir):
 
         def validation_step(self, batch, *args, **kwargs):
             output = self(batch)
-            return {"test": output}
+            self.log('test', output)
 
         def test_step(self, *args, **kwargs):
             return self.validation_step(*args, **kwargs)
@@ -477,6 +477,27 @@ def test_metric_holder_raises(tmpdir):
         trainer.validate(model)
     with pytest.raises(MisconfigurationException, match=match):
         trainer.test(model)
+
+
+def test_can_return_tensor_with_more_than_one_element(tmpdir):
+    """Ensure {validation,test}_step return values are not included as callback metrics. #6623"""
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, *args, **kwargs):
+            return {"val": torch.tensor([0, 1])}
+
+        def test_step(self, batch, *args, **kwargs):
+            return {"test": torch.tensor([0, 1])}
+
+    model = TestModel()
+    model.validation_epoch_end = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, progress_bar_refresh_rate=0)
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
 
 
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):

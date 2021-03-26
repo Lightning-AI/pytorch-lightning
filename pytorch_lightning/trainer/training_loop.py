@@ -341,7 +341,6 @@ class TrainLoop:
             batch_loss=training_step_output[0],
             pbar_on_batch_end=training_step_output[1],
             log_metrics=training_step_output[2],
-            callback_metrics=training_step_output[3],
         )
         # if the user decides to finally reduce things in epoch_end, save raw output without graphs
         if isinstance(training_step_output_for_epoch_end, torch.Tensor):
