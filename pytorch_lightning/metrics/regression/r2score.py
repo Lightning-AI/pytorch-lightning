@@ -15,12 +15,12 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import R2Score as _R2Score
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class R2Score(_R2Score):
 
-    @deprecated(target=_R2Score, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_R2Score)
     def __init__(
         self,
         num_outputs: int = 1,
