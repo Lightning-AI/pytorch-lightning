@@ -33,13 +33,20 @@ class Tuner:
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
-    def tune(self, model, train_dataloader, val_dataloaders, datamodule):
+    def setup_trainer(
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: LightningDataModule = None,
+    ):
+        self.trainer.model_connector.copy_trainer_model_properties(model)
         # setup data, etc...
         self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
-
         # hook
         self.trainer.data_connector.prepare_data(model)
 
+    def tune(self, model, train_dataloader, val_dataloaders, datamodule):
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, bool):
@@ -104,6 +111,7 @@ class Tuner:
                 or datamodule.
 
         """
+        self.setup_trainer(model, **fit_kwargs)
         return scale_batch_size(
             self.trainer,
             model,
@@ -128,6 +136,7 @@ class Tuner:
         datamodule: Optional[LightningDataModule] = None,
         update_attr: bool = False,
     ):
+        self.setup_trainer(model, train_dataloader, val_dataloaders, datamodule)
         return lr_find(
             self.trainer,
             model,

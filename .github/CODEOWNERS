@@ -34,9 +34,9 @@
 /pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
 
 # Metrics
-/pytorch_lightning/metrics/             @teddykoker @ananyahjha93 @justusschock
-/tests/metrics/                         @teddykoker @ananyahjha93 @justusschock
-/docs/source/metrics.rst                @teddykoker @ananyahjha93 @justusschock
+/pytorch_lightning/metrics/             @SkafteNicki @ananyahjha93 @justusschock
+/tests/metrics/                         @SkafteNicki @ananyahjha93 @justusschock
+/docs/source/metrics.rst                @SkafteNicki @ananyahjha93 @justusschock
 
 # API
 /pytorch_lightning/callbacks/base.py    @williamfalcon

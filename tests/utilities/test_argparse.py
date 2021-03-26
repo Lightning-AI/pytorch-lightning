@@ -1,15 +1,50 @@
 import io
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from typing import List
+from unittest.mock import MagicMock
 
 import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.argparse import (
+    _gpus_arg_default,
+    _int_or_float_type,
     add_argparse_args,
+    from_argparse_args,
     get_abbrev_qualified_cls_name,
+    parse_argparser,
     parse_args_from_docstring,
 )
+
+
+class ArgparseExample:
+
+    def __init__(self, a: int = 0, b: str = '', c: bool = False):
+        self.a = a
+        self.b = b
+        self.c = c
+
+
+def test_from_argparse_args():
+    args = Namespace(a=1, b='test', c=True, d='not valid')
+    my_instance = from_argparse_args(ArgparseExample, args)
+    assert my_instance.a == 1
+    assert my_instance.b == 'test'
+    assert my_instance.c
+
+    parser = ArgumentParser()
+    mock_trainer = MagicMock()
+    _ = from_argparse_args(mock_trainer, parser)
+    mock_trainer.parse_argparser.assert_called_once_with(parser)
+
+
+def test_parse_argparser():
+    args = Namespace(a=1, b='test', c=None, d='not valid')
+    new_args = parse_argparser(ArgparseExample, args)
+    assert new_args.a == 1
+    assert new_args.b == 'test'
+    assert new_args.c
+    assert new_args.d == 'not valid'
 
 
 def test_parse_args_from_docstring_normal():
@@ -168,3 +203,13 @@ def test_add_argparse_args_no_argument_group():
     args = parser.parse_args(fake_argv)
     assert args.main_arg == "abc"
     assert args.my_parameter == 2
+
+
+def test_gpus_arg_default():
+    assert _gpus_arg_default('1,2') == '1,2'
+    assert _gpus_arg_default('1') == 1
+
+
+def test_int_or_float_type():
+    assert isinstance(_int_or_float_type('0.0'), float)
+    assert isinstance(_int_or_float_type('0'), int)

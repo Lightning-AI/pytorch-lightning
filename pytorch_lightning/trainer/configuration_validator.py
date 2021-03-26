@@ -40,7 +40,8 @@ class ConfigValidator(object):
             self.__verify_eval_loop_configuration(model, 'val')
         elif self.trainer.state == TrainerState.TESTING:
             self.__verify_eval_loop_configuration(model, 'test')
-        # TODO: add predict
+        elif self.trainer.state == TrainerState.PREDICTING:
+            self.__verify_predict_loop_configuration(model)
 
     def __verify_train_loop_configuration(self, model):
         # -----------------------------------
@@ -99,3 +100,9 @@ class ConfigValidator(object):
             rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop')
         if has_step and not has_loader:
             rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {stage} loop')
+
+    def __verify_predict_loop_configuration(self, model: LightningModule) -> None:
+
+        has_predict_dataloader = is_overridden('predict_dataloader', model)
+        if not has_predict_dataloader:
+            raise MisconfigurationException('Dataloader not found for `Trainer.predict`')

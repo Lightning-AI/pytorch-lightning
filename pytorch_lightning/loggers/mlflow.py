@@ -80,6 +80,8 @@ class MLFlowLogger(LightningLoggerBase):
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
         prefix: A string to put at the beginning of metric keys.
+        artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
+            default.
         figure_file_extension: File extension with which matplotlib saves figure
 
     Raises:
@@ -96,6 +98,7 @@ class MLFlowLogger(LightningLoggerBase):
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
+        artifact_location: Optional[str] = None,
         figure_file_extension='.png',
     ):
         if mlflow is None:
@@ -113,6 +116,8 @@ class MLFlowLogger(LightningLoggerBase):
         self._run_id = None
         self.tags = tags
         self._prefix = prefix
+        self._artifact_location = artifact_location
+
         self._mlflow_client = MlflowClient(tracking_uri)
         self._figure_file_extension = figure_file_extension
 
@@ -134,7 +139,10 @@ class MLFlowLogger(LightningLoggerBase):
                 self._experiment_id = expt.experiment_id
             else:
                 log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
-                self._experiment_id = self._mlflow_client.create_experiment(name=self._experiment_name)
+                self._experiment_id = self._mlflow_client.create_experiment(
+                    name=self._experiment_name,
+                    artifact_location=self._artifact_location,
+                )
 
         if self._run_id is None:
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=self.tags)
