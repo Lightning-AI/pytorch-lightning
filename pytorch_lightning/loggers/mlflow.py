@@ -17,6 +17,7 @@ MLflow Logger
 """
 import logging
 import re
+import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
@@ -199,12 +200,14 @@ class MLFlowLogger(LightningLoggerBase):
     def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
         import matplotlib.pyplot as plt
 
-        # save temporary file until logged
-        filename = Path(self.save_dir) / (name + f"_step_{step}" + self._figure_file_extension)
-        figure.savefig(filename)
-        self.experiment.log_artifact(self.run_id, filename, artifact_path="figure_" + name)
+        with tempfile.NamedTemporaryFile(suffix=self._figure_file_extension) as tmp_file:
+            figure.savefig(tmp_file)
+            self.experiment.log_artifact(
+                self.run_id,
+                tmp_file.name,
+                artifact_path=Path(self.save_dir) / ("figure_" + name)
+            )
 
-        filename.unlink()  # delete temporary file
         if close:
             plt.close(figure)
 
