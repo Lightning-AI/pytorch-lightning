@@ -17,24 +17,43 @@ from unittest import mock
 import pytest
 import torch
 from torch import optim
+from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
 class AMPTestModel(BoringModel):
 
-    def training_step(self, batch, batch_idx):
+    def _step(self, batch, batch_idx):
         assert torch.is_autocast_enabled()
         output = self(batch)
         assert output.dtype == torch.float16
         loss = self.loss(batch, output)
-        return {"loss": loss}
+        return loss
+
+    def training_step(self, batch, batch_idx):
+        output = self._step(batch, batch_idx)
+        return {"loss": output}
+
+    def validation_step(self, batch, batch_idx):
+        output = self._step(batch, batch_idx)
+        return {"x": output}
+
+    def test_step(self, batch, batch_idx):
+        output = self._step(batch, batch_idx)
+        return {"y": output}
+
+    def predict(self, batch, batch_idx, dataloader_idx=None):
+        assert torch.is_autocast_enabled()
+        output = self(batch)
+        assert output.dtype == torch.float16
+        return output
 
 
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
@@ -54,6 +73,8 @@ def test_amp_single_gpu_dp(tmpdir):
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
 
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
@@ -73,6 +94,8 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
@@ -112,6 +135,8 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
     model = AMPTestModel()
     # tutils.run_model_test(trainer_options, model)
     trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model, DataLoader(RandomDataset(32, 64)))
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 

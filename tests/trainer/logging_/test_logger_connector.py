@@ -447,11 +447,65 @@ def test_metrics_holder(to_float, tmpdir):
         "y": torch.tensor(2),
         "z": acc(preds, targets),
     })
-    metric_holder.convert(False, device)
+    metric_holder.convert(device)
     metrics = metric_holder.metrics
     assert excepted_function(metrics["x"])
     assert excepted_function(metrics["y"])
     assert excepted_function(metrics["z"])
+
+
+def test_metric_holder_raises(tmpdir):
+    """Check that an error is raised when trying to convert non-scalar tensors"""
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, *args, **kwargs):
+            output = self(batch)
+            self.log('test', output)
+
+        def test_step(self, *args, **kwargs):
+            return self.validation_step(*args, **kwargs)
+
+    model = TestModel()
+    model.validation_epoch_end = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+
+    match = "The metric `test` does not contain a single element"
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.validate(model)
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.test(model)
+
+
+def test_can_return_tensor_with_more_than_one_element(tmpdir):
+    """Ensure {validation,test}_step return values are not included as callback metrics. #6623"""
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, *args, **kwargs):
+            return {"val": torch.tensor([0, 1])}
+
+        def validation_epoch_end(self, outputs):
+            # ensure validation step returns still appear here
+            assert len(outputs) == 2
+            assert all(list(d) == ["val"] for d in outputs)  # check keys
+            assert all(torch.equal(d["val"], torch.tensor([0, 1])) for d in outputs)  # check values
+
+        def test_step(self, batch, *args, **kwargs):
+            return {"test": torch.tensor([0, 1])}
+
+        def test_epoch_end(self, outputs):
+            assert len(outputs) == 2
+            assert all(list(d) == ["test"] for d in outputs)  # check keys
+            assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, progress_bar_refresh_rate=0)
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
 
 
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):
@@ -465,10 +519,7 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
             return output
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=2,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
         trainer.fit(model)
 

@@ -68,8 +68,8 @@ you can trust the implementations and use them to bootstrap your research much f
 
             loss = self.criterion(logits.view(-1, logits.size(-1)), x.view(-1).long())
 
-            logs = {"loss": loss}
-            return {"loss": loss, "log": logs}
+            self.log("loss", loss)
+            return loss
 
 ----------
 
