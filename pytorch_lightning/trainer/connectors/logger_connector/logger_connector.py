@@ -374,7 +374,7 @@ class LoggerConnector:
             prog_bar_metrics, log_metrics, callback_metrics = {}, {}, {}
 
             for result_idx, result in enumerate(eval_results):
-                _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_dict_result(result)
+                _, prog_bar_metrics, log_metrics, callback_metrics = self.trainer.process_dict_result(result)
 
                 if num_loaders > 1:
                     self.__process_eval_epoch_end_results_and_log_legacy_update(

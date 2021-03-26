@@ -23,26 +23,16 @@ from torch import Tensor
 from torchmetrics import Metric
 
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
 
 
 class Result(Dict):
 
-    def __init__(
-        self,
-        minimize: Optional[Tensor] = None,
-        hiddens: Optional[Tensor] = None,
-    ):
-
+    def __init__(self, minimize: Optional[Tensor] = None):
         super().__init__()
 
         # temporary until dict results are deprecated
         os.environ['PL_USING_RESULT_OBJ'] = '1'
 
-        if hiddens is not None:
-            self.hiddens = hiddens.detach()
         if minimize is not None:
             err = 'Minimize can only be used in training_step, training_step_end, training_epoch_end'
             self._assert_grad_tensor_metric('minimize', minimize, err)
@@ -471,9 +461,7 @@ class Result(Dict):
         default_padding_idx = 0
         for name, value in result.items():
             if (
-                name != 'minimize'
-                and isinstance(value, list)
-                and len(value) > 0
+                name != 'minimize' and isinstance(value, list) and len(value) > 0
                 and isinstance(value[0], torch.Tensor)
             ):
                 default_padding_idx = meta[name]['tbptt_pad_token']
@@ -481,11 +469,7 @@ class Result(Dict):
 
         # pad across each key individually
         for name, value in result.items():
-            if (
-                isinstance(value, list)
-                and len(value) > 0
-                and isinstance(value[0], torch.Tensor)
-            ):
+            if (isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor)):
                 padding_key = default_padding_idx if name == 'minimize' else meta[name]['tbptt_pad_token']
                 padded = torch.nn.utils.rnn.pad_sequence(value, batch_first=True, padding_value=padding_key)
                 result[name] = padded
@@ -586,10 +570,6 @@ class Result(Dict):
     @property
     def should_reduce_on_epoch_end(self) -> bool:
         return self['meta']['_internal']['_reduce_on_epoch']
-
-    def drop_hiddens(self):
-        if 'hiddens' in self:
-            del self['hiddens']
 
     def rename_keys(self, map_dict: dict):
         """

@@ -312,7 +312,6 @@ class TrainLoop:
             loss=untouched_loss,
             training_step_output=training_step_output,
             training_step_output_for_epoch_end=training_step_output_for_epoch_end,
-            hiddens=training_step_output.hiddens,
         )
         return result
 
@@ -343,7 +342,6 @@ class TrainLoop:
             pbar_on_batch_end=training_step_output[1],
             log_metrics=training_step_output[2],
             callback_metrics=training_step_output[3],
-            hiddens=training_step_output[4],
         )
         # if the user decides to finally reduce things in epoch_end, save raw output without graphs
         if isinstance(training_step_output_for_epoch_end, torch.Tensor):
@@ -357,12 +355,10 @@ class TrainLoop:
         result = self.trainer.lightning_module._results
 
         loss = None
-        hiddens = None
 
         # handle dict return
         if isinstance(training_step_output, dict):
             loss = training_step_output.pop("loss", None)
-            hiddens = training_step_output.pop("hiddens", None)
             result["extra"] = training_step_output
 
         # handle scalar return
@@ -372,7 +368,6 @@ class TrainLoop:
 
         # map to results under the hood
         result.minimize = loss
-        result.hiddens = hiddens
 
         # track batch for manual reduction with result
         result.track_batch_size(len(split_batch))
@@ -437,12 +432,6 @@ class TrainLoop:
                 model = self.trainer.lightning_module
                 grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
         return grad_norm_dict
-
-    def process_hiddens(self, opt_closure_result):
-        hiddens = opt_closure_result.hiddens
-        if isinstance(opt_closure_result.training_step_output, Result):
-            opt_closure_result.training_step_output_for_epoch_end.drop_hiddens()
-        return hiddens
 
     def tbptt_split_batch(self, batch):
         splits = [batch]
@@ -686,9 +675,6 @@ class TrainLoop:
 
             # cache metrics
             self.trainer.logger_connector.cache_training_step_metrics(opt_closure_result)
-
-            # track hiddens
-            self.trainer.hiddens = self.process_hiddens(opt_closure_result)
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
