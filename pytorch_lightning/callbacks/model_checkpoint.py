@@ -202,7 +202,6 @@ class ModelCheckpoint(Callback):
         self.best_model_path = ""
         self.last_model_path = ""
         self.save_function = None
-        self.warned_result_obj = False
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)

@@ -30,9 +30,6 @@ class Result(Dict):
     def __init__(self, minimize: Optional[Tensor] = None):
         super().__init__()
 
-        # temporary until dict results are deprecated
-        os.environ['PL_USING_RESULT_OBJ'] = '1'
-
         if minimize is not None:
             err = 'Minimize can only be used in training_step, training_step_end, training_epoch_end'
             self._assert_grad_tensor_metric('minimize', minimize, err)
