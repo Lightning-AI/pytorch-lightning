@@ -16,7 +16,6 @@ import os
 import shlex
 import subprocess
 import sys
-from copy import deepcopy
 from unittest.mock import patch
 
 import numpy as np
