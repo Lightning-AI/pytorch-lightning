@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM nvcr.io/nvidia/cuda:11.2.2-runtime-ubuntu20.04
+FROM nvcr.io/nvidia/cuda:11.1.1-runtime-ubuntu20.04
 
 MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
