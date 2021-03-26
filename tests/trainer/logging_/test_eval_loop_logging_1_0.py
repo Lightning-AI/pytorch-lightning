@@ -372,11 +372,10 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir):
 
     class TestModel(BoringModel):
 
-        def test_step(self, batch, batch_idx, dataloader_idx):
+        def test_step(self, batch, *args):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.log("test_loss", loss, on_step=True, on_epoch=True)
-            return {"y": loss}
 
         def test_dataloader(self):
             return [
@@ -397,22 +396,19 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir):
         weights_summary=None,
     )
     results = trainer.test(model)
-    assert "test_loss_epoch/dataloader_idx_0" in results[0]
-    assert "test_loss_epoch/dataloader_idx_1" in results[1]
+
+    assert {"test_loss/dataloader_idx_0", "test_loss_epoch/dataloader_idx_0"} == set(results[0])
+    assert {"test_loss/dataloader_idx_1", "test_loss_epoch/dataloader_idx_1"} == set(results[1])
 
 
 def test_single_dataloader_no_suffix_added(tmpdir):
 
     class TestModel(BoringModel):
 
-        def test_step(self, batch, batch_idx):
+        def test_step(self, batch, *args):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.log("test_loss", loss, on_step=True, on_epoch=True)
-            return {"y": loss}
-
-        def test_dataloader(self):
-            return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
     model = TestModel()
     model.test_epoch_end = None
@@ -427,9 +423,9 @@ def test_single_dataloader_no_suffix_added(tmpdir):
         weights_summary=None,
     )
     results = trainer.test(model)
+
     assert len(results) == 1
-    # error : It is wrong there. `y` should equal test_loss_epoch
-    assert results[0]['test_loss'] == results[0]['y']
+    assert {"test_loss", "test_loss_epoch"} == set(results[0])
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
