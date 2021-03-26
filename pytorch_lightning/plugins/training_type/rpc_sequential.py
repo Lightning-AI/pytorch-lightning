@@ -13,7 +13,7 @@
 # limitations under the License
 import logging
 import os
-from typing import Callable, List, Optional
+from typing import List, Optional, Callable
 
 import torch
 import torch.distributed as torch_distrib

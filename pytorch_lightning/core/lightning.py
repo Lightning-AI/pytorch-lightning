@@ -38,7 +38,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -105,7 +105,6 @@ class LightningModule(
         self._current_hook_fx_name = None
         self._current_dataloader_idx = None
         self._automatic_optimization: bool = True
-        self._param_requires_grad_state = dict()
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -720,13 +719,10 @@ class LightningModule(
         .. code-block:: python
 
             # pseudocode of order
-            val_outs = []
-            for val_batch in val_data:
-                out = validation_step(val_batch)
-                if defined('validation_step_end'):
-                    out = validation_step_end(out)
-                val_outs.append(out)
-            val_outs = validation_epoch_end(val_outs)
+            out = validation_step()
+            if defined('validation_step_end'):
+                out = validation_step_end(out)
+            out = validation_epoch_end(out)
 
 
         .. code-block:: python
@@ -1057,7 +1053,7 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
+    def predict(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None):
         """
         Use this function with trainer.predict(...). Override if you need to add any processing logic.
         """
@@ -1229,8 +1225,9 @@ class LightningModule(
                 opt_a.step()
         """
         if optimizer is not None:
-            rank_zero_deprecation(
-                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4"
+            rank_zero_warn(
+                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4",
+                DeprecationWarning
             )
 
         # make sure we're using manual opt
@@ -1314,7 +1311,7 @@ class LightningModule(
                         if param in self._param_requires_grad_state:
                             param.requires_grad = self._param_requires_grad_state[param]
         # save memory
-        self._param_requires_grad_state = dict()
+        del self._param_requires_grad_state
 
     def optimizer_step(
         self,

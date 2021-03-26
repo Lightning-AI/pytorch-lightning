@@ -292,9 +292,7 @@ def test_init_optimizers_during_evaluation(tmpdir, fn):
     """
     Test that optimizers is an empty list during evaluation
     """
-
     class TestModel(BoringModel):
-
         def configure_optimizers(self):
             optimizer1 = torch.optim.Adam(self.parameters(), lr=0.1)
             optimizer2 = torch.optim.Adam(self.parameters(), lr=0.1)

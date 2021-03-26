@@ -13,14 +13,43 @@
 # limitations under the License.
 from typing import Any, Optional, Sequence
 
-from torchmetrics import SSIM as _SSIM
+import torch
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.functional.ssim import _ssim_compute, _ssim_update
+from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.utilities import rank_zero_warn
 
 
-class SSIM(_SSIM):
+class SSIM(Metric):
+    """
+    Computes `Structual Similarity Index Measure
+    <https://en.wikipedia.org/wiki/Structural_similarity>`_ (SSIM).
 
-    @deprecated_metrics(target=_SSIM)
+    Args:
+        kernel_size: size of the gaussian kernel (default: (11, 11))
+        sigma: Standard deviation of the gaussian kernel (default: (1.5, 1.5))
+        reduction: a method to reduce metric score over labels.
+
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+
+        data_range: Range of the image. If ``None``, it is determined from the image (max - min)
+        k1: Parameter of SSIM. Default: 0.01
+        k2: Parameter of SSIM. Default: 0.03
+
+    Return:
+        Tensor with SSIM score
+
+    Example:
+        >>> from pytorch_lightning.metrics import SSIM
+        >>> preds = torch.rand([16, 1, 16, 16])
+        >>> target = preds * 0.75
+        >>> ssim = SSIM()
+        >>> ssim(preds, target)
+        tensor(0.9219)
+    """
+
     def __init__(
         self,
         kernel_size: Sequence[int] = (11, 11),
@@ -33,9 +62,44 @@ class SSIM(_SSIM):
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
     ):
-        """
-        This implementation refers to :class:`~torchmetrics.SSIM`.
+        super().__init__(
+            compute_on_step=compute_on_step,
+            dist_sync_on_step=dist_sync_on_step,
+            process_group=process_group,
+        )
+        rank_zero_warn(
+            'Metric `SSIM` will save all targets and'
+            ' predictions in buffer. For large datasets this may lead'
+            ' to large memory footprint.'
+        )
 
-        .. deprecated::
-            Use :class:`~torchmetrics.SSIM`. Will be removed in v1.5.0.
+        self.add_state("y", default=[], dist_reduce_fx=None)
+        self.add_state("y_pred", default=[], dist_reduce_fx=None)
+        self.kernel_size = kernel_size
+        self.sigma = sigma
+        self.data_range = data_range
+        self.k1 = k1
+        self.k2 = k2
+        self.reduction = reduction
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
         """
+        Update state with predictions and targets.
+
+        Args:
+            preds: Predictions from model
+            target: Ground truth values
+        """
+        preds, target = _ssim_update(preds, target)
+        self.y_pred.append(preds)
+        self.y.append(target)
+
+    def compute(self):
+        """
+        Computes explained variance over state.
+        """
+        preds = torch.cat(self.y_pred, dim=0)
+        target = torch.cat(self.y, dim=0)
+        return _ssim_compute(
+            preds, target, self.kernel_size, self.sigma, self.reduction, self.data_range, self.k1, self.k2
+        )

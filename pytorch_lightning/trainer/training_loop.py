@@ -14,12 +14,12 @@
 
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
-from typing import Optional
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 class TrainLoop:
 
-    def __init__(self, trainer, multiple_trainloader_mode: str):
+    def __init__(self, trainer, multiple_trainloader_mode):
         self.trainer = trainer
         self.early_stopping_accumulator = None
         self.checkpoint_accumulator = None
@@ -53,12 +53,13 @@ class TrainLoop:
 
     def on_trainer_init(
         self,
-        max_epochs: Optional[int],
-        min_epochs: Optional[int],
-        max_steps: Optional[int],
-        min_steps: Optional[int],
-        num_sanity_val_steps: int,
-    ) -> None:
+        max_epochs,
+        min_epochs,
+        max_steps,
+        min_steps,
+        num_sanity_val_steps,
+        weights_summary,
+    ):
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.should_stop = False
@@ -81,6 +82,12 @@ class TrainLoop:
         else:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
 
+        self.trainer.weights_summary = weights_summary
+        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
+            raise MisconfigurationException(
+                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, got {weights_summary}"
+            )
+
     @property
     def num_optimizers(self):
         num_optimizers = len(self.get_optimizers_iterable())
@@ -95,7 +102,10 @@ class TrainLoop:
         # hook
         self.trainer.call_hook("on_train_start")
 
-    def setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
+        # provide rank to profiler
+        self.trainer.profile_connector.on_train_start(self.trainer)
+
+    def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -130,7 +140,8 @@ class TrainLoop:
             self.trainer.logger.finalize("success")
 
         # summarize profile results
-        self.trainer.profiler.describe()
+        if self.trainer.global_rank == 0:
+            self.trainer.profiler.describe()
 
         # give accelerators a chance to finish
         self.trainer.accelerator.on_train_end()
@@ -177,7 +188,7 @@ class TrainLoop:
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
 
         # changing gradient according accumulation_scheduler
-        self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
+        self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
         self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
@@ -540,7 +551,7 @@ class TrainLoop:
             self.increment_accumulated_grad_global_step()
 
         # epoch end hook
-        self.on_train_epoch_end(epoch_output)
+        self.run_on_epoch_end_hook(epoch_output)
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(
@@ -736,7 +747,7 @@ class TrainLoop:
 
                 # backward pass
                 if result is not None:
-                    with self.trainer.profiler.profile("backward"):
+                    with self.trainer.profiler.profile("model_backward"):
                         self.backward(result, optimizer, opt_idx)
 
                     # hook - call this hook only
@@ -782,7 +793,7 @@ class TrainLoop:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
-    def on_train_epoch_end(self, epoch_output):
+    def run_on_epoch_end_hook(self, epoch_output):
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 

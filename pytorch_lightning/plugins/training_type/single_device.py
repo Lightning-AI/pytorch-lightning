@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import torch
 
@@ -23,9 +23,6 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def __init__(self, device: torch.device):
         super().__init__()
         self.device: torch.device = device
-        self.global_rank = 0
-        self.local_rank = 0
-        self.world_size = 1
 
     @property
     def on_tpu(self) -> bool:
@@ -50,10 +47,6 @@ class SingleDevicePlugin(TrainingTypePlugin):
         """
         return tensor
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """Perform a all_gather on all processes """
-        return tensor
-
     @property
     def root_device(self) -> torch.device:
         return self.device
@@ -64,7 +57,8 @@ class SingleDevicePlugin(TrainingTypePlugin):
 
         self._model.to(self.root_device)
 
-    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
+    def connect(self, model: torch.nn.Module) -> torch.nn.Module:
+        self._model = model
         self.model_to_device()
         return self.model
 

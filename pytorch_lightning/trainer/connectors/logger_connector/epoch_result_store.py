@@ -13,11 +13,9 @@
 # limitations under the License.
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
-from weakref import proxy
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType, LightningEnum
@@ -52,7 +50,7 @@ class HookResultStore:
     Those data structures enables us to reduce properly Result object when batch loop is finished.
     """
 
-    def __init__(self, fx_name: str) -> None:
+    def __init__(self, fx_name):
         self._fx_name = fx_name
         self._internals = {}
         self._internals_reduced = {}
@@ -106,7 +104,6 @@ class HookResultStore:
     def run_epoch_func(self, results, opt_metric, func_name, *args, **kwargs) -> None:
         if not isinstance(opt_metric, Result):
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
-
         func = getattr(opt_metric, func_name)
         metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
         results.append(metrics_to_log)
@@ -225,8 +222,8 @@ class EpochResultStore:
     ```
     """
 
-    def __init__(self, trainer: 'pl.Trainer') -> None:
-        self.trainer = proxy(trainer)
+    def __init__(self, trainer) -> None:
+        self.trainer = trainer
         self.reset()
 
     def __getitem__(self, key: str) -> Any:

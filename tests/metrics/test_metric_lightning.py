@@ -1,13 +1,11 @@
 import torch
-from torchmetrics import Metric as TMetric
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.metrics import Metric as PLMetric
-from pytorch_lightning.metrics import MetricCollection
+from pytorch_lightning.metrics import Metric, MetricCollection
 from tests.helpers.boring_model import BoringModel
 
 
-class SumMetric(TMetric):
+class SumMetric(Metric):
 
     def __init__(self):
         super().__init__()
@@ -20,7 +18,7 @@ class SumMetric(TMetric):
         return self.x
 
 
-class DiffMetric(PLMetric):
+class DiffMetric(Metric):
 
     def __init__(self):
         super().__init__()

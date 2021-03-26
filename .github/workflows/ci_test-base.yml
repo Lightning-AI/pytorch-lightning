@@ -51,8 +51,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade --user pip
-        pip install --requirement ./requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        pip install "pytest>6.0" "pytest-cov>2.10" --upgrade-strategy only-if-needed
+        pip install --requirement ./requirements.txt --quiet  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install --requirement ./requirements/test.txt --quiet --upgrade-strategy only-if-needed
+        # pip install tox coverage
         python --version
         pip --version
         pip list

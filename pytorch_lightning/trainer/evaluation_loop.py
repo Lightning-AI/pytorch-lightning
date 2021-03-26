@@ -11,15 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import torch
 
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -100,10 +97,6 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
-        if self.trainer.state != TrainerState.FITTING:
-            # summarize profile results
-            self.trainer.profiler.describe()
-
     def reload_evaluation_dataloaders(self):
         model = self.trainer.lightning_module
         if self.trainer.testing:
@@ -125,8 +118,6 @@ class EvaluationLoop(object):
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
-        self.trainer.call_hook('on_epoch_start', *args, **kwargs)
-
         if self.trainer.testing:
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
@@ -210,6 +201,9 @@ class EvaluationLoop(object):
 
         # with a single dataloader don't pass an array
         outputs = self.outputs
+
+        # free memory
+        self.outputs = []
 
         eval_results = outputs
         if num_dataloaders == 1:
@@ -319,39 +313,12 @@ class EvaluationLoop(object):
 
     def on_evaluation_epoch_end(self, *args, **kwargs):
         # call the callback hook
-        self.call_on_evaluation_epoch_end_hook()
+        if self.trainer.testing:
+            self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
+        else:
+            self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
         self.trainer.call_hook('on_epoch_end')
-
-    def call_on_evaluation_epoch_end_hook(self):
-        outputs = self.outputs
-
-        # free memory
-        self.outputs = []
-
-        model_ref = self.trainer.lightning_module
-        hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
-
-        self.trainer._reset_result_and_set_hook_fx_name(hook_name)
-
-        with self.trainer.profiler.profile(hook_name):
-
-            if hasattr(self.trainer, hook_name):
-                on_evaluation_epoch_end_hook = getattr(self.trainer, hook_name)
-                on_evaluation_epoch_end_hook(outputs)
-
-            if is_overridden(hook_name, model_ref):
-                model_hook_fx = getattr(model_ref, hook_name)
-                if is_param_in_hook_signature(model_hook_fx, "outputs"):
-                    model_hook_fx(outputs)
-                else:
-                    self.warning_cache.warn(
-                        f"`ModelHooks.{hook_name}` signature has changed in v1.3. `outputs` parameter has been added."
-                        " Support for the old signature will be removed in v1.5", DeprecationWarning
-                    )
-                    model_hook_fx()
-
-        self.trainer._cache_logged_metrics()
 
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.sanity_checking:

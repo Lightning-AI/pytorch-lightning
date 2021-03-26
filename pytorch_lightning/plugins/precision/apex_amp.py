@@ -169,4 +169,5 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             pl_module.trainer.call_hook("on_after_backward")
 
         optimizer.step(**kwargs)
+
         return False

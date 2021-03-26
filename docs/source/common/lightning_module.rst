@@ -1020,13 +1020,11 @@ This is the pseudocode to describe how all the hooks are called during a call to
 .. code-block:: python
 
     def fit(...):
+        on_fit_start()
+
         if global_rank == 0:
             # prepare data is called on GLOBAL_ZERO only
             prepare_data()
-
-        configure_callbacks()
-
-        on_fit_start()
 
         for gpu/tpu in gpu/tpus:
             train_on_device(model.copy())
@@ -1045,7 +1043,6 @@ This is the pseudocode to describe how all the hooks are called during a call to
         teardown()
 
     def train_loop():
-        on_epoch_start()
         on_train_epoch_start()
         train_outs = []
         for train_batch in train_dataloader():
@@ -1071,15 +1068,12 @@ This is the pseudocode to describe how all the hooks are called during a call to
                 val_loop()
 
         # end training epoch
-        outs = training_epoch_end(outs)
-        on_train_epoch_end(outs)
-        on_epoch_end()
+        logs = training_epoch_end(outs)
 
     def val_loop():
         model.eval()
         torch.set_grad_enabled(False)
 
-        on_epoch_start()
         on_validation_epoch_start()
         val_outs = []
         for val_batch in val_dataloader():
@@ -1093,7 +1087,6 @@ This is the pseudocode to describe how all the hooks are called during a call to
 
         validation_epoch_end(val_outs)
         on_validation_epoch_end()
-        on_epoch_end()
 
         # set up for train
         model.train()
@@ -1121,12 +1114,12 @@ manual_backward
 on_after_backward
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_after_backward
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_after_backward
     :noindex:
 
 on_before_zero_grad
 ~~~~~~~~~~~~~~~~~~~
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_zero_grad
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_before_zero_grad
     :noindex:
 
 on_fit_start
@@ -1145,38 +1138,15 @@ on_fit_end
 on_load_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_load_checkpoint
     :noindex:
 
 on_save_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
     :noindex:
 
-on_train_start
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_start
-    :noindex:
-
-on_train_end
-~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_end
-    :noindex:
-
-on_validation_start
-~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_start
-    :noindex:
-
-on_validation_end
-~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_end
-    :noindex:
 
 on_pretrain_routine_start
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1214,11 +1184,6 @@ on_test_epoch_end
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
     :noindex:
 
-on_test_end
-~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_end
-    :noindex:
 
 on_train_batch_start
 ~~~~~~~~~~~~~~~~~~~~
@@ -1230,18 +1195,6 @@ on_train_batch_end
 ~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_end
-    :noindex:
-
-on_epoch_start
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_epoch_start
-    :noindex:
-
-on_epoch_end
-~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_epoch_end
     :noindex:
 
 on_train_epoch_start
@@ -1280,36 +1233,6 @@ on_validation_epoch_end
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_end
     :noindex:
 
-on_post_move_to_device
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_post_move_to_device
-    :noindex:
-
-on_validation_model_eval
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_model_eval
-    :noindex:
-
-on_validation_model_train
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_model_train
-    :noindex:
-
-on_test_model_eval
-~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_eval
-    :noindex:
-
-on_test_model_train
-~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_train
-    :noindex:
-
 optimizer_step
 ~~~~~~~~~~~~~~
 
@@ -1331,7 +1254,7 @@ prepare_data
 setup
 ~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.DataHooks.setup
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.setup
     :noindex:
 
 tbptt_split_batch
@@ -1343,25 +1266,25 @@ tbptt_split_batch
 teardown
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.DataHooks.teardown
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.teardown
     :noindex:
 
 train_dataloader
 ~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.DataHooks.train_dataloader
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
     :noindex:
 
 val_dataloader
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.DataHooks.val_dataloader
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
     :noindex:
 
 test_dataloader
 ~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.DataHooks.test_dataloader
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
     :noindex:
 
 transfer_batch_to_device

@@ -121,8 +121,7 @@ PyTorch Profiling
 Autograd includes a profiler that lets you inspect the cost of different operators
 inside your model - both on the CPU and GPU.
 
-To read more about the PyTorch Profiler and all its options,
-have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`__
+Find the Pytorch Profiler doc at [PyTorch Profiler](https://pytorch-lightning.readthedocs.io/en/stable/profiler.html)
 
 .. code-block:: python
 
@@ -135,16 +134,16 @@ have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`__
 
 
 This profiler works with PyTorch ``DistributedDataParallel``.
-If ``filename`` is provided, each rank will save their profiled operation to their own file. The profiler
-report can be quite long, so you setting a ``filename`` will save the report instead of logging it to the
-output in your terminal. If no filename is given, it will be logged only on rank 0.
+If ``output_filename`` is provided, each rank will save their profiled operation to their own file.
 
-The profiler's results will be printed on the completion of ``{fit,validate,test,predict}``.
 
-This profiler will record ``training_step_and_backward``, ``training_step``, ``backward``,
-``validation_step``, ``test_step``, and ``predict_step`` by default.
-The output below shows the profiling for the action ``training_step_and_backward``.
-The user can provide ``PyTorchProfiler(record_functions={...})`` to extend the scope of profiled functions.
+The profiler's results will be printed on the completion of a training `fit()`. This profiler
+report can be quite long, so you can also specify an `output_filename` to save the report instead
+of logging it to the output in your terminal.
+
+This profiler will record only for `training_step_and_backward`, `evaluation_step` and `test_step` functions by default.
+The output below shows the profiling for the action `training_step_and_backward`.
+The user can provide ``PyTorchProfiler(profiled_functions=[...])`` to extend the scope of profiled functions.
 
 .. note:: When using the PyTorch Profiler, wall clock time will not not be representative of the true wall clock time. This is due to forcing profiled operations to be measured synchronously, when many CUDA ops happen asynchronously. It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use the `SimpleProfiler`.   # noqa E501
 
@@ -185,13 +184,13 @@ When running with `PyTorchProfiler(emit_nvtx=True)`. You should run as following
 
 To visualize the profiled operation, you can either:
 
-Use::
+* Use::
 
     nvvp trace_name.prof
 
-Or::
+* Use::
 
-    python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
+     python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
 
 """
 

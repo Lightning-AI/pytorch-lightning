@@ -81,13 +81,16 @@ class LoggerConnector:
         return self._cached_results.get(self.trainer._running_stage)  # type: ignore
 
     def get_metrics(self, key: str) -> Dict:
-        metrics_holder: MetricsHolder = getattr(self, f"_{key}")
-        model = self.trainer.lightning_module
-        metrics_holder.convert(model.device if model is not None else None)
+        metrics_holder = getattr(self, f"_{key}", None)
+        model_ref = self.trainer.lightning_module
+        metrics_holder.convert(
+            self.trainer._device_type == DeviceType.TPU,
+            model_ref.device if model_ref is not None else model_ref,
+        )
         return metrics_holder.metrics
 
     def set_metrics(self, key: str, val: Dict) -> None:
-        metrics_holder: MetricsHolder = getattr(self, f"_{key}")
+        metrics_holder = getattr(self, f"_{key}", None)
         metrics_holder.reset(val)
 
     def reset(self) -> None:

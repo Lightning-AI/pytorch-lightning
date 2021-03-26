@@ -25,6 +25,7 @@ COPY ./ ./pytorch-lightning/
 
 # install dependencies
 RUN \
+    # Disable cache
     #conda install "pip>20.1" && \
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \

@@ -181,19 +181,3 @@ Most UNIX-based operating systems provide direct access to tmpfs through a mount
     .. code-block:: python
 
         datamodule = MyDataModule(data_root="/dev/shm/my_data")
-
-
-Zero Grad ``set_to_none=True``
-------------------------------
-
-In order to modestly improve performance, once can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
-
-For a more detailed explanation of pros / cons of this technique,
-read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
-
-.. testcode::
-
-    class Model(LightningModule):
-
-        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
-            optimizer.zero_grad(set_to_none=True)

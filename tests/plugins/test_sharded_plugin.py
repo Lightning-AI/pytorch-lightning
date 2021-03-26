@@ -259,12 +259,10 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 
 
 @RunIf(skip_windows=True, special=True, fairscale=True)
-@pytest.mark.parametrize(
-    "trainer_kwargs", (
-        dict(num_processes=2),
-        pytest.param(dict(gpus=2), marks=RunIf(min_gpus=2)),
-    )
-)
+@pytest.mark.parametrize("trainer_kwargs", (
+    {'num_processes': 2},
+    pytest.param({'gpus': 2}, marks=RunIf(min_gpus=2))
+))
 def test_ddp_sharded_plugin_test_multigpu(tmpdir, trainer_kwargs):
     """
         Test to ensure we can use validate and test without fit

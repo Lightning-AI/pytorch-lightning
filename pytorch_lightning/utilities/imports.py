@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
-import importlib
 import operator
 import platform
 import sys
@@ -20,7 +19,7 @@ from distutils.version import LooseVersion
 from importlib.util import find_spec
 
 import torch
-from pkg_resources import DistributionNotFound
+from pkg_resources import DistributionNotFound, get_distribution
 
 
 def _module_available(module_path: str) -> bool:
@@ -43,24 +42,11 @@ def _module_available(module_path: str) -> bool:
 
 
 def _compare_version(package: str, op, version) -> bool:
-    """
-    Compare package version with some requirements
-
-    >>> _compare_version("torch", operator.ge, "0.1")
-    True
-    """
     try:
-        pkg = importlib.import_module(package)
-    except (ModuleNotFoundError, DistributionNotFound):
+        pkg_version = LooseVersion(get_distribution(package).version)
+        return op(pkg_version, LooseVersion(version))
+    except DistributionNotFound:
         return False
-    try:
-        pkg_version = LooseVersion(pkg.__version__)
-    except AttributeError:
-        return False
-    if not (hasattr(pkg_version, "vstring") and hasattr(pkg_version, "version")):
-        # this is mock by sphinx, so it shall return True ro generate all summaries
-        return True
-    return op(pkg_version, LooseVersion(version))
 
 
 _IS_WINDOWS = platform.system() == "Windows"
@@ -68,9 +54,7 @@ _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
 _TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
 _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
-_TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
 
-_KINETO_AVAILABLE = torch.profiler.kineto_available() if _TORCH_GREATER_EQUAL_1_8 else False
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 _DEEPSPEED_AVAILABLE = not _IS_WINDOWS and _module_available('deepspeed')

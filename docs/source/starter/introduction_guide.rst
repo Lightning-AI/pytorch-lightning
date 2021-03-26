@@ -882,8 +882,8 @@ Or maybe we have a model that we use to do generation
     generated_imgs = model(z)
 
 
-To perform inference at scale, it is possible to use ``trainer.predict`` with LightningModule ``predict_step`` function
-By default, LightningModule ``predict_step`` calls forward, but it can be overriden to add any processing logic.
+To perform inference at scale, it is possible to use ``trainer.predict`` with LightningModule ``predict`` function
+By default, LightningModule ``predict`` calls forward, but it can be overriden to add any processing logic.
 
 .. code-block:: python
 
@@ -893,7 +893,7 @@ By default, LightningModule ``predict_step`` calls forward, but it can be overri
             imgs = self.decoder(z)
             return imgs
 
-        def predict_step(self, batch, batch_idx: int , dataloader_idx: int = None):
+        def predict(self, batch, batch_idx: int , dataloader_idx: int = None):
             return self(batch)
 
 

@@ -77,6 +77,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         return distributed_sampler_kwargs
 
     def setup(self, model):
+        self._model = model
+
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
 
         # pass in a state q
@@ -170,7 +172,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
-        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
+        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get(
+            "find_unused_parameters", True
+        )
         # todo: PyTorch 1.7.0 DDP introduces ``self.reducer._rebuild_buckets()`` breaking manual_optimization
         if _TORCH_GREATER_EQUAL_1_7 and not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
             "find_unused_parameters", False
@@ -282,7 +286,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def test_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
+    def predict(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
     def post_training_step(self):

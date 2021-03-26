@@ -30,7 +30,7 @@ import torch
 import yaml
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -258,9 +258,9 @@ class ModelCheckpoint(Callback):
         to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
         if unused is not None:
-            rank_zero_deprecation(
+            rank_zero_warn(
                 "`ModelCheckpoint.save_checkpoint` signature has changed in v1.3. The `pl_module` parameter"
-                " has been removed. Support for the old signature will be removed in v1.5"
+                " has been removed. Support for the old signature will be removed in v1.5", DeprecationWarning
             )
 
         global_step = trainer.global_step
@@ -371,9 +371,9 @@ class ModelCheckpoint(Callback):
 
         # period takes precedence over every_n_val_epochs for backwards compatibility
         if period is not None:
-            rank_zero_deprecation(
+            rank_zero_warn(
                 'Argument `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
-                ' Please use `every_n_val_epochs` instead.'
+                ' Please use `every_n_val_epochs` instead.', DeprecationWarning
             )
             self._every_n_val_epochs = period
 
@@ -381,17 +381,17 @@ class ModelCheckpoint(Callback):
 
     @property
     def period(self) -> Optional[int]:
-        rank_zero_deprecation(
+        rank_zero_warn(
             'Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
-            ' Please use `every_n_val_epochs` instead.'
+            ' Please use `every_n_val_epochs` instead.', DeprecationWarning
         )
         return self._period
 
     @period.setter
     def period(self, value: Optional[int]) -> None:
-        rank_zero_deprecation(
+        rank_zero_warn(
             'Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
-            ' Please use `every_n_val_epochs` instead.'
+            ' Please use `every_n_val_epochs` instead.', DeprecationWarning
         )
         self._period = value
 
@@ -424,7 +424,7 @@ class ModelCheckpoint(Callback):
         else:
             raise ValueError(".save_function() not set")
 
-    def check_monitor_top_k(self, trainer, current: Optional[torch.Tensor] = None) -> bool:
+    def check_monitor_top_k(self, current: torch.Tensor) -> bool:
         if current is None:
             return False
 
@@ -444,12 +444,7 @@ class ModelCheckpoint(Callback):
             current = torch.tensor(current)
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
-        should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
-
-        # If using multiple devices, make sure all processes are unanimous on the decision.
-        should_update_best_and_save = trainer.training_type_plugin.reduce_boolean_decision(should_update_best_and_save)
-
-        return should_update_best_and_save
+        return monitor_op(current, self.best_k_models[self.kth_best_model_path]).item()
 
     @classmethod
     def _format_checkpoint_name(
@@ -643,7 +638,15 @@ class ModelCheckpoint(Callback):
         epoch = monitor_candidates.get("epoch")
         step = monitor_candidates.get("step")
 
-        if self.check_monitor_top_k(trainer, current):
+        # when `val_loss` is being logged and no ModelCheckpoint is being provided
+        # `val_loss` will be selected for monitor and need to be reduced to
+        # prevent processes divergence
+        # TODO: Move this logic to logger_connector. This also needs to be fixed for any
+        # other monitor logged value which aren't produced from a Metric.
+        if self.monitor == "val_loss":
+            current = trainer.training_type_plugin.reduce(current, reduce_op="mean")
+
+        if self.check_monitor_top_k(current):
             self._update_best_and_save(current, epoch, step, trainer, monitor_candidates)
         elif self.verbose:
             rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
@@ -728,4 +731,5 @@ class ModelCheckpoint(Callback):
         the internal state to diverge between ranks.
         """
         exists = self._fs.exists(filepath)
-        return trainer.training_type_plugin.broadcast(exists)
+        exists = trainer.training_type_plugin.broadcast(exists)
+        return exists

@@ -8,7 +8,8 @@ import numpy as np
 import pytest
 import torch
 from torch.multiprocessing import Pool, set_start_method
-from torchmetrics import Metric
+
+from pytorch_lightning.metrics import Metric
 
 try:
     set_start_method("spawn")

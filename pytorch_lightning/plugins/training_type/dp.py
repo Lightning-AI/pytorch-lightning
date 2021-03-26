@@ -71,8 +71,8 @@ class DataParallelPlugin(ParallelPlugin):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        return decision
+    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
+        return should_stop
 
     def training_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -83,7 +83,7 @@ class DataParallelPlugin(ParallelPlugin):
     def test_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
+    def predict(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
     def training_step_end(self, output):

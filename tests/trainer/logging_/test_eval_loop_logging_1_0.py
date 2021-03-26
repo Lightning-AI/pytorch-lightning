@@ -126,6 +126,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         def validation_epoch_end(self, outputs):
             self.log('g', torch.tensor(2, device=self.device), on_epoch=True)
             self.validation_epoch_end_called = True
+            assert len(self.trainer.evaluation_loop.outputs) == 0
 
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
@@ -495,15 +496,9 @@ def test_log_works_in_val_callback(tmpdir):
             )
 
         def on_epoch_start(self, trainer, pl_module):
-            if trainer.validating:
-                self.make_logging(
-                    pl_module,
-                    'on_epoch_start',
-                    2,
-                    on_steps=self.choices,
-                    on_epochs=self.choices,
-                    prob_bars=self.choices
-                )
+            self.make_logging(
+                pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+            )
 
         def on_validation_epoch_start(self, trainer, pl_module):
             self.make_logging(
@@ -535,7 +530,7 @@ def test_log_works_in_val_callback(tmpdir):
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
-            if trainer.validating:
+            if not trainer.training:
                 self.make_logging(
                     pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
                 )
@@ -573,6 +568,7 @@ def test_log_works_in_val_callback(tmpdir):
         callbacks=[test_callback],
     )
     trainer.fit(model)
+    trainer.test()
 
     assert test_callback.funcs_called_count["on_epoch_start"] == 1
     # assert test_callback.funcs_called_count["on_batch_start"] == 1

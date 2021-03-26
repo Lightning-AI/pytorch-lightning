@@ -491,16 +491,6 @@ class TrainerProperties(ABC):
         elif self.sanity_checking:
             self._running_stage = None
 
-    @property
-    def _setup_state(self) -> TrainerState:
-        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
-        return TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-
-    @property
-    def _teardown_state(self) -> Optional[TrainerState]:
-        if self.state.running:
-            return self._setup_state
-
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
 _T = TypeVar('_T', bound=TrainerProperties)

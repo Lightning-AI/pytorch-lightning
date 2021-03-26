@@ -356,7 +356,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         torch.save = Mock(wraps=torch.save)
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint):
-        # only rank 0 will call ``torch.save``
+        # expect all ranks to run but only rank 0 will actually write the checkpoint file
         super().on_save_checkpoint(trainer, pl_module, checkpoint)
         self.on_save_checkpoint_count += 1
 
@@ -366,7 +366,8 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         assert self.best_model_score
         assert self.on_save_checkpoint_count == self.expected_count
         if trainer.is_global_zero:
-            assert torch.save.call_count == self.expected_count
+            # twice the calls expected because ddp broadcast also uses torch.save
+            assert torch.save.call_count == self.expected_count * 2
         else:
             assert torch.save.call_count == 0
 

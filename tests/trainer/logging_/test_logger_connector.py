@@ -447,36 +447,11 @@ def test_metrics_holder(to_float, tmpdir):
         "y": torch.tensor(2),
         "z": acc(preds, targets),
     })
-    metric_holder.convert(device)
+    metric_holder.convert(False, device)
     metrics = metric_holder.metrics
     assert excepted_function(metrics["x"])
     assert excepted_function(metrics["y"])
     assert excepted_function(metrics["z"])
-
-
-def test_metric_holder_raises(tmpdir):
-    """Check that an error is raised when trying to convert non-scalar tensors"""
-
-    class TestModel(BoringModel):
-
-        def validation_step(self, batch, *args, **kwargs):
-            output = self(batch)
-            return {"test": output}
-
-        def test_step(self, *args, **kwargs):
-            return self.validation_step(*args, **kwargs)
-
-    model = TestModel()
-    model.validation_epoch_end = None
-    model.test_epoch_end = None
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-
-    match = "The metric `test` does not contain a single element"
-    with pytest.raises(MisconfigurationException, match=match):
-        trainer.validate(model)
-    with pytest.raises(MisconfigurationException, match=match):
-        trainer.test(model)
 
 
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):
@@ -490,7 +465,10 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
             return output
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=2,
+    )
     with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
         trainer.fit(model)
 

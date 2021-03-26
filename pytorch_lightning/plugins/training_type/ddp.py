@@ -80,15 +80,15 @@ class DDPPlugin(ParallelPlugin):
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def setup_environment(self):
+    def setup(self, model):
+        self._model = model
+
         # start the other scripts
         if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
             self._call_children_scripts()
 
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
-
-        self.setup_distributed()
 
     def _call_children_scripts(self):
 
@@ -161,34 +161,6 @@ class DDPPlugin(ParallelPlugin):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
-    def setup_distributed(self):
-        # TODO: check if needed
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
-
-        # determine which process we are and world size
-        self.set_world_ranks()
-
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
-
-        # set up server using proc 0's ip address
-        # try to init for 20 times at max in case ports are taken
-        # where to store ip_table
-        self.init_ddp_connection(self.global_rank, self.world_size)
-
-        # on world_size=0 let everyone know training is starting
-        if self.is_global_zero and not torch.distributed.is_initialized():
-            log.info("-" * 100)
-            log.info(f"distributed_backend={self.distributed_backend}")
-            log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
-            log.info("-" * 100)
-
-        # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
-
     def _check_can_spawn_children(self):
         if self._has_spawned_children:
             raise RuntimeError(
@@ -207,7 +179,9 @@ class DDPPlugin(ParallelPlugin):
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
-        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
+        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get(
+            "find_unused_parameters", True
+        )
         # todo: PyTorch 1.7.0 DDP introduces ``self.reducer._rebuild_buckets()`` breaking manual_optimization
         if _TORCH_GREATER_EQUAL_1_7 and not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
             "find_unused_parameters", False
@@ -241,6 +215,37 @@ class DDPPlugin(ParallelPlugin):
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def pre_dispatch(self):
+        # TODO: check if needed
+        seed = os.environ.get("PL_GLOBAL_SEED")
+        if seed is not None:
+            seed_everything(int(seed))
+
+        # determine which process we are and world size
+        self.set_world_ranks()
+
+        # set warning rank
+        rank_zero_only.rank = self.global_rank
+
+        # set up server using proc 0's ip address
+        # try to init for 20 times at max in case ports are taken
+        # where to store ip_table
+        self.init_ddp_connection(self.global_rank, self.world_size)
+
+        # TODO: we moved it to the trainer.fit after calling pre_dispatch
+        #   ... need to double check that it is the correct place
+        # self.trainer.call_setup_hook(self.model)
+
+        # on world_size=0 let everyone know training is starting
+        if self.is_global_zero and not torch.distributed.is_initialized():
+            log.info("-" * 100)
+            log.info(f"distributed_backend={self.distributed_backend}")
+            log.info(f"All DDP processes registered. Starting ddp with {self.world_size} processes")
+            log.info("-" * 100)
+
+        # set the ranks and devices
+        self.dist.rank = self.global_rank
+        self.dist.device = self.root_device
+
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
@@ -298,7 +303,7 @@ class DDPPlugin(ParallelPlugin):
     def test_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
+    def predict(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
     def post_training_step(self):

@@ -49,7 +49,6 @@ from torch import nn, optim
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
 from torchvision import models, transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
@@ -189,8 +188,8 @@ class TransferLearningModel(pl.LightningModule):
 
         self.__build_model()
 
-        self.train_acc = Accuracy()
-        self.valid_acc = Accuracy()
+        self.train_acc = pl.metrics.Accuracy()
+        self.valid_acc = pl.metrics.Accuracy()
         self.save_hyperparameters()
 
     def __build_model(self):

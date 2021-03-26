@@ -20,9 +20,6 @@ from torch import optim
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
-from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringModel
 from tests.helpers.utils import no_warning_call
 
@@ -81,11 +78,6 @@ def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
         trainer.save_checkpoint(filepath)
 
 
-def test_v1_5_0_legacy_profiler_argument():
-    with pytest.deprecated_call(match="renamed to `record_functions` in v1.3"):
-        PyTorchProfiler(profiled_functions=[])
-
-
 def test_v1_5_0_running_sanity_check():
     trainer = Trainer()
     with pytest.deprecated_call(match='has been renamed to `Trainer.sanity_checking`'):
@@ -119,102 +111,3 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
         ModelCheckpoint(dirpath=tmpdir)
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         ModelCheckpoint(dirpath=tmpdir, period=1)
-
-
-def test_v1_5_0_old_on_validation_epoch_end(tmpdir):
-    callback_warning_cache.clear()
-
-    class OldSignature(Callback):
-
-        def on_validation_epoch_end(self, trainer, pl_module):  # noqa
-            ...
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.fit(model)
-
-    class OldSignatureModel(BoringModel):
-
-        def on_validation_epoch_end(self):  # noqa
-            ...
-
-    model = OldSignatureModel()
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.fit(model)
-
-    callback_warning_cache.clear()
-
-    class NewSignature(Callback):
-
-        def on_validation_epoch_end(self, trainer, pl_module, outputs):
-            ...
-
-    trainer.callbacks = [NewSignature()]
-    with no_deprecated_call(match="`Callback.on_validation_epoch_end` signature has changed in v1.3."):
-        trainer.fit(model)
-
-    class NewSignatureModel(BoringModel):
-
-        def on_validation_epoch_end(self, outputs):
-            ...
-
-    model = NewSignatureModel()
-    with no_deprecated_call(match="`ModelHooks.on_validation_epoch_end` signature has changed in v1.3."):
-        trainer.fit(model)
-
-
-def test_v1_5_0_old_on_test_epoch_end(tmpdir):
-    callback_warning_cache.clear()
-
-    class OldSignature(Callback):
-
-        def on_test_epoch_end(self, trainer, pl_module):  # noqa
-            ...
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.test(model)
-
-    class OldSignatureModel(BoringModel):
-
-        def on_test_epoch_end(self):  # noqa
-            ...
-
-    model = OldSignatureModel()
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.test(model)
-
-    callback_warning_cache.clear()
-
-    class NewSignature(Callback):
-
-        def on_test_epoch_end(self, trainer, pl_module, outputs):
-            ...
-
-    trainer.callbacks = [NewSignature()]
-    with no_deprecated_call(match="`Callback.on_test_epoch_end` signature has changed in v1.3."):
-        trainer.test(model)
-
-    class NewSignatureModel(BoringModel):
-
-        def on_test_epoch_end(self, outputs):
-            ...
-
-    model = NewSignatureModel()
-    with no_deprecated_call(match="`ModelHooks.on_test_epoch_end` signature has changed in v1.3."):
-        trainer.test(model)
-
-
-@pytest.mark.parametrize("cls", (BaseProfiler, SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
-def test_v1_5_0_profiler_output_filename(tmpdir, cls):
-    filepath = str(tmpdir / "test.txt")
-    with pytest.deprecated_call(match="`output_filename` parameter has been removed"):
-        profiler = cls(output_filename=filepath)
-    assert profiler.dirpath == tmpdir
-    assert profiler.filename == "test"

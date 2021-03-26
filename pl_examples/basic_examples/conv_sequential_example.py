@@ -27,11 +27,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torchmetrics.functional import accuracy
 
 import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import Trainer
+from pytorch_lightning.metrics.functional import accuracy
 from pytorch_lightning.plugins import RPCSequentialPlugin
 from pytorch_lightning.utilities import _BOLTS_AVAILABLE, _FAIRSCALE_PIPE_AVAILABLE
 

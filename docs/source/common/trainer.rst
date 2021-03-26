@@ -1157,7 +1157,7 @@ precision
 
 |
 
-Double precision (64), full precision (32) or half precision (16).
+Full precision (32), half precision (16).
 Can be used on CPU, GPU or TPUs.
 
 If used on TPU will use torch.bfloat16 but tensor printing
@@ -1171,9 +1171,6 @@ will still show torch.float32.
 
     # 16-bit precision
     trainer = Trainer(precision=16, gpus=1)
-
-    # 64-bit precision
-    trainer = Trainer(precision=64)
 
 Example::
 

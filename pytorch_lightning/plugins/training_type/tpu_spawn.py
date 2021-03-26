@@ -17,6 +17,7 @@ import re
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
+import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -52,9 +53,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.tpu_local_core_rank = 0
         self.start_method = None
 
-    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
+    def connect(self, model: torch.nn.Module) -> torch.nn.Module:
         self.create_mp_queue()
-        return self.model
+        self._model = model
+        return self._model
 
     def create_mp_queue(self):
         self.start_method = 'fork'
@@ -108,14 +110,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         # replace trainer save_checkpoint to use `xm.save`
         trainer.save_checkpoint = self.save_checkpoint
-        self.barrier("pre-run-stage")
+        self.barrier()
 
         results = trainer.run_stage()
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
-
-        self.barrier("end-process")
 
     def __save_end_of_training_weights(self, model: LightningModule) -> None:
         # when training ends on these platforms dump weights to get out of the main process
@@ -127,11 +127,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._model.to(xm.xla_device())
 
     def barrier(self, name: Optional[str] = None) -> None:
-        rendezvous(name)
+        if torch_distrib.is_initialized():
+            rendezvous(f"pl.Trainer.{name}")
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
-        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
-        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
+        best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
 
         if self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
@@ -203,11 +203,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             model.trainer.save_checkpoint(path)
             return path
 
-    def reduce_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.device)
-        decision = self.reduce(decision, "sum")
-        decision = bool(decision == self.world_size)
-        return decision
+    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
+        should_stop = torch.tensor(int(should_stop), device=self.lightning_module.device)
+        stop = xm.mesh_reduce('stop_signal', should_stop, sum)
+        rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
+        should_stop = int(stop.item()) == self.world_size
+        return should_stop
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
@@ -295,8 +296,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def test_step(self, *args, **kwargs):
         return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs):
-        return self.lightning_module.predict_step(*args, **kwargs)
+    def predict(self, *args, **kwargs):
+        return self.lightning_module.predict(*args, **kwargs)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         """Save model/training states as a checkpoint file through state-dump and file-write.

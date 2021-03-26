@@ -67,7 +67,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
                 # Value has been passed as a flag => It is currently None, so we need to set it to True
                 # We always set to True, regardless of the default value.
                 # Users must pass False directly, but when passing nothing True is assumed.
-                # i.e. the only way to disable something that defaults to True is to use the long form:
+                # i.e. the only way to disable somthing that defaults to True is to use the long form:
                 # "--a_default_true_arg False" becomes False, while "--a_default_false_arg" becomes None,
                 # which then becomes True here.
 
@@ -107,7 +107,7 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
 
 
 def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
-    r"""Scans the class signature and returns argument names, types and default values.
+    r"""Scans the Trainer signature and returns argument names, types and default values.
 
     Returns:
         List with tuples of 3 values:
@@ -119,11 +119,11 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         >>> args = get_init_arguments_and_types(Trainer)
 
     """
-    cls_default_params = inspect.signature(cls).parameters
+    trainer_default_params = inspect.signature(cls).parameters
     name_type_default = []
-    for arg in cls_default_params:
-        arg_type = cls_default_params[arg].annotation
-        arg_default = cls_default_params[arg].default
+    for arg in trainer_default_params:
+        arg_type = trainer_default_params[arg].annotation
+        arg_default = trainer_default_params[arg].default
         try:
             arg_types = tuple(arg_type.__args__)
         except AttributeError:
@@ -242,6 +242,9 @@ def add_argparse_args(
         if arg == 'track_grad_norm':
             use_type = float
 
+        if arg_default is inspect._empty:
+            arg_default = None
+
         parser.add_argument(
             f'--{arg}',
             dest=arg,
@@ -288,7 +291,10 @@ def _gpus_allowed_type(x) -> Union[int, str]:
 
 
 def _gpus_arg_default(x) -> Union[int, str]:
-    return _gpus_allowed_type(x)
+    if ',' in x:
+        return str(x)
+    else:
+        return int(x)
 
 
 def _int_or_float_type(x) -> Union[int, float]:
