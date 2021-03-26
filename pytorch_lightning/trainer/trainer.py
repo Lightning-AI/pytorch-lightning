@@ -959,8 +959,8 @@ class Trainer(
         if ckpt_path == 'best':
             if not self.checkpoint_callback.best_model_path and self.fast_dev_run:
                 raise MisconfigurationException(
-                    'You cannot execute `trainer.test()` or trainer.validate()`'
-                    ' when `fast_dev_run=True`.'
+                    'You cannot execute `trainer.test()` or `trainer.validate()`'
+                    ' with `fast_dev_run=True`.'
                 )
 
             if not self.checkpoint_callback.best_model_path:
