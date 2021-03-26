@@ -78,7 +78,7 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self.trainer._running_stage)  # type: ignore
+        return self._cached_results.get(self.trainer._running_stage)
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder = getattr(self, f"_{key}", None)
@@ -125,8 +125,6 @@ class LoggerConnector:
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
         self.configure_logger(logger)
-        # todo: IDE is complaining, these shall be initialized in the Trainer init at leas as placeholders
-        # and assign here the desired value
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
@@ -189,9 +187,6 @@ class LoggerConnector:
             batch_log_metrics = opt_closure_result.training_step_output.log_metrics
             logged_metrics_tmp.update(batch_log_metrics)
 
-            callback_metrics = opt_closure_result.training_step_output.callback_metrics
-            callback_metrics_tmp.update(callback_metrics)
-
             batch_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
             pbar_metrics_tmp.update(batch_pbar_metrics)
 
@@ -214,9 +209,6 @@ class LoggerConnector:
             metrics (dict): Metric values
             grad_norm_dic (dict): Gradient norms
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
-            log_train_step_metrics (bool): Used to track if `log_metrics` function is being called in during training
-                steps. In training steps, we will log metrics on step: `total_nb_idx` (for accumulated gradients)
-                and global_step for the rest.
         """
         # add gpu memory
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
@@ -350,27 +342,6 @@ class LoggerConnector:
             if self.trainer.testing:
                 self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
-    def __process_eval_epoch_end_results_and_log_legacy_update(self, prog_bar_metrics, log_metrics, callback_metrics):
-        # eval loop returns all metrics
-        dataloader_result_metrics = {**prog_bar_metrics, **log_metrics, **callback_metrics}
-
-        # add metrics to prog bar
-        self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
-
-        # log metrics
-        if len(log_metrics) > 0:
-            self.trainer.logger_connector.log_metrics(log_metrics, {})
-
-        # track metrics for callbacks (all prog bar, logged and callback metrics)
-        callback_metrics.update(log_metrics)
-        callback_metrics.update(prog_bar_metrics)
-        self.trainer.logger_connector.callback_metrics.update(callback_metrics)
-        if self.trainer.testing:
-            self.trainer.logger_connector.evaluation_callback_metrics.update(callback_metrics)
-
-        if len(dataloader_result_metrics) > 0:
-            self.eval_loop_results.append(dataloader_result_metrics)
-
     def __process_eval_epoch_end_results_and_log_legacy(self, eval_results):
         if self.trainer.running_sanity_check:
             return
@@ -381,21 +352,21 @@ class LoggerConnector:
             if not isinstance(eval_results, list):
                 eval_results = [eval_results]
 
-            num_loaders: int = self.trainer.evaluation_loop.num_dataloaders
-            prog_bar_metrics, log_metrics, callback_metrics = {}, {}, {}
-
             for result_idx, result in enumerate(eval_results):
-                _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_dict_result(result)
+                _, prog_bar_metrics, log_metrics, _ = self.trainer.process_dict_result(result)
 
-                if num_loaders > 1:
-                    self.__process_eval_epoch_end_results_and_log_legacy_update(
-                        prog_bar_metrics, log_metrics, callback_metrics
-                    )
+                # eval loop returns all metrics
+                dataloader_result_metrics = {**prog_bar_metrics, **log_metrics}
 
-            if num_loaders == 1:
-                self.__process_eval_epoch_end_results_and_log_legacy_update(
-                    prog_bar_metrics, log_metrics, callback_metrics
-                )
+                # add metrics to prog bar
+                self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
+
+                # log metrics
+                if len(log_metrics) > 0:
+                    self.trainer.logger_connector.log_metrics(log_metrics, {})
+
+                if len(dataloader_result_metrics) > 0:
+                    self.eval_loop_results.append(dataloader_result_metrics)
 
     def on_train_epoch_end(self):
         # inform cached logger connector epoch finished
@@ -448,10 +419,9 @@ class LoggerConnector:
 
         # TODO: deprecate 1.0
         else:
-            out = self.__run_legacy_training_epoch_end(
-                num_optimizers, epoch_output, model, is_result_obj, epoch_callback_metrics
+            epoch_log_metrics, epoch_progress_bar_metrics = self.__run_legacy_training_epoch_end(
+                num_optimizers, epoch_output, model, is_result_obj
             )
-            epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics = out
 
         # it will perform reduction over epoch and return log metrics
         cached_epoch_log_metrics = self.cached_results.get_epoch_log_metrics()
@@ -503,9 +473,7 @@ class LoggerConnector:
         # capture logging
         self.trainer.logger_connector.cache_logged_metrics()
 
-    def __run_legacy_training_epoch_end(
-        self, num_optimizers, epoch_output, model, is_result_obj, epoch_callback_metrics
-    ):
+    def __run_legacy_training_epoch_end(self, num_optimizers, epoch_output, model, is_result_obj):
 
         epoch_log_metrics = {}
         epoch_progress_bar_metrics = {}
@@ -536,7 +504,6 @@ class LoggerConnector:
                 _processed_outputs = self.trainer.process_dict_result(epoch_output)
                 epoch_progress_bar_metrics = _processed_outputs[1]
                 epoch_log_metrics = _processed_outputs[2]
-                epoch_callback_metrics = _processed_outputs[3]
 
         # --------------------------
         # Structured Result (auto epoch end)
@@ -544,7 +511,7 @@ class LoggerConnector:
         elif is_result_obj:
             epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
 
-        return epoch_log_metrics, epoch_progress_bar_metrics, epoch_callback_metrics
+        return epoch_log_metrics, epoch_progress_bar_metrics
 
     def __auto_reduce_results_on_epoch_end(self, epoch_output):
         epoch_log_metrics = {}

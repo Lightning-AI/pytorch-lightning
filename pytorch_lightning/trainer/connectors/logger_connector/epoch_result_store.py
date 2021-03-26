@@ -346,7 +346,6 @@ class EpochResultStore:
 
         # update callback_metrics
         logger_connector._callback_metrics.update(callback_metrics)
-        logger_connector._callback_metrics.pop("epoch", None)
 
         batch_pbar_metrics.pop("debug_epoch", None)
         return batch_pbar_metrics, batch_log_metrics

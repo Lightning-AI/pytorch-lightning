@@ -453,6 +453,48 @@ def test_metrics_holder(to_float, tmpdir):
     assert excepted_function(metrics["z"])
 
 
+def test_metric_holder_raises(tmpdir):
+    """Check that an error is raised when trying to convert non-scalar tensors"""
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, *args, **kwargs):
+            output = self(batch)
+            self.log('test', output)
+
+        def test_step(self, *args, **kwargs):
+            return self.validation_step(*args, **kwargs)
+
+    model = TestModel()
+    model.validation_epoch_end = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+
+    match = "The metric `test` does not contain a single element"
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.test(model)
+
+
+def test_can_return_tensor_with_more_than_one_element(tmpdir):
+    """Ensure {validation,test}_step return values are not included as callback metrics. #6623"""
+
+    class TestModel(BoringModel):
+
+        def test_step(self, batch, *args, **kwargs):
+            return {"test": torch.tensor([0, 1])}
+
+        def test_epoch_end(self, outputs):
+            assert len(outputs) == 2
+            assert all(list(d) == ["test"] for d in outputs)  # check keys
+            assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, progress_bar_refresh_rate=0)
+    trainer.fit(model)
+    trainer.test(model)
+
+
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):
     """ Test that logging a metric with a reserved name to the progress bar raises a warning. """
 
