@@ -22,7 +22,6 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.plugins import DDPSpawnShardedPlugin
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
-from tests.helpers.utils import set_random_master_port
 
 
 class SeedTrainLoaderModel(BoringModel):
@@ -229,12 +228,19 @@ def test_ddp_spawn_sharded_plugin(kwargs):
 
 
 @RunIf(min_gpus=2, fairscale=True, special=True)
-@pytest.mark.parametrize('precision', [pytest.param(16, marks=RunIf(amp_native=True)), 32])
-def test_ddp_sharded_plugin(tmpdir, precision):
-    set_random_master_port()
+def test_ddp_sharded_plugin(tmpdir):
     plugin_parity_test(
         gpus=2,
         accelerator='ddp',
-        precision=precision,
+        model_cls=SeedTrainLoaderModel,
+    )
+
+
+@RunIf(min_gpus=2, fairscale=True, special=True, amp_native=True)
+def test_ddp_sharded_plugin_amp(tmpdir):
+    plugin_parity_test(
+        gpus=2,
+        accelerator='ddp',
+        precision=16,
         model_cls=SeedTrainLoaderModel,
     )
