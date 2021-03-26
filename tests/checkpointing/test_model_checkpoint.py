@@ -51,7 +51,6 @@ class LogInTwoMethods(BoringModel):
 
     def validation_epoch_end(self, outputs):
         outs = torch.stack([x['x'] for x in outputs]).mean()
-        self.log('epoch', self.current_epoch)
         self.log('val_acc', outs)
 
 
@@ -721,12 +720,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     seed_everything(1000)
     epochs = 3
 
-    class CustomModel(LogInTwoMethods):
-
-        def validation_epoch_end(self, outputs):
-            self.log('epoch', self.current_epoch)
-
-    model = CustomModel()
+    model = BoringModel()
     checkpoint_callback = ModelCheckpoint(
         dirpath=tmpdir,
         filename="{epoch}",

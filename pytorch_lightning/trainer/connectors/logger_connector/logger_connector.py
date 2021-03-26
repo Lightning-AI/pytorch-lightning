@@ -78,7 +78,7 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self.trainer._running_stage)  # type: ignore
+        return self._cached_results.get(self.trainer._running_stage)
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder: MetricsHolder = getattr(self, f"_{key}")
@@ -121,8 +121,6 @@ class LoggerConnector:
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
         self.configure_logger(logger)
-        # todo: IDE is complaining, these shall be initialized in the Trainer init at leas as placeholders
-        # and assign here the desired value
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
@@ -207,9 +205,6 @@ class LoggerConnector:
             metrics (dict): Metric values
             grad_norm_dic (dict): Gradient norms
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
-            log_train_step_metrics (bool): Used to track if `log_metrics` function is being called in during training
-                steps. In training steps, we will log metrics on step: `total_nb_idx` (for accumulated gradients)
-                and global_step for the rest.
         """
         # add gpu memory
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:

@@ -462,7 +462,6 @@ def test_metric_holder_raises(tmpdir):
         def validation_step(self, batch, *args, **kwargs):
             output = self(batch)
             self.log('test', output)
-            return {}  # TODO: should be able to have no return
 
         def test_step(self, *args, **kwargs):
             return self.validation_step(*args, **kwargs)

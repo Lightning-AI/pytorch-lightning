@@ -20,6 +20,7 @@ import torch
 
 from pytorch_lightning.utilities import DistributedType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 
 
@@ -32,8 +33,14 @@ class TrainerLoggingMixin(ABC):
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
+        # TODO: this is duplicated in MetricsHolder. should be unified
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
+                if v.numel() != 1:
+                    raise MisconfigurationException(
+                        f"The metric `{k}` does not contain a single element"
+                        f" thus it cannot be converted to float. Found `{v}`"
+                    )
                 v = v.item()
 
             if isinstance(v, dict):
