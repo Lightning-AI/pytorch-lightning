@@ -955,7 +955,6 @@ class Trainer(
         model,
         ckpt_path: Optional[str] = None,
     ) -> Optional[str]:
-        # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best':
             if not self.checkpoint_callback.best_model_path and self.fast_dev_run:
                 raise MisconfigurationException(
@@ -963,6 +962,7 @@ class Trainer(
                     ' with `fast_dev_run=True`.'
                 )
 
+            # if user requests the best checkpoint but we don't have it, error
             if not self.checkpoint_callback.best_model_path:
                 raise MisconfigurationException(
                     'ckpt_path is "best", but `ModelCheckpoint` is not configured to save the best model.'
