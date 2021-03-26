@@ -257,7 +257,12 @@ class EpochResultStore:
 
     def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = proxy(trainer)
-        self._should_warn = self.trainer.accelerator_connector.is_distributed and not self.trainer.training_type_plugin.rpc_enabled
+
+        # Add warning only for distributed (expect rpc as main worker is running the code).
+        _should_warn = trainer.accelerator_connector.is_distributed
+        _should_warn &= not trainer.training_type_plugin.rpc_enabled
+        self._should_warn = _should_warn
+
         self.reset()
 
     def __getitem__(self, key: str) -> Any:
