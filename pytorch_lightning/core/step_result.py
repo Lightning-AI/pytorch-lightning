@@ -14,7 +14,6 @@
 """Result class for easier logging and epoch-wise reduction."""
 
 import numbers
-import os
 from copy import copy
 from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
 
