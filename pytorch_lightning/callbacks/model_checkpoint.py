@@ -240,17 +240,6 @@ class ModelCheckpoint(Callback):
             return
         self.save_checkpoint(trainer)
 
-    def on_train_epoch_without_validation_end(self, trainer, pl_module):
-        """
-        at the end of each training epoch where validation is disabled
-        """
-        if (
-            self._should_skip_saving_checkpoint(trainer)
-            or not trainer.checkpoint_connector.has_trained
-        ):
-            return
-        self.save_checkpoint(trainer)
-
     def on_train_end(self, trainer, *args, **kwargs) -> None:
         """
         checkpoints can be saved at the end of the trianing

@@ -85,10 +85,6 @@ class Callback(abc.ABC):
         """Called when the train epoch ends."""
         pass
 
-    def on_train_epoch_without_validation_end(self, trainer, pl_module: LightningModule) -> None:
-        """Called when at the very end of train epoch where validation is not enabled."""
-        pass
-
     def on_validation_epoch_start(self, trainer, pl_module: LightningModule) -> None:
         """Called when the val epoch begins."""
         pass

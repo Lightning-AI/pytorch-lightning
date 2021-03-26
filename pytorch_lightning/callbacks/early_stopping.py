@@ -143,15 +143,6 @@ class EarlyStopping(Callback):
 
         self._run_early_stopping_check(trainer)
 
-    def on_train_epoch_without_validation_end(self, trainer, pl_module):
-        from pytorch_lightning.trainer.states import TrainerState
-        if (
-            trainer.state != TrainerState.FITTING or trainer.sanity_checking
-            or not trainer.checkpoint_connector.has_trained
-        ):
-            return
-        self._run_early_stopping_check(trainer)
-
     def _run_early_stopping_check(self, trainer):
         """
         Checks whether the early stopping condition is met

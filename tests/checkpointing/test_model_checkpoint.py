@@ -872,7 +872,7 @@ def test_model_checkpoint_save_last_warning(
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
     expected = False
-    if should_validate and save_last and verbose and trigger_on_train_end:
+    if save_last and verbose and trigger_on_train_end:
         expected = (max_epochs % every_n_val_epochs != 0)
     assert caplog.messages.count('Saving last checkpoint...') == expected
 
