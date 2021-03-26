@@ -56,6 +56,7 @@ class RunIf:
         *args,
         min_gpus: int = 0,
         min_torch: Optional[str] = None,
+        max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
         quantization: bool = False,
         amp_apex: bool = False,
@@ -76,6 +77,7 @@ class RunIf:
             args: native pytest.mark.skipif arguments
             min_gpus: min number of gpus required to run test
             min_torch: minimum pytorch version to run test
+            max_torch: maximum pytorch version to run test
             min_python: minimum python version required to run test
             quantization: if `torch.quantization` package is required to run test
             amp_apex: NVIDIA Apex is installed
@@ -101,6 +103,11 @@ class RunIf:
             torch_version = LooseVersion(get_distribution("torch").version)
             conditions.append(torch_version < LooseVersion(min_torch))
             reasons.append(f"torch>={min_torch}")
+
+        if max_torch:
+            torch_version = LooseVersion(get_distribution("torch").version)
+            conditions.append(torch_version >= LooseVersion(max_torch))
+            reasons.append(f"torch<{max_torch}")
 
         if min_python:
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
