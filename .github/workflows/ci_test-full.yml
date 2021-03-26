@@ -60,6 +60,8 @@ jobs:
         import re
         def _req(fname, ptn, ver):
             req = re.sub(ptn, ver, open(fname).read())
+            # todo: temporary drop also Horovod
+            req = re.sub(r"horovod[<>=\d\.]+", ver, req)
             open(fname, 'w').write(req)
 
         _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.8.0')
@@ -130,7 +132,8 @@ jobs:
       shell: bash
 
     - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows'
+      # re-enable horovod on py3.9 when it will be supported
+      if: runner.os != 'windows' && matrix.python-version != 3.9
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
       run: |
