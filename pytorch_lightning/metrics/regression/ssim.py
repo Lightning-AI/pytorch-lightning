@@ -15,12 +15,12 @@ from typing import Any, Optional, Sequence
 
 from torchmetrics import SSIM as _SSIM
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class SSIM(_SSIM):
 
-    @deprecated(target=_SSIM, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_SSIM)
     def __init__(
         self,
         kernel_size: Sequence[int] = (11, 11),
