@@ -420,6 +420,11 @@ class ModelParallelClassificationModel(LightningModule):
         self.log('test_loss', F.cross_entropy(logits, y), prog_bar=False, sync_dist=True)
         self.log('test_acc', self.test_acc(logits, y), prog_bar=True, sync_dist=True)
 
+    def predict_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        return self.test_acc(logits, y).compute()
+
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 
@@ -450,7 +455,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
 
 
 @RunIf(min_gpus=2, deepspeed=True)
-def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
+def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
     and see convergence.
@@ -476,6 +481,23 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, deepspeed_config):
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
     assert saved_results[0]['test_acc'] > 0.7
     assert saved_results == results
+
+    trainer = Trainer(
+        max_epochs=10,
+        plugins=[DeepSpeedPlugin(stage=3)],
+        default_root_dir=tmpdir,
+        gpus=2,
+        precision=16,
+        accumulate_grad_batches=2,
+        callbacks=[ck],
+        resume_from_checkpoint=ck.best_model_path
+    )
+    results = trainer.test(model, datamodule=dm)
+    assert results[0]['test_acc'] > 0.7
+
+    dm.predict_dataloader = dm.test_dataloader
+    results = trainer.predict(model, datamodule=dm)
+    assert results[0]['test_acc'] > 0.7
 
 
 @RunIf(min_gpus=2, deepspeed=True)

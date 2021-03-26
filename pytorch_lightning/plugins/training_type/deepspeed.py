@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from collections import OrderedDict
 import json
 import logging
 import os
@@ -35,7 +36,17 @@ from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
-    from deepspeed.runtime.zero.stage3 import remove_module_hooks
+    # from deepspeed.runtime.zero.stage3 import remove_module_hooks
+
+
+def remove_module_hooks(model: torch.nn.Module) -> None:
+    for module in model.modules():
+        module._backward_hooks = OrderedDict()
+        module._is_full_backward_hook = None
+        module._forward_hooks = OrderedDict()
+        module._forward_pre_hooks = OrderedDict()
+        module._state_dict_hooks = OrderedDict()
+        module._load_state_dict_pre_hooks = OrderedDict()
 
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
@@ -283,10 +294,12 @@ class DeepSpeedPlugin(DDPPlugin):
     @contextlib.contextmanager
     def model_parallel_context(self) -> Generator:
         if self.zero_stage_3:
-            with deepspeed.zero.Init(remote_device="cpu", pin_memory=True):
-                yield
+            model_parallel_context = deepspeed.zero.Init(remote_device="cpu", pin_memory=True)
         else:
-            super().model_parallel_context()
+            model_parallel_context = super().model_parallel_context()
+        
+        with model_parallel_context:
+            yield
 
     def _set_deepspeed_activation_checkpointing(self):
         if self.config.get('activation_checkpointing'):
