@@ -724,7 +724,7 @@ def test_model_checkpoint_topk_all(tmpdir):
     class CustomModel(LogInTwoMethods):
 
         def validation_epoch_end(self, outputs):
-            return {'epoch': self.current_epoch}
+            self.log('epoch', self.current_epoch)
 
     model = CustomModel()
     checkpoint_callback = ModelCheckpoint(
@@ -894,7 +894,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            return {"val_loss": loss}
+            self.log("val_loss", loss)
 
     model = ExtendedBoringModel()
     model.validation_epoch_end = None

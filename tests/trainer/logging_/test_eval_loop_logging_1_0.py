@@ -849,7 +849,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             self.log('valid_loss_1', loss, on_step=False, on_epoch=True)
             self.log('valid_loss_2', loss, on_step=True, on_epoch=False)
             self.log('valid_loss_3', loss, on_step=False, on_epoch=False)
-            return {"val_loss": loss}
+            return {"val_loss": loss}  # not added to callback_metrics
 
         def test_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -926,7 +926,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         'debug_epoch',
         'valid_loss_1',
         'test_loss',
-        'val_loss',
     }
     assert set(trainer.callback_metrics) == expected_callback_metrics
     assert set(results[0]) == {'test_loss', 'debug_epoch'}
