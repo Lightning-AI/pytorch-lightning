@@ -831,15 +831,6 @@ class Trainer(
             # run eval step
             _, eval_results = self.run_evaluation()
 
-            # allow no returns from eval
-            if eval_results is not None and len(eval_results) > 0:
-                # when we get a list back, used only the last item
-                if isinstance(eval_results, list):
-                    eval_results = eval_results[-1]
-
-                _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
-                self.logger_connector.callback_metrics = callback_metrics
-
             self.on_sanity_check_end()
 
             self._running_stage = stage
