@@ -82,7 +82,7 @@ jobs:
       displayName: 'Testing: standard'
 
     - bash: |
-        sh tests/special_tests.sh
+        bash tests/special_tests.sh
       displayName: 'Testing: special'
 
     - bash: |
