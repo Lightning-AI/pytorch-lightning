@@ -50,7 +50,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
     # todo: Find why coverage breaks CI.
-    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''     # noqa E265
+    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
     # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,   # noqa E265
     cmdline = [
         'horovodrun', '-np',
