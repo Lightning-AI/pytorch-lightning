@@ -15,12 +15,12 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import MeanAbsoluteError as _MeanAbsoluteError
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class MeanAbsoluteError(_MeanAbsoluteError):
 
-    @deprecated(target=_MeanAbsoluteError, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_MeanAbsoluteError)
     def __init__(
         self,
         compute_on_step: bool = True,

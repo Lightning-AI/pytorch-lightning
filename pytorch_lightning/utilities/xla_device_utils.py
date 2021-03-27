@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from warnings import warn
+from pytorch_lightning.utilities import rank_zero_deprecation
 
-warn(
-    "`xla_device_utils` package has been renamed to `xla_device` since v1.2 and will be removed in v1.4",
-    DeprecationWarning
+rank_zero_deprecation(
+    "`xla_device_utils` package has been renamed to `xla_device` since v1.2 and will be removed in v1.4"
 )
 
 from pytorch_lightning.utilities.xla_device import *  # noqa: F403 E402 F401

@@ -171,28 +171,6 @@ def test_result_obj_lr_scheduler_epoch(tmpdir):
     assert len(trainer.dev_debugger.saved_lr_scheduler_updates) == 3
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_result_obj_lr_scheduler_step(tmpdir):
-    """
-    test that the LR scheduler was called at the correct time with the correct metrics
-    """
-    model = DeterministicModel()
-    model.training_step = model.training_step__for_step_end_dict
-    model.training_step_end = model.training_step_end__dict
-    model.training_epoch_end = model.training_epoch_end__dict
-    model.val_dataloader = None
-    model.configure_optimizers = model.configure_optimizers__lr_on_plateau_step
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert len(trainer.dev_debugger.saved_lr_scheduler_updates) == 8
-
-
 def test_train_step_epoch_end(tmpdir):
     """
     Checks train_step + training_epoch_end (NO training_step_end)
