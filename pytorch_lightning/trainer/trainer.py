@@ -614,6 +614,7 @@ class Trainer(
                             f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
                             ' not been met. Training will continue...'
                         )
+                        self.should_stop = False
 
             # hook
             self.train_loop.on_train_end()
