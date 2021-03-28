@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import math
 import os
 import pickle
@@ -544,6 +545,41 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch > 0
     assert trainer.global_step >= math.floor(num_train_samples * 1.5), "Model did not train for at least min_steps"
+
+
+class TestModel(BoringModel):
+    training_step_invoked = 0
+
+    def training_step(self, batch, batch_idx):
+        output = super().training_step(batch, batch_idx)
+        output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
+        self.log("loss", output["loss"])
+        self.training_step_invoked += 1
+        # print(batch_idx, self.trainer.current_epoch)
+        assert not self.trainer.should_stop
+        return output
+
+
+def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
+    """ Test that min_epochs/min_steps in Trainer are enforced even if EarlyStopping is triggered. """
+    model = TestModel()
+    early_stop = EarlyStopping(monitor="loss", patience=0)
+    min_epochs = 5
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        min_epochs=min_epochs,
+        limit_val_batches=0,
+        limit_train_batches=2,
+        callbacks=[early_stop]
+    )
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.trainer.trainer"):
+        trainer.fit(model)
+
+    message = f"minimum epochs ({min_epochs}) or minimum steps (None) has not been met. Training will continue"
+    num_messages = len([record.message for record in caplog.records if message in record.message])
+    assert num_messages == min_epochs - 2
+    assert model.training_step_invoked == min_epochs * 2
 
 
 def test_trainer_max_steps_accumulate_batches(tmpdir):
