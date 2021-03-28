@@ -547,21 +547,21 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     assert trainer.global_step >= math.floor(num_train_samples * 1.5), "Model did not train for at least min_steps"
 
 
-class TestModel(BoringModel):
-    training_step_invoked = 0
-
-    def training_step(self, batch, batch_idx):
-        output = super().training_step(batch, batch_idx)
-        output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
-        self.log("loss", output["loss"])
-        self.training_step_invoked += 1
-        # print(batch_idx, self.trainer.current_epoch)
-        assert not self.trainer.should_stop
-        return output
-
-
 def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
     """ Test that min_epochs/min_steps in Trainer are enforced even if EarlyStopping is triggered. """
+
+    class TestModel(BoringModel):
+        training_step_invoked = 0
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
+            self.log("loss", output["loss"])
+            self.training_step_invoked += 1
+            # print(batch_idx, self.trainer.current_epoch)
+            assert not self.trainer.should_stop
+            return output
+
     model = TestModel()
     early_stop = EarlyStopping(monitor="loss", patience=0)
     min_epochs = 5
