@@ -11,19 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from typing import Optional
 import functools
 import queue as q
 import traceback
 from multiprocessing import Process, Queue
 
 import torch
+import torch.multiprocessing as mp
 
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+
 #: define waiting time got checking TPU available in sec
-TPU_CHECK_TIMEOUT = 100
+
+TPU_CHECK_TIMEOUT = 25
 
 
 def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
@@ -55,34 +61,29 @@ def pl_multi_process(func):
 class XLADeviceUtils:
     """Used to detect the type of XLA device"""
 
-    TPU_AVAILABLE = None
+    _TPU_AVAILABLE = None
 
     @staticmethod
-    def _fetch_xla_device_type(device: torch.device) -> str:
-        """
-        Returns XLA device type
-
-        Args:
-            device: (:class:`~torch.device`): Accepts a torch.device type with a XLA device format i.e xla:0
-
-        Return:
-            Returns a str of the device hardware type. i.e TPU
-        """
-        if _XLA_AVAILABLE:
-            return xm.xla_device_hw(device)
-
-    @staticmethod
-    def _is_device_tpu() -> bool:
+    @pl_multi_process
+    def _is_device_tpu() -> Optional[bool]:
         """
         Check if device is TPU
 
         Return:
             A boolean value indicating if the xla device is a TPU device or not
         """
-        if _XLA_AVAILABLE:
-            device = xm.xla_device()
-            device_type = XLADeviceUtils._fetch_xla_device_type(device)
-            return device_type == "TPU"
+        def _fn(process_idx: int, mp_queue):
+            try:
+                device = xm.xla_device()
+                mp_queue.put(device.type == 'xla')
+            except Exception:
+                mp_queue.put(False)
+
+        smp = mp.get_context("spawn")
+        queue = smp.SimpleQueue()
+        xmp.spawn(_fn, args=(queue, ), nprocs=1)
+        return queue.get()
+            
 
     @staticmethod
     def xla_available() -> bool:
@@ -95,13 +96,21 @@ class XLADeviceUtils:
         return _XLA_AVAILABLE
 
     @staticmethod
-    def tpu_device_exists() -> bool:
+    def tpu_device_exists() -> Optional[bool]:
         """
         Runs XLA device check within a separate process
 
         Return:
             A boolean value indicating if a TPU device exists on the system
         """
-        if XLADeviceUtils.TPU_AVAILABLE is None and _XLA_AVAILABLE:
-            XLADeviceUtils.TPU_AVAILABLE = pl_multi_process(XLADeviceUtils._is_device_tpu)()
-        return XLADeviceUtils.TPU_AVAILABLE
+        if os.getenv("PL_TPU_AVAILABLE", '0') == "1":
+            XLADeviceUtils._TPU_AVAILABLE = True
+            
+        if XLADeviceUtils.xla_available() and not XLADeviceUtils._TPU_AVAILABLE:
+        
+            XLADeviceUtils._TPU_AVAILABLE = XLADeviceUtils._is_device_tpu()
+        
+            if XLADeviceUtils._TPU_AVAILABLE:
+                os.environ["PL_TPU_AVAILABLE"] = '1'
+
+        return XLADeviceUtils._TPU_AVAILABLE
