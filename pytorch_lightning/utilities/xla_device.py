@@ -59,7 +59,7 @@ def pl_multi_process(func):
 class XLADeviceUtils:
     """Used to detect the type of XLA device"""
 
-    _TPU_AVAILABLE = None
+    _TPU_AVAILABLE = False
 
     @staticmethod
     @pl_multi_process
