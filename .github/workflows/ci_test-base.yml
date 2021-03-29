@@ -16,7 +16,7 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
-        python-version: [3.7]
+        python-version: [3.8]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
