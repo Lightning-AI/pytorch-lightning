@@ -198,10 +198,9 @@ class TrainingTypePlugin(Plugin, ABC):
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         # dump states as a checkpoint dictionary object
         if self.is_global_zero:
-            # write the checkpoint dictionary on the file
-
             checkpoint = self.on_save(checkpoint)
             try:
+                # write the checkpoint dictionary on the file
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
