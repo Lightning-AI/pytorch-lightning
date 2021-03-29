@@ -28,7 +28,6 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
