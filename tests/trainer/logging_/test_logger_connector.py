@@ -111,7 +111,7 @@ def test__logger_connector__epoch_result_store__train(tmpdir, monkeypatch):
     assert generated == excepted
 
 
-def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
+def test__logger_connector__epoch_result_store__train__tbptt(tmpdir):
     """
     Tests that LoggerConnector will properly capture logged information with ttbt
     and reduce them
@@ -142,6 +142,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
         @decorator_with_arguments(fx_name="training_step")
         def training_step(self, batch, batch_idx, hiddens):
+            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
             self.test_hidden = torch.rand(1)
 
             x_tensor, y_list = batch

@@ -480,6 +480,9 @@ class Accelerator(object):
         )
         self.setup_precision_plugin(plugin)
 
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath) -> None:
+        self.training_type_plugin.save_checkpoint(checkpoint, filepath)
+
     @property
     def call_configure_sharded_model_hook(self) -> bool:
         """

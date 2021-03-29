@@ -14,7 +14,7 @@
 
 import inspect
 from abc import ABC
-from typing import Mapping
+from collections import Mapping
 
 import torch
 
@@ -76,10 +76,7 @@ class TrainerLoggingMixin(ABC):
         # --------------------------
         # single scalar returned from a xx_step
         if isinstance(output, torch.Tensor):
-            progress_bar_metrics = {}
-            log_metrics = {}
-            hiddens = None
-            return output, progress_bar_metrics, log_metrics, hiddens
+            return output, {}, {}, None
 
         # ---------------
         # EXTRACT PROGRESS BAR KEYS
@@ -140,6 +137,8 @@ class TrainerLoggingMixin(ABC):
         # EXTRACT HIDDEN
         # ---------------
         hiddens = output.get('hiddens', None) if isinstance(output, Mapping) else None
+        if hiddens is not None:
+            hiddens = hiddens.detach()
 
         # detach all metrics for callbacks to prevent memory leaks
         # no .item() because it will slow things down

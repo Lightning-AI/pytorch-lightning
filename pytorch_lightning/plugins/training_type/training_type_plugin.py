@@ -23,6 +23,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import atomic_save
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
@@ -194,6 +196,22 @@ class TrainingTypePlugin(Plugin, ABC):
         Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return False
+
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+        # dump states as a checkpoint dictionary object
+        if self.is_global_zero:
+            checkpoint = self.on_save(checkpoint)
+            try:
+                # write the checkpoint dictionary on the file
+                atomic_save(checkpoint, filepath)
+            except AttributeError as err:
+                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+                    del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+                rank_zero_warn(
+                    'Warning, `hyper_parameters` dropped from checkpoint.'
+                    f' An attribute is not picklable {err}'
+                )
+                atomic_save(checkpoint, filepath)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
