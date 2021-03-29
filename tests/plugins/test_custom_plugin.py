@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
+import torch
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
 from tests.helpers import BoringModel
@@ -26,6 +29,7 @@ class CustomParallelPlugin(DDPPlugin):
 
 
 @RunIf(skip_windows=True)
+@pytest.mark.skipif(torch.cuda.is_available(), reason="RuntimeError: Tensors must be CUDA and dense")
 def test_sync_batchnorm_set(tmpdir):
     """Tests if sync_batchnorm is automatically set for custom plugin."""
     model = BoringModel()

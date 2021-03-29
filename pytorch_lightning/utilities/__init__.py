@@ -14,7 +14,6 @@
 """General utilities"""
 
 import numpy
-
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
 from pytorch_lightning.utilities.distributed import (  # noqa: F401
     AllGatherGrad,
