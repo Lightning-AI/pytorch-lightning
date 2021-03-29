@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 import re
 from pathlib import Path
@@ -235,65 +236,12 @@ class CheckpointConnector:
 
         return filepath
 
-    def hpc_load(self, checkpoint_path: str, on_gpu: bool):
-        """
-        Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
-        All restored states are listed in return value description of `dump_checkpoint`.
-        """
-
-        # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
-        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
-
-        # acquire the model
-        model = self.trainer.lightning_module
-
-        # restore model and datamodule state
-        self.restore_model_state(model, checkpoint)
-
-        if self.trainer.root_gpu is not None:
-            model.cuda(self.trainer.root_gpu)
-
-        # restore training state
-        self.restore_training_state(checkpoint)
-
-        # call hpc specific hook
-        model.on_hpc_load(checkpoint)
-
-    def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
-        """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
-
-        Args:
-            dir_path: path of directory which may contain files whose name include `name_key`
-            name_key: file name prefix
-
-        Returns:
-            None if no-corresponding-file else maximum suffix number
-        """
-
-        # check directory existence
-        fs = get_filesystem(dir_path)
-        if not fs.exists(dir_path):
-            return None
-
-        # check corresponding file existence
-        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
-        files = [x for x in files if name_key in x]
-        if len(files) == 0:
-            return None
-
-        # extract suffix number
-        ckpt_vs = []
-        for name in files:
-            name = name.split(name_key)[-1]
-            name = re.sub('[^0-9]', '', name)
-            ckpt_vs.append(int(name))
-
-        return max(ckpt_vs)
-
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
+
         Args:
             weights_only: saving model weights only
+
         Return:
             structured dictionary: {
                 'epoch':                     training epoch
@@ -375,6 +323,61 @@ class CheckpointConnector:
             self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
+
+    def hpc_load(self, checkpoint_path: str, on_gpu: bool):
+        """
+        Load model/training states from a 'PyTorch-Lightning checkpoint' file for hpc.
+        All restored states are listed in return value description of `dump_checkpoint`.
+        """
+
+        # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
+        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+
+        # acquire the model
+        model = self.trainer.lightning_module
+
+        # restore model and datamodule state
+        self.restore_model_state(model, checkpoint)
+
+        if self.trainer.root_gpu is not None:
+            model.cuda(self.trainer.root_gpu)
+
+        # restore training state
+        self.restore_training_state(checkpoint)
+
+        # call hpc specific hook
+        model.on_hpc_load(checkpoint)
+
+    def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
+        """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
+
+        Args:
+            dir_path: path of directory which may contain files whose name include `name_key`
+            name_key: file name prefix
+
+        Returns:
+            None if no-corresponding-file else maximum suffix number
+        """
+
+        # check directory existence
+        fs = get_filesystem(dir_path)
+        if not fs.exists(dir_path):
+            return None
+
+        # check corresponding file existence
+        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
+        files = [x for x in files if name_key in x]
+        if len(files) == 0:
+            return None
+
+        # extract suffix number
+        ckpt_vs = []
+        for name in files:
+            name = name.split(name_key)[-1]
+            name = re.sub('[^0-9]', '', name)
+            ckpt_vs.append(int(name))
+
+        return max(ckpt_vs)
 
     def get_max_ckpt_path_from_folder(self, folder_path: Union[str, Path]) -> str:
         """Get path of maximum-epoch checkpoint in the folder."""
