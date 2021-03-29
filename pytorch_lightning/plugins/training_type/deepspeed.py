@@ -95,7 +95,7 @@ class DeepSpeedPlugin(DDPPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,
-        initial_scale_power: int = 32,
+        initial_scale_power: int = 16,
         loss_scale_window: int = 1000,
         hysteresis: int = 2,
         min_loss_scale: int = 1,
