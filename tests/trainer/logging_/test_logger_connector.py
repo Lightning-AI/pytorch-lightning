@@ -53,13 +53,11 @@ def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Cal
     return decorator
 
 
-def test__logger_connector__epoch_result_store__train(tmpdir, monkeypatch):
+def test__logger_connector__epoch_result_store__train(tmpdir):
     """
     Tests that LoggerConnector will properly capture logged information
     and reduce them
     """
-    monkeypatch.setenv("PL_DEV_DEBUG", "1")
-
     class TestModel(BoringModel):
 
         train_losses = []
@@ -208,12 +206,10 @@ def test__logger_connector__epoch_result_store__train__tbptt(tmpdir):
 
 
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
-def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, monkeypatch, num_dataloaders):
+def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, num_dataloaders):
     """
     Tests that LoggerConnector will properly capture logged information in multi dataloaders scenario
     """
-    monkeypatch.setenv("PL_DEV_DEBUG", "1")
-
     class TestModel(BoringModel):
         test_losses = {dl_idx: [] for dl_idx in range(num_dataloaders)}
 
