@@ -125,7 +125,7 @@ class FullyShardedPlugin(DDPPlugin):
         return self._process_group
 
     @contextlib.contextmanager
-    def model_parallel_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator:
         precision = self.lightning_module.trainer.precision
 
         def wrap_policy(*args, **kwargs):
@@ -147,18 +147,12 @@ class FullyShardedPlugin(DDPPlugin):
             yield
 
     def configure_ddp(self):
-
-        # set the device before instantiate the wrapper
-        if self.root_device.type == "cuda":
-            torch.cuda.set_device(self.root_device)
-
-        with self.model_parallel_context():
-            if self.automatic_module_wrap:
-                self.model = auto_wrap(LightningFullyShardedModule(self.model))
-                if not isinstance(self.model, FullyShardedDataParallel):
-                    self.model = wrap(self.model)
-            else:
-                self.model = wrap(LightningFullyShardedModule(self.model))
+        if self.automatic_module_wrap:
+            self.model = auto_wrap(LightningFullyShardedModule(self.model))
+            if not isinstance(self.model, FullyShardedDataParallel):
+                self.model = wrap(self.model)
+        else:
+            self.model = wrap(LightningFullyShardedModule(self.model))
 
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us
