@@ -12,13 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import io
 from distutils.version import LooseVersion
 from pathlib import Path
 from typing import IO, Union
 
 import fsspec
+from fsspec.implementations.local import LocalFileSystem
+
 import torch
+
+
+class LightningLocalFileSystem(LocalFileSystem):
+    def isdir(self, path):
+        try:
+            if self.info(path)["type"] == "directory":
+                return True
+            elif self.info(path)["type"] == "link":
+                return os.path.isdir(path)
+            else:
+                return False
+        except IOError:
+            return False
 
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
@@ -39,7 +55,7 @@ def get_filesystem(path: Union[str, Path]):
         return fsspec.filesystem(path.split(":", 1)[0])
     else:
         # use local filesystem
-        return fsspec.filesystem("file")
+        return LightningLocalFileSystem()
 
 
 def atomic_save(checkpoint, filepath: str):
