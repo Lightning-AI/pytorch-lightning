@@ -558,7 +558,6 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
             output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
             self.log("loss", output["loss"])
             self.training_step_invoked += 1
-            # print(batch_idx, self.trainer.current_epoch)
             assert not self.trainer.should_stop
             return output
 
