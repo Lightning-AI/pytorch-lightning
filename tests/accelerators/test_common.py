@@ -65,8 +65,14 @@ def test_model_parallel_setup_called(tmpdir):
 
     class TestModel(BoringModel):
 
-        def on_model_parallel_setup(self):
-            self.on_model_parallel_setup_called = True
+        def __init__(self):
+            super().__init__()
+            self.configure_sharded_model_called = False
+            self.layer = None
+
+        def configure_sharded_model(self):
+            self.configure_sharded_model_called = True
+            self.layer = torch.nn.Linear(32, 2)
 
     model = TestModel()
     trainer = Trainer(
@@ -77,28 +83,29 @@ def test_model_parallel_setup_called(tmpdir):
     )
     trainer.fit(model)
 
-    assert model.on_model_parallel_setup_called
+    assert model.configure_sharded_model_called
 
 
-def test_model_parallel_setup_false(tmpdir):
-    """Ensure ``on_model_parallel_setup`` is not called, when turned off"""
+class DummyModel(BoringModel):
 
-    class TestModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.configure_sharded_model_called = False
 
-        def __init__(self):
-            super().__init__()
-            self.on_model_parallel_setup_called = False
+    def configure_sharded_model(self):
+        self.configure_sharded_model_called = True
 
-        def on_model_parallel_setup(self):
-            self.on_model_parallel_setup_called = True
+
+def test_configure_sharded_model_false(tmpdir):
+    """Ensure ``configure_sharded_model`` is not called, when turned off"""
 
     class CustomPlugin(SingleDevicePlugin):
 
         @property
-        def call_model_parallel_setup_hook(self) -> bool:
+        def call_configure_sharded_model_hook(self) -> bool:
             return False
 
-    model = TestModel()
+    model = DummyModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
@@ -108,22 +115,28 @@ def test_model_parallel_setup_false(tmpdir):
     )
     trainer.fit(model)
 
-    assert not model.on_model_parallel_setup_called
+    assert not model.configure_sharded_model_called
 
 
-def test_model_parallel_setup_called_once(tmpdir):
-    """Ensure ``on_model_parallel_setup`` is only called once"""
+def test_accelerator_configure_sharded_model_called_once(tmpdir):
+    """Ensure that the configure sharded model hook is called, and set to False after to ensure not called again."""
 
-    class TestModel(BoringModel):
+    model = DummyModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+    )
+    assert trainer.accelerator.call_configure_sharded_model_hook is True
+    trainer.fit(model)
+    assert trainer.accelerator.call_configure_sharded_model_hook is False
 
-        def __init__(self):
-            super().__init__()
-            self.on_model_parallel_setup_called = False
 
-        def on_model_parallel_setup(self):
-            self.on_model_parallel_setup_called = True
+def test_configure_sharded_model_called_once(tmpdir):
+    """Ensure ``configure_sharded_model`` is only called once"""
 
-    model = TestModel()
+    model = DummyModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=2,
@@ -132,7 +145,7 @@ def test_model_parallel_setup_called_once(tmpdir):
     )
     trainer.fit(model)
 
-    assert model.on_model_parallel_setup_called
-    model.on_model_parallel_setup_called = False
+    assert model.configure_sharded_model_called
+    model.configure_sharded_model_called = False
 
-    assert not model.on_model_parallel_setup_called
+    assert not model.configure_sharded_model_called

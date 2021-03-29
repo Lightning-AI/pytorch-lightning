@@ -386,25 +386,12 @@ class CheckpointConnector:
         ckpt_number = max_suffix if max_suffix is not None else 0
         return f'{folder_path}/hpc_ckpt_{ckpt_number}.ckpt'
 
-    def save_checkpoint(self, filepath, weights_only: bool = False):
+    def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
             filepath: write-target file's path
             weights_only: saving model weights only
         """
-        # dump states as a checkpoint dictionary object
-        checkpoint = self.dump_checkpoint(weights_only)
-        checkpoint = self.trainer.accelerator.on_save(checkpoint)
-        if self.trainer.is_global_zero:
-            # write the checkpoint dictionary on the file
-            try:
-                atomic_save(checkpoint, filepath)
-            except AttributeError as err:
-                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-                    del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-                rank_zero_warn(
-                    'Warning, `hyper_parameters` dropped from checkpoint.'
-                    f' An attribute is not picklable {err}'
-                )
-                atomic_save(checkpoint, filepath)
+        _checkpoint = self.dump_checkpoint(weights_only)
+        self.trainer.accelerator.save_checkpoint(_checkpoint, filepath)

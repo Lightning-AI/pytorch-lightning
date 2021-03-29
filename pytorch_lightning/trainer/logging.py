@@ -14,12 +14,13 @@
 
 import inspect
 from abc import ABC
-from typing import Mapping
+from collections import Mapping
 
 import torch
 
 from pytorch_lightning.utilities import DistributedType
 from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 
 
@@ -32,8 +33,14 @@ class TrainerLoggingMixin(ABC):
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
+        # TODO: this is duplicated in MetricsHolder. should be unified
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
+                if v.numel() != 1:
+                    raise MisconfigurationException(
+                        f"The metric `{k}` does not contain a single element"
+                        f" thus it cannot be converted to float. Found `{v}`"
+                    )
                 v = v.item()
 
             if isinstance(v, dict):
@@ -69,25 +76,7 @@ class TrainerLoggingMixin(ABC):
         # --------------------------
         # single scalar returned from a xx_step
         if isinstance(output, torch.Tensor):
-            progress_bar_metrics = {}
-            log_metrics = {}
-            callback_metrics = {}
-            hiddens = None
-            return output, progress_bar_metrics, log_metrics, callback_metrics, hiddens
-
-        # ---------------
-        # EXTRACT CALLBACK KEYS
-        # ---------------
-        # all keys not progress_bar or log are candidates for callbacks
-        callback_metrics = {}
-        if isinstance(output, Mapping):
-            for k, v in output.items():
-                if k not in ['progress_bar', 'log', 'hiddens']:
-                    callback_metrics[k] = v
-
-        if train and self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
-            num_gpus = self.num_gpus
-            callback_metrics = self.reduce_distributed_output(callback_metrics, num_gpus)
+            return output, {}, {}, None
 
         # ---------------
         # EXTRACT PROGRESS BAR KEYS
@@ -148,18 +137,15 @@ class TrainerLoggingMixin(ABC):
         # EXTRACT HIDDEN
         # ---------------
         hiddens = output.get('hiddens', None) if isinstance(output, Mapping) else None
-
-        # use every metric passed in as a candidate for callback
-        callback_metrics.update(progress_bar_metrics)
-        callback_metrics.update(log_metrics)
+        if hiddens is not None:
+            hiddens = hiddens.detach()
 
         # detach all metrics for callbacks to prevent memory leaks
         # no .item() because it will slow things down
-        callback_metrics = recursive_detach(callback_metrics)
         progress_bar_metrics = recursive_detach(progress_bar_metrics)
         log_metrics = recursive_detach(log_metrics)
 
-        return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
+        return loss, progress_bar_metrics, log_metrics, hiddens
 
     def reduce_distributed_output(self, output, num_gpus):
         if num_gpus <= 1:
