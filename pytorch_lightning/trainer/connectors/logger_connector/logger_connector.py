@@ -317,10 +317,6 @@ class LoggerConnector:
                 elif isinstance(eval_result, dict):
                     flat = flatten_dict(eval_result)
 
-                # removing val_loss magic word to map to checkpoint + ES callback
-                if 'val_loss' in flat:
-                    flat['checkpoint_on'] = flat['val_loss']
-                    flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
                 if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                     self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
@@ -330,11 +326,6 @@ class LoggerConnector:
                 flat = {'val_loss': eval_results}
             else:
                 flat = flatten_dict(eval_results)
-
-            # removing val_loss magic word to map to checkpoint + ES callback
-            if 'val_loss' in flat:
-                flat['checkpoint_on'] = flat['val_loss']
-                flat['early_stop_on'] = flat['val_loss']
 
             self.trainer.logger_connector.callback_metrics.update(flat)
             if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
@@ -370,25 +361,12 @@ class LoggerConnector:
         # inform cached logger connector epoch finished
         self.cached_results.has_batch_loop_finished = True
 
-    def log_train_epoch_end_metrics(
-        self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers
-    ):
+    def log_train_epoch_end_metrics(self, epoch_output, num_optimizers):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
 
         model = self.trainer.lightning_module
-
-        epoch_callback_metrics = {}
-
-        # -----------------------
-        # Calculate epoch callback values if given
-        # -----------------------
-        if checkpoint_accumulator.num_values > 0:
-            epoch_callback_metrics['checkpoint_on'] = checkpoint_accumulator.mean()
-
-        if early_stopping_accumulator.num_values > 0:
-            epoch_callback_metrics['early_stop_on'] = early_stopping_accumulator.mean()
 
         # ------------------------
         # determine if using a result obj
@@ -436,9 +414,6 @@ class LoggerConnector:
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
             self.log_metrics(epoch_log_metrics, {})
             self._callback_metrics.update(epoch_log_metrics)
-
-        # add metrics to callbacks
-        self._callback_metrics.update(epoch_callback_metrics)
 
         # add metrics to progress_bar and callbacks
         if len(epoch_progress_bar_metrics) > 0:
