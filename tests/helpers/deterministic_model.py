@@ -104,69 +104,6 @@ class DeterministicModel(LightningModule):
                 assert batch_out.grad_fn is None
                 assert isinstance(batch_out, torch.Tensor)
 
-    # --------------------------
-    # dictionary returns
-    # --------------------------
-    def training_step__dict_return(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-
-        logs = {'log_acc1': torch.tensor(12).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
-        pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
-
-        self.training_step_called = True
-        return {'loss': acc, 'log': logs, 'progress_bar': pbar, 'train_step_test': torch.tensor(549).type_as(acc)}
-
-    def training_step_end__dict(self, output):
-        self.training_step_end_called = True
-
-        # make sure loss has the grad
-        assert 'loss' in output
-        assert output['loss'].grad_fn is not None
-
-        # make sure nothing else has grads
-        assert self.count_num_graphs(output) == 1
-
-        # make sure the other keys are there
-        assert 'log_acc1' in output
-        assert 'log_acc2' in output
-        assert 'pbar_acc1' in output
-        assert 'pbar_acc2' in output
-
-        logs = {'log_acc1': output['log_acc1'] + 2, 'log_acc2': output['log_acc2'] + 2}
-        pbar = {'pbar_acc1': output['pbar_acc1'] + 2, 'pbar_acc2': output['pbar_acc2'] + 2}
-
-        acc = output['loss']
-        return {'loss': acc, 'log': logs, 'progress_bar': pbar, 'train_step_end': acc}
-
-    def validation_step__no_return(self, batch, batch_idx):
-        self.validation_step_called = True
-        self.step(batch, batch_idx)
-
-    def validation_step__scalar_return(self, batch, batch_idx):
-        self.validation_step_called = True
-        acc = self.step(batch, batch_idx)
-        return acc
-
-    def validation_step__dummy_dict_return(self, batch, batch_idx):
-        self.validation_step_called = True
-        acc = self.step(batch, batch_idx)
-        return {'some': acc, 'value': 'a'}
-
-    def validation_step__dict_return(self, batch, batch_idx):
-        self.validation_step_called = True
-        acc = self.step(batch, batch_idx)
-
-        logs = {'log_acc1': torch.tensor(12 + batch_idx).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
-        pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
-        return {'val_loss': acc, 'log': logs, 'progress_bar': pbar}
-
-    def validation_step_end__no_return(self, val_step_output):
-        assert len(val_step_output) == 3
-        assert val_step_output['val_loss'] == 171
-        assert val_step_output['log']['log_acc1'] >= 12
-        assert val_step_output['progress_bar']['pbar_acc1'] == 17
-        self.validation_step_end_called = True
-
     def validation_step_end(self, val_step_output):
         assert len(val_step_output) == 3
         assert val_step_output['val_loss'] == 171
