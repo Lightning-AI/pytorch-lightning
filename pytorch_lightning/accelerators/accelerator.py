@@ -491,8 +491,7 @@ class Accelerator(object):
 
     @call_model_parallel_setup_hook.setter
     def call_model_parallel_setup_hook(self, mode: bool) -> None:
-        if isinstance(mode, bool):
-            self.training_type_plugin.call_model_parallel_setup_hook = mode
+        self.training_type_plugin.call_model_parallel_setup_hook = mode
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
