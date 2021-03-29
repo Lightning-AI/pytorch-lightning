@@ -955,38 +955,35 @@ class Trainer(
         model,
         ckpt_path: Optional[str] = None,
     ) -> Optional[str]:
+        fn = self.state.value
+
         if ckpt_path == 'best':
             if not self.checkpoint_callback.best_model_path and self.fast_dev_run:
                 raise MisconfigurationException(
-                    'You cannot execute `trainer.test()` or `trainer.validate()`'
-                    ' with `fast_dev_run=True`.'
+                    f'You cannot execute `trainer.{fn}()` with `fast_dev_run=True` unless you do'
+                    f'`trainer.{fn}(ckpt_path=...)` as no checkpoint path was generated during fitting.'
                 )
-
             # if user requests the best checkpoint but we don't have it, error
             if not self.checkpoint_callback.best_model_path:
                 raise MisconfigurationException(
                     'ckpt_path is "best", but `ModelCheckpoint` is not configured to save the best model.'
                 )
+            # load best weights
+            ckpt_path = self.checkpoint_callback.best_model_path
 
-        # load best weights
-        if ckpt_path is not None:
-            # ckpt_path is 'best' so load the best model
-            if ckpt_path == 'best':
-                ckpt_path = self.checkpoint_callback.best_model_path
+        if not ckpt_path:
+            raise MisconfigurationException(
+                f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
+                f' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
+            )
 
-            if not ckpt_path:
-                fn = self.state.value
-                raise MisconfigurationException(
-                    f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
-                    ' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
-                )
+        # only one process running at this point for TPUs, as spawn isn't triggered yet
+        if self._device_type != DeviceType.TPU:
+            self.training_type_plugin.barrier()
 
-            # only one process running at this point for TPUs, as spawn isn't triggered yet
-            if not self._device_type == DeviceType.TPU:
-                self.training_type_plugin.barrier()
+        ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
+        model.load_state_dict(ckpt['state_dict'])
 
-            ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt['state_dict'])
         return ckpt_path
 
     def predict(
