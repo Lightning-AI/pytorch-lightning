@@ -33,7 +33,7 @@ def test_tpu_device_presence():
     assert xla_utils.XLADeviceUtils.tpu_device_exists()
 
 
-def sleep_fn(sleep_time: float) -> int:
+def sleep_fn(sleep_time: float) -> bool:
     time.sleep(sleep_time)
     return True
 
