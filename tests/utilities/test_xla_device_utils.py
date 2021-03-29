@@ -39,6 +39,7 @@ def sleep_fn(sleep_time: float) -> bool:
 
 
 @patch('pytorch_lightning.utilities.xla_device.TPU_CHECK_TIMEOUT', 3)
+@pytest.mark.skipif(not _XLA_AVAILABLE, reason="test requires torch_xla to be present")
 def test_result_returns_within_timeout_seconds():
     """Check that pl_multi_process returns within 3 seconds"""
     fn = xla_utils.pl_multi_process(sleep_fn)
