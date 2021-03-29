@@ -204,7 +204,6 @@ class ModelCheckpoint(Callback):
         self.best_model_path = ""
         self.last_model_path = ""
         self.save_function = None
-        self.warned_result_obj = False
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
@@ -616,7 +615,7 @@ class ModelCheckpoint(Callback):
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics "
                 "and it is not triggered on train end:"
                 f" {list(metrics.keys())}. "
-                f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
+                f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
             raise MisconfigurationException(m)
 

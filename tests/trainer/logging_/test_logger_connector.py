@@ -111,7 +111,7 @@ def test__logger_connector__epoch_result_store__train(tmpdir, monkeypatch):
     assert generated == excepted
 
 
-def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
+def test__logger_connector__epoch_result_store__train__tbptt(tmpdir):
     """
     Tests that LoggerConnector will properly capture logged information with ttbt
     and reduce them
@@ -142,6 +142,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
         @decorator_with_arguments(fx_name="training_step")
         def training_step(self, batch, batch_idx, hiddens):
+            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
             self.test_hidden = torch.rand(1)
 
             x_tensor, y_list = batch
@@ -461,7 +462,7 @@ def test_metric_holder_raises(tmpdir):
 
         def validation_step(self, batch, *args, **kwargs):
             output = self(batch)
-            return {"test": output}
+            self.log('test', output)
 
         def test_step(self, *args, **kwargs):
             return self.validation_step(*args, **kwargs)
@@ -477,6 +478,35 @@ def test_metric_holder_raises(tmpdir):
         trainer.validate(model)
     with pytest.raises(MisconfigurationException, match=match):
         trainer.test(model)
+
+
+def test_can_return_tensor_with_more_than_one_element(tmpdir):
+    """Ensure {validation,test}_step return values are not included as callback metrics. #6623"""
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, *args, **kwargs):
+            return {"val": torch.tensor([0, 1])}
+
+        def validation_epoch_end(self, outputs):
+            # ensure validation step returns still appear here
+            assert len(outputs) == 2
+            assert all(list(d) == ["val"] for d in outputs)  # check keys
+            assert all(torch.equal(d["val"], torch.tensor([0, 1])) for d in outputs)  # check values
+
+        def test_step(self, batch, *args, **kwargs):
+            return {"test": torch.tensor([0, 1])}
+
+        def test_epoch_end(self, outputs):
+            assert len(outputs) == 2
+            assert all(list(d) == ["test"] for d in outputs)  # check keys
+            assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, progress_bar_refresh_rate=0)
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
 
 
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):
