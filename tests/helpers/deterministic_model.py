@@ -65,45 +65,6 @@ class DeterministicModel(LightningModule):
 
         return num_graphs
 
-    # ---------------------------
-    # scalar return
-    # ---------------------------
-    def training_step__scalar_return(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-        self.training_step_called = True
-        return acc
-
-    def training_step_end__scalar(self, output):
-        self.training_step_end_called = True
-
-        # make sure loss has the grad
-        assert isinstance(output, torch.Tensor)
-        assert output.grad_fn is not None
-
-        # make sure nothing else has grads
-        assert self.count_num_graphs({'loss': output}) == 1
-
-        assert output == 171
-
-        return output
-
-    def training_epoch_end__scalar(self, outputs):
-        """
-        There should be an array of scalars without graphs that are all 171 (4 of them)
-        """
-        self.training_epoch_end_called = True
-
-        if self._distrib_type in (DistributedType.DP, DistributedType.DDP2):
-            pass
-        else:
-            # only saw 4 batches
-            assert len(outputs) == 4
-            for batch_out in outputs:
-                batch_out = batch_out['loss']
-                assert batch_out == 171
-                assert batch_out.grad_fn is None
-                assert isinstance(batch_out, torch.Tensor)
-
     def validation_step_end(self, val_step_output):
         assert len(val_step_output) == 3
         assert val_step_output['val_loss'] == 171
