@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from typing import Optional
 import functools
+import os
 import queue as q
 import traceback
 from multiprocessing import Process, Queue
+from typing import Optional
 
-import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
@@ -28,7 +27,6 @@ if _XLA_AVAILABLE:
     import torch_xla.distributed.xla_multiprocessing as xmp
 
 #: define waiting time got checking TPU available in sec
-
 TPU_CHECK_TIMEOUT = 25
 
 
@@ -72,6 +70,7 @@ class XLADeviceUtils:
         Return:
             A boolean value indicating if the xla device is a TPU device or not
         """
+
         def _fn(process_idx: int, mp_queue):
             try:
                 device = xm.xla_device()
@@ -83,7 +82,6 @@ class XLADeviceUtils:
         queue = smp.SimpleQueue()
         xmp.spawn(_fn, args=(queue, ), nprocs=1)
         return queue.get()
-            
 
     @staticmethod
     def xla_available() -> bool:
@@ -105,11 +103,11 @@ class XLADeviceUtils:
         """
         if os.getenv("PL_TPU_AVAILABLE", '0') == "1":
             XLADeviceUtils._TPU_AVAILABLE = True
-            
+
         if XLADeviceUtils.xla_available() and not XLADeviceUtils._TPU_AVAILABLE:
-        
+
             XLADeviceUtils._TPU_AVAILABLE = XLADeviceUtils._is_device_tpu()
-        
+
             if XLADeviceUtils._TPU_AVAILABLE:
                 os.environ["PL_TPU_AVAILABLE"] = '1'
 
