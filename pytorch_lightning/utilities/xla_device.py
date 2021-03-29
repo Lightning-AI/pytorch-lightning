@@ -16,7 +16,6 @@ import os
 import queue as q
 import traceback
 from multiprocessing import Process, Queue
-from typing import Optional
 
 import torch.multiprocessing as mp
 
@@ -71,7 +70,7 @@ class XLADeviceUtils:
             A boolean value indicating if the xla device is a TPU device or not
         """
 
-        def _fn(process_idx: int, mp_queue):
+        def _fn(_: int, mp_queue):
             try:
                 device = xm.xla_device()
                 mp_queue.put(device.type == 'xla')
