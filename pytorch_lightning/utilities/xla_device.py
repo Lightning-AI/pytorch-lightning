@@ -63,7 +63,7 @@ class XLADeviceUtils:
 
     @staticmethod
     @pl_multi_process
-    def _is_device_tpu() -> Optional[bool]:
+    def _is_device_tpu() -> bool:
         """
         Check if device is TPU
 
