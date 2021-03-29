@@ -33,16 +33,17 @@ def test_tpu_device_presence():
     assert xla_utils.XLADeviceUtils.tpu_device_exists()
 
 
+def sleep_fn(sleep_time: float) -> int:
+    time.sleep(sleep_time)
+    return True
+
+
 @patch('pytorch_lightning.utilities.xla_device.TPU_CHECK_TIMEOUT', 3)
 def test_result_returns_within_timeout_seconds():
     """Check that pl_multi_process returns within 3 seconds"""
 
-    def fn():
-        time.sleep(xla_utils.TPU_CHECK_TIMEOUT * 0.5)
-        return True
-
     start = time.time()
-    result = xla_utils.pl_multi_process(fn)()
+    result = xla_utils.pl_multi_process(sleep_fn)(xla_utils.TPU_CHECK_TIMEOUT * 0.5)
     end = time.time()
     elapsed_time = int(end - start)
     assert elapsed_time <= xla_utils.TPU_CHECK_TIMEOUT
