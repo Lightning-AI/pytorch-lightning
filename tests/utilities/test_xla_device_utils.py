@@ -23,7 +23,7 @@ from tests.helpers.runif import RunIf
 
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
-    """Check tpu_device_exists returns None when torch_xla is not available"""
+    """Check tpu_device_exists returns False when torch_xla is not available"""
     assert not xla_utils.XLADeviceUtils.tpu_device_exists()
 
 
