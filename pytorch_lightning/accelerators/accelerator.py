@@ -481,17 +481,17 @@ class Accelerator(object):
         self.setup_precision_plugin(plugin)
 
     @property
-    def call_model_parallel_setup_hook(self) -> bool:
+    def call_configure_sharded_model_hook(self) -> bool:
         """
         Allow model parallel hook to be called in suitable environments determined by the training type plugin.
         This is useful for when we want to shard the model once within fit.
         Returns: True if we want to call the model parallel setup hook.
         """
-        return self.training_type_plugin.call_model_parallel_setup_hook
+        return self.training_type_plugin.call_configure_sharded_model_hook
 
-    @call_model_parallel_setup_hook.setter
-    def call_model_parallel_setup_hook(self, mode: bool) -> None:
-        self.training_type_plugin.call_model_parallel_setup_hook = mode
+    @call_configure_sharded_model_hook.setter
+    def call_configure_sharded_model_hook(self, mode: bool) -> None:
+        self.training_type_plugin.call_configure_sharded_model_hook = mode
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
