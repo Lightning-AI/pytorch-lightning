@@ -23,7 +23,7 @@ from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import auto_wrap, default_auto_wrap_policy, enable_wrap, wrap
+    from fairscale.nn import auto_wrap, checkpoint_wrapper, default_auto_wrap_policy, enable_wrap, wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     from pytorch_lightning.overrides.fairscale import LightningFullyShardedModule, unwrap_lightning_module_fully_sharded
@@ -125,14 +125,24 @@ class FullyShardedPlugin(DDPPlugin):
         return self._process_group
 
     @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
+    def model_sharded_context(self, override_checkpointing=False) -> Generator:
+
+        # set the device before instantiate the wrapper
+        if self.root_device.type == "cuda":
+            torch.cuda.set_device(self.root_device)
+
         precision = self.lightning_module.trainer.precision
 
         def wrap_policy(*args, **kwargs):
             return default_auto_wrap_policy(*args, **kwargs, min_num_params=self.min_num_params)
 
+        def model_wrapper(module, **wrap_overrides):
+            if self.activation_checkpoint:
+                module = checkpoint_wrapper(module)
+            return FullyShardedDataParallel(module, **wrap_overrides)
+
         with enable_wrap(
-            wrapper_cls=FullyShardedDataParallel,
+            wrapper_cls=model_wrapper,
             auto_wrap_policy=wrap_policy,
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
@@ -147,12 +157,13 @@ class FullyShardedPlugin(DDPPlugin):
             yield
 
     def configure_ddp(self):
-        if self.automatic_module_wrap:
-            self.model = auto_wrap(LightningFullyShardedModule(self.model))
-            if not isinstance(self.model, FullyShardedDataParallel):
-                self.model = wrap(self.model)
-        else:
-            self.model = wrap(LightningFullyShardedModule(self.model))
+        with self.model_sharded_context():
+            if self.automatic_module_wrap:
+                self.model = auto_wrap(LightningFullyShardedModule(self.model))
+                if not isinstance(self.model, FullyShardedDataParallel):
+                    self.model = wrap(self.model)
+            else:
+                self.model = wrap(LightningFullyShardedModule(self.model))
 
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us
