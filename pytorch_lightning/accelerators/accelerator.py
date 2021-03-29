@@ -466,3 +466,6 @@ class Accelerator(object):
             ' It will be removed in v1.5.'
         )
         self.setup_precision_plugin(plugin)
+
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath) -> None:
+        self.training_type_plugin.save_checkpoint(checkpoint, filepath)
