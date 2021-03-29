@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
@@ -35,6 +36,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self) -> None:
         self._model = None
         self._results = None
+        self._call_configure_sharded_model_hook = True
 
     def connect(self, model: 'Module') -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
@@ -196,6 +198,12 @@ class TrainingTypePlugin(Plugin, ABC):
         return False
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            filepath: write-target file's path
+        """
         # dump states as a checkpoint dictionary object
         if self.is_global_zero:
             checkpoint = self.on_save(checkpoint)
@@ -210,3 +218,27 @@ class TrainingTypePlugin(Plugin, ABC):
                     f' An attribute is not picklable {err}'
                 )
                 atomic_save(checkpoint, filepath)
+
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator:
+        """
+        Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
+        shard the model instantly, which is useful for extremely large models which can save memory and
+        initialization time.
+
+        Returns: Model parallel context.
+        """
+        yield
+
+    @property
+    def call_configure_sharded_model_hook(self) -> bool:
+        """
+        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
+        This is useful for when we want to shard the model once within fit.
+        Returns: True if we want to call the model parallel setup hook.
+        """
+        return self._call_configure_sharded_model_hook
+
+    @call_configure_sharded_model_hook.setter
+    def call_configure_sharded_model_hook(self, mode: bool) -> None:
+        self._call_configure_sharded_model_hook = mode

@@ -56,6 +56,11 @@ class CallbackHookNameValidator:
         return None
 
     @staticmethod
+    def _on_configure_sharded_model_log():
+        """Called before configure sharded model"""
+        return None
+
+    @staticmethod
     def _teardown_log():
         """Called at the end of fit and test"""
         return None

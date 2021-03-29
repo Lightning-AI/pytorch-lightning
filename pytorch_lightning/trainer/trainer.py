@@ -436,6 +436,7 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self.call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
@@ -1081,6 +1082,15 @@ class Trainer(
 
         self.setup(model, stage=state)
         model.setup(stage=state)
+
+    def call_configure_sharded_model(self, model: LightningModule) -> None:
+        # Call configure sharded model hook if accelerator requests. In some cases
+        # we will not call the hook; the hook has initialized the sharded model for example.
+        if self.accelerator.call_configure_sharded_model_hook:
+            with self.accelerator.model_sharded_context():
+                model.configure_sharded_model()
+                self.configure_sharded_model(model)
+            self.accelerator.call_configure_sharded_model_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state
