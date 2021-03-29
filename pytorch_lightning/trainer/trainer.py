@@ -955,6 +955,9 @@ class Trainer(
         model,
         ckpt_path: Optional[str] = None,
     ) -> Optional[str]:
+        if ckpt_path is None:
+            return
+
         fn = self.state.value
 
         if ckpt_path == 'best':
