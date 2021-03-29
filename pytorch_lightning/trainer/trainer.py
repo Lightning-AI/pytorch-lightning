@@ -1080,7 +1080,7 @@ class Trainer(
         # Call configure sharded model hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
         if self.accelerator.call_configure_sharded_model_hook:
-            with self.accelerator.model_parallel_context():
+            with self.accelerator.model_sharded_context():
                 model.configure_sharded_model()
                 self.configure_sharded_model(model)
             self.accelerator.call_configure_sharded_model_hook = False

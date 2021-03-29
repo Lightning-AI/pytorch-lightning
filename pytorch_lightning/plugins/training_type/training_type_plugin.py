@@ -196,7 +196,7 @@ class TrainingTypePlugin(Plugin, ABC):
         return False
 
     @contextlib.contextmanager
-    def model_parallel_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator:
         """
         Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly, which is useful for extremely large models which can save memory and

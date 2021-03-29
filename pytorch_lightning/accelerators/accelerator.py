@@ -441,7 +441,7 @@ class Accelerator(object):
         return self.training_type_plugin.results
 
     @contextlib.contextmanager
-    def model_parallel_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator:
         """
         Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly - useful for extremely large models. Can save memory and
@@ -449,7 +449,7 @@ class Accelerator(object):
 
         Returns: Model parallel context.
         """
-        with self.training_type_plugin.model_parallel_context():
+        with self.training_type_plugin.model_sharded_context():
             yield
 
     # todo: remove in v1.5
