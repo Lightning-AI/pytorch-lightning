@@ -1081,8 +1081,8 @@ class Trainer(
         # we will not call the hook; the hook has initialized the sharded model for example.
         if self.accelerator.call_model_parallel_setup_hook:
             with self.accelerator.model_parallel_context():
-                self.on_model_parallel_setup(model)
-                model.on_model_parallel_setup()
+                self.configure_sharded_model(model)
+                model.configure_sharded_model()
             self.accelerator.call_model_parallel_setup_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:

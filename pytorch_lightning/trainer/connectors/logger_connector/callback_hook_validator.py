@@ -56,8 +56,8 @@ class CallbackHookNameValidator:
         return None
 
     @staticmethod
-    def _on_model_parallel_setup_log():
-        """Called when fit or test begins"""
+    def _on_configure_sharded_model_log():
+        """Called before configure sharded model"""
         return None
 
     @staticmethod

@@ -67,11 +67,11 @@ def test_model_parallel_setup_called(tmpdir):
 
         def __init__(self):
             super().__init__()
-            self.on_model_parallel_setup_called = False
+            self.configure_sharded_model_called = False
             self.layer = None
 
-        def on_model_parallel_setup(self):
-            self.on_model_parallel_setup_called = True
+        def configure_sharded_model(self):
+            self.configure_sharded_model_called = True
             self.layer = torch.nn.Linear(32, 2)
 
     model = TestModel()
@@ -83,21 +83,21 @@ def test_model_parallel_setup_called(tmpdir):
     )
     trainer.fit(model)
 
-    assert model.on_model_parallel_setup_called
+    assert model.configure_sharded_model_called
 
 
 class DummyModel(BoringModel):
 
     def __init__(self):
         super().__init__()
-        self.on_model_parallel_setup_called = False
+        self.configure_sharded_model_called = False
 
-    def on_model_parallel_setup(self):
-        self.on_model_parallel_setup_called = True
+    def configure_sharded_model(self):
+        self.configure_sharded_model_called = True
 
 
 def test_model_parallel_setup_false(tmpdir):
-    """Ensure ``on_model_parallel_setup`` is not called, when turned off"""
+    """Ensure ``configure_sharded_model`` is not called, when turned off"""
 
     class CustomPlugin(SingleDevicePlugin):
 
@@ -115,11 +115,11 @@ def test_model_parallel_setup_false(tmpdir):
     )
     trainer.fit(model)
 
-    assert not model.on_model_parallel_setup_called
+    assert not model.configure_sharded_model_called
 
 
 def test_model_parallel_setup_called_once(tmpdir):
-    """Ensure ``on_model_parallel_setup`` is only called once"""
+    """Ensure ``configure_sharded_model`` is only called once"""
 
     model = DummyModel()
     trainer = Trainer(
@@ -130,7 +130,7 @@ def test_model_parallel_setup_called_once(tmpdir):
     )
     trainer.fit(model)
 
-    assert model.on_model_parallel_setup_called
-    model.on_model_parallel_setup_called = False
+    assert model.configure_sharded_model_called
+    model.configure_sharded_model_called = False
 
-    assert not model.on_model_parallel_setup_called
+    assert not model.configure_sharded_model_called

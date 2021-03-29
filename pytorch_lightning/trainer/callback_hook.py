@@ -38,10 +38,10 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
 
-    def on_model_parallel_setup(self, model: LightningModule) -> None:
+    def configure_sharded_model(self, model: LightningModule) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
-            callback.on_model_parallel_setup(self, model)
+            callback.on_configure_sharded_model(self, model)
 
     def setup(self, model: LightningModule, stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
