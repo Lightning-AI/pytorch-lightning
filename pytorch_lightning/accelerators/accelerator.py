@@ -17,7 +17,6 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
@@ -468,6 +467,5 @@ class Accelerator(object):
         )
         self.setup_precision_plugin(plugin)
 
-    def save_checkpoint(self, trainer: 'pl.Trainer', filepath, weights_only: bool = False) -> None:
-        # dump states as a checkpoint dictionary object
-        self.training_type_plugin.save_checkpoint(trainer, filepath, weights_only)
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath) -> None:
+        self.training_type_plugin.save_checkpoint(checkpoint, filepath)

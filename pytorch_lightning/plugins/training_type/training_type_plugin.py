@@ -19,12 +19,11 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import atomic_save, dump_checkpoint
+from pytorch_lightning.utilities.cloud_io import atomic_save
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
@@ -196,10 +195,9 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return False
 
-    def save_checkpoint(self, trainer: 'pl.Trainer', filepath, weights_only: bool = False) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         # dump states as a checkpoint dictionary object
-        checkpoint = dump_checkpoint(trainer, weights_only)
-        if trainer.is_global_zero:
+        if self.is_global_zero:
             # write the checkpoint dictionary on the file
 
             checkpoint = self.on_save(checkpoint)
