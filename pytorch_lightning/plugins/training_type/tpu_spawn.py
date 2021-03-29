@@ -300,9 +300,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
-            trainer: PyTorch Lightning Trainer
+            checkpoint: dict containing model and trainer state
             filepath: write-target file's path
-            weights_only: saving model weights only
         """
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
         self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)

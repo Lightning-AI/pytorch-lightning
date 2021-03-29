@@ -198,6 +198,12 @@ class TrainingTypePlugin(Plugin, ABC):
         return False
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            filepath: write-target file's path
+        """
         # dump states as a checkpoint dictionary object
         if self.is_global_zero:
             checkpoint = self.on_save(checkpoint)
