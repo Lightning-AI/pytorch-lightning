@@ -94,7 +94,7 @@ class XLADeviceUtils:
         return _XLA_AVAILABLE
 
     @staticmethod
-    def tpu_device_exists() -> Optional[bool]:
+    def tpu_device_exists() -> bool:
         """
         Runs XLA device check within a separate process
 
