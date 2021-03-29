@@ -35,7 +35,7 @@ def test_tpu_device_presence():
 
 @patch('pytorch_lightning.utilities.xla_device.TPU_CHECK_TIMEOUT', 3)
 def test_result_returns_within_timeout_seconds():
-    """Check that pl_multi_process returns within 10 seconds"""
+    """Check that pl_multi_process returns within 3 seconds"""
 
     def fn():
         time.sleep(xla_utils.TPU_CHECK_TIMEOUT * 0.5)
