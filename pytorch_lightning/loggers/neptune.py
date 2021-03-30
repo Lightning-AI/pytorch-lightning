@@ -16,24 +16,62 @@ Neptune Logger
 --------------
 """
 import logging
+import operator
 from argparse import Namespace
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
-from torch import is_tensor
 
+from pytorch_lightning import __version__
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
+from pytorch_lightning.utilities.imports import _compare_version
 
 log = logging.getLogger(__name__)
-_NEPTUNE_AVAILABLE = _module_available("neptune")
 
-if _NEPTUNE_AVAILABLE:
-    import neptune
-    from neptune.experiments import Experiment
+LEGACY_NEPTUNE_INIT_KWARGS = [
+    'project_name',
+    'offline_mode',
+    'experiment_name',
+    'experiment_id',
+    'params',
+    'properties',
+    'upload_source_files',
+    'abort_callback',
+    'logger',
+    'upload_stdout',
+    'upload_stderr',
+    'send_hardware_metrics',
+    'run_monitoring_thread',
+    'handle_uncaught_exceptions',
+    'git_info',
+    'hostname',
+    'notebook_id',
+    'notebook_path',
+]
+
+_NEPTUNE_AVAILABLE = _module_available("neptune")
+_NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
+
+if _module_available("neptune"):
+    from neptune import __version__ as neptune_versions
+
+    _NEPTUNE_AVAILABLE = neptune_versions.startswith('0.9.') or neptune_versions.startswith('1.')
 else:
-    # needed for test mocks, these tests shall be updated
-    neptune, Experiment = None, None
+    _NEPTUNE_AVAILABLE = False
+
+if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
+    try:
+        from neptune import new as neptune
+        from neptune.new.run import Run
+        from neptune.new.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
+    except ImportError:
+        import neptune
+        from neptune.run import Run
+        from neptune.exceptions import NeptuneLegacyProjectException, NeptuneOfflineModeFetchException
+else:
+    # needed for test mocks, and function signatures
+    neptune, Run = None, None
 
 
 class NeptuneLogger(LightningLoggerBase):
@@ -46,63 +84,51 @@ class NeptuneLogger(LightningLoggerBase):
 
         pip install neptune-client
 
-    The Neptune logger can be used in the online mode or offline (silent) mode.
-    To log experiment data in online mode, :class:`NeptuneLogger` requires an API key.
-    In offline mode, the logger does not connect to Neptune.
-
-    **ONLINE MODE**
+    Pass NeptuneLogger instance to the Trainer to log metadata with Neptune:
 
     .. testcode::
 
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import NeptuneLogger
 
-        # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
-        # We are using an api_key for the anonymous user "neptuner" but you can use your own.
+        # Arguments passed to the "NeptuneLogger" are used to create new run in neptune.
+        # We are using an "api_key" for the anonymous user "neptuner" but you can use your own.
         neptune_logger = NeptuneLogger(
-            api_key="ANONYMOUS",
-            project_name="shared/pytorch-lightning-integration",
-            experiment_name="default",  # Optional,
-            params={"max_epochs": 10},  # Optional,
-            tags=["pytorch-lightning", "mlp"],  # Optional,
+            api_key='ANONYMOUS',
+            project='common/new-pytorch-lightning-integration',
+            name='lightning-run',  # Optional
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
 
-    **OFFLINE MODE**
-
-    .. testcode::
-
-        from pytorch_lightning.loggers import NeptuneLogger
-
-        # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
-        neptune_logger = NeptuneLogger(
-            offline_mode=True,
-            project_name="USER_NAME/PROJECT_NAME",
-            experiment_name="default",  # Optional,
-            params={"max_epochs": 10},  # Optional,
-            tags=["pytorch-lightning", "mlp"],  # Optional,
-        )
-        trainer = Trainer(max_epochs=10, logger=neptune_logger)
-
-    Use the logger anywhere in you :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+    Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
 
     .. code-block:: python
+
+        from neptune.new.types import File
 
         class LitModel(LightningModule):
             def training_step(self, batch, batch_idx):
                 # log metrics
-                self.logger.experiment.log_metric("acc_train", ...)
+                acc = ...
+                self.logger.experiment['train/acc'].log(acc)
+
                 # log images
-                self.logger.experiment.log_image("worse_predictions", ...)
-                # log model checkpoint
-                self.logger.experiment.log_artifact("model_checkpoint.pt", ...)
-                self.logger.experiment.whatever_neptune_supports(...)
+                img = ...
+                self.logger.experiment['train/misclassified_images'].log(File.as_image(img))
 
             def any_lightning_module_function_or_hook(self):
-                self.logger.experiment.log_metric("acc_train", ...)
-                self.logger.experiment.log_image("worse_predictions", ...)
-                self.logger.experiment.log_artifact("model_checkpoint.pt", ...)
-                self.logger.experiment.whatever_neptune_supports(...)
+                # log model checkpoint
+                ...
+                self.logger.experiment['checkpoints/epoch37'].upload('epoch=37.ckpt')
+
+                # generic recipe
+                metadata = ...
+                self.logger.experiment['your/metadata/structure'].log(metadata)
+
+    Check `Neptune docs <https://docs.neptune.ai/user-guides/logging-and-managing-runs-results/logging-runs-data>`_
+    for more info about how to log various types metadata (scores, files, images, interactive visuals, CSVs, etc.).
+
+    **Log after training is finished**
 
     If you want to log objects after the training is finished use ``close_after_fit=False``:
 
@@ -110,159 +136,244 @@ class NeptuneLogger(LightningLoggerBase):
 
         neptune_logger = NeptuneLogger(..., close_after_fit=False, ...)
         trainer = Trainer(logger=neptune_logger)
-        trainer.fit()
+        trainer.fit(model)
 
-        # Log test metrics
-        trainer.test(model)
-
-        # Log additional metrics
-        from sklearn.metrics import accuracy_score
-
-        accuracy = accuracy_score(y_true, y_pred)
-        neptune_logger.experiment.log_metric("test_accuracy", accuracy)
-
-        # Log charts
+        # Log metadata after trainer.fit() is done, for example diagnostics chart
+        from neptune.new.types import File
         from scikitplot.metrics import plot_confusion_matrix
         import matplotlib.pyplot as plt
-
+        ...
         fig, ax = plt.subplots(figsize=(16, 12))
         plot_confusion_matrix(y_true, y_pred, ax=ax)
-        neptune_logger.experiment.log_image("confusion_matrix", fig)
+        neptune_logger.experiment['test/confusion_matrix'].upload(File.as_image(fig))
 
-        # Save checkpoints folder
-        neptune_logger.experiment.log_artifact("my/checkpoints")
+    **Pass additional parameters to Neptune run**
 
-        # When you are done, stop the experiment
-        neptune_logger.experiment.stop()
+    You can also pass `kwargs` to specify the run in the greater detail, like ``tags`` and ``description``:
+
+    .. testcode::
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.loggers import NeptuneLogger
+
+        neptune_logger = NeptuneLogger(
+            project='common/new-pytorch-lightning-integration',
+            name='lightning-run',
+            description='mlp quick run with pytorch-lightning',
+            tags=['mlp', 'quick-run'],
+            )
+        trainer = Trainer(max_epochs=3, logger=neptune_logger)
+
+    Check `run documentation <https://docs.neptune.ai/essentials/api-reference/run>`_
+    for more info about additional run parameters.
+
+    **Details about Neptune run structure**
+
+    Runs can be viewed as nested dictionary-like structures that you can define in your code.
+    Thanks to this you can easily organize your metadata in a way that is most convenient for you.
+
+    The hierarchical structure that you apply to your metadata will be reflected later in the UI.
+
+    You can organize this way any type of metadata - images, parameters, metrics, model checkpoint, CSV files, etc.
 
     See Also:
-        - An `Example experiment <https://ui.neptune.ai/o/shared/org/
-          pytorch-lightning-integration/e/PYTOR-66/charts>`_ showing the UI of Neptune.
-        - `Tutorial <https://docs.neptune.ai/integrations/pytorch_lightning.html>`_ on how to use
-          Pytorch Lightning with Neptune.
+        You can read about `what object you can log to Neptune <https://docs.neptune.ai/user-guides/
+        logging-and-managing-runs-results/logging-runs-data#what-objects-can-you-log-to-neptune>`_.
+        Also check `example run <https://app.neptune.ai/o/common/org/new-pytorch-lightning-integration/e/NEWPL-8/all>`_
+        with multiple type of metadata logged.
 
     Args:
-        api_key: Required in online mode.
-            Neptune API token, found on https://neptune.ai.
-            Read how to get your
-            `API key <https://docs.neptune.ai/python-api/tutorials/get-started.html#copy-api-token>`_.
+        api_key: Optional.
+            Neptune API token, found on https://neptune.ai upon registration.
+            Read: `how to find and set Neptune API token <https://docs.neptune.ai/administration/security-and-privacy/
+            how-to-find-and-set-neptune-api-token>`_.
             It is recommended to keep it in the `NEPTUNE_API_TOKEN`
-            environment variable and then you can leave ``api_key=None``.
-        project_name: Required in online mode. Qualified name of a project in a form of
-            "namespace/project_name" for example "tom/minst-classification".
+            environment variable and then you can drop ``api_key=None``.
+        project: Optional.
+            Qualified name of a project in a form of "my_workspace/my_project" for example "tom/mask-rcnn".
             If ``None``, the value of `NEPTUNE_PROJECT` environment variable will be taken.
             You need to create the project in https://neptune.ai first.
-        offline_mode: Optional default ``False``. If ``True`` no logs will be sent
-            to Neptune. Usually used for debug purposes.
-        close_after_fit: Optional default ``True``. If ``False`` the experiment
-            will not be closed after training and additional metrics,
-            images or artifacts can be logged. Also, remember to close the experiment explicitly
-            by running ``neptune_logger.experiment.stop()``.
-        experiment_name: Optional. Editable name of the experiment.
-            Name is displayed in the experiment’s Details (Metadata section) and
-            in experiments view as a column.
-        experiment_id: Optional. Default is ``None``. The ID of the existing experiment.
-            If specified, connect to experiment with experiment_id in project_name.
-            Input arguments "experiment_name", "params", "properties" and "tags" will be overriden based
-            on fetched experiment data.
+        close_after_fit: Optional default ``True``.
+            If ``False`` the run will not be closed after training
+            and additional metrics, images or artifacts can be logged.
+        name: Optional. Editable name of the run.
+            Run name appears in the "all metadata/sys" section in Neptune UI.
+        run: Optional. Default is ``None``. The ID of the existing run.
+            If specified (e.g. 'ABC-42'), connect to run with `sys/id` in project_name.
+            Input argument "name" will be overridden based on fetched run data.
         prefix: A string to put at the beginning of metric keys.
-        \**kwargs: Additional arguments like `params`, `tags`, `properties`, etc. used by
-            :func:`neptune.Session.create_experiment` can be passed as keyword arguments in this logger.
+        base_namespace: Parent namespace under which parameters and metrics will be stored.
+        \**kwargs: Additional arguments like ``tags``, ``description``, ``capture_stdout``, ``capture_stderr`` etc.
+            used when run is created.
 
     Raises:
         ImportError:
-            If required Neptune package is not installed on the device.
+            If required Neptune package in version >=0.9 is not installed on the device.
+        TypeError:
+            If configured project has not been migrated to new structure yet.
     """
 
-    LOGGER_JOIN_CHAR = "-"
+    LOGGER_JOIN_CHAR = '/'
+    PARAMETERS_KEY = 'parameters'
+    METRICS_KEY = 'metrics'
+    ARTIFACTS_KEY = 'artifacts'
 
     def __init__(
-        self,
-        api_key: Optional[str] = None,
-        project_name: Optional[str] = None,
-        close_after_fit: Optional[bool] = True,
-        offline_mode: bool = False,
-        experiment_name: Optional[str] = None,
-        experiment_id: Optional[str] = None,
-        prefix: str = "",
-        **kwargs,
-    ):
+            self,
+            api_key: Optional[str] = None,
+            project: Optional[str] = None,
+            close_after_fit: Optional[bool] = True,
+            name: Optional[str] = None,
+            run: Optional[str] = None,
+            prefix: str = '',
+            base_namespace: str = '',
+            **neptune_run_kwargs):
         if neptune is None:
             raise ImportError(
-                "You want to use `neptune` logger which is not installed yet,"
-                " install it with `pip install neptune-client`."
+                "You want to use `neptune` in version >=0.9 logger which is not installed yet,"
+                " install it with `pip install 'neptune-client>=0.9'`."
             )
-        super().__init__()
-        self.api_key = api_key
-        self.project_name = project_name
-        self.offline_mode = offline_mode
-        self.close_after_fit = close_after_fit
-        self.experiment_name = experiment_name
-        self._prefix = prefix
-        self._kwargs = kwargs
-        self.experiment_id = experiment_id
-        self._experiment = None
+        used_legacy_kwargs = [
+            legacy_kwarg for legacy_kwarg in neptune_run_kwargs.keys()
+            if legacy_kwarg in LEGACY_NEPTUNE_INIT_KWARGS
+        ]
+        if used_legacy_kwargs:
+            raise ValueError(
+                f"Following kwargs used by you are deprecated: {used_legacy_kwargs}.\n"
+                "If you are looking for the Neptune logger using legacy Python API it has been renamed to"
+                " NeptuneLegacyLogger. The NeptuneLogger was re-written to use the neptune.new Python API"
+                " (learn more: https://neptune.ai/blog/neptune-new).\n"
+                "You should use arguments accepted by either NeptuneLogger.init or neptune.init"
+            )
 
-        log.info(f'NeptuneLogger will work in {"offline" if self.offline_mode else "online"} mode')
+        super().__init__()
+        self._project = project
+        self._api_key = api_key
+        self._neptune_run_kwargs = neptune_run_kwargs
+        self._close_after_fit = close_after_fit
+        self._name = name
+        self._run_to_load = run  # particular id of exp to load e.g. 'ABC-42'
+        self._prefix = prefix
+        self._base_namespace = base_namespace
+
+        self._run_instance = None
 
     def __getstate__(self):
         state = self.__dict__.copy()
-
-        # Experiment cannot be pickled, and additionally its ID cannot be pickled in offline mode
-        state["_experiment"] = None
-        if self.offline_mode:
-            state["experiment_id"] = None
-
+        # Run instance can't be pickled
+        state["_run_instance"] = None
         return state
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Experiment:
+    def experiment(self) -> Run:
         r"""
-        Actual Neptune object. To use neptune features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+        Actual Neptune run object. Allows you to use neptune logging features in your
+        :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
         Example::
 
-            self.logger.experiment.some_neptune_function()
+            class LitModel(LightningModule):
+                def training_step(self, batch, batch_idx):
+                    # log metrics
+                    acc = ...
+                    self.logger.experiment["train/acc"].log(acc)
 
+                    # log images
+                    img = ...
+                    self.logger.experiment["train/misclassified_images"].log(File.as_image(img))
         """
+        return self.run
 
-        # Note that even though we initialize self._experiment in __init__,
-        # it may still end up being None after being pickled and un-pickled
-        if self._experiment is None:
-            self._experiment = self._create_or_get_experiment()
+    @property
+    def run(self) -> Run:
+        if self._run_instance is None:
+            try:
+                self._run_instance = neptune.init(
+                    project=self._project,
+                    api_token=self._api_key,
+                    run=self._run_to_load,
+                    name=self._name,
+                    **self._neptune_run_kwargs,
+                )
+                self._run_instance["source_code/integrations/neptune-pytorch-lightning"] = __version__
+            except NeptuneLegacyProjectException as e:
+                raise TypeError(f"""
+                    Project {self._project} has not been imported to new structure yet.
+                    You can still integrate it with `NeptuneLegacyLogger`.
+                    """) from e
 
-        return self._experiment
+        return self._run_instance
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+        r"""
+        Log hyper-parameters to the run.
+
+        Params will be logged using the ``param__`` scheme, for example: ``param__batch_size``, ``param__lr``.
+
+        **Note**
+
+        You can also log parameters by directly using the logger instance:
+        ``neptune_logger.experiment['model/hyper-parameters'] = params_dict``.
+
+        In this way you can keep hierarchical structure of the parameters.
+
+        Args:
+            params: `dict`.
+                Python dictionary structure with parameters.
+
+        Example::
+
+            from pytorch_lightning.loggers import NeptuneLogger
+
+            PARAMS = {
+                'batch_size': 64,
+                'lr': 0.07,
+                'decay_factor': 0.97
+            }
+
+            neptune_logger = NeptuneLogger(
+                api_key='ANONYMOUS',
+                close_after_fit=False,
+                project='common/new-pytorch-lightning-integration'
+            )
+
+            neptune_logger.log_hyperparams(PARAMS)
+        """
         params = self._convert_params(params)
-        params = self._flatten_dict(params)
-        for key, val in params.items():
-            self.experiment.set_property(f"param__{key}", val)
+
+        parameters_key = self.PARAMETERS_KEY
+        if self._base_namespace:
+            parameters_key = f'{self._base_namespace}/{parameters_key}'
+
+        self.run[parameters_key] = params
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
-        """Log metrics (numeric values) in Neptune experiments.
+        """Log metrics (numeric values) in Neptune runs.
 
         Args:
-            metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded, currently ignored
+            metrics: Dictionary with metric names as keys and measured quantities as values.
+            step: Step number at which the metrics should be recorded, currently ignored.
         """
-        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
+        assert rank_zero_only.rank == 0, 'run tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
+        metrics_key = self.METRICS_KEY
+        if self._base_namespace:
+            metrics_key = f'{self._base_namespace}/{metrics_key}'
+
         for key, val in metrics.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
             # Lighting does not always guarantee.
-            self.log_metric(key, val)
+            self.experiment[f'{metrics_key}/{key}'].log(val)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
         super().finalize(status)
-        if self.close_after_fit:
-            self.experiment.stop()
+        if self._close_after_fit:
+            self.run.stop()
 
     @property
     def save_dir(self) -> Optional[str]:
@@ -282,9 +393,11 @@ class NeptuneLogger(LightningLoggerBase):
         Returns:
             The name of the experiment if not in offline mode else "offline-name".
         """
-        if self.offline_mode:
+        try:
+            self.run.sync()
+        except NeptuneOfflineModeFetchException:
             return "offline-name"
-        return self.experiment.name
+        return self.run['sys/name'].fetch()
 
     @property
     def version(self) -> str:
@@ -293,108 +406,43 @@ class NeptuneLogger(LightningLoggerBase):
         Returns:
             The id of the experiment if not in offline mode else "offline-id-1234".
         """
-        if self.offline_mode:
-            return "offline-id-1234"
-        return self.experiment.id
+        try:
+            self.run.sync()
+        except NeptuneOfflineModeFetchException:
+            return 'offline-id-1234'
+        return self.run['sys/id'].fetch()
+
+    def _raise_deprecated_api_usage(self, f_name, sample_code):
+        raise ValueError(f"The function you've used is deprecated.\n"
+                         f"If you are looking for the Neptune logger using legacy Python API it has been renamed to"
+                         f" NeptuneLegacyLogger. The NeptuneLogger was re-written to use the neptune.new Python API"
+                         f" (learn more: https://neptune.ai/blog/neptune-new).\n"
+                         f"Instead of `logger.{f_name}` you can use:\n"
+                         f"\t{sample_code}")
 
     @rank_zero_only
-    def log_metric(
-        self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None
-    ) -> None:
-        """Log metrics (numeric values) in Neptune experiments.
-
-        Args:
-            metric_name: The name of log, i.e. mse, loss, accuracy.
-            metric_value: The value of the log (data-point).
-            step: Step number at which the metrics should be recorded, must be strictly increasing
-        """
-        if is_tensor(metric_value):
-            metric_value = metric_value.cpu().detach()
-
-        if step is None:
-            self.experiment.log_metric(metric_name, metric_value)
-        else:
-            self.experiment.log_metric(metric_name, x=step, y=metric_value)
+    def log_metric(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_metric", f"logger.run['{self.METRICS_KEY}/key'].log(42)")
 
     @rank_zero_only
-    def log_text(self, log_name: str, text: str, step: Optional[int] = None) -> None:
-        """Log text data in Neptune experiments.
-
-        Args:
-            log_name: The name of log, i.e. mse, my_text_data, timing_info.
-            text: The value of the log (data-point).
-            step: Step number at which the metrics should be recorded, must be strictly increasing
-        """
-        if step is None:
-            self.experiment.log_text(log_name, text)
-        else:
-            self.experiment.log_text(log_name, x=step, y=text)
+    def log_text(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_text", f"logger.run['{self.METRICS_KEY}/key'].log('text')")
 
     @rank_zero_only
-    def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None) -> None:
-        """Log image data in Neptune experiment.
-
-        Args:
-            log_name: The name of log, i.e. bboxes, visualisations, sample_images.
-            image: The value of the log (data-point).
-                Can be one of the following types: PIL image, `matplotlib.figure.Figure`,
-                path to image file (str)
-            step: Step number at which the metrics should be recorded, must be strictly increasing
-        """
-        if step is None:
-            self.experiment.log_image(log_name, image)
-        else:
-            self.experiment.log_image(log_name, x=step, y=image)
+    def log_image(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_image",
+                                         f"logger.run['{self.METRICS_KEY}/key'].log(File('path_to_image'))")
 
     @rank_zero_only
-    def log_artifact(self, artifact: str, destination: Optional[str] = None) -> None:
-        """Save an artifact (file) in Neptune experiment storage.
-
-        Args:
-            artifact: A path to the file in local filesystem.
-            destination: Optional. Default is ``None``. A destination path.
-                If ``None`` is passed, an artifact file name will be used.
-        """
-        self.experiment.log_artifact(artifact, destination)
+    def log_artifact(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_artifact",
+                                         f"logger.run['{self.ARTIFACTS_KEY}/key'].log('path_to_file')")
 
     @rank_zero_only
-    def set_property(self, key: str, value: Any) -> None:
-        """Set key-value pair as Neptune experiment property.
-
-        Args:
-            key: Property key.
-            value: New value of a property.
-        """
-        self.experiment.set_property(key, value)
+    def set_property(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("log_artifact", f"logger.run['{self.PARAMETERS_KEY}/key'].log(value)")
 
     @rank_zero_only
-    def append_tags(self, tags: Union[str, Iterable[str]]) -> None:
-        """Appends tags to the neptune experiment.
-
-        Args:
-            tags: Tags to add to the current experiment. If str is passed, a single tag is added.
-                If multiple - comma separated - str are passed, all of them are added as tags.
-                If list of str is passed, all elements of the list are added as tags.
-        """
-        if str(tags) == tags:
-            tags = [tags]  # make it as an iterable is if it is not yet
-        self.experiment.append_tags(*tags)
-
-    def _create_or_get_experiment(self):
-        if self.offline_mode:
-            project = neptune.Session(backend=neptune.OfflineBackend()).get_project("dry-run/project")
-        else:
-            session = neptune.Session.with_default_backend(api_token=self.api_key)
-            project = session.get_project(self.project_name)
-
-        if self.experiment_id is None:
-            exp = project.create_experiment(name=self.experiment_name, **self._kwargs)
-            self.experiment_id = exp.id
-        else:
-            exp = project.get_experiments(id=self.experiment_id)[0]
-            self.experiment_name = exp.get_system_properties()["name"]
-            self.params = exp.get_parameters()
-            self.properties = exp.get_properties()
-            self.tags = exp.get_tags()
-
-        return exp
+    def append_tags(self, *args, **kwargs):
+        self._raise_deprecated_api_usage("append_tags",
+                                         "logger.run['sys/tags'].add(['foo', 'bar'])")

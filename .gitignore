@@ -147,6 +147,7 @@ wandb
 .forked/
 *.prof
 *.tar.gz
+.neptune/
 
 # dataset generated from bolts in examples.
 cifar-10-batches-py
