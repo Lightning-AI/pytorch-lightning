@@ -25,18 +25,12 @@ import torch
 
 
 class LightningLocalFileSystem(LocalFileSystem):
-    """Extension of ``fsspec.implementations.local.LocalFileSystem`` which follows symbolic links so that
-    ``LightningLocalFileSystem.isdir`` behaves the same as ``os.isdir``.
+    """Extension of ``fsspec.implementations.local.LocalFileSystem`` where ``LightningLocalFileSystem.isdir`` behaves
+    the same as ``os.isdir``.
     """
 
     def isdir(self, path: str) -> bool:
-        try:
-            if self.info(path)["type"] == "link":
-                return os.path.isdir(path)  # follows symlinks
-            else:
-                return super().isdir(path)
-        except IOError:
-            return False
+        return os.path.isdir(path)  # follows symlinks
 
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
