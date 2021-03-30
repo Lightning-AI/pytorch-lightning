@@ -191,10 +191,7 @@ class LoggerConnector:
             self.add_progress_bar_metrics(pbar_metrics_tmp)
 
         self._callback_metrics.update(callback_metrics_tmp)
-
-        # save legacy log metrics
         self._logged_metrics.update(logged_metrics_tmp)
-        self.cached_results.legacy_batch_log_metrics.update(logged_metrics_tmp)
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.

@@ -751,13 +751,8 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
 
             l_mle, l_length, logdet, loss, _ = self.step(y, y_lengths, x, x_lengths)
 
-            output = {
-                "loss": loss,  # required
-                "progress_bar": {"l_mle": l_mle, "l_length": l_length, "logdet": logdet},
-                "log": {"loss": loss, "l_mle": l_mle, "l_length": l_length, "logdet": logdet},
-            }
-
-            return output
+            self.log_dict({"l_mle": l_mle, "l_length": l_length, "logdet": logdet}, prog_bar=True)
+            return loss
         ...
 
 Neural Types in NeMo TTS

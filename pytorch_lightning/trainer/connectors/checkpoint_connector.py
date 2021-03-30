@@ -90,20 +90,17 @@ class CheckpointConnector:
             rank_zero_warn("No checkpoint file exists at `resume_from_checkpoint`. Start from scratch")
             return False
 
-        # read a checkpoint dictionary object from the 'PyTorch-Lightning checkpoint' file at `checkpoint_path`
-        checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
+            checkpoint_path, map_location=lambda storage, loc: storage
+        )
 
-        # acquire the model
         model = self.trainer.lightning_module
-
-        # restore model and datamodule state
-        self.restore_model_state(model, checkpoint)
 
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
-        self.restore_training_state(checkpoint)
+        self.restore_training_state(checkpoint, load_optimizer_states)
 
         rank_zero_info(f"Restored states from the checkpoint file at {checkpoint_path}")
         return True
@@ -123,7 +120,7 @@ class CheckpointConnector:
         # restore model state_dict
         model.load_state_dict(checkpoint['state_dict'])
 
-    def restore_training_state(self, checkpoint):
+    def restore_training_state(self, checkpoint, load_optimizer_states: bool = True):
         """
         Restore trainer state.
         Model will get its change to update
@@ -131,7 +128,7 @@ class CheckpointConnector:
         :return:
         """
         # validation
-        if 'optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint:
+        if load_optimizer_states and ('optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint):
             raise KeyError(
                 'Trying to restore training state but checkpoint contains only the model.'
                 ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
@@ -176,6 +173,9 @@ class CheckpointConnector:
                 " This can cause unreliable results if further training is done,"
                 " consider using an end of epoch checkpoint."
             )
+
+        if not load_optimizer_states:
+            return
 
         # restore the optimizers
         optimizer_states = checkpoint['optimizer_states']
@@ -238,10 +238,8 @@ class CheckpointConnector:
 
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
-
         Args:
             weights_only: saving model weights only
-
         Return:
             structured dictionary: {
                 'epoch':                     training epoch
@@ -350,11 +348,9 @@ class CheckpointConnector:
 
     def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
-
         Args:
             dir_path: path of directory which may contain files whose name include `name_key`
             name_key: file name prefix
-
         Returns:
             None if no-corresponding-file else maximum suffix number
         """
