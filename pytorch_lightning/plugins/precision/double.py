@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import wraps
-from typing import Any, Sequence, Tuple, TYPE_CHECKING, List
+from typing import Any, List, Sequence, Tuple, TYPE_CHECKING
 
 import torch
 
@@ -44,9 +44,7 @@ class _DoublePrecisionPatch:
 
     @staticmethod
     def _move_float_tensors_to_double(collection: Any) -> Any:
-        return apply_to_collection(
-            collection, torch.Tensor, function=_DoublePrecisionPatch._to_double_precision
-        )
+        return apply_to_collection(collection, torch.Tensor, function=_DoublePrecisionPatch._to_double_precision)
 
     @classmethod
     def patch(cls, model: 'Module', method_name: str) -> '_DoublePrecisionPatch':

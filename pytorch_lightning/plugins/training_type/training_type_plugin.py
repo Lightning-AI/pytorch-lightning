@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
@@ -25,6 +25,7 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
@@ -196,6 +197,45 @@ class TrainingTypePlugin(Plugin, ABC):
         Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return False
+
+    def restore_model_state_from_ckpt_path(
+        self,
+        ckpt_path: str,
+        map_location: Callable = lambda storage, loc: storage,
+    ) -> Tuple[Dict, bool]:
+        """
+        This function is used to load and restore the model state.
+
+        Args:
+            ckpt_path: Path to a checkpoint
+            map_location: lambda function to map checkpoint location
+
+        Return
+            checkpoint: Return loaded checkpoint
+            bool: Wether to load optimizer / lr_schedulers states from checkpoint
+
+        """
+        ckpt = pl_load(ckpt_path, map_location=map_location)
+        # restore datamodule states
+        if self.lightning_module.trainer.datamodule is not None:
+            self.lightning_module.trainer.datamodule.on_load_checkpoint(ckpt)
+
+        # hook: give user access to checkpoint if needed.
+        self.lightning_module.on_load_checkpoint(ckpt)
+        self.lightning_module.load_state_dict(ckpt['state_dict'])
+        return ckpt, True
+
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        """
+        Provide a hook to count optimizer step calls.
+
+        Args:
+            total_batch_idx: Total number of batches seen for training
+            current_global_step: Current number of optimizer step calls
+
+        Returns: New optimizer step calls
+        """
+        return current_global_step + 1
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

@@ -526,10 +526,6 @@ class Result(Dict):
         # auto-reduce across time for tbptt
         meta = time_outputs[0]['meta']
 
-        # in 1.0 the results have 'extra'. Once we deprecate 0.10.0 we may not need this
-        if 'extra' in time_outputs[0]:
-            [x.pop('extra', None) for x in time_outputs]
-
         result = cls()
         result = recursive_gather(time_outputs, result)
         recursive_stack(result)

@@ -58,7 +58,6 @@ from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -982,12 +981,13 @@ class Trainer(
             )
 
         # only one process running at this point for TPUs, as spawn isn't triggered yet
-        if self._device_type != DeviceType.TPU:
+        # todo: move this logic internally within the barrier.
+        if not self._device_type == DeviceType.TPU:
             self.training_type_plugin.barrier()
 
-        ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
-        model.load_state_dict(ckpt['state_dict'])
-
+        self.training_type_plugin.restore_model_state_from_ckpt_path(
+            ckpt_path, map_location=lambda storage, loc: storage
+        )
         return ckpt_path
 
     def predict(
@@ -1086,10 +1086,14 @@ class Trainer(
     def call_configure_sharded_model(self, model: LightningModule) -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
-        if self.accelerator.call_configure_sharded_model_hook:
+
+        # used on the model if the user re-create a trainer with resume_from_checkpoint
+        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+        if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
             with self.accelerator.model_sharded_context():
                 model.configure_sharded_model()
                 self.configure_sharded_model(model)
+            model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:
