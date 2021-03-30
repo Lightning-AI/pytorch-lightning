@@ -38,7 +38,7 @@ if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_7:
-    from pytorch_lightning.plugins.training_type.ddp_comm_hook_util import register_ddp_comm_hook
+    from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class DDPPlugin(ParallelPlugin):
         return distributed_sampler_kwargs
 
     @property
-    def is_single_process_single_device(self):
+    def _is_single_process_single_device(self) -> bool:
         return True
 
     def setup_environment(self):
@@ -230,20 +230,15 @@ class DDPPlugin(ParallelPlugin):
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
-    def register_model_hook(self) -> None:
-        if not _TORCH_GREATER_EQUAL_1_7:
-            rank_zero_warn(
-                "Not registering DDP comm hook. "
-                "To use communication hooks, please use PyTorch version at least 1.7.0."
+    def _register_ddp_hooks(self) -> None:
+        if _TORCH_GREATER_EQUAL_1_7:
+            register_ddp_comm_hook(
+                model=self._model,
+                is_single_process_single_device=self._is_single_process_single_device,
+                ddp_comm_state=self._ddp_comm_state,
+                ddp_comm_hook=self._ddp_comm_hook,
+                ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
-            return
-        register_ddp_comm_hook(
-            ddp_comm_state=self._ddp_comm_state,
-            ddp_comm_hook=self._ddp_comm_hook,
-            ddp_comm_wrapper=self._ddp_comm_wrapper,
-            model=self._model,
-            is_single_process_single_device=self.is_single_process_single_device,
-        )
 
     def configure_ddp(self):
         self.pre_configure_ddp()
@@ -252,7 +247,7 @@ class DDPPlugin(ParallelPlugin):
             device_ids=self.determine_ddp_device_ids(),
             **self._ddp_kwargs,
         )
-        self.register_model_hook()
+        self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":

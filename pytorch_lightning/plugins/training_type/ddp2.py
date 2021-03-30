@@ -60,7 +60,7 @@ class DDP2Plugin(DDPPlugin):
         return distributed_sampler_kwargs
 
     @property
-    def is_single_process_single_device(self):
+    def _is_single_process_single_device(self) -> bool:
         return False
 
     def set_world_ranks(self):
