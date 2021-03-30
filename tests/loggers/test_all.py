@@ -26,7 +26,7 @@ from pytorch_lightning.loggers import (
     CometLogger,
     CSVLogger,
     MLFlowLogger,
-    NeptuneLogger,
+    NeptuneLegacyLogger,
     TensorBoardLogger,
     TestTubeLogger,
     WandbLogger,
@@ -72,8 +72,8 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     ):
         _test_loggers_fit_test(tmpdir, MLFlowLogger)
 
-    with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
-        _test_loggers_fit_test(tmpdir, NeptuneLogger)
+    with mock.patch("pytorch_lightning.loggers.neptune_legacy.neptune"):
+        _test_loggers_fit_test(tmpdir, NeptuneLegacyLogger)
 
     with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"):
         _test_loggers_fit_test(tmpdir, TestTubeLogger)
@@ -233,7 +233,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
         CometLogger,
         CSVLogger,
         MLFlowLogger,
-        NeptuneLogger,
+        NeptuneLegacyLogger,
         TensorBoardLogger,
         TestTubeLogger,
         # The WandbLogger gets tested for pickling in its own test.
@@ -314,7 +314,7 @@ class RankZeroLoggerCheck(Callback):
 
 
 @pytest.mark.parametrize(
-    "logger_class", [CometLogger, CSVLogger, MLFlowLogger, NeptuneLogger, TensorBoardLogger, TestTubeLogger]
+    "logger_class", [CometLogger, CSVLogger, MLFlowLogger, NeptuneLegacyLogger, TensorBoardLogger, TestTubeLogger]
 )
 @RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
@@ -367,8 +367,8 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log_metric.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
 
     # Neptune
-    with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
-        logger = _instantiate_logger(NeptuneLogger, save_dir=tmpdir, prefix=prefix)
+    with mock.patch("pytorch_lightning.loggers.neptune_legacy.neptune"):
+        logger = _instantiate_logger(NeptuneLegacyLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_metric.assert_called_once_with("tmp-test", 1.0)
 

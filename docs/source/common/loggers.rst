@@ -115,10 +115,8 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 
     neptune_logger = NeptuneLogger(
         api_key="ANONYMOUS",  # replace with your own
-        project_name="shared/pytorch-lightning-integration",
-        experiment_name="default",  # Optional,
-        params={"max_epochs": 10},  # Optional,
-        tags=["pytorch-lightning", "mlp"],  # Optional,
+        project="common/new-pytorch-lightning-integration",
+        name="default",  # Optional,
     )
     trainer = Trainer(logger=neptune_logger)
 
@@ -129,8 +127,9 @@ The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere exce
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
+            # generic recipe
+            metadata = ...
+            self.logger.experiment["your/metadata/structure"].log(metadata)
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
