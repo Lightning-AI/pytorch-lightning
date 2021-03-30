@@ -63,6 +63,8 @@ jobs:
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
         pip install git+https://$(AUTH_TOKEN)@github.com/PyTorchLightning/lightning-dtrun.git@v0.0.2 --no-cache-dir
+        # install latest version of DeepSpeed - temporary solution until next release
+        pip install git+https://github.com/microsoft/DeepSpeed.git
         pip list
       displayName: 'Install dependencies'
 
