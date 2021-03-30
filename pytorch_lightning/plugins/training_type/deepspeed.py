@@ -456,7 +456,7 @@ class DeepSpeedPlugin(DDPPlugin):
             }
         return cfg
 
-    def _filepath_to_dir(self, filepath: str):
+    def _filepath_to_dir(self, filepath: str) -> str:
         return os.path.dirname(filepath)
 
     @property
