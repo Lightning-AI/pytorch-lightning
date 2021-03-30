@@ -117,7 +117,6 @@ jobs:
         # pip uninstall -y horovod
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
 
-
     - name: Install dependencies
       env:
         # MAKEFLAGS: "-j2"
