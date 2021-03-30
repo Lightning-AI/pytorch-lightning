@@ -33,7 +33,8 @@ from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.plugins.training_type.ddp_comm_hook_util import register_ddp_comm_hook
+if _TORCH_GREATER_EQUAL_1_7:
+    from pytorch_lightning.plugins.training_type.ddp_comm_hook_util import register_ddp_comm_hook
 
 log = logging.getLogger(__name__)
 
@@ -61,9 +62,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.num_processes = len(parallel_devices)
         self.node_rank = 0
         self.mp_queue = None
-        self.ddp_comm_state = ddp_comm_state
-        self.ddp_comm_hook = ddp_comm_hook
-        self.ddp_wrapper_hook = ddp_wrapper_hook
+        self._ddp_comm_state = ddp_comm_state
+        self._ddp_comm_hook = ddp_comm_hook
+        self._ddp_wrapper_hook = ddp_wrapper_hook
 
     def __getstate__(self):
         """ Makes this plugin pickleable without destroying the queue in the current process. """
@@ -192,6 +193,21 @@ class DDPSpawnPlugin(ParallelPlugin):
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
+    def register_model_hook(self) -> None:
+        if not _TORCH_GREATER_EQUAL_1_7:
+            rank_zero_warn(
+                "Not registering DDP comm hook. "
+                "To use communication hooks, please use PyTorch version at least 1.7.0."
+            )
+            return
+        register_ddp_comm_hook(
+            ddp_comm_state=self._ddp_comm_state,
+            ddp_comm_hook=self._ddp_comm_hook,
+            ddp_comm_wrapper=self._ddp_comm_wrapper,
+            model=self._model,
+            is_single_process_single_device=self.is_single_process_single_device,
+        )
+
     def configure_ddp(self):
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
@@ -199,14 +215,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             device_ids=self.determine_ddp_device_ids(),
             **self._ddp_kwargs,
         )
-
-        register_ddp_comm_hook(
-            ddp_comm_state=self.ddp_comm_state,
-            ddp_comm_hook=self.ddp_comm_hook,
-            ddp_wrapper_hook=self.ddp_wrapper_hook,
-            model=self._model,
-            is_single_process_single_device=self.is_single_process_single_device,
-        )
+        self.register_model_hook()
 
     def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
         # TODO: this code is duplicated in DDP and DDPSpawn, make this a function

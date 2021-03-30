@@ -14,7 +14,6 @@
 from typing import Optional
 
 from pytorch_lightning.utilities import (
-    _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_9,
     rank_zero_warn,
     rank_zero_info,
@@ -28,16 +27,10 @@ def register_ddp_comm_hook(
     ddp_comm_wrapper: Optional[callable],
     model: DistributedDataParallel,
     is_single_process_single_device: bool,
-):
+) -> None:
     # register DDP comm hook: https://pytorch.org/docs/master/ddp_comm_hooks.html
     if ddp_comm_hook is None:
         rank_zero_info("No DDP comm hook is provided, skipping.")
-        return
-    if not _TORCH_GREATER_EQUAL_1_7:
-        rank_zero_warn(
-            "Not registering DDP comm hook. "
-            "To use communication hooks, please use PyTorch version at least 1.7.0."
-        )
         return
     if not is_single_process_single_device:
         rank_zero_warn(
