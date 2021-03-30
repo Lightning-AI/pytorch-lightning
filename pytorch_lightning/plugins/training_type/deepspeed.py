@@ -38,6 +38,7 @@ if _DEEPSPEED_AVAILABLE:
 
 
 def remove_module_hooks(model: torch.nn.Module) -> None:
+    # TODO: awaiting this feature to move upstream to DeepSpeed
     for module in model.modules():
         module._backward_hooks = OrderedDict()
         module._is_full_backward_hook = None
@@ -320,7 +321,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
             optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
         inference_config = {
-            # todo: this is required for DeepSpeed throughput timers
+            # todo: this is required for DeepSpeed throughput timers, so throughput timers will be incorrect
             'train_micro_batch_size_per_gpu': 1,
         }
         if 'fp16' in self.config:
