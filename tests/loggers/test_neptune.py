@@ -20,7 +20,7 @@ from pytorch_lightning.loggers import NeptuneLegacyLogger
 from tests.helpers import BoringModel
 
 
-@patch('pytorch_lightning.loggers.neptune.neptune')
+@patch('pytorch_lightning.loggers.neptune_legacy.neptune')
 def test_neptune_online(neptune):
     logger = NeptuneLegacyLogger(api_key='test', project_name='project')
 
@@ -36,7 +36,7 @@ def test_neptune_online(neptune):
     assert logger.version == created_experiment.id
 
 
-@patch('pytorch_lightning.loggers.neptune.neptune')
+@patch('pytorch_lightning.loggers.neptune_legacy.neptune')
 def test_neptune_existing_experiment(neptune):
     logger = NeptuneLegacyLogger(experiment_id='TEST-123')
     neptune.Session.with_default_backend().get_project().get_experiments.assert_not_called()
@@ -48,7 +48,7 @@ def test_neptune_existing_experiment(neptune):
     assert logger.tags == experiment.get_tags()
 
 
-@patch('pytorch_lightning.loggers.neptune.neptune')
+@patch('pytorch_lightning.loggers.neptune_legacy.neptune')
 def test_neptune_offline(neptune):
     logger = NeptuneLegacyLogger(offline_mode=True)
     neptune.Session.assert_not_called()
@@ -57,7 +57,7 @@ def test_neptune_offline(neptune):
     assert logger.experiment == neptune.Session().get_project().create_experiment()
 
 
-@patch('pytorch_lightning.loggers.neptune.neptune')
+@patch('pytorch_lightning.loggers.neptune_legacy.neptune')
 def test_neptune_additional_methods(neptune):
     logger = NeptuneLegacyLogger(api_key='test', project_name='project')
 
@@ -101,7 +101,7 @@ def test_neptune_additional_methods(neptune):
     created_experiment.append_tags.assert_called_once_with('two', 'tags')
 
 
-@patch('pytorch_lightning.loggers.neptune.neptune')
+@patch('pytorch_lightning.loggers.neptune_legacy.neptune')
 def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
     """Verify that neptune experiment was closed after training"""
     model = BoringModel()

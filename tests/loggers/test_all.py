@@ -70,7 +70,7 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
          mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
         _test_loggers_fit_test(tmpdir, MLFlowLogger)
 
-    with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
+    with mock.patch('pytorch_lightning.loggers.neptune_legacy.neptune'):
         _test_loggers_fit_test(tmpdir, NeptuneLegacyLogger)
 
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
@@ -381,7 +381,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log_metric.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
 
     # Neptune
-    with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
+    with mock.patch('pytorch_lightning.loggers.neptune_legacy.neptune'):
         logger = _instantiate_logger(NeptuneLegacyLogger, save_idr=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_metric.assert_called_once_with("tmp-test", 1.0)

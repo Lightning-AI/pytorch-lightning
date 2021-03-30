@@ -113,7 +113,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `PytorchProfiler(profiled_functions)` in favor of `record_functions` ([#6349](https://github.com/PyTorchLightning/pytorch-lightning/pull/6349))
 
 
-- Rename `pytorch_lightning.loggers.neptune.NeptuneLogger` to `NeptuneLegacyLogger`. (TODO PR link)
+- Rename `pytorch_lightning.loggers.neptune.NeptuneLogger` to `pytorch_lightning.loggers.neptune_legacy.NeptuneLegacyLogger`. (TODO PR link)
 
 
 - Deprecated metrics in favor of `torchmetrics` ([#6505](https://github.com/PyTorchLightning/pytorch-lightning/pull/6505),
