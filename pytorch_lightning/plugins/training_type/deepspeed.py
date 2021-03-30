@@ -436,9 +436,14 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException("To use DeepSpeed ZeRO Optimization, you must set precision=16.")
 
     def _create_default_config(
-        self, zero_optimization: bool, zero_allow_untested_optimizer: bool, partition_activations: bool,
-        cpu_checkpointing: bool, contiguous_memory_optimization: bool, synchronize_checkpoint_boundary: bool,
-        **zero_kwargs
+        self,
+        zero_optimization: bool,
+        zero_allow_untested_optimizer: bool,
+        partition_activations: bool,
+        cpu_checkpointing: bool,
+        contiguous_memory_optimization: bool,
+        synchronize_checkpoint_boundary: bool,
+        **zero_kwargs,
     ) -> Dict:
         cfg = {
             'activation_checkpointing': {
@@ -481,9 +486,11 @@ class DeepSpeedPlugin(DDPPlugin):
         else:
             super().save_checkpoint(checkpoint, filepath)
 
-    def restore_model_state_from_ckpt_path(self,
-                                           ckpt_path: str,
-                                           map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
+    def restore_model_state_from_ckpt_path(
+        self,
+        ckpt_path: str,
+        map_location=lambda storage, loc: storage,
+    ) -> Tuple[Dict, bool]:
         if self.world_size > 1:
             from pytorch_lightning.trainer.states import TrainerState
             stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
