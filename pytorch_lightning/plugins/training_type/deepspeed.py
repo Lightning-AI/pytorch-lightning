@@ -173,7 +173,7 @@ class DeepSpeedPlugin(DDPPlugin):
             contiguous_memory_optimization: Copies partitioned activations so that they are contiguous in memory.
                 Not supported by all models
 
-            synchronize_checkpoint_boundary: Insert ``torch.cuda.synchronize()`` at each checkpoint boundary.
+            synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
