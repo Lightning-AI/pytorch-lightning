@@ -62,7 +62,6 @@ class XLADeviceUtils:
     _TPU_AVAILABLE = False
 
     @staticmethod
-    @pl_multi_process
     def _is_device_tpu() -> bool:
         """
         Check if device is TPU
@@ -106,7 +105,7 @@ class XLADeviceUtils:
 
         if XLADeviceUtils.xla_available() and not XLADeviceUtils._TPU_AVAILABLE:
 
-            XLADeviceUtils._TPU_AVAILABLE = XLADeviceUtils._is_device_tpu()
+            XLADeviceUtils._TPU_AVAILABLE = bool(pl_multi_process(XLADeviceUtils._is_device_tpu)())
 
             if XLADeviceUtils._TPU_AVAILABLE:
                 os.environ["PL_TPU_AVAILABLE"] = '1'
