@@ -25,7 +25,7 @@ if _XLA_AVAILABLE:
     import torch_xla.distributed.xla_multiprocessing as xmp
 
 #: define waiting time got checking TPU available in sec
-TPU_CHECK_TIMEOUT = 60
+TPU_CHECK_TIMEOUT = 120
 
 
 def inner_f(index, queue, func, *args):  # pragma: no cover
