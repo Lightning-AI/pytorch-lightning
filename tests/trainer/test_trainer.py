@@ -1475,7 +1475,7 @@ def test_trainer_predict_dp(tmpdir, num_gpus):
     predict(tmpdir, "dp", num_gpus, None)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, special=True, fairscale=True)
 def test_trainer_predict_ddp(tmpdir):
     predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
