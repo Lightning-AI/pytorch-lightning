@@ -16,13 +16,13 @@ from unittest.mock import MagicMock, patch
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import NeptuneLogger
+from pytorch_lightning.loggers import NeptuneLegacyLogger
 from tests.helpers import BoringModel
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_online(neptune):
-    logger = NeptuneLogger(api_key='test', project_name='project')
+    logger = NeptuneLegacyLogger(api_key='test', project_name='project')
 
     created_experiment = neptune.Session.with_default_backend().get_project().create_experiment()
 
@@ -38,7 +38,7 @@ def test_neptune_online(neptune):
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_existing_experiment(neptune):
-    logger = NeptuneLogger(experiment_id='TEST-123')
+    logger = NeptuneLegacyLogger(experiment_id='TEST-123')
     neptune.Session.with_default_backend().get_project().get_experiments.assert_not_called()
     experiment = logger.experiment
     neptune.Session.with_default_backend().get_project().get_experiments.assert_called_once_with(id='TEST-123')
@@ -50,7 +50,7 @@ def test_neptune_existing_experiment(neptune):
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_offline(neptune):
-    logger = NeptuneLogger(offline_mode=True)
+    logger = NeptuneLegacyLogger(offline_mode=True)
     neptune.Session.assert_not_called()
     _ = logger.experiment
     neptune.Session.assert_called_once_with(backend=neptune.OfflineBackend())
@@ -59,7 +59,7 @@ def test_neptune_offline(neptune):
 
 @patch('pytorch_lightning.loggers.neptune.neptune')
 def test_neptune_additional_methods(neptune):
-    logger = NeptuneLogger(api_key='test', project_name='project')
+    logger = NeptuneLegacyLogger(api_key='test', project_name='project')
 
     created_experiment = neptune.Session.with_default_backend().get_project().create_experiment()
 
@@ -119,8 +119,8 @@ def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
         assert trainer.log_dir is None
         return logger
 
-    logger_close_after_fit = _run_training(NeptuneLogger(offline_mode=True))
+    logger_close_after_fit = _run_training(NeptuneLegacyLogger(offline_mode=True))
     assert logger_close_after_fit._experiment.stop.call_count == 1
 
-    logger_open_after_fit = _run_training(NeptuneLogger(offline_mode=True, close_after_fit=False))
+    logger_open_after_fit = _run_training(NeptuneLegacyLogger(offline_mode=True, close_after_fit=False))
     assert logger_open_after_fit._experiment.stop.call_count == 0

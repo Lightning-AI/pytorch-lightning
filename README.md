@@ -257,7 +257,7 @@ Here are some examples:
   trainer = Trainer(logger=loggers.MLFlowLogger())
 
   # neptune
-  trainer = Trainer(logger=loggers.NeptuneLogger())
+  trainer = Trainer(logger=loggers.NeptuneLegacyLogger())
 
   # ... and dozens more
    ```

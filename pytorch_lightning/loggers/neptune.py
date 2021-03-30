@@ -36,7 +36,7 @@ else:
     neptune, Experiment = None, None
 
 
-class NeptuneLogger(LightningLoggerBase):
+class NeptuneLegacyLogger(LightningLoggerBase):
     r"""
     Log using `Neptune <https://neptune.ai>`_.
 
@@ -47,7 +47,7 @@ class NeptuneLogger(LightningLoggerBase):
         pip install neptune-client
 
     The Neptune logger can be used in the online mode or offline (silent) mode.
-    To log experiment data in online mode, :class:`NeptuneLogger` requires an API key.
+    To log experiment data in online mode, :class:`NeptuneLegacyLogger` requires an API key.
     In offline mode, the logger does not connect to Neptune.
 
     **ONLINE MODE**
@@ -55,11 +55,11 @@ class NeptuneLogger(LightningLoggerBase):
     .. testcode::
 
         from pytorch_lightning import Trainer
-        from pytorch_lightning.loggers import NeptuneLogger
+        from pytorch_lightning.loggers import NeptuneLegacyLogger
 
-        # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
+        # arguments made to NeptuneLegacyLogger are passed on to the neptune.experiments.Experiment class
         # We are using an api_key for the anonymous user "neptuner" but you can use your own.
-        neptune_logger = NeptuneLogger(
+        neptune_logger = NeptuneLegacyLogger(
             api_key='ANONYMOUS',
             project_name='shared/pytorch-lightning-integration',
             experiment_name='default',  # Optional,
@@ -72,10 +72,10 @@ class NeptuneLogger(LightningLoggerBase):
 
     .. testcode::
 
-        from pytorch_lightning.loggers import NeptuneLogger
+        from pytorch_lightning.loggers import NeptuneLegacyLogger
 
-        # arguments made to NeptuneLogger are passed on to the neptune.experiments.Experiment class
-        neptune_logger = NeptuneLogger(
+        # arguments made to NeptuneLegacyLogger are passed on to the neptune.experiments.Experiment class
+        neptune_logger = NeptuneLegacyLogger(
             offline_mode=True,
             project_name='USER_NAME/PROJECT_NAME',
             experiment_name='default',  # Optional,
@@ -108,7 +108,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        neptune_logger = NeptuneLogger(
+        neptune_logger = NeptuneLegacyLogger(
             ...
             close_after_fit=False,
             ...
@@ -207,7 +207,7 @@ class NeptuneLogger(LightningLoggerBase):
         self.experiment_id = experiment_id
         self._experiment = None
 
-        log.info(f'NeptuneLogger will work in {"offline" if self.offline_mode else "online"} mode')
+        log.info(f'NeptuneLegacyLogger will work in {"offline" if self.offline_mode else "online"} mode')
 
     def __getstate__(self):
         state = self.__dict__.copy()

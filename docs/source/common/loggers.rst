@@ -101,7 +101,7 @@ Neptune.ai
 ==========
 
 `Neptune.ai <https://neptune.ai/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.NeptuneLogger` as your logger do the following.
+To use :class:`~pytorch_lightning.loggers.NeptuneLegacyLogger` as your logger do the following.
 First, install the package:
 
 .. code-block:: bash
@@ -112,9 +112,9 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 
 .. testcode::
 
-    from pytorch_lightning.loggers import NeptuneLogger
+    from pytorch_lightning.loggers import NeptuneLegacyLogger
 
-    neptune_logger = NeptuneLogger(
+    neptune_logger = NeptuneLegacyLogger(
         api_key='ANONYMOUS',  # replace with your own
         project_name='shared/pytorch-lightning-integration',
         experiment_name='default',  # Optional,
@@ -123,7 +123,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
     )
     trainer = Trainer(logger=neptune_logger)
 
-The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
+The :class:`~pytorch_lightning.loggers.NeptuneLegacyLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
 .. testcode::
@@ -134,7 +134,7 @@ The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere exce
             self.logger.experiment.add_image('generated_images', some_img, 0)
 
 .. seealso::
-    :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
+    :class:`~pytorch_lightning.loggers.NeptuneLegacyLogger` docs.
 
 ----------------
 
