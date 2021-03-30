@@ -289,7 +289,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model = model
 
     @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
             model_parallel_context = deepspeed.zero.Init(remote_device="cpu", pin_memory=True)
         else:
@@ -494,13 +494,10 @@ class DeepSpeedPlugin(DDPPlugin):
             return client_state, False
         return super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
 
-    def _accumulated_batches_reached(self, total_batch_idx: int) -> bool:
-        return total_batch_idx % self._original_accumulate_grad_batches == 0
-
-    def compute_new_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         if self._original_accumulate_grad_batches is None:
-            return current_global_step + 1
+            return super().update_global_step(total_batch_idx, current_global_step)
         else:
-            if self._accumulated_batches_reached(total_batch_idx, ):
+            if total_batch_idx % self._original_accumulate_grad_batches == 0:
                 current_global_step += 1
             return current_global_step

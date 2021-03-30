@@ -771,8 +771,9 @@ class TrainLoop:
 
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
-            self.trainer.global_step = self.trainer.accelerator.compute_new_global_step(
-                self.trainer.total_batch_idx, self.trainer.global_step)
+            self.trainer.global_step = self.trainer.accelerator.update_global_step(
+                self.trainer.total_batch_idx, self.trainer.global_step
+            )
 
     def _accumulated_batches_reached(self):
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0

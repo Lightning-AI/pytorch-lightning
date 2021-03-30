@@ -441,7 +441,7 @@ class Accelerator(object):
         return self.training_type_plugin.results
 
     @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator[None, None, None]:
         """
         Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly - useful for extremely large models. Can save memory and
@@ -512,5 +512,5 @@ class Accelerator(object):
         """
         return self.training_type_plugin.setup_optimizers_in_pre_dispatch
 
-    def compute_new_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
-        return self.training_type_plugin.compute_new_global_step(total_batch_idx, current_global_step)
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)

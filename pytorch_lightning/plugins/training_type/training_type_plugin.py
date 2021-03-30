@@ -223,7 +223,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self.lightning_module.load_state_dict(ckpt['state_dict'])
         return ckpt, True
 
-    def compute_new_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         """
         Provide a hook to count optimizer step calls.
 
