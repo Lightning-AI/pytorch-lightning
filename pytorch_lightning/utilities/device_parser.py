@@ -15,7 +15,7 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
-from pytorch_lightning.utilities import _TPU_AVAILABLE
+from pytorch_lightning.utilities import XLADeviceUtils
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -109,7 +109,7 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
-    if tpu_cores is not None and not _TPU_AVAILABLE:
+    if tpu_cores is not None and not XLADeviceUtils.tpu_device_exists():
         raise MisconfigurationException('No TPU devices were found.')
 
     return tpu_cores
