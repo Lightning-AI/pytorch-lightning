@@ -117,6 +117,7 @@ jobs:
         # pip uninstall -y horovod
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
 
+
     - name: Install dependencies
       env:
         # MAKEFLAGS: "-j2"
@@ -132,6 +133,9 @@ jobs:
         python ./requirements/adjust_versions.py requirements/extra.txt
         python ./requirements/adjust_versions.py requirements/examples.txt
         pip install --requirement ./requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        
+        # install latest version of DeepSpeed - temporary solution until next release
+        pip install git+https://github.com/microsoft/DeepSpeed.git
         pip list
       shell: bash
 
