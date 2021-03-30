@@ -67,9 +67,10 @@ done
 
 nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 
-if [[ -n "${DEBUGGING_TOKEN}" ]]; 
+if [[ -n ${DEBUGGING_TOKEN} ]];
+then
   echo "DEBUGGING_TOKEN: $DEBUGGING_TOKEN should be empty"
-  then exit 1
+  exit 1
 fi
 
 # echo test report
