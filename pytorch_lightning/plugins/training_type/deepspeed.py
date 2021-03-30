@@ -17,6 +17,7 @@ import logging
 import os
 from collections import OrderedDict
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
@@ -277,6 +278,7 @@ class DeepSpeedPlugin(DDPPlugin):
             optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, optimizer, _, lr_scheduler = deepspeed.initialize(
+            args=SimpleNamespace(local_rank=self.local_rank),
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
