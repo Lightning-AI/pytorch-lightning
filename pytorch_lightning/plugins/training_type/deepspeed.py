@@ -290,11 +290,11 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model = model
 
     @contextlib.contextmanager
-    def model_parallel_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator:
         if self.zero_stage_3:
             model_parallel_context = deepspeed.zero.Init(remote_device="cpu", pin_memory=True)
         else:
-            model_parallel_context = super().model_parallel_context()
+            model_parallel_context = super().model_sharded_context()
 
         with model_parallel_context:
             yield
@@ -333,7 +333,6 @@ class DeepSpeedPlugin(DDPPlugin):
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
-            args=SimpleNamespace(local_rank=self.local_rank),
             model=model,
             optimizer=optimizer,
             lr_scheduler=lightning_scheduler,
@@ -460,7 +459,7 @@ class DeepSpeedPlugin(DDPPlugin):
             filepath: write-target file's path
             weights_only: saving model weights only
         """
-        if torch.distributed.get_world_size() > 1:
+        if torch.distributed.get_world_size() > 1 and self.zero_stage_3:
             # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
             save_dir = self._filepath_to_dir(filepath)
@@ -476,7 +475,6 @@ class DeepSpeedPlugin(DDPPlugin):
                                            map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
         if torch.distributed.get_world_size() > 1:
             from pytorch_lightning.trainer.states import TrainerState
-            print("restore_model_state_from_ckpt_path")
             stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
 
@@ -497,14 +495,14 @@ class DeepSpeedPlugin(DDPPlugin):
             return client_state, False
         return super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
 
-    def _accumulated_batches_reached(self, trainer):
-        return trainer.total_batch_idx % trainer.accumulate_grad_batches == 0
+    def _accumulated_batches_reached(self, total_batch_idx: int) -> bool:
+        return total_batch_idx % self._original_accumulate_grad_batches == 0
 
-    def increment_accumulated_grad_global_step(self, trainer):
+    def compute_new_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         if self._original_accumulate_grad_batches is None:
-            trainer.global_step += 1
+            return current_global_step + 1
         else:
-            trainer.accumulate_grad_batches = self._original_accumulate_grad_batches
-            if self._accumulated_batches_reached(trainer):
-                trainer.global_step += 1
-            trainer.accumulate_grad_batches = 1
+            if self._accumulated_batches_reached(total_batch_idx, ):
+                current_global_step += 1
+            return current_global_step
+

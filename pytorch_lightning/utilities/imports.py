@@ -63,23 +63,13 @@ def _compare_version(package: str, op, version) -> bool:
     return op(pkg_version, LooseVersion(version))
 
 
-def _is_kineto_available() -> bool:
-    _KINETO_AVAILABLE = False
-    if _TORCH_GREATER_EQUAL_1_8:
-        # kineto isn't available into pre 1.8 release
-        kineto_available_fx = getattr(torch.profiler, "kineto_available", None)
-        if kineto_available_fx:
-            _KINETO_AVAILABLE = kineto_available_fx()
-    return _KINETO_AVAILABLE
-
-
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
 _TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
 _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
-_KINETO_AVAILABLE = _is_kineto_available()
+_KINETO_AVAILABLE = torch.profiler.kineto_available() if _TORCH_GREATER_EQUAL_1_8 else False
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 _DEEPSPEED_AVAILABLE = not _IS_WINDOWS and _module_available('deepspeed')

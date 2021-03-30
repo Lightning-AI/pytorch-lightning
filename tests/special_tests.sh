@@ -32,6 +32,9 @@ linenos_arr=($linenos)
 blocklist='test_pytorch_profiler_nested_emit_nvtx'
 report=''
 
+# replace debuggin token by anything to filter failing test. Reset to True at when committing.
+DEBUGGING_TOKEN=""
+
 for i in "${!files_arr[@]}"; do
   file=${files_arr[$i]}
   lineno=${linenos_arr[$i]}
@@ -52,15 +55,22 @@ for i in "${!files_arr[@]}"; do
         break
       fi
 
-      # run the test
-      report+="Ran\t$file:$lineno::$test_name\n"
-      python ${defaults} "${file}::${test_name}"
-      break
+      if [[ $line == *$DEBUGGING_TOKEN* ]]; then
+        # run the test
+        report+="Ran\t$file:$lineno::$test_name\n"
+        python ${defaults} "${file}::${test_name}"
+        break
+      fi
     fi
   done < <(echo "$test_code")
 done
 
 nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+
+if [[ -n "${DEBUGGING_TOKEN}" ]]; 
+  echo "DEBUGGING_TOKEN: $DEBUGGING_TOKEN should be empty"
+  then exit 1
+fi
 
 # echo test report
 printf '=%.s' {1..80}

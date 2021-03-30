@@ -223,19 +223,17 @@ class TrainingTypePlugin(Plugin, ABC):
         self.lightning_module.load_state_dict(ckpt['state_dict'])
         return ckpt, True
 
-    def increment_accumulated_grad_global_step(self, trainer) -> None:
-        trainer.global_step += 1
-
-    @contextlib.contextmanager
-    def model_parallel_context(self) -> Generator:
+    def compute_new_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         """
-        Provide hook to create modules in a parallel aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
-        initialization time.
+        Provide a hook to count optimizer step calls.
 
-        Returns: Model parallel context.
+        Args:
+            total_batch_idx: Total number of batches seen for training
+            current_global_step: Current number of optimizer step calls 
+
+        Returns: New optimizer step calls
         """
-        yield
+        return current_global_step + 1
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

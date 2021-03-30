@@ -511,3 +511,6 @@ class Accelerator(object):
         Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return self.training_type_plugin.setup_optimizers_in_pre_dispatch
+
+    def compute_new_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        return self.training_type_plugin.compute_new_global_step(total_batch_idx, current_global_step)
