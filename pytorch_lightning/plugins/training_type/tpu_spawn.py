@@ -106,8 +106,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         trainer.accelerator.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
 
-        # replace trainer save_checkpoint to use `xm.save`
-        trainer.save_checkpoint = self.save_checkpoint
         self.barrier("pre-run-stage")
 
         results = trainer.run_stage()
@@ -298,14 +296,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def predict_step(self, *args, **kwargs):
         return self.lightning_module.predict_step(*args, **kwargs)
 
-    def save_checkpoint(self, filepath, weights_only: bool = False):
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
+            checkpoint: dict containing model and trainer state
             filepath: write-target file's path
-            weights_only: saving model weights only
         """
-        # dump states as a checkpoint dictionary object
-        _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
-        self.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
+        self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)

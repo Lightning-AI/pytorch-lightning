@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Iterable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
@@ -22,6 +23,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import atomic_save
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
@@ -33,6 +36,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self) -> None:
         self._model = None
         self._results = None
+        self._call_configure_sharded_model_hook = True
 
     def connect(self, model: 'Module') -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
@@ -192,3 +196,49 @@ class TrainingTypePlugin(Plugin, ABC):
         Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return False
+
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            filepath: write-target file's path
+        """
+        # dump states as a checkpoint dictionary object
+        if self.is_global_zero:
+            checkpoint = self.on_save(checkpoint)
+            try:
+                # write the checkpoint dictionary on the file
+                atomic_save(checkpoint, filepath)
+            except AttributeError as err:
+                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+                    del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+                rank_zero_warn(
+                    'Warning, `hyper_parameters` dropped from checkpoint.'
+                    f' An attribute is not picklable {err}'
+                )
+                atomic_save(checkpoint, filepath)
+
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator:
+        """
+        Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
+        shard the model instantly, which is useful for extremely large models which can save memory and
+        initialization time.
+
+        Returns: Model parallel context.
+        """
+        yield
+
+    @property
+    def call_configure_sharded_model_hook(self) -> bool:
+        """
+        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
+        This is useful for when we want to shard the model once within fit.
+        Returns: True if we want to call the model parallel setup hook.
+        """
+        return self._call_configure_sharded_model_hook
+
+    @call_configure_sharded_model_hook.setter
+    def call_configure_sharded_model_hook(self, mode: bool) -> None:
+        self._call_configure_sharded_model_hook = mode
