@@ -37,9 +37,8 @@ if _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
-# todo (tchaton) use deepspeed version when merged
 def remove_module_hooks(model: torch.nn.Module) -> None:
-    # TODO: awaiting this feature to move upstream to DeepSpeed
+    # todo (tchaton) awaiting this feature to move upstream to DeepSpeed
     for module in model.modules():
         module._backward_hooks = OrderedDict()
         module._is_full_backward_hook = None
