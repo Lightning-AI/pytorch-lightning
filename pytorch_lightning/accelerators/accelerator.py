@@ -18,7 +18,6 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin

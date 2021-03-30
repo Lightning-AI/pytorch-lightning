@@ -22,7 +22,6 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
