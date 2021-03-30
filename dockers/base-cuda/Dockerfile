@@ -114,9 +114,6 @@ RUN \
     rm -rf apex
 
 RUN \
-    pip install deepspeed>=0.3.13
-
-RUN \
     # Show what we have
     pip --version && \
     pip list && \
