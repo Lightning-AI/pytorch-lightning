@@ -37,6 +37,7 @@ if _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
+# todo (tchaton) use deepspeed version when merged
 def remove_module_hooks(model: torch.nn.Module) -> None:
     for module in model.modules():
         module._backward_hooks = OrderedDict()
@@ -320,7 +321,7 @@ class DeepSpeedPlugin(DDPPlugin):
             )
             optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
         inference_config = {
-            # todo: this is required for DeepSpeed throughput timers
+            # todo: this is required for DeepSpeed throughput timers, or throughput timers will be incorrect
             'train_micro_batch_size_per_gpu': 1,
         }
         if 'fp16' in self.config:
@@ -369,8 +370,15 @@ class DeepSpeedPlugin(DDPPlugin):
         self.model.step(**kwargs)
 
     def _handle_gradient_accumulation_steps(self):
+        """
+        This functions overrides the trainer.accumulation_scheduler to generate
+        ``accumulate_grad_batches=1``.
+        Therefore, ``optimizer_step`` will be called on every batches seen
+        so DeepSpeed Engine handles the gradient accumulation logic internally.
+        """
         if self.config.get("gradient_accumulation_steps") > 1:
             self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+            # todo (tchaton) Add support for accumulate_grad_batches being a dictionary.
             self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
         else:
             self._original_accumulate_grad_batches = None
