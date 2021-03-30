@@ -19,7 +19,6 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 import torch
 import torch.multiprocessing as mp
 
-import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle

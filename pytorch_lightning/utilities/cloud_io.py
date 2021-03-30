@@ -63,4 +63,3 @@ def atomic_save(checkpoint, filepath: str):
         torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:
         f.write(bytesbuffer.getvalue())
-
