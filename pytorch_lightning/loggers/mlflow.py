@@ -45,7 +45,7 @@ if _MLFLOW_AVAILABLE:
         resolve_tags = context.resolve_tags
     # since v1.1.0
     elif hasattr(context, 'registry'):
-        resolve_tags = getattr(context.registry, 'resolve_tags')
+        resolve_tags = getattr(context.registry, 'resolve_tags', resolve_tags)
     
 
 class MLFlowLogger(LightningLoggerBase):
