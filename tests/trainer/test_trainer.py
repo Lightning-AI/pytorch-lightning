@@ -1323,7 +1323,7 @@ def test_trainer_setup_call(tmpdir, stage):
 )
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
-    model = EvalModelTemplate()
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         log_every_n_steps=log_interval,
