@@ -36,8 +36,10 @@ except ImportError:
     _MLFLOW_AVAILABLE = False
     mlflow, MlflowClient, context = None, None, None
 
+
 def resolve_tags(tags=None):
     return tags
+
 
 if _MLFLOW_AVAILABLE:
     # before v1.1.0
@@ -46,7 +48,7 @@ if _MLFLOW_AVAILABLE:
     # since v1.1.0
     elif hasattr(context, 'registry'):
         resolve_tags = getattr(context.registry, 'resolve_tags', resolve_tags)
-    
+
 
 class MLFlowLogger(LightningLoggerBase):
     """
