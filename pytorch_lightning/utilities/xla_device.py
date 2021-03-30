@@ -15,7 +15,6 @@ import functools
 import os
 import queue as q
 import traceback
-from multiprocessing import Process, Queue
 
 import torch.multiprocessing as mp
 
@@ -29,28 +28,30 @@ if _XLA_AVAILABLE:
 TPU_CHECK_TIMEOUT = 25
 
 
-def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
-    try:
-        queue.put(func(*args, **kwargs))
-    # todo: specify the possible exception
-    except Exception:
-        traceback.print_exc()
-        queue.put(None)
+def inner_f(index, queue, func, *args):  # pragma: no cover
+    queue.put(func(index, *args))
 
 
 def pl_multi_process(func):
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        queue = Queue()
-        proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
-        proc.start()
-        proc.join(TPU_CHECK_TIMEOUT)
+    def wrapper(*args):
+        smp = mp.get_context("spawn")
+        queue = smp.Queue()
+        cxt = xmp.spawn(inner_f, args=(queue, func, *args), join=False)
+
+        # errors in the subprocesses are caught and saved in the error_queues
+        # inside the context, but we don't bother to check them.
+        if not cxt.join(TPU_CHECK_TIMEOUT):
+            for proc in cxt.processes:
+                if proc.is_alive():
+                    proc.terminate()
+                proc.join()
+
         try:
             return queue.get_nowait()
         except q.Empty:
-            traceback.print_exc()
-            return False
+            return None
 
     return wrapper
 
@@ -69,18 +70,18 @@ class XLADeviceUtils:
         Return:
             A boolean value indicating if the xla device is a TPU device or not
         """
+        if not _XLA_AVAILABLE:
+            return False
 
-        def _fn(_: int, mp_queue):
-            try:
-                device = xm.xla_device()
-                mp_queue.put(device.type == 'xla')
-            except Exception:
-                mp_queue.put(False)
+        try:
+            device = xm.xla_device()
+            device_type = XLADeviceUtils._fetch_xla_device_type(device)
+            return device_type == "TPU"
 
-        smp = mp.get_context("spawn")
-        queue = smp.SimpleQueue()
-        xmp.spawn(_fn, args=(queue, ), nprocs=1)
-        return queue.get()
+        # Missing XLA Configuration
+        except RuntimeError as e:
+            traceback.print_exc()
+            return False
 
     @staticmethod
     def xla_available() -> bool:
