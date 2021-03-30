@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import wraps
-from typing import Any, Sequence, Tuple, TYPE_CHECKING, List
+from typing import Any, List, Sequence, Tuple, TYPE_CHECKING
 
 import torch
 

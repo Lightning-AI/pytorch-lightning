@@ -19,7 +19,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from tests.helpers import BoringModel, RandomDataset, BoringDataModule
+from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
