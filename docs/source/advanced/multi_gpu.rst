@@ -788,6 +788,136 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
     trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True), precision=16)
     trainer.fit(model)
 
+DeepSpeed ZeRO Stage 3
+""""""""""""""""""""""
+
+DeepSpeed ZeRO Stage 3 shards the optimizer states, gradients and the model parameters (also optionally activations). Sharding model parameters and activations comes with an increase in distributed communication, however allows you to scale your models massively from one GPU to multiple GPUs.
+**DeepSpeed report the ability to fine-tune models with over 40B parameters on a single GPU and over 2 Trillion parameters on 512 GPUs.** For more information we suggest checking the `DeepSpeed ZeRO-3 Offload documentation <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`__.
+
+We've ran benchmarks and give a simple example of how all these features in Lightning, which you can see at `minGPT <https://github.com/SeanNaren/minGPT/tree/stage3>`_.
+
+To reach the highest memory efficiency or model size, you must:
+
+1. Use the DeepSpeed Plugin with the stage 3 parameter
+2. Use CPU Offloading to offload weights to CPU, plus have a reasonable amount of CPU RAM to offload onto
+3. Use DeepSpeed Activation Checkpointing to shard activations
+
+Below we describe how to enable all of these to see benefit. **With all these improvements we reached 45 Billion parameters training a GPT model on 8 GPUs with ~1TB of CPU RAM available**.
+
+.. note::
+    Currently we only support non-elastic checkpointing. This means saving the model across GPUs will save shards of the model on all processes, which will then required the same amount of GPUS to load.
+    This additionally means for inference you must use the ``Trainer.test` or ``Trainer.predict`` functionality as described below, to ensure we set up the distributed environment correctly.
+
+    This limitation is actively being worked on and will be resolved in the near future.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    from deepspeed.ops.adam import FusedAdam
+
+    class MyModel(pl.LightningModule):
+        ...
+        def configure_optimizers(self):
+            return FusedAdam(self.parameters())
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(stage=3), precision=16)
+    trainer.fit(model)
+
+    trainer.test()
+    trainer.predict()
+
+
+Shard Model instantly to reduce Initialization Time/Memory
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+When instantiating really large models, it is sometimes necessary to shard the model layers instantly.
+
+This is the case if layers may not fit on one single machines CPU or GPU memory, but would fit once sharded across multiple machines.
+We expose a hook that layers initialized within the hook will be sharded instantly on a per layer basis, allowing you to instantly shard models.
+
+This reduces the time taken to initialize very large models, as well as ensure we do not run out of memory when instantiating larger models. For more information you can refer to the DeepSpeed docs for `Constructing Massive Models <https://deepspeed.readthedocs.io/en/latest/zero3.html>`_.
+
+.. note::
+    When using ``configure_sharded_model`` hook to shard models, note that ``LightningModule.load_from_checkpoint`` for loading saved checkpoints may not work. If you've trained on one GPU, you can manually instantiate the model and call the hook,
+    however when using multiple GPUs, this will not work as ``LightningModule.load_from_checkpoint`` doesn't support sharded checkpoints.
+
+    We recommend using the ``Trainer`` and using ``Trainer.test`` or ``Trainer.predict`` for inference.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    from deepspeed.ops.adam import FusedAdam
+
+    class MyModel(pl.LightningModule):
+        ...
+        def configure_sharded_model(self):
+            # Created within sharded model context, modules are instantly sharded across processes
+            # as soon as they are made.
+            self.block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+
+        def configure_optimizers(self):
+            return FusedAdam(self.parameters())
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(stage=3), precision=16)
+    trainer.fit(model)
+
+    trainer.test()
+    trainer.predict()
+
+
+DeepSpeed ZeRO Stage 3 Offload
+""""""""""""""""""""""""""""""
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+
+    # Enable CPU Offloading
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(stage=3, cpu_offload=True), precision=16)
+    trainer.fit(model)
+
+
+DeepSpeed Activation Checkpointing
+""""""""""""""""""""""""""""""""""
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    import deepspeed
+
+
+    class MyModel(pl.LightningModule):
+        ...
+
+        def configure_sharded_model(self):
+            self.block = nn.Sequential(nn.Linear(32, 32), nn.ReLU())
+
+        def forward(self, x):
+            # Use the DeepSpeed checkpointing function instead of calling the module directly
+            output = deepspeed.checkpointing.checkpoint(self.block, x)
+            return output
+
+
+    model = MyModel()
+    trainer = Trainer(
+        gpus=4,
+        plugins=DeepSpeedPlugin(
+            stage=3,
+            cpu_offload=True,  # Enable CPU Offloading
+            partition_activations=True,  # Optionally move activations to CPU if you have enough memory
+            cpu_checkpointing=True  # Optionally Partition activations across machines
+        ),
+        precision=16
+    )
+    trainer.fit(model)
+
 
 Custom DeepSpeed Config
 """""""""""""""""""""""
