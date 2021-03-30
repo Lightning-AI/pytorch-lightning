@@ -336,6 +336,7 @@ class DeepSpeedPlugin(DDPPlugin):
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
+            args=SimpleNamespace(local_rank=self.local_rank),
             model=model,
             optimizer=optimizer,
             lr_scheduler=lightning_scheduler,
