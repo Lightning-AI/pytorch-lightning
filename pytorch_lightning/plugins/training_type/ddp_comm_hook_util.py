@@ -19,10 +19,6 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
     rank_zero_info,
 )
-from torch.distributed.algorithms.ddp_comm_hooks import (
-    DDPCommHookType,
-    register_ddp_comm_hook,
-)
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 
