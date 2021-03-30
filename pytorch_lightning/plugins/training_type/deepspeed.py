@@ -460,7 +460,7 @@ class DeepSpeedPlugin(DDPPlugin):
             filepath: write-target file's path
             weights_only: saving model weights only
         """
-        if torch.distributed.get_world_size() > 1 and self.zero_stage_3:
+        if self.world_size > 1 and self.zero_stage_3:
             # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
             save_dir = self._filepath_to_dir(filepath)
@@ -474,7 +474,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def restore_model_state_from_ckpt_path(self,
                                            ckpt_path: str,
                                            map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
-        if torch.distributed.get_world_size() > 1:
+        if self.world_size > 1:
             from pytorch_lightning.trainer.states import TrainerState
             stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
