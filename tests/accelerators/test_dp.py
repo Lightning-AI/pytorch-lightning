@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -18,14 +19,14 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
-
-PRETEND_N_OF_GPUS = 16
 
 
 class CustomClassificationModelDP(ClassificationModel):
@@ -96,36 +97,6 @@ def test_multi_gpu_model_dp(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-@RunIf(min_gpus=2)
-def test_dp_test(tmpdir):
-    tutils.set_random_master_port()
-
-    dm = ClassifDataModule()
-    model = CustomClassificationModelDP()
-    trainer = pl.Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
-        accelerator='dp',
-    )
-    trainer.fit(model, datamodule=dm)
-    assert 'ckpt' in trainer.checkpoint_callback.best_model_path
-    results = trainer.test(datamodule=dm)
-    assert 'test_acc' in results[0]
-
-    old_weights = model.layer_0.weight.clone().detach().cpu()
-
-    results = trainer.test(model, datamodule=dm)
-    assert 'test_acc' in results[0]
-
-    # make sure weights didn't change
-    new_weights = model.layer_0.weight.clone().detach().cpu()
-
-    assert torch.all(torch.eq(old_weights, new_weights))
-
-
 class ReductionTestModel(BoringModel):
 
     def train_dataloader(self):
@@ -162,6 +133,56 @@ class ReductionTestModel(BoringModel):
         assert outputs[0]["loss"].shape == torch.Size([])
         assert outputs[0]["reduce_int"].item() == 0  # mean([0, 1]) = 0
         assert outputs[0]["reduce_float"].item() == 0.5  # mean([0., 1.]) = 0.5
+
+
+def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
+    """
+    Test that an exception is raised when overriding batch_transfer_hooks in DP model.
+    """
+    monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
+
+    class CustomModel(BoringModel):
+
+        def transfer_batch_to_device(self, batch, device):
+            batch = batch.to(device)
+            return batch
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_steps=7,
+        gpus=[0, 1],
+        accelerator='dp',
+    )
+
+    trainer = Trainer(**trainer_options)
+    model = CustomModel()
+
+    with pytest.raises(MisconfigurationException, match=r'Overriding `transfer_batch_to_device` is not .* in DP'):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+
+        def on_before_batch_transfer(self, batch, dataloader_idx):
+            batch += 1
+            return batch
+
+    trainer = Trainer(**trainer_options)
+    model = CustomModel()
+
+    with pytest.raises(MisconfigurationException, match=r'Overriding `on_before_batch_transfer` is not .* in DP'):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+
+        def on_after_batch_transfer(self, batch, dataloader_idx):
+            batch += 1
+            return batch
+
+    trainer = Trainer(**trainer_options)
+    model = CustomModel()
+
+    with pytest.raises(MisconfigurationException, match=r'Overriding `on_after_batch_transfer` is not .* in DP'):
+        trainer.fit(model)
 
 
 @RunIf(min_gpus=2)

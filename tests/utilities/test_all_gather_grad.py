@@ -55,9 +55,10 @@ def test_all_gather_collection(tmpdir):
         training_epoch_end_called = False
 
         def training_epoch_end(self, outputs) -> None:
-            self.training_epoch_end_called = True
             losses = torch.stack([x["loss"] for x in outputs])
             gathered_loss = self.all_gather({
+                "losses_tensor_int": torch.rand(2, 2).int().t(),
+                "losses_tensor_float": torch.rand(2, 2).t(),
                 "losses_np_ndarray": np.array([1, 2, 3]),
                 "losses_bool": [True, False],
                 "losses_float": [0., 1., 2.],
@@ -65,6 +66,8 @@ def test_all_gather_collection(tmpdir):
                 "losses": losses,
                 "losses_list": [losses, losses]
             })
+            assert gathered_loss["losses_tensor_int"][0].dtype == torch.int32
+            assert gathered_loss["losses_tensor_float"][0].dtype == torch.float
             assert gathered_loss["losses_np_ndarray"][0].dtype == torch.int64
             # torch.bool can't be all_gathered
             assert gathered_loss["losses_bool"][0].dtype == torch.uint8
@@ -72,6 +75,7 @@ def test_all_gather_collection(tmpdir):
             assert gathered_loss["losses_int"][0].dtype == torch.int
             assert gathered_loss["losses_list"][0].numel() == 2 * len(losses)
             assert gathered_loss["losses"].numel() == 2 * len(losses)
+            self.training_epoch_end_called = True
 
     seed_everything(42)
 
@@ -91,3 +95,26 @@ def test_all_gather_collection(tmpdir):
 
     trainer.fit(model)
     assert model.training_epoch_end_called
+
+
+@RunIf(min_gpus=2, skip_windows=True, special=True)
+def test_all_gather_sync_grads(tmpdir):
+
+    class TestModel(BoringModel):
+
+        training_step_called = False
+
+        def training_step(self, batch, batch_idx):
+            self.training_step_called = True
+            tensor = torch.rand(2, 2, requires_grad=True, device=self.device)
+            gathered_tensor = self.all_gather(tensor, sync_grads=True)
+            assert gathered_tensor.shape == torch.Size([2, 2, 2])
+
+            loss = gathered_tensor.sum()
+
+            return loss
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, accelerator="ddp")
+    trainer.fit(model)
+    assert model.training_step_called

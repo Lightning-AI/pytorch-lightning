@@ -192,17 +192,7 @@ class DeepSpeedPlugin(DDPPlugin):
         return config
 
     def pre_dispatch(self):
-        self.set_world_ranks()
-        self.init_ddp_connection(self.global_rank, self.world_size)
-
         self.init_deepspeed()
-
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
-
-        # set the ranks and devices
-        self.dist.rank = self.global_rank
-        self.dist.device = self.root_device
         self.barrier()
 
     def init_deepspeed(self):
@@ -231,6 +221,8 @@ class DeepSpeedPlugin(DDPPlugin):
         return optimizer, scheduler, optimizer_frequencies
 
     def _initialize_deepspeed_train(self, model):
+        if self.on_gpu:
+            torch.cuda.set_device(self.root_device)
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
         if "optimizer" not in self.config:
             rank_zero_info(

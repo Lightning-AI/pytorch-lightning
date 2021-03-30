@@ -126,7 +126,6 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         def validation_epoch_end(self, outputs):
             self.log('g', torch.tensor(2, device=self.device), on_epoch=True)
             self.validation_epoch_end_called = True
-            assert len(self.trainer.evaluation_loop.outputs) == 0
 
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
@@ -373,11 +372,10 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir):
 
     class TestModel(BoringModel):
 
-        def test_step(self, batch, batch_idx, dataloader_idx):
+        def test_step(self, batch, *args):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.log("test_loss", loss, on_step=True, on_epoch=True)
-            return {"y": loss}
 
         def test_dataloader(self):
             return [
@@ -398,22 +396,19 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir):
         weights_summary=None,
     )
     results = trainer.test(model)
-    assert "test_loss_epoch/dataloader_idx_0" in results[0]
-    assert "test_loss_epoch/dataloader_idx_1" in results[1]
+
+    assert {"test_loss/dataloader_idx_0", "test_loss_epoch/dataloader_idx_0"} == set(results[0])
+    assert {"test_loss/dataloader_idx_1", "test_loss_epoch/dataloader_idx_1"} == set(results[1])
 
 
 def test_single_dataloader_no_suffix_added(tmpdir):
 
     class TestModel(BoringModel):
 
-        def test_step(self, batch, batch_idx):
+        def test_step(self, batch, *args):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.log("test_loss", loss, on_step=True, on_epoch=True)
-            return {"y": loss}
-
-        def test_dataloader(self):
-            return torch.utils.data.DataLoader(RandomDataset(32, 64))
 
     model = TestModel()
     model.test_epoch_end = None
@@ -428,9 +423,9 @@ def test_single_dataloader_no_suffix_added(tmpdir):
         weights_summary=None,
     )
     results = trainer.test(model)
+
     assert len(results) == 1
-    # error : It is wrong there. `y` should equal test_loss_epoch
-    assert results[0]['test_loss'] == results[0]['y']
+    assert {"test_loss", "test_loss_epoch"} == set(results[0])
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -496,9 +491,15 @@ def test_log_works_in_val_callback(tmpdir):
             )
 
         def on_epoch_start(self, trainer, pl_module):
-            self.make_logging(
-                pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
+            if trainer.validating:
+                self.make_logging(
+                    pl_module,
+                    'on_epoch_start',
+                    2,
+                    on_steps=self.choices,
+                    on_epochs=self.choices,
+                    prob_bars=self.choices
+                )
 
         def on_validation_epoch_start(self, trainer, pl_module):
             self.make_logging(
@@ -530,7 +531,7 @@ def test_log_works_in_val_callback(tmpdir):
             self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
-            if not trainer.training:
+            if trainer.validating:
                 self.make_logging(
                     pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
                 )
@@ -568,7 +569,6 @@ def test_log_works_in_val_callback(tmpdir):
         callbacks=[test_callback],
     )
     trainer.fit(model)
-    trainer.test()
 
     assert test_callback.funcs_called_count["on_epoch_start"] == 1
     # assert test_callback.funcs_called_count["on_batch_start"] == 1
@@ -845,7 +845,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             self.log('valid_loss_1', loss, on_step=False, on_epoch=True)
             self.log('valid_loss_2', loss, on_step=True, on_epoch=False)
             self.log('valid_loss_3', loss, on_step=False, on_epoch=False)
-            return {"val_loss": loss}
+            return {"val_loss": loss}  # not added to callback_metrics
 
         def test_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -922,7 +922,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         'debug_epoch',
         'valid_loss_1',
         'test_loss',
-        'val_loss',
     }
     assert set(trainer.callback_metrics) == expected_callback_metrics
     assert set(results[0]) == {'test_loss', 'debug_epoch'}

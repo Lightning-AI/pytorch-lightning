@@ -20,8 +20,9 @@ from torch.utils.data import DataLoader, random_split
 from pl_examples import _DATASETS_PATH, _TORCHVISION_AVAILABLE, _TORCHVISION_MNIST_AVAILABLE
 from pytorch_lightning import LightningDataModule
 
-if _TORCHVISION_AVAILABLE and _TORCHVISION_MNIST_AVAILABLE:
+if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib
+if _TORCHVISION_MNIST_AVAILABLE:
     from torchvision.datasets import MNIST
 else:
     from tests.helpers.datasets import MNIST
@@ -54,6 +55,8 @@ class MNISTDataModule(LightningDataModule):
             val_split: how many of the training images to use for the validation split
             num_workers: how many workers to use for loading data
             normalize: If true applies image normalize
+            seed: starting seed for RNG.
+            batch_size: desired batch size.
         """
         super().__init__(*args, **kwargs)
         if num_workers and platform.system() == "Windows":
