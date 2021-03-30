@@ -229,7 +229,7 @@ class TrainingTypePlugin(Plugin, ABC):
 
         Args:
             total_batch_idx: Total number of batches seen for training
-            current_global_step: Current number of optimizer step calls 
+            current_global_step: Current number of optimizer step calls
 
         Returns: New optimizer step calls
         """

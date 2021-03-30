@@ -1,7 +1,6 @@
 import json
 import os
 from typing import Any
-from unittest.mock import call
 
 import pytest
 import torch
@@ -10,7 +9,6 @@ from torch import nn, Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning import callbacks
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
@@ -317,7 +315,7 @@ def test_deepspeed_custom_precision_params(tmpdir):
 
     model = BoringModel()
     ds = DeepSpeedPlugin(loss_scale=10, initial_scale_power=10, loss_scale_window=10, hysteresis=10, min_loss_scale=10)
-    trainer = Trainer(default_root_dir=tmpdir, plugins=[ds], precision=16, amp_backend='native', gpus=1, callbacks=[TestCB()])
+    trainer = Trainer(default_root_dir=tmpdir, plugins=[ds], precision=16, gpus=1, callbacks=[TestCB()])
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
