@@ -74,8 +74,7 @@ class XLADeviceUtils:
 
         try:
             device = xm.xla_device()
-            device_type = XLADeviceUtils._fetch_xla_device_type(device)
-            return device_type == "TPU"
+            return device.type == 'xla'
 
         # Missing XLA Configuration
         except RuntimeError as e:
