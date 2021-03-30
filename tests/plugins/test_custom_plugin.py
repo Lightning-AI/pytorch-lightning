@@ -15,10 +15,12 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
-from torch.distributed.algorithms.ddp_comm_hooks import (
-    default_hooks as default,
-    powerSGD_hook as powerSGD,
-)
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
+if _TORCH_GREATER_EQUAL_1_7:
+    from torch.distributed.algorithms.ddp_comm_hooks import (
+        default_hooks as default,
+        powerSGD_hook as powerSGD,
+    )
 
 
 class CustomParallelPlugin(DDPPlugin):
