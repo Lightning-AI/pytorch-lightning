@@ -25,7 +25,6 @@ from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import dump_checkpoint
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -298,14 +297,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def predict_step(self, *args, **kwargs):
         return self.lightning_module.predict_step(*args, **kwargs)
 
-    def save_checkpoint(self, trainer: 'pl.Trainer', filepath: str, weights_only: bool = False) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
+            checkpoint: dict containing model and trainer state
             filepath: write-target file's path
-            weights_only: saving model weights only
         """
-        # dump states as a checkpoint dictionary object
-        _checkpoint = dump_checkpoint(trainer, weights_only)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
-        self.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
+        self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)

@@ -310,11 +310,18 @@ class ModelHooks:
 
         """
 
-    def on_model_parallel_setup(self) -> None:
+    def configure_sharded_model(self) -> None:
         """
+        Hook to create modules in a distributed aware context. This is useful for when using sharded plugins,
+        where we'd like to shard the model instantly, which is useful for extremely large models
+        which can save memory and initialization time.
 
-        Returns:
+        The accelerator manages whether to call this hook at every given stage.
+        For sharded plugins where model parallelism is required, the hook is usually on called once
+        to initialize the sharded parameters, and not called again in the same process.
 
+        By default for accelerators/plugins that do not use model sharding techniques,
+        this hook is called during each fit/val/test/predict stages.
         """
 
 

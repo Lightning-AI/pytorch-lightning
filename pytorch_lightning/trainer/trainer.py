@@ -435,8 +435,8 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self.call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
-        self.call_model_parallel_hook(model)  # allow user to setup in model parallel environment
 
         # ----------------------------
         # INSPECT THE CORE LOOPS
@@ -823,15 +823,6 @@ class Trainer(
             # run eval step
             _, eval_results = self.run_evaluation()
 
-            # allow no returns from eval
-            if eval_results is not None and len(eval_results) > 0:
-                # when we get a list back, used only the last item
-                if isinstance(eval_results, list):
-                    eval_results = eval_results[-1]
-
-                _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
-                self.logger_connector.callback_metrics = callback_metrics
-
             self.on_sanity_check_end()
 
             self._running_stage = stage
@@ -964,32 +955,39 @@ class Trainer(
         model,
         ckpt_path: Optional[str] = None,
     ) -> Optional[str]:
-        # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
-            raise MisconfigurationException(
-                'ckpt_path is "best", but `ModelCheckpoint` is not configured to save the best model.'
-            )
+        if ckpt_path is None:
+            return
 
-        # load best weights
-        if ckpt_path is not None:
-            # ckpt_path is 'best' so load the best model
-            if ckpt_path == 'best':
-                ckpt_path = self.checkpoint_callback.best_model_path
+        fn = self.state.value
 
-            if not ckpt_path:
-                fn = self.state.value
+        if ckpt_path == 'best':
+            # if user requests the best checkpoint but we don't have it, error
+            if not self.checkpoint_callback.best_model_path:
+                if self.fast_dev_run:
+                    raise MisconfigurationException(
+                        f'You cannot execute `.{fn}()` with `fast_dev_run=True` unless you do'
+                        f' `.{fn}(ckpt_path=PATH)` as no checkpoint path was generated during fitting.'
+                    )
                 raise MisconfigurationException(
-                    f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
-                    ' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
+            # load best weights
+            ckpt_path = self.checkpoint_callback.best_model_path
 
-            # only one process running at this point for TPUs, as spawn isn't triggered yet
-            if not self._device_type == DeviceType.TPU:
-                self.training_type_plugin.barrier()
-
-            self.training_type_plugin.restore_model_state_from_ckpt_path(
-                ckpt_path, map_location=lambda storage, loc: storage
+        if not ckpt_path:
+            raise MisconfigurationException(
+                f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
+                f' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
             )
+
+        # only one process running at this point for TPUs, as spawn isn't triggered yet
+        # todo: move this logic internally within the barrier.
+        if not self._device_type == DeviceType.TPU:
+            self.training_type_plugin.barrier()
+
+        self.training_type_plugin.restore_model_state_from_ckpt_path(
+            ckpt_path, map_location=lambda storage, loc: storage
+        )
         return ckpt_path
 
     def predict(
@@ -1085,11 +1083,15 @@ class Trainer(
         self.setup(model, stage=state)
         model.setup(stage=state)
 
-    def call_model_parallel_hook(self, model: LightningModule) -> None:
-        if not hasattr(self.lightning_module, 'has_model_parallel_setup'):
-            with self.accelerator.model_parallel_context():
-                model.on_model_parallel_setup()
-            self.lightning_module.has_model_parallel_setup = True
+    def call_configure_sharded_model(self, model: LightningModule) -> None:
+        # Call configure sharded model hook if accelerator requests. In some cases
+        # we will not call the hook; the hook has initialized the sharded model for example.
+        if self.accelerator.call_configure_sharded_model_hook and not getattr(model, "call_configure_sharded_model_hook", False):
+            with self.accelerator.model_sharded_context():
+                model.configure_sharded_model()
+                self.configure_sharded_model(model)
+            model.call_configure_sharded_model_hook = True
+            self.accelerator.call_configure_sharded_model_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state

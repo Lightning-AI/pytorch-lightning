@@ -442,15 +442,15 @@ class Accelerator(object):
         return self.training_type_plugin.results
 
     @contextlib.contextmanager
-    def model_parallel_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator:
         """
-        Provide hook to create modules in a parallel aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
+        Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
+        shard the model instantly - useful for extremely large models. Can save memory and
         initialization time.
 
         Returns: Model parallel context.
         """
-        with self.training_type_plugin.model_parallel_context():
+        with self.training_type_plugin.model_sharded_context():
             yield
 
     # todo: remove in v1.5
@@ -481,11 +481,34 @@ class Accelerator(object):
         )
         self.setup_precision_plugin(plugin)
 
-    def save_checkpoint(self, trainer: 'pl.Trainer', filepath: str, weights_only: bool = False) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
+            checkpoint: dict containing model and trainer state
             filepath: write-target file's path
-            weights_only: saving model weights only
         """
-        self.training_type_plugin.save_checkpoint(trainer, filepath, weights_only)
+        self.training_type_plugin.save_checkpoint(checkpoint, filepath)
+
+    @property
+    def call_configure_sharded_model_hook(self) -> bool:
+        """
+        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
+        This is useful for when we want to shard the model once within fit.
+        Returns: True if we want to call the model parallel setup hook.
+        """
+        return self.training_type_plugin.call_configure_sharded_model_hook
+
+    @call_configure_sharded_model_hook.setter
+    def call_configure_sharded_model_hook(self, mode: bool) -> None:
+        self.training_type_plugin.call_configure_sharded_model_hook = mode
+
+    @property
+    def setup_optimizers_in_pre_dispatch(self) -> bool:
+        """
+        Override to delay setting optimizers and schedulers till after dispatch.
+        This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
+        However this may break certain precision plugins such as APEX which require optimizers to be set.
+        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+        """
+        return self.training_type_plugin.setup_optimizers_in_pre_dispatch

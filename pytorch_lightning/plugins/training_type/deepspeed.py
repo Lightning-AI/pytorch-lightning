@@ -31,7 +31,6 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.cloud_io import dump_checkpoint
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
@@ -455,7 +454,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def deepspeed_engine(self):
         return self.model
 
-    def save_checkpoint(self, trainer: 'pl.Trainer', filepath: str, weights_only: bool = False) -> None:
+    def save_checkpoint(self, checkpoint: Dict, filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -465,20 +464,20 @@ class DeepSpeedPlugin(DDPPlugin):
         if torch.distributed.get_world_size() > 1:
             # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
-            client_state = dump_checkpoint(trainer, weights_only)
             save_dir = self._filepath_to_dir(filepath)
             _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
-            client_state = {k: v for k, v in client_state.items() if k not in _exclude_keys}
-            self.deepspeed_engine.save_checkpoint(save_dir, client_state=client_state)
+            checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
+            self.deepspeed_engine.save_checkpoint(save_dir, client_state=checkpoint)
 
         else:
-            super().save_checkpoint(trainer, filepath, weights_only)
+            super().save_checkpoint(checkpoint, filepath)
 
     def restore_model_state_from_ckpt_path(self,
                                            ckpt_path: str,
                                            map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
         if torch.distributed.get_world_size() > 1:
             from pytorch_lightning.trainer.states import TrainerState
+            print("restore_model_state_from_ckpt_path")
             stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
 

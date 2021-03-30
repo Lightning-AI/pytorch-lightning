@@ -318,12 +318,7 @@ def test_tbptt_log(tmpdir):
             self.layer = torch.nn.Linear(2, 2)
 
         def training_step(self, batch, batch_idx, hiddens):
-            try:
-                assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            # todo: specify the possible exception
-            except Exception as ex:
-                print(ex)
-
+            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
             self.test_hidden = torch.rand(1)
 
             x_tensor, y_list = batch
@@ -743,6 +738,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
             self.log('foo', 1, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='SUM')
+            self.log('cho', acc, on_step=False, on_epoch=True)
             return acc
 
         def validation_step(self, batch, batch_idx):
@@ -763,8 +759,12 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         gpus=2,
         profiler="pytorch"
     )
-    trainer.fit(model)
 
+    if os.getenv("LOCAL_RANK") == '0':
+        with pytest.warns(UserWarning, match="The value associated to the key cho:"):
+            trainer.fit(model)
+    else:
+        trainer.fit(model)
     assert trainer.logged_metrics['foo'] == 2
     assert trainer.logged_metrics['bar'] == 2
 
