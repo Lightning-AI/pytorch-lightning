@@ -800,7 +800,7 @@ Currently this functionality is only available on master and will be included in
 
 .. code-block:: python
 
-    pip install git+https://github.com/PyTorchLightning/pytorch-lightning.git
+    pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/refs/heads/master.zip
 
 
 To reach the highest memory efficiency or model size, you must:
