@@ -29,10 +29,15 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE, _TORCH_GREATER_EQUAL_1_7, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _HYDRA_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_7,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.plugins.training_type.ddp_comm_hook_util import register_ddp_comm_hook
 
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
@@ -58,6 +63,9 @@ class DDPPlugin(ParallelPlugin):
         num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
         sync_batchnorm: bool = False,
+        ddp_comm_state: Optional[object] = None,
+        ddp_comm_hook: Optional[callable] = None,
+        ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
@@ -70,6 +78,9 @@ class DDPPlugin(ParallelPlugin):
         self.task_idx = None
         self.node_rank = 0
         self.num_processes = len(parallel_devices) if parallel_devices is not None else parallel_devices
+        self.ddp_comm_state = ddp_comm_state
+        self.ddp_comm_hook = ddp_comm_hook
+        self.ddp_comm_wrapper = ddp_comm_wrapper
 
     @property
     def root_device(self):
@@ -79,6 +90,10 @@ class DDPPlugin(ParallelPlugin):
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
+
+    @property
+    def is_single_process_single_device(self):
+        return True
 
     def setup_environment(self):
         # start the other scripts
@@ -224,6 +239,13 @@ class DDPPlugin(ParallelPlugin):
             LightningDistributedModule(self.model),
             device_ids=self.determine_ddp_device_ids(),
             **self._ddp_kwargs,
+        )
+        register_ddp_comm_hook(
+            ddp_comm_state=self.ddp_comm_state,
+            ddp_comm_hook=self.ddp_comm_hook,
+            ddp_comm_wrapper=self.ddp_comm_wrapper,
+            model=self._model,
+            is_single_process_single_device=self.is_single_process_single_device,
         )
 
     def determine_ddp_device_ids(self):

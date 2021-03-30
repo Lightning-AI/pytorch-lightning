@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
-import numpy
+from pytorch_lightning.plugins.training_type.ddp_comm_hook_util import register_ddp_comm_hook
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +48,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
         sync_batchnorm: bool = False,
+        ddp_comm_state: Optional[object] = None,
+        ddp_comm_hook: Optional[callable] = None,
+        ddp_wrapper_hook: Optional[callable] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
@@ -58,6 +61,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.num_processes = len(parallel_devices)
         self.node_rank = 0
         self.mp_queue = None
+        self.ddp_comm_state = ddp_comm_state
+        self.ddp_comm_hook = ddp_comm_hook
+        self.ddp_wrapper_hook = ddp_wrapper_hook
 
     def __getstate__(self):
         """ Makes this plugin pickleable without destroying the queue in the current process. """
@@ -77,9 +83,13 @@ class DDPSpawnPlugin(ParallelPlugin):
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def is_single_process_single_device(self):
+        return True
+
     def setup(self, model):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
+
         # pass in a state q
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
@@ -188,6 +198,14 @@ class DDPSpawnPlugin(ParallelPlugin):
             LightningDistributedModule(self.model),
             device_ids=self.determine_ddp_device_ids(),
             **self._ddp_kwargs,
+        )
+
+        register_ddp_comm_hook(
+            ddp_comm_state=self.ddp_comm_state,
+            ddp_comm_hook=self.ddp_comm_hook,
+            ddp_wrapper_hook=self.ddp_wrapper_hook,
+            model=self._model,
+            is_single_process_single_device=self.is_single_process_single_device,
         )
 
     def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
