@@ -792,9 +792,16 @@ DeepSpeed ZeRO Stage 3
 """"""""""""""""""""""
 
 DeepSpeed ZeRO Stage 3 shards the optimizer states, gradients and the model parameters (also optionally activations). Sharding model parameters and activations comes with an increase in distributed communication, however allows you to scale your models massively from one GPU to multiple GPUs.
-**DeepSpeed report the ability to fine-tune models with over 40B parameters on a single GPU and over 2 Trillion parameters on 512 GPUs.** For more information we suggest checking the `DeepSpeed ZeRO-3 Offload documentation <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`__.
+**The DeepSpeed team report the ability to fine-tune models with over 40B parameters on a single GPU and over 2 Trillion parameters on 512 GPUs.** For more information we suggest checking the `DeepSpeed ZeRO-3 Offload documentation <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`__.
 
 We've ran benchmarks and give a simple example of how all these features in Lightning, which you can see at `minGPT <https://github.com/SeanNaren/minGPT/tree/stage3>`_.
+
+Currently this functionality is only available on master and will be included in our next 1.3 Release Candidate and 1.3 release.
+
+.. code-block:: python
+
+    pip install git+https://github.com/PyTorchLightning/pytorch-lightning.git
+
 
 To reach the highest memory efficiency or model size, you must:
 
@@ -804,8 +811,10 @@ To reach the highest memory efficiency or model size, you must:
 
 Below we describe how to enable all of these to see benefit. **With all these improvements we reached 45 Billion parameters training a GPT model on 8 GPUs with ~1TB of CPU RAM available**.
 
+Also please have a look at our :ref:`deepSpeed-zero-3-tips` which contains a lot of helpful information when configuring your own models.
+
 .. note::
-    Currently we only support non-elastic checkpointing. This means saving the model across GPUs will save shards of the model on all processes, which will then required the same amount of GPUS to load.
+    Currently we only support non-elastic checkpointing. This means saving the model across GPUs will save shards of the model on all processes, which will then require the same amount of GPUS to load.
     This additionally means for inference you must use the ``Trainer.test` or ``Trainer.predict`` functionality as described below, to ensure we set up the distributed environment correctly.
 
     This limitation is actively being worked on and will be resolved in the near future.
@@ -829,7 +838,7 @@ Below we describe how to enable all of these to see benefit. **With all these im
     trainer.predict()
 
 
-Shard Model instantly to reduce Initialization Time/Memory
+Shard Model Instantly to Reduce Initialization Time/Memory
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 When instantiating really large models, it is sometimes necessary to shard the model layers instantly.
@@ -872,6 +881,8 @@ This reduces the time taken to initialize very large models, as well as ensure w
 DeepSpeed ZeRO Stage 3 Offload
 """"""""""""""""""""""""""""""
 
+DeepSpeed ZeRO Stage 3 Offloads optimizer state, gradients to the host CPU to reduce memory usage as ZeRO Stage 2 does, however additionally allows you to offload the parameters as well for even more memory saving.
+
 .. code-block:: python
 
     from pytorch_lightning import Trainer
@@ -882,9 +893,19 @@ DeepSpeed ZeRO Stage 3 Offload
     trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(stage=3, cpu_offload=True), precision=16)
     trainer.fit(model)
 
+    # Enable CPU Offloading, and offload parameters as well to CPU when possible
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(stage=3, cpu_offload=True, cpu_offload_params=True), precision=16)
+    trainer.fit(model)
+
 
 DeepSpeed Activation Checkpointing
 """"""""""""""""""""""""""""""""""
+
+Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass.
+They are then re-computed for the backwards pass as needed.
+
+This saves memory when training larger models however requires using a checkpoint function to run the module as shown below.
 
 .. code-block:: python
 
@@ -917,6 +938,16 @@ DeepSpeed Activation Checkpointing
         precision=16
     )
     trainer.fit(model)
+
+
+DeepSpeed ZeRO Stage 3 Tips
+"""""""""""""""""""""""""""
+
+Here are some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lightning.
+
+* If you're using Adam or AdamW, ensure to use FusedAdam or DeepSpeedCPUAdam (for CPU Offloading) rather than the default torch optimizers as they come with large speed benefits
+* Treat your GPU/CPU memory as one large pool. In some cases, you may not want to offload certain things (like activations) to provide even more space to offload model parameters
+* When offloading to the CPU, make sure to bump up the batch size as GPU memory will be freed
 
 
 Custom DeepSpeed Config
