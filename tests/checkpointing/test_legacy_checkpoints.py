@@ -57,6 +57,7 @@ CHECKPOINT_EXTENSION = ".ckpt"
         "1.2.2",
         "1.2.3",
         "1.2.4",
+        "1.2.5",
     ]
 )
 def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
