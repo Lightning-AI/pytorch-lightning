@@ -51,7 +51,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         sync_batchnorm: bool = False,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
-        ddp_wrapper_hook: Optional[callable] = None,
+        ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
@@ -64,7 +64,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.mp_queue = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
-        self._ddp_wrapper_hook = ddp_wrapper_hook
+        self._ddp_comm_wrapper = ddp_comm_wrapper
 
     def __getstate__(self):
         """ Makes this plugin pickleable without destroying the queue in the current process. """
