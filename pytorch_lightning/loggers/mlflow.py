@@ -30,12 +30,23 @@ _MLFLOW_AVAILABLE = _module_available("mlflow")
 try:
     import mlflow
     from mlflow.tracking import MlflowClient
-    from mlflow.tracking.context.registry import resolve_tags
+    from mlflow.tracking import context
 # todo: there seems to be still some remaining import error with Conda env
 except ImportError:
     _MLFLOW_AVAILABLE = False
-    mlflow, MlflowClient = None, None
+    mlflow, MlflowClient, context = None, None, None
 
+def resolve_tags(tags=None):
+    return tags
+
+if _MLFLOW_AVAILABLE:
+    # before v1.1.0
+    if hasattr(context, 'resolve_tags'):
+        resolve_tags = context.resolve_tags
+    # since v1.1.0
+    elif hasattr(context, 'registry'):
+        resolve_tags = getattr(context.registry, 'resolve_tags')
+    
 
 class MLFlowLogger(LightningLoggerBase):
     """
