@@ -1,7 +1,6 @@
 import json
 import os
 from typing import Any
-from unittest.mock import call
 
 import pytest
 import torch
@@ -10,7 +9,6 @@ from torch import nn, Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning import callbacks
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
@@ -326,7 +324,7 @@ def test_deepspeed_custom_activation_checkpointing_params(tmpdir):
     assert checkpoint_config['synchronize_checkpoint_boundary']
 
 
-#@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True)
 def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_config):
     """Ensure if we use a config and turn off cpu_offload, that this is set to False within the config."""
 
