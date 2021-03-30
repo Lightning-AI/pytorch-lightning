@@ -62,7 +62,7 @@ class XLADeviceUtils:
     _TPU_AVAILABLE = False
 
     @staticmethod
-    def _is_device_tpu() -> bool:
+    def _is_device_tpu(index) -> bool:
         """
         Check if device is TPU
 
