@@ -242,8 +242,7 @@ class EvaluationLoop(object):
         if not isinstance(eval_results, list):
             eval_results = [eval_results]
 
-        # track depreceated metrics
-        self.trainer.logger_connector.track_metrics_deprecated(eval_results)
+        self.trainer.logger_connector._track_callback_metrics(eval_results)
 
         return eval_results
 
