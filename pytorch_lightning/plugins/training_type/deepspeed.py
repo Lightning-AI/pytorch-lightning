@@ -166,7 +166,8 @@ class DeepSpeedPlugin(DDPPlugin):
 
             partition_activations: Enables partition activation when used with ZeRO stage 3.
                 Still requires you to wrap your forward functions in deepspeed.checkpointing.checkpoint.
-                See `deepspeed tutorial <https://www.deepspeed.ai/tutorials/megatron/#deepspeed-activation-checkpoints-optional>`_
+                See `deepspeed tutorial
+                <https://www.deepspeed.ai/tutorials/megatron/#deepspeed-activation-checkpoints-optional>`_
 
             cpu_checkpointing: Offloads partitioned activations to CPU if ``partition_activations`` is enabled
 
