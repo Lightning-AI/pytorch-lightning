@@ -198,9 +198,11 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return False
 
-    def restore_model_state_from_ckpt_path(self,
-                                           ckpt_path: str,
-                                           map_location=lambda storage, loc: storage) -> Tuple[Dict, bool]:
+    def restore_model_state_from_ckpt_path(
+        self,
+        ckpt_path: str,
+        map_location: Callable = lambda storage, loc: storage,
+    ) -> Tuple[Dict, bool]:
         """
         This function is used to load and restore the model state.
 

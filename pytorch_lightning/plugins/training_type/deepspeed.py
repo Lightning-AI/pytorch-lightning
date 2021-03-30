@@ -489,7 +489,7 @@ class DeepSpeedPlugin(DDPPlugin):
     def restore_model_state_from_ckpt_path(
         self,
         ckpt_path: str,
-        map_location=lambda storage, loc: storage,
+        map_location: Callable = lambda storage, loc: storage,
     ) -> Tuple[Dict, bool]:
         if self.world_size > 1:
             from pytorch_lightning.trainer.states import TrainerState
