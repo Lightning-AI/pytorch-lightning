@@ -811,7 +811,7 @@ To reach the highest memory efficiency or model size, you must:
 
 Below we describe how to enable all of these to see benefit. **With all these improvements we reached 45 Billion parameters training a GPT model on 8 GPUs with ~1TB of CPU RAM available**.
 
-Also please have a look at our :ref:`deepSpeed-zero-3-tips` which contains a lot of helpful information when configuring your own models.
+Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains a lot of helpful information when configuring your own models.
 
 .. note::
     Currently we only support non-elastic checkpointing. This means saving the model across GPUs will save shards of the model on all processes, which will then require the same amount of GPUS to load.
