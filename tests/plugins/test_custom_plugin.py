@@ -67,7 +67,7 @@ def test_ddp_sgd_graident_comm_hook(tmpdir):
     """Test for DDP SGD hook."""
     model = BoringModel()
     plugin = DDPPlugin(
-        ddp_comm_state=powerSGD.PowerSGDState(1),
+        ddp_comm_state=powerSGD.PowerSGDState(None),
         ddp_comm_hook=powerSGD.powerSGD_hook,
     )
     trainer = Trainer(
@@ -84,7 +84,7 @@ def test_ddp_fp16_compress_wrapper_comm_hook(tmpdir):
     """Test for DDP fp16 compress wrapper for SGD hook."""
     model = BoringModel()
     plugin = DDPPlugin(
-        ddp_comm_state=powerSGD.PowerSGDState(1),
+        ddp_comm_state=powerSGD.PowerSGDState(None),
         ddp_comm_hook=powerSGD.powerSGD_hook,
         ddp_comm_wrapper=default.fp16_compress_wrapper,
     )
