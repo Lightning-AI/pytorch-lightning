@@ -940,6 +940,8 @@ This saves memory when training larger models however requires using a checkpoin
     trainer.fit(model)
 
 
+.. _deepspeed-zero-stage-3-tips:
+
 DeepSpeed ZeRO Stage 3 Tips
 """""""""""""""""""""""""""
 
