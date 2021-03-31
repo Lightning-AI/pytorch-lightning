@@ -272,7 +272,7 @@ def test_lightning_cli_args_callbacks(tmpdir, monkeypatch):
         callback = [c for c in trainer.callbacks if isinstance(c, LearningRateMonitor)]
         assert len(callback) == 1
         assert callback[0].logging_interval == 'epoch'
-        assert callback[0].log_momentum == True
+        assert callback[0].log_momentum is True
         callback = [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)]
         assert len(callback) == 1
         assert callback[0].monitor == 'NAME'
