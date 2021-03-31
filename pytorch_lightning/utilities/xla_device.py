@@ -17,13 +17,10 @@ import queue as q
 import traceback
 from multiprocessing import Process, Queue
 
-import torch.multiprocessing as mp
-
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
 
 #: define waiting time got checking TPU available in sec
 TPU_CHECK_TIMEOUT = 25
