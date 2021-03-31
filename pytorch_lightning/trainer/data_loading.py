@@ -61,20 +61,25 @@ class TrainerDataLoadingMixin(ABC):
         using_spawn = self.accelerator_connector.distributed_backend == "ddp_spawn"
         if is_dataloader and not on_windows:
             if dataloader.num_workers > 0 and using_spawn:
+                # checks for the attr persistent_workers available in pytorch >= 1.7
                 if hasattr(dataloader, "persistent_workers"):
                     if not dataloader.persistent_workers:
                         rank_zero_warn(
-                            'num_workers>0, persistent_workers=False, and accelerator=ddp_spawn may result in data loading bottlenecks.'
-                            ' Consider setting persistent_workers=True (this is a limitation of Python .spawn() and PyTorch)'
+                            'num_workers>0, persistent_workers=False, and accelerator=ddp_spawn'
+                            ' may result in data loading bottlenecks.'
+                            ' Consider setting persistent_workers=True'
+                            ' (this is a limitation of Python .spawn() and PyTorch)'
                         )
                 else:
                     rank_zero_warn(
-                        'num_workers>0 and accelerator=ddp_spawn do not mix well and may result in data loading bottlenecks.'
-                        ' Consider setting accelerator=ddp to use num_workers>0 (this is a limitation of Python .spawn() and PyTorch)'
+                        'num_workers>0 and accelerator=ddp_spawn do not mix well'
+                        ' and may result in data loading bottlenecks.'
+                        ' Consider setting accelerator=ddp to use num_workers>0'
+                        ' (this is a limitation of Python .spawn() and PyTorch)'
                     )
 
             elif dataloader.num_workers == 0 and using_spawn:
-                # checks for the attr persistent_workers not available on pytorch < 1.7
+                # checks for the attr persistent_workers available in pytorch >= 1.7
                 if hasattr(dataloader, "persistent_workers"):
                     if not dataloader.persistent_workers:
                         rank_zero_warn(
