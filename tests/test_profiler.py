@@ -271,6 +271,8 @@ def test_pytorch_profiler_describe(pytorch_profiler):
     with pytorch_profiler.profile("on_test_start"):
         torch.tensor(0)
 
+    print(_KINETO_AVAILABLE)
+
     # log to stdout and print to file
     pytorch_profiler.describe()
     path = pytorch_profiler.dirpath / f"{pytorch_profiler.filename}.txt"
