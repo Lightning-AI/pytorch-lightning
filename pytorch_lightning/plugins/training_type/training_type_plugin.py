@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterable, Optional, TYPE_CHECKING, Union, Dict
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch.nn import Module
@@ -22,6 +23,9 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
@@ -33,11 +37,21 @@ class TrainingTypePlugin(Plugin, ABC):
     def __init__(self) -> None:
         self._model = None
         self._results = None
-        self.global_rank = 0
+        self._call_configure_sharded_model_hook = True
 
-    @abstractmethod
     def connect(self, model: 'Module') -> None:
-        """Called by the accelerator to connect it with this plugin"""
+        """Called by the accelerator to connect the accelerator and the model with this plugin"""
+        self.model = model
+
+    def setup_environment(self) -> None:
+        """
+        Setup any processes or distributed connections.
+        This is called before the LightningModule/DataModule setup hook
+        which allows the user to access the accelerator environment before setup is complete.
+        """
+
+    def setup(self, model: 'Module') -> None:
+        """Called by the accelerator to finish setup."""
 
     @property
     @abstractmethod
@@ -77,9 +91,13 @@ class TrainingTypePlugin(Plugin, ABC):
     def broadcast(self, obj: object, src: int = 0) -> object:
         """Broadcasts an object to all processes"""
 
-    def reduce_early_stopping_decision(self, should_stop: bool) -> bool:
-        """Reduce the early stopping decision across all possibly spawned processes"""
-        return should_stop
+    @abstractmethod
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """Perform a all_gather on all processes """
+
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        """Reduce the early stopping decision across all processes"""
+        return decision
 
     def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
         """Run before precision plugin executes backward"""
@@ -119,15 +137,15 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def start_training(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the training loop
-        self._results = trainer.run_train()
+        self._results = trainer.run_stage()
 
-    def start_testing(self, trainer: 'Trainer') -> None:
+    def start_evaluating(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_test()
+        self._results = trainer.run_stage()
 
     def start_predicting(self, trainer: 'Trainer') -> None:
         # double dispatch to initiate the predicting loop
-        self._results = trainer.run_predict()
+        self._results = trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
         return self.lightning_module.training_step(*args, **kwargs)
@@ -141,8 +159,8 @@ class TrainingTypePlugin(Plugin, ABC):
     def test_step(self, *args, **kwargs):
         return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
-        return self.lightning_module.predict(*args, **kwargs)
+    def predict_step(self, *args, **kwargs):
+        return self.lightning_module.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output
@@ -169,3 +187,98 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
         optimizer.step(closure=lambda_closure, **kwargs)
+
+    @property
+    def setup_optimizers_in_pre_dispatch(self) -> bool:
+        """
+        Override to delay setting optimizers and schedulers till after dispatch.
+        This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
+        However this may break certain precision plugins such as APEX which require optimizers to be set.
+        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+        """
+        return False
+
+    def restore_model_state_from_ckpt_path(
+        self,
+        ckpt_path: str,
+        map_location: Callable = lambda storage, loc: storage,
+    ) -> Tuple[Dict, bool]:
+        """
+        This function is used to load and restore the model state.
+
+        Args:
+            ckpt_path: Path to a checkpoint
+            map_location: lambda function to map checkpoint location
+
+        Return
+            checkpoint: Return loaded checkpoint
+            bool: Wether to load optimizer / lr_schedulers states from checkpoint
+
+        """
+        ckpt = pl_load(ckpt_path, map_location=map_location)
+        # restore datamodule states
+        if self.lightning_module.trainer.datamodule is not None:
+            self.lightning_module.trainer.datamodule.on_load_checkpoint(ckpt)
+
+        # hook: give user access to checkpoint if needed.
+        self.lightning_module.on_load_checkpoint(ckpt)
+        self.lightning_module.load_state_dict(ckpt['state_dict'])
+        return ckpt, True
+
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        """
+        Provide a hook to count optimizer step calls.
+
+        Args:
+            total_batch_idx: Total number of batches seen for training
+            current_global_step: Current number of optimizer step calls
+
+        Returns: New optimizer step calls
+        """
+        return current_global_step + 1
+
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            filepath: write-target file's path
+        """
+        # dump states as a checkpoint dictionary object
+        if self.is_global_zero:
+            checkpoint = self.on_save(checkpoint)
+            try:
+                # write the checkpoint dictionary on the file
+                atomic_save(checkpoint, filepath)
+            except AttributeError as err:
+                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+                    del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+                rank_zero_warn(
+                    'Warning, `hyper_parameters` dropped from checkpoint.'
+                    f' An attribute is not picklable {err}'
+                )
+                atomic_save(checkpoint, filepath)
+
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator:
+        """
+        Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
+        shard the model instantly, which is useful for extremely large models which can save memory and
+        initialization time.
+
+        Returns: Model parallel context.
+        """
+        yield
+
+    @property
+    def call_configure_sharded_model_hook(self) -> bool:
+        """
+        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
+        This is useful for when we want to shard the model once within fit.
+        Returns: True if we want to call the model parallel setup hook.
+        """
+        return self._call_configure_sharded_model_hook
+
+    @call_configure_sharded_model_hook.setter
+    def call_configure_sharded_model_hook(self, mode: bool) -> None:
+        self._call_configure_sharded_model_hook = mode

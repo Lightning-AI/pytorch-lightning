@@ -80,7 +80,7 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
             self.data_dir = data_dir
             self.batch_size = batch_size
 
-        def setup(self, stage=None):
+        def setup(self, stage: Optional[str] = None):
             self.mnist_test = MNIST(self.data_dir, train=False)
             mnist_full = MNIST(self.data_dir, train=True)
             self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
@@ -93,6 +93,10 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
 
         def test_dataloader(self):
             return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
+        def teardown(self, stage: Optional[str] = None):
+            # Used to clean-up when the run is finished
+            ...
 
 But now, as the complexity of your processing grows (transforms, multiple-GPU training), you can
 let Lightning handle those details for you while making this dataset reusable so you can share with
@@ -138,7 +142,7 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
             MNIST(self.data_dir, train=True, download=True)
             MNIST(self.data_dir, train=False, download=True)
 
-        def setup(self, stage=None):
+        def setup(self, stage: Optional[str] = None):
 
             # Assign train/val datasets for use in dataloaders
             if stage == 'fit' or stage is None:
@@ -243,7 +247,10 @@ There are also data operations you might want to perform on every GPU. Use setup
                 self.dims = getattr(self, 'dims', self.mnist_test[0][0].shape)
 
 
-.. warning:: `setup` is called from every process. Setting state here is okay.
+.. warning:: ``setup`` is called from every process. Setting state here is okay.
+
+
+.. note:: ``teardown`` can be used to clean up the state. It is also called from every process
 
 
 train_dataloader
@@ -382,12 +389,12 @@ still ensures the method runs on the correct devices)
 
     dm = MNISTDataModule()
     dm.prepare_data()
-    dm.setup('fit')
+    dm.setup(stage='fit')
 
     model = Model(num_classes=dm.num_classes, width=dm.width, vocab=dm.vocab)
     trainer.fit(model, dm)
 
-    dm.setup('test')
+    dm.setup(stage='test')
     trainer.test(datamodule=dm)
 
 ----------------
@@ -403,7 +410,7 @@ You can of course use DataModules in plain PyTorch code as well.
     dm.prepare_data()
 
     # splits/transforms
-    dm.setup('fit')
+    dm.setup(stage='fit')
 
     # use data
     for batch in dm.train_dataloader():
@@ -411,10 +418,14 @@ You can of course use DataModules in plain PyTorch code as well.
     for batch in dm.val_dataloader():
         ...
 
+    dm.teardown(stage='fit')
+
     # lazy load test data
-    dm.setup('test')
+    dm.setup(stage='test')
     for batch in dm.test_dataloader():
         ...
+
+    dm.teardown(stage='test')
 
 But overall, DataModules encourage reproducibility by allowing all details of a dataset to be specified in a unified
 structure.
