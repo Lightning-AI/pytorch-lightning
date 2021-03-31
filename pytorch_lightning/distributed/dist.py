@@ -15,14 +15,10 @@ import io
 from typing import Any, Optional
 
 import torch
-from torch import distributed as torch_distrib
 
-from pytorch_lightning.utilities import _GROUP_AVAILABLE, _SMDIST_AVAILABLE
-
-WORLD = None
-if _GROUP_AVAILABLE:
-    from torch.distributed import group
-    WORLD = group.WORLD
+from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
+from pytorch_lightning.utilities import _SMDIST_AVAILABLE
+from pytorch_lightning.utilities.distributed import group as _group
 
 if _SMDIST_AVAILABLE:
     import smdistributed.dataparallel.torch.distributed as sm_dist
@@ -34,19 +30,33 @@ class LightningDistributed:
         self.rank = rank
         self.device = device
 
-    def broadcast(self, obj: Any, group=WORLD):
+    def broadcast(self, obj: Any, group=_group.WORLD):
+        # always wrap into a list so list can be brodcasted.
+        obj = [obj]
+
+        if self.rank != 0:
+            obj = [None] * len(obj)
+
+        broadcast_object_list(obj, 0, group=group or _group.WORLD)
+
+        return obj[0]
+
+
+class SMLightningDistributed(LightningDistributed):
+
+    def broadcast(self, obj: Any, group=_group.WORLD):
         if self.rank == 0:
             self._emit(obj, group)
         else:
             obj = self._receive(group)
         return obj
 
-    def _broadcast(self, tensor, src=0, group=WORLD):
+    def _broadcast(self, tensor: torch.Tensor, src: int, group: Optional[Any] = None):
         if group is None:
-            return torch_distrib.broadcast(tensor, src=src)
-        return torch_distrib.broadcast(tensor, src=0, group=group)
+            return sm_dist.broadcast(tensor, src=src)
+        return sm_dist.broadcast(tensor, src=0, group=group)
 
-    def _emit(self, obj: Any, group=WORLD):
+    def _emit(self, obj: Any, group=_group.WORLD):
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
@@ -55,7 +65,7 @@ class LightningDistributed:
         data_tensor = torch.ByteTensor(data).to(self.device)
         self._broadcast(data_tensor, src=0, group=group)
 
-    def _receive(self, group=WORLD):
+    def _receive(self, group=_group.WORLD):
         length_tensor = torch.tensor([0]).long().to(self.device)
         self._broadcast(length_tensor, src=0, group=group)
         data_tensor = torch.empty([length_tensor.item()], dtype=torch.uint8).to(self.device)
@@ -63,11 +73,3 @@ class LightningDistributed:
         buffer = io.BytesIO(data_tensor.cpu().numpy())
         obj = torch.load(buffer)
         return obj
-
-
-class SMLightningDistributed(LightningDistributed):
-
-    def _broadcast(self, tensor: torch.Tensor, src: int, group: Optional[Any] = None):
-        if group is None:
-            return sm_dist.broadcast(tensor, src=src)
-        return sm_dist.broadcast(tensor, src=0, group=group)

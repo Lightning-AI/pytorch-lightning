@@ -17,7 +17,7 @@ Abstract base class used to build new callbacks.
 """
 
 import abc
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -28,6 +28,9 @@ class Callback(abc.ABC):
 
     Subclass this class and override any of the relevant hooks
     """
+
+    def on_configure_sharded_model(self, trainer, pl_module: LightningModule) -> None:
+        """Called before configure sharded model"""
 
     def on_before_accelerator_backend_setup(self, trainer, pl_module: LightningModule) -> None:
         """Called before accelerator is being setup"""
@@ -81,7 +84,7 @@ class Callback(abc.ABC):
         """Called when the train epoch begins."""
         pass
 
-    def on_train_epoch_end(self, trainer, pl_module: LightningModule, outputs: Any) -> None:
+    def on_train_epoch_end(self, trainer, pl_module: LightningModule, outputs: List[Any]) -> None:
         """Called when the train epoch ends."""
         pass
 
@@ -89,7 +92,7 @@ class Callback(abc.ABC):
         """Called when the val epoch begins."""
         pass
 
-    def on_validation_epoch_end(self, trainer, pl_module: LightningModule) -> None:
+    def on_validation_epoch_end(self, trainer, pl_module: LightningModule, outputs: List[Any]) -> None:
         """Called when the val epoch ends."""
         pass
 
@@ -97,16 +100,16 @@ class Callback(abc.ABC):
         """Called when the test epoch begins."""
         pass
 
-    def on_test_epoch_end(self, trainer, pl_module: LightningModule) -> None:
+    def on_test_epoch_end(self, trainer, pl_module: LightningModule, outputs: List[Any]) -> None:
         """Called when the test epoch ends."""
         pass
 
     def on_epoch_start(self, trainer, pl_module: LightningModule) -> None:
-        """Called when the epoch begins."""
+        """Called when either of train/val/test epoch begins."""
         pass
 
     def on_epoch_end(self, trainer, pl_module: LightningModule) -> None:
-        """Called when the epoch ends."""
+        """Called when either of train/val/test epoch ends."""
         pass
 
     def on_batch_start(self, trainer, pl_module: LightningModule) -> None:

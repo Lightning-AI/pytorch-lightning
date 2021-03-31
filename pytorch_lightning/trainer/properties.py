@@ -229,8 +229,8 @@ class TrainerProperties(ABC):
         return parse_env_variables(cls)
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        return add_argparse_args(cls, parent_parser)
+    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
+        return add_argparse_args(cls, parent_parser, **kwargs)
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
@@ -490,6 +490,16 @@ class TrainerProperties(ABC):
             self._running_stage = RunningStage.SANITY_CHECKING
         elif self.sanity_checking:
             self._running_stage = None
+
+    @property
+    def _setup_state(self) -> TrainerState:
+        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
+        return TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+
+    @property
+    def _teardown_state(self) -> Optional[TrainerState]:
+        if self.state.running:
+            return self._setup_state
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
