@@ -193,7 +193,10 @@ class DDPSpawnPlugin(ParallelPlugin):
             self._ddp_kwargs["find_unused_parameters"] = True
 
     def _register_ddp_hooks(self) -> None:
-        if _TORCH_GREATER_EQUAL_1_7:
+        # currently, DDP communication hooks only work with NCCL backend
+        # https://github.com/pytorch/pytorch/blob/e6779d4357ae94cc9f9fedb83a87eb6126016769/
+        # torch/nn/parallel/distributed.py#L1040
+        if _TORCH_GREATER_EQUAL_1_7 and self.on_gpu:
             register_ddp_comm_hook(
                 model=self._model,
                 is_single_process_single_device=self._is_single_process_single_device,

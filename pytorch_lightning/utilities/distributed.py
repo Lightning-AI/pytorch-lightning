@@ -248,7 +248,7 @@ def register_ddp_comm_hook(
     .. warning ::
         DDP communication wrapper need pytorch version at least 1.9.0
 
-    Example::
+    Example:
 
         from torch.distributed.algorithms.ddp_comm_hooks import (
             default_hooks as default,
@@ -303,11 +303,13 @@ def register_ddp_comm_hook(
             )
         else:
             rank_zero_info(
-                "DDP comm wrapper is provided, apply ddp_comm_wrapper(ddp_comm_hook)."
+                "DDP comm wrapper is provided, apply {}({}).".format(
+                    ddp_comm_wrapper.__qualname__, ddp_comm_hook.__qualname__
+                )
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
-    rank_zero_debug("Registering DDP comm hook.")
+    rank_zero_debug("Registering DDP comm hook: {}.".format(ddp_comm_hook.__qualname__))
     model.register_comm_hook(
         state=ddp_comm_state,
         hook=ddp_comm_hook,
