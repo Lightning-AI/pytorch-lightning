@@ -385,9 +385,9 @@ from pytorch_lightning.utilities import (
     _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,
-    _TPU_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _module_available,
+    XLADeviceUtils,
 )
 TORCHVISION_AVAILABLE = _module_available("torchvision")
 """
