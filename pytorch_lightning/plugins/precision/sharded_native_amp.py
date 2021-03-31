@@ -23,6 +23,8 @@ if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
 if TYPE_CHECKING:
     from torch.optim import Optimizer
 
+    from pytorch_lightning.core import LightningModule
+
 
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     """Mixed Precision for Sharded Training
