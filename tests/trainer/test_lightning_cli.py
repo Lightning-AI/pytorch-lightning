@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import pickle
 import sys
@@ -22,7 +23,7 @@ import pytest
 import yaml
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import LightningArgumentParser, LightningCLI, SaveConfigCallback
 from tests.helpers import BoringDataModule, BoringModel
@@ -246,6 +247,44 @@ def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
         cli = LightningCLI(TestModel, trainer_class=Trainer, save_config_callback=SaveConfigCallback)
+        assert hasattr(cli.trainer, 'ran_asserts') and cli.trainer.ran_asserts
+
+
+def test_lightning_cli_args_callbacks(tmpdir, monkeypatch):
+
+    callbacks = [
+        {
+            'class_path': 'pytorch_lightning.callbacks.LearningRateMonitor',
+            'init_args': {
+                'logging_interval': 'epoch',
+                'log_momentum': True,
+            },
+        },
+        {
+            'class_path': 'pytorch_lightning.callbacks.ModelCheckpoint',
+            'init_args': {
+                'monitor': 'NAME',
+            },
+        },
+    ]
+
+    def fit(trainer, model):
+        callback = [c for c in trainer.callbacks if isinstance(c, LearningRateMonitor)]
+        assert len(callback) == 1
+        assert callback[0].logging_interval == 'epoch'
+        assert callback[0].log_momentum == True
+        callback = [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)]
+        assert len(callback) == 1
+        assert callback[0].monitor == 'NAME'
+        trainer.ran_asserts = True
+
+    monkeypatch.setattr(Trainer, 'fit', fit)
+
+    class TestModel(LightningModule):
+        pass
+
+    with mock.patch('sys.argv', ['any.py', f'--trainer.callbacks={json.dumps(callbacks)}']):
+        cli = LightningCLI(TestModel, trainer_class=Trainer)
         assert hasattr(cli.trainer, 'ran_asserts') and cli.trainer.ran_asserts
 
 
