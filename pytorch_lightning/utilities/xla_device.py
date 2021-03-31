@@ -76,8 +76,7 @@ class XLADeviceUtils:
             device = xm.xla_device()
             return device.type == 'xla'
 
-        # Missing XLA Configuration
-        except RuntimeError as e:
+        except RuntimeError:
             traceback.print_exc()
             return False
 
