@@ -62,6 +62,10 @@ are described in the docstrings, then the help of the training tool will display
 LightningCLI
 ^^^^^^^^^^^^
 
+The implementation of training command line tools is done via the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
+class. The minimal installation of pytorch-lightning does not include this support. To enable it either install
+lightning with the :code:`all` extras require or install the package :code:`jsonargparse[signatures]`.
+
 The case in which the user's :class:`~pytorch_lightning.core.lightning.LightningModule` class implements all required
 :code:`*_dataloader` methods, a :code:`trainer.py` tool can be as simple as:
 
