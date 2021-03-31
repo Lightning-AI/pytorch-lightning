@@ -25,14 +25,14 @@ from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _XLA_AVAILABLE, XLADeviceUtils
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
 
-if _XLA_AVAILABLE:
+if _TPU_AVAILABLE:
     import torch_xla
     import torch_xla.distributed.xla_multiprocessing as xmp
     SERIAL_EXEC = xmp.MpSerialExecutor()
@@ -256,7 +256,7 @@ def test_tpu_misconfiguration():
         Trainer(tpu_cores=[1, 8])
 
 
-@pytest.mark.skipif(XLADeviceUtils.tpu_device_exists(), reason="test requires missing TPU")
+@pytest.mark.skipif(_TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
 

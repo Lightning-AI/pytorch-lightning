@@ -54,12 +54,12 @@ from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _TPU_AVAILABLE,
     AMPType,
     device_parser,
     DeviceType,
     DistributedType,
     rank_zero_only,
-    XLADeviceUtils,
 )
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

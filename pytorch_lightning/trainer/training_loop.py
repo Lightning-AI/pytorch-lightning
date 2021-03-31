@@ -25,7 +25,7 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import AMPType, DeviceType, parsing, XLADeviceUtils
+from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -408,7 +408,7 @@ class TrainLoop:
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            on_tpu=self.trainer._device_type == DeviceType.TPU and XLADeviceUtils.tpu_device_exists(),
+            on_tpu=self.trainer._device_type == DeviceType.TPU and _TPU_AVAILABLE,
             using_native_amp=using_native_amp,
             using_lbfgs=is_lbfgs,
         )

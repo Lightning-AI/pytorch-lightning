@@ -29,7 +29,7 @@ from pytorch_lightning.utilities import (
     _NATIVE_AMP_AVAILABLE,
     _RPC_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
-    XLADeviceUtils,
+    _TPU_AVAILABLE,
 )
 
 try:
@@ -132,7 +132,7 @@ class RunIf:
             reasons.append("unimplemented on Windows")
 
         if tpu:
-            conditions.append(not XLADeviceUtils.tpu_device_exists())
+            conditions.append(not _TPU_AVAILABLE)
             reasons.append("TPU")
 
         if horovod:
