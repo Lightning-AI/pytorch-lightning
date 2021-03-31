@@ -14,6 +14,7 @@
 import io
 import os
 import re
+import time
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
@@ -23,11 +24,11 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn, _OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -39,8 +40,7 @@ else:
     xm, xla_pl, xmp, ParallelLoader, rendezvous = [None] * 5
 
 if _OMEGACONF_AVAILABLE:
-    from omegaconf import OmegaConf
-    from omegaconf import DictConfig, ListConfig
+    from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
@@ -117,6 +117,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
+
+        if self.global_rank == 0:
+            time.sleep(2)
 
         self.barrier("end-process")
 

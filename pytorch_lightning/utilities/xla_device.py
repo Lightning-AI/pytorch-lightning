@@ -61,26 +61,15 @@ class XLADeviceUtils:
     _TPU_AVAILABLE = False
 
     @staticmethod
-    @pl_multi_process
     def _is_device_tpu() -> bool:
         """
-        Check if device is TPU
+        Check if TPU devices are available
 
         Return:
-            A boolean value indicating if the xla device is a TPU device or not
+            A boolean value indicating if TPU devices are available
         """
 
-        def _fn(_: int, mp_queue):
-            try:
-                device = xm.xla_device()
-                mp_queue.put(device.type == 'xla')
-            except Exception:
-                mp_queue.put(False)
-
-        smp = mp.get_context("spawn")
-        queue = smp.SimpleQueue()
-        xmp.spawn(_fn, args=(queue, ), nprocs=1)
-        return queue.get()
+        return len(xm.get_xla_supported_devices("TPU")) > 0
 
     @staticmethod
     def xla_available() -> bool:
