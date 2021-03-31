@@ -32,7 +32,13 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
         super().__init__()
         self.scaler = ShardedGradScaler()
 
-    def clip_gradients(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
+    def clip_gradients(
+        self,
+        model: 'LightningModule',
+        optimizer: 'Optimizer',
+        clip_val: Union[int, float],
+        norm_type: float = 2.0
+    ) -> None:
         if clip_val <= 0:
             return
 
