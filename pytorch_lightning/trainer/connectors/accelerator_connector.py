@@ -555,8 +555,7 @@ class AcceleratorConnector(object):
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        tpu_available = XLADeviceUtils.tpu_device_exists()
-        rank_zero_info(f'TPU available: {tpu_available}, using: {num_cores} TPU cores')
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn(
