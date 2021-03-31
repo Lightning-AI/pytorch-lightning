@@ -1,6 +1,7 @@
 import io
 import os
 import re
+import time
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
@@ -105,6 +106,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
+
+        if self.global_rank == 0:
+            time.sleep(2)
 
         self.barrier("end-process")
 
