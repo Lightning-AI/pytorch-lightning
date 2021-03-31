@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerState
@@ -18,7 +19,7 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
-if _TORCH_GREATER_EQUAL_1_7:
+if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_7:
     from torch.distributed.algorithms.ddp_comm_hooks import (
         default_hooks as default,
         powerSGD_hook as powerSGD,
