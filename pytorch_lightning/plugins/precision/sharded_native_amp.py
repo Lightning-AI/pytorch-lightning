@@ -23,6 +23,8 @@ if _NATIVE_AMP_AVAILABLE and _FAIRSCALE_AVAILABLE:
 if TYPE_CHECKING:
     from torch.optim import Optimizer
 
+    from pytorch_lightning.core import LightningModule
+
 
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     """Mixed Precision for Sharded Training
@@ -32,7 +34,13 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
         super().__init__()
         self.scaler = ShardedGradScaler()
 
-    def clip_gradients(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
+    def clip_gradients(
+        self,
+        model: 'LightningModule',
+        optimizer: 'Optimizer',
+        clip_val: Union[int, float],
+        norm_type: float = 2.0
+    ) -> None:
         if clip_val <= 0:
             return
 
