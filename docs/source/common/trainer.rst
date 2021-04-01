@@ -1157,7 +1157,7 @@ precision
 
 |
 
-Full precision (32), half precision (16).
+Double precision (64), full precision (32) or half precision (16).
 Can be used on CPU, GPU or TPUs.
 
 If used on TPU will use torch.bfloat16 but tensor printing
@@ -1171,6 +1171,9 @@ will still show torch.float32.
 
     # 16-bit precision
     trainer = Trainer(precision=16, gpus=1)
+
+    # 64-bit precision
+    trainer = Trainer(precision=64)
 
 Example::
 
@@ -1475,15 +1478,9 @@ with the hidden
         def training_step(self, batch, batch_idx, hiddens):
             # hiddens are the hiddens from the previous truncated backprop step
             out, hiddens = self.lstm(data, hiddens)
-
-            # remember to detach() hiddens.
-            # If you don't, you will get a RuntimeError: Trying to backward through
-            # the graph a second time...
-            # Using hiddens.detach() allows each split to be disconnected.
-
             return {
                 "loss": ...,
-                "hiddens": hiddens  # remember to detach() this
+                "hiddens": hiddens
             }
 
 To modify how the batch is split,

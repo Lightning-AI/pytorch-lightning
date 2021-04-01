@@ -128,7 +128,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
 
         def validation_epoch_end(self, outputs):
             loss = self.validation_return_values[self.current_epoch]
-            return {"test_val_loss": loss}
+            self.log("test_val_loss", loss)
 
     model = ModelOverrideValidationReturn()
     early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
@@ -220,7 +220,7 @@ def test_early_stopping_functionality(tmpdir):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
-            self.log('abc', torch.tensor(val_loss))
+            self.log('abc', val_loss)
 
     model = CurrentModel()
 
@@ -232,28 +232,6 @@ def test_early_stopping_functionality(tmpdir):
     )
     trainer.fit(model)
     assert trainer.current_epoch == 5, 'early_stopping failed'
-
-
-def test_early_stopping_functionality_arbitrary_key(tmpdir):
-    """Tests whether early stopping works with a custom key and dictionary results on val step."""
-
-    class CurrentModel(BoringModel):
-
-        def validation_epoch_end(self, outputs):
-            losses = [8, 4, 2, 3, 4, 5, 8, 10]
-            val_loss = losses[self.current_epoch]
-            return {'jiraffe': torch.tensor(val_loss)}
-
-    model = CurrentModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor='jiraffe')],
-        overfit_batches=0.20,
-        max_epochs=20,
-    )
-    trainer.fit(model)
-    assert trainer.current_epoch >= 5, 'early_stopping failed'
 
 
 @pytest.mark.parametrize('step_freeze, min_steps, min_epochs', [(5, 1, 1), (5, 1, 3), (3, 15, 1)])
@@ -272,7 +250,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
         when `early_stopping` is being triggered,
     THEN the highest between `min_epochs * len(train_dataloader)` and `min_steps` would be reached.
 
-    Caviat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)
+    Caveat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)
 
     This test validate those expected behaviours
     """
@@ -309,7 +287,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
                 self._count_decrease += 1
                 self._loss_value -= self._eps
             self._values.append(_mean)
-            return {"test_val_loss": _mean}
+            self.log('test_val_loss', _mean)
 
     model = Model(step_freeze)
     model.training_step_end = None

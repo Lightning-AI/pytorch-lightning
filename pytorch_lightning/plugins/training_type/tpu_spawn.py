@@ -14,17 +14,18 @@
 import io
 import os
 import re
+import time
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -37,6 +38,9 @@ if _TPU_AVAILABLE:
     from torch_xla.distributed.parallel_loader import ParallelLoader
 else:
     xm, xla_pl, xmp, ParallelLoader, rendezvous = [None] * 5
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
@@ -53,10 +57,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.tpu_local_core_rank = 0
         self.start_method = None
 
-    def connect(self, model: torch.nn.Module) -> torch.nn.Module:
+    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
         self.create_mp_queue()
-        self._model = model
-        return self._model
+        return self.model
 
     def create_mp_queue(self):
         self.start_method = 'fork'
@@ -108,14 +111,19 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         trainer.accelerator.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
 
-        # replace trainer save_checkpoint to use `xm.save`
-        trainer.save_checkpoint = self.save_checkpoint
-        self.barrier()
+        self.barrier("pre-run-stage")
 
         results = trainer.run_stage()
 
         self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
+
+        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
+        self.barrier("end-process")
+
+        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
+        if self.global_rank == 0:
+            time.sleep(2)
 
     def __save_end_of_training_weights(self, model: LightningModule) -> None:
         # when training ends on these platforms dump weights to get out of the main process
@@ -127,11 +135,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._model.to(xm.xla_device())
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if torch_distrib.is_initialized():
-            rendezvous(f"pl.Trainer.{name}")
+        rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
-        best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
+        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
+        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         if self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
@@ -152,16 +160,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(results)
 
     def save(self, state_dict: Dict, path: str) -> None:
-        """
-        Saving with ``xm.save`` can be unstable and miss the rendez-vous after ``torch.save``.
-        The rendez-vous doesn't affect directly saving.
-        We can ignore the ``RuntimeError`` to reduce friction with TPUs.
-        """
-        try:
-            xm.save(state_dict, path)
-        except RuntimeError as e:
-            if "Failed to meet rendezvous" not in str(e):
-                raise e
+        xm.save(state_dict, path)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
@@ -295,17 +294,17 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def test_step(self, *args, **kwargs):
         return self.lightning_module.test_step(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
-        return self.lightning_module.predict(*args, **kwargs)
+    def predict_step(self, *args, **kwargs):
+        return self.lightning_module.predict_step(*args, **kwargs)
 
-    def save_checkpoint(self, filepath, weights_only: bool = False):
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
+            checkpoint: dict containing model and trainer state
             filepath: write-target file's path
-            weights_only: saving model weights only
         """
-        # dump states as a checkpoint dictionary object
-        _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
-        self.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
+        if _OMEGACONF_AVAILABLE:
+            checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
+        self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)

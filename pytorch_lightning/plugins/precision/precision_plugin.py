@@ -98,9 +98,14 @@ class PrecisionPlugin(Plugin):
     def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
 
-    def clip_gradients(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
+    def clip_gradients(
+        self,
+        model: 'LightningModule',
+        optimizer: 'Optimizer',
+        clip_val: Union[int, float],
+        norm_type: float = 2.0
+    ) -> None:
         """Clips the gradients to a specific value"""
-        # TODO: separate TPU case from here
         if clip_val is None:
             return
 
