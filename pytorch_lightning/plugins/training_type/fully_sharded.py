@@ -40,7 +40,7 @@ class FullyShardedPlugin(DDPPlugin):
         fp32_reduce_scatter: Optional[bool] = None,
         compute_dtype: Optional[torch.dtype] = None,
         bucket_cap_mb: int = 25,
-        automatic_module_wrap: bool = True,
+        automatic_module_wrap: bool = False,
         min_num_params: int = 1e8,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: int = 1,
