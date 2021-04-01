@@ -207,7 +207,6 @@ def all_gather_ddp_if_available(
 
 def register_ddp_comm_hook(
     model: DistributedDataParallel,
-    is_single_process_single_device: bool,
     ddp_comm_state: Optional[object] = None,
     ddp_comm_hook: Optional[callable] = None,
     ddp_comm_wrapper: Optional[callable] = None,
@@ -218,7 +217,6 @@ def register_ddp_comm_hook(
 
     Args:
         model: DDP model
-        is_single_process_single_device: whether it is single-process single-device mode
         ddp_comm_state: state is passed to the hook and can be used to maintain
                         and update any state information that users would like to
                         maintain as part of the training process. Examples: error
@@ -243,10 +241,6 @@ def register_ddp_comm_hook(
         DDP communication hook need pytorch version at least 1.8.0
 
     .. warning ::
-        DDP communication hook does not support single-process multiple-device mode.
-        Gradbucket tensors should consist of only a single tensor.
-
-    .. warning ::
         DDP communication wrapper need pytorch version at least 1.9.0
 
     Example:
@@ -259,14 +253,12 @@ def register_ddp_comm_hook(
         # fp16_compress_hook for compress gradients
         register_ddp_comm_hook(
             model=ddp_model,
-            is_single_process_single_device=True,
             ddp_comm_hook=default.fp16_compress_hook,
         )
 
         # powerSGD_hook
         register_ddp_comm_hook(
             model=ddp_model,
-            is_single_process_single_device=True,
             ddp_comm_state=powerSGD.PowerSGDState(
                 process_group=None,
                 matrix_approximation_rank=1,
@@ -278,7 +270,6 @@ def register_ddp_comm_hook(
         # fp16_compress_wrapper combined with other communication hook
         register_ddp_comm_hook(
             model=ddp_model,
-            is_single_process_single_device=True,
             ddp_comm_state=powerSGD.PowerSGDState(
                 process_group=None,
                 matrix_approximation_rank=1,
@@ -295,14 +286,6 @@ def register_ddp_comm_hook(
         )
         return
     if ddp_comm_hook is None:
-        return
-    if not is_single_process_single_device:
-        rank_zero_warn(
-            "Not registering DDP comm hook. "
-            "To use communication hooks, must be single process single device, see "
-            "https://github.com/pytorch/pytorch/blob/e6779d4357ae94cc9f9fedb83a87eb6126016769/"
-            "torch/nn/parallel/distributed.py#L1035"
-        )
         return
     if ddp_comm_wrapper is not None:
         if not _TORCH_GREATER_EQUAL_1_9:
