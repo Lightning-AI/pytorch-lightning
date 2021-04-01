@@ -18,7 +18,7 @@ import warnings
 from functools import wraps
 from typing import Any, Optional, Union
 from pytorch_lightning.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_7,
+    _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
 )
 
@@ -239,7 +239,7 @@ def register_ddp_comm_hook(
                           which could be combined with ddp_comm_hook
 
     .. warning ::
-        DDP communication hook need pytorch version at least 1.7.0
+        DDP communication hook need pytorch version at least 1.8.0
 
     .. warning ::
         DDP communication hook does not support single-process multiple-device mode.
@@ -279,10 +279,10 @@ def register_ddp_comm_hook(
             ddp_comm_wrapper=default.fp16_compress_wrapper,
         )
     """
-    if not _TORCH_GREATER_EQUAL_1_7:
+    if not _TORCH_GREATER_EQUAL_1_8:
         rank_zero_warn(
             "Not registering DDP comm hook. "
-            "To use communication hooks, please use pytorch>=1.7.0."
+            "To use communication hooks, please use pytorch>=1.8.0."
         )
         return
     if ddp_comm_hook is None:

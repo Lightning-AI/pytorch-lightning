@@ -15,18 +15,18 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
-if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_7:
+if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_8:
     from torch.distributed.algorithms.ddp_comm_hooks import (
         default_hooks as default,
         powerSGD_hook as powerSGD,
     )
 
 
-@RunIf(skip_windows=True, min_torch="1.7.0", min_gpus=2)
+@RunIf(skip_windows=True, min_torch="1.8.0", min_gpus=2)
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
@@ -53,7 +53,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
     ), f"Training failed with {trainer.state}"
 
 
-@RunIf(skip_windows=True, min_torch="1.7.0", min_gpus=2)
+@RunIf(skip_windows=True, min_torch="1.8.0", min_gpus=2)
 def test_ddp_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()

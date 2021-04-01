@@ -29,7 +29,12 @@ from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE, _TORCH_GREATER_EQUAL_1_7, rank_zero_warn
+from pytorch_lightning.utilities import (
+    _HYDRA_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_7,
+    _TORCH_GREATER_EQUAL_1_8,
+    rank_zero_warn,
+)
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -37,7 +42,7 @@ from pytorch_lightning.utilities.seed import seed_everything
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
-if _TORCH_GREATER_EQUAL_1_7:
+if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
 log = logging.getLogger(__name__)
@@ -234,7 +239,7 @@ class DDPPlugin(ParallelPlugin):
         # currently, DDP communication hooks only work with NCCL backend
         # https://github.com/pytorch/pytorch/blob/e6779d4357ae94cc9f9fedb83a87eb6126016769/
         # torch/nn/parallel/distributed.py#L1040
-        if _TORCH_GREATER_EQUAL_1_7 and self.on_gpu:
+        if _TORCH_GREATER_EQUAL_1_8 and self.on_gpu:
             register_ddp_comm_hook(
                 model=self._model,
                 is_single_process_single_device=self._is_single_process_single_device,
