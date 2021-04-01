@@ -35,3 +35,4 @@ class AveragePrecision(_AveragePrecision):
         .. deprecated::
             Use :class:`~torchmetrics.AveragePrecision`. Will be removed in v1.5.0.
         """
+        _ = num_classes,  pos_label, compute_on_step, dist_sync_on_step, process_group
