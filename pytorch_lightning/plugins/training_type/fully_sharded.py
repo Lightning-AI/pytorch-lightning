@@ -42,7 +42,6 @@ class FullyShardedPlugin(DDPPlugin):
         bucket_cap_mb: int = 25,
         automatic_module_wrap: bool = True,
         min_num_params: int = 1e8,
-        activation_checkpoint: bool = False,
         parallel_devices: Optional[List[torch.device]] = None,
         num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
@@ -115,7 +114,6 @@ class FullyShardedPlugin(DDPPlugin):
         self.bucket_cap_mb = bucket_cap_mb
         self.automatic_module_wrap = automatic_module_wrap
         self.min_num_params = min_num_params
-        self.activation_checkpoint = activation_checkpoint
         self._process_group = None
 
     @property
@@ -136,13 +134,8 @@ class FullyShardedPlugin(DDPPlugin):
         def wrap_policy(*args, **kwargs):
             return default_auto_wrap_policy(*args, **kwargs, min_num_params=self.min_num_params)
 
-        def model_wrapper(module, **wrap_overrides):
-            if self.activation_checkpoint:
-                module = checkpoint_wrapper(module)
-            return FullyShardedDataParallel(module, **wrap_overrides)
-
         with enable_wrap(
-            wrapper_cls=model_wrapper,
+            wrapper_cls=FullyShardedDataParallel,
             auto_wrap_policy=wrap_policy,
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
