@@ -235,8 +235,9 @@ def register_ddp_comm_hook(
                         c10d reducer would call this hook and use the tensors returned
                         by the Future and copy grads to individual parameters.
 
-        ddp_comm_wrapper: communication hook wraper to support fp16_compress_hook() as wrapper,
-                          which could be combined with ddp_comm_hook
+        ddp_comm_wrapper: communication hook wraper to support a communication hook such
+                          as FP16 compression as wrapper, which could be combined with
+                          ddp_comm_hook
 
     .. warning ::
         DDP communication hook need pytorch version at least 1.8.0
@@ -266,7 +267,11 @@ def register_ddp_comm_hook(
         register_ddp_comm_hook(
             model=ddp_model,
             is_single_process_single_device=True,
-            ddp_comm_state=powerSGD.PowerSGDState(process_group=None),
+            ddp_comm_state=powerSGD.PowerSGDState(
+                process_group=None,
+                matrix_approximation_rank=1,
+                start_powerSGD_iter=5000,
+            ),
             ddp_comm_hook=powerSGD.powerSGD_hook,
         )
 
@@ -274,7 +279,11 @@ def register_ddp_comm_hook(
         register_ddp_comm_hook(
             model=ddp_model,
             is_single_process_single_device=True,
-            ddp_comm_state=powerSGD.PowerSGDState(process_group=None),
+            ddp_comm_state=powerSGD.PowerSGDState(
+                process_group=None,
+                matrix_approximation_rank=1,
+                start_powerSGD_iter=5000,
+            ),
             ddp_comm_hook=powerSGD.powerSGD_hook,
             ddp_comm_wrapper=default.fp16_compress_wrapper,
         )
