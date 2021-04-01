@@ -63,6 +63,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for `precision=64`, enabling training with double precision ([#6595](https://github.com/PyTorchLightning/pytorch-lightning/pull/6595))
 
+- Added support for DDP communication hooks ([#6727] (https://github.com/PyTorchLightning/pytorch-lightning/issues/6727))
 
 ### Changed
 
