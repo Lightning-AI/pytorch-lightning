@@ -35,3 +35,4 @@ class HammingDistance(_HammingDistance):
         .. deprecated::
             Use :class:`~torchmetrics.HammingDistance`. Will be removed in v1.5.0.
         """
+        _ = threshold, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
