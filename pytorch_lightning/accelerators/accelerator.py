@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
+import contextlib
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
@@ -317,7 +318,7 @@ class Accelerator(object):
     def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """clips all the optimizer parameters to the given value"""
 
-        self.precision_plugin.clip_gradients(optimizer, clip_val)
+        self.precision_plugin.clip_gradients(self.model, optimizer, clip_val)
 
     def on_train_epoch_end(self, outputs: Sequence[_STEP_OUTPUT_TYPE]) -> None:
         """Hook to do something on the end of an training epoch
@@ -439,6 +440,18 @@ class Accelerator(object):
         """
         return self.training_type_plugin.results
 
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator[None, None, None]:
+        """
+        Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
+        shard the model instantly - useful for extremely large models. Can save memory and
+        initialization time.
+
+        Returns: Model parallel context.
+        """
+        with self.training_type_plugin.model_sharded_context():
+            yield
+
     # todo: remove in v1.5
     def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
         """
@@ -466,3 +479,38 @@ class Accelerator(object):
             ' It will be removed in v1.5.'
         )
         self.setup_precision_plugin(plugin)
+
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            filepath: write-target file's path
+        """
+        self.training_type_plugin.save_checkpoint(checkpoint, filepath)
+
+    @property
+    def call_configure_sharded_model_hook(self) -> bool:
+        """
+        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
+        This is useful for when we want to shard the model once within fit.
+        Returns: True if we want to call the model parallel setup hook.
+        """
+        return self.training_type_plugin.call_configure_sharded_model_hook
+
+    @call_configure_sharded_model_hook.setter
+    def call_configure_sharded_model_hook(self, mode: bool) -> None:
+        self.training_type_plugin.call_configure_sharded_model_hook = mode
+
+    @property
+    def setup_optimizers_in_pre_dispatch(self) -> bool:
+        """
+        Override to delay setting optimizers and schedulers till after dispatch.
+        This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
+        However this may break certain precision plugins such as APEX which require optimizers to be set.
+        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+        """
+        return self.training_type_plugin.setup_optimizers_in_pre_dispatch
+
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
