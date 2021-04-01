@@ -43,7 +43,7 @@ if _MLFLOW_AVAILABLE:
         from mlflow.tracking.context import resolve_tags
     # since v1.1.0
     elif hasattr(context, 'registry'):
-        from mlflow.tracking.context.resolve_tags import resolve_tags
+        from mlflow.tracking.context.registry import resolve_tags
     else:
 
         def resolve_tags(tags=None):
