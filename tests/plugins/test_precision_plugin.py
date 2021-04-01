@@ -11,5 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.retrieval.mean_average_precision import RetrievalMAP  # noqa: F401
-from pytorch_lightning.metrics.retrieval.retrieval_metric import RetrievalMetric  # noqa: F401
+from inspect import signature
+
+from pytorch_lightning.plugins.precision import PrecisionPlugin
+
+
+def test_precision_clip_gradients_signature():
+
+    expected_params_list = ['self', 'model', 'optimizer', 'clip_val', 'norm_type']
+
+    params = signature(PrecisionPlugin.clip_gradients).parameters
+    params_list = [param.name for param in params.values()]
+
+    assert params_list == expected_params_list

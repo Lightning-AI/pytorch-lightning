@@ -57,8 +57,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -227,7 +226,8 @@ class Trainer(
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
 
-            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
+            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
+                TPUs.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
@@ -320,6 +320,10 @@ class Trainer(
         self.predict_loop = PredictLoop(self)
 
         # training state
+        if weights_summary is not None and weights_summary not in ModelSummary.MODES:
+            raise MisconfigurationException(
+                f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
+            )
         self.weights_summary = weights_summary
         self.shown_warnings = set()
 
@@ -351,7 +355,6 @@ class Trainer(
             max_steps,
             min_steps,
             num_sanity_val_steps,
-            weights_summary,
         )
         self.evaluation_loop.on_trainer_init()
 
@@ -428,8 +431,11 @@ class Trainer(
         # ----------------------------
         # SET UP TRAINING
         # ----------------------------
-        self.call_setup_hook(model)
         self.call_hook("on_before_accelerator_backend_setup", model)
+        self.accelerator.connect(model)
+        self.accelerator.setup_environment()
+        self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self.call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
@@ -443,13 +449,15 @@ class Trainer(
                                 |                             ||
                          {self.dispatch}                      ||
                                 |                             ||  LIGHTNING
-                {self.accelerator.start_training} or          ||
-                {self.accelerator.start_evaluating} or        ||  FLOW
-                {self.accelerator.start_predicting}           ||
+                  {self.accelerator.start_training}           ||
+                or {self.accelerator.start_evaluating}        ||
+                or {self.accelerator.start_predicting}        ||  FLOW
+                                |                             ||
+                         {self.run_stage}                     ||
                                 |                             ||  DIRECTION
-                        {self.run_train} or                   ||
-                     {self.run_evaluation} or                 ||
-                       {self.run_predict}                     ||
+                        {self.run_train}                      ||
+                     or {self.run_evaluation}                 ||
+                     or {self.run_predict}                    ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
@@ -493,7 +501,7 @@ class Trainer(
         return self.accelerator.results or 1
 
     def pre_dispatch(self):
-        self.accelerator.pre_dispatch()
+        self.accelerator.pre_dispatch(self)
 
         # log hyper-parameters
         if self.logger is not None:
@@ -503,7 +511,7 @@ class Trainer(
             self.logger.save()
 
     def post_dispatch(self):
-        self.accelerator.post_dispatch()
+        self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
 
     def dispatch(self):
@@ -516,6 +524,9 @@ class Trainer(
 
     def run_stage(self):
         results = None
+
+        self.profile_connector.setup()
+
         if self.evaluating:
             results = self.run_evaluate()
         elif self.predicting:
@@ -542,10 +553,7 @@ class Trainer(
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            if self.weights_summary in ModelSummary.MODES:
-                ref_model.summarize(mode=self.weights_summary)
-            else:
-                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+            ref_model.summarize(mode=self.weights_summary)
 
         # restore training and model before hpc is called
         self.checkpoint_connector.restore_weights()
@@ -755,6 +763,8 @@ class Trainer(
         return eval_loop_results
 
     def run_predict(self):
+        self.predict_loop.on_predict_start()
+
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -777,7 +787,6 @@ class Trainer(
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dataloader = self.accelerator.process_dataloader(dataloader)
             dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
-
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue
@@ -787,10 +796,15 @@ class Trainer(
                     break
 
                 # lightning module methods
-                with self.profiler.profile("predict"):
-                    self.predict_loop.predict(batch, batch_idx, dataloader_idx)
+                with self.profiler.profile("predict_step"):
+                    self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
+        self.predict_loop.on_predict_end()
+
+        # re-enable grads
+        torch.set_grad_enabled(True)
+
         return results
 
     def run_sanity_check(self, ref_model):
@@ -808,15 +822,6 @@ class Trainer(
 
             # run eval step
             _, eval_results = self.run_evaluation()
-
-            # allow no returns from eval
-            if eval_results is not None and len(eval_results) > 0:
-                # when we get a list back, used only the last item
-                if isinstance(eval_results, list):
-                    eval_results = eval_results[-1]
-
-                _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
-                self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
 
@@ -950,29 +955,39 @@ class Trainer(
         model,
         ckpt_path: Optional[str] = None,
     ) -> Optional[str]:
-        # if user requests the best checkpoint but we don't have it, error
-        if ckpt_path == 'best' and not self.checkpoint_callback.best_model_path:
+        if ckpt_path is None:
+            return
+
+        fn = self.state.value
+
+        if ckpt_path == 'best':
+            # if user requests the best checkpoint but we don't have it, error
+            if not self.checkpoint_callback.best_model_path:
+                if self.fast_dev_run:
+                    raise MisconfigurationException(
+                        f'You cannot execute `.{fn}()` with `fast_dev_run=True` unless you do'
+                        f' `.{fn}(ckpt_path=PATH)` as no checkpoint path was generated during fitting.'
+                    )
+                raise MisconfigurationException(
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
+                )
+            # load best weights
+            ckpt_path = self.checkpoint_callback.best_model_path
+
+        if not ckpt_path:
             raise MisconfigurationException(
-                'ckpt_path is "best", but `ModelCheckpoint` is not configured to save the best model.'
+                f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
+                f' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
             )
 
-        # load best weights
-        if ckpt_path is not None:
-            # ckpt_path is 'best' so load the best model
-            if ckpt_path == 'best':
-                ckpt_path = self.checkpoint_callback.best_model_path
-
-            if not ckpt_path:
-                fn = self.state.value
-                raise MisconfigurationException(
-                    f'`.{fn}()` found no path for the best weights: "{ckpt_path}". Please'
-                    ' specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`'
-                )
-
+        # only one process running at this point for TPUs, as spawn isn't triggered yet
+        # todo: move this logic internally within the barrier.
+        if not self._device_type == DeviceType.TPU:
             self.training_type_plugin.barrier()
 
-            ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt['state_dict'])
+        self.training_type_plugin.restore_model_state_from_ckpt_path(
+            ckpt_path, map_location=lambda storage, loc: storage
+        )
         return ckpt_path
 
     def predict(
@@ -1058,8 +1073,7 @@ class Trainer(
 
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
-        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
-        state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+        state = self._setup_state
 
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
@@ -1069,12 +1083,28 @@ class Trainer(
         self.setup(model, stage=state)
         model.setup(stage=state)
 
-    def call_teardown_hook(self, model: LightningModule) -> None:
-        if self.state.running:
-            state = TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
-        else:
-            state = None
+    def call_configure_sharded_model(self, model: LightningModule) -> None:
+        # Call configure sharded model hook if accelerator requests. In some cases
+        # we will not call the hook; the hook has initialized the sharded model for example.
 
+        # used on the model if the user re-create a trainer with resume_from_checkpoint
+        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+        if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
+            with self.accelerator.model_sharded_context():
+                model.configure_sharded_model()
+                self.configure_sharded_model(model)
+            model.call_configure_sharded_model_hook = True
+            self.accelerator.call_configure_sharded_model_hook = False
+
+    def call_teardown_hook(self, model: LightningModule) -> None:
+        state = self._teardown_state
+
+        if self.datamodule is not None:
+            called = getattr(self.datamodule, f'has_teardown_{state}')
+            if not called:
+                self.datamodule.teardown(stage=state)
+
+        self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
 

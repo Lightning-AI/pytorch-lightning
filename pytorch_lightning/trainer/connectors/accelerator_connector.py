@@ -32,6 +32,7 @@ from pytorch_lightning.plugins import (
     DDPSpawnShardedPlugin,
     DeepSpeedPlugin,
     DeepSpeedPrecisionPlugin,
+    DoublePrecisionPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
@@ -319,7 +320,8 @@ class AcceleratorConnector(object):
 
         if self.precision == 32:
             return PrecisionPlugin()
-
+        elif self.precision == 64:
+            return DoublePrecisionPlugin()
         elif self.precision == 16:
             if self.on_tpu:
                 return TPUHalfPrecisionPlugin()
@@ -358,7 +360,7 @@ class AcceleratorConnector(object):
                 log.info("Using APEX 16bit precision.")
                 return ApexMixedPrecisionPlugin(self.amp_level)
 
-        raise NotImplementedError("We only support precisions 32 and 16!")
+        raise NotImplementedError("We only support precisions 64, 32 and 16!")
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
@@ -429,6 +431,11 @@ class AcceleratorConnector(object):
 
         if hasattr(training_type, 'num_nodes') and getattr(training_type, 'num_nodes') is None:
             training_type.num_nodes = self.num_nodes
+
+        # Automatically set sync_batchnorm if None.
+        # Useful for custom plugins.
+        if hasattr(training_type, 'sync_batchnorm') and getattr(training_type, 'sync_batchnorm') is None:
+            training_type.sync_batchnorm = self.sync_batchnorm
 
         return training_type
 

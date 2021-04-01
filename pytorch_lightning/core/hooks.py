@@ -25,42 +25,6 @@ from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 class ModelHooks:
     """Hooks to be used in LightningModule."""
 
-    def setup(self, stage: Optional[str] = None) -> None:
-        """
-        Called at the beginning of fit (train + validate), validate, test, predict, or tune.
-        This is a good hook when you need to build models dynamically or adjust something about them.
-        This hook is called on every process when using DDP.
-
-        Args:
-            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
-
-        Example::
-
-            class LitModel(...):
-                def __init__(self):
-                    self.l1 = None
-
-                def prepare_data(self):
-                    download_data()
-                    tokenize()
-
-                    # don't do this
-                    self.something = else
-
-                def setup(stage):
-                    data = Load_data(...)
-                    self.l1 = nn.Linear(28, data.num_classes)
-
-        """
-
-    def teardown(self, stage: Optional[str] = None) -> None:
-        """
-        Called at the end of fit (train + validate), validate, test, predict, or tune.
-
-        Args:
-            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
-        """
-
     def on_fit_start(self) -> None:
         """
         Called at the very beginning of fit.
@@ -224,13 +188,13 @@ class ModelHooks:
 
     def on_epoch_start(self) -> None:
         """
-        Called in the training loop at the very beginning of the epoch.
+        Called when either of train/val/test epoch begins.
         """
         # do something when the epoch starts
 
     def on_epoch_end(self) -> None:
         """
-        Called in the training loop at the very end of the epoch.
+        Called when either of train/val/test epoch ends.
         """
         # do something when the epoch ends
 
@@ -281,6 +245,18 @@ class ModelHooks:
         Called at the end of testing.
         """
         # do something at the end of testing
+
+    def on_predict_start(self) -> None:
+        """
+        Called at the beginning of predicting.
+        """
+        # do something at the start of predicting
+
+    def on_predict_end(self) -> None:
+        """
+        Called at the end of predicting.
+        """
+        # do something at the end of predicting
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
         """
@@ -334,6 +310,20 @@ class ModelHooks:
 
         """
 
+    def configure_sharded_model(self) -> None:
+        """
+        Hook to create modules in a distributed aware context. This is useful for when using sharded plugins,
+        where we'd like to shard the model instantly, which is useful for extremely large models
+        which can save memory and initialization time.
+
+        The accelerator manages whether to call this hook at every given stage.
+        For sharded plugins where model parallelism is required, the hook is usually on called once
+        to initialize the sharded parameters, and not called again in the same process.
+
+        By default for accelerators/plugins that do not use model sharding techniques,
+        this hook is called during each fit/val/test/predict stages.
+        """
+
 
 class DataHooks:
     """Hooks to be used for data related stuff."""
@@ -381,6 +371,42 @@ class DataHooks:
             model.train_dataloader()
             model.val_dataloader()
             model.test_dataloader()
+        """
+
+    def setup(self, stage: Optional[str] = None) -> None:
+        """
+        Called at the beginning of fit (train + validate), validate, test, predict, or tune.
+        This is a good hook when you need to build models dynamically or adjust something about them.
+        This hook is called on every process when using DDP.
+
+        Args:
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
+
+        Example::
+
+            class LitModel(...):
+                def __init__(self):
+                    self.l1 = None
+
+                def prepare_data(self):
+                    download_data()
+                    tokenize()
+
+                    # don't do this
+                    self.something = else
+
+                def setup(stage):
+                    data = Load_data(...)
+                    self.l1 = nn.Linear(28, data.num_classes)
+
+        """
+
+    def teardown(self, stage: Optional[str] = None) -> None:
+        """
+        Called at the end of fit (train + validate), validate, test, predict, or tune.
+
+        Args:
+            stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
         """
 
     def train_dataloader(self) -> Any:
@@ -593,6 +619,18 @@ class DataHooks:
             In the case where you return multiple prediction dataloaders, the :meth:`predict`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
+
+    def on_train_dataloader(self) -> None:
+        """Called before requesting the train dataloader."""
+
+    def on_val_dataloader(self) -> None:
+        """Called before requesting the val dataloader."""
+
+    def on_test_dataloader(self) -> None:
+        """Called before requesting the test dataloader."""
+
+    def on_predict_dataloader(self) -> None:
+        """Called before requesting the predict dataloader."""
 
     def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """

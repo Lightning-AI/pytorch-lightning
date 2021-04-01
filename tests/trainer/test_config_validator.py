@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
 
 
 def test_wrong_train_setting(tmpdir):
@@ -101,3 +102,48 @@ def test_val_loop_config(tmpdir):
         model = BoringModel()
         model.validation_step = None
         trainer.validate(model)
+
+
+@pytest.mark.parametrize("datamodule", [False, True])
+def test_trainer_predict_verify_config(tmpdir, datamodule):
+
+    class TestModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(32, 2)
+
+        def forward(self, x):
+            return self.layer(x)
+
+    class TestLightningDataModule(LightningDataModule):
+
+        def __init__(self, dataloaders):
+            super().__init__()
+            self._dataloaders = dataloaders
+
+        def test_dataloader(self):
+            return self._dataloaders
+
+        def predict_dataloader(self):
+            return self._dataloaders
+
+    dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
+
+    model = TestModel()
+
+    trainer = Trainer(default_root_dir=tmpdir)
+
+    if datamodule:
+        datamodule = TestLightningDataModule(dataloaders)
+        results = trainer.predict(model, datamodule=datamodule)
+    else:
+        results = trainer.predict(model, dataloaders=dataloaders)
+
+    assert len(results) == 2
+    assert results[0][0].shape == torch.Size([1, 2])
+
+    model.predict_dataloader = None
+
+    with pytest.raises(MisconfigurationException, match="Dataloader not found for `Trainer.predict`"):
+        trainer.predict(model)

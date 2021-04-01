@@ -78,11 +78,11 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
-        python -m pytest pytorch_lightning tests -v --cov=pytorch_lightning --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
 
     - bash: |
-        sh tests/special_tests.sh
+        bash tests/special_tests.sh
       displayName: 'Testing: special'
 
     - bash: |
@@ -113,12 +113,15 @@ jobs:
         python -m pytest benchmarks -v --maxfail=2 --durations=0
       displayName: 'Testing: benchmarks'
 
-    - bash: |
+    - script: |
+        set -e
         python -m pytest pl_examples -v --maxfail=2 --durations=0
-        python setup.py install --user --quiet
-        bash pl_examples/run_ddp-example.sh
-        cd pl_examples/basic_examples
-        bash submit_ddp_job.sh
-        bash submit_ddp2_job.sh
-        pip uninstall -y pytorch-lightning
+        pip install . --user --quiet
+        bash pl_examples/run_examples-args.sh --gpus 1 --max_epochs 1 --batch_size 64 --limit_train_batches 5 --limit_val_batches 3
+        bash pl_examples/run_ddp-examples.sh --max_epochs 1 --batch_size 32 --limit_train_batches 2 --limit_val_batches 2
+        # cd pl_examples/basic_examples
+        # bash submit_ddp_job.sh
+        # bash submit_ddp2_job.sh
+      env:
+        PL_USE_MOCKED_MNIST: "1"
       displayName: 'Examples'
