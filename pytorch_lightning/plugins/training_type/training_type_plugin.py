@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
 
-TBroadcast = TypeVar("T", bound=object)
+TBroadcast = TypeVar("T")
 
 
 class TrainingTypePlugin(Plugin, ABC):
