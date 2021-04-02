@@ -216,32 +216,35 @@ def register_ddp_comm_hook(
     https://pytorch.org/docs/master/ddp_comm_hooks.html
 
     Args:
-        model: DDP model
-        ddp_comm_state: state is passed to the hook and can be used to maintain
-                        and update any state information that users would like to
-                        maintain as part of the training process. Examples: error
-                        feedback in gradient compression, peers to communicate with
-                        next in GossipGrad etc.
-        ddp_comm_hook:  hook(state: object, bucket: dist._GradBucket) -> torch.futures.Future:
+        model:
+            DDP model
+        ddp_comm_state:
+            state is passed to the hook and can be used to maintain
+            and update any state information that users would like to
+            maintain as part of the training process. Examples: error
+            feedback in gradient compression, peers to communicate with
+            next in GossipGrad etc.
+        ddp_comm_hook:
+            hook(state: object, bucket: dist._GradBucket) -> torch.futures.Future
 
-                        This function is called once the bucket is ready. The
-                        hook can perform whatever processing is needed and return
-                        a Future indicating completion of any async work (ex: allreduce).
-                        If the hook doesn't perform any communication, it can also
-                        just return a completed Future. The Future should hold the
-                        new value of grad bucket's tensors. Once a bucket is ready,
-                        c10d reducer would call this hook and use the tensors returned
-                        by the Future and copy grads to individual parameters.
-
-        ddp_comm_wrapper: communication hook wraper to support a communication hook such
-                          as FP16 compression as wrapper, which could be combined with
-                          ddp_comm_hook
+            This callable function is called once the bucket is ready. The
+            hook can perform whatever processing is needed and return
+            a Future indicating completion of any async work (ex: allreduce).
+            If the hook doesn't perform any communication, it can also
+            just return a completed Future. The Future should hold the
+            new value of grad bucket's tensors. Once a bucket is ready,
+            c10d reducer would call this hook and use the tensors returned
+            by the Future and copy grads to individual parameters.
+        ddp_comm_wrapper:
+            communication hook wraper to support a communication hook such
+            as FP16 compression as wrapper, which could be combined with
+            ddp_comm_hook
 
     .. warning ::
-        DDP communication hook need pytorch version at least 1.8.0
+        DDP communication hook needs pytorch version at least 1.8.0
 
     .. warning ::
-        DDP communication wrapper need pytorch version at least 1.9.0
+        DDP communication wrapper needs pytorch version at least 1.9.0
 
     Example:
 
@@ -295,13 +298,11 @@ def register_ddp_comm_hook(
             )
         else:
             rank_zero_info(
-                "DDP comm wrapper is provided, apply {}({}).".format(
-                    ddp_comm_wrapper.__qualname__, ddp_comm_hook.__qualname__
-                )
+                f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
-    rank_zero_debug("Registering DDP comm hook: {}.".format(ddp_comm_hook.__qualname__))
+    rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
     model.register_comm_hook(
         state=ddp_comm_state,
         hook=ddp_comm_hook,
