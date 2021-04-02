@@ -602,7 +602,6 @@ For cases like production, you might want to iterate different models inside a L
             loss = F.cross_entropy(y_hat, y)
             acc = FM.accuracy(y_hat, y)
 
-            # loss is tensor. The Checkpoint Callback is monitoring 'checkpoint_on'
             metrics = {'val_acc': acc, 'val_loss': loss}
             self.log_dict(metrics)
             return metrics

@@ -52,6 +52,14 @@ for i in "${!files_arr[@]}"; do
         break
       fi
 
+      # SPECIAL_PATTERN allows filtering the tests to run when debugging.
+      # use as `SPECIAL_PATTERN="foo_bar" ./special_tests.sh` to run only those
+      # test with `foo_bar` in their name
+      if [[ $line != *$SPECIAL_PATTERN* ]]; then
+        report+="Skipped\t$file:$lineno::$test_name\n"
+        break
+      fi
+
       # run the test
       report+="Ran\t$file:$lineno::$test_name\n"
       python ${defaults} "${file}::${test_name}"

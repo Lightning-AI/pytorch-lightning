@@ -191,10 +191,7 @@ class LoggerConnector:
             self.add_progress_bar_metrics(pbar_metrics_tmp)
 
         self._callback_metrics.update(callback_metrics_tmp)
-
-        # save legacy log metrics
         self._logged_metrics.update(logged_metrics_tmp)
-        self.cached_results.legacy_batch_log_metrics.update(logged_metrics_tmp)
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
@@ -243,10 +240,6 @@ class LoggerConnector:
             self._progress_bar_metrics.metrics[k] = v
 
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
-
-    def track_metrics_deprecated(self, deprecated_eval_results):
-        self._track_callback_metrics(deprecated_eval_results)
-        self.__process_eval_epoch_end_results_and_log_legacy(deprecated_eval_results)
 
     def evaluation_epoch_end(self):
         # reset dataloader idx
@@ -317,10 +310,6 @@ class LoggerConnector:
                 elif isinstance(eval_result, dict):
                     flat = flatten_dict(eval_result)
 
-                # removing val_loss magic word to map to checkpoint + ES callback
-                if 'val_loss' in flat:
-                    flat['checkpoint_on'] = flat['val_loss']
-                    flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
                 if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                     self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
@@ -331,95 +320,26 @@ class LoggerConnector:
             else:
                 flat = flatten_dict(eval_results)
 
-            # removing val_loss magic word to map to checkpoint + ES callback
-            if 'val_loss' in flat:
-                flat['checkpoint_on'] = flat['val_loss']
-                flat['early_stop_on'] = flat['val_loss']
-
             self.trainer.logger_connector.callback_metrics.update(flat)
             if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
                 self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
-
-    def __process_eval_epoch_end_results_and_log_legacy(self, eval_results):
-        if self.trainer.sanity_checking:
-            return
-
-        if eval_results is not None and len(eval_results) > 0:
-
-            # in eval, the user may return something at every validation step without final reduction
-            if not isinstance(eval_results, list):
-                eval_results = [eval_results]
-
-            for result_idx, result in enumerate(eval_results):
-                _, prog_bar_metrics, log_metrics, _ = self.trainer.process_dict_result(result)
-
-                # eval loop returns all metrics
-                dataloader_result_metrics = {**prog_bar_metrics, **log_metrics}
-
-                # add metrics to prog bar
-                self.trainer.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
-
-                # log metrics
-                if len(log_metrics) > 0:
-                    self.trainer.logger_connector.log_metrics(log_metrics, {})
-
-                if len(dataloader_result_metrics) > 0:
-                    self.eval_loop_results.append(dataloader_result_metrics)
 
     def on_train_epoch_end(self):
         # inform cached logger connector epoch finished
         self.cached_results.has_batch_loop_finished = True
 
-    def log_train_epoch_end_metrics(
-        self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers
-    ):
+    def log_train_epoch_end_metrics(self, epoch_output, num_optimizers):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
 
         model = self.trainer.lightning_module
 
-        epoch_callback_metrics = {}
+        # lightning module hook
+        self.training_epoch_end(model, epoch_output, num_optimizers)
 
-        # -----------------------
-        # Calculate epoch callback values if given
-        # -----------------------
-        if checkpoint_accumulator.num_values > 0:
-            epoch_callback_metrics['checkpoint_on'] = checkpoint_accumulator.mean()
-
-        if early_stopping_accumulator.num_values > 0:
-            epoch_callback_metrics['early_stop_on'] = early_stopping_accumulator.mean()
-
-        # ------------------------
-        # determine if using a result obj
-        # ------------------------
-        # [optimizer_idx][training_step_idx][tbptt_index]
-        opt_idx_outputs = epoch_output[0]
-
-        # TODO: deprecate 1.0
-        try:
-            sample_obj = opt_idx_outputs[0][0] if isinstance(opt_idx_outputs[0], list) else opt_idx_outputs[0]
-            is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
-            is_1_0_result = is_result_obj and 'extra' in sample_obj
-        except IndexError:
-            is_result_obj = False
-            is_1_0_result = False
-
-        # ------------------
-        # NEW 1.0.0 PATH
-        # ------------------
-        if is_1_0_result:
-            # lightning module hook
-            self.training_epoch_end(model, epoch_output, num_optimizers)
-
-            # log/aggregate metrics automatically
-            epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
-
-        # TODO: deprecate 1.0
-        else:
-            epoch_log_metrics, epoch_progress_bar_metrics = self.__run_legacy_training_epoch_end(
-                num_optimizers, epoch_output, model, is_result_obj
-            )
+        # log/aggregate metrics automatically
+        epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
 
         # it will perform reduction over epoch and return log metrics
         cached_epoch_log_metrics = self.cached_results.get_epoch_log_metrics()
@@ -436,9 +356,6 @@ class LoggerConnector:
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
             self.log_metrics(epoch_log_metrics, {})
             self._callback_metrics.update(epoch_log_metrics)
-
-        # add metrics to callbacks
-        self._callback_metrics.update(epoch_callback_metrics)
 
         # add metrics to progress_bar and callbacks
         if len(epoch_progress_bar_metrics) > 0:
@@ -470,46 +387,6 @@ class LoggerConnector:
             )
         # capture logging
         self.trainer.logger_connector.cache_logged_metrics()
-
-    def __run_legacy_training_epoch_end(self, num_optimizers, epoch_output, model, is_result_obj):
-
-        epoch_log_metrics = {}
-        epoch_progress_bar_metrics = {}
-
-        # --------------------------
-        # EPOCH END STEP IF DEFINED
-        # --------------------------
-        if is_overridden('training_epoch_end', model=model):
-            if is_result_obj:
-                # with result object gather across time and training steps so each opt idx has a single result obj
-                epoch_output = self.__gather_result_across_time_and_optimizers(epoch_output)
-
-            if num_optimizers == 1:
-                epoch_output = epoch_output[0]
-
-            # run training_epoch_end
-            # a list with a result per optimizer index
-            model._current_fx_name = 'training_epoch_end'
-            epoch_output = model.training_epoch_end(epoch_output)
-
-            # capture logging
-            self.trainer.logger_connector.cache_logged_metrics()
-
-            if isinstance(epoch_output, Result):
-                epoch_log_metrics = epoch_output.epoch_log_metrics
-                epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
-            else:
-                _processed_outputs = self.trainer.process_dict_result(epoch_output)
-                epoch_progress_bar_metrics = _processed_outputs[1]
-                epoch_log_metrics = _processed_outputs[2]
-
-        # --------------------------
-        # Structured Result (auto epoch end)
-        # --------------------------
-        elif is_result_obj:
-            epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
-
-        return epoch_log_metrics, epoch_progress_bar_metrics
 
     def __auto_reduce_results_on_epoch_end(self, epoch_output):
         epoch_log_metrics = {}
@@ -560,29 +437,6 @@ class LoggerConnector:
                 time_gathered_outputs.append(result)
 
             gathered_epoch_outputs.append(time_gathered_outputs)
-
-        return gathered_epoch_outputs
-
-    def __gather_result_across_time_and_optimizers(self, epoch_output):
-        """
-        Gather results into a single padded tensor per metric where each tensor is gathered across
-        time and across time steps.
-
-        Returns:
-            a list where each element is a Result with the tensors gathered
-        """
-        gathered_epoch_outputs = []
-        for opt_outputs in epoch_output:
-            # gather across time first
-            time_gathered_outputs = []
-            for tbptt_outs in opt_outputs:
-                tbptt_outs = tbptt_outs[0].__class__.gather(tbptt_outs)
-                time_gathered_outputs.append(tbptt_outs)
-
-            # gather across training steps
-            # each metric has dimensions (training_steps, seq_len) (seq_len=1 when no tbptt is used)
-            gathered_opt_output = time_gathered_outputs[0].__class__.padded_gather(time_gathered_outputs)
-            gathered_epoch_outputs.append(gathered_opt_output)
 
         return gathered_epoch_outputs
 

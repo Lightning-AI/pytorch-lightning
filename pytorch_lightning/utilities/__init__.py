@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
+
 import numpy
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
