@@ -907,30 +907,6 @@ use_amp
 ~~~~~~~
 True if using Automatic Mixed Precision (AMP)
 
-------------
-
-use_ddp
-~~~~~~~
-True if using ddp
-
-------------
-
-use_ddp2
-~~~~~~~~
-True if using ddp2
-
-------------
-
-use_dp
-~~~~~~
-True if using dp
-
-------------
-
-use_tpu
-~~~~~~~
-True if using TPUs
-
 --------------
 
 automatic_optimization
