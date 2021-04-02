@@ -35,7 +35,6 @@ jobs:
     - name: Update pip
       run: |
         pip install --quiet pip --upgrade --user  # needed for get pip cacher folder
-        pip --version
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
