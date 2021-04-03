@@ -165,7 +165,7 @@ class EarlyStopping(Callback):
 
         if self.monitor_op(current - self.min_delta, self.best_score):
             self._log_info(
-                f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} and exceeding"
+                f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} and is exceeding"
                 f" min_delta = {self.min_delta}. New best score: {current:.3f}",
                 rank=trainer.global_rank,
             )
