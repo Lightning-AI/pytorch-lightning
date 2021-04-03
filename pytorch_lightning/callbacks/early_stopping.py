@@ -18,14 +18,17 @@ Early Stopping
 Monitor a metric and stop training when it stops improving.
 
 """
+import logging
 from typing import Any, Dict
 
 import numpy as np
 import torch
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
 
 
 class EarlyStopping(Callback):
@@ -161,6 +164,11 @@ class EarlyStopping(Callback):
         trainer.dev_debugger.track_early_stopping_history(self, current)
 
         if self.monitor_op(current - self.min_delta, self.best_score):
+            self._log_info(
+                f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} and exceeding"
+                f" min_delta = {self.min_delta}. New best score: {current:.3f}",
+                rank=trainer.global_rank,
+            )
             self.best_score = current
             self.wait_count = 0
         else:
@@ -169,6 +177,20 @@ class EarlyStopping(Callback):
             if self.wait_count >= self.patience:
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
+                self._log_info(
+                    f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} epochs."
+                    f" Best score: {self.best_score:.3f}. Signaling Trainer to stop.",
+                    rank=trainer.global_rank,
+                )
 
         # stop every ddp process if any world process decides to stop
         trainer.should_stop = trainer.training_type_plugin.reduce_boolean_decision(trainer.should_stop)
+        if trainer.should_stop:
+            self._log_debug("Signaling Trainer to stop.", rank=trainer.global_rank)
+
+    def _log_info(self, msg: str, rank: int) -> None:
+        if rank == 0 and self.verbose:
+            log.info(msg)
+
+    def _log_debug(self, msg: str, rank: int) -> None:
+        log.debug(f"[{rank}] {msg}")
