@@ -1151,8 +1151,8 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_
 
 def test_lr_schedulers(tmpdir):
     """
-    Test `lr_schedulers()` return the same objects
-    in the correct order as defined in `configure_optimizers()`.
+    Test `lr_schedulers()` returns the same objects
+    in the same order as `configure_optimizers()` returns.
     """
 
     class TestModel(BoringModel):
