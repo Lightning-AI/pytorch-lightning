@@ -164,11 +164,7 @@ class EarlyStopping(Callback):
         trainer.dev_debugger.track_early_stopping_history(self, current)
 
         if self.monitor_op(current - self.min_delta, self.best_score):
-            self._log_info(
-                f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} and is exceeding"
-                f" min_delta = {abs(self.min_delta)}. New best score: {current:.3f}",
-                rank=trainer.global_rank,
-            )
+            self._log_info(self._improvement_message(current), rank=trainer.global_rank)
             self.best_score = current
             self.wait_count = 0
         else:
@@ -187,6 +183,19 @@ class EarlyStopping(Callback):
         trainer.should_stop = trainer.training_type_plugin.reduce_boolean_decision(trainer.should_stop)
         if trainer.should_stop:
             self._log_debug("Signaling Trainer to stop.", rank=trainer.global_rank)
+
+    def _improvement_message(self, current: torch.Tensor) -> str:
+        """ Formats a log message that informs the user about an improvement in the monitored score. """
+        msg = ""
+        if torch.isfinite(self.best_score):
+            msg += (
+                f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} and is exceeding"
+                f" min_delta = {abs(self.min_delta)}."
+            )
+        else:
+            msg += f"Metric {self.monitor} improved."
+        msg += f" New best score: {current:.3f}"
+        return msg
 
     def _log_info(self, msg: str, rank: int) -> None:
         if rank == 0 and self.verbose:
