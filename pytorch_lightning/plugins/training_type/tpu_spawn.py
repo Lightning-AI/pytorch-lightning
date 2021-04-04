@@ -162,7 +162,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         obj = torch.load(buffer)
         return obj
 
-    def reduce_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool) -> bool:
         decision = torch.tensor(int(decision), device=self.device)
         decision = self.reduce(decision, "sum")
         decision = bool(decision == self.world_size)
