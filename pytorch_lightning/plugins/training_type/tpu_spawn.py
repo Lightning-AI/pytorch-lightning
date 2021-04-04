@@ -32,12 +32,11 @@ from pytorch_lightning.utilities.seed import seed_everything
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp
     from torch_xla.core.xla_model import rendezvous
-    from torch_xla.distributed.parallel_loader import ParallelLoader
+    from torch_xla.distributed.parallel_loader import MpDeviceLoader
 else:
-    xm, xla_pl, xmp, ParallelLoader, rendezvous = [None] * 5
+    xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
@@ -74,10 +73,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def is_distributed(self):
         return self.world_size != 1
 
-    def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> ParallelLoader:
+    def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> MpDeviceLoader:
         device = xm.xla_device()
-        dataloader = xla_pl.ParallelLoader(dataloader, [device])
-        dataloader = dataloader.per_device_loader(device)
+        dataloader = MpDeviceLoader(dataloader, device)
         return dataloader
 
     def configure_ddp(self) -> None:
