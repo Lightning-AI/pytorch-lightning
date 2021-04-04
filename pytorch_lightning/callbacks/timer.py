@@ -43,8 +43,8 @@ class Timer(Callback):
     def __init__(self, duration: Union[str, timedelta], interval: str = "epoch", verbose: bool = True):
         super().__init__()
         if isinstance(duration, str):
-            hour_min_sec = datetime.strptime(duration.strip(), "%H:%M:%S")
-            duration = timedelta(hours=hour_min_sec.hour, minutes=hour_min_sec.minute, seconds=hour_min_sec.second)
+            hms = datetime.strptime(duration.strip(), "%H:%M:%S")
+            duration = timedelta(hours=hms.hour, minutes=hms.minute, seconds=hms.second)
         self._duration = duration
         self._interval = interval
         self._verbose = verbose
