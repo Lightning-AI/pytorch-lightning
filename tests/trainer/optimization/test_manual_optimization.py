@@ -1149,43 +1149,28 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_
     train_manual_optimization(tmpdir, "ddp", model_cls=TestManualOptimizationDDPModelToggleModel)
 
 
-def test_lr_scheduler_step_count(tmpdir):
+def test_lr_scheduler_step_not_called(tmpdir):
     """
-    Test `scheduler.step` is called only in LightningModule manually.
+    Test `lr_scheduler.step()` is not called in manual optimization.
     """
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
 
-        def training_step(self, batch, batch_idx):
-            optimizer = self.optimizers()
-            lr_scheduler = self.lr_schedulers()
-
-            output = self(batch)
-            loss = self.loss(batch, output)
-
-            optimizer.zero_grad()
-            self.manual_backward(loss)
-            optimizer.step()
-            lr_scheduler.step()
-
     model = TestModel()
     model.training_step_end = None
     model.training_epoch_end = None
 
-    limit_train_batches = 4
-
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
+        limit_train_batches=1,
         limit_test_batches=1,
         limit_val_batches=1,
     )
-    with patch("torch.optim.SGD.step") as opt_step, \
-         patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:
+
+    with patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:
         trainer.fit(model)
 
-    assert opt_step.call_count == limit_train_batches
-    assert lr_step.call_count == limit_train_batches
+    assert lr_step.call_count == 0
