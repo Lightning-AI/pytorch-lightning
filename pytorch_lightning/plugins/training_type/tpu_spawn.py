@@ -186,26 +186,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         return output
 
-    def post_dispatch(self) -> None:
-        # restore main state with best weights
-        best_path = self.mp_queue.get()
-        last_path = self.mp_queue.get()
-        self._results = self.mp_queue.get()
-
-        # recover the weights of the processes trained in the children
-        self.__recover_child_process_weights(best_path, last_path)
-
-    def __recover_child_process_weights(self, best_path, last_path):
-        # transfer back the best path to the trainer
-        if self.lightning_module.trainer.checkpoint_callback:
-            self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also best score
-
-        # load last weights
-        if last_path and self.lightning_module.trainer.state == TrainerState.FITTING:
-            ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
-            self.lightning_module.load_state_dict(ckpt)
-
     def _close_logger(self, trainer) -> None:
         if trainer.logger is not None:
             trainer.logger.finalize("success")
