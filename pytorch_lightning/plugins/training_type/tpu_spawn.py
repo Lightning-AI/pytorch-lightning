@@ -22,7 +22,6 @@ import torch.multiprocessing as mp
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -113,7 +112,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
         results = trainer.run_stage()
 
-        self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
         # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
@@ -122,12 +120,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
         if self.global_rank == 0:
             time.sleep(2)
-
-    def __save_end_of_training_weights(self, model: LightningModule) -> None:
-        # when training ends on these platforms dump weights to get out of the main process
-        if on_colab_kaggle():
-            rank_zero_warn("cleaning up... please do not interrupt")
-            self.save_spawn_weights(model)
 
     def model_to_device(self) -> None:
         self._model.to(xm.xla_device())
@@ -170,36 +162,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         obj = torch.load(buffer)
         return obj
 
-    def load_spawn_weights(self, original_model: LightningModule) -> LightningModule:
-        """
-        Load the temp weights saved in the process
-        To recover the trained model from the ddp process we load the saved weights
-        """
-
-        loaded_model = original_model
-
-        if self.is_global_zero:
-            # load weights saved in ddp
-            path = os.path.join(original_model.trainer.default_root_dir, "__temp_weight_distributed_end.ckpt")
-            loaded_model = original_model.__class__.load_from_checkpoint(path)
-
-            # copy loaded weights to old model
-            original_model.load_state_dict(loaded_model.state_dict())
-
-            # remove ddp weights
-            os.remove(path)
-
-        return loaded_model
-
-    def save_spawn_weights(self, model: LightningModule) -> Optional[str]:
-        """
-        Dump a temporary checkpoint after ddp ends to get weights out of the process
-        """
-        if model.trainer.is_global_zero:
-            path = os.path.join(model.trainer.default_root_dir, "__temp_weight_distributed_end.ckpt")
-            model.trainer.save_checkpoint(path)
-            return path
-
     def reduce_decision(self, decision: bool) -> bool:
         decision = torch.tensor(int(decision), device=self.device)
         decision = self.reduce(decision, "sum")
@@ -225,37 +187,24 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return output
 
     def post_dispatch(self) -> None:
-        # TODO: Check if trainer references can be resolved otherwise
-        model = self.lightning_module
-
         # restore main state with best weights
         best_path = self.mp_queue.get()
         last_path = self.mp_queue.get()
         self._results = self.mp_queue.get()
 
+        # recover the weights of the processes trained in the children
+        self.__recover_child_process_weights(best_path, last_path)
+
+    def __recover_child_process_weights(self, best_path, last_path):
         # transfer back the best path to the trainer
-        if self.lightning_module.trainer.checkpoint_callback is not None:
+        if self.lightning_module.trainer.checkpoint_callback:
             self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also bets score
+        # todo, pass also best score
 
         # load last weights
-        if last_path and model.trainer.state == TrainerState.FITTING:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
-
-        self._model = model
-
-        # when training completes, load the weights back in main process
-        self.__load_weights_on_main_process()
-
-    def __load_weights_on_main_process(self) -> None:
-        model = self.lightning_module
-
-        # load weights if not interrupted
-        if on_colab_kaggle() and model.trainer.state == TrainerState.FITTING:
-            self.load_spawn_weights(model)
-
-        self._model = model
+        if last_path and self.lightning_module.trainer.state == TrainerState.FITTING:
+            ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
+            self.lightning_module.load_state_dict(ckpt)
 
     def _close_logger(self, trainer) -> None:
         if trainer.logger is not None:
