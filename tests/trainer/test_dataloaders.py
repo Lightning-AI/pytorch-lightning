@@ -649,10 +649,13 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
         def __len__(self):
             return len(original_dataset)
 
+    # with __len__ defined
     dataloader = DataLoader(IterableWithLen(), batch_size=16)
     assert has_len(dataloader)
     assert has_iterable_dataset(dataloader)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    with pytest.warns(UserWarning, match='Your `IterableDataset` has `__len__` defined.'):
+        trainer.validate(model, val_dataloaders=[dataloader])
     with pytest.warns(UserWarning, match='Your `IterableDataset` has `__len__` defined.'):
         trainer.fit(model, train_dataloader=dataloader, val_dataloaders=[dataloader])
     with pytest.warns(UserWarning, match='Your `IterableDataset` has `__len__` defined.'):
@@ -663,6 +666,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     assert not has_len(dataloader)
     assert has_iterable_dataset(dataloader)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    trainer.validate(model, val_dataloaders=dataloader)
     trainer.fit(model, train_dataloader=dataloader, val_dataloaders=[dataloader])
     trainer.test(model, test_dataloaders=dataloader)
 
