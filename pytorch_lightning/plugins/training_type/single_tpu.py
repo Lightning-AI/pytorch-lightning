@@ -14,6 +14,7 @@
 import torch
 
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 if _TPU_AVAILABLE:
