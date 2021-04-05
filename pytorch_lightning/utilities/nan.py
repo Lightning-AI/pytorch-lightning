@@ -14,13 +14,7 @@
 """Helper functions to detect NaN/Inf values. """
 
 import logging
-import os
-import random
-from typing import Optional
-
-import numpy as np
 import torch
-
 from pytorch_lightning.utilities import rank_zero_warn
 
 log = logging.getLogger(__name__)
