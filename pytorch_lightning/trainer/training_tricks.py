@@ -20,7 +20,7 @@ from torch import Tensor
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.nan import detect_nan_tensors, print_nan_gradients
+from pytorch_lightning.utilities.nan import detect_nan_parameters, print_nan_gradients
 
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
