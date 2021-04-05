@@ -72,6 +72,7 @@ class DistributedType(LightningEnum):
     DDP = 'ddp'
     DDP2 = 'ddp2'
     DDP_SPAWN = 'ddp_spawn'
+    TPU_SPAWN = 'tpu_spawn'
     DEEPSPEED = 'deepspeed'
     HOROVOD = 'horovod'
     DDP_SHARDED = 'ddp_sharded'
