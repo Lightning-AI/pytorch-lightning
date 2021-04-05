@@ -16,7 +16,6 @@ import subprocess
 import sys
 from pathlib import Path
 from subprocess import TimeoutExpired
-from unittest import mock
 
 import pytorch_lightning
 
@@ -43,53 +42,3 @@ def call_training_script(module_file, cli_args, method, tmpdir, timeout=60):
         p.kill()
         std, err = p.communicate()
     return std, err
-
-
-@mock.patch.dict(os.environ, {"SLURM_PROCID": "0"})
-def test_rank_zero_slurm():
-    """ Test that SLURM environment variables are properly checked for rank_zero_only. """
-    from pytorch_lightning.utilities.distributed import _get_rank, rank_zero_only
-    rank_zero_only.rank = _get_rank()
-
-    @rank_zero_only
-    def foo():
-        # The return type is optional because on non-zero ranks it will not be called
-        return 1
-
-    x = foo()
-    assert x == 1
-
-
-@mock.patch.dict(os.environ, {"RANK": "0"})
-def test_rank_zero_torchelastic():
-    """ Test that torchelastic environment variables are properly checked for rank_zero_only. """
-    from pytorch_lightning.utilities.distributed import _get_rank, rank_zero_only
-    rank_zero_only.rank = _get_rank()
-
-    @rank_zero_only
-    def foo():
-        # The return type is optional because on non-zero ranks it will not be called
-        return 1
-
-    x = foo()
-    assert x == 1
-
-
-@pytest.mark.parametrize("rank_key,rank", [
-    ("RANK", "1"),
-    ("SLURM_PROCID", "2"),
-    ("LOCAL_RANK", "3"),
-])
-def test_rank_zero_none_set(rank_key, rank):
-    """ Test that function is not called when rank environment variables are not global zero. """
-
-    with mock.patch.dict(os.environ, {rank_key: rank}):
-        from pytorch_lightning.utilities.distributed import _get_rank, rank_zero_only
-        rank_zero_only.rank = _get_rank()
-
-        @rank_zero_only
-        def foo():
-            return 1
-
-        x = foo()
-        assert x is None
