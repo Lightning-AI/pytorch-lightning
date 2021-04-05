@@ -36,8 +36,13 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
 
+    @property
     def on_tpu(self) -> bool:
         return True
+
+    @property
+    def is_distributed(self):
+        return False
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
@@ -49,21 +54,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
 
-    def post_dispatch(self) -> None:
-        model = self.lightning_module
-
-        if on_colab_kaggle():
-            rank_zero_warn("cleaning up... please do not interrupt")
-            self.save_spawn_weights(model)
-
-    def save_spawn_weights(self, model: LightningModule) -> Optional[str]:
-        """
-        Dump a temporary checkpoint after ddp ends to get weights out of the process
-        """
-        path = os.path.join(model.trainer.default_root_dir, "__temp_weight_distributed_end.ckpt")
-        model.trainer.save_checkpoint(path)
-        return path
-
     def on_save(self, checkpoint: dict) -> dict:
         """
         Move XLA tensors to CPU before saving
@@ -71,7 +61,3 @@ class SingleTPUPlugin(SingleDevicePlugin):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
-
-    @property
-    def is_distributed(self):
-        return False
