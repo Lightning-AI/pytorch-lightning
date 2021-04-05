@@ -44,7 +44,7 @@ if hasattr(context, 'resolve_tags'):
 elif hasattr(context, 'registry'):
     from mlflow.tracking.context.registry import resolve_tags
 else:
-    
+
     def resolve_tags(tags=None):
         return tags
 
