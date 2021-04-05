@@ -15,6 +15,7 @@
 
 import logging
 import torch
+import torch.nn
 from pytorch_lightning.utilities import rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ def detect_nan_parameters(model: nn.Module) -> None:
     """ Iterates over model parameters and prints gradients if any parameter is not finite. """
     for name, param in model.named_parameters():
         if not torch.isfinite(param).all():
-            self.print_nan_gradients()
+            print_nan_gradients(model)
             raise ValueError(
                 f'Detected nan and/or inf values in `{name}`.'
                 ' Check your forward pass for numerically unstable operations.'
