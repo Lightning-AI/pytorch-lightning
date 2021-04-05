@@ -186,15 +186,13 @@ class EarlyStopping(Callback):
 
     def _improvement_message(self, current: torch.Tensor) -> str:
         """ Formats a log message that informs the user about an improvement in the monitored score. """
-        msg = ""
         if torch.isfinite(self.best_score):
-            msg += (
+            msg = (
                 f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} and is exceeding"
-                f" min_delta = {abs(self.min_delta)}."
+                f" min_delta = {abs(self.min_delta)}. New best score: {current:.3f}"
             )
         else:
-            msg += f"Metric {self.monitor} improved."
-        msg += f" New best score: {current:.3f}"
+            msg = f"Metric {self.monitor} improved. New best score: {current:.3f}"
         return msg
 
     def _log_info(self, msg: str, rank: int) -> None:
