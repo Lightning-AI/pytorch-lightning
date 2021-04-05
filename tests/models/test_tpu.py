@@ -205,7 +205,7 @@ def test_model_tpu_early_stop(tmpdir):
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
     tutils.reset_seed()
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=4,
@@ -216,7 +216,7 @@ def test_tpu_grad_norm(tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    trainer.fit(model)
 
 
 @RunIf(tpu=True)
