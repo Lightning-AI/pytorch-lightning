@@ -15,7 +15,7 @@
 
 import logging
 import torch
-import torch.nn
+import torch.nn as nn
 
 log = logging.getLogger(__name__)
 
