@@ -1175,15 +1175,13 @@ def test_lr_scheduler_step_not_called(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_test_batches=1,
-        limit_val_batches=1,
+        fast_dev_run=2,
     )
 
     with patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:
         trainer.fit(model)
 
     # If a lr scheduler inherits `torch.optim.lr_scheduler._LRScheduler`,
-    # `.step()` is called once when its instantiation.
+    # `.step()` is called once during its instantiation.
     # Thus, the call count should be 1.
     assert lr_step.call_count == 1
