@@ -129,11 +129,6 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = (
-        trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
-    )
-    expected_comm_hook = default.fp16_compress_hook.__qualname__
-    assert trainer_comm_hook == expected_comm_hook
     assert (
         trainer.state == TrainerState.FINISHED
     ), f"Training failed with {trainer.state}"
