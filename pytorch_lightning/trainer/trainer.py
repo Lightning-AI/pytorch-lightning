@@ -898,7 +898,7 @@ class Trainer(
         self._set_running_stage(RunningStage.TESTING, model or self.lightning_module)
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if test_dataloaders and datamodule:
+        if test_dataloaders is not None and datamodule:
             raise MisconfigurationException(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
             )
@@ -1008,7 +1008,7 @@ class Trainer(
 
         self._set_running_stage(RunningStage.PREDICTING, model)
 
-        if dataloaders and datamodule:
+        if dataloaders is not None and datamodule:
             raise MisconfigurationException(
                 'You cannot pass dataloaders to trainer.predict if you supply a datamodule.'
             )
