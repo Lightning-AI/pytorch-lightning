@@ -199,7 +199,7 @@ def instantiate_datamodule(args):
 if __name__ == "__main__":
     cli_lightning_logo()
 
-    assert _BOLTS_AVAILABLE, "Bolts is required for this example, install it via pip install pytorch-lightning-bolts"
+    assert _BOLTS_AVAILABLE, "Bolts is required for this example, install it via `pip install lightning-bolts`"
     assert _FAIRSCALE_PIPE_AVAILABLE, "FairScale and PyTorch 1.6 is required for this example."
 
     parser = ArgumentParser(description="Pipe Example")

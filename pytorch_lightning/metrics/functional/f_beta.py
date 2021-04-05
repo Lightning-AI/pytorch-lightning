@@ -15,10 +15,10 @@ import torch
 from torchmetrics.functional import f1 as _f1
 from torchmetrics.functional import fbeta as _fbeta
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_fbeta, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_fbeta)
 def fbeta(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -34,7 +34,7 @@ def fbeta(
     """
 
 
-@deprecated(target=_f1, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_f1)
 def f1(
     preds: torch.Tensor,
     target: torch.Tensor,

@@ -33,7 +33,6 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -300,23 +299,6 @@ def test_loading_yaml(tmpdir):
     tags = load_hparams_from_yaml(hparams_path)
 
     assert tags["batch_size"] == 32 and tags["hidden_dim"] == 1000
-
-
-def test_dp_output_reduce():
-    mixin = TrainerLoggingMixin()
-
-    # test identity when we have a single gpu
-    out = torch.rand(3, 1)
-    assert mixin.reduce_distributed_output(out, num_gpus=1) is out
-
-    # average when we have multiples
-    assert mixin.reduce_distributed_output(out, num_gpus=2) == out.mean()
-
-    # when we have a dict of vals
-    out = {"a": out, "b": {"c": out}}
-    reduced = mixin.reduce_distributed_output(out, num_gpus=3)
-    assert reduced["a"] == out["a"]
-    assert reduced["b"]["c"] == out["b"]["c"]
 
 
 @pytest.mark.parametrize(
@@ -1341,7 +1323,12 @@ def test_trainer_setup_call(tmpdir, stage):
 )
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
-    model = EvalModelTemplate()
+    class TestModel(BoringModel):
+        def training_step(self, *args, **kwargs):
+            self.log("foo", -1)
+            return super().training_step(*args, **kwargs)
+
+    model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         log_every_n_steps=log_interval,
@@ -1451,6 +1438,7 @@ def test_trainer_predict_no_return(tmpdir):
 
 
 def test_trainer_predict_grad(tmpdir):
+
     class CustomBoringModel(BoringModel):
 
         def predict_step(self, batch, batch_idx, dataloader_idx=None):
@@ -1474,7 +1462,7 @@ def test_trainer_predict_dp(tmpdir, num_gpus):
     predict(tmpdir, "dp", num_gpus, None)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, special=True, fairscale=True)
 def test_trainer_predict_ddp(tmpdir):
     predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
@@ -1776,3 +1764,12 @@ def test_trainer_attach_data_pipeline_to_model(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[TestCallback()])
     trainer.fit(model, datamodule=dm)
+
+
+def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+
+    with pytest.raises(MisconfigurationException, match=r"\.validate\(\)` with `fast_dev_run=True"):
+        trainer.validate()
+    with pytest.raises(MisconfigurationException, match=r"\.test\(\)` with `fast_dev_run=True"):
+        trainer.test()

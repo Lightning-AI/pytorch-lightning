@@ -20,7 +20,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.accelerators import ddp_model, DDPLauncher
+from tests.accelerators import ddp_model
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.utilities.distributed import call_training_script
@@ -69,19 +69,6 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
     model_outs = result['result']
     for out in model_outs:
         assert out['test_acc'] > 0.7
-
-
-@RunIf(min_gpus=2)
-@DDPLauncher.run(
-    "--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]",
-    max_epochs=["1"],
-    accelerator=["ddp", "ddp_spawn"]
-)
-def test_cli_to_pass(tmpdir, args=None):
-    """
-    This test verify we can call function using test_cli name
-    """
-    return '1'
 
 
 @RunIf(skip_windows=True)
