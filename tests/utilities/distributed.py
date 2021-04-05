@@ -75,16 +75,21 @@ def test_rank_zero_torchelastic():
     assert x == 1
 
 
-@mock.patch.dict(os.environ, {"RANK": "1", "SLURM_PROCID": "2", "LOCAL_RANK": "3"})
-def test_rank_zero_none_set():
+@pytest.mark.parametrize("rank_key,rank", [
+    ("RANK", "1"),
+    ("SLURM_PROCID", "2"),
+    ("LOCAL_RANK", "3"),
+])
+def test_rank_zero_none_set(rank_key, rank):
     """ Test that function is not called when rank environment variables are not global zero. """
 
-    from pytorch_lightning.utilities.distributed import _get_rank, rank_zero_only
-    rank_zero_only.rank = _get_rank()
+    with mock.patch.dict(os.environ, {rank_key: rank}):
+        from pytorch_lightning.utilities.distributed import _get_rank, rank_zero_only
+        rank_zero_only.rank = _get_rank()
 
-    @rank_zero_only
-    def foo():
-        return 1
+        @rank_zero_only
+        def foo():
+            return 1
 
-    x = foo()
-    assert x is None
+        x = foo()
+        assert x is None
