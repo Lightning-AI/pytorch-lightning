@@ -37,17 +37,16 @@ except ImportError:
     mlflow, MlflowClient, context = None, None, None
 
 
-if _MLFLOW_AVAILABLE:
-    # before v1.1.0
-    if hasattr(context, 'resolve_tags'):
-        from mlflow.tracking.context import resolve_tags
-    # since v1.1.0
-    elif hasattr(context, 'registry'):
-        from mlflow.tracking.context.registry import resolve_tags
-    else:
-
-        def resolve_tags(tags=None):
-            return tags
+# before v1.1.0
+if hasattr(context, 'resolve_tags'):
+    from mlflow.tracking.context import resolve_tags
+# since v1.1.0
+elif hasattr(context, 'registry'):
+    from mlflow.tracking.context.registry import resolve_tags
+else:
+    
+    def resolve_tags(tags=None):
+        return tags
 
 
 class MLFlowLogger(LightningLoggerBase):
