@@ -16,7 +16,6 @@
 import logging
 import torch
 import torch.nn
-from pytorch_lightning.utilities import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
