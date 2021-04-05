@@ -62,7 +62,9 @@ class DistributedType(LightningEnum):
     @staticmethod
     def interactive_compatible_types() -> List['DistributedType']:
         """Returns a list containing interactive compatible DistributeTypes"""
-        return [DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN]
+        return [
+            DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN, DistributedType.TPU_SPAWN
+        ]
 
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible"""
