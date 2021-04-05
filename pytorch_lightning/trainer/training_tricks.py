@@ -34,7 +34,8 @@ class TrainerTrainingTricksMixin(ABC):
 
     def print_nan_gradients(self) -> None:
         rank_zero_deprecation(
-            "Internal: TrainerTrainingTricksMixin.print_nan_gradients is deprecated in v1.3 and will be removed in v1.5."
+            "Internal: TrainerTrainingTricksMixin.print_nan_gradients is deprecated in v1.3
+            " and will be removed in v1.5."
             " Use `pytorch_lightning.utilities.nan.print_nan_gradients` instead."
         )
 
