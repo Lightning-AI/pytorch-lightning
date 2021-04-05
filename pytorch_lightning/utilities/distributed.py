@@ -45,9 +45,9 @@ def rank_zero_only(fn):
 
 
 # TODO: this should be part of the cluster environment
-def _get_local_rank() -> int:
-    local_rank_keys = ('LOCAL_RANK', 'SLURM_LOCALID')
-    for key in local_rank_keys:
+def _get_rank() -> int:
+    rank_keys = ('LOCAL_RANK', 'SLURM_PROCID')
+    for key in rank_keys:
         rank = os.environ.get(key)
         if rank is not None:
             return int(rank)
@@ -55,7 +55,7 @@ def _get_local_rank() -> int:
 
 
 # add the attribute to the function but don't overwrite in case Trainer has already set it
-rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_local_rank())
+rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_rank())
 
 
 def _warn(*args, **kwargs):
