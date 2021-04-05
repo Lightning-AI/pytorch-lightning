@@ -423,8 +423,7 @@ class ModelPruning(Callback):
 
         if parameters_to_prune is None:
             parameters_to_prune = [
-                (m, p) for p in parameters for m in current_modules
-                if hasattr(m, p) and getattr(m, p) is not None
+                (m, p) for p in parameters for m in current_modules if getattr(m, p, None) is not None
             ]
         elif (
             isinstance(parameters_to_prune, (list, tuple)) and len(parameters_to_prune) > 0
