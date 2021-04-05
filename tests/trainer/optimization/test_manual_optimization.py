@@ -1158,6 +1158,16 @@ def test_lr_scheduler_step_not_called(tmpdir):
             super().__init__()
             self.automatic_optimization = False
 
+        def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
+
+            output = self(batch)
+            loss = self.loss(batch, output)
+
+            opt.zero_grad()
+            self.manual_backward(loss)
+            opt.step()
+
     model = TestModel()
     model.training_step_end = None
     model.training_epoch_end = None
