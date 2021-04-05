@@ -43,7 +43,7 @@ if _OMEGACONF_AVAILABLE:
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
 
-    def __init__(self, parallel_devices: Optional[List[torch.device]] = None, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False, **kwargs)
         self.tpu_local_core_rank = 0
         self.start_method = None
