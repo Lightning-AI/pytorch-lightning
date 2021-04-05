@@ -46,7 +46,8 @@ class TrainerTrainingTricksMixin(ABC):
 
     def detect_nan_tensors(self, loss: Tensor) -> None:
         rank_zero_deprecation(
-            "Internal: TrainerTrainingTricksMixin.detect_nan_tensors is deprecated in v1.3 and will be removed in v1.5."
+            "Internal: TrainerTrainingTricksMixin.detect_nan_tensors is deprecated in v1.3
+            " and will be removed in v1.5."
             " Use `pytorch_lightning.utilities.nan.detect_nan_parameters` instead."
         )
         model = self.lightning_module
