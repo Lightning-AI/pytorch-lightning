@@ -11,15 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from typing import Optional, Union
-
 import torch
 
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
-from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 if _TPU_AVAILABLE:
@@ -28,7 +22,7 @@ if _TPU_AVAILABLE:
 
 class SingleTPUPlugin(SingleDevicePlugin):
 
-    def __init__(self, device: Union[torch.device, int]):
+    def __init__(self, device: int):
         if isinstance(device, int):
             device = xm.xla_device(device)
         super().__init__(device)

@@ -20,7 +20,6 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 import torch
 import torch.multiprocessing as mp
 
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
