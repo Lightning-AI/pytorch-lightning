@@ -116,6 +116,8 @@ class LightningCLI:
             $ nano config.yaml  # modify the config as desired
             $ python trainer.py --cfg config.yaml
 
+        .. warning:: ``LightningCLI`` is in beta and subject to change.
+
         Args:
             model_class: The LightningModule class to train on.
             datamodule_class: An optional LightningDataModule class.

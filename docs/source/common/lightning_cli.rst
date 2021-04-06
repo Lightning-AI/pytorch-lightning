@@ -56,6 +56,8 @@ The main requirement for user extended classes to be made configurable is that a
 type hints. This is not a very demanding requirement since it is good practice to do anyway. As a bonus if the arguments
 are described in the docstrings, then the help of the training tool will display them.
 
+.. warning:: ``LightningCLI`` is in beta and subject to change.
+
 ----------
 
 
