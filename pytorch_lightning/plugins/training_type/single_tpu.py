@@ -24,8 +24,8 @@ if _TPU_AVAILABLE:
 class SingleTPUPlugin(SingleDevicePlugin):
 
     def __init__(self, device: int):
-        if isinstance(device, int):
-            device = xm.xla_device(device)
+
+        device = xm.xla_device(device)
         super().__init__(device)
 
         self.tpu_local_core_rank = 0
@@ -36,7 +36,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         return True
 
     @property
-    def is_distributed(self):
+    def is_distributed(self) -> bool:
         return False
 
     def model_to_device(self) -> None:
