@@ -15,7 +15,7 @@
 import logging
 import os
 import warnings
-from functools import wraps
+from functools import partial, wraps
 from typing import Any, Optional, Union
 from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_8,
@@ -69,6 +69,7 @@ def _debug(*args, **kwargs):
 rank_zero_debug = rank_zero_only(_debug)
 rank_zero_info = rank_zero_only(_info)
 rank_zero_warn = rank_zero_only(_warn)
+rank_zero_deprecation = partial(rank_zero_warn, category=DeprecationWarning)
 
 
 def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):
@@ -178,7 +179,7 @@ class AllGatherGrad(torch.autograd.Function):
 
         torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
 
-        return grad_output[torch.distributed.get_rank()]
+        return grad_output[torch.distributed.get_rank()], None
 
 
 def all_gather_ddp_if_available(

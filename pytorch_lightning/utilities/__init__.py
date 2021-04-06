@@ -12,16 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities"""
+
 import numpy
 
 from pytorch_lightning.utilities.apply_func import move_data_to_device  # noqa: F401
 from pytorch_lightning.utilities.distributed import (  # noqa: F401
     AllGatherGrad,
+    rank_zero_deprecation,
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.enums import AMPType, DeviceType, DistributedType, LightningEnum  # noqa: F401
+from pytorch_lightning.utilities.enums import (  # noqa: F401
+    AMPType,
+    DeviceType,
+    DistributedType,
+    GradClipAlgorithmType,
+    LightningEnum,
+)
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
     _BOLTS_AVAILABLE,

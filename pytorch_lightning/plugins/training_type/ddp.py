@@ -270,11 +270,11 @@ class DDPPlugin(ParallelPlugin):
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def pre_dispatch(self):
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-
         # move the model to the correct device
         self.model_to_device()
+
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
 
         self.configure_ddp()
 
