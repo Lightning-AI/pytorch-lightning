@@ -20,6 +20,7 @@ import numpy as np
 import pytest
 
 from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
+from tests.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 
@@ -165,6 +166,7 @@ def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
     assert average_duration < PROFILER_OVERHEAD_MAX_TOLERANCE
 
 
+@RunIf(max_torch="1.8.1")
 def test_advanced_profiler_describe(tmpdir, advanced_profiler):
     """
     ensure the profiler won't fail when reporting the summary
