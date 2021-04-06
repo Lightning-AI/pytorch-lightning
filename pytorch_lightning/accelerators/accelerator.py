@@ -480,7 +480,7 @@ class Accelerator(object):
         )
         self.setup_precision_plugin(plugin)
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
