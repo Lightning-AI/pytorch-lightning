@@ -148,11 +148,11 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.dist.rank = self.global_rank
         self.dist.device = self.root_device
 
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-
         # move the model to the correct device
         self.model_to_device()
+
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
 
         self.configure_ddp()
 
