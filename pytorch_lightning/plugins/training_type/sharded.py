@@ -31,7 +31,9 @@ class DDPShardedPlugin(DDPPlugin):
     def configure_ddp(self):
         self._wrap_optimizers()
         self._model = ShardedDataParallel(
-            LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
+            LightningShardedDataParallel(self.model),
+            sharded_optimizer=self.lightning_module.trainer.optimizers,
+            reduce_buffer_size=2**23 if self.num_nodes > 1 else 0,
         )
 
     def _reinit_optimizers_with_oss(self):
@@ -41,7 +43,12 @@ class DDPShardedPlugin(DDPPlugin):
                 optimizer = optimizer._optimizer
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
-                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
+                zero_optimizer = OSS(
+                    params=optimizer.param_groups,
+                    optim=optim_class,
+                    broadcast_fp16=True if self.num_nodes > 1 else False,
+                    **optimizer.defaults
+                )
                 optimizers[x] = zero_optimizer
                 del optimizer
         trainer = self.lightning_module.trainer
