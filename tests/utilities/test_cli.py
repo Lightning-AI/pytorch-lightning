@@ -89,34 +89,34 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 @pytest.mark.parametrize(
     ['cli_args', 'expected'],
     [
-        ('--auto_lr_find=True --auto_scale_batch_size=power', {'auto_lr_find': True, 'auto_scale_batch_size': 'power'}),
+        ('--auto_lr_find=True --auto_scale_batch_size=power', dict(auto_lr_find=True, auto_scale_batch_size='power')),
         (
             '--auto_lr_find any_string --auto_scale_batch_size ON',
-            {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True},
+            dict(auto_lr_find='any_string', auto_scale_batch_size=True),
         ),
-        ('--auto_lr_find=Yes --auto_scale_batch_size=On', {'auto_lr_find': True, 'auto_scale_batch_size': True}),
-        ('--auto_lr_find Off --auto_scale_batch_size No', {'auto_lr_find': False, 'auto_scale_batch_size': False}),
-        ('--auto_lr_find TRUE --auto_scale_batch_size FALSE', {'auto_lr_find': True, 'auto_scale_batch_size': False}),
-        ('--tpu_cores=8', {'tpu_cores': 8}),
-        ('--tpu_cores=1,', {'tpu_cores': '1,'}),
-        ('--limit_train_batches=100', {'limit_train_batches': 100}),
-        ('--limit_train_batches 0.8', {'limit_train_batches': 0.8}),
-        ('--weights_summary=null', {'weights_summary': None}),
+        ('--auto_lr_find=Yes --auto_scale_batch_size=On', dict(auto_lr_find=True, auto_scale_batch_size=True)),
+        ('--auto_lr_find Off --auto_scale_batch_size No', dict(auto_lr_find=False, auto_scale_batch_size=False)),
+        ('--auto_lr_find TRUE --auto_scale_batch_size FALSE', dict(auto_lr_find=True, auto_scale_batch_size=False)),
+        ('--tpu_cores=8', dict(tpu_cores=8)),
+        ('--tpu_cores=1,', dict(tpu_cores='1,')),
+        ('--limit_train_batches=100', dict(limit_train_batches=100)),
+        ('--limit_train_batches 0.8', dict(limit_train_batches=0.8)),
+        ('--weights_summary=null', dict(weights_summary=None)),
         (
             "",
-            {
+            dict(
                 # These parameters are marked as Optional[...] in Trainer.__init__,
                 # with None as default. They should not be changed by the argparse
                 # interface.
-                "min_steps": None,
-                "max_steps": None,
-                "log_gpu_memory": None,
-                "distributed_backend": None,
-                "weights_save_path": None,
-                "truncated_bptt_steps": None,
-                "resume_from_checkpoint": None,
-                "profiler": None,
-            },
+                min_steps=None,
+                max_steps=None,
+                log_gpu_memory=None,
+                distributed_backend=None,
+                weights_save_path=None,
+                truncated_bptt_steps=None,
+                resume_from_checkpoint=None,
+                profiler=None
+            ),
         ),
     ],
 )
@@ -137,9 +137,12 @@ def test_parse_args_parsing(cli_args, expected):
 @pytest.mark.parametrize(
     ['cli_args', 'expected', 'instantiate'],
     [
-        (['--gpus', '[0, 2]'], {'gpus': [0, 2]}, False),
-        (['--tpu_cores=[1,3]'], {'tpu_cores': [1, 3]}, False),
-        (['--accumulate_grad_batches={"5":3,"10":20}'], {'accumulate_grad_batches': {5: 3, 10: 20}}, True),
+        (['--gpus', '[0, 2]'], dict(gpus=[0, 2]), False),
+        (['--tpu_cores=[1,3]'], dict(tpu_cores=[1, 3]), False),
+        (['--accumulate_grad_batches={"5":3,"10":20}'], dict(accumulate_grad_batches={
+            5: 3,
+            10: 20
+        }), True),
     ],
 )
 def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
@@ -184,9 +187,9 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     ['cli_args', 'extra_args'],
     [
         ({}, {}),
-        ({'logger': False}, {}),
-        ({'logger': False}, {'logger': True}),
-        ({'logger': False}, {'checkpoint_callback': True}),
+        (dict(logger=False), {}),
+        (dict(logger=False), dict(logger=True)),
+        (dict(logger=False), dict(checkpoint_callback=True)),
     ],
 )
 def test_init_from_argparse_args(cli_args, extra_args):
@@ -204,16 +207,11 @@ def test_init_from_argparse_args(cli_args, extra_args):
         Trainer.from_argparse_args(Namespace(**cli_args), **extra_args, **unknown_args)
 
 
-@pytest.mark.parametrize(
-    ['cli_args', 'expected_model', 'expected_trainer'],
-    [
-        (
-            ['--model.model_param=7', '--trainer.limit_train_batches=100'],
-            {'model_param': 7},
-            {'limit_train_batches': 100},
-        ),
-    ],
-)
+@pytest.mark.parametrize(['cli_args', 'expected_model', 'expected_trainer'], [(
+    ['--model.model_param=7', '--trainer.limit_train_batches=100'],
+    dict(model_param=7),
+    dict(limit_train_batches=100),
+)])
 def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
     """Test that LightningCLI correctly instantiates model, trainer and calls fit."""
 
@@ -238,6 +236,7 @@ def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
     monkeypatch.setattr(SaveConfigCallback, 'on_train_start', on_train_start)
 
     class TestModel(LightningModule):
+
         def __init__(self, model_param: int):
             super().__init__()
             self.model_param = model_param
@@ -253,22 +252,15 @@ def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
 def test_lightning_cli_args_callbacks(tmpdir):
 
     callbacks = [
-        {
-            'class_path': 'pytorch_lightning.callbacks.LearningRateMonitor',
-            'init_args': {
-                'logging_interval': 'epoch',
-                'log_momentum': True,
-            },
-        },
-        {
-            'class_path': 'pytorch_lightning.callbacks.ModelCheckpoint',
-            'init_args': {
-                'monitor': 'NAME',
-            },
-        },
+        dict(
+            class_path='pytorch_lightning.callbacks.LearningRateMonitor',
+            init_args=dict(logging_interval='epoch', log_momentum=True)
+        ),
+        dict(class_path='pytorch_lightning.callbacks.ModelCheckpoint', init_args=dict(monitor='NAME')),
     ]
 
     class TestModel(BoringModel):
+
         def on_fit_start(self):
             callback = [c for c in self.trainer.callbacks if isinstance(c, LearningRateMonitor)]
             assert len(callback) == 1
@@ -295,11 +287,7 @@ def test_lightning_cli_args(tmpdir):
     ]
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
-        cli = LightningCLI(
-            BoringModel,
-            BoringDataModule,
-            trainer_defaults={'callbacks': [LearningRateMonitor()]}
-        )
+        cli = LightningCLI(BoringModel, BoringDataModule, trainer_defaults={'callbacks': [LearningRateMonitor()]})
 
     assert cli.fit_result == 1
     config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml'
@@ -313,20 +301,11 @@ def test_lightning_cli_args(tmpdir):
 
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
 
-    config = {
-        'model': {
-            'class_path': 'tests.helpers.BoringModel',
-        },
-        'data': {
-            'class_path': 'tests.helpers.BoringDataModule',
-            'init_args': {'data_dir': str(tmpdir)},
-        },
-        'trainer': {
-            'default_root_dir': str(tmpdir),
-            'max_epochs': 1,
-            'weights_summary': None,
-        },
-    }
+    config = dict(
+        model=dict(class_path='tests.helpers.BoringModel'),
+        data=dict(class_path='tests.helpers.BoringDataModule', init_args=dict(data_dir=str(tmpdir))),
+        trainer=dict(default_root_dir=str(tmpdir), max_epochs=1, weights_summary=None)
+    )
     config_path = tmpdir / 'config.yaml'
     with open(config_path, 'w') as f:
         f.write(yaml.dump(config))
