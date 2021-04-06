@@ -107,11 +107,11 @@ class LightningCLI:
         Receives as input pytorch-lightning classes, which are instantiated
         using a parsed configuration file and/or command line args and then runs
         trainer.fit. Parsing of configuration from environment variables can
-        be enabled by setting :code:`env_parse=True`. A full configuration yaml would
-        be parsed from :code:`PL_CONFIG` if set. Individual settings are so parsed from
-        variables named for example :code:`PL_TRAINER__MAX_EPOCHS`.
+        be enabled by setting ``env_parse=True``. A full configuration yaml would
+        be parsed from ``PL_CONFIG`` if set. Individual settings are so parsed from
+        variables named for example ``PL_TRAINER__MAX_EPOCHS``.
 
-        Example, first implement the trainer.py tool as::
+        Example, first implement the ``trainer.py`` tool as::
 
             from mymodels import MyModel
             from pytorch_lightning.utilities.cli import LightningCLI
