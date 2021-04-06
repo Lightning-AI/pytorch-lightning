@@ -61,7 +61,7 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            self.lr_find(model, 
+            self.lr_find(model,
                          train_dataloader=train_dataloader,
                          val_dataloaders=val_dataloaders,
                          datamodule=datamodule,
