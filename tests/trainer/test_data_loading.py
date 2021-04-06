@@ -102,3 +102,14 @@ def check_replace_distrubuted_sampler(tmpdir, save_preds_on_dl_idx, accelerator,
 @pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
     check_replace_distrubuted_sampler(tmpdir, True, "ddp", 2, 2, mode)
+
+@RunIf(min_gpus=2, special=True)
+def test_dataloader_warnings():
+    trainer = Trainer(accelerator="ddp_spawn")
+    dl = DataLoader(RandomDataset(32, 64), num_workers=1)
+    if hasattr(dl, "persistent_workers"):
+        warn_str = "Consider setting persistent_workers=True"
+    else:
+        warn_str = "Consider setting accelerator=ddp"
+    with pytest.warns(UserWarning, match=warn_str):
+        trainer.test(BoringModel(), test_dataloaders=dl)
