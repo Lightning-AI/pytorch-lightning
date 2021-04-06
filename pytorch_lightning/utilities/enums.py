@@ -13,7 +13,7 @@
 # limitations under the License.
 """Enumerated utilities"""
 from enum import Enum
-from typing import Union
+from typing import List, Union
 
 
 class LightningEnum(str, Enum):

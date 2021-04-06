@@ -39,7 +39,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self._model = model
         self.model_to_device()
         return self._model
-        
+
     @property
     def is_distributed(self) -> bool:
         return False
