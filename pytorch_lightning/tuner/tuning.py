@@ -64,7 +64,7 @@ class Tuner:
             self.lr_find(model, 
                          train_dataloader=train_dataloader,
                          val_dataloaders=val_dataloaders,
-                         datamodule=datamodule
+                         datamodule=datamodule,
                          update_attr=True)
 
         self.trainer.state = TrainerState.FINISHED
