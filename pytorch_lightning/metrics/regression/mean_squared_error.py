@@ -34,3 +34,4 @@ class MeanSquaredError(_MeanSquaredError):
         .. deprecated::
             Use :class:`~torchmetrics.MeanSquaredError`. Will be removed in v1.5.0.
         """
+        _ = compute_on_step, dist_sync_on_step, process_group, dist_sync_fn

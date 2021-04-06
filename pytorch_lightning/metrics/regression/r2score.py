@@ -37,3 +37,4 @@ class R2Score(_R2Score):
         .. deprecated::
             Use :class:`~torchmetrics.R2Score`. Will be removed in v1.5.0.
         """
+        _ = num_outputs, adjusted, multioutput, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn

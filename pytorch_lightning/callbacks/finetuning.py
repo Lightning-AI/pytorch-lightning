@@ -77,7 +77,7 @@ class BaseFinetuning(Callback):
                 # When `current_epoch` is 10, feature_extractor will start training.
                 if current_epoch == self._unfreeze_at_epoch:
                     self.unfreeze_and_add_param_group(
-                        module=pl_module.feature_extractor,
+                        modules=pl_module.feature_extractor,
                         optimizer=optimizer,
                         train_bn=True,
                     )

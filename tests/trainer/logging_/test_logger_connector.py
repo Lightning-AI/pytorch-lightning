@@ -14,8 +14,10 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+import os
 from copy import deepcopy
 from typing import Any, Callable
+from unittest import mock
 
 import pytest
 import torch
@@ -53,13 +55,11 @@ def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Cal
     return decorator
 
 
-def test__logger_connector__epoch_result_store__train(tmpdir, monkeypatch):
+def test__logger_connector__epoch_result_store__train(tmpdir):
     """
     Tests that LoggerConnector will properly capture logged information
     and reduce them
     """
-    monkeypatch.setenv("PL_DEV_DEBUG", "1")
-
     class TestModel(BoringModel):
 
         train_losses = []
@@ -208,12 +208,10 @@ def test__logger_connector__epoch_result_store__train__tbptt(tmpdir):
 
 
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
-def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, monkeypatch, num_dataloaders):
+def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, num_dataloaders):
     """
     Tests that LoggerConnector will properly capture logged information in multi dataloaders scenario
     """
-    monkeypatch.setenv("PL_DEV_DEBUG", "1")
-
     class TestModel(BoringModel):
         test_losses = {dl_idx: [] for dl_idx in range(num_dataloaders)}
 
@@ -281,6 +279,7 @@ def test_call_back_validator(tmpdir):
         'on_epoch_end',
         'on_epoch_start',
         'on_fit_end',
+        'on_configure_sharded_model',
         'on_fit_start',
         'on_init_end',
         'on_init_start',
@@ -317,6 +316,7 @@ def test_call_back_validator(tmpdir):
         "on_before_accelerator_backend_setup",
         "on_fit_end",
         "on_fit_start",
+        "on_configure_sharded_model",
         "on_init_end",
         "on_init_start",
         "on_keyboard_interrupt",
@@ -559,3 +559,28 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     else:
         assert 'val_loss_custom_naming_0' in logged
         assert 'val_loss_custom_naming_1' in logged
+
+
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+def test_logged_metrics_steps(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss_val = torch.randn(1)
+            self.log('val_loss', loss_val)
+            return loss_val
+
+    model = TestModel()
+    model.validation_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 1
+    assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 3

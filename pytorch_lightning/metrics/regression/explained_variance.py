@@ -35,3 +35,4 @@ class ExplainedVariance(_ExplainedVariance):
         .. deprecated::
             Use :class:`~torchmetrics.ExplainedVariance`. Will be removed in v1.5.0.
         """
+        _ = multioutput, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn

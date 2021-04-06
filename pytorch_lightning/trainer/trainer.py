@@ -58,7 +58,6 @@ from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -444,6 +443,7 @@ class Trainer(
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
         self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self.call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
@@ -874,7 +874,7 @@ class Trainer(
         self.validating = True
 
         # If you supply a datamodule you can't supply val_dataloaders
-        if val_dataloaders and datamodule:
+        if val_dataloaders is not None and datamodule:
             raise MisconfigurationException(
                 'You cannot pass both `trainer.validate(val_dataloaders=..., datamodule=...)`'
             )
@@ -936,7 +936,7 @@ class Trainer(
         self.testing = True
 
         # If you supply a datamodule you can't supply test_dataloaders
-        if test_dataloaders and datamodule:
+        if test_dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`')
 
         model_provided = model is not None
@@ -989,12 +989,13 @@ class Trainer(
             )
 
         # only one process running at this point for TPUs, as spawn isn't triggered yet
-        if self._device_type != DeviceType.TPU:
+        # todo: move this logic internally within the barrier.
+        if not self._device_type == DeviceType.TPU:
             self.training_type_plugin.barrier()
 
-        ckpt = pl_load(ckpt_path, map_location=lambda storage, loc: storage)
-        model.load_state_dict(ckpt['state_dict'])
-
+        self.training_type_plugin.restore_model_state_from_ckpt_path(
+            ckpt_path, map_location=lambda storage, loc: storage
+        )
         return ckpt_path
 
     def predict(
@@ -1031,7 +1032,7 @@ class Trainer(
         self.state = TrainerState.PREDICTING
         self.predicting = True
 
-        if dataloaders and datamodule:
+        if dataloaders is not None and datamodule:
             raise MisconfigurationException(
                 'You cannot pass dataloaders to trainer.predict if you supply a datamodule.'
             )
@@ -1089,6 +1090,19 @@ class Trainer(
 
         self.setup(model, stage=state)
         model.setup(stage=state)
+
+    def call_configure_sharded_model(self, model: LightningModule) -> None:
+        # Call configure sharded model hook if accelerator requests. In some cases
+        # we will not call the hook; the hook has initialized the sharded model for example.
+
+        # used on the model if the user re-create a trainer with resume_from_checkpoint
+        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+        if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
+            with self.accelerator.model_sharded_context():
+                model.configure_sharded_model()
+                self.configure_sharded_model(model)
+            model.call_configure_sharded_model_hook = True
+            self.accelerator.call_configure_sharded_model_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state
