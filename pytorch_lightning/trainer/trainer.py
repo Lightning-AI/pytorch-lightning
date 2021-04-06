@@ -599,6 +599,7 @@ class Trainer(
                     self.train_loop.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
+                    self.train_loop.on_train_end()
                     return
 
                 # early stopping
@@ -607,6 +608,7 @@ class Trainer(
 
                 if self.should_stop:
                     if met_min_epochs and met_min_steps:
+                        self.train_loop.on_train_end()
                         return
                     else:
                         log.info(
@@ -614,7 +616,6 @@ class Trainer(
                             f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
                             ' not been met. Training will continue...'
                         )
-
             # hook
             self.train_loop.on_train_end()
 
@@ -624,14 +625,10 @@ class Trainer(
             if not self.interrupted:
                 self.state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
-        except (RuntimeError, AssertionError):
-            # if an exception is raised, the finally block is executed and can hide the actual exception
-            # that was initially raised if `on_train_end` also raises an exception. we want to avoid that
-            # for assertions and other runtime errors so we aren't misled while debugging
+                self.train_loop.on_train_end()
+        except:
             print_exc()
-        finally:
-            # hook
-            self.train_loop.on_train_end()
+            raise
 
     def run_evaluation(self, on_epoch=False):
         if not (self.evaluating or self.sanity_checking):
