@@ -34,3 +34,4 @@ class MeanAbsoluteError(_MeanAbsoluteError):
         .. deprecated::
             Use :class:`~torchmetrics.MeanAbsoluteError`. Will be removed in v1.5.0.
         """
+        _ = compute_on_step, dist_sync_on_step, process_group, dist_sync_fn

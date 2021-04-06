@@ -867,7 +867,7 @@ class Trainer(
         self.validating = True
 
         # If you supply a datamodule you can't supply val_dataloaders
-        if val_dataloaders and datamodule:
+        if val_dataloaders is not None and datamodule:
             raise MisconfigurationException(
                 'You cannot pass both `trainer.validate(val_dataloaders=..., datamodule=...)`'
             )
@@ -929,7 +929,7 @@ class Trainer(
         self.testing = True
 
         # If you supply a datamodule you can't supply test_dataloaders
-        if test_dataloaders and datamodule:
+        if test_dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`')
 
         model_provided = model is not None
@@ -1025,7 +1025,7 @@ class Trainer(
         self.state = TrainerState.PREDICTING
         self.predicting = True
 
-        if dataloaders and datamodule:
+        if dataloaders is not None and datamodule:
             raise MisconfigurationException(
                 'You cannot pass dataloaders to trainer.predict if you supply a datamodule.'
             )
