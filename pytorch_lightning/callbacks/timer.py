@@ -40,7 +40,7 @@ class Timer(Callback):
 
     INTERVAL_CHOICES = ("epoch", "step")
 
-    def __init__(self, duration: Union[str, timedelta], interval: str = "epoch", verbose: bool = True):
+    def __init__(self, duration: Union[str, timedelta], interval: str = "step", verbose: bool = True):
         super().__init__()
         if isinstance(duration, str):
             hms = datetime.strptime(duration.strip(), "%H:%M:%S")
