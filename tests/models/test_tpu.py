@@ -210,8 +210,8 @@ def test_tpu_grad_norm(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=4,
         tpu_cores=1,
-        limit_train_batches=4,
-        limit_val_batches=4,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
         gradient_clip_val=0.5,
     )
 
