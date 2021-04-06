@@ -33,6 +33,7 @@ from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
+
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
@@ -194,13 +195,8 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def _register_ddp_hooks(self) -> None:
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
-        # https://github.com/pytorch/pytorch/blob/e6779d4357ae94cc9f9fedb83a87eb6126016769/
-        # torch/nn/parallel/distributed.py#L1040
-        if (
-            _TORCH_GREATER_EQUAL_1_8
-            and self.on_gpu
-            and self._is_single_process_single_device
-        ):
+        # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
+        if (_TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device):
             register_ddp_comm_hook(
                 model=self._model,
                 ddp_comm_state=self._ddp_comm_state,
