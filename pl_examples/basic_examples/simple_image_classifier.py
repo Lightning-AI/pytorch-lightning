@@ -1,17 +1,3 @@
-# Copyright The PyTorch Lightning team.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from argparse import ArgumentParser
 from pprint import pprint
 
@@ -19,18 +5,13 @@ import torch
 from torch.nn import functional as F
 
 import pytorch_lightning as pl
-from pl_examples import cli_lightning_logo
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.plugins import DDPPlugin
 
 
 class LitClassifier(pl.LightningModule):
-    """
-    >>> LitClassifier()  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    LitClassifier(
-      (l1): Linear(...)
-      (l2): Linear(...)
-    )
-    """
 
     def __init__(self, hidden_dim=128, learning_rate=1e-3):
         super().__init__()
@@ -55,7 +36,7 @@ class LitClassifier(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        self.log('valid_loss', loss)
+        self.log('valid_loss', loss, sync_dist=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -76,39 +57,27 @@ class LitClassifier(pl.LightningModule):
 
 def cli_main():
     pl.seed_everything(1234)
-
-    # ------------
-    # args
-    # ------------
     parser = ArgumentParser()
     parser = pl.Trainer.add_argparse_args(parser)
     parser = LitClassifier.add_model_specific_args(parser)
     parser = MNISTDataModule.add_argparse_args(parser)
     args = parser.parse_args()
 
-    # ------------
-    # data
-    # ------------
-    dm = MNISTDataModule.from_argparse_args(args)
-
-    # ------------
-    # model
-    # ------------
+    dm = MNISTDataModule.from_argparse_args(args, num_workers=2)
     model = LitClassifier(args.hidden_dim, args.learning_rate)
 
-    # ------------
-    # training
-    # ------------
-    trainer = pl.Trainer.from_argparse_args(args)
+    trainer = Trainer(
+        max_epochs=10,
+        callbacks=[EarlyStopping(monitor="valid_loss", patience=0, min_delta=0.01, verbose=True)],
+        limit_train_batches=10,
+        num_processes=2,
+        accelerator="ddp_cpu",
+        # plugins=[DDPPlugin(find_unused_parameters=False)],
+    )
     trainer.fit(model, datamodule=dm)
-
-    # ------------
-    # testing
-    # ------------
     result = trainer.test(model, datamodule=dm)
     pprint(result)
 
 
 if __name__ == '__main__':
-    cli_lightning_logo()
     cli_main()

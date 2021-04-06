@@ -196,7 +196,7 @@ class EarlyStopping(Callback):
         return msg
 
     def _log_info(self, msg: str, rank: int) -> None:
-        if rank == 0 and self.verbose:
+        if self.verbose:
             log.info(msg)
 
     def _log_debug(self, msg: str, rank: int) -> None:
