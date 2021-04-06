@@ -24,7 +24,7 @@ from fsspec.implementations.local import LocalFileSystem
 import torch
 
 
-class LightningLocalFileSystem(LocalFileSystem):
+class _LightningLocalFileSystem(LocalFileSystem):
     """Extension of ``fsspec.implementations.local.LocalFileSystem`` where ``LightningLocalFileSystem.isdir`` behaves
     the same as ``os.isdir``.
 
@@ -53,7 +53,7 @@ def get_filesystem(path: Union[str, Path]):
         return fsspec.filesystem(path.split(":", 1)[0])
     else:
         # use local filesystem
-        return LightningLocalFileSystem()
+        return _LightningLocalFileSystem()
 
 
 def atomic_save(checkpoint, filepath: str):
