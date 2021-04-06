@@ -104,7 +104,7 @@ def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpd
     check_replace_distrubuted_sampler(tmpdir, True, "ddp", 2, 2, mode)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2)
 def test_dataloader_warnings():
     trainer = Trainer(accelerator="ddp_spawn")
     dl = DataLoader(RandomDataset(32, 64), num_workers=1)
