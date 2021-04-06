@@ -45,6 +45,11 @@ class Timer(Callback):
         if isinstance(duration, str):
             hms = datetime.strptime(duration.strip(), "%H:%M:%S")
             duration = timedelta(hours=hms.hour, minutes=hms.minute, seconds=hms.second)
+        if interval not in self.INTERVAL_CHOICES:
+            raise MisconfigurationException(
+                f"Unsupported parameter value `Timer(interval={interval})`. Possible choices are:"
+                f" {', '.join(self.INTERVAL_CHOICES)}"
+            )
         self._duration = duration
         self._interval = interval
         self._verbose = verbose
