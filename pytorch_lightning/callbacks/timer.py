@@ -17,10 +17,11 @@ Timer
 """
 import logging
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Union, Dict, Any
 
-from pytorch_lightning import Callback
-from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities.distributed import rank_zero_info
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
 
@@ -54,20 +55,19 @@ class Timer(Callback):
         self._interval = interval
         self._verbose = verbose
         self._start_time = None
+        self._offset = timedelta()
 
     @property
     def time_elapsed(self) -> timedelta:
         if self._start_time is None:
-            return timedelta()
-        return datetime.now() - self._start_time
+            return self._offset
+        return datetime.now() - self._start_time + self._offset
 
     @property
     def time_remaining(self) -> timedelta:
-        if self._start_time is None:
-            return self._duration
         return self._duration - self.time_elapsed
 
-    def on_fit_start(self, trainer, *args, **kwargs) -> None:
+    def on_train_start(self, trainer, *args, **kwargs) -> None:
         self._start_time = datetime.now()
 
     def on_batch_end(self, trainer, *args, **kwargs) -> None:
@@ -79,6 +79,14 @@ class Timer(Callback):
         if self._interval != "epoch":
             return
         self._check_time_remaining(trainer)
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "time_elapsed": self.time_elapsed,
+        }
+
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]):
+        self._offset = callback_state.get("time_elapsed", timedelta())
 
     def _check_time_remaining(self, trainer) -> None:
         should_stop = self.time_elapsed >= self._duration
