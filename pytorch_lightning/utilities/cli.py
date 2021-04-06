@@ -87,6 +87,7 @@ class SaveConfigCallback(Callback):
 
 
 class LightningCLI:
+    """Implementation of a configurable command line tool for pytorch-lightning"""
 
     def __init__(
         self,
@@ -103,8 +104,6 @@ class LightningCLI:
         subclass_mode_data: bool = False
     ) -> None:
         """
-        Implementation of a configurable command line tool for pytorch-lightning
-
         Receives as input pytorch-lightning classes, which are instantiated
         using a parsed configuration file and/or command line args and then runs
         trainer.fit. Parsing of configuration from environment variables can
