@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from argparse import Namespace
 from typing import Any, Dict, Type, Union
 
 from pytorch_lightning.callbacks import Callback
@@ -30,7 +31,7 @@ else:
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning"""
 
-    def __init__(self, *args, parse_as_dict: bool = True, **kwargs):
+    def __init__(self, *args, parse_as_dict: bool = True, **kwargs) -> None:
         """Initialize argument parser that supports configuration file input
 
         For full details of accepted arguments see `ArgumentParser.__init__
@@ -51,7 +52,7 @@ class LightningArgumentParser(ArgumentParser):
         lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule]],
         nested_key: str,
         subclass_mode: bool = False
-    ):
+    ) -> None:
         """
         Adds arguments from a lightning class to a nested key of the parser
 
@@ -69,16 +70,22 @@ class LightningArgumentParser(ArgumentParser):
 class SaveConfigCallback(Callback):
     """Saves a LightningCLI config to the log_dir when training starts"""
 
-    def __init__(self, parser, config):
+    def __init__(
+        self,
+        parser: LightningArgumentParser,
+        config: Union[Namespace, Dict[str, Any]],
+        config_filename: str = 'config.yaml'
+    ) -> None:
         self.parser = parser
         self.config = config
+        self.config_filename = config_filename
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         if hasattr(trainer, 'logger') and getattr(trainer.logger, 'log_dir', None) is not None:
             config_dir = trainer.logger.log_dir
         else:
             config_dir = trainer.default_root_dir
-        config_path = os.path.join(config_dir, 'config.yaml')
+        config_path = os.path.join(config_dir, self.config_filename)
         self.parser.save(self.config, config_path, skip_none=False)
 
 
@@ -97,7 +104,7 @@ class LightningCLI:
         parser_kwargs: Dict[str, Any] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False
-    ):
+    ) -> None:
         """
         Implementation of a configurable command line tool for pytorch-lightning
 
@@ -165,11 +172,11 @@ class LightningCLI:
         self.fit()
         self.after_fit()
 
-    def init_parser(self):
+    def init_parser(self) -> None:
         """Method that instantiates the argument parser"""
         self.parser = LightningArgumentParser(**self.parser_kwargs)
 
-    def add_arguments_to_parser(self, parser: LightningArgumentParser):
+    def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Implement to add extra arguments to parser
 
         Args:
@@ -177,7 +184,7 @@ class LightningCLI:
         """
         pass
 
-    def add_core_arguments_to_parser(self):
+    def add_core_arguments_to_parser(self) -> None:
         """Adds arguments from the core classes to the parser"""
         self.parser.add_lightning_class_args(self.trainer_class, 'trainer')
         trainer_defaults = {'trainer.' + k: v for k, v in self.trainer_defaults.items() if k != 'callbacks'}
@@ -186,7 +193,7 @@ class LightningCLI:
         if self.datamodule_class is not None:
             self.parser.add_lightning_class_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
 
-    def before_parse_arguments(self, parser: LightningArgumentParser):
+    def before_parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Implement to run some code before parsing arguments
 
         Args:
@@ -194,22 +201,22 @@ class LightningCLI:
         """
         pass
 
-    def parse_arguments(self):
+    def parse_arguments(self) -> None:
         """Parses command line arguments and stores it in self.config"""
         self.config = self.parser.parse_args()
 
-    def before_instantiate_classes(self):
+    def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes"""
         pass
 
-    def instantiate_classes(self):
+    def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
         self.config_init = self.parser.instantiate_subclasses(self.config)
         self.instantiate_datamodule()
         self.instantiate_model()
         self.instantiate_trainer()
 
-    def instantiate_datamodule(self):
+    def instantiate_datamodule(self) -> None:
         """Instantiates the datamodule using self.config_init['data'] if given"""
         if self.datamodule_class is None:
             self.datamodule = None
@@ -218,14 +225,14 @@ class LightningCLI:
         else:
             self.datamodule = self.datamodule_class(**self.config_init.get('data', {}))
 
-    def instantiate_model(self):
+    def instantiate_model(self) -> None:
         """Instantiates the model using self.config_init['model']"""
         if self.subclass_mode_model:
             self.model = self.config_init['model']
         else:
             self.model = self.model_class(**self.config_init.get('model', {}))
 
-    def instantiate_trainer(self):
+    def instantiate_trainer(self) -> None:
         """Instantiates the trainer using self.config_init['trainer']"""
         if self.config_init['trainer'].get('callbacks') is None:
             self.config_init['trainer']['callbacks'] = []
@@ -238,20 +245,20 @@ class LightningCLI:
             self.config_init['trainer']['callbacks'].append(self.save_config_callback(self.parser, self.config))
         self.trainer = self.trainer_class(**self.config_init['trainer'])
 
-    def prepare_fit_kwargs(self):
+    def prepare_fit_kwargs(self) -> None:
         """Prepares fit_kwargs including datamodule using self.config_init['data'] if given"""
         self.fit_kwargs = {'model': self.model}
         if self.datamodule is not None:
             self.fit_kwargs['datamodule'] = self.datamodule
 
-    def before_fit(self):
+    def before_fit(self) -> None:
         """Implement to run some code before fit is started"""
         pass
 
-    def fit(self):
+    def fit(self) -> None:
         """Runs fit of the instantiated trainer class and prepared fit keyword arguments"""
         self.fit_result = self.trainer.fit(**self.fit_kwargs)
 
-    def after_fit(self):
+    def after_fit(self) -> None:
         """Implement to run some code after fit has finished"""
         pass
