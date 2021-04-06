@@ -250,7 +250,7 @@ def test_lightning_cli(cli_args, expected_model, expected_trainer, monkeypatch):
         assert hasattr(cli.trainer, 'ran_asserts') and cli.trainer.ran_asserts
 
 
-def test_lightning_cli_args_callbacks(tmpdir, monkeypatch):
+def test_lightning_cli_args_callbacks(tmpdir):
 
     callbacks = [
         {
@@ -268,24 +268,21 @@ def test_lightning_cli_args_callbacks(tmpdir, monkeypatch):
         },
     ]
 
-    def fit(trainer, model):
-        callback = [c for c in trainer.callbacks if isinstance(c, LearningRateMonitor)]
-        assert len(callback) == 1
-        assert callback[0].logging_interval == 'epoch'
-        assert callback[0].log_momentum is True
-        callback = [c for c in trainer.callbacks if isinstance(c, ModelCheckpoint)]
-        assert len(callback) == 1
-        assert callback[0].monitor == 'NAME'
-        trainer.ran_asserts = True
-
-    monkeypatch.setattr(Trainer, 'fit', fit)
-
-    class TestModel(LightningModule):
-        pass
+    class TestModel(BoringModel):
+        def on_fit_start(self):
+            callback = [c for c in self.trainer.callbacks if isinstance(c, LearningRateMonitor)]
+            assert len(callback) == 1
+            assert callback[0].logging_interval == 'epoch'
+            assert callback[0].log_momentum is True
+            callback = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+            assert len(callback) == 1
+            assert callback[0].monitor == 'NAME'
+            self.trainer.ran_asserts = True
 
     with mock.patch('sys.argv', ['any.py', f'--trainer.callbacks={json.dumps(callbacks)}']):
-        cli = LightningCLI(TestModel, trainer_class=Trainer)
-        assert hasattr(cli.trainer, 'ran_asserts') and cli.trainer.ran_asserts
+        cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+
+    assert cli.trainer.ran_asserts
 
 
 def test_lightning_cli_args(tmpdir):

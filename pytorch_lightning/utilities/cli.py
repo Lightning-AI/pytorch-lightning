@@ -74,7 +74,11 @@ class SaveConfigCallback(Callback):
         self.config = config
 
     def on_train_start(self, trainer, pl_module):
-        config_path = os.path.join(trainer.logger.log_dir, 'config.yaml')
+        if hasattr(trainer, 'logger') and getattr(trainer.logger, 'log_dir', None) is not None:
+            config_dir = trainer.logger.log_dir
+        else:
+            config_dir = trainer.default_root_dir
+        config_path = os.path.join(config_dir, 'config.yaml')
         self.parser.save(self.config, config_path, skip_none=False)
 
 
