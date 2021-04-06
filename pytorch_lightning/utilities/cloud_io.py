@@ -27,6 +27,8 @@ import torch
 class LightningLocalFileSystem(LocalFileSystem):
     """Extension of ``fsspec.implementations.local.LocalFileSystem`` where ``LightningLocalFileSystem.isdir`` behaves
     the same as ``os.isdir``.
+
+    To be removed when https://github.com/intake/filesystem_spec/issues/591 is fixed.
     """
 
     def isdir(self, path: str) -> bool:
