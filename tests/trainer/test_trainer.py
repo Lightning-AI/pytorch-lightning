@@ -42,6 +42,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @pytest.fixture
@@ -1499,6 +1500,7 @@ def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
 
 
+@RunIf(max_torch="1.8.1")
 def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
     with pytorch_profiler.profile("test_step"):
