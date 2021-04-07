@@ -58,6 +58,8 @@ class EarlyStopping(Callback):
         strict: whether to crash the training if `monitor` is not found in the validation metrics.
         check_finite: Stops training when the monitor becomes NaN or infinite. Set this argument to ``False``
             if this behavior is undesired.
+        stopping_threshold: Stop training immediately once the monitored quantity reaches this threshold.
+        divergence_threshold: Stop training as soon as the monitored quantity becomes worse than this threshold.
 
     Raises:
         MisconfigurationException:
