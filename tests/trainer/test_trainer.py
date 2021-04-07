@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import math
 import os
 import pickle
@@ -528,6 +529,40 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     assert trainer.global_step >= math.floor(num_train_samples * 1.5), "Model did not train for at least min_steps"
 
 
+def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
+    """ Test that min_epochs/min_steps in Trainer are enforced even if EarlyStopping is triggered. """
+
+    class TestModel(BoringModel):
+        training_step_invoked = 0
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
+            self.log("loss", output["loss"])
+            self.training_step_invoked += 1
+            assert not self.trainer.should_stop
+            return output
+
+    model = TestModel()
+    early_stop = EarlyStopping(monitor="loss", patience=0)
+    min_epochs = 5
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        min_epochs=min_epochs,
+        limit_val_batches=0,
+        limit_train_batches=2,
+        callbacks=[early_stop]
+    )
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.trainer.trainer"):
+        trainer.fit(model)
+
+    message = f"minimum epochs ({min_epochs}) or minimum steps (None) has not been met. Training will continue"
+    num_messages = len([record.message for record in caplog.records if message in record.message])
+    assert num_messages == min_epochs - 2
+    assert model.training_step_invoked == min_epochs * 2
+
+
 def test_trainer_max_steps_accumulate_batches(tmpdir):
     """Verify model trains according to specified max steps with grad accumulated batches"""
     model = BoringModel()
@@ -875,6 +910,46 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
+def test_gradient_clipping_by_value(tmpdir):
+    """
+    Test gradient clipping by value
+    """
+    tutils.reset_seed()
+
+    model = BoringModel()
+
+    grad_clip_val = 0.0001
+    trainer = Trainer(
+        max_steps=10,
+        max_epochs=1,
+        gradient_clip_val=grad_clip_val,
+        gradient_clip_algorithm='value',
+        default_root_dir=tmpdir,
+    )
+
+    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+
+    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
+        """
+        wrap the forward step in a closure so second order methods work
+        """
+        # test that gradient is clipped correctly
+        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        parameters = model.parameters()
+        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+        grad_max = torch.max(torch.stack(grad_max_list))
+        assert round(grad_max.item(), 6) <= grad_clip_val, \
+            f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
+
+        return ret_val
+
+    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    # for the test
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
 @RunIf(min_gpus=1, amp_native=True)
 def test_gradient_clipping_fp16(tmpdir):
     """
@@ -904,6 +979,46 @@ def test_gradient_clipping_fp16(tmpdir):
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+
+        return ret_val
+
+    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
+@RunIf(min_gpus=1, amp_native=True)
+def test_gradient_clipping_by_value_fp16(tmpdir):
+    """
+    Test gradient clipping by value with fp16
+    """
+    tutils.reset_seed()
+
+    model = BoringModel()
+    grad_clip_val = 0.0001
+    trainer = Trainer(
+        max_steps=10,
+        max_epochs=1,
+        precision=16,
+        gpus=1,
+        gradient_clip_val=grad_clip_val,
+        gradient_clip_algorithm='value',
+        default_root_dir=tmpdir,
+    )
+
+    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+
+    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
+        """
+        wrap the forward step in a closure so second order methods work
+        """
+        # test that gradient is clipped correctly
+        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        parameters = model.parameters()
+        grad_max = torch.max(torch.stack([p.grad.detach() for p in parameters]))
+        assert round(grad_max.item(), 6) <= grad_clip_val, \
+            f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
 
         return ret_val
 
