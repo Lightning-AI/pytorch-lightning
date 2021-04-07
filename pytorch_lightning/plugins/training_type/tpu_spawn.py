@@ -24,6 +24,7 @@ from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -65,6 +66,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return self.world_size != 1
 
     def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> MpDeviceLoader:
+        if not has_len(dataloader):
+            raise MisconfigurationException(
+                "TPUSpawn does not currently support IterableDatasets, the dataset must implement __len__."
+            )
         device = xm.xla_device()
         dataloader = MpDeviceLoader(dataloader, device)
         return dataloader
