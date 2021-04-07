@@ -987,6 +987,19 @@ Trainer will train model for at least min_steps or min_epochs (latest).
     # Run at least for 100 steps (disable min_epochs)
     trainer = Trainer(min_steps=100, min_epochs=0)
 
+max_time
+^^^^^^^^
+
+Set the maximum amount of time for training
+
+.. testcode::
+
+    # Default (disabled)
+    trainer = Trainer(max_time=None)
+
+    # Stop after 12 hours of training or when reaching 10 epochs
+    trainer = Trainer(max_time="12:00:00", max_epochs=10)
+
 num_nodes
 ^^^^^^^^^
 
