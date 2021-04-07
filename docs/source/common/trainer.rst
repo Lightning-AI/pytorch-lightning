@@ -1000,6 +1000,9 @@ Set the maximum amount of time for training
     # Stop after 12 hours of training or when reaching 10 epochs
     trainer = Trainer(max_time="12:00:00", max_epochs=10)
 
+In case ``max_time`` is used together with ``min_steps`` or ``min_epochs``, the ``min_*`` requirement
+always has precedence.
+
 num_nodes
 ^^^^^^^^^
 
