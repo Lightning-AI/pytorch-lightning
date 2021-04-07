@@ -33,10 +33,27 @@ class Timer(Callback):
 
     Args:
         duration: A string in the format HH:MM:SS (hours, minutes seconds), or a :class:`datetime.timedelta`.
-            Mutually exclusive with arguments `hours`, `minutes`, etc.
         interval: Determines if the interruption happens on epoch level or mid-epoch.
             Can be either `epoch` or `step`.
         verbose: Set this to ``False`` to suppress logging messages.
+
+    Raises:
+        MisconfigurationException:
+            If ``interval`` is not one of the supported choices.
+
+    Example::
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.callbacks import Timer
+
+        # stop training after 12 hours
+        timer = Timer(duration="12:00:00")
+
+        # or provide a datetime.timedelta
+        from datetime import timedelta
+        timer = Timer(duration=timedelta(weeks=1))
+
+        # force training to stop after given time limit
+        trainer = Trainer(callbacks=[timer])
     """
 
     INTERVAL_CHOICES = ("epoch", "step")
