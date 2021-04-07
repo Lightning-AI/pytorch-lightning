@@ -1465,6 +1465,18 @@ class LightningModule(
 
         return splits
 
+    @property
+    def sharded_module(self) -> torch.nn.Module:
+        """
+        When using Fully Sharded, parameters are sharded across devices and
+        weights are flattened. It is required to use the sharded version of the module when
+        configuring optimizers and setting up training.
+
+        Returns: The Sharded version of the ``LightningModule`` module if using sharded,
+            else the model stored in the accelerator.
+        """
+        return self.trainer.sharded_module
+
     def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
         model_summary = None
 

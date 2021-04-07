@@ -518,3 +518,11 @@ class Accelerator(object):
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)
+
+    @property
+    def sharded_module(self) -> torch.nn.Module:
+        """
+        Returns: The Sharded version of the ``LightningModule`` if using a Sharded Plugin,
+            else the model stored in the training type plugin.
+        """
+        return self.training_type_plugin.sharded_module

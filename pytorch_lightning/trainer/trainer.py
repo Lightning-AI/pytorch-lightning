@@ -1105,6 +1105,14 @@ class Trainer(
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
+    @property
+    def sharded_module(self) -> torch.nn.Module:
+        """
+        Returns: The Sharded version of the ``LightningModule`` module if using sharded,
+            else the model stored in the accelerator.
+        """
+        return self.accelerator.sharded_module
+
     def call_teardown_hook(self, model: LightningModule) -> None:
         state = self._teardown_state
 

@@ -284,3 +284,14 @@ class TrainingTypePlugin(Plugin, ABC):
     @call_configure_sharded_model_hook.setter
     def call_configure_sharded_model_hook(self, mode: bool) -> None:
         self._call_configure_sharded_model_hook = mode
+
+    @property
+    def sharded_module(self) -> torch.nn.Module:
+        """
+        Override to pass a sharded version of the module. This is useful for configuring optimizers and training
+        with the sharded version of the ``LightningModule``.
+
+        Returns: The Sharded version of the ``LightningModule`` if using a Sharded Plugin,
+            else the model stored in the training type plugin.
+        """
+        return self.model
