@@ -123,7 +123,7 @@ class FullyShardedPlugin(DDPPlugin):
         return self._process_group
 
     @contextlib.contextmanager
-    def model_sharded_context(self, override_checkpointing=False) -> Generator:
+    def model_sharded_context(self) -> Generator:
 
         # set the device before instantiate the wrapper
         if self.root_device.type == "cuda":
