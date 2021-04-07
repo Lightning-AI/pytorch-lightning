@@ -19,7 +19,7 @@ Monitor a metric and stop training when it stops improving.
 
 """
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -86,6 +86,8 @@ class EarlyStopping(Callback):
         mode: str = 'min',
         strict: bool = True,
         check_finite: bool = True,
+        stopping_threshold: Optional[float] = None,
+        divergence_threshold: Optional[float] = None,
     ):
         super().__init__()
         self.monitor = monitor
@@ -95,6 +97,8 @@ class EarlyStopping(Callback):
         self.mode = mode
         self.strict = strict
         self.check_finite = check_finite
+        self.stopping_threshold = stopping_threshold
+        self.divergence_threshold = divergence_threshold
         self.wait_count = 0
         self.stopped_epoch = 0
 
@@ -167,22 +171,39 @@ class EarlyStopping(Callback):
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
 
-        if self.check_finite and not torch.isfinite(current):
-            trainer.should_stop = True
-            log.info(
-                f"[{trainer.global_rank}] Monitored metric {self.monitor} = {current:.3f} is not finite."
-                f" Previous best value was {self.best_score:.3f}. Signaling Trainer to stop."
-            )
-
-        if self.monitor_op(current - self.min_delta, self.best_score):
-            self.best_score = current
-            self.wait_count = 0
-        else:
-            self.wait_count += 1
-
-            if self.wait_count >= self.patience:
-                self.stopped_epoch = trainer.current_epoch
-                trainer.should_stop = True
+        should_stop, reason = self._evalute_stopping_criteria(current)
+        if should_stop:
+            self.stopped_epoch = trainer.current_epoch
+        if reason:
+            log.info(f"[{trainer.global_rank}] {reason}")
 
         # stop every ddp process if any world process decides to stop
-        trainer.should_stop = trainer.training_type_plugin.reduce_boolean_decision(trainer.should_stop)
+        should_stop = trainer.training_type_plugin.reduce_boolean_decision(should_stop)
+        trainer.should_stop = trainer.should_stop or should_stop
+
+    def _evalute_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
+        should_stop = False
+        reason = None
+        if self.check_finite and not torch.isfinite(current):
+            should_stop = True
+            reason = (
+                f"Monitored metric {self.monitor} = {current:.3f} is not finite."
+                f" Previous best value was {self.best_score:.3f}. Signaling Trainer to stop."
+            )
+        if self.monitor_op(current - self.min_delta, self.best_score):
+            should_stop = False
+            self.best_score = current
+            self.wait_count = 0
+        elif self.stopping_threshold is not None and self.monitor_op(current, self.stopping_threshold):
+            should_stop = True
+            reason = ""
+        elif self.divergence_threshold is not None and self.monitor_op(-current, -self.divergence_threshold):
+            should_stop = True
+            reason = ""
+        else:
+            self.wait_count += 1
+            if self.wait_count >= self.patience:
+                should_stop = True
+                reason = ""
+
+        return should_stop, reason
