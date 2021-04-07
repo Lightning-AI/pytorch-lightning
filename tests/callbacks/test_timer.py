@@ -80,4 +80,59 @@ def test_timer_stops_training(tmpdir):
         callbacks=[timer],
     )
     trainer.fit(model)
+    assert trainer.global_step > 1
     assert trainer.current_epoch < 999
+
+
+@pytest.mark.parametrize("interval", ["step", "epoch"])
+def test_timer_zero_duration_stop(tmpdir, interval):
+    """ Test that the timer stops training immediately after the first check occurs. """
+    model = BoringModel()
+    duration = timedelta(0)
+    timer = Timer(duration=duration, interval=interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[timer],
+    )
+    trainer.fit(model)
+    if interval == "step":
+        # timer triggers stop on step end
+        assert trainer.global_step == 1
+        assert trainer.current_epoch == 0
+    else:
+        # timer triggers stop on epoch end
+        assert trainer.global_step == len(trainer.train_dataloader)
+        assert trainer.current_epoch == 0
+
+
+@pytest.mark.parametrize("min_steps,min_epochs", [
+    (None, 2),
+    (3, None),
+    (3, 2),
+])
+def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
+    model = BoringModel()
+    duration = timedelta(0)
+    timer = Timer(duration=duration)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[timer],
+        min_steps=min_steps,
+        min_epochs=min_epochs,
+    )
+    trainer.fit(model)
+    if min_epochs:
+        assert trainer.current_epoch >= min_epochs
+    if min_steps:
+        assert trainer.global_step >= min_steps
+
+
+def test_timer_resume_training(tmpdir):
+    # TODO
+    model = BoringModel()
+    timer = Timer(duration=timedelta())
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[timer]
+    )

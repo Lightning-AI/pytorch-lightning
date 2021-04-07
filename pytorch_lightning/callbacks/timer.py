@@ -74,12 +74,12 @@ class Timer(Callback):
     def on_train_start(self, trainer, *args, **kwargs) -> None:
         self._start_time = datetime.now()
 
-    def on_batch_end(self, trainer, *args, **kwargs) -> None:
+    def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
         if self._interval != "step":
             return
         self._check_time_remaining(trainer)
 
-    def on_epoch_end(self, trainer, *args, **kwargs) -> None:
+    def on_train_epoch_end(self, trainer, *args, **kwargs) -> None:
         if self._interval != "epoch":
             return
         self._check_time_remaining(trainer)
