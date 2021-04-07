@@ -36,6 +36,7 @@ from pytorch_lightning.plugins import (
     DoublePrecisionPlugin,
     HorovodPlugin,
     IPUPlugin,
+    IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
@@ -324,7 +325,7 @@ class AcceleratorConnector(object):
         self.amp_type = AMPType.from_str(self.amp_type)
 
         if self._device_type == DeviceType.IPU:
-            return IPUPrecisionPlugin(self.precision)
+            return IPUPrecisionPlugin()
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
