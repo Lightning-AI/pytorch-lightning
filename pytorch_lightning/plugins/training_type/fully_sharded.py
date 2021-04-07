@@ -54,13 +54,13 @@ class FullyShardedPlugin(DDPPlugin):
         Full Sharded Training shards the entire model across all available GPUs, allowing you to scale model
         size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
         at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
-        to ZeRO-Stage 3 but have been modified/adjusted for PyTorch.
+        to ZeRO-Stage 3 but has been built for upstreaming to PyTorch.
 
         `For more information: https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html`.
 
         .. warning:: ``FullyShardedPlugin`` is in beta and subject to change.
 
-        Defaults have been set to enable CPU Offload, but options have been exposed and may require configuration
+        Defaults have been set and options have been exposed, but may require configuration
         based on your level of memory/speed efficiency.
         We suggest having a look at this PR for more information.
         `https://github.com/facebookresearch/fairscale/pull/413`
@@ -73,7 +73,7 @@ class FullyShardedPlugin(DDPPlugin):
 
            cpu_offload: Offload FP32 params to CPU. Only useable in precision=16 mode (default: False).
 
-                   move_grads_to_cpu: Moves gradient shards to CPU after reduction.
+           move_grads_to_cpu: Moves gradient shards to CPU after reduction.
                         Only disable if using CPU based optimizers (defaults to ``cpu_offload``).
 
            flatten_parameters: Flattens parameter into single contiguous tensor for speed efficiency
@@ -90,11 +90,18 @@ class FullyShardedPlugin(DDPPlugin):
                 unless using mixed precision, in which case defaults to torch.float16.
 
            bucket_cap_mb: bucket parameters so that gradient reduction
-           can potentially overlap with backward computation.
-           bucket_cap_mb controls the bucket size in MegaBytes (MB).
-           Buckets are sub-divided based on world_size,
-           so the max shard size is roughly bucket_cap_mb / world_size.
-           Values <= 0 disable bucketing. (Default: 25).
+               can potentially overlap with backward computation.
+               bucket_cap_mb controls the bucket size in MegaBytes (MB).
+               Buckets are sub-divided based on world_size,
+               so the max shard size is roughly bucket_cap_mb / world_size.
+               Values <= 0 disable bucketing. (Default: 25).
+
+            automatic_module_wrap: Automatically wrap the lightning module with Fully Sharded recursively.
+                Using ``min_num_params`` to determine the amount of parameters to wrap at a time.
+                (default: False)
+
+            min_num_params: Number of parameters to wrap when using FairScale ``auto_wrap``.
+                (default: 1e8)
 
         """
         if not _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
