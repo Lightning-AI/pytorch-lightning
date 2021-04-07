@@ -295,7 +295,7 @@ class Trainer(
 
         """
         super().__init__()
-
+        torch._C._log_api_usage_once("lightning.trainer")
         distributed_backend = distributed_backend or accelerator
 
         # init connectors
@@ -416,6 +416,7 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        torch._C._log_api_usage_once("lightning.trainer.fit")
         # we reuse fit for other functions. When already set, it shouldn't be modified.
         if not self.state.running:
             self.state = TrainerState.FITTING
@@ -881,6 +882,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        torch._C._log_api_usage_once("lightning.trainer.validate")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.VALIDATING
@@ -943,6 +945,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        torch._C._log_api_usage_once("lightning.trainer.test")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.TESTING
@@ -1039,6 +1042,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         # If you supply a datamodule you can't supply dataloaders
+        torch._C._log_api_usage_once("lightning.trainer.predict")
 
         model = model or self.lightning_module
 
@@ -1084,6 +1088,7 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        torch._C._log_api_usage_once("lightning.trainer.tune")
         self.state = TrainerState.TUNING
         self.tuning = True
 
