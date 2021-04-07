@@ -12,21 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import io
 from distutils.version import LooseVersion
-from typing import Union, IO
 from pathlib import Path
-from urllib.parse import urlparse
-import torch
+from typing import IO, Union
+
 import fsspec
+from fsspec.implementations.local import LocalFileSystem
+
+import torch
+
+
+class _LightningLocalFileSystem(LocalFileSystem):
+    """Extension of ``fsspec.implementations.local.LocalFileSystem`` where ``LightningLocalFileSystem.isdir`` behaves
+    the same as ``os.isdir``.
+
+    To be removed when https://github.com/intake/filesystem_spec/issues/591 is fixed.
+    """
+
+    def isdir(self, path: str) -> bool:
+        return os.path.isdir(path)  # follows symlinks
 
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
         return torch.load(path_or_url, map_location=map_location)
-    if path_or_url.startswith("http"):
-        return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
+    if str(path_or_url).startswith("http"):
+        return torch.hub.load_state_dict_from_url(str(path_or_url), map_location=map_location)
     fs = get_filesystem(path_or_url)
     with fs.open(path_or_url, "rb") as f:
         return torch.load(f, map_location=map_location)
@@ -39,7 +53,7 @@ def get_filesystem(path: Union[str, Path]):
         return fsspec.filesystem(path.split(":", 1)[0])
     else:
         # use local filesystem
-        return fsspec.filesystem("file")
+        return _LightningLocalFileSystem()
 
 
 def atomic_save(checkpoint, filepath: str):
@@ -52,6 +66,7 @@ def atomic_save(checkpoint, filepath: str):
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
     """
+
     bytesbuffer = io.BytesIO()
     # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
     # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.

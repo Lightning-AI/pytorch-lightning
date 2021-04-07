@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Optional, Union
+
+from torch.utils.data import DataLoader
+
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from typing import List, Optional, Union
-from torch.utils.data import DataLoader
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class DataConnector(object):
@@ -24,9 +26,16 @@ class DataConnector(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, check_val_every_n_epoch, reload_dataloaders_every_epoch, prepare_data_per_node):
+    def on_trainer_init(
+        self, check_val_every_n_epoch: int, reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool
+    ) -> None:
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
+
+        if not isinstance(check_val_every_n_epoch, int):
+            raise MisconfigurationException(
+                f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
+            )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
         self.trainer.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
@@ -34,8 +43,7 @@ class DataConnector(object):
 
     def get_profiled_train_dataloader(self, train_dataloader):
         profiled_dl = self.trainer.profiler.profile_iterable(
-            enumerate(self._with_is_last(train_dataloader)),
-            "get_train_batch"
+            enumerate(self._with_is_last(train_dataloader)), "get_train_batch"
         )
         return profiled_dl
 
@@ -80,7 +88,8 @@ class DataConnector(object):
 
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.attach_datamodule(model, datamodule, 'fit')
+        self.attach_datamodule(model, datamodule)
+        self._validate_data_hooks(model)
 
     def __enforce_datamodule_dataloader_override(self, train_dataloader, val_dataloaders, datamodule):
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
@@ -89,7 +98,22 @@ class DataConnector(object):
                 'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
             )
 
-    def attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
+    def _validate_data_hooks(self, model):
+        # Raise Misconfiguration exception since these hooks are not supported in DP mode
+        # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
+        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
+        for hook in batch_transfer_hooks:
+            if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
+                raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
+
+    def attach_dataloaders(
+        self,
+        model,
+        train_dataloader: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        predict_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+    ):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
@@ -101,28 +125,34 @@ class DataConnector(object):
         if test_dataloaders is not None:
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
-    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule], stage: str) -> None:
+        if predict_dataloaders is not None:
+            model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
-        # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
+    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule] = None) -> None:
+        # We use datamodule if it's been provided, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
 
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
 
             # Override loader hooks
-            if is_overridden('train_dataloader', datamodule):
-                model.train_dataloader = datamodule.train_dataloader
-            if is_overridden('val_dataloader', datamodule):
-                model.val_dataloader = datamodule.val_dataloader
-            if is_overridden('test_dataloader', datamodule):
-                model.test_dataloader = datamodule.test_dataloader
+            dl_methods = ('train_dataloader', 'val_dataloader', 'test_dataloader', 'predict_dataloader')
+            for method in dl_methods:
+                if is_overridden(method, datamodule):
+                    setattr(model, method, getattr(datamodule, method))
 
-            # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
-            if is_overridden('transfer_batch_to_device', datamodule):
-                model.transfer_batch_to_device = datamodule.transfer_batch_to_device
+            # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
+            batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
+            for hook in batch_transfer_hooks:
+                if is_overridden(hook, datamodule):
+                    setattr(model, hook, getattr(datamodule, hook))
 
             self.trainer.datamodule = datamodule
             datamodule.trainer = self.trainer
+
+            # experimental feature for Flash
+            if hasattr(datamodule, "data_pipeline"):
+                model.data_pipeline = datamodule.data_pipeline
 
 
 class _PatchDataLoader(object):

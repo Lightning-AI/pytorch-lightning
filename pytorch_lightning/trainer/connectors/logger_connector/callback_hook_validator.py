@@ -18,8 +18,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class CallbackHookNameValidator:
 
     @staticmethod
-    def check_logging_in_callbacks(current_hook_fx_name: str = None, on_step: bool = None,
-                                   on_epoch: bool = None) -> None:
+    def check_logging_in_callbacks(
+        current_hook_fx_name: str = None, on_step: bool = None, on_epoch: bool = None
+    ) -> None:
         if current_hook_fx_name is None:
             return
 
@@ -45,8 +46,18 @@ class CallbackHookNameValidator:
             )
 
     @staticmethod
+    def _on_before_accelerator_backend_setup_log():
+        """Called before accelerator is being setup"""
+        return None
+
+    @staticmethod
     def _setup_log():
         """Called when fit or test begins"""
+        return None
+
+    @staticmethod
+    def _on_configure_sharded_model_log():
+        """Called before configure sharded model"""
         return None
 
     @staticmethod
@@ -192,7 +203,7 @@ class CallbackHookNameValidator:
     @staticmethod
     def _on_validation_end_log():
         """Called when the validation loop ends."""
-        return {"on_step": [False], "on_epoch": [False, True]}
+        return None
 
     @staticmethod
     def _on_test_start_log():

@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class TrainingTricksConnector:
@@ -21,18 +22,24 @@ class TrainingTricksConnector:
         self.trainer = trainer
 
     def on_trainer_init(
-            self,
-            gradient_clip_val,
-            track_grad_norm,
-            accumulate_grad_batches,
-            truncated_bptt_steps,
-            terminate_on_nan
+        self,
+        gradient_clip_val,
+        gradient_clip_algorithm,
+        track_grad_norm,
+        accumulate_grad_batches,
+        truncated_bptt_steps,
+        terminate_on_nan,
     ):
 
         self.trainer.terminate_on_nan = terminate_on_nan
 
         # gradient clipping
+        if gradient_clip_algorithm not in list(GradClipAlgorithmType):
+            raise MisconfigurationException(
+                f"gradient_clip_algorithm should be in {list(GradClipAlgorithmType)}"
+            )
         self.trainer.gradient_clip_val = gradient_clip_val
+        self.trainer.gradient_clip_algorithm = gradient_clip_algorithm
 
         # gradient norm tracking
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':

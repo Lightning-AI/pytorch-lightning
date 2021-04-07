@@ -19,11 +19,10 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(
-    torch.cuda.device_count() < 2, reason="test requires a number of GPU machine greater than 1"
-)
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize(
     ["auto_select_gpus", "gpus", "expected_error"],
     [
@@ -33,9 +32,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
         (False, -1, None),
     ],
 )
-def test_trainer_with_gpus_options_combination_at_available_gpus_env(
-    auto_select_gpus, gpus, expected_error
-):
+def test_trainer_with_gpus_options_combination_at_available_gpus_env(auto_select_gpus, gpus, expected_error):
     if expected_error:
         with pytest.raises(
             expected_error,
@@ -44,14 +41,12 @@ def test_trainer_with_gpus_options_combination_at_available_gpus_env(
             Please select a valid number of GPU resources when using auto_select_gpus."
             ),
         ):
-            trainer = Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
+            Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
     else:
-        trainer = Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
+        Trainer(auto_select_gpus=auto_select_gpus, gpus=gpus)
 
 
-@pytest.mark.skipif(
-    torch.cuda.device_count() < 2, reason="test requires a number of GPU machine greater than 1"
-)
+@RunIf(min_gpus=2)
 @pytest.mark.parametrize(
     ["nb", "expected_gpu_idxs", "expected_error"],
     [

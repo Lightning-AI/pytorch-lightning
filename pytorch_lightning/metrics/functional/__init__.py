@@ -11,37 +11,32 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.functional.classification import (
-    accuracy,
-    auc,
-    auroc,
-    average_precision,
+from pytorch_lightning.metrics.functional.accuracy import accuracy  # noqa: F401
+from pytorch_lightning.metrics.functional.auc import auc  # noqa: F401
+from pytorch_lightning.metrics.functional.auroc import auroc  # noqa: F401
+from pytorch_lightning.metrics.functional.average_precision import average_precision  # noqa: F401
+from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
     dice_score,
-    f1_score,
-    fbeta_score,
-    multiclass_precision_recall_curve,
-    multiclass_roc,
+    get_num_classes,
     multiclass_auroc,
-    precision,
-    precision_recall,
-    precision_recall_curve,
-    recall,
-    roc,
-    stat_scores,
     stat_scores_multiple_classes,
     to_categorical,
-    to_onehot,
-    iou,
 )
-from pytorch_lightning.metrics.functional.nlp import bleu_score
-from pytorch_lightning.metrics.functional.self_supervised import (
-    embedding_similarity
-)
-# TODO: unify metrics between class and functional, add below
-from pytorch_lightning.metrics.functional.explained_variance import explained_variance
-from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error
-from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared_error
-from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error
-from pytorch_lightning.metrics.functional.psnr import psnr
-from pytorch_lightning.metrics.functional.ssim import ssim
-from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix
+from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
+from pytorch_lightning.metrics.functional.explained_variance import explained_variance  # noqa: F401
+from pytorch_lightning.metrics.functional.f_beta import f1, fbeta  # noqa: F401
+from pytorch_lightning.metrics.functional.hamming_distance import hamming_distance  # noqa: F401
+from pytorch_lightning.metrics.functional.image_gradients import image_gradients  # noqa: F401
+from pytorch_lightning.metrics.functional.iou import iou  # noqa: F401
+from pytorch_lightning.metrics.functional.mean_absolute_error import mean_absolute_error  # noqa: F401
+from pytorch_lightning.metrics.functional.mean_squared_error import mean_squared_error  # noqa: F401
+from pytorch_lightning.metrics.functional.mean_squared_log_error import mean_squared_log_error  # noqa: F401
+from pytorch_lightning.metrics.functional.nlp import bleu_score  # noqa: F401
+from pytorch_lightning.metrics.functional.precision_recall import precision, precision_recall, recall  # noqa: F401
+from pytorch_lightning.metrics.functional.precision_recall_curve import precision_recall_curve  # noqa: F401
+from pytorch_lightning.metrics.functional.psnr import psnr  # noqa: F401
+from pytorch_lightning.metrics.functional.r2score import r2score  # noqa: F401
+from pytorch_lightning.metrics.functional.roc import roc  # noqa: F401
+from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity  # noqa: F401
+from pytorch_lightning.metrics.functional.ssim import ssim  # noqa: F401
+from pytorch_lightning.metrics.functional.stat_scores import stat_scores  # noqa: F401

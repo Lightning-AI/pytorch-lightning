@@ -18,7 +18,10 @@ references:
         pyenv global 3.7.3
         python --version
         pip install -r requirements/docs.txt
-        cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
+        pip list
+        cd docs
+        make clean
+        make html --jobs 2 SPHINXOPTS="-W"
 
   checkout_ml_testing: &checkout_ml_testing
    run:
@@ -36,7 +39,9 @@ references:
       command: |
         gcloud --quiet auth configure-docker
         #cd dockers/tpu-tests
-        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" .
+        export PYTHON_VER=$(python -c "import random ; print('3.6' if random.random() > 0.5 else '3.7')" 2>&1)
+        echo $PYTHON_VER
+        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
   deploy_cluster: &deploy_cluster
@@ -45,6 +50,7 @@ references:
      command: |
        go get github.com/google/go-jsonnet/cmd/jsonnet
        export PATH=$PATH:$HOME/go/bin
+       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; fff = open(fname).read().replace('pytorch-VERSION', 'pytorch-$XLA_VER') ; open(fname, 'w').write(fff)"
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -)
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
@@ -79,29 +85,13 @@ references:
        sudo pip install pycobertura
        pycobertura show coverage.xml
 
-  delete_gke_jobs: &delete_gke_jobs
-   run:
-     name: Delete GKE Jobs
-     command: |
-       # Match jobs whose age matches patterns like '1h' or '1d', i.e. any job
-       # that has been around longer than 1hr. First print all columns for
-       # matches, then execute the delete.
-       jobs_to_delete=$(kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $0}')
-       echo $jobs_to_delete
-       if [ ${#jobs_to_delete} -gt 1 ];
-         then kubectl delete job $(kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $1}');
-       fi
-
 jobs:
 
   TPU-tests:
-    parameters:
-      python:
-        type: string
     docker:
       - image: circleci/python:3.7
     environment:
-      - PYTHON_VER: << parameters.python >>
+      - XLA_VER: 1.7
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
@@ -135,36 +125,9 @@ jobs:
           path: docs/build/html/
           destination: html
 
-  cleanup-gke-jobs:
-    docker:
-      - image: circleci/python:3.7
-    steps:
-      - gcp-gke/install
-      - gcp-gke/update-kubeconfig-with-credentials:
-          cluster: $GKE_CLUSTER
-          perform-login: true
-      - *delete_gke_jobs
-
-
 workflows:
   version: 2
   tpu-tests:
     jobs:
       - build-Docs
-      - TPU-tests:
-          matrix:
-            parameters:
-              python: ["3.6", "3.7"]
-  tpu-cleanup:
-    triggers:
-      - schedule:
-          # The cron format is:
-          # min (0-59) hour (0-23) monthday (1-31) month (1-12) weekday (0-6, 0=Sun)
-          # Set to run at the first minute of every hour.
-          cron: "0 * * * *"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - cleanup-gke-jobs
+      - TPU-tests

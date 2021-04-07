@@ -29,7 +29,7 @@ pulls:
     markComment: >
       This pull request has been automatically marked as stale because it has not had recent activity.
       It will be closed in 7 days if no further activity occurs. If you need further help see our docs:
-      https://pytorch-lightning.readthedocs.io/en/latest/CONTRIBUTING.html#pull-request
+      https://pytorch-lightning.readthedocs.io/en/latest/generated/CONTRIBUTING.html#pull-request
       or ask the assistance of a core contributor here or on Slack.
       Thank you for your contributions.
     # Comment to post when closing a stale issue. Set to `false` to disable
@@ -40,3 +40,10 @@ pulls:
 staleLabel: "won't fix"
 # Limit the number of actions per hour, from 1-30. Default is 30
 limitPerRun: 10
+
+# Set to true to ignore issues in a project (defaults to false)
+exemptProjects: true
+# Set to true to ignore issues in a milestone (defaults to false)
+exemptMilestones: true
+# Set to true to ignore issues with an assignee (defaults to false)
+exemptAssignees: true

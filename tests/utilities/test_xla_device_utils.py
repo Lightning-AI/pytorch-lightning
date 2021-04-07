@@ -12,47 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
+from unittest.mock import patch
 
 import pytest
 
-import pytorch_lightning.utilities.xla_device_utils as xla_utils
-from tests.base.develop_utils import pl_multi_process_test
-
-try:
-    import torch_xla.core.xla_model as xm
-
-    XLA_AVAILABLE = True
-except ImportError as e:
-    XLA_AVAILABLE = False
+import pytorch_lightning.utilities.xla_device as xla_utils
+from pytorch_lightning.utilities import _XLA_AVAILABLE
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(XLA_AVAILABLE, reason="test requires torch_xla to be absent")
+@pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
-    """Check tpu_device_exists returns None when torch_xla is not available"""
-    assert xla_utils.XLADeviceUtils.tpu_device_exists() is None
+    """Check tpu_device_exists returns False when torch_xla is not available"""
+    assert not xla_utils.XLADeviceUtils.tpu_device_exists()
 
 
-@pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires torch_xla to be installed")
+@RunIf(tpu=True)
 def test_tpu_device_presence():
     """Check tpu_device_exists returns True when TPU is available"""
-    assert xla_utils.XLADeviceUtils.tpu_device_exists() is True
+    assert xla_utils.XLADeviceUtils.tpu_device_exists()
 
 
-@pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires torch_xla to be installed")
-@pl_multi_process_test
-def test_xla_device_is_a_tpu():
-    """Check that the XLA device is a TPU"""
-    device = xm.xla_device()
-    device_type = xm.xla_device_hw(device)
-    return device_type == "TPU"
+def sleep_fn(sleep_time: float) -> bool:
+    time.sleep(sleep_time)
+    return True
 
 
-def test_result_returns_within_10_seconds():
-    """Check that pl_multi_process returns within 10 seconds"""
+@patch('pytorch_lightning.utilities.xla_device.TPU_CHECK_TIMEOUT', 3)
+@pytest.mark.skipif(not _XLA_AVAILABLE, reason="test requires torch_xla to be present")
+def test_result_returns_within_timeout_seconds():
+    """Check that pl_multi_process returns within 3 seconds"""
+    fn = xla_utils.pl_multi_process(sleep_fn)
 
     start = time.time()
-    result = xla_utils.pl_multi_process(time.sleep)(25)
+    result = fn(xla_utils.TPU_CHECK_TIMEOUT * 0.5)
     end = time.time()
     elapsed_time = int(end - start)
-    assert elapsed_time <= 10
-    assert result is False
+
+    assert elapsed_time <= xla_utils.TPU_CHECK_TIMEOUT
+    assert result

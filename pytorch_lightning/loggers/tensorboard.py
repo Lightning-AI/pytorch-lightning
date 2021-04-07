@@ -11,49 +11,48 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
-TensorBoard
------------
+TensorBoard Logger
+------------------
 """
 
+import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
-from warnings import warn
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
+log = logging.getLogger(__name__)
+
+if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
-except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
 
 
 class TensorBoardLogger(LightningLoggerBase):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
+
     Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
     preinstalled.
 
     Example:
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.loggers import TensorBoardLogger
-        >>> logger = TensorBoardLogger("tb_logs", name="my_model")
-        >>> trainer = Trainer(logger=logger)
+
+    .. testcode::
+
+        from pytorch_lightning import Trainer
+        from pytorch_lightning.loggers import TensorBoardLogger
+        logger = TensorBoardLogger("tb_logs", name="my_model")
+        trainer = Trainer(logger=logger)
 
     Args:
         save_dir: Save directory
@@ -68,11 +67,13 @@ class TensorBoardLogger(LightningLoggerBase):
             model.
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
+        prefix: A string to put at the beginning of metric keys.
         \**kwargs: Additional arguments like `comment`, `filename_suffix`, etc. used by
             :class:`SummaryWriter` can be passed as keyword arguments in this logger.
 
     """
     NAME_HPARAMS_FILE = 'hparams.yaml'
+    LOGGER_JOIN_CHAR = '-'
 
     def __init__(
         self,
@@ -81,6 +82,7 @@ class TensorBoardLogger(LightningLoggerBase):
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
+        prefix: str = '',
         **kwargs
     ):
         super().__init__()
@@ -89,6 +91,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._version = version
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
+        self._prefix = prefix
         self._fs = get_filesystem(save_dir)
 
         self._experiment = None
@@ -145,12 +148,25 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
-                        metrics: Optional[Dict[str, Any]] = None) -> None:
+    def log_hyperparams(
+        self,
+        params: Union[Dict[str, Any], Namespace],
+        metrics: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Record hyperparameters. TensorBoard logs with and without saved hyperparameters
+        are incompatible, the hyperparameters are then not displayed in the TensorBoard.
+        Please delete or move the previously saved logs to display the new ones with hyperparameters.
+
+        Args:
+            params: a dictionary-like container with the hyperparameters
+            metrics: Dictionary with metric names as keys and measured quantities as values
+        """
+
         params = self._convert_params(params)
 
         # store params to output
-        if OMEGACONF_AVAILABLE and isinstance(params, Container):
+        if _OMEGACONF_AVAILABLE and isinstance(params, Container):
             self.hparams = OmegaConf.merge(self.hparams, params)
         else:
             self.hparams.update(params)
@@ -177,6 +193,8 @@ class TensorBoardLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
+        metrics = self._add_prefix(metrics)
+
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
@@ -186,9 +204,10 @@ class TensorBoardLogger(LightningLoggerBase):
             else:
                 try:
                     self.experiment.add_scalar(k, v, step)
-                except Exception as e:
+                # todo: specify the possible exception
+                except Exception as ex:
                     m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
-                    type(e)(e.message + m)
+                    type(ex)(ex.message + m)
 
     @rank_zero_only
     def log_graph(self, model: LightningModule, input_array=None):
@@ -197,31 +216,31 @@ class TensorBoardLogger(LightningLoggerBase):
                 input_array = model.example_input_array
 
             if input_array is not None:
-                input_array = model.transfer_batch_to_device(input_array, model.device)
+                input_array = model._apply_batch_transfer_handler(input_array)
                 self.experiment.add_graph(model, input_array)
             else:
-                rank_zero_warn('Could not log computational graph since the'
-                               ' `model.example_input_array` attribute is not set'
-                               ' or `input_array` was not given',
-                               UserWarning)
+                rank_zero_warn(
+                    'Could not log computational graph since the'
+                    ' `model.example_input_array` attribute is not set'
+                    ' or `input_array` was not given', UserWarning
+                )
 
     @rank_zero_only
     def save(self) -> None:
         super().save()
         dir_path = self.log_dir
-        if not self._fs.isdir(dir_path):
-            dir_path = self.save_dir
 
         # prepare the file path
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
-        # save the metatags file if it doesn't exist
-        if not os.path.isfile(hparams_file):
+        # save the metatags file if it doesn't exist and the log directory exists
+        if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
         self.experiment.flush()
+        self.experiment.close()
         self.save()
 
     @property

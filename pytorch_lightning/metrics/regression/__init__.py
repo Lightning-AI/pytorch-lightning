@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.metrics.regression.mean_squared_error import MeanSquaredError
-from pytorch_lightning.metrics.regression.mean_absolute_error import MeanAbsoluteError
-from pytorch_lightning.metrics.regression.mean_squared_log_error import MeanSquaredLogError
-from pytorch_lightning.metrics.regression.explained_variance import ExplainedVariance
-from pytorch_lightning.metrics.regression.psnr import PSNR
-from pytorch_lightning.metrics.regression.ssim import SSIM
+from pytorch_lightning.metrics.regression.explained_variance import ExplainedVariance  # noqa: F401
+from pytorch_lightning.metrics.regression.mean_absolute_error import MeanAbsoluteError  # noqa: F401
+from pytorch_lightning.metrics.regression.mean_squared_error import MeanSquaredError  # noqa: F401
+from pytorch_lightning.metrics.regression.mean_squared_log_error import MeanSquaredLogError  # noqa: F401
+from pytorch_lightning.metrics.regression.psnr import PSNR  # noqa: F401
+from pytorch_lightning.metrics.regression.r2score import R2Score  # noqa: F401
+from pytorch_lightning.metrics.regression.ssim import SSIM  # noqa: F401

@@ -13,8 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 
-from tests.base.dataloaders import CustomInfDataloader
-from tests.base.dataloaders import CustomNotImplementedErrorDataloader
+from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 
 
 class ValDataloaderVariations(ABC):
@@ -32,8 +31,10 @@ class ValDataloaderVariations(ABC):
         return dataloaders
 
     def val_dataloader__multiple(self):
-        return [self.dataloader(train=False),
-                self.dataloader(train=False)]
+        return [
+            self.dataloader(train=False),
+            self.dataloader(train=False),
+        ]
 
     def val_dataloader__infinite(self):
         return CustomInfDataloader(self.dataloader(train=False))
