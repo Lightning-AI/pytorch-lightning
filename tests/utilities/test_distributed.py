@@ -12,42 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Mapping
 from unittest import mock
 
 import pytest
 
 
-@mock.patch.dict(os.environ, {"SLURM_PROCID": "0"})
-def test_rank_zero_slurm():
+@pytest.mark.parameterize("env_vars", [{"RANK": "0"}, {"SLURM_PROCID": "0"}])
+def test_rank_zero_known_cluster_envs(env_vars: Mapping[str, str]):
     """ Test that SLURM environment variables are properly checked for rank_zero_only. """
     from pytorch_lightning.utilities.distributed import _get_rank, rank_zero_only
     rank_zero_only.rank = _get_rank()
 
-    @rank_zero_only
-    def foo():
-        # The return type is optional because on non-zero ranks it will not be called
-        return 1
+    with mock.patch.dict(os.environ, env_vars):
+        from pytorch_lightning.utilities.distributed import _get_rank, rank_zero_only
+        rank_zero_only.rank = _get_rank()
 
-    x = foo()
-    assert x == 1
+        @rank_zero_only
+        def foo():  # The return type is optional because on non-zero ranks it will not be called
+            return 1
 
-
-@mock.patch.dict(os.environ, {"RANK": "0"})
-def test_rank_zero_torchelastic():
-    """ Test that torchelastic environment variables are properly checked for rank_zero_only. """
-    from pytorch_lightning.utilities.distributed import _get_rank, rank_zero_only
-    rank_zero_only.rank = _get_rank()
-
-    @rank_zero_only
-    def foo():
-        # The return type is optional because on non-zero ranks it will not be called
-        return 1
-
-    x = foo()
-    assert x == 1
+        x = foo()
+        assert x == 1
 
 
-@pytest.mark.parametrize("rank_key,rank", [
+@pytest.mark.parameterize("rank_key,rank", [
     ("RANK", "1"),
     ("SLURM_PROCID", "2"),
     ("LOCAL_RANK", "3"),
