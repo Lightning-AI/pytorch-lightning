@@ -389,6 +389,6 @@ from pytorch_lightning.utilities import (
     _TORCHVISION_AVAILABLE,
     _module_available,
 )
-TORCHVISION_AVAILABLE = _module_available("torchvision")
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 """
 coverage_skip_undoc_in_source = True
