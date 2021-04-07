@@ -122,9 +122,10 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
     )
     trainer.fit(model)
     if min_epochs:
-        assert trainer.current_epoch >= min_epochs
+        assert trainer.current_epoch >= min_epochs - 1
     if min_steps:
-        assert trainer.global_step >= min_steps
+        assert trainer.global_step >= min_steps - 1
+    assert timer.time_elapsed > duration
 
 
 def test_timer_resume_training(tmpdir):
