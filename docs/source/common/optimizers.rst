@@ -44,11 +44,13 @@ to manually manage the optimization process. To do so, do the following:
 
 .. warning:: Before 1.2, ``optimzer.step`` was calling ``optimizer.zero_grad()`` internally. From 1.2, it is left to the users expertise.
 
-.. warning:: Before 1.3, ``lr_scheduler.step`` was called automatically. From 1.3, it is left to the users expertise.
+.. warning:: Before 1.3, ``lr_scheduler.step`` was called automatically in both manual and automatic optimization. From 1.3, ``lr_scheduler.step`` is disabled in manual optimization so that you can call it at arbitrary intervals.
 
 .. tip:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
 
 .. tip:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to support accelerators and precision for you.
+
+.. tip:: ``self.lr_schedulers()`` will return your learning rate schedulers defined in ``LightningModule.configure_optimizers()``.
 
 .. code-block:: python
 
@@ -77,6 +79,7 @@ Here is the same example as above using a ``closure``.
 
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
+        sch = self.lr_schedulers()
 
         def closure():
             # Only zero_grad on the first batch to accumulate gradients
@@ -89,6 +92,7 @@ Here is the same example as above using a ``closure``.
             return loss
 
         opt.step(closure=closure)
+        sch.step()
 
 .. tip:: Be careful where you call ``zero_grad`` or your model won't converge. It is good pratice to call ``zero_grad`` before ``manual_backward``.
 
