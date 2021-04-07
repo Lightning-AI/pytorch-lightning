@@ -65,7 +65,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def is_distributed(self):
         return self.world_size != 1
 
-    def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> MpDeviceLoader:
+    def process_dataloader(self, dataloader: torch.utils.data.DataLoader) -> MpDeviceLoader:
         if not has_len(dataloader):
             raise MisconfigurationException(
                 "TPUSpawn does not currently support IterableDataset objects, the dataset must implement __len__."
