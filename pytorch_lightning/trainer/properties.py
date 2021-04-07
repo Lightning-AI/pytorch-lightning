@@ -361,6 +361,14 @@ class TrainerProperties(ABC):
         return self.accelerator.lightning_module
 
     @property
+    def sharded_module(self) -> torch.nn.Module:
+        """
+        Returns: The Sharded version of the ``LightningModule`` module if using sharded,
+            else the model stored in the accelerator.
+        """
+        return self.accelerator.sharded_module
+
+    @property
     def optimizers(self) -> Optional[List[Optimizer]]:
         return self.accelerator.optimizers
 
