@@ -33,7 +33,6 @@ from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
-import numpy
 
 log = logging.getLogger(__name__)
 
@@ -79,7 +78,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def setup(self, model):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
+
         # pass in a state q
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
