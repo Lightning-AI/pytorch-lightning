@@ -665,6 +665,8 @@ class Trainer(
         # ref model
         model = self.lightning_module
         model.zero_grad()
+
+        self.model.eval()
         torch.set_grad_enabled(False)
 
         # hook
