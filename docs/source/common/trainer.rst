@@ -990,7 +990,8 @@ Trainer will train model for at least min_steps or min_epochs (latest).
 max_time
 ^^^^^^^^
 
-Set the maximum amount of time for training
+Set the maximum amount of time for training. Training will get interrupted mid-epoch.
+For for customizable options use the :class:`~pytorch_lightning.callbacks.timer.Timer` callback.
 
 .. testcode::
 
