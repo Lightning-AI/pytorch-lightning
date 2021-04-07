@@ -23,7 +23,7 @@ from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import auto_wrap, checkpoint_wrapper, default_auto_wrap_policy, enable_wrap, wrap
+    from fairscale.nn import auto_wrap, default_auto_wrap_policy, enable_wrap, wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     from pytorch_lightning.overrides.fairscale import LightningFullyShardedModule, unwrap_lightning_module_fully_sharded
