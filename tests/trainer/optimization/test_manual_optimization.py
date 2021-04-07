@@ -1183,5 +1183,5 @@ def test_lr_scheduler_step_not_called(tmpdir):
 
     # If a lr scheduler inherits `torch.optim.lr_scheduler._LRScheduler`,
     # `.step()` is called once during its instantiation.
-    # Thus, the call count should be 1.
+    # Thus, the call count should be 1, not 0.
     assert lr_step.call_count == 1
