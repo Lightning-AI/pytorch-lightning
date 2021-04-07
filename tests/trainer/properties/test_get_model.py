@@ -113,10 +113,10 @@ def test_get_accelerator_wrapped_model(accelerator, wrapper, tmpdir):
     class TestModel(BoringModel):
 
         def on_train_start(self) -> None:
-            assert isinstance(self.accelerator_model, wrapper)
+            assert isinstance(self.trainer.model, wrapper)
 
         def configure_optimizers(self):
-            return torch.optim.SGD(self.accelerator_model.parameters(), lr=0.1)
+            return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
     model = TestModel()
 

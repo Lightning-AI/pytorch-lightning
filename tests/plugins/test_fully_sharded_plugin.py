@@ -76,7 +76,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     class TestModel(BoringModel):
 
         def configure_optimizers(self):
-            return torch.optim.SGD(self.accelerator_model.parameters(), lr=0.1)
+            return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
     model = TestModel()
     trainer = Trainer(
@@ -111,10 +111,10 @@ def test_fully_sharded_plugin_checkpoint_manual_autowrap(automatic_module_wrap, 
 
         def on_train_start(self) -> None:
             assert isinstance(self.layer, FullyShardedDataParallel)
-            assert isinstance(self.accelerator_model, FullyShardedDataParallel)
+            assert isinstance(self.trainer.model, FullyShardedDataParallel)
 
         def configure_optimizers(self):
-            return torch.optim.SGD(self.accelerator_model.parameters(), lr=0.1)
+            return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
     model = TestModel()
 
@@ -143,7 +143,7 @@ def test_fully_sharded_plugin_checkpoint_multi_gpu(tmpdir):
     class TestModel(BoringModel):
 
         def configure_optimizers(self):
-            return torch.optim.SGD(self.accelerator_model.parameters(), lr=0.1)
+            return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
 
     model = TestModel()
     trainer = Trainer(
