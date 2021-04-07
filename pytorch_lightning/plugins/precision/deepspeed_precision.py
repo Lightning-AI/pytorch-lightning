@@ -16,6 +16,7 @@ from typing import Any, Callable, TYPE_CHECKING, Union
 import torch
 
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -80,7 +81,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         model: 'LightningModule',
         optimizer: 'Optimizer',
         clip_val: Union[int, float],
-        norm_type: float = 2.0
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """
         DeepSpeed handles clipping gradients via the training type plugin.
