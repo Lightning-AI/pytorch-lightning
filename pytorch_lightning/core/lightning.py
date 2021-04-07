@@ -60,17 +60,8 @@ class LightningModule(
     # Below is for property support of JIT in PyTorch 1.7
     # since none of them is important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = [
-        "datamodule",
-        "example_input_array",
-        "hparams",
-        "hparams_initial",
-        "on_gpu",
-        "current_epoch",
-        "global_step",
-        "global_rank",
-        "local_rank",
-        "logger",
-        "model_size",
+        "datamodule", "example_input_array", "hparams", "hparams_initial", "on_gpu", "current_epoch", "global_step",
+        "global_rank", "local_rank", "logger", "model_size", "sharded_module"
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
