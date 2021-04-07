@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import timedelta, datetime
-from unittest import mock
-from unittest.mock import ANY, call, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -34,12 +33,15 @@ def test_timer_parse_duration(duration, expected):
 
 
 def test_timer_interval_choice():
+    Timer(duration=timedelta(), interval="step")
+    Timer(duration=timedelta(), interval="epoch")
     with pytest.raises(MisconfigurationException, match="Unsupported parameter value"):
-        Timer(duration="00:00:01", interval="invalid")
+        Timer(duration=timedelta(), interval="invalid")
 
 
 @patch("pytorch_lightning.callbacks.timer.datetime")
 def test_timer_time_remaining(datetime_mock):
+    """ Test that the timer tracks the elapsed and remaining time correctly. """
     start_time = datetime.now()
     duration = timedelta(seconds=10)
     datetime_mock.now.return_value = start_time
@@ -67,6 +69,7 @@ def test_timer_time_remaining(datetime_mock):
 
 
 def test_timer_stops_training(tmpdir):
+    """ Test that the timer stops training before reaching max_epochs """
     model = BoringModel()
     duration = timedelta(milliseconds=100)
     timer = Timer(duration=duration)
