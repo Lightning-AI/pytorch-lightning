@@ -14,8 +14,6 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-import os
-from unittest import mock
 
 import pytest
 import torch
@@ -25,7 +23,6 @@ from pytorch_lightning.core.lightning import LightningModule
 from tests.helpers.deterministic_model import DeterministicModel
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__eval_step__flow(tmpdir):
     """
     Tests that only training_step can be used
@@ -69,8 +66,27 @@ def test__eval_step__flow(tmpdir):
     assert not model.validation_step_end_called
     assert not model.validation_epoch_end_called
 
+    # make sure training outputs what is expected
+    for batch_idx, batch in enumerate(model.train_dataloader()):
+        break
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+    assert out.signal == 0
+    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
+
+    train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
+    assert isinstance(train_step_out['minimize'], torch.Tensor)
+    assert train_step_out['minimize'].item() == 171
+
+    # make sure the optimizer closure returns the correct things
+    opt_closure_result = trainer.train_loop.training_step_and_backward(
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+    )
+    assert opt_closure_result['loss'].item() == 171
+
+
 def test__eval_step__eval_step_end__flow(tmpdir):
     """
     Tests that only training_step can be used
@@ -119,8 +135,27 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     assert model.validation_step_end_called
     assert not model.validation_epoch_end_called
 
+    # make sure training outputs what is expected
+    for batch_idx, batch in enumerate(model.train_dataloader()):
+        break
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+    assert out.signal == 0
+    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
+
+    train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
+    assert isinstance(train_step_out['minimize'], torch.Tensor)
+    assert train_step_out['minimize'].item() == 171
+
+    # make sure the optimizer closure returns the correct things
+    opt_closure_result = trainer.train_loop.training_step_and_backward(
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+    )
+    assert opt_closure_result['loss'].item() == 171
+
+
 def test__eval_step__epoch_end__flow(tmpdir):
     """
     Tests that only training_step can be used
@@ -180,7 +215,6 @@ def test__eval_step__epoch_end__flow(tmpdir):
     assert model.validation_epoch_end_called
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__validation_step__step_end__epoch_end__flow(tmpdir):
     """
     Tests that only training_step can be used

@@ -24,7 +24,7 @@ from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 
 if TYPE_CHECKING:
     from torch.cuda.amp import GradScaler
@@ -315,10 +315,14 @@ class Accelerator(object):
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
-    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
         """clips all the optimizer parameters to the given value"""
-
-        self.precision_plugin.clip_gradients(self.model, optimizer, clip_val)
+        self.precision_plugin.clip_gradients(self.model, optimizer, clip_val, gradient_clip_algorithm)
 
     def on_train_epoch_end(self, outputs: Sequence[_STEP_OUTPUT_TYPE]) -> None:
         """Hook to do something on the end of an training epoch
@@ -441,7 +445,7 @@ class Accelerator(object):
         return self.training_type_plugin.results
 
     @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
+    def model_sharded_context(self) -> Generator[None, None, None]:
         """
         Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
         shard the model instantly - useful for extremely large models. Can save memory and
@@ -480,7 +484,7 @@ class Accelerator(object):
         )
         self.setup_precision_plugin(plugin)
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath) -> None:
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
@@ -511,3 +515,6 @@ class Accelerator(object):
         Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return self.training_type_plugin.setup_optimizers_in_pre_dispatch
+
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)

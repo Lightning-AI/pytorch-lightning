@@ -11,17 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import contextlib
 import json
 import logging
 import os
+from collections import OrderedDict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
-from torch.nn.parallel import DistributedDataParallel
 
+from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -35,6 +36,17 @@ from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
+
+
+def remove_module_hooks(model: torch.nn.Module) -> None:
+    # todo (tchaton) awaiting this feature to move upstream to DeepSpeed
+    for module in model.modules():
+        module._backward_hooks = OrderedDict()
+        module._is_full_backward_hook = None
+        module._forward_hooks = OrderedDict()
+        module._forward_pre_hooks = OrderedDict()
+        module._state_dict_hooks = OrderedDict()
+        module._load_state_dict_pre_hooks = OrderedDict()
 
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
@@ -67,6 +79,8 @@ class DeepSpeedPlugin(DDPPlugin):
         zero_optimization: bool = True,
         stage: int = 2,
         cpu_offload: bool = False,
+        cpu_offload_params: bool = False,
+        cpu_offload_use_pin_memory: bool = False,
         contiguous_gradients: bool = True,
         overlap_comm: bool = True,
         allgather_partitions: bool = True,
@@ -80,10 +94,14 @@ class DeepSpeedPlugin(DDPPlugin):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,
-        initial_scale_power: int = 32,
+        initial_scale_power: int = 16,
         loss_scale_window: int = 1000,
         hysteresis: int = 2,
-        min_loss_scale: int = 1
+        min_loss_scale: int = 1,
+        partition_activations: bool = False,
+        cpu_checkpointing: bool = False,
+        contiguous_memory_optimization: bool = False,
+        synchronize_checkpoint_boundary: bool = False,
     ) -> None:
         """
 
@@ -105,6 +123,10 @@ class DeepSpeedPlugin(DDPPlugin):
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning (default: 2)
 
             cpu_offload: Enable offloading optimizer memory and computation to CPU
+
+            cpu_offload_params: When using ZeRO stage 3, offload parameters to CPU
+
+            cpu_offload_use_pin_memory: When using ZeRO stage 3, pin memory on CPU
 
             contiguous_gradients: Copies gradients to a continuous buffer as they are produced.
                 Avoids memory fragmentation during backwards. Useful when training large models. (default: True)
@@ -144,6 +166,17 @@ class DeepSpeedPlugin(DDPPlugin):
 
             min_loss_scale: The minimum FP16 dynamic loss scaling value (Default: 1000)
 
+            partition_activations: Enables partition activation when used with ZeRO stage 3.
+                Still requires you to wrap your forward functions in deepspeed.checkpointing.checkpoint.
+                See `deepspeed tutorial
+                <https://www.deepspeed.ai/tutorials/megatron/#deepspeed-activation-checkpoints-optional>`_
+
+            cpu_checkpointing: Offloads partitioned activations to CPU if ``partition_activations`` is enabled
+
+            contiguous_memory_optimization: Copies partitioned activations so that they are contiguous in memory.
+                Not supported by all models
+
+            synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -159,8 +192,14 @@ class DeepSpeedPlugin(DDPPlugin):
             self.config = self._create_default_config(
                 zero_optimization,
                 zero_allow_untested_optimizer,
+                partition_activations=partition_activations,
+                cpu_checkpointing=cpu_checkpointing,
+                contiguous_memory_optimization=contiguous_memory_optimization,
+                synchronize_checkpoint_boundary=synchronize_checkpoint_boundary,
                 stage=stage,
                 cpu_offload=cpu_offload,
+                cpu_offload_params=cpu_offload_params,
+                cpu_offload_use_pin_memory=cpu_offload_use_pin_memory,
                 contiguous_gradients=contiguous_gradients,
                 overlap_comm=overlap_comm,
                 allgather_partitions=allgather_partitions,
@@ -200,8 +239,13 @@ class DeepSpeedPlugin(DDPPlugin):
             self._format_config()
             self._config_initialized = True
 
+        self._handle_gradient_accumulation_steps()
+
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
+
+        if self.on_gpu:
+            torch.cuda.set_device(self.root_device)
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
@@ -220,9 +264,11 @@ class DeepSpeedPlugin(DDPPlugin):
         optimizer = optimizers[0]
         return optimizer, scheduler, optimizer_frequencies
 
+    @property
+    def zero_stage_3(self) -> bool:
+        return self.config.get('zero_optimization') and self.config.get('zero_optimization').get('stage') == 3
+
     def _initialize_deepspeed_train(self, model):
-        if self.on_gpu:
-            torch.cuda.set_device(self.root_device)
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
         if "optimizer" not in self.config:
             rank_zero_info(
@@ -239,21 +285,65 @@ class DeepSpeedPlugin(DDPPlugin):
             lr_scheduler=lightning_scheduler,
             config_params=self.config,
         )
+        self._set_deepspeed_activation_checkpointing()
 
         # set optimizer for save/load, but deepspeed manages the specific optimizer logic
         self.lightning_module.trainer.optimizers = [optimizer]
+        self.lightning_module.trainer.schedulers = [lr_scheduler]
         self.model = model
 
-    def _initialize_deepspeed_inference(self, model):
-        # move the model to the correct device
-        self.model_to_device()
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator[None, None, None]:
+        if self.zero_stage_3:
+            model_parallel_context = deepspeed.zero.Init(remote_device="cpu", pin_memory=True)
+        else:
+            model_parallel_context = super().model_sharded_context()
 
-        self.pre_configure_ddp()
-        self.model = DistributedDataParallel(
-            model,
-            device_ids=self.determine_ddp_device_ids(),
-            **self._ddp_kwargs,
+        with model_parallel_context:
+            yield
+
+    def _set_deepspeed_activation_checkpointing(self):
+        if self.config.get('activation_checkpointing'):
+            checkpoint_config = self.config['activation_checkpointing']
+            deepspeed.checkpointing.configure(
+                mpu_=None,
+                partition_activations=checkpoint_config.get('partition_activations'),
+                contiguous_checkpointing=checkpoint_config.get('contiguous_checkpointing'),
+                checkpoint_in_cpu=checkpoint_config.get('checkpoint_in_cpu'),
+                profile=checkpoint_config.get('profile'),
+            )
+
+    def _initialize_deepspeed_inference(self, model):
+        # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
+        optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
+        if "optimizer" not in self.config:
+            rank_zero_info(
+                "You have not specified an optimizer or scheduler within the DeepSpeed config."
+                "Using `configure_optimizers` to define optimizer and scheduler."
+            )
+            optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
+        inference_config = {
+            # todo: this is required for DeepSpeed throughput timers, or throughput timers will be incorrect
+            'train_micro_batch_size_per_gpu': 1,
+        }
+        if 'fp16' in self.config:
+            inference_config.update({"fp16": self.config["fp16"]})
+        if self.zero_stage_3:
+            inference_config.update({
+                "zero_allow_untested_optimizer": self.config['zero_allow_untested_optimizer'],
+                "zero_optimization": self.config['zero_optimization'],
+            })
+        # Remove all module hooks before initializing new model
+        remove_module_hooks(model)
+        model, _, _, _ = deepspeed.initialize(
+            args=SimpleNamespace(local_rank=self.local_rank),
+            model=model,
+            optimizer=optimizer,
+            lr_scheduler=lightning_scheduler,
+            config_params=inference_config,
+            model_parameters=[],
         )
+        self.model = model
 
     def configure_scheduler(self, lr_scheduler):
         scheduler = _get_default_scheduler_config()
@@ -282,6 +372,20 @@ class DeepSpeedPlugin(DDPPlugin):
         # internally, the engine has a reference to the optimizer already.
         self.model.step(**kwargs)
 
+    def _handle_gradient_accumulation_steps(self):
+        """
+        This functions overrides the trainer.accumulation_scheduler to generate
+        ``accumulate_grad_batches=1``.
+        Therefore, ``optimizer_step`` will be called on every batches seen
+        so DeepSpeed Engine handles the gradient accumulation logic internally.
+        """
+        if self.config.get("gradient_accumulation_steps") > 1:
+            self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+            # todo (tchaton) Add support for accumulate_grad_batches being a dictionary.
+            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
+        else:
+            self._original_accumulate_grad_batches = None
+
     def _format_config(self):
         if self.config is None:
             raise MisconfigurationException(
@@ -300,14 +404,13 @@ class DeepSpeedPlugin(DDPPlugin):
         if "train_micro_batch_size_per_gpu" not in self.config:
             # train_micro_batch_size_per_gpu is used for throughput logging purposes
             # by default we use the batch size of the loader which may be incorrect if a batch sampler is passed
-            batch_size = self.lightning_module.train_dataloader().batch_size
+            batch_size = self.lightning_module.train_dataloader().batch_sampler.batch_size
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
 
     def _format_precision_config(self):
-
         amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
         amp_level = self.lightning_module.trainer.accelerator_connector.amp_level
         precision = self.lightning_module.trainer.accelerator_connector.precision
@@ -333,8 +436,87 @@ class DeepSpeedPlugin(DDPPlugin):
             raise MisconfigurationException("To use DeepSpeed ZeRO Optimization, you must set precision=16.")
 
     def _create_default_config(
-        self, zero_optimization: bool, zero_allow_untested_optimizer: bool, **zero_kwargs
+        self,
+        zero_optimization: bool,
+        zero_allow_untested_optimizer: bool,
+        partition_activations: bool,
+        cpu_checkpointing: bool,
+        contiguous_memory_optimization: bool,
+        synchronize_checkpoint_boundary: bool,
+        **zero_kwargs,
     ) -> Dict:
+        cfg = {
+            'activation_checkpointing': {
+                "partition_activations": partition_activations,
+                "cpu_checkpointing": cpu_checkpointing,
+                "contiguous_memory_optimization": contiguous_memory_optimization,
+                "synchronize_checkpoint_boundary": synchronize_checkpoint_boundary
+            }
+        }
         if zero_optimization:
-            return {"zero_allow_untested_optimizer": zero_allow_untested_optimizer, "zero_optimization": zero_kwargs}
-        return {}
+            cfg = {
+                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
+                "zero_optimization": zero_kwargs,
+                **cfg
+            }
+        return cfg
+
+    def _filepath_to_dir(self, filepath: str) -> str:
+        return os.path.dirname(filepath)
+
+    @property
+    def deepspeed_engine(self):
+        return self.model
+
+    def save_checkpoint(self, checkpoint: Dict, filepath: str) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            filepath: write-target file's path
+            weights_only: saving model weights only
+        """
+        if self.world_size > 1 and self.zero_stage_3:
+            # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
+            # dump states as a checkpoint dictionary object
+            save_dir = self._filepath_to_dir(filepath)
+            _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
+            checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
+            self.deepspeed_engine.save_checkpoint(save_dir, client_state=checkpoint)
+
+        else:
+            super().save_checkpoint(checkpoint, filepath)
+
+    def restore_model_state_from_ckpt_path(
+        self,
+        ckpt_path: str,
+        map_location: Callable = lambda storage, loc: storage,
+    ) -> Tuple[Dict, bool]:
+        if self.world_size > 1:
+            from pytorch_lightning.trainer.states import TrainerState
+            stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
+            save_dir = self._filepath_to_dir(ckpt_path)
+
+            if self.zero_stage_3:
+                # TODO: Currently required as this call is missing within the deepspeed engine.
+                self.deepspeed_engine.optimizer._partition_all_parameters()
+
+            _, client_state = self.deepspeed_engine.load_checkpoint(
+                save_dir, load_optimizer_states=stage_is_fit, load_lr_scheduler_states=stage_is_fit
+            )
+
+            # restore datamodule states
+            if self.lightning_module.trainer.datamodule is not None:
+                self.lightning_module.trainer.datamodule.on_load_checkpoint(client_state)
+
+            # hook: give user access to checkpoint if needed.
+            self.lightning_module.on_load_checkpoint(client_state)
+            return client_state, False
+        return super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
+
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        if self._original_accumulate_grad_batches is None:
+            return super().update_global_step(total_batch_idx, current_global_step)
+        else:
+            if total_batch_idx % self._original_accumulate_grad_batches == 0:
+                current_global_step += 1
+            return current_global_step
