@@ -18,7 +18,7 @@ from unittest import mock
 import pytest
 
 
-@pytest.mark.parameterize("env_vars", [{"RANK": "0"}, {"SLURM_PROCID": "0"}])
+@pytest.mark.parametrize("env_vars", [{"RANK": "0"}, {"SLURM_PROCID": "0"}])
 def test_rank_zero_known_cluster_envs(env_vars: Mapping[str, str]):
     """ Test that SLURM environment variables are properly checked for rank_zero_only. """
     from pytorch_lightning.utilities.distributed import _get_rank, rank_zero_only
@@ -36,7 +36,7 @@ def test_rank_zero_known_cluster_envs(env_vars: Mapping[str, str]):
         assert x == 1
 
 
-@pytest.mark.parameterize("rank_key,rank", [
+@pytest.mark.parametrize("rank_key,rank", [
     ("RANK", "1"),
     ("SLURM_PROCID", "2"),
     ("LOCAL_RANK", "3"),
