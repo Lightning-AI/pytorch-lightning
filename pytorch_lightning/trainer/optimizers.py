@@ -104,7 +104,7 @@ class TrainerOptimizersMixin(ABC):
         schedulers: list,
         monitor: Optional[str],
         is_manual_optimization: bool,
-    ):
+    ) -> List[Dict[str, Any]]:
         """Convert each scheduler into dict structure with relevant information"""
         lr_schedulers = []
         default_config = _get_default_scheduler_config()
