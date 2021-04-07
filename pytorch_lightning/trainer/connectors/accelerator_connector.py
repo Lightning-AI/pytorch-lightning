@@ -112,12 +112,6 @@ class AcceleratorConnector(object):
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
 
-        # init the default rank if exists
-        # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
-        # this way we only show it on rank 0
-        if "LOCAL_RANK" in os.environ:
-            rank_zero_only.rank = int(os.environ["LOCAL_RANK"])
-
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
             self.gpus = pick_multiple_gpus(gpus)
