@@ -53,7 +53,7 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
@@ -412,7 +412,7 @@ class Trainer(
         # we reuse fit for other functions. When already set, it shouldn't be modified.
         if not self.state.running:
             self.state = TrainerState.FITTING
-        if self._running_stage is None:
+        if self._running_stage is None or self._running_stage == RunningStage.TUNING:
             self.training = True
 
         # set local properties on the model
@@ -625,8 +625,13 @@ class Trainer(
             if not self.interrupted:
                 self.state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
-                self.train_loop.on_train_end()
+                self.accelerator.on_train_end()
+                self._running_stage = None
         except:
+            # give accelerators a chance to finish
+            self.accelerator.on_train_end()
+            # reset bookkeeping
+            self._running_stage = None
             print_exc()
             raise
 
