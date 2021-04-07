@@ -59,7 +59,6 @@ from pytorch_lightning.utilities import (
     device_parser,
     DeviceType,
     DistributedType,
-    rank_zero_only,
 )
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
