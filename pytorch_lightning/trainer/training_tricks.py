@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 class TrainerTrainingTricksMixin(ABC):
     """
-    TODO: This class will be deprecated in v1.5.
+    TODO: Remove this class in v1.5.
 
     Use the NaN utilities from ``pytorch_lightning.utilities.nan`` instead.
     """
