@@ -17,6 +17,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
@@ -129,11 +130,30 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
 
 
 def test_timer_resume_training(tmpdir):
-    # TODO
+    """ Test that the timer can resume together with the Trainer. """
     model = BoringModel()
-    timer = Timer(duration=timedelta())
+    timer = Timer(duration=timedelta(milliseconds=200))
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
+
+    # initial training
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_steps=1,
-        callbacks=[timer]
+        max_epochs=100,
+        callbacks=[timer, checkpoint_callback],
     )
+    trainer.fit(model)
+    assert not timer._offset
+    assert timer.time_remaining <= timedelta(0)
+    assert trainer.current_epoch < 99
+    saved_global_step = trainer.global_step
+
+    # resume training (with depleted timer
+    timer = Timer(duration=timedelta(milliseconds=200))
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[timer, checkpoint_callback],
+        resume_from_checkpoint=checkpoint_callback.best_model_path,
+    )
+    trainer.fit(model)
+    assert timer._offset > timedelta(0)
+    assert trainer.global_step == saved_global_step + 1
