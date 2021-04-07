@@ -196,14 +196,23 @@ class EarlyStopping(Callback):
             self.wait_count = 0
         elif self.stopping_threshold is not None and self.monitor_op(current, self.stopping_threshold):
             should_stop = True
-            reason = ""
+            reason = (
+                f"Below tolerance {self.monitor} = {current} <= {self.stopping_threshold}"
+                " Signaling Trainer to stop."
+            )
         elif self.divergence_threshold is not None and self.monitor_op(-current, -self.divergence_threshold):
             should_stop = True
-            reason = ""
+            reason = (
+                f"Divergence: {self.monitor} = {current} > {self.divergence_threshold}."
+                " Signaling Trainer to stop."
+            )
         else:
             self.wait_count += 1
             if self.wait_count >= self.patience:
                 should_stop = True
-                reason = ""
+                reason = (
+                    f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} epochs."
+                    f" Best score: {self.best_score:.3f}. Signaling Trainer to stop."
+                )
 
         return should_stop, reason
