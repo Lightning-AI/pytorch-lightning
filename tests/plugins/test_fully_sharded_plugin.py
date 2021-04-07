@@ -101,7 +101,7 @@ def test_fully_sharded_plugin_checkpoint_manual_autowrap(automatic_module_wrap, 
 
     class TestModel(BoringModel):
 
-        def on_model_parallel_setup(self) -> None:
+        def configure_sharded_model(self) -> None:
             if not automatic_module_wrap:
 
                 def wrap_policy(*args, **kwargs):
