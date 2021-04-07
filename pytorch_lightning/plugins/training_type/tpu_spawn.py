@@ -68,7 +68,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> MpDeviceLoader:
         if not has_len(dataloader):
             raise MisconfigurationException(
-                "TPUSpawn does not currently support IterableDatasets, the dataset must implement __len__."
+                "TPUSpawn does not currently support IterableDataset objects, the dataset must implement __len__."
             )
         device = xm.xla_device()
         dataloader = MpDeviceLoader(dataloader, device)
