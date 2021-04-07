@@ -17,7 +17,7 @@ Timer
 """
 import logging
 from datetime import datetime, timedelta
-from typing import Union, Dict, Any
+from typing import Any, Dict, Union
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.distributed import rank_zero_info

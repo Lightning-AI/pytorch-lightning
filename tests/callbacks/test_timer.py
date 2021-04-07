@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 import pytest
@@ -23,11 +23,13 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
-@pytest.mark.parametrize("duration,expected", [
-    ("00:00:22", timedelta(seconds=22)),
-    ("12:34:56", timedelta(hours=12, minutes=34, seconds=56)),
-    (timedelta(weeks=52, milliseconds=1), timedelta(weeks=52, milliseconds=1)),
-])
+@pytest.mark.parametrize(
+    "duration,expected", [
+        ("00:00:22", timedelta(seconds=22)),
+        ("12:34:56", timedelta(hours=12, minutes=34, seconds=56)),
+        (timedelta(weeks=52, milliseconds=1), timedelta(weeks=52, milliseconds=1)),
+    ]
+)
 def test_timer_parse_duration(duration, expected):
     timer = Timer(duration=duration)
     assert timer.time_remaining == expected
