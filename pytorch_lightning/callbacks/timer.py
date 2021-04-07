@@ -58,6 +58,10 @@ class Timer(Callback):
         self._offset = timedelta()
 
     @property
+    def start_time(self):
+        return self._start_time
+
+    @property
     def time_elapsed(self) -> timedelta:
         if self._start_time is None:
             return self._offset
