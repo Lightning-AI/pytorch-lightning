@@ -6,14 +6,13 @@ When you want to train larger parameter models or fit larger batch sizes on your
 For example if you'd like to train a large billion parameter transformer model, or to scale your batch size when training a semi-supervised learning model, using a Lightning optimized distributed training plugin will offer substantial improvements
 in memory usage. Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
 
-Choosing a Distributed Plugin
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Choosing an Optimized Distributed Plugin
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. note::
-    These plugins shard the model states across your GPUs; just in different ways. This means as you scale up the number of GPUs,
-    you may be able to reach the number of model parameters you'd like to train using plugins that have less of a speed degradation.
+These optimized Multi-GPU plugins shard the model states across your GPUs; just in different ways. This means as you scale up the number of GPUs,
+you may be able to reach the number of model parameters you'd like to train using plugins that have less of a speed degradation.
 
-    For example when using 128 GPUs, you can scale to large 10/20B parameter models using just DeepSpeed ZeRO Stage 2.
+For example when using 128 GPUs, you can scale to large 10 to 20 Billion parameter models using just DeepSpeed ZeRO Stage 2.
 
 - I want to reach the largest **batch size**, with *minimal* speed degradation - Use :ref:`sharded` or :ref:`deepspeed-zero-stage-2`
 - I want to reach the largest **model size**, with *minimal* speed degradation - Use :ref:`deepspeed-zero-stage-2`
