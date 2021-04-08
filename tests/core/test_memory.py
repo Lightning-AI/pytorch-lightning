@@ -88,6 +88,19 @@ class MixedDtypeModel(LightningModule):
         return self.reduce(self.embed(x))
 
 
+class PartialScriptModel(LightningModule):
+    """ A model which contains scripted layers. """
+
+    def __init__(self):
+        super().__init__()
+        self.layer1 = torch.jit.script(nn.Linear(5, 3))
+        self.layer2 = nn.Linear(3, 2)
+        self.example_input_array = torch.rand(2, 5)
+
+    def forward(self, x):
+        return self.layer2(self.layer1(x))
+
+
 def test_invalid_weights_summmary():
     """ Test that invalid value for weights_summary raises an error. """
     with pytest.raises(MisconfigurationException, match='`mode` can be None, .* got temp'):
@@ -97,11 +110,8 @@ def test_invalid_weights_summmary():
         Trainer(weights_summary='temp')
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
-def test_empty_model_summary_shapes(mode):
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+def test_empty_model_summary_shapes(mode: ModelSummary):
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
     summary = model.summarize(mode=mode)
@@ -110,16 +120,13 @@ def test_empty_model_summary_shapes(mode):
     assert summary.param_nums == []
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@RunIf(min_gpus=1)
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 @pytest.mark.parametrize(['device'], [
     pytest.param(torch.device('cpu')),
     pytest.param(torch.device('cuda', 0)),
     pytest.param(torch.device('cuda', 0)),
 ])
-@RunIf(min_gpus=1)
 def test_linear_model_summary_shapes(device, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().to(device)
@@ -157,10 +164,7 @@ def test_mixed_dtype_model_summary():
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_hooks_removed_after_summarize(mode):
     """ Test that all hooks were properly removed after summary, even ones that were not run. """
     model = UnorderedModel()
@@ -171,10 +175,7 @@ def test_hooks_removed_after_summarize(mode):
         assert handle.id not in handle.hooks_dict_ref()
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_rnn_summary_shapes(mode):
     """ Test that the model summary works for RNNs. """
     model = ParityModuleRNN()
@@ -198,10 +199,7 @@ def test_rnn_summary_shapes(mode):
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_summary_parameter_count(mode):
     """ Test that the summary counts the number of parameters in every submodule. """
     model = UnorderedModel()
@@ -215,10 +213,7 @@ def test_summary_parameter_count(mode):
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_summary_layer_types(mode):
     """ Test that the summary displays the layer names correctly. """
     model = UnorderedModel()
@@ -232,10 +227,16 @@ def test_summary_layer_types(mode):
     ]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
+def test_summary_with_scripted_modules(mode):
+    model = PartialScriptModel()
+    summary = model.summarize(mode=mode)
+    assert summary.layer_types == ["RecursiveScriptModule", "Linear"]
+    assert summary.in_sizes == [UNKNOWN_SIZE, [2, 3]]
+    assert summary.out_sizes == [UNKNOWN_SIZE, [2, 2]]
+
+
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 @pytest.mark.parametrize(['example_input', 'expected_size'], [
     pytest.param([], UNKNOWN_SIZE),
     pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
@@ -269,10 +270,7 @@ def test_example_input_array_types(example_input, expected_size, mode):
     assert summary.in_sizes == [expected_size]
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_model_size(mode):
     """ Test model size is calculated correctly. """
     model = PreCalculatedModel()
@@ -280,10 +278,7 @@ def test_model_size(mode):
     assert model.pre_calculated_model_size == summary.model_size
 
 
-@pytest.mark.parametrize(['mode'], [
-    pytest.param(ModelSummary.MODE_FULL),
-    pytest.param(ModelSummary.MODE_TOP),
-])
+@pytest.mark.parametrize('mode', [ModelSummary.MODE_FULL, ModelSummary.MODE_TOP])
 def test_empty_model_size(mode):
     """ Test empty model size is zero. """
     model = EmptyModule()
@@ -292,15 +287,9 @@ def test_empty_model_size(mode):
 
 
 @RunIf(min_gpus=1, amp_native=True)
-@pytest.mark.parametrize(
-    'precision', [
-        pytest.param(16, marks=pytest.mark.skip(reason="no longer valid, because 16 can mean mixed precision")),
-        pytest.param(32),
-    ]
-)
-def test_model_size_precision(monkeypatch, tmpdir, precision):
+def test_model_size_precision(tmpdir):
     """ Test model size for half and full precision. """
-    model = PreCalculatedModel(precision)
+    model = PreCalculatedModel()
 
     # fit model
     trainer = Trainer(
@@ -308,7 +297,7 @@ def test_model_size_precision(monkeypatch, tmpdir, precision):
         gpus=1,
         max_steps=1,
         max_epochs=1,
-        precision=precision,
+        precision=32,
     )
     trainer.fit(model)
     summary = model.summarize()

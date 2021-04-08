@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import sys
+from typing import Optional, Union
 from unittest import mock
 from unittest.mock import ANY, call, Mock
 
@@ -36,7 +37,7 @@ from tests.helpers import BoringModel
         ([ProgressBar(refresh_rate=2)], 1),
     ]
 )
-def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
+def test_progress_bar_on(tmpdir, callbacks: list, refresh_rate: Optional[int]):
     """Test different ways the progress bar can be turned on."""
 
     trainer = Trainer(
@@ -60,7 +61,7 @@ def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
         ([ModelCheckpoint(dirpath='../trainer')], 0),
     ]
 )
-def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
+def test_progress_bar_off(tmpdir, callbacks: list, refresh_rate: Union[bool, int]):
     """Test different ways the progress bar can be turned off."""
 
     trainer = Trainer(
@@ -89,7 +90,6 @@ def test_progress_bar_totals(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=1,
-        limit_val_batches=1.0,
         max_epochs=1,
     )
     bar = trainer.progress_bar_callback
@@ -120,6 +120,12 @@ def test_progress_bar_totals(tmpdir):
     # check that the test progress bar is off
     assert 0 == bar.total_test_batches
     assert bar.test_progress_bar is None
+
+    trainer.validate(model)
+
+    assert bar.val_progress_bar.total == m
+    assert bar.val_progress_bar.n == m
+    assert bar.val_batch_idx == m
 
     trainer.test(model)
 
@@ -156,6 +162,13 @@ def test_progress_bar_fast_dev_run(tmpdir):
     assert 2 == progress_bar.main_progress_bar.total
     assert 2 == progress_bar.main_progress_bar.n
 
+    trainer.validate(model)
+
+    # the validation progress bar should display 1 batch
+    assert 1 == progress_bar.val_batch_idx
+    assert 1 == progress_bar.val_progress_bar.total
+    assert 1 == progress_bar.val_progress_bar.n
+
     trainer.test(model)
 
     # the test progress bar should display 1 batch
@@ -165,7 +178,7 @@ def test_progress_bar_fast_dev_run(tmpdir):
 
 
 @pytest.mark.parametrize('refresh_rate', [0, 1, 50])
-def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
+def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 
     model = BoringModel()
@@ -213,13 +226,21 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     trainer.fit(model)
     assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
     assert progress_bar.val_batches_seen == 3 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
+    assert progress_bar.test_batches_seen == 0
+
+    trainer.validate(model)
+    assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
+    assert progress_bar.val_batches_seen == 4 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
+    assert progress_bar.test_batches_seen == 0
 
     trainer.test(model)
+    assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
+    assert progress_bar.val_batches_seen == 4 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches
 
 
 @pytest.mark.parametrize('limit_val_batches', (0, 5))
-def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches):
+def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
     """
     Test val_progress_bar total with 'num_sanity_val_steps' Trainer argument.
     """
@@ -309,7 +330,9 @@ class MockedUpdateProgressBars(ProgressBar):
         [5, 2, 6, [6, 1], [2]],
     ]
 )
-def test_main_progress_bar_update_amount(tmpdir, train_batches, val_batches, refresh_rate, train_deltas, val_deltas):
+def test_main_progress_bar_update_amount(
+    tmpdir, train_batches: int, val_batches: int, refresh_rate: int, train_deltas: list, val_deltas: list
+):
     """
     Test that the main progress updates with the correct amount together with the val progress. At the end of
     the epoch, the progress must not overshoot if the number of steps is not divisible by the refresh rate.
@@ -336,7 +359,7 @@ def test_main_progress_bar_update_amount(tmpdir, train_batches, val_batches, ref
     [3, 1, [1, 1, 1]],
     [5, 3, [3, 2]],
 ])
-def test_test_progress_bar_update_amount(tmpdir, test_batches, refresh_rate, test_deltas):
+def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate: int, test_deltas: list):
     """
     Test that test progress updates with the correct amount.
     """
@@ -379,10 +402,18 @@ def test_tensor_to_float_conversion(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "input_num, expected", [[1, '1'], [1.0, '1.000'], [0.1, '0.100'], [1e-3, '0.001'], [1e-5, '1e-5'], ['1.0', '1.000'],
-                            ['10000', '10000'], ['abc', 'abc']]
+    "input_num, expected", [
+        [1, '1'],
+        [1.0, '1.000'],
+        [0.1, '0.100'],
+        [1e-3, '0.001'],
+        [1e-5, '1e-5'],
+        ['1.0', '1.000'],
+        ['10000', '10000'],
+        ['abc', 'abc'],
+    ]
 )
-def test_tqdm_format_num(input_num, expected):
+def test_tqdm_format_num(input_num: Union[str, int, float], expected: str):
     """ Check that the specialized tqdm.format_num appends 0 to floats and strings """
     assert tqdm.format_num(input_num) == expected
 

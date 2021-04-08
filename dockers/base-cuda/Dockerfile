@@ -114,11 +114,6 @@ RUN \
     rm -rf apex
 
 RUN \
-    # install DeepSpeed from source.
-    # todo: swap to pypi release once DeepSpeed releases a new version >= 0.3.10
-    pip install deepspeed@git+https://github.com/microsoft/DeepSpeed@ec8b1cb
-
-RUN \
     # Show what we have
     pip --version && \
     pip list && \

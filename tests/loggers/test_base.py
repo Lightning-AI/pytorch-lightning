@@ -229,13 +229,22 @@ def test_with_accumulate_grad_batches():
 
 
 def test_dummyexperiment_support_indexing():
+    """ Test that the DummyExperiment can imitate indexing the experiment in a LoggerCollection. """
     experiment = DummyExperiment()
     assert experiment[0] == experiment
 
 
 def test_dummylogger_support_indexing():
+    """ Test that the DummyLogger can imitate indexing of a LoggerCollection. """
     logger = DummyLogger()
     assert logger[0] == logger
+
+
+def test_dummylogger_noop_method_calls():
+    """ Test that the DummyLogger methods can be called with arbitrary arguments. """
+    logger = DummyLogger()
+    logger.log_hyperparams("1", 2, three="three")
+    logger.log_metrics("1", 2, three="three")
 
 
 def test_np_sanitization():

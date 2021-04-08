@@ -39,8 +39,7 @@ _PAD_SIZE = 5
 
 class tqdm(_tqdm):
     """
-    Custom tqdm progressbar where we append 0 to floating points/strings to
-    prevent the progress bar from flickering
+    Custom tqdm progressbar where we append 0 to floating points/strings to prevent the progress bar from flickering
     """
 
     @staticmethod
@@ -149,9 +148,10 @@ class ProgressBarBase(Callback):
         validation dataloader is of infinite size.
         """
         total_val_batches = 0
-        if not self.trainer.disable_validation:
-            is_val_epoch = (self.trainer.current_epoch) % self.trainer.check_val_every_n_epoch == 0
+        if self.trainer.enable_validation:
+            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
             total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
+
         return total_val_batches
 
     @property
@@ -201,7 +201,7 @@ class ProgressBarBase(Callback):
     def on_train_start(self, trainer, pl_module):
         self._train_batch_idx = trainer.batch_idx
 
-    def on_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -355,9 +355,11 @@ class ProgressBar(ProgressBarBase):
 
     def init_validation_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for validation. """
+        # The main progress bar doesn't exist in `trainer.validate()`
+        has_main_bar = self.main_progress_bar is not None
         bar = tqdm(
             desc='Validating',
-            position=(2 * self.process_position + 1),
+            position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
@@ -391,8 +393,8 @@ class ProgressBar(ProgressBarBase):
         super().on_train_start(trainer, pl_module)
         self.main_progress_bar = self.init_train_tqdm()
 
-    def on_epoch_start(self, trainer, pl_module):
-        super().on_epoch_start(trainer, pl_module)
+    def on_train_epoch_start(self, trainer, pl_module):
+        super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float('inf'):
@@ -426,7 +428,8 @@ class ProgressBar(ProgressBarBase):
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+        if self.main_progress_bar is not None:
+            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):
@@ -479,8 +482,10 @@ class ProgressBar(ProgressBarBase):
     def _should_update(self, current, total):
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
-    def _update_bar(self, bar):
+    def _update_bar(self, bar: Optional[tqdm]) -> None:
         """ Updates the bar by the refresh rate without overshooting. """
+        if bar is None:
+            return
         if bar.total is not None:
             delta = min(self.refresh_rate, bar.total - bar.n)
         else:

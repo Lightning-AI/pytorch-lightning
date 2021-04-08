@@ -13,7 +13,6 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 # import m2r
-import builtins
 import glob
 import os
 import shutil
@@ -27,10 +26,13 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
 FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
-if SPHINX_MOCK_REQUIREMENTS:
-    builtins.__LIGHTNING_SETUP__ = True
 
-import pytorch_lightning  # noqa: E402
+try:
+    from pytorch_lightning import info
+except ImportError:
+    # alternative https://stackoverflow.com/a/67692/4521646
+    sys.path.append(os.path.join(PATH_ROOT, "pytorch_lightning"))
+    import info
 
 # -- Project documents -------------------------------------------------------
 
@@ -79,13 +81,13 @@ _transform_changelog(
 # -- Project information -----------------------------------------------------
 
 project = 'PyTorch Lightning'
-copyright = pytorch_lightning.__copyright__
-author = pytorch_lightning.__author__
+copyright = info.__copyright__
+author = info.__author__
 
 # The short X.Y version
-version = pytorch_lightning.__version__
+version = info.__version__
 # The full version, including alpha/beta/rc tags
-release = pytorch_lightning.__version__
+release = info.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -176,8 +178,8 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 # documentation.
 
 html_theme_options = {
-    'pytorch_project': pytorch_lightning.__homepage__,
-    'canonical_url': pytorch_lightning.__homepage__,
+    'pytorch_project': 'https://pytorchlightning.ai',
+    'canonical_url': info.__docs_url__,
     'collapse_navigation': False,
     'display_version': True,
     'logo_only': False,
@@ -279,6 +281,7 @@ intersphinx_mapping = {
     'torch': ('https://pytorch.org/docs/stable/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'PIL': ('https://pillow.readthedocs.io/en/stable/', None),
+    'torchmetrics': ('https://torchmetrics.readthedocs.io/en/stable/', None),
 }
 
 # -- Options for todo extension ----------------------------------------------
@@ -328,9 +331,11 @@ PACKAGE_MAPPING = {
     'comet-ml': 'comet_ml',
     'neptune-client': 'neptune',
     'hydra-core': 'hydra',
+    'pyDeprecate': 'deprecate',
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
+    MOCK_PACKAGES += ['fairscale']
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements', 'extra.txt'))
@@ -384,6 +389,6 @@ from pytorch_lightning.utilities import (
     _TORCHVISION_AVAILABLE,
     _module_available,
 )
-TORCHVISION_AVAILABLE = _module_available("torchvision")
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 """
 coverage_skip_undoc_in_source = True
