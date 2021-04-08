@@ -29,7 +29,6 @@ import numpy as np
 import torch
 import yaml
 
-from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -217,7 +216,7 @@ class ModelCheckpoint(Callback):
         self.save_function = trainer.save_checkpoint
 
     def on_train_batch_end(
-        self, trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+        self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """ Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps` """
         if self._should_skip_saving_checkpoint(trainer):
@@ -228,7 +227,7 @@ class ModelCheckpoint(Callback):
             return
         self.save_checkpoint(trainer)
 
-    def on_validation_end(self, trainer, pl_module: LightningModule) -> None:
+    def on_validation_end(self, trainer, pl_module) -> None:
         """
         checkpoints can be saved at the end of the val loop
         """
