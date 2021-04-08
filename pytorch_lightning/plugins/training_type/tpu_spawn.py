@@ -14,46 +14,79 @@
 import io
 import os
 import re
-from typing import Any, Dict, Iterable, List, Optional, Union
+import time
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 
 import torch
-import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.plugins.training_type.utils import on_colab_kaggle
+from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp
     from torch_xla.core.xla_model import rendezvous
-    from torch_xla.distributed.parallel_loader import ParallelLoader
+    from torch_xla.distributed.parallel_loader import MpDeviceLoader
 else:
-    xm, xla_pl, xmp, ParallelLoader, rendezvous = [None] * 5
+    xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import DictConfig, ListConfig, OmegaConf
+
+
+if TYPE_CHECKING:
+    from torch.nn import Module
+    from torch.utils.data import DataLoader
 
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
 
-    def __init__(
-        self,
-        parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: int = 1,
-        **kwargs: Dict[str, Any]
-    ) -> None:
-        super().__init__(
-            parallel_devices, num_nodes=num_nodes, cluster_environment=None, sync_batchnorm=False, **kwargs
-        )
+    def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
+        super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
         self.tpu_local_core_rank = 0
         self.start_method = None
 
-    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
+    @staticmethod
+    def _validate_dataloader(dataloaders: Union[List['DataLoader'], 'DataLoader']):
+        if not isinstance(dataloaders, list):
+            dataloaders = [dataloaders]
+
+        for dataloader in dataloaders:
+            if not has_len(dataloader):
+                raise MisconfigurationException(
+                    "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
+                    " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
+                )
+
+    @staticmethod
+    def _validate_patched_dataloaders(model: 'Module') -> None:
+        """Validate and fail fast if the dataloaders were passed directly to fit.
+        """
+        if hasattr(model, 'train_dataloader') and isinstance(model.train_dataloader, _PatchDataLoader):
+            TPUSpawnPlugin._validate_dataloader(model.train_dataloader.dataloader)
+
+        if hasattr(model, 'val_dataloader') and isinstance(model.val_dataloader, _PatchDataLoader):
+            TPUSpawnPlugin._validate_dataloader(model.val_dataloader.dataloader)
+
+        if hasattr(model, 'test_dataloader') and isinstance(model.test_dataloader, _PatchDataLoader):
+            TPUSpawnPlugin._validate_dataloader(model.test_dataloader.dataloader)
+
+        if hasattr(model, 'predict_dataloader') and isinstance(model.predict_dataloader, _PatchDataLoader):
+            TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
+
+    def connect(self, model: 'Module') -> None:
+        TPUSpawnPlugin._validate_patched_dataloaders(model)
+        return super().connect(model)
+
+    def setup(self, model: 'Module') -> 'Module':
         self.create_mp_queue()
         return self.model
 
@@ -70,10 +103,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def is_distributed(self):
         return self.world_size != 1
 
-    def process_dataloader(self, dataloader: Union[Iterable, torch.utils.data.DataLoader]) -> ParallelLoader:
+    def process_dataloader(self, dataloader: 'DataLoader') -> MpDeviceLoader:
+        TPUSpawnPlugin._validate_dataloader(dataloader)
         device = xm.xla_device()
-        dataloader = xla_pl.ParallelLoader(dataloader, [device])
-        dataloader = dataloader.per_device_loader(device)
+        dataloader = MpDeviceLoader(dataloader, device)
         return dataloader
 
     def configure_ddp(self) -> None:
@@ -107,30 +140,28 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         trainer.accelerator.setup_optimizers(trainer)
         trainer.precision_plugin.connect(self._model, None, None)
 
-        # replace trainer save_checkpoint to use `xm.save`
-        trainer.save_checkpoint = self.save_checkpoint
-        self.barrier()
+        self.barrier("pre-run-stage")
 
         results = trainer.run_stage()
 
-        self.__save_end_of_training_weights(self.lightning_module)
         self.transfer_distrib_spawn_state_on_fit_end(results)
 
-    def __save_end_of_training_weights(self, model: LightningModule) -> None:
-        # when training ends on these platforms dump weights to get out of the main process
-        if on_colab_kaggle():
-            rank_zero_warn("cleaning up... please do not interrupt")
-            self.save_spawn_weights(model)
+        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
+        self.barrier("end-process")
+
+        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
+        if self.global_rank == 0:
+            time.sleep(2)
 
     def model_to_device(self) -> None:
         self._model.to(xm.xla_device())
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if torch_distrib.is_initialized():
-            rendezvous(f"pl.Trainer.{name}")
+        rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
-        best_model_path = self.lightning_module.trainer.checkpoint_callback.best_model_path
+        checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
+        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         if self.mp_queue is not None:
             rank_zero_warn("cleaning up ddp environment...")
@@ -151,16 +182,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(results)
 
     def save(self, state_dict: Dict, path: str) -> None:
-        """
-        Saving with ``xm.save`` can be unstable and miss the rendez-vous after ``torch.save``.
-        The rendez-vous doesn't affect directly saving.
-        We can ignore the ``RuntimeError`` to reduce friction with TPUs.
-        """
-        try:
-            xm.save(state_dict, path)
-        except RuntimeError as e:
-            if "Failed to meet rendezvous" not in str(e):
-                raise e
+        xm.save(state_dict, path)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
@@ -172,37 +194,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         obj = torch.load(buffer)
         return obj
 
-    def load_spawn_weights(self, original_model: LightningModule) -> LightningModule:
-        """
-        Load the temp weights saved in the process
-        To recover the trained model from the ddp process we load the saved weights
-        """
-
-        loaded_model = original_model
-
-        if self.is_global_zero:
-            # load weights saved in ddp
-            path = os.path.join(original_model.trainer.default_root_dir, "__temp_weight_distributed_end.ckpt")
-            loaded_model = original_model.__class__.load_from_checkpoint(path)
-
-            # copy loaded weights to old model
-            original_model.load_state_dict(loaded_model.state_dict())
-
-            # remove ddp weights
-            os.remove(path)
-
-        return loaded_model
-
-    def save_spawn_weights(self, model: LightningModule) -> Optional[str]:
-        """
-        Dump a temporary checkpoint after ddp ends to get weights out of the process
-        """
-        if model.trainer.is_global_zero:
-            path = os.path.join(model.trainer.default_root_dir, "__temp_weight_distributed_end.ckpt")
-            model.trainer.save_checkpoint(path)
-            return path
-
-    def reduce_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool) -> bool:
         decision = torch.tensor(int(decision), device=self.device)
         decision = self.reduce(decision, "sum")
         decision = bool(decision == self.world_size)
@@ -225,39 +217,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             output = output / self.world_size
 
         return output
-
-    def post_dispatch(self) -> None:
-        # TODO: Check if trainer references can be resolved otherwise
-        model = self.lightning_module
-
-        # restore main state with best weights
-        best_path = self.mp_queue.get()
-        last_path = self.mp_queue.get()
-        self._results = self.mp_queue.get()
-
-        # transfer back the best path to the trainer
-        if self.lightning_module.trainer.checkpoint_callback is not None:
-            self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also bets score
-
-        # load last weights
-        if last_path and model.trainer.state == TrainerState.FITTING:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
-
-        self._model = model
-
-        # when training completes, load the weights back in main process
-        self.__load_weights_on_main_process()
-
-    def __load_weights_on_main_process(self) -> None:
-        model = self.lightning_module
-
-        # load weights if not interrupted
-        if on_colab_kaggle() and model.trainer.state == TrainerState.FITTING:
-            self.load_spawn_weights(model)
-
-        self._model = model
 
     def _close_logger(self, trainer) -> None:
         if trainer.logger is not None:
@@ -297,14 +256,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def predict_step(self, *args, **kwargs):
         return self.lightning_module.predict_step(*args, **kwargs)
 
-    def save_checkpoint(self, filepath, weights_only: bool = False):
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
+            checkpoint: dict containing model and trainer state
             filepath: write-target file's path
-            weights_only: saving model weights only
         """
-        # dump states as a checkpoint dictionary object
-        _checkpoint = self.lightning_module.trainer.checkpoint_connector.dump_checkpoint(weights_only)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment
-        self.save({k: v for k, v in _checkpoint.items() if k != "callbacks"}, filepath)
+        if _OMEGACONF_AVAILABLE:
+            checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
+        self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)

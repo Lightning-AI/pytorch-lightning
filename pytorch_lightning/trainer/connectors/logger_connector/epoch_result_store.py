@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from weakref import proxy
 
 import torch
@@ -21,6 +22,19 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType, LightningEnum
+from pytorch_lightning.utilities.warnings import WarningCache
+
+log = logging.getLogger(__name__)
+
+
+class MetricWarningCache(WarningCache):
+
+    def __init__(self):
+        super().__init__()
+        self.warned_metrics = []
+
+
+warning_cache = MetricWarningCache()
 
 
 class ResultStoreType(LightningEnum):
@@ -52,8 +66,10 @@ class HookResultStore:
     Those data structures enables us to reduce properly Result object when batch loop is finished.
     """
 
-    def __init__(self, fx_name: str) -> None:
+    def __init__(self, fx_name: str, all_gather_fn: Callable, should_warn: bool) -> None:
         self._fx_name = fx_name
+        self._all_gather_fn = all_gather_fn
+        self._should_warn = should_warn
         self._internals = {}
         self._internals_reduced = {}
         self._internal_type = None
@@ -109,6 +125,20 @@ class HookResultStore:
 
         func = getattr(opt_metric, func_name)
         metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
+        if self._should_warn:
+            for non_metric_key in opt_metric.get_non_metrics_keys():
+                if non_metric_key in metrics_to_log and non_metric_key not in warning_cache.warned_metrics:
+                    metric = self._all_gather_fn(metrics_to_log[non_metric_key])
+                    if any(metric[0] != m for m in metric[1:]):
+                        warning_cache.warn(
+                            f"The value associated to the key {non_metric_key}: {metric.cpu().tolist()} "
+                            "doesn't appear to be the same accross all processes. "
+                            "HINT: One could either do: `self.log(..., sync_dist=True)` to force mean"
+                            " reduction by default across processes which can be inaccurate or implement"
+                            " a `torchmetrics.Metric`"
+                        )
+                    warning_cache.warned_metrics.append(non_metric_key)
+
         results.append(metrics_to_log)
 
     def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> List[Dict]:
@@ -227,6 +257,12 @@ class EpochResultStore:
 
     def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = proxy(trainer)
+
+        # Add warning only for distributed (expect rpc as main worker is running the code).
+        _should_warn = trainer.accelerator_connector.is_distributed
+        _should_warn &= not trainer.training_type_plugin.rpc_enabled
+        self._should_warn = _should_warn
+
         self.reset()
 
     def __getitem__(self, key: str) -> Any:
@@ -278,7 +314,8 @@ class EpochResultStore:
             info = self.info
             fx_name = info["fx_name"]
 
-            self._internals.setdefault(fx_name, HookResultStore(fx_name))
+            all_gather_fn = self.trainer.lightning_module.all_gather
+            self._internals.setdefault(fx_name, HookResultStore(fx_name, all_gather_fn, self._should_warn))
 
             # attach capture batch_size
             Result.attach_batch_size(self._batch_size, hook_result)
@@ -346,7 +383,6 @@ class EpochResultStore:
 
         # update callback_metrics
         logger_connector._callback_metrics.update(callback_metrics)
-        logger_connector._callback_metrics.pop("epoch", None)
 
         batch_pbar_metrics.pop("debug_epoch", None)
         return batch_pbar_metrics, batch_log_metrics
@@ -358,12 +394,10 @@ class EpochResultStore:
 
     def get_latest_batch_log_metrics(self) -> Dict:
         batch_log_metrics = self.run_batch_from_func_name("get_batch_log_metrics")
-        batch_log_metrics.update(self.legacy_batch_log_metrics)
         return batch_log_metrics
 
     def get_latest_batch_pbar_metrics(self) -> Dict:
         batch_pbar_metrics = self.run_batch_from_func_name("get_batch_pbar_metrics")
-        batch_pbar_metrics.update(self.legacy_batch_pbar_metrics)
         return batch_pbar_metrics
 
     @property
@@ -415,8 +449,6 @@ class EpochResultStore:
         self._opt_idx: Optional[int] = None
         self._batch_size: Optional[int] = None
         self._has_batch_loop_finished = False
-        self.legacy_batch_log_metrics = {}
-        self.legacy_batch_pbar_metrics = {}
 
     def __call__(
         self,

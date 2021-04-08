@@ -15,12 +15,12 @@ from typing import Any, Optional
 
 from torchmetrics import AveragePrecision as _AveragePrecision
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class AveragePrecision(_AveragePrecision):
 
-    @deprecated(target=_AveragePrecision, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_AveragePrecision)
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -35,3 +35,4 @@ class AveragePrecision(_AveragePrecision):
         .. deprecated::
             Use :class:`~torchmetrics.AveragePrecision`. Will be removed in v1.5.0.
         """
+        _ = num_classes, pos_label, compute_on_step, dist_sync_on_step, process_group

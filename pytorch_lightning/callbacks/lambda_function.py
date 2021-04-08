@@ -42,6 +42,7 @@ class LambdaCallback(Callback):
         self,
         on_before_accelerator_backend_setup: Optional[Callable] = None,
         setup: Optional[Callable] = None,
+        on_configure_sharded_model: Optional[Callable] = None,
         teardown: Optional[Callable] = None,
         on_init_start: Optional[Callable] = None,
         on_init_end: Optional[Callable] = None,
@@ -83,6 +84,8 @@ class LambdaCallback(Callback):
             self.on_before_accelerator_backend_setup = on_before_accelerator_backend_setup
         if setup is not None:
             self.setup = setup
+        if on_configure_sharded_model is not None:
+            self.on_configure_sharded_model = on_configure_sharded_model
         if teardown is not None:
             self.teardown = teardown
         if on_init_start is not None:

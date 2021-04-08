@@ -199,13 +199,7 @@ class TrainerProperties(ABC):
     @classmethod
     def default_attributes(cls) -> dict:
         init_signature = inspect.signature(cls)
-
-        args = {}
-        for param_name in init_signature.parameters:
-            value = init_signature.parameters[param_name].default
-            args[param_name] = value
-
-        return args
+        return {k: v.default for k, v in init_signature.parameters.items()}
 
     @classmethod
     def get_deprecated_arg_names(cls) -> List:

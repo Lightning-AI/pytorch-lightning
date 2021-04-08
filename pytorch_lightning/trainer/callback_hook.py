@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Type
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -37,6 +37,11 @@ class TrainerCallbackHookMixin(ABC):
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
         for callback in self.callbacks:
             callback.on_before_accelerator_backend_setup(self, model)
+
+    def configure_sharded_model(self, model: LightningModule) -> None:
+        """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
+        for callback in self.callbacks:
+            callback.on_configure_sharded_model(self, model)
 
     def setup(self, model: LightningModule, stage: Optional[str]) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict, or tune."""
@@ -137,12 +142,12 @@ class TrainerCallbackHookMixin(ABC):
                 callback.on_test_epoch_end(self, self.lightning_module)
 
     def on_epoch_start(self):
-        """Called when the epoch begins."""
+        """Called when either of train/val/test epoch begins."""
         for callback in self.callbacks:
             callback.on_epoch_start(self, self.lightning_module)
 
     def on_epoch_end(self):
-        """Called when the epoch ends."""
+        """Called when either of train/val/test epoch ends."""
         for callback in self.callbacks:
             callback.on_epoch_end(self, self.lightning_module)
 
@@ -243,10 +248,10 @@ class TrainerCallbackHookMixin(ABC):
         callback_states = {}
         for callback in self.callbacks:
             if self.__is_old_signature(callback.on_save_checkpoint):
-                rank_zero_warn(
+                rank_zero_deprecation(
                     "`Callback.on_save_checkpoint` signature has changed in v1.3."
                     " A `checkpoint` parameter has been added."
-                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                    " Support for the old signature will be removed in v1.5"
                 )
                 state = callback.on_save_checkpoint(self, self.lightning_module)  # noqa: parameter-unfilled
             else:

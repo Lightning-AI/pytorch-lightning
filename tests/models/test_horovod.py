@@ -50,7 +50,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
     # todo: Find why coverage breaks CI.
-    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''     # noqa E265
+    # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
     # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,   # noqa E265
     cmdline = [
         'horovodrun', '-np',
@@ -63,7 +63,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     assert exit_code == 0
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, horovod=True)
 def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
@@ -80,7 +80,25 @@ def test_horovod_cpu(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, horovod=True)
+def test_horovod_cpu_clip_grad_by_value(tmpdir):
+    """Test Horovod running multi-process on CPU."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        gradient_clip_algorithm='value',
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        accelerator='horovod',
+        deterministic=True,
+    )
+    _run_horovod(trainer_options)
+
+
+@RunIf(skip_windows=True, horovod=True)
 def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
@@ -103,6 +121,25 @@ def test_horovod_multi_gpu(tmpdir):
         default_root_dir=str(tmpdir),
         weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        gpus=2,
+        deterministic=True,
+        accelerator='horovod',
+    )
+    _run_horovod(trainer_options, on_gpu=True)
+
+
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
+def test_horovod_multi_gpu_grad_by_value(tmpdir):
+    """Test Horovod with multi-GPU support."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        gradient_clip_algorithm='value',
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
