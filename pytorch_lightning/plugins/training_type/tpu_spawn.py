@@ -70,16 +70,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def _validate_patched_dataloaders(model: 'Module') -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit.
         """
-        if isinstance(model.train_dataloader, _PatchDataLoader):
+        if hasattr(model, 'train_dataloader') and isinstance(model.train_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.train_dataloader.dataloader)
 
-        if isinstance(model.val_dataloader, _PatchDataLoader):
+        if hasattr(model, 'val_dataloader') and isinstance(model.val_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.val_dataloader.dataloader)
 
-        if isinstance(model.test_dataloader, _PatchDataLoader):
+        if hasattr(model, 'test_dataloader') and isinstance(model.test_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.test_dataloader.dataloader)
 
-        if isinstance(model.predict_dataloader, _PatchDataLoader):
+        if hasattr(model, 'predict_dataloader') and isinstance(model.predict_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
 
     def connect(self, model: 'Module') -> None:
