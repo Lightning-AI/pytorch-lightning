@@ -612,11 +612,11 @@ class Trainer(
         self.checkpoint_connector.has_trained = False
 
         # enable train mode
-        model = self.lightning_module
-        model.train()
+        self.model.train()
         torch.set_grad_enabled(True)
 
         # reload data when needed
+        model = self.lightning_module
         self.train_loop.reset_train_val_dataloaders(model)
 
         # hook
@@ -813,6 +813,9 @@ class Trainer(
         self.predict_loop.on_predict_model_eval()
         model.zero_grad()
         torch.set_grad_enabled(False)
+
+        # call hook
+        self.predict_loop.on_predict_start()
 
         # set up the eval loop
         self.predict_loop.setup(model, max_batches, dataloaders)
