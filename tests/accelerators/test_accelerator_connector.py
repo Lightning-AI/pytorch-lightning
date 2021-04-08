@@ -386,35 +386,32 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
         trainer.fit(model)
 
 
-# @pytest.mark.skipif(
-#     not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-# )
-# @pytest.mark.parametrize("ddp_plugin_class", [DDPPlugin, DDPSpawnPlugin])
-# @mock.patch('torch.cuda.device_count', return_value=0)
-# def test_accelerator_choice_ddp_cpu_custom_plugin(_, ddp_plugin_class):
-#     """ Test that ddp_cpu can work together with custom plugins. """
-#
-#     class CB(Callback):
-#
-#         def on_fit_start(self, trainer, pl_module):
-#             assert trainer.use_ddp
-#             assert isinstance(trainer.accelerator, CPUAccelerator)
-#             assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
-#             assert trainer.training_type_plugin.num_processes == 2
-#             assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
-#             raise SystemExit()
-#
-#     model = BoringModel()
-#     trainer = Trainer(
-#         plugins=[ddp_plugin_class(find_unused_parameters=True)],
-#         fast_dev_run=True,
-#         accelerator='ddp_cpu',
-#         num_processes=2,
-#         callbacks=[CB()],
-#     )
-#
-#     with pytest.raises(SystemExit):
-#         trainer.fit(model)
+@RunIf(special=True)
+@pytest.mark.parametrize("ddp_plugin_class", [DDPPlugin, DDPSpawnPlugin])
+def test_accelerator_choice_ddp_cpu_custom_plugin(ddp_plugin_class):
+    """ Test that ddp_cpu can work together with custom plugins. """
+
+    class CB(Callback):
+
+        def on_fit_start(self, trainer, pl_module):
+            assert trainer.use_ddp
+            assert isinstance(trainer.accelerator, CPUAccelerator)
+            assert isinstance(trainer.training_type_plugin, ddp_plugin_class)
+            assert trainer.training_type_plugin.num_processes == 2
+            assert trainer.training_type_plugin.parallel_devices == [torch.device("cpu")] * 2
+            raise SystemExit()
+
+    model = BoringModel()
+    trainer = Trainer(
+        plugins=[ddp_plugin_class(find_unused_parameters=True)],
+        fast_dev_run=True,
+        accelerator='ddp_cpu',
+        num_processes=2,
+        callbacks=[CB()],
+    )
+
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
 
 
 @pytest.mark.skip("debug")
