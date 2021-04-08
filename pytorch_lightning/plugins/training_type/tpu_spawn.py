@@ -15,12 +15,13 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 
 import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
+from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -41,12 +42,48 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
+if TYPE_CHECKING:
+    from torch.nn import Module
+    from torch.utils.data import DataLoader
+
+
 class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
         self.tpu_local_core_rank = 0
         self.start_method = None
+
+    @staticmethod
+    def _validate_dataloader(dataloaders: Union[List['DataLoader'], 'DataLoader']):
+        if not isinstance(dataloaders, list):
+            dataloaders = [dataloaders]
+
+        for dataloader in dataloaders:
+            if not has_len(dataloader):
+                raise MisconfigurationException(
+                    "TPUSpawn does not currently support IterableDataset objects, the dataset must implement __len__."
+                )
+
+    @staticmethod
+    def _validate_patched_dataloaders(model: 'Module') -> None:
+        """Validate and fail fast if the dataloaders were passed directly to fit.
+        """
+        if isinstance(model.train_dataloader, _PatchDataLoader):
+            TPUSpawnPlugin._validate_dataloader(model.train_dataloader.dataloader)
+
+        if isinstance(model.val_dataloader, _PatchDataLoader):
+            TPUSpawnPlugin._validate_dataloader(model.val_dataloader.dataloader)
+
+        if isinstance(model.test_dataloader, _PatchDataLoader):
+            TPUSpawnPlugin._validate_dataloader(model.test_dataloader.dataloader)
+
+        if isinstance(model.predict_dataloader, _PatchDataLoader):
+            TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
+
+    def connect(self, model: 'Module') -> None:
+        TPUSpawnPlugin._validate_patched_dataloaders(model)
+        return super().connect(model)
 
     def setup(self, model: torch.nn.Module) -> torch.nn.Module:
         self.create_mp_queue()
@@ -65,11 +102,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def is_distributed(self):
         return self.world_size != 1
 
-    def process_dataloader(self, dataloader: torch.utils.data.DataLoader) -> MpDeviceLoader:
-        if not has_len(dataloader):
-            raise MisconfigurationException(
-                "TPUSpawn does not currently support IterableDataset objects, the dataset must implement __len__."
-            )
+    def process_dataloader(self, dataloader: 'DataLoader') -> MpDeviceLoader:
+        TPUSpawnPlugin._validate_dataloader(dataloader)
         device = xm.xla_device()
         dataloader = MpDeviceLoader(dataloader, device)
         return dataloader
