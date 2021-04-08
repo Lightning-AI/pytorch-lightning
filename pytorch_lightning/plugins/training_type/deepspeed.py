@@ -489,6 +489,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 # todo: expose this as a unprotected function in deepspeed
                 state_dict = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
                 if self.is_global_zero:
+                    # Remove module portion of the checkpoint before saving
                     state_dict = {k.partition('module.')[2]: state_dict[k] for k in state_dict.keys()}
                     checkpoint['state_dict'] = state_dict
                     return super().save_checkpoint(checkpoint, filepath)
