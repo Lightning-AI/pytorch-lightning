@@ -37,7 +37,7 @@ references:
     run:
       name: Build and push Docker image
       environment:
-        - PYTHON_VER: 3.6
+        - PYTHON_VER: 3.7
       command: |
         gcloud --quiet auth configure-docker
         #cd dockers/tpu-tests
