@@ -195,7 +195,7 @@ class EarlyStopping(Callback):
         elif self.stopping_threshold is not None and self.monitor_op(current, self.stopping_threshold):
             should_stop = True
             reason = (
-                f"Below tolerance {self.monitor} = {current} <= {self.stopping_threshold}"
+                f"Below tolerance {self.monitor} = {current} <= {self.stopping_threshold}."
                 " Signaling Trainer to stop."
             )
         elif self.divergence_threshold is not None and self.monitor_op(-current, -self.divergence_threshold):
