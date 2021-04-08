@@ -29,6 +29,10 @@ class Callback(abc.ABC):
     Subclass this class and override any of the relevant hooks
     """
 
+    @property
+    def state_identifier(self) -> str:
+        return self.__class__.__name__
+
     def on_configure_sharded_model(self, trainer, pl_module: LightningModule) -> None:
         """Called before configure sharded model"""
 

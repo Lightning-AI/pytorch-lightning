@@ -257,18 +257,19 @@ class TrainerCallbackHookMixin(ABC):
             else:
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback.__class__.__name__] = state
+                callback_states[callback.state_identifier] = state
         return callback_states
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint."""
         callback_states = checkpoint.get('callbacks')
+        version = checkpoint.get('pytorch-lightning_version')
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
         if callback_states is not None:
             for callback in self.callbacks:
-                state = callback_states.get(callback.__class__.__name__)
+                state = callback_states.get(callback.state_identifier)
                 if state:
                     state = deepcopy(state)
                     callback.on_load_checkpoint(state)

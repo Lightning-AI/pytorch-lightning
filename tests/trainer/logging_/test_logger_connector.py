@@ -268,7 +268,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
 
 def test_call_back_validator(tmpdir):
 
-    funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
+    funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_') and callable(getattr(Callback, f))])
 
     callbacks_func = [
         'on_after_backward',
