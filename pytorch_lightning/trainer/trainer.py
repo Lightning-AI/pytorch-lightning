@@ -642,7 +642,7 @@ class Trainer(
             self.accelerator.on_train_end()
             # reset bookkeeping
             self._running_stage = None
-            print_exc()
+            raise
 
     def run_evaluation(self, on_epoch=False):
         if not (self.evaluating or self.sanity_checking):
