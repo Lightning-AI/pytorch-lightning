@@ -1892,7 +1892,7 @@ def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
         trainer.test()
 
 
-class ModelFlagTrainerStagesModel(BoringModel):
+class TrainerStagesModel(BoringModel):
 
     def on_train_start(self) -> None:
         assert self.trainer.model.training
@@ -1914,7 +1914,7 @@ class ModelFlagTrainerStagesModel(BoringModel):
 @pytest.mark.parametrize(['accelerator', 'num_processes'],
                          [(None, 1), pytest.param('ddp', 2, marks=RunIf(skip_windows=True))])
 def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
-    model = ModelFlagTrainerStagesModel()
+    model = TrainerStagesModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
     trainer.fit(model)
     trainer.validate(model)
