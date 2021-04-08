@@ -5,7 +5,7 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock
+* @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
 
 # CI/CD and configs
 /.github/       @borda @tchaton
@@ -19,16 +19,16 @@
 /docs/source/conf.py        @borda @awaelchli
 
 # Packages
-/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock
-/pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda
-/pytorch_lightning/cluster_environments @borda @tchaton @SeanNaren @carmocca
-/pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock
-/pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli
+/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
+/pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
+/pytorch_lightning/cluster_environments @borda @tchaton @SeanNaren @carmocca @kaushikb11
+/pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock @kaushikb11
+/pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
 /pytorch_lightning/loggers              @tchaton @awaelchli @borda
 /pytorch_lightning/overrides            @tchaton @SeanNaren @borda
 /pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
-/pytorch_lightning/profiler             @williamfalcon @tchaton @borda
-/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock
+/pytorch_lightning/profiler             @williamfalcon @tchaton @borda @carmocca
+/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
 /pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
 /pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
 /pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
@@ -48,6 +48,7 @@
 # Testing
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
 
-/.github/CODEOWNERS     @williamfalcon
-/README.md              @williamfalcon @edenlightning @borda
-/setup.py               @williamfalcon @borda
+/.github/CODEOWNERS         @williamfalcon
+/README.md                  @williamfalcon @edenlightning @borda
+/setup.py                   @williamfalcon @borda
+/pytorch_lightning/info.py  @williamfalcon @borda
