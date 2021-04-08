@@ -40,6 +40,7 @@ from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITI
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
+from pytorch_lightning.utilities.argparse import _gpus_arg_default
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
@@ -1698,6 +1699,9 @@ class LightningModule(
             raise ValueError(f"Unsupported config type of {type(hp)}.")
 
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
+            # for k, v in hp.items():
+            #     if v == _gpus_arg_default:
+            #         hp[k] = _gpus_arg_default()
             self.hparams.update(hp)
         else:
             self._hparams = hp
