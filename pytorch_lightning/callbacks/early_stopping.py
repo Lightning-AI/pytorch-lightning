@@ -192,10 +192,6 @@ class EarlyStopping(Callback):
                 f"Monitored metric {self.monitor} = {current:.3f} is not finite."
                 f" Previous best value was {self.best_score:.3f}. Signaling Trainer to stop."
             )
-        if self.monitor_op(current - self.min_delta, self.best_score):
-            should_stop = False
-            self.best_score = current
-            self.wait_count = 0
         elif self.stopping_threshold is not None and self.monitor_op(current, self.stopping_threshold):
             should_stop = True
             reason = (
@@ -208,6 +204,10 @@ class EarlyStopping(Callback):
                 f"Divergence: {self.monitor} = {current} > {self.divergence_threshold}."
                 " Signaling Trainer to stop."
             )
+        elif self.monitor_op(current - self.min_delta, self.best_score):
+            should_stop = False
+            self.best_score = current
+            self.wait_count = 0
         else:
             self.wait_count += 1
             if self.wait_count >= self.patience:
