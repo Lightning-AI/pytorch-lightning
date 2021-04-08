@@ -189,7 +189,7 @@ class EarlyStopping(Callback):
         if self.check_finite and not torch.isfinite(current):
             should_stop = True
             reason = (
-                f"Monitored metric {self.monitor} = {current:.3f} is not finite."
+                f"Monitored metric {self.monitor} = {current} is not finite."
                 f" Previous best value was {self.best_score:.3f}. Signaling Trainer to stop."
             )
         elif self.stopping_threshold is not None and self.monitor_op(current, self.stopping_threshold):
