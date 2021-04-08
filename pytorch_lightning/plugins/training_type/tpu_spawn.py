@@ -238,4 +238,4 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return xm.all_gather(tensor.unsqueeze(0)).view(-1, *tensor.shape)
+        return xm.all_gather(tensor.unsqueeze(0))
