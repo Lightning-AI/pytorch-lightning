@@ -17,7 +17,7 @@ Abstract base class used to build new callbacks.
 """
 
 import abc
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -32,6 +32,10 @@ class Callback(abc.ABC):
     @property
     def state_identifier(self) -> str:
         return self.__class__.__name__
+
+    @property
+    def _legacy_state_identifier(self) -> Type:
+        return type(self)
 
     def on_configure_sharded_model(self, trainer, pl_module: LightningModule) -> None:
         """Called before configure sharded model"""

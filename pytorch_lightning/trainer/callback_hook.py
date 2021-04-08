@@ -14,6 +14,7 @@
 
 from abc import ABC
 from copy import deepcopy
+from distutils.version import LooseVersion
 from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -269,7 +270,10 @@ class TrainerCallbackHookMixin(ABC):
         # https://github.com/pytorch/xla/issues/2773
         if callback_states is not None:
             for callback in self.callbacks:
-                state = callback_states.get(callback.state_identifier)
+                state = (
+                    callback_states.get(callback.state_identifier)
+                    or callback_states.get(callback._legacy_state_identifier)
+                )
                 if state:
                     state = deepcopy(state)
                     callback.on_load_checkpoint(state)
