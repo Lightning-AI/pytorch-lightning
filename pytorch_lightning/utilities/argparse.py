@@ -232,7 +232,6 @@ def add_argparse_args(
 
         if arg == 'gpus' or arg == 'tpu_cores':
             use_type = _gpus_allowed_type
-            arg_default = None
 
         # hack for types in (int, float)
         if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
