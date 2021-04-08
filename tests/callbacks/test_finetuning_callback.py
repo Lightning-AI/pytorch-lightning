@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
+
 import pytest
 import torch
 from torch import nn
@@ -248,7 +249,9 @@ def test_on_before_accelerator_backend_setup(tmpdir):
 
 
 def test_deep_nested_model():
+
     class ConvBlock(nn.Module):
+
         def __init__(self, in_channels, out_channels):
             super().__init__()
             self.conv = nn.Conv2d(in_channels, out_channels, 3)
@@ -261,12 +264,10 @@ def test_deep_nested_model():
             return self.bn(x)
 
     model = nn.Sequential(
-        OrderedDict(
-            [
-                ("encoder", nn.Sequential(ConvBlock(3, 64), ConvBlock(64, 128))),
-                ("decoder", ConvBlock(128, 10)),
-            ]
-        )
+        OrderedDict([
+            ("encoder", nn.Sequential(ConvBlock(3, 64), ConvBlock(64, 128))),
+            ("decoder", ConvBlock(128, 10)),
+        ])
     )
 
     # There's 9 leaf layers in that model

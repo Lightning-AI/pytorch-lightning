@@ -102,7 +102,7 @@ class BaseFinetuning(Callback):
             _modules = modules.modules()
 
         # Leaf nodes in the graph have no children, so we use that to filter
-        return list(filter(lambda m: list(m.children()) == [], _modules))
+        return [m for m in _modules if not list(m.children())]
 
     @staticmethod
     def filter_params(
