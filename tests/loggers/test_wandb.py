@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-import types
 from argparse import ArgumentParser
 from unittest import mock
 
