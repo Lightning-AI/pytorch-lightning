@@ -30,6 +30,7 @@ from tests.helpers.runif import RunIf
 
 def _setup_ddp(rank, worldsize):
     import os
+
     os.environ["MASTER_ADDR"] = "localhost"
 
     # initialize the process group
