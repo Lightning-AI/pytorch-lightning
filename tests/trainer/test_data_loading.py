@@ -109,7 +109,7 @@ def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpd
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 @mock.patch('torch.cuda.is_available', return_value=True)
-def test_dataloader_warnings():
+def test_dataloader_warnings(cuda_available_mock, device_count_mock):
     trainer = Trainer(accelerator="ddp_spawn")
     dl = DataLoader(RandomDataset(32, 64), num_workers=1)
     if hasattr(dl, "persistent_workers"):
