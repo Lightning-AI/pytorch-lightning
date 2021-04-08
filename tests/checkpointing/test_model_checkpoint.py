@@ -840,7 +840,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     ckpt_last = torch.load(path_last)
     assert all(ckpt_last_epoch[k] == ckpt_last[k] for k in ("epoch", "global_step"))
 
-    ch_type = type(model_checkpoint)
+    ch_type = "ModelCheckpoint"
     assert ckpt_last["callbacks"][ch_type] == ckpt_last_epoch["callbacks"][ch_type]
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
@@ -1098,7 +1098,7 @@ def test_current_score(tmpdir):
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
     ckpts = [torch.load(str(ckpt)) for ckpt in tmpdir.listdir()]
-    ckpts = [ckpt["callbacks"][type(model_checkpoint)] for ckpt in ckpts]
+    ckpts = [ckpt["callbacks"]["ModelCheckpoint"] for ckpt in ckpts]
     assert sorted(ckpt["current_score"] for ckpt in ckpts) == [0.1, 0.2, 0.3]
 
 
