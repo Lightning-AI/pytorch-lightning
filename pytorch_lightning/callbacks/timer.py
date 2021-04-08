@@ -115,7 +115,7 @@ class Timer(Callback):
 
     def _check_time_remaining(self, trainer) -> None:
         should_stop = self.time_elapsed >= self._duration
-        should_stop = trainer.training_type_plugin.reduce_boolean_decision(should_stop)
+        should_stop = trainer.accelerator.broadcast(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop and self._verbose:
             rank_zero_info(
