@@ -19,7 +19,7 @@ def test_on_val_epoch_end_outputs(tmpdir):
 
     class TestModel(BoringModel):
 
-        def on_validation_epoch_end(self, outputs):
+        def validation_epoch_end(self, outputs):
             if trainer.running_sanity_check:
                 assert len(outputs[0]) == trainer.num_sanity_val_batches[0]
             else:
@@ -42,7 +42,7 @@ def test_on_test_epoch_end_outputs(tmpdir):
 
     class TestModel(BoringModel):
 
-        def on_test_epoch_end(self, outputs):
+        def test_epoch_end(self, outputs):
             assert len(outputs[0]) == trainer.num_test_batches[0]
 
     model = TestModel()

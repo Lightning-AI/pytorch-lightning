@@ -135,16 +135,6 @@ def test_v1_5_0_old_on_validation_epoch_end(tmpdir):
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
-    class OldSignatureModel(BoringModel):
-
-        def on_validation_epoch_end(self):  # noqa
-            ...
-
-    model = OldSignatureModel()
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.fit(model)
-
     callback_warning_cache.clear()
 
     class NewSignature(Callback):
@@ -154,15 +144,6 @@ def test_v1_5_0_old_on_validation_epoch_end(tmpdir):
 
     trainer.callbacks = [NewSignature()]
     with no_deprecated_call(match="`Callback.on_validation_epoch_end` signature has changed in v1.3."):
-        trainer.fit(model)
-
-    class NewSignatureModel(BoringModel):
-
-        def on_validation_epoch_end(self, outputs):
-            ...
-
-    model = NewSignatureModel()
-    with no_deprecated_call(match="`ModelHooks.on_validation_epoch_end` signature has changed in v1.3."):
         trainer.fit(model)
 
 
@@ -180,16 +161,6 @@ def test_v1_5_0_old_on_test_epoch_end(tmpdir):
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer.test(model)
 
-    class OldSignatureModel(BoringModel):
-
-        def on_test_epoch_end(self):  # noqa
-            ...
-
-    model = OldSignatureModel()
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.test(model)
-
     callback_warning_cache.clear()
 
     class NewSignature(Callback):
@@ -199,15 +170,6 @@ def test_v1_5_0_old_on_test_epoch_end(tmpdir):
 
     trainer.callbacks = [NewSignature()]
     with no_deprecated_call(match="`Callback.on_test_epoch_end` signature has changed in v1.3."):
-        trainer.test(model)
-
-    class NewSignatureModel(BoringModel):
-
-        def on_test_epoch_end(self, outputs):
-            ...
-
-    model = NewSignatureModel()
-    with no_deprecated_call(match="`ModelHooks.on_test_epoch_end` signature has changed in v1.3."):
         trainer.test(model)
 
 
