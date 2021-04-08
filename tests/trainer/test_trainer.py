@@ -1381,7 +1381,14 @@ def test_trainer_setup_call(tmpdir):
 )
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
-    model = EvalModelTemplate()
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args, **kwargs):
+            self.log("foo", -1)
+            return super().training_step(*args, **kwargs)
+
+    model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         log_every_n_steps=log_interval,
@@ -1932,3 +1939,32 @@ def test_trainer_predict_verify_config(tmpdir, use_datamodule):
 
     with pytest.raises(MisconfigurationException, match="Dataloader not found for `Trainer.predict`"):
         trainer.predict(model)
+
+
+class TrainerStagesModel(BoringModel):
+
+    def on_train_start(self) -> None:
+        assert self.trainer.model.training
+        assert self.training
+
+    def on_validation_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+    def on_test_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+    def on_predict_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+
+@pytest.mark.parametrize(['accelerator', 'num_processes'],
+                         [(None, 1), pytest.param('ddp', 2, marks=RunIf(skip_windows=True))])
+def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
+    model = TrainerStagesModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
+    trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model, model.val_dataloader())
