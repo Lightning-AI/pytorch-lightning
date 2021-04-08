@@ -508,7 +508,8 @@ class DeepSpeedPlugin(DDPPlugin):
         ckpt_path: str,
         map_location: Callable = lambda storage, loc: storage,
     ) -> Tuple[Dict, bool]:
-        if self.save_full_weights and self.world_size > 1:
+        if not self.save_full_weights and self.world_size > 1:
+            # Rely on deepspeed to load the checkpoint and necessary information
             from pytorch_lightning.trainer.states import TrainerState
             stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
