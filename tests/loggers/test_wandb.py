@@ -175,6 +175,7 @@ def test_wandb_sanitize_callable_params(tmpdir):
     params = WandbLogger._convert_params(params)
     params = WandbLogger._flatten_dict(params)
     params = WandbLogger._sanitize_callable_params(params)
+    assert params["gpus"] == "None"
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"
