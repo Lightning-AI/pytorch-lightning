@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, TYPE_CHECKING, Union
 
-import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
