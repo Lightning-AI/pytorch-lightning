@@ -2,7 +2,8 @@ import torch
 from torchmetrics import Metric as TMetric
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.metrics import Metric as PLMetric, MetricCollection
+from pytorch_lightning.metrics import Metric as PLMetric
+from pytorch_lightning.metrics import MetricCollection
 from tests.helpers.boring_model import BoringModel
 
 
