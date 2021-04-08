@@ -147,7 +147,7 @@ def test_model_checkpoint_score_and_ckpt(
         assert chk['epoch'] == epoch + 1
         assert chk['global_step'] == limit_train_batches * (epoch + 1)
 
-        mc_specific_data = chk['callbacks'][type(checkpoint)]
+        mc_specific_data = chk['callbacks']["ModelCheckpoint"]
         assert mc_specific_data['dirpath'] == checkpoint.dirpath
         assert mc_specific_data['monitor'] == monitor
         assert mc_specific_data['current_score'] == score
@@ -251,7 +251,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_in
             assert chk['epoch'] == epoch + 1
             assert chk['global_step'] == per_epoch_steps * (global_ix + 1)
 
-            mc_specific_data = chk['callbacks'][type(checkpoint)]
+            mc_specific_data = chk['callbacks']["ModelCheckpoint"]
             assert mc_specific_data['dirpath'] == checkpoint.dirpath
             assert mc_specific_data['monitor'] == monitor
             assert mc_specific_data['current_score'] == score
