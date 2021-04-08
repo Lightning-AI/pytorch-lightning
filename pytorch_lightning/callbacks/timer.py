@@ -20,10 +20,16 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Union
 
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities import LightningEnum
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
+
+
+class Interval(LightningEnum):
+    step = "step"
+    epoch = "epoch"
 
 
 class Timer(Callback):
@@ -56,17 +62,15 @@ class Timer(Callback):
         trainer = Trainer(callbacks=[timer])
     """
 
-    INTERVAL_CHOICES = ("epoch", "step")
-
-    def __init__(self, duration: Union[str, timedelta], interval: str = "step", verbose: bool = True):
+    def __init__(self, duration: Union[str, timedelta], interval: str = Interval.step, verbose: bool = True):
         super().__init__()
         if isinstance(duration, str):
             hms = datetime.strptime(duration.strip(), "%H:%M:%S")
             duration = timedelta(hours=hms.hour, minutes=hms.minute, seconds=hms.second)
-        if interval not in self.INTERVAL_CHOICES:
+        if interval not in set(Interval):
             raise MisconfigurationException(
                 f"Unsupported parameter value `Timer(interval={interval})`. Possible choices are:"
-                f" {', '.join(self.INTERVAL_CHOICES)}"
+                f" {', '.join(set(Interval))}"
             )
         self._duration = duration
         self._interval = interval
@@ -92,12 +96,12 @@ class Timer(Callback):
         self._start_time = datetime.now()
 
     def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
-        if self._interval != "step":
+        if self._interval != Interval.step:
             return
         self._check_time_remaining(trainer)
 
     def on_train_epoch_end(self, trainer, *args, **kwargs) -> None:
-        if self._interval != "epoch":
+        if self._interval != Interval.epoch:
             return
         self._check_time_remaining(trainer)
 
