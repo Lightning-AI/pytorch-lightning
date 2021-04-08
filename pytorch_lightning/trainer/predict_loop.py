@@ -83,7 +83,7 @@ class PredictLoop(object):
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
         self._predictions[dataloader_idx].append(predictions)
-        
+
         if self.trainer._progress_bar_callback is not None:
             self.trainer._progress_bar_callback.on_predict_batch_end(
                 self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
