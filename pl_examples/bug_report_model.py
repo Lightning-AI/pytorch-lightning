@@ -126,12 +126,13 @@ class BoringModel(LightningModule):
 #  args = parser.parse_args(opt)
 
 
+class TestModel(BoringModel):
+
+    def on_train_epoch_start(self) -> None:
+        print('override any method to prove your bug')
+
+
 def test_run():
-
-    class TestModel(BoringModel):
-
-        def on_train_epoch_start(self) -> None:
-            print('override any method to prove your bug')
 
     # fake data
     train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
