@@ -62,7 +62,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         for dataloader in dataloaders:
             if not has_len(dataloader):
                 raise MisconfigurationException(
-                    "TPUSpawn does not currently support IterableDataset objects, the dataset must implement __len__."
+                    "TPUs do not currently support IterableDataset objects, the dataset must implement __len__."
+                    "HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
                 )
 
     @staticmethod

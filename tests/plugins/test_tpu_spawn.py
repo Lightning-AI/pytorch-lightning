@@ -65,10 +65,10 @@ def test_error_patched_iterable_dataloaders(
         predict_dataloaders=predict_dataloaders,
     )
 
-    with pytest.raises(MisconfigurationException, match="TPUSpawn does not currently support"):
+    with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
         TPUSpawnPlugin(MagicMock()).connect(model)
 
 
 def test_error_process_iterable_dataloader(tmpdir):
-    with pytest.raises(MisconfigurationException, match="TPUSpawn does not currently support"):
+    with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
         TPUSpawnPlugin(MagicMock()).process_dataloader(_loader_no_len)
