@@ -692,7 +692,7 @@ class TrainLoop:
 
     def _check_nan(self, loss: torch.Tensor) -> None:
         if not torch.isfinite(loss).all():
-            raise RuntimeError(f'The loss returned in `training_step` is {loss}.')
+            raise ValueError(f'The loss returned in `training_step` is {loss}.')
         model = self.trainer.lightning_module
         detect_nan_parameters(model)
 

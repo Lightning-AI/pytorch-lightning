@@ -764,7 +764,7 @@ def test_nan_loss_detection(tmpdir):
         terminate_on_nan=True,
     )
 
-    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is nan or inf.*"):
+    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_step_inf_loss
 
@@ -1323,7 +1323,9 @@ def test_trainer_setup_call(tmpdir, stage):
 )
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
+
     class TestModel(BoringModel):
+
         def training_step(self, *args, **kwargs):
             self.log("foo", -1)
             return super().training_step(*args, **kwargs)
