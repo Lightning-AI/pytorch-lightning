@@ -86,7 +86,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         TPUSpawnPlugin._validate_patched_dataloaders(model)
         return super().connect(model)
 
-    def setup(self, model: torch.nn.Module) -> torch.nn.Module:
+    def setup(self, model: 'Module') -> 'Module':
         self.create_mp_queue()
         return self.model
 
