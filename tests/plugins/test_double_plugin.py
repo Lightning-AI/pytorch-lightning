@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pickle
 import pytest
+from unittest.mock import MagicMock
+
 import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.plugins import DoublePrecisionPlugin
 from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
@@ -123,3 +127,10 @@ def test_double_precision(tmpdir, boring_model):
     trainer.predict(model)
 
     assert model.training_step == original_training_step
+
+
+def test_double_precision_pickle(tmpdir):
+    model = BoringModel()
+    plugin = DoublePrecisionPlugin()
+    model, _, __ = plugin.connect(model, MagicMock(), MagicMock())
+    pickle.dumps(model)

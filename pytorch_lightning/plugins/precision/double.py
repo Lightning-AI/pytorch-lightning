@@ -69,6 +69,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     def __init__(self) -> None:
         super().__init__()
         self.patches: List[_DoublePrecisionPatch] = []
+        self._model = None
 
     def connect(
         self,
@@ -80,14 +81,19 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         `predict_step`, and `forward` methods to convert incoming floating point data to double. Does not alter
         `optimizers` or `lr_schedulers`."""
         model = model.to(dtype=torch.float64)
-        if isinstance(model, LightningModule):
-            self.patches.append(_DoublePrecisionPatch.patch(model, 'training_step'))
-            self.patches.append(_DoublePrecisionPatch.patch(model, 'validation_step'))
-            self.patches.append(_DoublePrecisionPatch.patch(model, 'test_step'))
-            self.patches.append(_DoublePrecisionPatch.patch(model, 'predict_step'))
-        self.patches.append(_DoublePrecisionPatch.patch(model, 'forward'))
+
+        self._model = model
 
         return super().connect(model, optimizers, lr_schedulers)
+
+    def pre_dispatch(self) -> None:
+        if self._model is not None:
+            if isinstance(self._model, LightningModule):
+                self.patches.append(_DoublePrecisionPatch.patch(self._model, 'training_step'))
+                self.patches.append(_DoublePrecisionPatch.patch(self._model, 'validation_step'))
+                self.patches.append(_DoublePrecisionPatch.patch(self._model, 'test_step'))
+                self.patches.append(_DoublePrecisionPatch.patch(self._model, 'predict_step'))
+            self.patches.append(_DoublePrecisionPatch.patch(self._model, 'forward'))
 
     def post_dispatch(self) -> None:
         while len(self.patches) > 0:
