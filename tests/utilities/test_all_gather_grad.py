@@ -13,7 +13,7 @@ from tests.helpers.runif import RunIf
 def setup_ddp(rank, world_size):
     """ Setup ddp enviroment """
     os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "29501"
+    os.environ["MASTER_PORT"] = "8088"
 
     if torch.distributed.is_available() and sys.platform not in ("win32", "cygwin"):
         torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
@@ -44,7 +44,6 @@ def _test_all_gather_ddp(rank, world_size):
 @RunIf(skip_windows=True)
 def test_all_gather_ddp():
     world_size = 3
-    os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size, ), nprocs=world_size)
 
 
