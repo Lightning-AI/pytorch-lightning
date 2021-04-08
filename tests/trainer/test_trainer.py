@@ -1902,7 +1902,7 @@ class ModelFlagTrainerStagesModel(BoringModel):
         assert self.trainer.model.training
         assert self.training
 
-    def on_validation_epoch_start(self) -> None:
+    def on_validation_start(self) -> None:
         assert not self.trainer.model.training
         assert not self.training
 
