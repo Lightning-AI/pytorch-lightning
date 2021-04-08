@@ -56,12 +56,12 @@ to manually manage the optimization process. To do so, do the following:
        ...
 
        # step every `n` batches
-       if batch_idx+1 % n == 0:
+       if (batch_idx+1) % n == 0:
            sch = self.lr_schedulers()
            sch.step()
 
        # step every `n` epochs
-       if self.trainer.is_last_batch and self.trainer.current_epoch+1 % n == 0:
+       if self.trainer.is_last_batch and (self.trainer.current_epoch+1) % n == 0:
           sch = self.lr_schedulers()
           sch.step()
 
