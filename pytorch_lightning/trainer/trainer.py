@@ -786,7 +786,6 @@ class Trainer(
 
         # enable eval mode + no grads
         self.predict_loop.on_predict_model_eval()
-
         model.zero_grad()
         torch.set_grad_enabled(False)
 
