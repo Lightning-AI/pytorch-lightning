@@ -187,7 +187,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
                 "To use the DeepSpeed plugin, you must have DeepSpeed installed."
-                " pip install deepspeed mpi4py"
+                " pip install deepspeed"
             )
         super().__init__(
             parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
@@ -216,7 +216,6 @@ class DeepSpeedPlugin(DDPPlugin):
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
 
-        # saving full weights when using ZeRO 3
         self.save_full_weights = save_full_weights
 
         # default FP16 parameters.
@@ -488,15 +487,18 @@ class DeepSpeedPlugin(DDPPlugin):
             save_dir = self._filepath_to_dir(filepath)
             if self.save_full_weights:
                 # todo: expose this as a unprotected function in deepspeed
-                checkpoint['state_dict'] = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
-                return super().save_checkpoint(checkpoint, filepath)
+                state_dict = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
+                if self.is_global_zero:
+                    state_dict = {k.partition('module.')[2]: state_dict[k] for k in state_dict.keys()}
+                    checkpoint['state_dict'] = state_dict
+                    return super().save_checkpoint(checkpoint, filepath)
+                return
 
             # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
             _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
             checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
             self.deepspeed_engine.save_checkpoint(save_dir, client_state=checkpoint)
-
         else:
             super().save_checkpoint(checkpoint, filepath)
 
@@ -505,7 +507,7 @@ class DeepSpeedPlugin(DDPPlugin):
         ckpt_path: str,
         map_location: Callable = lambda storage, loc: storage,
     ) -> Tuple[Dict, bool]:
-        if self.world_size > 1:
+        if self.save_full_weights and self.world_size > 1:
             from pytorch_lightning.trainer.states import TrainerState
             stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
