@@ -1699,9 +1699,6 @@ class LightningModule(
             raise ValueError(f"Unsupported config type of {type(hp)}.")
 
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
-            # for k, v in hp.items():
-            #     if v == _gpus_arg_default:
-            #         hp[k] = _gpus_arg_default()
             self.hparams.update(hp)
         else:
             self._hparams = hp
