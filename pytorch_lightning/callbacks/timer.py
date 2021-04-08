@@ -118,4 +118,7 @@ class Timer(Callback):
         should_stop = trainer.training_type_plugin.reduce_boolean_decision(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop and self._verbose:
-            rank_zero_info("Time limit reached. Signaling Trainer to stop.")
+            rank_zero_info(
+                f"Time limit reached. Elapsed time is {self.time_elapsed}."
+                " Signaling Trainer to stop."
+            )
