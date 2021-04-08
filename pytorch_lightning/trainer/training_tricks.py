@@ -20,7 +20,7 @@ from torch import Tensor
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.nan import detect_nan_parameters, print_nan_gradients
+from pytorch_lightning.utilities.finite_checks import detect_nan_parameters, print_nan_gradients
 
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
@@ -42,7 +42,7 @@ class TrainerTrainingTricksMixin(ABC):
         rank_zero_deprecation(
             "Internal: TrainerTrainingTricksMixin.print_nan_gradients is deprecated in v1.3"
             " and will be removed in v1.5."
-            " Use `pytorch_lightning.utilities.nan.print_nan_gradients` instead."
+            " Use `pytorch_lightning.utilities.finite_checks.print_nan_gradients` instead."
         )
         model = self.lightning_module
         print_nan_gradients(model)
@@ -51,7 +51,7 @@ class TrainerTrainingTricksMixin(ABC):
         rank_zero_deprecation(
             "Internal: TrainerTrainingTricksMixin.detect_nan_tensors is deprecated in v1.3"
             " and will be removed in v1.5."
-            " Use `pytorch_lightning.utilities.nan.detect_nan_parameters` instead."
+            " Use `pytorch_lightning.utilities.finite_checks.detect_nan_parameters` instead."
         )
         # check if loss is nan
         if not torch.isfinite(loss).all():
