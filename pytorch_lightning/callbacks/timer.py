@@ -123,3 +123,30 @@ class Timer(Callback):
                 f"Time limit reached. Elapsed time is {self.time_elapsed}."
                 " Signaling Trainer to stop."
             )
+
+
+def str2timedelta(duration: str):
+    """
+
+    Args:
+        duration:
+
+    Returns:
+
+    Examples:
+        >>> str2timedelta("03")
+        timedelta(seconds=3)
+        >>> str2timedelta("00:03")
+        timedelta(seconds=3)
+        >>> str2timedelta("12:34:56")
+        timedelta(hours=12, minutes=34, seconds=56)
+    """
+    # seconds, minutes, hours, days
+    smhd = [0, 0, 0, 0]
+    splits = duration.strip().split(":")
+    if len(splits) > len(smhd):
+        raise ValueError("")
+    for i, part in enumerate(splits):
+        smhd[i] = int(part)
+    delta = timedelta(seconds=smhd[0], minutes=smhd[1], hours=smhd[2], days=smhd[3])
+    return delta
