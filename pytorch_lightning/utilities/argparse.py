@@ -287,10 +287,6 @@ def _gpus_allowed_type(x) -> Union[int, str]:
         return int(x)
 
 
-def _gpus_arg_default(x) -> Union[int, str]:
-    return _gpus_allowed_type(x)
-
-
 def _int_or_float_type(x) -> Union[int, float]:
     if '.' in str(x):
         return float(x)
