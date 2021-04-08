@@ -64,8 +64,7 @@ To get a TPU on colab, follow these steps:
 
    .. code-block::
 
-        !curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
-        !python pytorch-xla-env-setup.py --version 1.7 --apt-packages libomp5 libopenblas-dev
+        !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.8-cp37-cp37m-linux_x86_64.whl
 
 5. Once the above is done, install PyTorch Lightning (v 0.7.0+).
 

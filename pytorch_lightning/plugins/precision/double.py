@@ -67,6 +67,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     precision: int = 64
 
     def __init__(self) -> None:
+        super().__init__()
         self.patches: List[_DoublePrecisionPatch] = []
 
     def connect(
