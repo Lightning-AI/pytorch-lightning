@@ -19,7 +19,6 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
