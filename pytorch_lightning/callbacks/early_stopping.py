@@ -174,14 +174,14 @@ class EarlyStopping(Callback):
         trainer.dev_debugger.track_early_stopping_history(self, current)
 
         should_stop, reason = self._evalute_stopping_criteria(current)
-        if should_stop:
-            self.stopped_epoch = trainer.current_epoch
-        if reason:
-            log.info(f"[{trainer.global_rank}] {reason}")
 
         # stop every ddp process if any world process decides to stop
         should_stop = trainer.training_type_plugin.reduce_boolean_decision(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
+        if should_stop:
+            self.stopped_epoch = trainer.current_epoch
+        if reason:
+            log.info(f"[{trainer.global_rank}] {reason}")
 
     def _evalute_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
         should_stop = False
