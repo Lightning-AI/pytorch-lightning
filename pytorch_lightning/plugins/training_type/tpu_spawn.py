@@ -154,6 +154,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         obj = torch.load(buffer)
         return obj
 
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = self.reduce(decision, reduce_op="sum")
+        decision = bool(decision == self.world_size)
+        return decision
+
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
             output = torch.tensor(output, device=self.lightning_module.device)
