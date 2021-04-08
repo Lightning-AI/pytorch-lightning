@@ -420,7 +420,7 @@ class Trainer(
         # we reuse fit for other functions. When already set, it shouldn't be modified.
         if not self.state.running:
             self.state = TrainerState.FITTING
-        if self._running_stage is None or self._running_stage == RunningStage.TUNING:
+        if self._running_stage is None or self.tuning:
             self.training = True
 
         # set local properties on the model
@@ -643,7 +643,6 @@ class Trainer(
             # reset bookkeeping
             self._running_stage = None
             print_exc()
-            raise
 
     def run_evaluation(self, on_epoch=False):
         if not (self.evaluating or self.sanity_checking):
