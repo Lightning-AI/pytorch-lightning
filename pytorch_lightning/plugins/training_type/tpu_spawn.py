@@ -221,3 +221,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if _OMEGACONF_AVAILABLE:
             checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
         self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)
+
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """
+        Function to gather a tensor from several distributed processes
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: not available with TPUs
+            sync_grads: not available with TPUs
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return xm.all_gather(tensor.unsqueeze(0)).view(-1, *tensor.shape)
