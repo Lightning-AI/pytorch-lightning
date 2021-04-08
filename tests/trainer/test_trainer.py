@@ -1894,15 +1894,15 @@ def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
 
 class ModelFlagTrainerStagesModel(BoringModel):
 
-    def on_test_start(self) -> None:
-        assert not self.trainer.model.training
-        assert not self.training
-
     def on_train_start(self) -> None:
         assert self.trainer.model.training
         assert self.training
 
     def on_validation_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+    def on_test_start(self) -> None:
         assert not self.trainer.model.training
         assert not self.training
 
@@ -1919,3 +1919,4 @@ def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
+    trainer.predict(model)
