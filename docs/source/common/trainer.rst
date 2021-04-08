@@ -991,7 +991,7 @@ max_time
 ^^^^^^^^
 
 Set the maximum amount of time for training. Training will get interrupted mid-epoch.
-For for customizable options use the :class:`~pytorch_lightning.callbacks.timer.Timer` callback.
+For customizable options use the :class:`~pytorch_lightning.callbacks.timer.Timer` callback.
 
 .. testcode::
 
