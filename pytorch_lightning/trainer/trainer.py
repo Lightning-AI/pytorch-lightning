@@ -665,8 +665,6 @@ class Trainer(
         # ref model
         model = self.lightning_module
         model.zero_grad()
-
-        self.model.eval()
         torch.set_grad_enabled(False)
 
         # hook
@@ -788,7 +786,7 @@ class Trainer(
 
         # enable eval mode + no grads
         self.predict_loop.on_predict_model_eval()
-        self.model.eval()
+
         model.zero_grad()
         torch.set_grad_enabled(False)
 
