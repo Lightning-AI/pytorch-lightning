@@ -31,7 +31,7 @@ class TrainerTrainingTricksMixin(ABC):
     """
     TODO: Remove this class in v1.5.
 
-    Use the NaN utilities from ``pytorch_lightning.utilities.nan`` instead.
+    Use the NaN utilities from ``pytorch_lightning.utilities.finite_checks`` instead.
     """
 
     # this is just a summary on variables used in this abstract class,
