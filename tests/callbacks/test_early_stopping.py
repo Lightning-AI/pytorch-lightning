@@ -242,6 +242,37 @@ def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_thesho
     assert trainer.current_epoch == expected_epoch, 'early_stopping failed'
 
 
+@pytest.mark.parametrize("stop_value", [
+    torch.tensor(np.inf),
+    torch.tensor(np.nan),
+])
+def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
+
+    losses = [4, 3, stop_value, 2, 1]
+    expected_stop_epoch = 2
+
+    class CurrentModel(BoringModel):
+
+        def validation_epoch_end(self, outputs):
+            val_loss = losses[self.current_epoch]
+            self.log('val_loss', val_loss)
+
+    model = CurrentModel()
+    early_stopping = EarlyStopping(
+        monitor='val_loss',
+        check_finite=True,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[early_stopping],
+        overfit_batches=0.20,
+        max_epochs=10,
+    )
+    trainer.fit(model)
+    assert trainer.current_epoch == expected_stop_epoch
+    assert early_stopping.stopped_epoch == expected_stop_epoch
+
+
 @pytest.mark.parametrize('step_freeze, min_steps, min_epochs', [(5, 1, 1), (5, 1, 3), (3, 15, 1)])
 def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: int, min_steps: int, min_epochs: int):
     """Excepted Behaviour:
