@@ -243,7 +243,7 @@ class TrainerCallbackHookMixin(ABC):
             return True
         return False
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[Type, dict]:
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}
         for callback in self.callbacks:
@@ -257,10 +257,10 @@ class TrainerCallbackHookMixin(ABC):
             else:
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[type(callback)] = state
+                callback_states[callback.__class__.__name__] = state
         return callback_states
 
-    def on_load_checkpoint(self, checkpoint):
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint."""
         callback_states = checkpoint.get('callbacks')
         # Todo: the `callback_states` are dropped with TPUSpawn as they
@@ -268,7 +268,7 @@ class TrainerCallbackHookMixin(ABC):
         # https://github.com/pytorch/xla/issues/2773
         if callback_states is not None:
             for callback in self.callbacks:
-                state = callback_states.get(type(callback))
+                state = callback_states.get(callback.__class__.__name__)
                 if state:
                     state = deepcopy(state)
                     callback.on_load_checkpoint(state)
