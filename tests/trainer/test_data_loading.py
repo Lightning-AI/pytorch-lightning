@@ -116,6 +116,5 @@ def test_dataloader_warnings(cuda_available_mock, device_count_mock):
         warn_str = "Consider setting persistent_workers=True"
     else:
         warn_str = "Consider setting accelerator=ddp"
-    with pytest.raises(RuntimeError):
-        with pytest.warns(UserWarning, match=warn_str):
-            trainer.test(BoringModel(), test_dataloaders=dl)
+    with pytest.warns(UserWarning, match=warn_str):
+        trainer.test(BoringModel(), test_dataloaders=dl)
