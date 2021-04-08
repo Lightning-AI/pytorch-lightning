@@ -16,13 +16,19 @@ from typing import Any, Union
 from torch.optim import Optimizer
 
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.utilities import GradClipAlgorithmType
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
     """Mixed Precision for Full Sharded Training"""
 
     def clip_gradients(
-        self, model: Any, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = float(2.0)
+        self,
+        model: 'LightningModule',
+        optimizer: 'Optimizer',
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+        norm_type: float = 2.0
     ) -> None:
         # Model manages clipping of gradients
         model.clip_grad_norm_(clip_val, norm_type)
