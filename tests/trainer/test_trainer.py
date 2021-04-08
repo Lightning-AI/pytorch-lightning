@@ -799,7 +799,7 @@ def test_nan_loss_detection(tmpdir):
         terminate_on_nan=True,
     )
 
-    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is nan or inf.*"):
+    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_step_inf_loss
 
