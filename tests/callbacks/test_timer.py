@@ -25,8 +25,8 @@ from tests.helpers import BoringModel
 
 @pytest.mark.parametrize(
     "duration,expected", [
-        ("00:00:22", timedelta(seconds=22)),
-        ("12:34:56", timedelta(hours=12, minutes=34, seconds=56)),
+        ("00:00:00:22", timedelta(seconds=22)),
+        ("12:34:56:65", timedelta(days=12, hours=34, minutes=56, seconds=65)),
         (timedelta(weeks=52, milliseconds=1), timedelta(weeks=52, milliseconds=1)),
     ]
 )

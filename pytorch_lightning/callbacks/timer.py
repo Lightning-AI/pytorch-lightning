@@ -38,7 +38,7 @@ class Timer(Callback):
     if the given time limit is reached.
 
     Args:
-        duration: A string in the format HH:MM:SS (hours, minutes seconds), or a :class:`datetime.timedelta`.
+        duration: A string in the format DD:HH:MM:SS (days, hours, minutes seconds), or a :class:`datetime.timedelta`.
         interval: Determines if the interruption happens on epoch level or mid-epoch.
             Can be either `epoch` or `step`.
         verbose: Set this to ``False`` to suppress logging messages.
@@ -52,7 +52,7 @@ class Timer(Callback):
         from pytorch_lightning.callbacks import Timer
 
         # stop training after 12 hours
-        timer = Timer(duration="12:00:00")
+        timer = Timer(duration="00:12:00:00")
 
         # or provide a datetime.timedelta
         from datetime import timedelta
@@ -65,8 +65,9 @@ class Timer(Callback):
     def __init__(self, duration: Union[str, timedelta], interval: str = Interval.step, verbose: bool = True):
         super().__init__()
         if isinstance(duration, str):
-            hms = datetime.strptime(duration.strip(), "%H:%M:%S")
-            duration = timedelta(hours=hms.hour, minutes=hms.minute, seconds=hms.second)
+            dhms = duration.strip().split(":")
+            dhms = [int(i) for i in dhms]
+            duration = timedelta(days=dhms[0], hours=dhms[1], minutes=dhms[2], seconds=dhms[3])
         if interval not in set(Interval):
             raise MisconfigurationException(
                 f"Unsupported parameter value `Timer(interval={interval})`. Possible choices are:"
