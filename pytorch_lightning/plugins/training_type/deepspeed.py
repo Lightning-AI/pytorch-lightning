@@ -484,12 +484,12 @@ class DeepSpeedPlugin(DDPPlugin):
             filepath: write-target file's path
         """
         if self.world_size > 1 and self.zero_stage_3:
-            save_dir = self._filepath_to_dir(filepath)
             if self.save_full_weights:
-                # todo: expose this as a unprotected function in deepspeed
+                # todo: expose this as general function in deepspeed
                 state_dict = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
                 if self.is_global_zero:
-                    # Remove module portion of the checkpoint before saving
+                    # State dict keys will include reference to wrapper LightningDeepSpeedModule
+                    # Delete `module` prefix before saving.
                     state_dict = {k.partition('module.')[2]: state_dict[k] for k in state_dict.keys()}
                     checkpoint['state_dict'] = state_dict
                     return super().save_checkpoint(checkpoint, filepath)
@@ -497,6 +497,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
             # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
+            save_dir = self._filepath_to_dir(filepath)
             _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
             checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
             self.deepspeed_engine.save_checkpoint(save_dir, client_state=checkpoint)
