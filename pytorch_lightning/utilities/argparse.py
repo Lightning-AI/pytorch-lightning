@@ -186,7 +186,6 @@ def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
 
         if arg == 'gpus' or arg == 'tpu_cores':
             use_type = _gpus_allowed_type
-            arg_default = _gpus_arg_default
 
         # hack for types in (int, float)
         if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
@@ -232,13 +231,6 @@ def parse_args_from_docstring(docstring: str) -> Dict[str, str]:
 
 
 def _gpus_allowed_type(x) -> Union[int, str]:
-    if ',' in x:
-        return str(x)
-    else:
-        return int(x)
-
-
-def _gpus_arg_default(x) -> Union[int, str]:
     if ',' in x:
         return str(x)
     else:

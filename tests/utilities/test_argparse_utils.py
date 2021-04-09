@@ -1,4 +1,4 @@
-from pytorch_lightning.utilities.argparse import parse_args_from_docstring
+from pytorch_lightning.utilities.argparse import parse_args_from_docstring, _gpus_allowed_type, _int_or_float_type
 
 
 def test_parse_args_from_docstring_normal():
@@ -48,3 +48,13 @@ def test_parse_args_from_docstring_empty():
         """
     )
     assert len(args_help.keys()) == 0
+
+
+def test_gpus_allowed_type():
+    assert _gpus_allowed_type('1,2') == '1,2'
+    assert _gpus_allowed_type('1') == 1
+
+
+def test_int_or_float_type():
+    assert isinstance(_int_or_float_type('0.0'), float)
+    assert isinstance(_int_or_float_type('0'), int)
