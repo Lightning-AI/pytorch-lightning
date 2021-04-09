@@ -51,6 +51,15 @@ class TorchElasticEnvironment(ClusterEnvironment):
         world_size = os.environ.get('WORLD_SIZE')
         return int(world_size) if world_size is not None else world_size
 
+    def set_world_size(self, size: int) -> None:
+        pass
+
+    def global_rank(self) -> Optional[int]:
+        return os.environ.get("RANK")
+
+    def set_global_rank(self, rank: int) -> None:
+        pass
+
     def local_rank(self) -> int:
         return int(os.environ['LOCAL_RANK'])
 

@@ -18,6 +18,9 @@ from typing import Optional
 class ClusterEnvironment(ABC):
     """ Specification of a cluster environment. """
 
+    def __init__(self):
+        super().__init__()
+
     @abstractmethod
     def creates_children(self) -> bool:
         """ Whether the environment creates the subprocesses or not. """
@@ -33,6 +36,18 @@ class ClusterEnvironment(ABC):
     @abstractmethod
     def world_size(self) -> Optional[int]:
         """ The number of processes across all devices and nodes. """
+
+    @abstractmethod
+    def set_world_size(self, size: int) -> None:
+        pass
+
+    @abstractmethod
+    def global_rank(self) -> Optional[int]:
+        """ The rank (index) of the currently running process across all nodes and devices. """
+
+    @abstractmethod
+    def set_global_rank(self, rank: int) -> None:
+        pass
 
     @abstractmethod
     def local_rank(self) -> int:

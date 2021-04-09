@@ -54,6 +54,22 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return unwrap_lightning_module(self._model)
 
     @property
+    def global_rank(self):
+        return self.cluster_environment.global_rank()
+
+    @property
+    def local_rank(self):
+        return self.cluster_environment.local_rank()
+
+    @property
+    def node_rank(self):
+        return self.cluster_environment.node_rank()
+
+    @property
+    def world_size(self):
+        return self.cluster_environment.world_size()
+
+    @property
     def is_global_zero(self) -> bool:
         return self.global_rank == 0
 

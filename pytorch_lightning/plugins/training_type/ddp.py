@@ -78,7 +78,6 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_kwargs = kwargs
         self._has_spawned_children = False
         self.task_idx = None
-        self.node_rank = 0
         self.num_processes = len(parallel_devices) if parallel_devices is not None else parallel_devices
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -193,7 +192,7 @@ class DDPPlugin(ParallelPlugin):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        self.init_ddp_connection(self.global_rank, self.world_size)
+        self.init_ddp_connection()
 
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero and not torch.distributed.is_initialized():
@@ -214,10 +213,9 @@ class DDPPlugin(ParallelPlugin):
             )
 
     def set_world_ranks(self):
-        self.local_rank = self.task_idx
-        self.node_rank = self.cluster_environment.node_rank()
-        self.global_rank = self.node_rank * self.num_processes + self.local_rank
-        self.world_size = self.num_nodes * self.num_processes
+        # self.local_rank = self.task_idx  # TODO ?? hmm ??
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
 
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`
@@ -260,11 +258,9 @@ class DDPPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
-
+    def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
+        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
+        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
