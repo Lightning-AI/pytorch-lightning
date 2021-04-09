@@ -182,7 +182,7 @@ class DDPPlugin(ParallelPlugin):
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
-
+        print(self.cluster_environment.__class__.__name__)
         print("before", self.global_rank)
         # determine which process we are and world size
         self.set_world_ranks()
