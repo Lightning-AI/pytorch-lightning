@@ -17,11 +17,10 @@ from typing import Any
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-import pytorch_lightning as pl
 
 _log = logging.getLogger(__name__)
 

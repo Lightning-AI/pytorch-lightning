@@ -30,6 +30,7 @@ if _XLA_AVAILABLE:
 
 import pytorch_lightning as pl
 
+
 class TPUAccelerator(Accelerator):
     """ Accelerator for TPU devices. """
 
