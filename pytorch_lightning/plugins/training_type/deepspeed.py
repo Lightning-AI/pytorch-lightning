@@ -530,6 +530,10 @@ class DeepSpeedPlugin(DDPPlugin):
             # hook: give user access to checkpoint if needed.
             self.lightning_module.on_load_checkpoint(client_state)
             return client_state, False
+
+        # Broadcast to ensure we load from the rank 0 checkpoint
+        # This doesn't have to be the case when using deepspeed sharded checkpointing
+        ckpt_path = self.broadcast(ckpt_path)
         return super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:

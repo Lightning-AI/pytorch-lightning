@@ -463,7 +463,8 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
+@pytest.mark.parametrize("save_full_weights", [False, True])
+def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, save_full_weights):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
     and see convergence.
@@ -474,7 +475,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
         max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3)],
+        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
         default_root_dir=tmpdir,
         gpus=2,
         precision=16,
@@ -492,7 +493,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
 
     trainer = Trainer(
         max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3)],
+        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
         default_root_dir=tmpdir,
         gpus=2,
         precision=16,
