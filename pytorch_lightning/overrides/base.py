@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
+from typing import Any, Union
 
 import torch
 from torch.nn import DataParallel
@@ -22,50 +22,58 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 
 
 class _LightningPrecisionModuleWrapperBase(torch.nn.Module):
+    """
+    Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can safely
+    be wrapped by a ``_LightningDistributedModuleWrapperBase``.
+
+    Args:
+        pl_module: the model to wrap
+    """
+
     def __init__(self, pl_module: LightningModule):
         super().__init__()
         self.module = pl_module
 
-    def training_step(self, *args, **kwargs):
+    def training_step(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    def validation_step(self, *args, **kwargs):
+    def validation_step(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    def test_step(self, *args, **kwargs):
+    def test_step(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    def predict_step(self, *args, **kwargs):
+    def predict_step(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    def forward(self, *args, **kwargs):
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
 
 class _LightningDistributedModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
+    """
+    Wraps the user's LightningModule and redirects the forward call to the appropriate
+    method, either ``training_step``, ``validation_step`` or ``test_step``.
+    If the LightningModule is in none of the states `training`, `testing` or `validation`,
+    the inputs will be redirected to the
+    :meth:`~pytorch_lightning.core.lightning.LightningModule.predict` method.
+    Inheriting classes may also modify the inputs or outputs of forward.
+
+    Args:
+        pl_module: the model to wrap
+    """
 
     def __init__(self, pl_module: Union[LightningModule, _LightningPrecisionModuleWrapperBase]):
-        """
-        Wraps the user's LightningModule and redirects the forward call to the appropriate
-        method, either ``training_step``, ``validation_step`` or ``test_step``.
-        If the LightningModule is in none of the states `training`, `testing` or `validation`,
-        the inputs will be redirected to the
-        :meth:`~pytorch_lightning.core.lightning.LightningModule.predict` method.
-        Inheriting classes may also modify the inputs or outputs of forward.
-
-        Args:
-            pl_module: the model to wrap
-        """
         super().__init__()
         self.module = pl_module
 
     @property
-    def lightning_module(self):
+    def lightning_module(self) -> LightningModule:
         if isinstance(self.module, _LightningPrecisionModuleWrapperBase):
             return self.module.module
         return self.module
 
-    def forward(self, *inputs, **kwargs):
+    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
         lightning_module = self.lightning_module
         trainer = lightning_module.trainer
 
@@ -89,7 +97,7 @@ class _LightningDistributedModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Mo
 
         return output
 
-    def on_post_move_to_device(self):
+    def on_post_move_to_device(self) -> None:
         pass
 
 
