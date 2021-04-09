@@ -633,11 +633,12 @@ class Trainer(
             if not self.interrupted:
                 self.state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
-        except (RuntimeError, AssertionError):
+        except (RuntimeError, AssertionError) as e:
             # if an exception is raised, the finally block is executed and can hide the actual exception
             # that was initially raised if `on_train_end` also raises an exception. we want to avoid that
             # for assertions and other runtime errors so we aren't misled while debugging
             print_exc()
+            raise e
         finally:
             # hook
             self.train_loop.on_train_end()

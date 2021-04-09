@@ -381,7 +381,10 @@ class TrainLoop:
         grad_norm_dic = self._track_gradient_norm()
 
         # clip gradients
-        self.trainer.accelerator.clip_gradients(optimizer, self.trainer.gradient_clip_val)
+        self.trainer.accelerator.clip_gradients(
+            optimizer, self.trainer.gradient_clip_val,
+            gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
+        )
         self._cur_grad_norm_dict = grad_norm_dic
 
     def _track_gradient_norm(self):

@@ -918,13 +918,13 @@ def test_gradient_clipping_by_value(tmpdir):
 
     model = BoringModel()
 
-    grad_clip_val = 0.0001
+    grad_clip_val = 1e-5
     trainer = Trainer(
         max_steps=10,
         max_epochs=1,
         gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm='value',
-        default_root_dir=tmpdir,
+        default_root_dir=tmpdir
     )
 
     trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
@@ -938,8 +938,8 @@ def test_gradient_clipping_by_value(tmpdir):
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
-        assert round(grad_max.item(), 6) <= grad_clip_val, \
-            f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
+        assert abs(round(grad_max.item(), 6) - grad_clip_val) < 1e-6, \
+            f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
 
         return ret_val
 
@@ -996,7 +996,7 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
     tutils.reset_seed()
 
     model = BoringModel()
-    grad_clip_val = 0.0001
+    grad_clip_val = 1e-5
     trainer = Trainer(
         max_steps=10,
         max_epochs=1,
@@ -1016,9 +1016,10 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
         # test that gradient is clipped correctly
         ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
-        grad_max = torch.max(torch.stack([p.grad.detach() for p in parameters]))
-        assert round(grad_max.item(), 6) <= grad_clip_val, \
-            f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
+        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+        grad_max = torch.max(torch.stack(grad_max_list))
+        assert abs(round(grad_max.item(), 6) - grad_clip_val) < 1e-6, \
+            f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
 
         return ret_val
 
