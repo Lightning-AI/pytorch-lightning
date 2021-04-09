@@ -18,10 +18,10 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningDistributedModuleWrapperBase
 
 
-class LightningDistributedModule(_LightningModuleWrapperBase):
+class LightningDistributedDistributedModule(_LightningDistributedModuleWrapperBase):
 
     def __init__(self, pl_module: LightningModule):
         """
@@ -33,7 +33,7 @@ class LightningDistributedModule(_LightningModuleWrapperBase):
         Example:
 
             ddp_model = torch.nn.parallel.DistributedDataParallel(
-                module=LightningDistributedModule(lightning_module),
+                module=LightningDistributedDistributedModule(lightning_module),
                 device_ids=[local_rank],
                 ...
             )

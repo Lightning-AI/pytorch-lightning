@@ -25,7 +25,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import Optimizer
 
 from pytorch_lightning.distributed import LightningDistributed
-from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides import LightningDistributedDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
@@ -249,7 +249,7 @@ class DDPPlugin(ParallelPlugin):
     def configure_ddp(self):
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
-            LightningDistributedModule(self.model),
+            LightningDistributedDistributedModule(self.model),
             device_ids=self.determine_ddp_device_ids(),
             **self._ddp_kwargs,
         )

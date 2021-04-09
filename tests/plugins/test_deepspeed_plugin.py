@@ -12,7 +12,7 @@ from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
-from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
+from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedDistributedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -31,11 +31,11 @@ class ModelParallelBoringModel(BoringModel):
 
 def test_deepspeed_lightning_module(tmpdir):
     """
-    Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves types and device correctly.
+    Test to ensure that a model wrapped in `LightningDeepSpeedDistributedModule` moves types and device correctly.
     """
 
     model = BoringModel()
-    module = LightningDeepSpeedModule(model, precision=16)
+    module = LightningDeepSpeedDistributedModule(model, precision=16)
 
     module.half()
     assert module.dtype == torch.half
@@ -49,11 +49,11 @@ def test_deepspeed_lightning_module(tmpdir):
 @RunIf(min_gpus=1)
 def test_deepspeed_lightning_module_precision(tmpdir):
     """
-    Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision 16.
+    Test to ensure that a model wrapped in `LightningDeepSpeedDistributedModule` moves tensors to half when precision 16.
     """
 
     model = BoringModel()
-    module = LightningDeepSpeedModule(model, precision=16)
+    module = LightningDeepSpeedDistributedModule(model, precision=16)
 
     module.cuda().half()
     assert module.dtype == torch.half

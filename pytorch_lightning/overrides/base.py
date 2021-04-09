@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union
+
 import torch
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
@@ -19,9 +21,30 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
 
-class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-
+class _LightningPrecisionModuleWrapperBase(torch.nn.Module):
     def __init__(self, pl_module: LightningModule):
+        super().__init__()
+        self.module = pl_module
+
+    def training_step(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def validation_step(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def test_step(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def predict_step(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def forward(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class _LightningDistributedModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
+
+    def __init__(self, pl_module: Union[LightningModule, _LightningPrecisionModuleWrapperBase]):
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step`` or ``test_step``.
@@ -36,8 +59,15 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         super().__init__()
         self.module = pl_module
 
+    @property
+    def lightning_module(self):
+        if isinstance(self.module, _LightningPrecisionModuleWrapperBase):
+            return self.module.module
+        return self.module
+
     def forward(self, *inputs, **kwargs):
-        trainer = unwrap_lightning_module(self).trainer
+        lightning_module = self.lightning_module
+        trainer = lightning_module.trainer
 
         if trainer and trainer.training:
             output = self.module.training_step(*inputs, **kwargs)
@@ -46,7 +76,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             # it is done manually in ``LightningModule.manual_backward``
             # `require_backward_grad_sync` will be reset in the
             # ddp_plugin ``post_training_step`` hook
-            if not unwrap_lightning_module(self).automatic_optimization:
+            if not lightning_module.automatic_optimization:
                 trainer.model.require_backward_grad_sync = False
         elif trainer and trainer.testing:
             output = self.module.test_step(*inputs, **kwargs)
@@ -66,7 +96,9 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 def unwrap_lightning_module(wrapped_model) -> LightningModule:
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
-        model = unwrap_lightning_module(model.module)
-    if isinstance(model, _LightningModuleWrapperBase):
-        model = unwrap_lightning_module(model.module)
+        model = model.module
+    if isinstance(model, _LightningPrecisionModuleWrapperBase):
+        model = model.module
+    if isinstance(model, _LightningDistributedModuleWrapperBase):
+        model = model.lightning_module
     return model

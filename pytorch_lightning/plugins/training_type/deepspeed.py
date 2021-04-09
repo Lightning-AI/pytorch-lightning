@@ -24,7 +24,7 @@ import torch
 
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningDistributedModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
@@ -49,7 +49,7 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
         module._load_state_dict_pre_hooks = OrderedDict()
 
 
-class LightningDeepSpeedModule(_LightningModuleWrapperBase):
+class LightningDeepSpeedDistributedModule(_LightningDistributedModuleWrapperBase):
 
     def __init__(self, pl_module: LightningModule, precision: int):
         super().__init__(pl_module)
@@ -242,7 +242,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self._handle_gradient_accumulation_steps()
 
         precision = self.lightning_module.trainer.accelerator.precision
-        model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
+        model = LightningDeepSpeedDistributedModule(pl_module=self.model, precision=precision)
 
         if self.on_gpu:
             torch.cuda.set_device(self.root_device)
@@ -352,9 +352,9 @@ class DeepSpeedPlugin(DDPPlugin):
 
     @property
     def lightning_module(self):
-        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
+        # the model may not be wrapped with DeepEngine & LightningDeepSpeedDistributedModule if calling this too early
         module = getattr(self.model, "module", self.model)
-        return module.module if isinstance(module, LightningDeepSpeedModule) else module
+        return module.module if isinstance(module, LightningDeepSpeedDistributedModule) else module
 
     @property
     def distributed_sampler_kwargs(self):

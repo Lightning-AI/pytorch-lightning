@@ -17,7 +17,7 @@ import torch
 from torch.nn import DataParallel
 
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.overrides.data_parallel import LightningParallelModule
+from pytorch_lightning.overrides.data_parallel import LightningParallelDistributedModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
@@ -30,7 +30,7 @@ class DataParallelPlugin(ParallelPlugin):
     def setup(self, model):
         # model needs to be moved to the device before it is wrapped
         model.to(self.root_device)
-        self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
+        self._model = DataParallel(LightningParallelDistributedModule(model), self.parallel_devices)
 
     def reduce(self, tensor, *args, **kwargs):
         """

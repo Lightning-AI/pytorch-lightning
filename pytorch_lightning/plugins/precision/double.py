@@ -18,7 +18,7 @@ import torch
 from torch import nn
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from torch.optim import Optimizer
 
 
-class LightningDoublePrecisionModule(_LightningModuleWrapperBase):
+class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
     @staticmethod
     def _to_double_precision(data: torch.Tensor) -> torch.Tensor:
         if data.is_floating_point():
