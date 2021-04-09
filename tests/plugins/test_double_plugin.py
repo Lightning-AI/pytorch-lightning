@@ -114,7 +114,6 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
 @pytest.mark.parametrize('boring_model', (DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward))
 def test_double_precision(tmpdir, boring_model):
     model = boring_model()
-    original_training_step = model.training_step
 
     trainer = Trainer(
         max_epochs=2,
@@ -133,7 +132,6 @@ def test_double_precision(tmpdir, boring_model):
 @pytest.mark.parametrize('boring_model', (DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward))
 def test_double_precision_ddp(tmpdir, ddp_backend, boring_model):
     model = boring_model()
-    original_training_step = model.training_step
 
     trainer = Trainer(
         max_epochs=2,
