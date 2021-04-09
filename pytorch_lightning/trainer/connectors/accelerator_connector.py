@@ -302,7 +302,7 @@ class AcceleratorConnector(object):
 
     @property
     def is_using_torchelastic(self) -> bool:
-        te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
+        te_flags_passed = "RANK" in os.environ
         return te_flags_passed
 
     def select_precision_plugin(self) -> PrecisionPlugin:
