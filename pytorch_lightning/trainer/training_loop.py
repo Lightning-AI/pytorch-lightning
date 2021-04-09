@@ -491,14 +491,14 @@ class TrainLoop:
         if (val_loop_called and not should_check_val) or should_train_only:
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
-        if should_train_only:
-            self.check_checkpoint_callback(True)
-            self.check_early_stopping_callback(True)
-
         if should_check_val:
             self.trainer.validating = True
             self.trainer.run_evaluation(on_epoch=True)
             self.trainer.training = True
+
+        if should_train_only:
+            self.check_checkpoint_callback(True)
+            self.check_early_stopping_callback(True)
 
         # increment the global step once
         # progress global step according to grads progress
