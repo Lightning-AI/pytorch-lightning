@@ -76,7 +76,7 @@ def reset_seed(seed=0):
 def set_random_master_port():
     reset_seed()
     port = RANDOM_PORTS.pop()
-    os.environ['MASTER_PORT'] = "29501"
+    os.environ['MASTER_PORT'] = str(port)
 
 
 def init_checkpoint_callback(logger):
