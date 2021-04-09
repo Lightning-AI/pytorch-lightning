@@ -44,7 +44,6 @@ def _test_all_gather_ddp(rank, world_size):
 @RunIf(skip_windows=True)
 def test_all_gather_ddp():
     world_size = 3
-    os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size, ), nprocs=world_size)
 
 
