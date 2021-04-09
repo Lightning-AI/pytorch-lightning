@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -107,10 +106,7 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
         return DataLoader(RandomDataset(32, 64))
 
 
-@pytest.mark.parametrize(
-    'boring_model',
-    (DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward)
-)
+@pytest.mark.parametrize('boring_model', (DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward))
 def test_double_precision(tmpdir, boring_model):
     model = boring_model()
     original_training_step = model.training_step

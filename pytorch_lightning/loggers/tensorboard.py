@@ -207,7 +207,7 @@ class TensorBoardLogger(LightningLoggerBase):
                 # todo: specify the possible exception
                 except Exception as ex:
                     m = f'\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor.'
-                    type(ex)(ex.message + m)
+                    raise ValueError(m) from ex
 
     @rank_zero_only
     def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:

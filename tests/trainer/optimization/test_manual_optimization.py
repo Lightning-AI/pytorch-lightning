@@ -872,7 +872,6 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     step_mock.assert_has_calls(expected_calls)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
