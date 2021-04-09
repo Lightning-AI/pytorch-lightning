@@ -57,7 +57,7 @@ parser.add_argument(
 # ------------------------------------------------------------------------------------------------------------
 # Available Automator Flags
 # ------------------------------------------------------------------------------------------------------------
-parser.add_argument("--accelerator", type=str, default="ddp", choices=["ddp", "ddp_cpu", "dp"])
+parser.add_argument("--accelerator", type=str, default=None, choices=["ddp", "ddp_cpu", "dp"])
 parser.add_argument("--gpus", type=int, default=0)
 parser.add_argument("--num_processes", type=int, default=1)
 parser.add_argument("--precision", type=int, default=32, choices=[16, 32])
