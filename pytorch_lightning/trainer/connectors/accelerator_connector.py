@@ -303,7 +303,7 @@ class AcceleratorConnector(object):
     @property
     def is_using_torchelastic(self) -> bool:
         torch_elastic_vars = ("RANK", "GROUP_RANK", "LOCAL_RANK")
-        return all(v in torch_elastic_vars for v in torch_elastic_vars)
+        return all(v in os.environ for v in torch_elastic_vars)
 
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
