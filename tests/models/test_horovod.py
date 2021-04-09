@@ -49,9 +49,9 @@ def _run_horovod(trainer_options, on_gpu=False):
     # for Horovod, we interpret `gpus` to be set per worker
     trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
-    # todo: Find why coverage breaks CI.
+    # TODO: Find out why coverage breaks CI.
     # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
-    # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,   # noqa E265
+    # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,
     cmdline = [
         'horovodrun', '-np',
         str(num_processes), sys.executable, TEST_SCRIPT, '--trainer-options',
@@ -153,7 +153,7 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
 
 # https://discuss.pytorch.org/t/torch-cuda-amp-vs-nvidia-apex/74994
 # Check with (tgaddair) on Horovod issues if this feature is needed
-@pytest.mark.skip(reason="Horovod currently doesn't work with Apex")  # todo
+@pytest.mark.skip(reason="TODO: Horovod currently doesn't work with Apex")
 @RunIf(min_gpus=2, skip_windows=True, amp_apex=True, horovod_nccl=True)
 def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
@@ -240,6 +240,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
+@pytest.mark.skip('TODO: flaky test - Fatal Python error: Aborted')
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer(tmpdir):
     model = BasicGAN()
@@ -253,7 +254,6 @@ def test_horovod_multi_optimizer(tmpdir):
         limit_val_batches=0.2,
         deterministic=True,
         accelerator='horovod',
-        logger=False,
     )
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
@@ -273,7 +273,7 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
 
 
-@pytest.mark.skipif(reason="CI agent.jobstatus=Succeeded: Permission denied")
+@pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(skip_windows=True, horovod=True)
 def test_result_reduce_horovod(tmpdir):
     """Make sure result logging works with Horovod.
@@ -323,7 +323,7 @@ def test_result_reduce_horovod(tmpdir):
     horovod.run(hvd_test_fn, np=2)
 
 
-@pytest.mark.skipif(reason="CI agent.jobstatus=Succeeded: Permission denied")
+@pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(skip_windows=True, horovod=True, num_gpus=2)
 def test_accuracy_metric_horovod():
     num_batches = 10
