@@ -75,7 +75,8 @@ class TPUAccelerator(Accelerator):
         self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM
     ) -> None:
-        assert gradient_clip_algorithm is GradClipAlgorithmType.NORM, "Only NORM gradient clipping is supported on TPU for now"
+        assert gradient_clip_algorithm is GradClipAlgorithmType.NORM, \
+            "Only NORM gradient clipping is supported on TPU for now"
 
         model = self.lightning_module
         parameters = model.parameters()
