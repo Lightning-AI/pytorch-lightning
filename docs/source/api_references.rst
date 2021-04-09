@@ -125,7 +125,7 @@ Cluster Environments
     ClusterEnvironment
     LightningEnvironment
     TorchElasticEnvironment
-    SlurmEnvironment
+    SLURMEnvironment
 
 
 Profiler API
