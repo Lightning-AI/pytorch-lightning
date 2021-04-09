@@ -61,18 +61,36 @@ class TrainerDataLoadingMixin(ABC):
         using_spawn = self.accelerator_connector.distributed_backend == "ddp_spawn"
         if is_dataloader and not on_windows:
             if dataloader.num_workers > 0 and using_spawn:
-                rank_zero_warn(
-                    'Dataloader(num_workers>0) and ddp_spawn do not mix well!'
-                    ' Your performance might suffer dramatically.'
-                    ' Please consider setting accelerator=ddp to use num_workers > 0'
-                    ' (this is a bottleneck of Python .spawn() and PyTorch'
-                )
+                # checks for the attr persistent_workers available in pytorch >= 1.7
+                if hasattr(dataloader, "persistent_workers"):
+                    if not dataloader.persistent_workers:
+                        rank_zero_warn(
+                            'num_workers>0, persistent_workers=False, and accelerator=ddp_spawn'
+                            ' may result in data loading bottlenecks.'
+                            ' Consider setting persistent_workers=True'
+                            ' (this is a limitation of Python .spawn() and PyTorch)'
+                        )
+                else:
+                    rank_zero_warn(
+                        'num_workers>0 and accelerator=ddp_spawn do not mix well'
+                        ' and may result in data loading bottlenecks.'
+                        ' Consider setting accelerator=ddp to use num_workers>0'
+                        ' (this is a limitation of Python .spawn() and PyTorch)'
+                    )
 
             elif dataloader.num_workers == 0 and using_spawn:
-                rank_zero_warn(
-                    'You are using `accelerator=ddp_spawn` with num_workers=0.'
-                    ' For much faster performance, switch to `accelerator=ddp` and set `num_workers>0`'
-                )
+                # checks for the attr persistent_workers available in pytorch >= 1.7
+                if hasattr(dataloader, "persistent_workers"):
+                    if not dataloader.persistent_workers:
+                        rank_zero_warn(
+                            'accelerator=ddp_spawn and num_workers=0 may result in data loading bottlenecks.'
+                            ' Consider setting num_workers>0 and persistent_workers=True'
+                        )
+                else:
+                    rank_zero_warn(
+                        'accelerator=ddp_spawn and num_workers=0 may result in data loading bottlenecks.'
+                        ' Consider setting accelerator=ddp and set num_workers>0'
+                    )
 
             elif dataloader.num_workers <= 2 and multiprocessing.cpu_count() > 2 and not using_spawn:
                 num_cpus = multiprocessing.cpu_count()
