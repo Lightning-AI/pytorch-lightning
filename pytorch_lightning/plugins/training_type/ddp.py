@@ -183,10 +183,10 @@ class DDPPlugin(ParallelPlugin):
         if seed is not None:
             seed_everything(int(seed))
 
-        print(self.global_rank)
+        print("before", self.global_rank)
         # determine which process we are and world size
         self.set_world_ranks()
-        print(self.global_rank)
+        print("after", self.global_rank)
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
