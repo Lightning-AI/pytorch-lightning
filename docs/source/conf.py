@@ -28,11 +28,11 @@ FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
 
 try:
-    from pytorch_lightning import info
+    from pytorch_lightning import __info__ as info
 except ImportError:
     # alternative https://stackoverflow.com/a/67692/4521646
     sys.path.append(os.path.join(PATH_ROOT, "pytorch_lightning"))
-    import info
+    import __info__ as info
 
 # -- Project documents -------------------------------------------------------
 
