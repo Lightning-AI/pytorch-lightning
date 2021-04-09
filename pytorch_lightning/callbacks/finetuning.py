@@ -22,7 +22,6 @@ from typing import Callable, Generator, Iterable, List, Optional, Union
 import torch
 from torch.nn import Module
 from torch.nn.modules.batchnorm import _BatchNorm
-from torch.nn.modules.container import Container, ModuleDict, ModuleList, Sequential
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.callbacks.base import Callback
@@ -77,7 +76,7 @@ class BaseFinetuning(Callback):
                 # When `current_epoch` is 10, feature_extractor will start training.
                 if current_epoch == self._unfreeze_at_epoch:
                     self.unfreeze_and_add_param_group(
-                        module=pl_module.feature_extractor,
+                        modules=pl_module.feature_extractor,
                         optimizer=optimizer,
                         train_bn=True,
                     )
@@ -102,11 +101,8 @@ class BaseFinetuning(Callback):
         else:
             _modules = modules.modules()
 
-        return list(
-            filter(
-                lambda m: not isinstance(m, (Container, Sequential, ModuleDict, ModuleList, LightningModule)), _modules
-            )
-        )
+        # Leaf nodes in the graph have no children, so we use that to filter
+        return [m for m in _modules if not list(m.children())]
 
     @staticmethod
     def filter_params(
