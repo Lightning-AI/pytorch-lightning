@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added unified API for figure logging `log_figure` in {insert all supported logger names here}.
+- Added unified API for figure logging `log_figure` in Tensorboard, Comet, ML Flow, Neptune, Weights and Biases.
 
 
 ## [1.3.0] - 2021-MM-DD
