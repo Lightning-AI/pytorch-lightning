@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import wraps
-from typing import Any, List, Sequence, Tuple, TYPE_CHECKING
+from typing import Any, Sequence, Tuple, TYPE_CHECKING
 
 import torch
-from torch import nn
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
