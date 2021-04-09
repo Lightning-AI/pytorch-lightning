@@ -253,6 +253,7 @@ def test_horovod_multi_optimizer(tmpdir):
         limit_val_batches=0.2,
         deterministic=True,
         accelerator='horovod',
+        logger=False,
     )
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
