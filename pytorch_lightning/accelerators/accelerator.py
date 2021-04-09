@@ -456,7 +456,7 @@ class Accelerator(object):
             yield
 
     # todo: remove in v1.5
-    def connect_training_type_plugin(self, model: LightningModule) -> None:
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
         """
         Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin
@@ -471,7 +471,7 @@ class Accelerator(object):
         self.setup_training_type_plugin(model)
 
     # todo: remove in v1.5
-    def connect_precision_plugin(self) -> None:
+    def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
         """Attaches the precision plugin to the accelerator
 
         .. deprecated::v1.3
