@@ -358,10 +358,6 @@ autodoc_default_options = {
     'show-inheritance': True,
 }
 
-# sphinx_autodoc_typehints
-# turn off type checking when building docs, avoids circular import issues
-set_type_checking_flag = False
-
 # Sphinx will add “permalinks” for each heading and description environment as paragraph signs that
 #  become visible when the mouse hovers over them.
 # This value determines the text for the permalink; it defaults to "¶". Set it to None or the empty
