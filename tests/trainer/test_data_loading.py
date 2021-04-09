@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import pytest
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import BatchSampler, SequentialSampler
-from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -106,15 +104,23 @@ def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpd
     check_replace_distrubuted_sampler(tmpdir, True, "ddp", 2, 2, mode)
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
-@mock.patch('torch.cuda.device_count', return_value=2)
-@mock.patch('torch.cuda.is_available', return_value=True)
-def test_dataloader_warnings(cuda_available_mock, device_count_mock):
-    trainer = Trainer(accelerator="ddp_spawn")
-    dl = DataLoader(RandomDataset(32, 64), num_workers=1)
+@pytest.mark.parametrize("num_workers", [0, 1])
+def test_dataloader_warnings(num_workers):
+
+    class TestModel(BoringModel):
+
+        def on_train_start(self, *_) -> None:
+            raise SystemExit()
+
+    dl = DataLoader(RandomDataset(32, 64), num_workers=num_workers)
     if hasattr(dl, "persistent_workers"):
-        warn_str = "Consider setting persistent_workers=True"
+        if num_workers == 0:
+            warn_str = "Consider setting num_workers>0 and persistent_workers=True"
+        else:
+            warn_str = "Consider setting persistent_workers=True"
     else:
         warn_str = "Consider setting accelerator=ddp"
-    with pytest.warns(UserWarning, match=warn_str):
-        trainer.test(BoringModel(), test_dataloaders=dl)
+
+    trainer = Trainer(accelerator="ddp_spawn")
+    with pytest.warns(UserWarning, match=warn_str), pytest.raises(SystemExit):
+        trainer.fit(TestModel(), dl)
