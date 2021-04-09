@@ -638,7 +638,6 @@ class Trainer(
             # that was initially raised if `on_train_end` also raises an exception. we want to avoid that
             # for assertions and other runtime errors so we aren't misled while debugging
             print_exc()
-            raise e
         finally:
             # hook
             self.train_loop.on_train_end()
