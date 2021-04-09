@@ -22,7 +22,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.distributed import LightningDistributedDistributedModule
+from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.rpc import DEFAULT_RPC_TIMEOUT_SEC, RPCPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
@@ -257,7 +257,7 @@ class RPCSequentialPlugin(RPCPlugin):
             self.pre_configure_ddp()
 
             self._model = DistributedDataParallel(
-                LightningDistributedDistributedModule(self.model),
+                LightningDistributedModule(self.model),
                 device_ids=self.determine_ddp_device_ids(),
                 process_group=mpu.get_data_parallel_group(),
                 **self._ddp_kwargs,

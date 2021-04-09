@@ -20,9 +20,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
     LightningDistributedDataParallel,
-    LightningParallelDistributedModule,
+    LightningParallelModule,
 )
-from pytorch_lightning.overrides.distributed import LightningDistributedDistributedModule
+from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from tests.deprecated_api import _soft_unimport_module
@@ -156,7 +156,7 @@ class CustomDDPPlugin(DDPSpawnPlugin):
                 **self._ddp_kwargs,
             )
             assert isinstance(self.model, torch.nn.parallel.DistributedDataParallel)
-            assert isinstance(self.model.module, LightningDistributedDistributedModule)
+            assert isinstance(self.model.module, LightningDistributedModule)
 
 
 @RunIf(min_gpus=2, skip_windows=True)
@@ -183,7 +183,7 @@ def test_v1_4_0_deprecated_lightning_data_parallel():
     with pytest.deprecated_call(match="`LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."):
         dp_model = LightningDataParallel(model, device_ids=[0])
     assert isinstance(dp_model, torch.nn.DataParallel)
-    assert isinstance(dp_model.module, LightningParallelDistributedModule)
+    assert isinstance(dp_model.module, LightningParallelModule)
 
 
 def test_v1_4_0_deprecated_manual_optimization_optimizer(tmpdir):

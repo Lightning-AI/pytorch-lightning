@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 class _LightningPrecisionModuleWrapperBase(torch.nn.Module):
     """
     Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can safely
-    be wrapped by a ``_LightningDistributedModuleWrapperBase``.
+    be wrapped by a ``_LightningModuleWrapperBase``.
 
     Args:
         pl_module: the model to wrap
@@ -50,7 +50,7 @@ class _LightningPrecisionModuleWrapperBase(torch.nn.Module):
         raise NotImplementedError
 
 
-class _LightningDistributedModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
+class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
     """
     Wraps the user's LightningModule and redirects the forward call to the appropriate
     method, either ``training_step``, ``validation_step`` or ``test_step``.
@@ -107,6 +107,6 @@ def unwrap_lightning_module(wrapped_model) -> LightningModule:
         model = model.module
     if isinstance(model, _LightningPrecisionModuleWrapperBase):
         model = model.module
-    if isinstance(model, _LightningDistributedModuleWrapperBase):
+    if isinstance(model, _LightningModuleWrapperBase):
         model = model.lightning_module
     return model

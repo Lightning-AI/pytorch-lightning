@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.base import _LightningDistributedModuleWrapperBase, unwrap_lightning_module
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 
 LightningShardedDataParallel = None
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
-    class LightningDistributedShardedDataParallel(_LightningDistributedModuleWrapperBase):
+    class LightningShardedDataParallel(_LightningModuleWrapperBase):
         # Just do this for later docstrings
         pass
 

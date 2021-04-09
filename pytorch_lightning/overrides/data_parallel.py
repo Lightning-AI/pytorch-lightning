@@ -20,8 +20,8 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.base import _LightningDistributedModuleWrapperBase
-from pytorch_lightning.overrides.distributed import LightningDistributedDistributedModule
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
@@ -32,7 +32,7 @@ class LightningDataParallel(DataParallel):
             "The usage of `LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."
             " From now on we recommend to directly subclass `torch.nn.parallel.DataParallel`.", DeprecationWarning
         )
-        super().__init__(LightningParallelDistributedModule(module), *args, **kwargs)
+        super().__init__(LightningParallelModule(module), *args, **kwargs)
 
 
 class LightningDistributedDataParallel(DistributedDataParallel):
@@ -43,10 +43,10 @@ class LightningDistributedDataParallel(DistributedDataParallel):
             " From now on we recommend to directly subclass `torch.nn.parallel.DistributedDataParallel`.",
             DeprecationWarning
         )
-        super().__init__(LightningDistributedDistributedModule(module), *args, **kwargs)
+        super().__init__(LightningDistributedModule(module), *args, **kwargs)
 
 
-class LightningParallelDistributedModule(_LightningDistributedModuleWrapperBase):
+class LightningParallelModule(_LightningModuleWrapperBase):
     """
     Wraps the user's LightningModule and redirects the forward call to the appropriate
     method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
@@ -57,7 +57,7 @@ class LightningParallelDistributedModule(_LightningDistributedModuleWrapperBase)
     Example:
 
         dp_model = torch.nn.DataParallel(
-            module=LightningParallelDistributedModule(lightning_module),
+            module=LightningParallelModule(lightning_module),
             device_ids=[3, 4],
             ...
         )

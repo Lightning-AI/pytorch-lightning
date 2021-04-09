@@ -4,9 +4,9 @@ import pytest
 import torch
 from torch.nn import DataParallel
 
-from pytorch_lightning.overrides import LightningDistributedDistributedModule
+from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.data_parallel import (
-    LightningParallelDistributedModule,
+    LightningParallelModule,
     python_scalar_to_tensor,
     unsqueeze_scalar_tensor,
 )
@@ -16,8 +16,8 @@ from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("wrapper_class", [
-    LightningParallelDistributedModule,
-    LightningDistributedDistributedModule,
+    LightningParallelModule,
+    LightningDistributedModule,
 ])
 @pytest.mark.parametrize(
     "stage", [
@@ -59,7 +59,7 @@ def test_unsqueeze_scalar_tensor(inp, expected):
 
 @RunIf(min_gpus=2)
 def test_lightning_parallel_module_unsqueeze_scalar():
-    """ Test that LightningParallelDistributedModule takes care of un-squeezeing 0-dim tensors. """
+    """ Test that LightningParallelModule takes care of un-squeezeing 0-dim tensors. """
 
     class TestModel(BoringModel):
 
@@ -77,7 +77,7 @@ def test_lightning_parallel_module_unsqueeze_scalar():
     batch = torch.rand(2, 32).cuda()
     batch_idx = 0
 
-    wrapped_model = LightningParallelDistributedModule(model).cuda()
+    wrapped_model = LightningParallelModule(model).cuda()
     dp_module = DataParallel(wrapped_model, device_ids=[0, 1])
 
     output = wrapped_model(batch, batch_idx)
@@ -104,7 +104,7 @@ def test_python_scalar_to_tensor(inp, expected):
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 def test_lightning_parallel_module_python_scalar_conversion(device):
-    """ Test that LightningParallelDistributedModule can convert Python scalars to tensors. """
+    """ Test that LightningParallelModule can convert Python scalars to tensors. """
 
     class TestModel(BoringModel):
 
@@ -120,6 +120,6 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
     batch = torch.rand(2, 32).to(device)
     batch_idx = 0
 
-    wrapped_model = LightningParallelDistributedModule(model)
+    wrapped_model = LightningParallelModule(model)
     output = wrapped_model(batch, batch_idx)
     assert output["python scalar"] == torch.tensor([12.3], device=device)

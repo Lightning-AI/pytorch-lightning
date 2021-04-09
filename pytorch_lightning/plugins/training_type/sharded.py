@@ -23,7 +23,7 @@ if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
     from fairscale.optim import OSS
 
-    from pytorch_lightning.overrides.fairscale import LightningDistributedShardedDataParallel, unwrap_lightning_module_sharded
+    from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 
 
 class DDPShardedPlugin(DDPPlugin):
@@ -31,7 +31,7 @@ class DDPShardedPlugin(DDPPlugin):
     def configure_ddp(self):
         self._wrap_optimizers()
         self._model = ShardedDataParallel(
-            LightningDistributedShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
+            LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
         )
 
     def _reinit_optimizers_with_oss(self):
