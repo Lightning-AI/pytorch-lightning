@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader, Dataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DoublePrecisionPlugin
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 class RandomFloatIntDataset(Dataset):
@@ -126,7 +127,26 @@ def test_double_precision(tmpdir, boring_model):
     trainer.test(model)
     trainer.predict(model)
 
-    assert model.training_step == original_training_step
+
+@RunIf(min_gpus=2)
+@pytest.mark.parametrize('ddp_backend', ('ddp', 'ddp2', 'ddp_spawn'))
+@pytest.mark.parametrize('boring_model', (DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward))
+def test_double_precision_ddp(tmpdir, ddp_backend, boring_model):
+    model = boring_model()
+    original_training_step = model.training_step
+
+    trainer = Trainer(
+        max_epochs=2,
+        default_root_dir=tmpdir,
+        accelerator=ddp_backend,
+        gpus=2,
+        fast_dev_run=2,
+        precision=64,
+        log_every_n_steps=1,
+    )
+    trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model)
 
 
 def test_double_precision_pickle(tmpdir):
