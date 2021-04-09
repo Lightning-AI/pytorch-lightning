@@ -4,15 +4,35 @@
 Accelerators
 ############
 Accelerators connect a Lightning Trainer to arbitrary accelerators (CPUs, GPUs, TPUs, etc). Accelerators
-also manage distributed communication through :ref:`Plugins` (like DP, DDP, HPC cluster).
-
-Accelerators can also be configured to run on arbitrary clusters using Plugins or to link up to arbitrary
+also manage distributed communication through :ref:`Plugins` (like DP, DDP, HPC cluster) and
+can also be configured to run on arbitrary clusters or to link up to arbitrary
 computational strategies like 16-bit precision via AMP and Apex.
+
+An Accelerator is meant to deal with one type of hardware.
+Currently there are accelerators for:
+
+- CPU
+- GPU
+- TPU
+
+Each Accelerator gets two plugins upon initialization:
+One to handle differences from the training routine and one to handle different precisions.
+
+.. code-block:: python
+
+    accelerator = GPUAccelerator(
+        precision_plugin=NativeMixedPrecisionPlugin(),
+        training_type_plugin=DDPPlugin(),
+    )
+    trainer = Trainer(accelerator=accelerator)
+
+
+We expose Accelerators and Plugins mainly for expert users who want to extend Lightning to work with new
+hardware and distributed training or clusters.
 
 
 .. warning:: The Accelerator API is in beta and subject to change.
     For help setting up custom plugins/accelerators, please reach out to us at **support@pytorchlightning.ai**
-
 
 ----------
 
@@ -20,29 +40,13 @@ computational strategies like 16-bit precision via AMP and Apex.
 Accelerator API
 ---------------
 
-Accelerator Base Class
-^^^^^^^^^^^^^^^^^^^^^^
+.. currentmodule:: pytorch_lightning.accelerators
 
-.. autoclass:: pytorch_lightning.accelerators.accelerator.Accelerator
-   :noindex:
+.. autosummary::
+    :nosignatures:
+    :template: classtemplate.rst
 
-
-CPU Accelerator
-^^^^^^^^^^^^^^^
-
-.. autoclass:: pytorch_lightning.accelerators.cpu.CPUAccelerator
-   :noindex:
-
-
-GPU Accelerator
-^^^^^^^^^^^^^^^
-
-.. autoclass:: pytorch_lightning.accelerators.gpu.GPUAccelerator
-   :noindex:
-
-
-TPU Accelerator
-^^^^^^^^^^^^^^^
-
-.. autoclass:: pytorch_lightning.accelerators.tpu.TPUAccelerator
-   :noindex:
+    Accelerator
+    CPUAccelerator
+    GPUAccelerator
+    TPUAccelerator
