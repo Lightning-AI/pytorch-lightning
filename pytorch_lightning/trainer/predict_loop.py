@@ -44,7 +44,6 @@ class PredictLoop(object):
         model_ref.on_predict_model_eval()
 
     def setup(self, model, max_batches, dataloaders):
-        self.trainer.call_hook("on_predict_start")
 
         # copy properties for forward overrides
         self.trainer.model_connector.copy_trainer_model_properties(model)

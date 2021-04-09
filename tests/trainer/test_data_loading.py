@@ -102,3 +102,25 @@ def check_replace_distrubuted_sampler(tmpdir, save_preds_on_dl_idx, accelerator,
 @pytest.mark.parametrize("mode", [1, 2])
 def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
     check_replace_distrubuted_sampler(tmpdir, True, "ddp", 2, 2, mode)
+
+
+@pytest.mark.parametrize("num_workers", [0, 1])
+def test_dataloader_warnings(num_workers):
+
+    class TestModel(BoringModel):
+
+        def on_train_start(self, *_) -> None:
+            raise SystemExit()
+
+    dl = DataLoader(RandomDataset(32, 64), num_workers=num_workers)
+    if hasattr(dl, "persistent_workers"):
+        if num_workers == 0:
+            warn_str = "Consider setting num_workers>0 and persistent_workers=True"
+        else:
+            warn_str = "Consider setting persistent_workers=True"
+    else:
+        warn_str = "Consider setting accelerator=ddp"
+
+    trainer = Trainer(accelerator="ddp_spawn")
+    with pytest.warns(UserWarning, match=warn_str), pytest.raises(SystemExit):
+        trainer.fit(TestModel(), dl)

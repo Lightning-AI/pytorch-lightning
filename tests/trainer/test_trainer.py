@@ -799,7 +799,7 @@ def test_nan_loss_detection(tmpdir):
         terminate_on_nan=True,
     )
 
-    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is nan or inf.*"):
+    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_step_inf_loss
 
@@ -1438,7 +1438,9 @@ def test_trainer_setup_call(tmpdir, stage):
 )
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
+
     class TestModel(BoringModel):
+
         def training_step(self, *args, **kwargs):
             self.log("foo", -1)
             return super().training_step(*args, **kwargs)
@@ -1888,3 +1890,33 @@ def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
         trainer.validate()
     with pytest.raises(MisconfigurationException, match=r"\.test\(\)` with `fast_dev_run=True"):
         trainer.test()
+
+
+class TrainerStagesModel(BoringModel):
+
+    def on_train_start(self) -> None:
+        assert self.trainer.model.training
+        assert self.training
+
+    def on_validation_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+    def on_test_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+    def on_predict_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+
+@pytest.mark.parametrize(['accelerator', 'num_processes'],
+                         [(None, 1), pytest.param('ddp', 2, marks=RunIf(skip_windows=True))])
+def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
+    model = TrainerStagesModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model, model.val_dataloader())
