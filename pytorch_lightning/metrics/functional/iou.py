@@ -16,10 +16,10 @@ from typing import Optional
 import torch
 from torchmetrics.functional import iou as _iou
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_iou, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_iou)
 def iou(
     pred: torch.Tensor,
     target: torch.Tensor,

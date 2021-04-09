@@ -24,12 +24,12 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.trainer.supporters import Accumulator, TensorRunningAccum
+from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -38,8 +38,6 @@ class TrainLoop:
 
     def __init__(self, trainer, multiple_trainloader_mode: str):
         self.trainer = trainer
-        self.early_stopping_accumulator = None
-        self.checkpoint_accumulator = None
         self.accumulated_loss = None
         self.warning_cache = WarningCache()
         self._teardown_already_run = False
@@ -177,14 +175,10 @@ class TrainLoop:
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
 
         # changing gradient according accumulation_scheduler
-        self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.lightning_module)
+        self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
         self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
-
-        # structured result accumulators for callbacks
-        self.early_stopping_accumulator = Accumulator()
-        self.checkpoint_accumulator = Accumulator()
 
         # hook
         self.trainer.call_hook("on_epoch_start")
@@ -248,12 +242,7 @@ class TrainLoop:
         return [[opt_idx, self.trainer.optimizers[opt_idx]]]
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
-        is_result_obj = isinstance(training_step_output, Result)
-
-        if is_result_obj:
-            training_step_output = training_step_output.detach()
-        else:
-            training_step_output.batch_loss = training_step_output.batch_loss.detach()
+        training_step_output.detach()
 
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
@@ -290,24 +279,16 @@ class TrainLoop:
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
                 training_step_output, split_batch
             )
-            is_result_obj = isinstance(training_step_output, Result)
-
             if training_step_output_for_epoch_end is None:
-                return None
+                return
 
         # enable empty loss when using manual opt
         closure_loss = None
         untouched_loss = None
 
         if self.automatic_optimization:
-            # accumulate loss
-            # (if accumulate_grad_batches = 1 no effect)
-            if is_result_obj:
-                closure_loss = training_step_output.minimize
-            else:
-                closure_loss = training_step_output.batch_loss
-
-            closure_loss = closure_loss / self.trainer.accumulate_grad_batches
+            # accumulate loss. if accumulate_grad_batches==1, no effect
+            closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
 
             # the loss will get scaled for amp. avoid any modifications to it
             untouched_loss = closure_loss.detach().clone()
@@ -318,7 +299,6 @@ class TrainLoop:
             loss=untouched_loss,
             training_step_output=training_step_output,
             training_step_output_for_epoch_end=training_step_output_for_epoch_end,
-            hiddens=training_step_output.hiddens,
         )
         return result
 
@@ -329,56 +309,27 @@ class TrainLoop:
         if training_step_output_for_epoch_end is None:
             return None, None
 
-        # -----------------------------------------
-        # process hybrid (1.0)
-        # -----------------------------------------
-        # no need for these checks in 1.0.0
-        # TODO: remove checks in 1.0.0
-        is_tensor = isinstance(training_step_output_for_epoch_end, torch.Tensor)
-        is_1_0_output = is_tensor or ("log" not in training_step_output and "progress_bar" not in training_step_output)
-        if is_1_0_output:
-            return self._process_training_step_output_1_0(training_step_output, split_batch)
-
-        # -----------------------------------------
-        # process old dict (deprecate 1.0)
-        # -----------------------------------------
-        training_step_output = self.trainer.process_dict_result(training_step_output, train=True)
-
-        training_step_output = AttributeDict(
-            batch_loss=training_step_output[0],
-            pbar_on_batch_end=training_step_output[1],
-            log_metrics=training_step_output[2],
-            callback_metrics=training_step_output[3],
-            hiddens=training_step_output[4],
-        )
-        # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-        if isinstance(training_step_output_for_epoch_end, torch.Tensor):
-            training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
-        else:
-            training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
-
-        return training_step_output_for_epoch_end, training_step_output
-
-    def _process_training_step_output_1_0(self, training_step_output, split_batch):
         result = self.trainer.lightning_module._results
 
         loss = None
         hiddens = None
+        result["extra"] = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
             loss = training_step_output.pop("loss", None)
             hiddens = training_step_output.pop("hiddens", None)
+            if hiddens is not None:
+                hiddens = hiddens.detach()
             result["extra"] = training_step_output
 
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
             loss = training_step_output
-            result["extra"] = {}
 
         # map to results under the hood
         result.minimize = loss
-        result.hiddens = hiddens
+        self.trainer.hiddens = hiddens
 
         # track batch for manual reduction with result
         result.track_batch_size(len(split_batch))
@@ -389,10 +340,7 @@ class TrainLoop:
         if self.trainer.move_metrics_to_cpu:
             training_step_output_for_epoch_end = training_step_output_for_epoch_end.cpu()
 
-        # what flows back into the system
-        training_step_output = result
-
-        return training_step_output_for_epoch_end, training_step_output
+        return training_step_output_for_epoch_end, result
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.lightning_module
@@ -444,12 +392,6 @@ class TrainLoop:
                 grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
         return grad_norm_dict
 
-    def process_hiddens(self, opt_closure_result):
-        hiddens = opt_closure_result.hiddens
-        if isinstance(opt_closure_result.training_step_output, Result):
-            opt_closure_result.training_step_output_for_epoch_end.drop_hiddens()
-        return hiddens
-
     def tbptt_split_batch(self, batch):
         splits = [batch]
         if self.trainer.truncated_bptt_steps is not None:
@@ -483,11 +425,7 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            batch_end_outputs = self.process_train_step_outputs(
-                batch_output.training_step_output_for_epoch_end,
-                self.early_stopping_accumulator,
-                self.checkpoint_accumulator,
-            )
+            batch_end_outputs = self.process_train_step_outputs(batch_output.training_step_output_for_epoch_end)
             # hook
             # TODO: add outputs to batches
             self.on_train_batch_end(epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx)
@@ -540,12 +478,10 @@ class TrainLoop:
             self.increment_accumulated_grad_global_step()
 
         # epoch end hook
-        self.run_on_epoch_end_hook(epoch_output)
+        self.on_train_epoch_end(epoch_output)
 
         # log epoch metrics
-        self.trainer.logger_connector.log_train_epoch_end_metrics(
-            epoch_output, self.checkpoint_accumulator, self.early_stopping_accumulator, self.num_optimizers
-        )
+        self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output, self.num_optimizers)
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
@@ -699,12 +635,9 @@ class TrainLoop:
             # cache metrics
             self.trainer.logger_connector.cache_training_step_metrics(opt_closure_result)
 
-            # track hiddens
-            self.trainer.hiddens = self.process_hiddens(opt_closure_result)
-
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
-                self.trainer.detect_nan_tensors(opt_closure_result.loss)
+                self._check_finite(opt_closure_result.loss)
 
             # track all the outputs across all steps
             batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
@@ -746,7 +679,7 @@ class TrainLoop:
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
-                        self.trainer.detect_nan_tensors(result.loss)
+                        self._check_finite(result.loss)
 
                 else:
                     self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
@@ -756,6 +689,12 @@ class TrainLoop:
                     self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
         return result
+
+    def _check_finite(self, loss: torch.Tensor) -> None:
+        if not torch.isfinite(loss).all():
+            raise ValueError(f'The loss returned in `training_step` is {loss}.')
+        model = self.trainer.lightning_module
+        detect_nan_parameters(model)
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
         self.trainer.dev_debugger.track_event("backward_call")
@@ -782,7 +721,7 @@ class TrainLoop:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
-    def run_on_epoch_end_hook(self, epoch_output):
+    def on_train_epoch_end(self, epoch_output):
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
@@ -795,7 +734,9 @@ class TrainLoop:
 
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
-            self.trainer.global_step += 1
+            self.trainer.global_step = self.trainer.accelerator.update_global_step(
+                self.trainer.total_batch_idx, self.trainer.global_step
+            )
 
     def _accumulated_batches_reached(self):
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
@@ -854,32 +795,15 @@ class TrainLoop:
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
+    def process_train_step_outputs(self, all_train_step_outputs):
         """
         Figure out what needs to be tracked/logged at the end of the epoch
         """
-
         # the training step outputs a list per optimizer. The list contains the outputs at each time step
         # when no TBPTT is used, then the list has 1 item per batch
         # when TBPTT IS used, then the list has n items (1 per time step)
-        batch_end_outputs = []
-        for optimizer_idx_outputs in all_train_step_outputs:
-            # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
-            if len(optimizer_idx_outputs) == 0:
-                continue
-
-            sample_output = optimizer_idx_outputs[-1]
-
-            # pull out callback info if available (ie: Results object)
-            if isinstance(sample_output, dict) and "early_stop_on" in sample_output:
-                early_stopping_accumulator.accumulate(sample_output["early_stop_on"])
-
-            if isinstance(sample_output, dict) and "checkpoint_on" in sample_output:
-                checkpoint_accumulator.accumulate(sample_output["checkpoint_on"])
-
-            batch_end_outputs.append(optimizer_idx_outputs)
-
-        return batch_end_outputs
+        # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
+        return [opt_idx_out for opt_idx_out in all_train_step_outputs if len(opt_idx_out)]
 
     def prepare_optimizers(self):
         # in manual optimization we loop over all optimizers at once

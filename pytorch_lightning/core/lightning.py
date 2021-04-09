@@ -38,7 +38,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -118,6 +118,20 @@ class LightningModule(
             return opts[0]
         # multiple opts
         return opts
+
+    def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
+        if not self.trainer.lr_schedulers:
+            return None
+
+        # ignore other keys "interval", "frequency", etc.
+        lr_schedulers = [s["scheduler"] for s in self.trainer.lr_schedulers]
+
+        # single scheduler
+        if len(lr_schedulers) == 1:
+            return lr_schedulers[0]
+
+        # multiple schedulers
+        return lr_schedulers
 
     @property
     def example_input_array(self) -> Any:
@@ -720,10 +734,13 @@ class LightningModule(
         .. code-block:: python
 
             # pseudocode of order
-            out = validation_step()
-            if defined('validation_step_end'):
-                out = validation_step_end(out)
-            out = validation_epoch_end(out)
+            val_outs = []
+            for val_batch in val_data:
+                out = validation_step(val_batch)
+                if defined('validation_step_end'):
+                    out = validation_step_end(out)
+                val_outs.append(out)
+            val_outs = validation_epoch_end(val_outs)
 
 
         .. code-block:: python
@@ -1226,9 +1243,8 @@ class LightningModule(
                 opt_a.step()
         """
         if optimizer is not None:
-            rank_zero_warn(
-                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4",
-                DeprecationWarning
+            rank_zero_deprecation(
+                "`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4"
             )
 
         # make sure we're using manual opt

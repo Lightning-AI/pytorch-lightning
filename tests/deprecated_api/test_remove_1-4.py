@@ -142,14 +142,6 @@ def test_v1_4_0_deprecated_metrics():
     with pytest.deprecated_call(match='will be removed in v1.4'):
         multiclass_auroc(torch.rand(20, 5).softmax(dim=-1), torch.randint(0, 5, (20, )), num_classes=5)
 
-    from pytorch_lightning.metrics.functional.classification import _auc_decorator
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        _auc_decorator()
-
-    from pytorch_lightning.metrics.functional.classification import _multiclass_auc_decorator
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        _multiclass_auc_decorator()
-
 
 class CustomDDPPlugin(DDPSpawnPlugin):
 
