@@ -15,6 +15,7 @@
 from unittest import mock
 
 import pytest
+import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
@@ -218,3 +219,15 @@ def test_v1_5_0_profiler_output_filename(tmpdir, cls):
         profiler = cls(output_filename=filepath)
     assert profiler.dirpath == tmpdir
     assert profiler.filename == "test"
+
+
+def test_v1_5_0_trainer_training_trick_mixin(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
+    trainer.fit(model)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.print_nan_gradients()
+
+    dummy_loss = torch.tensor(1.0)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.detect_nan_tensors(dummy_loss)

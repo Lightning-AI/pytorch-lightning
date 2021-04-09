@@ -29,6 +29,7 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, par
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -636,7 +637,7 @@ class TrainLoop:
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
-                self.trainer.detect_nan_tensors(opt_closure_result.loss)
+                self._check_finite(opt_closure_result.loss)
 
             # track all the outputs across all steps
             batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
@@ -678,7 +679,7 @@ class TrainLoop:
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
-                        self.trainer.detect_nan_tensors(result.loss)
+                        self._check_finite(result.loss)
 
                 else:
                     self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
@@ -688,6 +689,12 @@ class TrainLoop:
                     self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
         return result
+
+    def _check_finite(self, loss: torch.Tensor) -> None:
+        if not torch.isfinite(loss).all():
+            raise ValueError(f'The loss returned in `training_step` is {loss}.')
+        model = self.trainer.lightning_module
+        detect_nan_parameters(model)
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
         self.trainer.dev_debugger.track_event("backward_call")

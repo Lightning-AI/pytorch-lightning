@@ -1147,3 +1147,41 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
 @RunIf(min_gpus=2, special=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
     train_manual_optimization(tmpdir, "ddp", model_cls=TestManualOptimizationDDPModelToggleModel)
+
+
+def test_lr_schedulers(tmpdir):
+    """
+    Test `lr_schedulers()` returns the same objects
+    in the same order as `configure_optimizers()` returns.
+    """
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            scheduler_1, scheduler_2 = self.lr_schedulers()
+            assert scheduler_1 is self.scheduler_1
+            assert scheduler_2 is self.scheduler_2
+
+        def configure_optimizers(self):
+            optimizer_1 = torch.optim.SGD(self.parameters(), lr=0.1)
+            optimizer_2 = torch.optim.SGD(self.parameters(), lr=0.1)
+            self.scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
+            self.scheduler_2 = torch.optim.lr_scheduler.StepLR(optimizer_2, step_size=1)
+            return [optimizer_1, optimizer_2], [self.scheduler_1, self.scheduler_2]
+
+    model = TestModel()
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+    )
+
+    trainer.fit(model)
