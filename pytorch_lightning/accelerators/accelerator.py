@@ -521,7 +521,7 @@ class Accelerator(object):
         However this may break certain precision plugins such as APEX which require optimizers to be set.
 
         Returns:
-            If True, delay setup optimizers till pre_dispatch, else call within setup.
+            If True, delay setup optimizers until `pre_dispatch`, else call within `setup`.
         """
         return self.training_type_plugin.setup_optimizers_in_pre_dispatch
 
