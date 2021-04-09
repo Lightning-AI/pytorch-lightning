@@ -19,12 +19,10 @@ MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 ARG LIGHTNING_VERSION=""
 
-SHELL ["/bin/bash", "-c"]
-
-COPY ./ /home/pytorch-lightning/
+COPY ./ /workspace/pytorch-lightning/
 
 RUN \
-    cd /home  && \
+    cd /workspace  && \
     mv pytorch-lightning/notebooks . && \
     mv pytorch-lightning/pl_examples . && \
     # replace by specific version if asked
