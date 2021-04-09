@@ -192,14 +192,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return obj
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.device)
-        decision = self.reduce(decision, "sum")
+        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = self.reduce(decision, reduce_op="sum")
         decision = bool(decision == self.world_size)
         return decision
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
-            output = torch.tensor(output, device=self.device)
+            output = torch.tensor(output, device=self.lightning_module.device)
 
         _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
         _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
@@ -265,3 +265,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if _OMEGACONF_AVAILABLE:
             checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
         self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)
+
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """
+        Function to gather a tensor from several distributed processes
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: not available with TPUs
+            sync_grads: not available with TPUs
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        return xm.all_gather(tensor.unsqueeze(0))
