@@ -177,14 +177,15 @@ class LightningLoggerBase(ABC):
     def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
         """
         Logs a matplotlib figure.
+
         Args:
             name: name of the figure
             figure: plt figure handle
             step: step number at which the figure should be recorded
             close: close figure after logging
         """
-        """Default is silent.
-        Not raising NotImplemented because one could have multiple logger where only some support log_figure."""
+        # Default is silent and not NotImplementedError because we want to support LoggerCollection
+        # where some loggers might others might not have implemented this method.
         if close:
             plt.close(figure)
 
