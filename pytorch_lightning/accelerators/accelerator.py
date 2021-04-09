@@ -28,7 +28,6 @@ from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, Li
 
 if TYPE_CHECKING:
     from torch.cuda.amp import GradScaler
-
     from pytorch_lightning.trainer.trainer import Trainer
 
 _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
@@ -40,6 +39,7 @@ class Accelerator(object):
     An Accelerator is meant to deal with one type of Hardware.
 
     Currently there are accelerators for:
+
     - CPU
     - GPU
     - TPU
@@ -82,6 +82,7 @@ class Accelerator(object):
     def setup(self, trainer: 'Trainer', model: LightningModule) -> None:
         """
         Setup plugins for the trainer fit and creates optimizers.
+
         Args:
             trainer: the trainer instance
             model: the LightningModule
@@ -169,12 +170,13 @@ class Accelerator(object):
 
         Args:
             args: the arguments for the models training step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): Integer displaying index of this batch
-                optimizer_idx (int): When using multiple optimizers, this argument will also be present.
-                hiddens(:class:`~torch.Tensor`): Passed in if
-                    :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
+
+                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                - batch_idx (int): Integer displaying index of this batch
+                - optimizer_idx (int): When using multiple optimizers, this argument will also be present.
+                - hiddens(:class:`~torch.Tensor`): Passed in if
+                  :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         """
         args[0] = self.to_device(args[0])
@@ -190,11 +192,12 @@ class Accelerator(object):
 
         Args:
             args: the arguments for the models validation step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): The index of this batch
-                dataloader_idx (int): The index of the dataloader that produced this batch
-                    (only if multiple val dataloaders used)
+
+                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                - batch_idx (int): The index of this batch
+                - dataloader_idx (int): The index of the dataloader that produced this batch
+                  (only if multiple val dataloaders used)
         """
         batch = self.to_device(args[0])
 
@@ -208,11 +211,12 @@ class Accelerator(object):
 
         Args:
             args: the arguments for the models test step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): The index of this batch.
-                dataloader_idx (int): The index of the dataloader that produced this batch
-                    (only if multiple test dataloaders used).
+
+                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                - batch_idx (int): The index of this batch.
+                - dataloader_idx (int): The index of the dataloader that produced this batch
+                  (only if multiple test dataloaders used).
         """
         batch = self.to_device(args[0])
 
@@ -226,11 +230,13 @@ class Accelerator(object):
 
         Args:
             args: the arguments for the models predict step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): The index of this batch.
-                dataloader_idx (int): The index of the dataloader that produced this batch
-                    (only if multiple predict dataloaders used).
+
+                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                - batch_idx (int): The index of this batch.
+                - dataloader_idx (int): The index of the dataloader that produced this batch
+                  (only if multiple predict dataloaders used).
+
         """
         batch = self.to_device(args[0])
 
@@ -423,6 +429,7 @@ class Accelerator(object):
             tensor: tensor of shape (batch, ...)
             group: the process group to gather results from. Defaults to all processes (world)
             sync_grads: flag that allows users to synchronize gradients for all_gather op
+
         Return:
             A tensor of shape (world_size, batch, ...)
         """
@@ -451,7 +458,8 @@ class Accelerator(object):
         shard the model instantly - useful for extremely large models. Can save memory and
         initialization time.
 
-        Returns: Model parallel context.
+        Returns:
+            Model parallel context.
         """
         with self.training_type_plugin.model_sharded_context():
             yield
@@ -498,7 +506,9 @@ class Accelerator(object):
         """
         Allow model parallel hook to be called in suitable environments determined by the training type plugin.
         This is useful for when we want to shard the model once within fit.
-        Returns: True if we want to call the model parallel setup hook.
+
+        Returns:
+            True if we want to call the model parallel setup hook.
         """
         return self.training_type_plugin.call_configure_sharded_model_hook
 
@@ -512,7 +522,9 @@ class Accelerator(object):
         Override to delay setting optimizers and schedulers till after dispatch.
         This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
         However this may break certain precision plugins such as APEX which require optimizers to be set.
-        Returns: If True, delay setup optimizers till pre_dispatch, else call within setup.
+
+        Returns:
+            If True, delay setup optimizers till pre_dispatch, else call within setup.
         """
         return self.training_type_plugin.setup_optimizers_in_pre_dispatch
 
