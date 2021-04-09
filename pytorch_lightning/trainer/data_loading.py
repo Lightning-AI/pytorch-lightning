@@ -13,7 +13,6 @@
 # limitations under the License.
 import inspect
 import multiprocessing
-import platform
 from abc import ABC
 from copy import deepcopy
 from typing import Iterable, List, Tuple, Union
@@ -54,12 +53,10 @@ class TrainerDataLoadingMixin(ABC):
     dev_debugger: InternalDebugger
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
-        on_windows = platform.system() == 'Windows'
-
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         is_dataloader = isinstance(dataloader, DataLoader)
         using_spawn = self.accelerator_connector.distributed_backend == "ddp_spawn"
-        if is_dataloader and not on_windows:
+        if is_dataloader:
             if dataloader.num_workers > 0 and using_spawn:
                 # checks for the attr persistent_workers available in pytorch >= 1.7
                 if hasattr(dataloader, "persistent_workers"):
