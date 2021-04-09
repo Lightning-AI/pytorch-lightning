@@ -65,6 +65,40 @@ Loggers API
     test_tube
     wandb
 
+Plugins API
+-----------
+
+.. currentmodule:: pytorch_lightning.plugins
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    Plugin
+    ApexMixedPrecisionPlugin
+    DeepSpeedPrecisionPlugin
+    DoublePrecisionPlugin
+    NativeMixedPrecisionPlugin
+    PrecisionPlugin
+    ShardedNativeMixedPrecisionPlugin
+    TPUHalfPrecisionPlugin
+    DDPPlugin
+    DDP2Plugin
+    DDPSpawnPlugin
+    DeepSpeedPlugin
+    DataParallelPlugin
+    HorovodPlugin
+    ParallelPlugin
+    RPCPlugin
+    RPCSequentialPlugin
+    DDPShardedPlugin
+    DDPSpawnShardedPlugin
+    SingleDevicePlugin
+    SingleTPUPlugin
+    TPUSpawnPlugin
+    TrainingTypePlugin
+
 Profiler API
 ------------
 
