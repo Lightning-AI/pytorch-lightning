@@ -37,7 +37,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         self.module = pl_module
 
     def forward(self, *inputs, **kwargs):
-        trainer = self.module.trainer
+        trainer = unwrap_lightning_module(self).trainer
 
         if trainer and trainer.training:
             output = self.module.training_step(*inputs, **kwargs)
@@ -46,7 +46,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             # it is done manually in ``LightningModule.manual_backward``
             # `require_backward_grad_sync` will be reset in the
             # ddp_plugin ``post_training_step`` hook
-            if not self.module.automatic_optimization:
+            if not unwrap_lightning_module(self).automatic_optimization:
                 trainer.model.require_backward_grad_sync = False
         elif trainer and trainer.testing:
             output = self.module.test_step(*inputs, **kwargs)
