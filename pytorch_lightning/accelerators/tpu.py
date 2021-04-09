@@ -56,21 +56,6 @@ class TPUAccelerator(Accelerator):
     ) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """
-        Function to gather a tensor from several distributed processes
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: not available with TPUs
-            sync_grads: not available with TPUs
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        # todo: Add support for backward with all_gather
-        if isinstance(self.training_type_plugin, TPUSpawnPlugin) and self.training_type_plugin.is_distributed:
-            return xm.all_gather(tensor).view(-1, *tensor.shape)
-        return tensor
-
     def clip_gradients(
         self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM
