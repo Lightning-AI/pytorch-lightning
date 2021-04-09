@@ -18,7 +18,7 @@ Currently there are accelerators for:
 Each Accelerator gets two plugins upon initialization:
 One to handle differences from the training routine and one to handle different precisions.
 
-.. code-block:: python
+.. testcode::
 
     accelerator = GPUAccelerator(
         precision_plugin=NativeMixedPrecisionPlugin(),
