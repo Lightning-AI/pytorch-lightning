@@ -301,7 +301,7 @@ class ManualBoringModel(BoringModel):
 def test_ddp_sharded_plugin_manual_optimization(tmpdir, accelerator):
     model = ManualBoringModel()
     trainer = Trainer(
-    	default_root_dir=tmpdir
+        default_root_dir=tmpdir,
         accelerator=accelerator,
         fast_dev_run=2,
         gpus=2,
