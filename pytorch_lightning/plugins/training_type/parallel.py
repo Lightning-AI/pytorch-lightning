@@ -27,6 +27,7 @@ from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available,
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
+    """ Plugin for training with multiple processes in parallel. """
 
     def __init__(
         self,

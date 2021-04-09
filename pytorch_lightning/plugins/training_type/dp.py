@@ -23,6 +23,10 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class DataParallelPlugin(ParallelPlugin):
+    """
+    Implements data-parallel training in a single process, i.e., the model gets replicated to each
+    device and each gets a split of the data.
+    """
 
     def __init__(self, parallel_devices: Optional[List[torch.device]]):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)

@@ -41,6 +41,10 @@ log = logging.getLogger(__name__)
 
 
 class DDPSpawnPlugin(ParallelPlugin):
+    """
+    Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after
+    training finishes.
+    """
 
     distributed_backend = "ddp_spawn"
 

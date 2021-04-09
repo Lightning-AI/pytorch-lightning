@@ -26,6 +26,7 @@ if _FAIRSCALE_AVAILABLE:
 
 
 class DDPSpawnShardedPlugin(DDPSpawnPlugin):
+    """ Optimizer sharded training provided by FairScale. """
 
     def configure_ddp(self):
         self._wrap_optimizers()

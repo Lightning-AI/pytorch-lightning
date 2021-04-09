@@ -104,7 +104,6 @@ class DeepSpeedPlugin(DDPPlugin):
         synchronize_checkpoint_boundary: bool = False,
     ) -> None:
         """
-
         Provides capabilities to run training using the DeepSpeed library,
         with training optimizations for large billion parameter models.
         `For more information: https://www.deepspeed.ai/`.

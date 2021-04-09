@@ -19,6 +19,7 @@ from pytorch_lightning.plugins.training_type.training_type_plugin import Trainin
 
 
 class SingleDevicePlugin(TrainingTypePlugin):
+    """ Plugin that handles communication on a single device. """
 
     def __init__(self, device: torch.device):
         super().__init__()
