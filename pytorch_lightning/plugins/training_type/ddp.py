@@ -262,6 +262,8 @@ class DDPPlugin(ParallelPlugin):
     def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
         world_size = world_size if world_size is not None else self.cluster_environment.world_size()
         global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
+        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
+        os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
