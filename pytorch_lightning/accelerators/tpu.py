@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
 
 class TPUAccelerator(Accelerator):
+    """ Accelerator for TPU devices. """
 
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """

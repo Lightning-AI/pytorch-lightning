@@ -1,6 +1,21 @@
 API References
 ==============
 
+Accelerator API
+---------------
+
+.. currentmodule:: pytorch_lightning.accelerators
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+
+    Accelerator
+    CPUAccelerator
+    GPUAccelerator
+    TPUAccelerator
+
+
 Core API
 --------
 

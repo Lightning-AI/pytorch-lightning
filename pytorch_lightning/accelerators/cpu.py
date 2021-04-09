@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 
 class CPUAccelerator(Accelerator):
+    """ Accelerator for CPU devices. """
 
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """

@@ -29,6 +29,7 @@ _log = logging.getLogger(__name__)
 
 
 class GPUAccelerator(Accelerator):
+    """ Accelerator for GPU devices. """
 
     def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """
