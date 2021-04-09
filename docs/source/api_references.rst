@@ -68,36 +68,65 @@ Loggers API
 Plugins API
 -----------
 
-.. currentmodule:: pytorch_lightning.plugins
+Training Type Plugins
+^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.training_type
 
 .. autosummary::
     :toctree: api
     :nosignatures:
     :template: classtemplate.rst
 
-    Plugin
-    ApexMixedPrecisionPlugin
-    DeepSpeedPrecisionPlugin
-    DoublePrecisionPlugin
-    NativeMixedPrecisionPlugin
-    PrecisionPlugin
-    ShardedNativeMixedPrecisionPlugin
-    TPUHalfPrecisionPlugin
+    TrainingTypePlugin
+    SingleDevicePlugin
+    ParallelPlugin
+    DataParallelPlugin
     DDPPlugin
     DDP2Plugin
-    DDPSpawnPlugin
-    DeepSpeedPlugin
-    DataParallelPlugin
-    HorovodPlugin
-    ParallelPlugin
-    RPCPlugin
-    RPCSequentialPlugin
     DDPShardedPlugin
     DDPSpawnShardedPlugin
-    SingleDevicePlugin
+    DDPSpawnPlugin
+    DeepSpeedPlugin
+    HorovodPlugin
+    RPCPlugin
+    RPCSequentialPlugin
     SingleTPUPlugin
     TPUSpawnPlugin
-    TrainingTypePlugin
+
+Precision Plugins
+^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.precision
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    PrecisionPlugin
+    NativeMixedPrecisionPlugin
+    ShardedNativeMixedPrecisionPlugin
+    ApexMixedPrecisionPlugin
+    DeepSpeedPrecisionPlugin
+    TPUHalfPrecisionPlugin
+    DoublePrecisionPlugin
+
+Cluster Environments
+^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.environments
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    ClusterEnvironment
+    LightningEnvironment
+    TorchElasticEnvironment
+    SlurmEnvironment
+
 
 Profiler API
 ------------
