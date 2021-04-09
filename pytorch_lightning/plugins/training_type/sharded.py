@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, List
+from typing import List, Optional
+
+import torch
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
-from pytorch_lightning.plugins.environments.cluster_environment import (
-    ClusterEnvironment,
-)
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
@@ -39,9 +39,7 @@ class DDPShardedPlugin(DDPPlugin):
         sync_batchnorm: bool = False,
         is_fp16: bool = False,
     ):
-        super().__init__(
-            parallel_devices, num_nodes, cluster_environment, sync_batchnorm
-        )
+        super().__init__(parallel_devices, num_nodes, cluster_environment, sync_batchnorm)
         self.is_fp16 = is_fp16
 
     def configure_ddp(self):
@@ -49,7 +47,7 @@ class DDPShardedPlugin(DDPPlugin):
         self._model = ShardedDataParallel(
             LightningShardedDataParallel(self.model),
             sharded_optimizer=self.lightning_module.trainer.optimizers,
-            reduce_buffer_size=2 ** 23 if self.num_nodes > 1 else 0,
+            reduce_buffer_size=2**23 if self.num_nodes > 1 else 0,
         )
 
     def _reinit_optimizers_with_oss(self):
