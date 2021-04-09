@@ -405,6 +405,9 @@ class AcceleratorConnector(object):
                 cluster_environment=self.cluster_environment,
                 sync_batchnorm=self.sync_batchnorm,
             )
+            if hasattr(plugin, 'is_fp16'):
+                plugin.is_fp16 = (self.precision == 16)
+
         elif self.use_dp:
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
