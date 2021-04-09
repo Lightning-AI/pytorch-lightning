@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-import types
 from argparse import ArgumentParser
 from unittest import mock
 
@@ -172,11 +171,10 @@ def test_wandb_sanitize_callable_params(tmpdir):
     params.wrapper_something_wo_name = lambda: lambda: '1'
     params.wrapper_something = wrapper_something
 
-    assert isinstance(params.gpus, types.FunctionType)
     params = WandbLogger._convert_params(params)
     params = WandbLogger._flatten_dict(params)
     params = WandbLogger._sanitize_callable_params(params)
-    assert params["gpus"] == '_gpus_arg_default'
+    assert params["gpus"] == "None"
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"
