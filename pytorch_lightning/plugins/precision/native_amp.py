@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
+    """ Plugin for native mixed precision training with :mod:`torch.cuda.amp`."""
 
     def __init__(self) -> None:
         super().__init__()

@@ -29,6 +29,7 @@ warning_cache = WarningCache()
 
 
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
+    """ Precision plugin for DeepSpeed integration. """
 
     def __init__(self, precision: int) -> None:
         super().__init__()
