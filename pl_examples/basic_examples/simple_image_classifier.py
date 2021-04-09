@@ -79,14 +79,18 @@ class LitClassifier(pl.LightningModule):
 
 class MyLightningCLI(LightningCLI):
 
-    def before_instantiate_classes(self):
-        pl.seed_everything(1234)
+    def before_parse_arguments(self, parser):
+        parser.set_defaults(seed_everything=1234)
 
     def after_fit(self):
         result = self.trainer.test(self.model, datamodule=self.datamodule)
         pprint(result)
 
 
+def cli_main():
+    MyLightningCLI(LitClassifier, MNISTDataModule)
+
+
 if __name__ == '__main__':
     cli_lightning_logo()
-    MyLightningCLI(LitClassifier, MNISTDataModule)
+    cli_main()

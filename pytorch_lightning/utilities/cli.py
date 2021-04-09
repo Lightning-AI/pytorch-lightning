@@ -13,13 +13,14 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from typing import Any, Dict, Type, Union
+from typing import Any, Dict, Optional, Type, Union
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities.seed import seed_everything
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
@@ -63,8 +64,8 @@ class LightningArgumentParser(ArgumentParser):
         """
         assert issubclass(lightning_class, (Trainer, LightningModule, LightningDataModule))
         if subclass_mode:
-            return self.add_subclass_arguments(lightning_class, nested_key)
-        return self.add_class_arguments(lightning_class, nested_key)
+            return self.add_subclass_arguments(lightning_class, nested_key, required=True)
+        return self.add_class_arguments(lightning_class, nested_key, fail_untyped=False)
 
 
 class SaveConfigCallback(Callback):
@@ -161,6 +162,8 @@ class LightningCLI:
         self.add_core_arguments_to_parser()
         self.before_parse_arguments(self.parser)
         self.parse_arguments()
+        if self.config['seed_everything'] is not None:
+            seed_everything(self.config['seed_everything'])
         self.before_instantiate_classes()
         self.instantiate_classes()
         self.prepare_fit_kwargs()
@@ -178,10 +181,14 @@ class LightningCLI:
         Args:
             parser: The argument parser object to which arguments should be added
         """
-        pass
 
     def add_core_arguments_to_parser(self) -> None:
         """Adds arguments from the core classes to the parser"""
+        self.parser.add_argument(
+            '--seed_everything',
+            type=Optional[int],
+            help='Set to an int to run seed_everything with this value before classes instantiation',
+        )
         self.parser.add_lightning_class_args(self.trainer_class, 'trainer')
         trainer_defaults = {'trainer.' + k: v for k, v in self.trainer_defaults.items() if k != 'callbacks'}
         self.parser.set_defaults(trainer_defaults)
@@ -195,7 +202,6 @@ class LightningCLI:
         Args:
             parser: The argument parser object that will be used to parse
         """
-        pass
 
     def parse_arguments(self) -> None:
         """Parses command line arguments and stores it in self.config"""
@@ -203,7 +209,6 @@ class LightningCLI:
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes"""
-        pass
 
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
@@ -249,7 +254,6 @@ class LightningCLI:
 
     def before_fit(self) -> None:
         """Implement to run some code before fit is started"""
-        pass
 
     def fit(self) -> None:
         """Runs fit of the instantiated trainer class and prepared fit keyword arguments"""
@@ -257,4 +261,3 @@ class LightningCLI:
 
     def after_fit(self) -> None:
         """Implement to run some code after fit has finished"""
-        pass
