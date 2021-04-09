@@ -104,7 +104,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         Returns: context manager with sync behaviour off
         """
         if isinstance(self.model, DistributedDataParallel):
-            with self.model.no_sync():c
+            with self.model.no_sync():
                 yield None
         else:
             yield None
