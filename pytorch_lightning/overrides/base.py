@@ -66,7 +66,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 def unwrap_lightning_module(wrapped_model) -> LightningModule:
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
-        model = model.module
+        model = unwrap_lightning_module(model.module)
     if isinstance(model, _LightningModuleWrapperBase):
-        model = model.module
+        model = unwrap_lightning_module(model.module)
     return model

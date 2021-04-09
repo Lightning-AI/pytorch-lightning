@@ -15,14 +15,62 @@ from functools import wraps
 from typing import Any, List, Sequence, Tuple, TYPE_CHECKING
 
 import torch
+from torch import nn
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 if TYPE_CHECKING:
     from torch.nn import Module
     from torch.optim import Optimizer
+
+
+class LightningDoublePrecisionModule(_LightningModuleWrapperBase):
+    @staticmethod
+    def _to_double_precision(data: torch.Tensor) -> torch.Tensor:
+        if data.is_floating_point():
+            return data.double()
+        return data
+
+    @staticmethod
+    def _move_float_tensors_to_double(collection: Any) -> Any:
+        return apply_to_collection(
+            collection,
+            torch.Tensor,
+            LightningDoublePrecisionModule._to_double_precision
+        )
+
+    def training_step(self, *args, **kwargs):
+        return self.module.training_step(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs)
+        )
+
+    def validation_step(self, *args, **kwargs):
+        return self.module.validation_step(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs)
+        )
+
+    def test_step(self, *args, **kwargs):
+        return self.module.test_step(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs)
+        )
+
+    def predict_step(self, *args, **kwargs):
+        return self.module.predict_step(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs)
+        )
+
+    def forward(self, *args, **kwargs):
+        return self.module.forward(
+            *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
+            **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs)
+        )
 
 
 class _DoublePrecisionPatch:
@@ -46,18 +94,21 @@ class _DoublePrecisionPatch:
     def _move_float_tensors_to_double(collection: Any) -> Any:
         return apply_to_collection(collection, torch.Tensor, function=_DoublePrecisionPatch._to_double_precision)
 
-    @classmethod
-    def patch(cls, model: 'Module', method_name: str) -> '_DoublePrecisionPatch':
-        old_method = getattr(model, method_name)
-
+    @staticmethod
+    def wrap_to_double(old_method):
         @wraps(old_method)
         def new_method(*args: Any, **kwargs: Any) -> Any:
             return old_method(
                 *_DoublePrecisionPatch._move_float_tensors_to_double(args),
                 **_DoublePrecisionPatch._move_float_tensors_to_double(kwargs)
             )
+        return new_method
 
-        setattr(model, method_name, new_method if callable(old_method) else old_method)
+    @classmethod
+    def patch(cls, model: 'Module', method_name: str) -> '_DoublePrecisionPatch':
+        old_method = getattr(model, method_name)
+        model.training_step = _DoublePrecisionPatch.wrap_to_double(model.training_step)
+        # setattr(model, method_name, _DoublePrecisionPatch.wrap_to_double(getattr(model, method_name)))
         return cls(model, method_name, old_method)
 
 
@@ -69,7 +120,6 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     def __init__(self) -> None:
         super().__init__()
         self.patches: List[_DoublePrecisionPatch] = []
-        self._model = None
 
     def connect(
         self,
@@ -81,19 +131,15 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         `predict_step`, and `forward` methods to convert incoming floating point data to double. Does not alter
         `optimizers` or `lr_schedulers`."""
         model = model.to(dtype=torch.float64)
-
-        self._model = model
+        model = LightningDoublePrecisionModule(model)
+        # if isinstance(model, LightningModule):
+        #     self.patches.append(_DoublePrecisionPatch.patch(model, 'training_step'))
+        #     self.patches.append(_DoublePrecisionPatch.patch(model, 'validation_step'))
+        #     self.patches.append(_DoublePrecisionPatch.patch(model, 'test_step'))
+        #     self.patches.append(_DoublePrecisionPatch.patch(model, 'predict_step'))
+        # self.patches.append(_DoublePrecisionPatch.patch(model, 'forward'))
 
         return super().connect(model, optimizers, lr_schedulers)
-
-    def pre_dispatch(self) -> None:
-        if self._model is not None:
-            if isinstance(self._model, LightningModule):
-                self.patches.append(_DoublePrecisionPatch.patch(self._model, 'training_step'))
-                self.patches.append(_DoublePrecisionPatch.patch(self._model, 'validation_step'))
-                self.patches.append(_DoublePrecisionPatch.patch(self._model, 'test_step'))
-                self.patches.append(_DoublePrecisionPatch.patch(self._model, 'predict_step'))
-            self.patches.append(_DoublePrecisionPatch.patch(self._model, 'forward'))
 
     def post_dispatch(self) -> None:
         while len(self.patches) > 0:
