@@ -229,8 +229,8 @@ def test_tpu_clip_grad_by_value(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=4,
         tpu_cores=1,
-        limit_train_batches=4,
-        limit_val_batches=4,
+        limit_train_batches=10,
+        limit_val_batches=10,
         gradient_clip_val=0.5,
         gradient_clip_algorithm='value'
     )
