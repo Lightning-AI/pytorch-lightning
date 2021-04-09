@@ -28,15 +28,12 @@ if _XLA_AVAILABLE:
 
     xla_clip_grad_norm_ = clip_grad_norm_
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
-
+import pytorch_lightning as pl
 
 class TPUAccelerator(Accelerator):
     """ Accelerator for TPU devices. """
 
-    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:

@@ -18,6 +18,7 @@ import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
@@ -25,10 +26,6 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
-
-if TYPE_CHECKING:
-    from torch.cuda.amp import GradScaler
-    from pytorch_lightning.trainer.trainer import Trainer
 
 _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 
@@ -79,7 +76,7 @@ class Accelerator(object):
         """
         self.training_type_plugin.setup_environment()
 
-    def setup(self, trainer: 'Trainer', model: LightningModule) -> None:
+    def setup(self, trainer: 'pl.Trainer', model: LightningModule) -> None:
         """
         Setup plugins for the trainer fit and creates optimizers.
 
@@ -92,23 +89,23 @@ class Accelerator(object):
             self.setup_optimizers(trainer)
         self.setup_precision_plugin(self.precision_plugin)
 
-    def start_training(self, trainer: 'Trainer') -> None:
+    def start_training(self, trainer: 'pl.Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
 
-    def start_evaluating(self, trainer: 'Trainer') -> None:
+    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
         self.training_type_plugin.start_evaluating(trainer)
 
-    def start_predicting(self, trainer: 'Trainer') -> None:
+    def start_predicting(self, trainer: 'pl.Trainer') -> None:
         self.training_type_plugin.start_predicting(trainer)
 
-    def pre_dispatch(self, trainer: 'Trainer') -> None:
+    def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.pre_dispatch()
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.precision_plugin.pre_dispatch()
 
-    def post_dispatch(self, trainer: 'Trainer') -> None:
+    def post_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
@@ -342,7 +339,7 @@ class Accelerator(object):
         """Hook to do something at the end of the training"""
         pass
 
-    def setup_optimizers(self, trainer: 'Trainer') -> None:
+    def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
         """creates optimizers and schedulers
 
         Args:
@@ -391,7 +388,7 @@ class Accelerator(object):
         return self.precision_plugin.precision
 
     @property
-    def scaler(self) -> Optional['GradScaler']:
+    def scaler(self) -> Optional['torch.cuda.amp.GradScaler']:
 
         return getattr(self.precision_plugin, 'scaler', None)
 

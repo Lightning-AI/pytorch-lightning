@@ -9,12 +9,12 @@ Accelerator API
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
     Accelerator
     CPUAccelerator
     GPUAccelerator
     TPUAccelerator
-
 
 Core API
 --------
