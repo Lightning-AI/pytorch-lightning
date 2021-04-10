@@ -217,9 +217,11 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
         # TODO: this code is duplicated in DDP and DDPSpawn, make this a function
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
+        print(self.cluster_environment)
+        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
+        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
+        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
 
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
