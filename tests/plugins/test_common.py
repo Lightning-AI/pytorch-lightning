@@ -5,9 +5,11 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin, DDPShardedPlugin, DDP2Plugin, DeepSpeedPlugin
+from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin, DDPShardedPlugin, DDP2Plugin, DeepSpeedPlugin, \
+    RPCSequentialPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities import rank_zero_only
+from tests.helpers.runif import RunIf
 
 
 def environment_combinations():
@@ -48,7 +50,8 @@ def environment_combinations():
     DDPPlugin,
     DDPShardedPlugin,
     DDP2Plugin,
-    # DeepSpeedPlugin,
+    pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+    pytest.param(RPCSequentialPlugin, marks=RunIf(fairscale_pipe=True)),
 ])
 def test_ranks_avalable(plugin_cls):
     """ Test that the rank information is readily available after Trainer initialization. """
