@@ -97,17 +97,17 @@ class DDPPlugin(ParallelPlugin):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def setup_environment(self):
+    def setup_environment(self, trainer):
         # start the other scripts
         if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
-            self._call_children_scripts()
+            self._call_children_scripts(trainer)
 
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()
 
         self.setup_distributed()
 
-    def _call_children_scripts(self):
+    def _call_children_scripts(self, trainer):
 
         # bookkeeping of spawned processes
         assert self.global_rank == 0
@@ -146,8 +146,8 @@ class DDPPlugin(ParallelPlugin):
         os.environ["PL_TRAINER_GPUS"] = ",".join([str(device.index) for device in self.parallel_devices])
         os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
-        if self.lightning_module.logger is not None:
-            os.environ["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
+        if trainer.logger is not None:
+            os.environ["PL_EXP_VERSION"] = str(trainer.logger.version)
 
         num_gpus = len(self.parallel_devices)
         os.environ["WORLD_SIZE"] = f"{num_gpus * self.num_nodes}"

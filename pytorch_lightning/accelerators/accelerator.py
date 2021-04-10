@@ -68,13 +68,13 @@ class Accelerator(object):
         """Transfers ownership of the model to this plugin"""
         self.training_type_plugin.connect(model)
 
-    def setup_environment(self) -> None:
+    def setup_environment(self, *args, **kwargs) -> None:
         """
         Setup any processes or distributed connections.
         This is called before the LightningModule/DataModule setup hook
         which allows the user to access the accelerator environment before setup is complete.
         """
-        self.training_type_plugin.setup_environment()
+        self.training_type_plugin.setup_environment(*args, **kwargs)
 
     def setup(self, trainer: 'pl.Trainer', model: LightningModule) -> None:
         """
