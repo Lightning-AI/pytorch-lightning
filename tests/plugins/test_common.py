@@ -53,7 +53,7 @@ def environment_combinations():
     pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
     pytest.param(RPCSequentialPlugin, marks=RunIf(fairscale_pipe=True)),
 ])
-def test_ranks_avalable(plugin_cls):
+def test_ranks_available_manual_plugin_selection(plugin_cls):
     """ Test that the rank information is readily available after Trainer initialization. """
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
@@ -73,3 +73,31 @@ def test_ranks_avalable(plugin_cls):
             assert trainer.local_rank == expected["local_rank"]
             assert trainer.node_rank == expected["node_rank"]
             assert trainer.world_size == expected["world_size"]
+
+
+@pytest.mark.parametrize("trainer_kwargs", [
+    dict(accelerator="ddp"),
+    dict(accelerator="ddp_sharded"),
+    # dict(accelerator="ddp2"),
+])
+@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=4)
+def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs):
+    """ Test that the rank information is readily available after Trainer initialization. """
+    num_nodes = 2
+    trainer_kwargs.update(num_nodes=num_nodes)
+    trainer_kwargs.update(gpus=[1, 2])
+
+    for cluster, variables, expected in environment_combinations():
+
+        if trainer_kwargs["accelerator"] == "ddp2":
+            expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
+
+        with mock.patch.dict(os.environ, variables):
+            trainer = Trainer(**trainer_kwargs)
+            assert rank_zero_only.rank == expected["global_rank"]
+            assert trainer.global_rank == expected["global_rank"]
+            assert trainer.local_rank == expected["local_rank"]
+            assert trainer.node_rank == expected["node_rank"]
+            assert trainer.world_size == expected["world_size"]
+            assert type(trainer.training_type_plugin.cluster_environment) == type(cluster)
