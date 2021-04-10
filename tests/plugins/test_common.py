@@ -51,6 +51,7 @@ def environment_combinations():
     # DeepSpeedPlugin,
 ])
 def test_ranks_avalable(plugin_cls):
+    """ Test that the rank information is readily available after Trainer initialization. """
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
 
