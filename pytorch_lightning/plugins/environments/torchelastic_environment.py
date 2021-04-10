@@ -55,7 +55,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
         pass
 
     def global_rank(self) -> Optional[int]:
-        return os.environ.get("RANK")
+        return int(os.environ["RANK"])
 
     def set_global_rank(self, rank: int) -> None:
         pass

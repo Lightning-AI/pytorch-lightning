@@ -13,7 +13,9 @@ def test_default_attributes():
     assert env.creates_children()
     assert env.master_address() == "127.0.0.1"
     assert env.master_port() == 12910
-    assert env.world_size() is None
+    with pytest.raises(KeyError):
+        # world size is required to be passed as env variable
+        env.world_size()
     with pytest.raises(KeyError):
         # local rank is required to be passed as env variable
         env.local_rank()
@@ -26,8 +28,9 @@ def test_default_attributes():
     os.environ, {
         "SLURM_NODELIST": "1.1.1.1, 1.1.1.2",
         "SLURM_JOB_ID": "0001234",
-        "WORLD_SIZE": "20",
+        "SLURM_NTASKS": "20",
         "SLURM_LOCALID": "2",
+        "SLURM_PROCID": "1",
         "SLURM_NODEID": "3",
     }
 )
@@ -36,9 +39,13 @@ def test_attributes_from_environment_variables():
     env = SLURMEnvironment()
     assert env.master_address() == "1.1.1.1"
     assert env.master_port() == 15000 + 1234
-    assert env.world_size() is None
+    assert env.world_size() == 20
+    assert env.global_rank() == 1
     assert env.local_rank() == 2
     assert env.node_rank() == 3
+    # setter should be no-op
+    env.set_global_rank(100)
+    assert env.global_rank() == 1
 
 
 @pytest.mark.parametrize(

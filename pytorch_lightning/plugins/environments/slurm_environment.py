@@ -71,13 +71,13 @@ class SLURMEnvironment(ClusterEnvironment):
         return int(default_port)
 
     def world_size(self):
-        return int(os.environ.get("SLURM_NTASKS"))
+        return int(os.environ["SLURM_NTASKS"])
 
     def set_world_size(self, size: int) -> None:
         pass
 
     def global_rank(self) -> Optional[int]:
-        return int(os.environ.get("SLURM_PROCID"))
+        return int(os.environ["SLURM_PROCID"])
 
     def set_global_rank(self, rank: int) -> None:
         pass

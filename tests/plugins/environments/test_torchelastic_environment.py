@@ -25,6 +25,7 @@ def test_default_attributes():
         "MASTER_ADDR": "1.2.3.4",
         "MASTER_PORT": "500",
         "WORLD_SIZE": "20",
+        "RANK": "1",
         "LOCAL_RANK": "2",
         "GROUP_RANK": "3",
     }
@@ -35,5 +36,9 @@ def test_attributes_from_environment_variables():
     assert env.master_address() == "1.2.3.4"
     assert env.master_port() == 500
     assert env.world_size() == 20
+    assert env.global_rank() == 1
     assert env.local_rank() == 2
     assert env.node_rank() == 3
+    # setter should be no-op
+    env.set_global_rank(100)
+    assert env.global_rank() == 1

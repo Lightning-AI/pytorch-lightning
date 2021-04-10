@@ -28,8 +28,11 @@ def test_attributes_from_environment_variables():
     assert env.master_address() == "1.2.3.4"
     assert env.master_port() == 500
     assert env.world_size() is None
+    assert env.global_rank() == 0
     assert env.local_rank() == 2
     assert env.node_rank() == 3
+    env.set_global_rank(100)
+    assert env.global_rank() == 100
 
 
 @mock.patch.dict(os.environ, {
