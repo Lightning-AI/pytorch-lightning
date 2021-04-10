@@ -58,16 +58,26 @@ class Timer(Callback):
         from datetime import timedelta
         timer = Timer(duration=timedelta(weeks=1))
 
+        # or provide a dictionary
+        timer = Timer(duration=dict(weeks=4, days=2))
+
         # force training to stop after given time limit
         trainer = Trainer(callbacks=[timer])
     """
 
-    def __init__(self, duration: Union[str, timedelta], interval: str = Interval.step, verbose: bool = True):
+    def __init__(
+        self,
+        duration: Union[str, timedelta, Dict[str, int]],
+        interval: str = Interval.step,
+        verbose: bool = True,
+    ):
         super().__init__()
         if isinstance(duration, str):
             dhms = duration.strip().split(":")
             dhms = [int(i) for i in dhms]
             duration = timedelta(days=dhms[0], hours=dhms[1], minutes=dhms[2], seconds=dhms[3])
+        if isinstance(duration, dict):
+            duration = timedelta(**duration)
         if interval not in set(Interval):
             raise MisconfigurationException(
                 f"Unsupported parameter value `Timer(interval={interval})`. Possible choices are:"
@@ -119,7 +129,4 @@ class Timer(Callback):
         should_stop = trainer.accelerator.broadcast(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop and self._verbose:
-            rank_zero_info(
-                f"Time limit reached. Elapsed time is {self.time_elapsed}."
-                " Signaling Trainer to stop."
-            )
+            rank_zero_info(f"Time limit reached. Elapsed time is {self.time_elapsed}. Signaling Trainer to stop.")

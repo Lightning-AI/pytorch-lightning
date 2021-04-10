@@ -28,6 +28,7 @@ from tests.helpers import BoringModel
         ("00:00:00:22", timedelta(seconds=22)),
         ("12:34:56:65", timedelta(days=12, hours=34, minutes=56, seconds=65)),
         (timedelta(weeks=52, milliseconds=1), timedelta(weeks=52, milliseconds=1)),
+        (dict(weeks=52, days=1), timedelta(weeks=52, days=1)),
     ]
 )
 def test_timer_parse_duration(duration, expected):

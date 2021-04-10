@@ -110,7 +110,7 @@ class Trainer(
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
-        max_time: Optional[Union[str, timedelta]] = None,
+        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         limit_train_batches: Union[int, float] = 1.0,
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
@@ -245,8 +245,9 @@ class Trainer(
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
             max_time: Stop training after this amount of time has passed. Disabled by default (None).
-                The time duration can be specified in the format HH:MM:SS (hours, minutes seconds), or as a
-                :class:`datetime.timedelta`.
+                The time duration can be specified in the format DD:HH:MM:SS (days, hours, minutes seconds), as a
+                :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
+                :class:`~datetime.timedelta`.
 
             num_nodes: number of GPU nodes for distributed training.
 

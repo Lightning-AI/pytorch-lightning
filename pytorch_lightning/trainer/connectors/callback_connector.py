@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from datetime import timedelta
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Dict
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.timer import Timer
@@ -37,7 +37,7 @@ class CallbackConnector:
         weights_save_path,
         resume_from_checkpoint,
         stochastic_weight_avg,
-        max_time: Optional[Union[str, timedelta]] = None,
+        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
@@ -111,7 +111,7 @@ class CallbackConnector:
 
         return progress_bar_callback
 
-    def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta]] = None,) -> None:
+    def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
         if max_time is None:
             return
         if any(isinstance(cb, Timer) for cb in self.trainer.callbacks):
