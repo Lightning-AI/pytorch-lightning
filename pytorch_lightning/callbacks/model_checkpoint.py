@@ -28,13 +28,9 @@ from typing import Any, Dict, Optional, Union
 import numpy as np
 import torch
 import yaml
+
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import (
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_only,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -227,7 +223,7 @@ class ModelCheckpoint(Callback):
         self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """ Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps` """
-        if self._should_skip_saving_checkpoint(trainer, is_on_train_end=False):
+        if self._should_skip_saving_checkpoint(trainer):
             return
         step = trainer.global_step
         skip_batch = self._every_n_train_steps < 1 or ((step + 1) % self._every_n_train_steps != 0)
@@ -240,8 +236,7 @@ class ModelCheckpoint(Callback):
         checkpoints can be saved at the end of the val loop
         """
         skip = (
-            self._should_skip_saving_checkpoint(trainer, is_on_train_end=False)
-            or self._every_n_val_epochs < 1
+            self._should_skip_saving_checkpoint(trainer) or self._every_n_val_epochs < 1
             or (trainer.current_epoch + 1) % self._every_n_val_epochs != 0
         )
         if skip:
@@ -254,13 +249,14 @@ class ModelCheckpoint(Callback):
         """
         if not self._trigger_on_train_end:
             return
-        if (
-            not self._should_skip_saving_checkpoint(trainer, is_on_train_end=True)
-            and trainer.checkpoint_connector.has_trained
-        ):
+        # as we advance one step at end of training, we use global_step - 1
+        # to avoid saving duplicates
+        trainer.global_step -= 1
+        if (not self._should_skip_saving_checkpoint(trainer) and trainer.checkpoint_connector.has_trained):
             if self.save_last and self.verbose:
                 rank_zero_info("Saving last checkpoint...")
             self.save_checkpoint(trainer, is_on_train_end=True)
+        trainer.global_step += 1
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
@@ -275,9 +271,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
 
-    def save_checkpoint(
-        self, trainer, unused: Optional = None, is_on_train_end: bool = False
-    ):
+    def save_checkpoint(self, trainer, unused: Optional = None, is_on_train_end: bool = False):
         """
         Performs the main logic around saving a checkpoint.
         This method runs on all ranks, it is the responsibility of `self.save_function`
@@ -309,22 +303,14 @@ class ModelCheckpoint(Callback):
         # Mode 3: save last checkpoints
         self._save_last_checkpoint(trainer, monitor_candidates)
 
-    def _should_skip_saving_checkpoint(self, trainer, is_on_train_end: bool) -> bool:
+    def _should_skip_saving_checkpoint(self, trainer) -> bool:
         from pytorch_lightning.trainer.states import TrainerState
-
-        if is_on_train_end:
-            # as we advance one step at end of training, we use global_step - 1
-            # to avoid saving duplicates
-            is_last_saved = self._last_global_step_saved == trainer.global_step - 1
-        else:
-            is_last_saved = self._last_global_step_saved == trainer.global_step
 
         return (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
-            or trainer.state
-            != TrainerState.FITTING  # don't save anything during non-fit
+            or trainer.state != TrainerState.FITTING  # don't save anything during non-fit
             or trainer.sanity_checking  # don't save anything during sanity check
-            or is_last_saved  # already saved at the last step
+            or self._last_global_step_saved == trainer.global_step  # already saved at the last step
         )
 
     def __validate_init_configuration(self):

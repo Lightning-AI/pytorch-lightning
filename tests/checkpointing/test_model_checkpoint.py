@@ -462,7 +462,7 @@ def test_model_checkpoint_file_extension(tmpdir):
     )
     trainer.fit(model)
 
-    expected = ['epoch=0-step=1.tpkc', 'last.tpkc']
+    expected = ['epoch=0-step=0.tpkc', 'last.tpkc']
     assert set(expected) == set(os.listdir(tmpdir))
 
 
@@ -616,11 +616,7 @@ def test_model_checkpoint_period(tmpdir, period: int, trigger_on_train_end: bool
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    expected = (
-        [f"epoch={e}.ckpt" for e in range(epochs) if (e + 1) % period == 0]
-        if period > 0
-        else []
-    )
+    expected = ([f"epoch={e}.ckpt" for e in range(epochs) if (e + 1) % period == 0] if period > 0 else [])
     if trigger_on_train_end and (period == 0 or epochs % period != 0):
         final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs - 1)
         expected.append(final_epoch_ckpt)
@@ -650,11 +646,8 @@ def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs, trigger
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    expected = (
-        [f"epoch={e}.ckpt" for e in range(epochs) if (e + 1) % every_n_val_epochs == 0]
-        if every_n_val_epochs > 0
-        else []
-    )
+    expected = ([f"epoch={e}.ckpt" for e in range(epochs)
+                 if (e + 1) % every_n_val_epochs == 0] if every_n_val_epochs > 0 else [])
 
     if trigger_on_train_end and (every_n_val_epochs == 0 or epochs % every_n_val_epochs != 0):
         final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs - 1)
@@ -687,11 +680,8 @@ def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epoc
     trainer.fit(model)
 
     # check that the correct ckpts were created
-    expected = (
-        [f"epoch={e}.ckpt" for e in range(epochs) if (e + 1) % every_n_val_epochs == 0]
-        if every_n_val_epochs > 0
-        else []
-    )
+    expected = ([f"epoch={e}.ckpt" for e in range(epochs)
+                 if (e + 1) % every_n_val_epochs == 0] if every_n_val_epochs > 0 else [])
     if trigger_on_train_end and (every_n_val_epochs == 0 or epochs % every_n_val_epochs != 0):
         final_epoch_ckpt = "epoch={e}.ckpt".format(e=epochs - 1)
         expected.append(final_epoch_ckpt)
