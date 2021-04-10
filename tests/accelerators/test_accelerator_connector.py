@@ -95,8 +95,8 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
         "SLURM_NTASKS": "2",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
-        "SLURM_PROCID": "10",
-        "SLURM_LOCALID": "10",
+        "SLURM_PROCID": "1",
+        "SLURM_LOCALID": "1",
     }
 )
 @mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
@@ -110,8 +110,8 @@ def test_accelerator_choice_ddp_slurm(setup_distributed_mock):
             assert isinstance(trainer.accelerator, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
-            assert trainer.training_type_plugin.task_idx == 10
+            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+            assert trainer.training_type_plugin.task_idx == 1
             raise SystemExit()
 
     model = BoringModel()
@@ -126,15 +126,15 @@ def test_accelerator_choice_ddp_slurm(setup_distributed_mock):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_gpus=2)
 @mock.patch.dict(
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
         "SLURM_NTASKS": "2",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
-        "SLURM_PROCID": "10",
-        "SLURM_LOCALID": "10"
+        "SLURM_PROCID": "1",
+        "SLURM_LOCALID": "1"
     }
 )
 @mock.patch('torch.cuda.device_count', return_value=2)
@@ -149,8 +149,8 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock, setup_distributed_mock
             assert isinstance(trainer.accelerator, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
-            assert trainer.training_type_plugin.task_idx == 10
+            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+            assert trainer.training_type_plugin.task_idx == 1
             raise SystemExit()
 
     model = BoringModel()
