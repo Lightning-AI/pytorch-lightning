@@ -95,7 +95,8 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
         "SLURM_NTASKS": "2",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
-        "SLURM_LOCALID": "10"
+        "SLURM_PROCID": "10",
+        "SLURM_LOCALID": "10",
     }
 )
 @mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
@@ -132,7 +133,7 @@ def test_accelerator_choice_ddp_slurm(setup_distributed_mock):
         "SLURM_NTASKS": "2",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
-        "LOCAL_RANK": "0",
+        "SLURM_PROCID": "10",
         "SLURM_LOCALID": "10"
     }
 )
@@ -260,7 +261,8 @@ def test_accelerator_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0"
+        "SLURM_PROCID": "0",
+        "SLURM_LOCALID": "0",
     }
 )
 @mock.patch('torch.cuda.device_count', return_value=0)
@@ -296,7 +298,8 @@ def test_accelerator_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_m
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0"
+        "SLURM_PROCID": "0",
+        "SLURM_LOCALID": "0",
     }
 )
 @mock.patch('torch.cuda.device_count', return_value=0)
@@ -378,7 +381,8 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0"
+        "SLURM_PROCID": "0",
+        "SLURM_LOCALID": "0",
     }
 )
 @mock.patch('torch.cuda.device_count', return_value=0)
