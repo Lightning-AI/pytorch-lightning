@@ -224,9 +224,10 @@ def test_accelerator_choice_ddp2_te(device_count_mock, setup_distributed_mock):
 
 
 @mock.patch.dict(os.environ, {
-    "WORLD_SIZE": "1",
-    "LOCAL_RANK": "10",
-    "NODE_RANK": "0",
+    "WORLD_SIZE": "2",
+    "RANK": "1",
+    "LOCAL_RANK": "1",
+    "GROUP_RANK": "0",
 })
 @mock.patch('torch.cuda.device_count', return_value=0)
 @mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
@@ -239,8 +240,8 @@ def test_accelerator_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock
             assert isinstance(trainer.accelerator, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
-            assert trainer.training_type_plugin.task_idx == 10
+            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+            assert trainer.training_type_plugin.task_idx == 1
             raise SystemExit()
 
     model = BoringModel()
