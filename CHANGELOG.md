@@ -237,6 +237,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `--gpus` default for parser returned by `Trainer.add_argparse_args` ([#6898](https://github.com/PyTorchLightning/pytorch-lightning/pull/6898))
 
 
+- Fixed model checkpointing at end of training ([#6671](https://github.com/PyTorchLightning/pytorch-lightning/pull/6671))
+
+
 ## [1.2.7] - 2021-04-06
 
 ### Fixed
