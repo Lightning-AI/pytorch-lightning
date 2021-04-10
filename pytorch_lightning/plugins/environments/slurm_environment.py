@@ -74,12 +74,14 @@ class SLURMEnvironment(ClusterEnvironment):
         return int(os.environ["SLURM_NTASKS"])
 
     def set_world_size(self, size: int) -> None:
+        # no-op, we are not allowed to change world size in SLURM
         pass
 
     def global_rank(self) -> Optional[int]:
         return int(os.environ["SLURM_PROCID"])
 
     def set_global_rank(self, rank: int) -> None:
+        # no-op, we are not allowed to change rank in SLURM
         pass
 
     def local_rank(self) -> int:
