@@ -301,7 +301,16 @@ class ModelCheckpoint(Callback):
         # Mode 2: save monitor=None checkpoints
         self._save_none_monitor_checkpoint(trainer, monitor_candidates)
         # Mode 3: save last checkpoints
-        self._save_last_checkpoint(trainer, monitor_candidates)
+        if self._should_save_last_checkpoint(trainer, monitor_candidates, is_on_train_end):
+            self._save_last_checkpoint(trainer, monitor_candidates)
+
+    def _should_save_last_checkpoint(self, trainer, monitor_candidates, is_on_train_end) -> bool:
+        # we should save last checkpoint if save_last is set or
+        # at the end of the training, we fall back to save last checkpoint if
+        # we set monitor value but not existent in monitor_candidates
+        return self.save_last or (
+            is_on_train_end and self.monitor is not None and monitor_candidates.get(self.monitor) is None
+        )
 
     def _should_skip_saving_checkpoint(self, trainer) -> bool:
         from pytorch_lightning.trainer.states import TrainerState
@@ -381,7 +390,7 @@ class ModelCheckpoint(Callback):
         every_n_train_steps: Optional[int],
         every_n_val_epochs: Optional[int],
         period: Optional[int],
-        trigger_on_train_end: bool = False,
+        trigger_on_train_end: bool,
     ) -> None:
 
         # Default to running once after each validation epoch if neither
@@ -643,8 +652,6 @@ class ModelCheckpoint(Callback):
         return monitor_candidates
 
     def _save_last_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
-        if not self.save_last:
-            return
 
         filepath = self._format_checkpoint_name(
             self.CHECKPOINT_NAME_LAST,

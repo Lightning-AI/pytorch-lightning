@@ -819,6 +819,30 @@ def test_default_checkpoint_behavior(tmpdir):
     assert ckpts[0] == 'epoch=2-step=14.ckpt'
 
 
+def test_ckpt_on_train_end_with_invalid_monitor(tmpdir):
+    """ Tests that the checkpoints are saved at end of training with invalid monitor."""
+
+    model = LogInTwoMethods()
+    model_cpt = ModelCheckpoint(
+        filename="{epoch}",
+        dirpath=tmpdir,
+        every_n_val_epochs=2,
+        monitor="invalid",  # monitor is invalid, save_last is not set
+        trigger_on_train_end=True,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        progress_bar_refresh_rate=0,
+        callbacks=[model_cpt],
+        logger=False,
+    )
+    trainer.fit(model)
+    # fall back to save last
+    expected = ['last.ckpt']
+    assert set(expected) == set(os.listdir(tmpdir))
+
+
 @pytest.mark.parametrize('max_epochs', [1, 2])
 @pytest.mark.parametrize('every_n_val_epochs', [2, 3])
 @pytest.mark.parametrize('should_validate', [True, False])
