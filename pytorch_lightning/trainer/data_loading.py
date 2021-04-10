@@ -13,7 +13,6 @@
 # limitations under the License.
 import inspect
 import multiprocessing
-import platform
 from abc import ABC
 from copy import deepcopy
 from typing import Iterable, List, Tuple, Union
@@ -54,52 +53,52 @@ class TrainerDataLoadingMixin(ABC):
     dev_debugger: InternalDebugger
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
-        on_windows = platform.system() == 'Windows'
+        if not isinstance(dataloader, DataLoader):
+            return
+
+        using_spawn = self.accelerator_connector.distributed_backend == "ddp_spawn"
+        num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
-        is_dataloader = isinstance(dataloader, DataLoader)
-        using_spawn = self.accelerator_connector.distributed_backend == "ddp_spawn"
-        if is_dataloader and not on_windows:
-            if dataloader.num_workers > 0 and using_spawn:
-                # checks for the attr persistent_workers available in pytorch >= 1.7
-                if hasattr(dataloader, "persistent_workers"):
-                    if not dataloader.persistent_workers:
-                        rank_zero_warn(
-                            'num_workers>0, persistent_workers=False, and accelerator=ddp_spawn'
-                            ' may result in data loading bottlenecks.'
-                            ' Consider setting persistent_workers=True'
-                            ' (this is a limitation of Python .spawn() and PyTorch)'
-                        )
-                else:
+        if dataloader.num_workers > 0 and using_spawn:
+            # checks for the attr persistent_workers available in pytorch >= 1.7
+            if hasattr(dataloader, "persistent_workers"):
+                if not dataloader.persistent_workers:
                     rank_zero_warn(
-                        'num_workers>0 and accelerator=ddp_spawn do not mix well'
-                        ' and may result in data loading bottlenecks.'
-                        ' Consider setting accelerator=ddp to use num_workers>0'
+                        'num_workers>0, persistent_workers=False, and accelerator=ddp_spawn'
+                        ' may result in data loading bottlenecks.'
+                        ' Consider setting persistent_workers=True'
                         ' (this is a limitation of Python .spawn() and PyTorch)'
                     )
+            else:
+                rank_zero_warn(
+                    'num_workers>0 and accelerator=ddp_spawn do not mix well'
+                    ' and may result in data loading bottlenecks.'
+                    ' Consider setting accelerator=ddp to use num_workers>0'
+                    ' (this is a limitation of Python .spawn() and PyTorch)'
+                )
 
-            elif dataloader.num_workers == 0 and using_spawn:
-                # checks for the attr persistent_workers available in pytorch >= 1.7
-                if hasattr(dataloader, "persistent_workers"):
-                    if not dataloader.persistent_workers:
-                        rank_zero_warn(
-                            'accelerator=ddp_spawn and num_workers=0 may result in data loading bottlenecks.'
-                            ' Consider setting num_workers>0 and persistent_workers=True'
-                        )
-                else:
+        elif dataloader.num_workers == 0 and using_spawn:
+            # checks for the attr persistent_workers available in pytorch >= 1.7
+            if hasattr(dataloader, "persistent_workers"):
+                if not dataloader.persistent_workers:
                     rank_zero_warn(
                         'accelerator=ddp_spawn and num_workers=0 may result in data loading bottlenecks.'
-                        ' Consider setting accelerator=ddp and set num_workers>0'
+                        ' Consider setting num_workers>0 and persistent_workers=True'
                     )
-
-            elif dataloader.num_workers <= 2 and multiprocessing.cpu_count() > 2 and not using_spawn:
-                num_cpus = multiprocessing.cpu_count()
+            else:
                 rank_zero_warn(
-                    f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
-                    ' Consider increasing the value of the `num_workers` argument`'
-                    f' (try {num_cpus} which is the number of cpus on this machine)'
-                    f' in the `DataLoader` init to improve performance.'
+                    'accelerator=ddp_spawn and num_workers=0 may result in data loading bottlenecks.'
+                    ' Consider setting accelerator=ddp and set num_workers>0'
                 )
+
+        elif dataloader.num_workers <= 2 < num_cpus and not using_spawn:
+            rank_zero_warn(
+                f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
+                ' Consider increasing the value of the `num_workers` argument`'
+                f' (try {num_cpus} which is the number of cpus on this machine)'
+                f' in the `DataLoader` init to improve performance.'
+            )
 
     def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
 
