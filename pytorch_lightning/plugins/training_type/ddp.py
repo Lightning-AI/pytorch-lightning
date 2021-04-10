@@ -82,7 +82,7 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
-        rank_zero_only.rank = self.global_rank
+        self.set_world_ranks()
 
     @property
     def root_device(self):

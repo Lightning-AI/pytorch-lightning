@@ -17,6 +17,7 @@ import socket
 from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class LightningEnvironment(ClusterEnvironment):
@@ -59,6 +60,7 @@ class LightningEnvironment(ClusterEnvironment):
 
     def set_global_rank(self, rank: int) -> None:
         self._global_rank = rank
+        rank_zero_only.rank = rank
 
     def local_rank(self) -> int:
         return int(os.environ.get("LOCAL_RANK", 0))
