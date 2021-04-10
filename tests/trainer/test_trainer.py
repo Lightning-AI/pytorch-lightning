@@ -918,7 +918,7 @@ def test_gradient_clipping_by_value(tmpdir):
 
     model = BoringModel()
 
-    grad_clip_val = 1e-5
+    grad_clip_val = 1e-10
     trainer = Trainer(
         max_steps=10,
         max_epochs=1,
@@ -938,7 +938,7 @@ def test_gradient_clipping_by_value(tmpdir):
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
-        assert abs(round(grad_max.item(), 6) - grad_clip_val) < 1e-6, \
+        assert abs(grad_max.item() - grad_clip_val) < 1e-11, \
             f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
 
         return ret_val
@@ -996,7 +996,7 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
     tutils.reset_seed()
 
     model = BoringModel()
-    grad_clip_val = 1e-5
+    grad_clip_val = 1e-10
     trainer = Trainer(
         max_steps=10,
         max_epochs=1,
@@ -1018,7 +1018,7 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
-        assert abs(round(grad_max.item(), 6) - grad_clip_val) < 1e-6, \
+        assert abs(grad_max.item() - grad_clip_val) < 1e-11, \
             f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
 
         return ret_val
