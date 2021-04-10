@@ -15,6 +15,7 @@
 import logging
 import os
 import re
+from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 
@@ -70,7 +71,16 @@ class SLURMEnvironment(ClusterEnvironment):
         return int(default_port)
 
     def world_size(self):
-        return None
+        return int(os.environ.get("SLURM_NTASKS"))
+
+    def set_world_size(self, size: int) -> None:
+        pass
+
+    def global_rank(self) -> Optional[int]:
+        return int(os.environ.get("SLURM_PROCID"))
+
+    def set_global_rank(self, rank: int) -> None:
+        pass
 
     def local_rank(self) -> int:
         return int(os.environ['SLURM_LOCALID'])

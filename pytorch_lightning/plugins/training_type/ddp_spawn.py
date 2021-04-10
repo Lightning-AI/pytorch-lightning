@@ -215,7 +215,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         )
         self._register_ddp_hooks()
 
-    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
+    def init_ddp_connection(self, global_rank: Optional[int], world_size: Optional[int]) -> None:
         # TODO: this code is duplicated in DDP and DDPSpawn, make this a function
         print(self.cluster_environment)
         world_size = world_size if world_size is not None else self.cluster_environment.world_size()
