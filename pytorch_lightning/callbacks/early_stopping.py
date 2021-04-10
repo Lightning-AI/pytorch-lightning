@@ -146,15 +146,24 @@ class EarlyStopping(Callback):
             'patience': self.patience
         }
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]):
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
         self.wait_count = callback_state['wait_count']
         self.stopped_epoch = callback_state['stopped_epoch']
         self.best_score = callback_state['best_score']
         self.patience = callback_state['patience']
 
-    def on_validation_end(self, trainer, pl_module):
+    def _should_skip_check(self, trainer) -> bool:
         from pytorch_lightning.trainer.states import TrainerState
-        if trainer.state != TrainerState.FITTING or trainer.sanity_checking:
+        return trainer.state != TrainerState.FITTING or trainer.sanity_checking
+
+    def on_train_epoch_end(self, trainer, pl_module, outputs) -> None:
+        if not self.during_training or self._should_skip_check(trainer):
+            return
+        self._run_early_stopping_check(trainer)
+
+
+    def on_validation_end(self, trainer, pl_module):
+        if self.during_training or self._should_skip_check(trainer):
             return
 
         self._run_early_stopping_check(trainer)
@@ -170,7 +179,7 @@ class EarlyStopping(Callback):
             trainer.fast_dev_run  # disable early_stopping with fast_dev_run
             or not self._validate_condition_metric(logs)  # short circuit if metric not present
         ):
-            return  # short circuit if metric not present
+            return
 
         current = logs.get(self.monitor)
 

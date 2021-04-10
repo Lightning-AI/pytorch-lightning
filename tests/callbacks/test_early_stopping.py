@@ -372,14 +372,25 @@ def test_early_stopping_mode_options():
 
 class EarlyStoppingModel(BoringModel):
 
-    def __init__(self, expected_end_epoch):
+    def __init__(self, expected_end_epoch: int, during_training: bool):
         super().__init__()
         self.expected_end_epoch = expected_end_epoch
+        self.during_training = during_training
+
+    def training_epoch_end(self, outputs):
+        if not self.during_training:
+            return
+        losses = [8, 4, 2, 3, 4, 5, 8, 10]
+        loss = losses[self.current_epoch]
+        self.log('abc', torch.tensor(loss))
+        self.log('cba', torch.tensor(0))
 
     def validation_epoch_end(self, outputs):
+        if self.during_training:
+            return
         losses = [8, 4, 2, 3, 4, 5, 8, 10]
-        val_loss = losses[self.current_epoch]
-        self.log('abc', torch.tensor(val_loss))
+        loss = losses[self.current_epoch]
+        self.log('abc', torch.tensor(loss))
         self.log('cba', torch.tensor(0))
 
     def on_train_end(self) -> None:
@@ -387,31 +398,51 @@ class EarlyStoppingModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch, accelerator, num_processes",
+    "callbacks, expected_stop_epoch, during_training, accelerator, num_processes",
     [
-        ([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)], 3, None, 1),
+        ([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)], 3, False, None, 1),
         ([EarlyStopping(monitor='cba', patience=3),
-          EarlyStopping(monitor='abc')], 3, None, 1),
+          EarlyStopping(monitor='abc')], 3, False, None, 1),
         pytest.param([EarlyStopping(monitor='abc'),
                       EarlyStopping(monitor='cba', patience=3)],
                      3,
+                     False,
                      'ddp_cpu',
                      2,
                      marks=RunIf(skip_windows=True)),
         pytest.param([EarlyStopping(monitor='cba', patience=3),
                       EarlyStopping(monitor='abc')],
                      3,
+                     False,
                      'ddp_cpu',
                      2,
                      marks=RunIf(skip_windows=True)),
+        ([EarlyStopping(monitor='abc', during_training=True), EarlyStopping(monitor='cba', patience=3, during_training=True)], 3, True, None, 1),
+        ([EarlyStopping(monitor='cba', patience=3, during_training=True),
+          EarlyStopping(monitor='abc', during_training=True)], 3, True, None, 1),
+        pytest.param([EarlyStopping(monitor='abc', during_training=True),
+                      EarlyStopping(monitor='cba', patience=3, during_training=True)],
+                     3,
+                     True,
+                     'ddp_cpu',
+                     2,
+                     marks=RunIf(skip_windows=True)),
+        pytest.param([EarlyStopping(monitor='cba', patience=3, during_training=True),
+                      EarlyStopping(monitor='abc', during_training=True)],
+                     3,
+                     True,
+                     'ddp_cpu',
+                     2,
+                     marks=RunIf(skip_windows=True)),
+
     ],
 )
 def test_multiple_early_stopping_callbacks(
-    tmpdir, callbacks: List[EarlyStopping], expected_stop_epoch: int, accelerator: Optional[str], num_processes: int
+    tmpdir, callbacks: List[EarlyStopping], expected_stop_epoch: int, during_training: bool, accelerator: Optional[str], num_processes: int
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
-    model = EarlyStoppingModel(expected_stop_epoch)
+    model = EarlyStoppingModel(expected_stop_epoch, during_training)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
