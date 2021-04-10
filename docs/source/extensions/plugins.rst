@@ -33,7 +33,11 @@ PrecisionPlugin:
 - Provide context managers for forward, training_step, etc.
 - Gradient clipping
 
-Expert users may choose to extend an existing plugin by overriding it's methods ...
+
+.. image:: ../_static/images/accelerator/overview.svg
+
+
+Expert users may choose to extend an existing plugin by overriding its methods ...
 
 .. code-block:: python
 
@@ -62,6 +66,9 @@ can then be passed into the Trainer directly or via a (custom) accelerator:
         training_type_plugin=CustomDDPPlugin(),
     )
     trainer = Trainer(accelerator=accelerator)
+
+
+The full list of built-in plugins is listed below.
 
 
 .. warning:: The Plugin API is in beta and subject to change.
