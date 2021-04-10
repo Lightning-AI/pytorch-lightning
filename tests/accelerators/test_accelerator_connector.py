@@ -166,7 +166,7 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock, setup_distributed_mock
 
 
 @RunIf(min_gpus=1)
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "10", "NODE_RANK": "0"})
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "LOCAL_RANK": "1", "NODE_RANK": "0"})
 @mock.patch('torch.cuda.device_count', return_value=2)
 @mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
 def test_accelerator_choice_ddp_te(device_count_mock, setup_distributed_mock):
@@ -178,8 +178,8 @@ def test_accelerator_choice_ddp_te(device_count_mock, setup_distributed_mock):
             assert isinstance(trainer.accelerator, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)
-            assert trainer.training_type_plugin.cluster_environment.local_rank() == 10
-            assert trainer.training_type_plugin.task_idx == 10
+            assert trainer.training_type_plugin.cluster_environment.local_rank() == 1
+            assert trainer.training_type_plugin.task_idx == 1
             raise SystemExit()
 
     model = BoringModel()
