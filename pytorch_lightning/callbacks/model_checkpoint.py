@@ -215,7 +215,9 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer)
         self.save_function = trainer.save_checkpoint
 
-    def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
+    def on_train_batch_end(
+        self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         """ Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps` """
         if self._should_skip_saving_checkpoint(trainer):
             return
@@ -225,7 +227,7 @@ class ModelCheckpoint(Callback):
             return
         self.save_checkpoint(trainer)
 
-    def on_validation_end(self, trainer, *args, **kwargs) -> None:
+    def on_validation_end(self, trainer, pl_module) -> None:
         """
         checkpoints can be saved at the end of the val loop
         """
