@@ -52,19 +52,19 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @property
     def global_rank(self):
-        return self.cluster_environment.global_rank()
+        return self.cluster_environment.global_rank() if self.cluster_environment is not None else 0
 
     @property
     def local_rank(self):
-        return self.cluster_environment.local_rank()
+        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
 
     @property
     def node_rank(self):
-        return self.cluster_environment.node_rank()
+        return self.cluster_environment.node_rank() if self.cluster_environment is not None else 0
 
     @property
     def world_size(self):
-        return self.cluster_environment.world_size()
+        return self.cluster_environment.world_size() if self.cluster_environment is not None else 1
 
     @property
     def is_global_zero(self) -> bool:
