@@ -15,16 +15,12 @@ from contextlib import contextmanager
 from typing import Any, Callable, Generator, TYPE_CHECKING
 
 import torch
-from torch.optim import LBFGS
+from torch.optim import LBFGS, Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if TYPE_CHECKING:
-    from torch.optim import Optimizer
-
-    from pytorch_lightning.core import LightningModule
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
@@ -43,9 +39,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def backward(
         self,
-        model: 'LightningModule',
+        model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
@@ -73,8 +69,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'LightningModule',
-        optimizer: 'Optimizer',
+        pl_module: 'pl.LightningModule',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
@@ -95,7 +91,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         return False
 
-    def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Updates the GradScaler"""
         self.scaler.step(optimizer)
         self.scaler.update()

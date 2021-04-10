@@ -15,10 +15,12 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
+from torch.nn import Module
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -40,11 +42,6 @@ else:
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
-
-
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.utils.data import DataLoader
 
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
