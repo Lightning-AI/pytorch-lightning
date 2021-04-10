@@ -61,11 +61,15 @@ class DDPSpawnPlugin(ParallelPlugin):
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
-        self.node_rank = 0
         self.mp_queue = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
+        self._local_rank = 0
+
+    @property
+    def local_rank(self):
+        return self._local_rank
 
     def __getstate__(self):
         """ Makes this plugin pickleable without destroying the queue in the current process. """
@@ -96,11 +100,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.mp_queue = smp.SimpleQueue()
 
     def set_world_ranks(self, process_idx):
-        self.local_rank = process_idx
-        self.node_rank = self.cluster_environment.node_rank()
-        self.task_idx = self.cluster_environment.local_rank()
-        self.global_rank = self.node_rank * self.num_processes + self.local_rank
-        self.world_size = self.num_nodes * self.num_processes
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        self._local_rank = process_idx
 
     @property
     def mp_spawn_kwargs(self):
