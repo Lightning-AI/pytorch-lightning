@@ -112,6 +112,8 @@ class ModelCheckpoint(Callback):
 
             Use ``every_n_val_epochs`` instead.
         trigger_on_train_end: Whether to trigger the save_checkpoint at the end of training.
+            By default, it is turned off.
+
 
     Note:
         For extra customization, ModelCheckpoint includes the following attributes:
@@ -247,13 +249,10 @@ class ModelCheckpoint(Callback):
         """
         if not self._trigger_on_train_end:
             return
-        # need to temporarily decrease the global step to avoid saving duplicates
-        # when a checkpoint was saved at the last step
+        # as we advance one step at end of training, we use global_step - 1
+        # to avoid saving duplicates
         trainer.global_step -= 1
-        if (
-            not self._should_skip_saving_checkpoint(trainer)
-            and trainer.checkpoint_connector.has_trained
-        ):
+        if (not self._should_skip_saving_checkpoint(trainer) and trainer.checkpoint_connector.has_trained):
             if self.save_last and self.verbose:
                 rank_zero_info("Saving last checkpoint...")
             self.save_checkpoint(trainer, is_on_train_end=True)
@@ -306,6 +305,7 @@ class ModelCheckpoint(Callback):
 
     def _should_skip_saving_checkpoint(self, trainer) -> bool:
         from pytorch_lightning.trainer.states import TrainerState
+
         return (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
             or trainer.state != TrainerState.FITTING  # don't save anything during non-fit
@@ -381,7 +381,7 @@ class ModelCheckpoint(Callback):
         every_n_train_steps: Optional[int],
         every_n_val_epochs: Optional[int],
         period: Optional[int],
-        trigger_on_train_end: bool,
+        trigger_on_train_end: bool = False,
     ) -> None:
 
         # Default to running once after each validation epoch if neither
@@ -610,7 +610,6 @@ class ModelCheckpoint(Callback):
 
     def _validate_monitor_key(self, trainer, is_on_train_end: bool):
         metrics = trainer.logger_connector.callback_metrics
-
         # validate metric
         if self.monitor is not None and not self._is_valid_monitor_key(metrics) and not is_on_train_end:
             m = (
