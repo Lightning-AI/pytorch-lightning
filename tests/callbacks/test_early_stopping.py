@@ -443,6 +443,7 @@ class EarlyStoppingModel(BoringModel):
                      'ddp_cpu',
                      2,
                      marks=RunIf(skip_windows=True)),
+
     ],
 )
 def test_multiple_early_stopping_callbacks(

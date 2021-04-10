@@ -93,10 +93,14 @@ class EarlyStopping(Callback):
         verbose: bool = False,
         mode: str = 'min',
         strict: bool = True,
+<<<<<<< HEAD
         check_finite: bool = True,
         stopping_threshold: Optional[float] = None,
         divergence_threshold: Optional[float] = None,
         check_on_train_epoch_end: bool = False,
+=======
+        during_training: bool = False,
+>>>>>>> Add support for early stopping during training epoch end
     ):
         super().__init__()
         self.monitor = monitor
@@ -110,7 +114,12 @@ class EarlyStopping(Callback):
         self.divergence_threshold = divergence_threshold
         self.wait_count = 0
         self.stopped_epoch = 0
+<<<<<<< HEAD
         self._check_on_train_epoch_end = check_on_train_epoch_end
+=======
+        self.mode = mode
+        self.during_training = during_training
+>>>>>>> Add support for early stopping during training epoch end
 
         if self.mode not in self.mode_dict:
             raise MisconfigurationException(f"`mode` can be {', '.join(self.mode_dict.keys())}, got {self.mode}")
