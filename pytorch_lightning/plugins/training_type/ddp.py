@@ -183,11 +183,10 @@ class DDPPlugin(ParallelPlugin):
         seed = os.environ.get("PL_GLOBAL_SEED")
         if seed is not None:
             seed_everything(int(seed))
-        print(self.cluster_environment.__class__.__name__)
-        print("before", self.global_rank)
+
         # determine which process we are and world size
         self.set_world_ranks()
-        print("after", self.global_rank)
+
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
@@ -261,8 +260,8 @@ class DDPPlugin(ParallelPlugin):
         return [self.root_device.index]
 
     def init_ddp_connection(self, global_rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
-        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
         global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
+        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
         os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
         if not torch.distributed.is_initialized():
