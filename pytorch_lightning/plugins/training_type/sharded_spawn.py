@@ -1,5 +1,8 @@
 from typing import Optional
 
+import torch
+from torch.optim import Optimizer
+
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
@@ -18,6 +21,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         self._model = ShardedDataParallel(
             LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
         )
+        setattr(self._model, "require_backward_grad_sync", False)
 
     def _reinit_optimizers_with_oss(self):
         optimizers = self.lightning_module.trainer.optimizers
@@ -52,3 +56,9 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     @property
     def lightning_module(self) -> LightningModule:
         return unwrap_lightning_module_sharded(self._model)
+
+    def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
+        pass
+
+    def post_training_step(self):
+        pass
