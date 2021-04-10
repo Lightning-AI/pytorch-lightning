@@ -462,7 +462,7 @@ def test_model_checkpoint_file_extension(tmpdir):
     )
     trainer.fit(model)
 
-    expected = ['epoch=0-step=0.tpkc', 'last.tpkc']
+    expected = ['epoch=0-step=1.tpkc', 'last.tpkc']
     assert set(expected) == set(os.listdir(tmpdir))
 
 
