@@ -37,3 +37,4 @@ class PSNR(_PSNR):
         .. deprecated::
             Use :class:`~torchmetrics.PSNR`. Will be removed in v1.5.0.
         """
+        _ = data_range, base, reduction, dim, compute_on_step, dist_sync_on_step, process_group

@@ -59,6 +59,10 @@ class DDP2Plugin(DDPPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.num_nodes, rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def _is_single_process_single_device(self) -> bool:
+        return False
+
     def set_world_ranks(self):
         self.local_rank = self.task_idx
         self.node_rank = self.cluster_environment.node_rank()

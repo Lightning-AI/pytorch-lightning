@@ -119,6 +119,20 @@ class LightningModule(
         # multiple opts
         return opts
 
+    def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
+        if not self.trainer.lr_schedulers:
+            return None
+
+        # ignore other keys "interval", "frequency", etc.
+        lr_schedulers = [s["scheduler"] for s in self.trainer.lr_schedulers]
+
+        # single scheduler
+        if len(lr_schedulers) == 1:
+            return lr_schedulers[0]
+
+        # multiple schedulers
+        return lr_schedulers
+
     @property
     def example_input_array(self) -> Any:
         return self._example_input_array

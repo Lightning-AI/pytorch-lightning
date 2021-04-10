@@ -21,11 +21,14 @@ MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 ARG LIGHTNING_VERSION=""
 
-COPY ./ ./pytorch-lightning/
+COPY ./ /home/pytorch-lightning/
 
 # install dependencies
 RUN \
-    #conda install "pip>20.1" && \
+    cd /home && \
+    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/pl_examples . && \
+    # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
         wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \

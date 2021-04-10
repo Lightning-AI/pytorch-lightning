@@ -187,14 +187,15 @@ class StochasticWeightAveraging(Callback):
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1
             )
+            _scheduler_config = _get_default_scheduler_config()
+            assert _scheduler_config["interval"] == "epoch" and _scheduler_config["frequency"] == 1
+            _scheduler_config["scheduler"] = self._swa_scheduler
 
             if trainer.lr_schedulers:
                 lr_scheduler = trainer.lr_schedulers[0]["scheduler"]
                 rank_zero_warn(f"Swapping lr_scheduler {lr_scheduler} for {self._swa_scheduler}")
-                trainer.lr_schedulers[0]["scheduler"] = self._swa_scheduler
+                trainer.lr_schedulers[0] = _scheduler_config
             else:
-                _scheduler_config = _get_default_scheduler_config()
-                _scheduler_config["scheduler"] = self._swa_scheduler
                 trainer.lr_schedulers.append(_scheduler_config)
 
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)

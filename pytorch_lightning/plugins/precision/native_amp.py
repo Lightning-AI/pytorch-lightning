@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def __init__(self) -> None:
+        super().__init__()
         if not _NATIVE_AMP_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for native AMP but your PyTorch version does not support it."

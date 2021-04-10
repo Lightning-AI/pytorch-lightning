@@ -93,5 +93,6 @@ Utilities API
     :toctree: api
     :nosignatures:
 
+    cli
     argparse_utils
     seed
