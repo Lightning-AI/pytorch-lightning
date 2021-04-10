@@ -1,4 +1,359 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://web.resource.org/cc/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" version="1.1" baseProfile="full" width="1200px" height="700px" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet" id="svg_document" style="zoom: 1;" visibility="visible"><!-- Created with macSVG - https://macsvg.org/ - https://github.com/dsward2/macsvg/ --><title id="svg_document_title">Untitled.svg</title><defs id="svg_document_defs"></defs><g id="main_group" visibility="visible"><rect stroke="#000000" x="18px" height="668px" y="14px" id="rect1" stroke-width="3px" width="1164px" fill="#ffffff" transform=""></rect><rect stroke="#000000" x="70px" height="551px" y="104px" id="rect2" stroke-width="3px" width="1091px" fill="#ffffff" transform=""></rect><text stroke="none" style="outline-style: none;" id="text2" stroke-width="1px" x="152px" text-rendering="geometricPrecision" font-family="Helvetica" fill="#000000" font-size="20px" y="146px" transform="" text-anchor="middle" visibility="visible">Training Loop</text><text stroke="none" style="outline-style:none;" id="text1" stroke-width="1px" x="70px" text-rendering="geometricPrecision" font-family="Helvetica" fill="#000000" font-size="20px" y="53px" transform="" text-anchor="middle" visibility="visible">Trainer</text><rect stroke="#000000" x="130px" height="463px" y="173px" stroke-width="3px" width="1009px" id="rect3" fill="#ffffff" transform=""></rect></g><text stroke="none" style="outline-style:none;" id="text3" stroke-width="1px" x="412px" text-rendering="geometricPrecision" font-family="Helvetica" fill="#000000" font-size="20px" y="286px" transform="" text-anchor="middle"></text><rect stroke="#000000" x="368px" height="332px" y="265px" id="rect4" stroke-width="3px" width="343px" fill="#ffffff" transform=""></rect><rect stroke="#000000" x="746px" height="332px" y="264px" id="rect5" stroke-width="3px" width="358px" fill="#ffffff" transform=""></rect><text stroke="none" style="outline-style:none;" id="text5" stroke-width="1px" x="462px" text-rendering="geometricPrecision" font-family="Helvetica" fill="#000000" font-size="20px" y="302px" transform="" text-anchor="middle">Precision Plugin</text><text stroke="none" style="outline-style:none;" id="text6" stroke-width="1px" x="857px" text-rendering="geometricPrecision" font-family="Helvetica" y="302px" fill="#000000" font-size="20px" transform="" text-anchor="middle">Training Type Plugin</text><text stroke="none" style="outline-style: none;" id="text4" stroke-width="1px" x="210px" text-rendering="geometricPrecision" font-family="Helvetica" y="213px" fill="#000000" font-size="20px" transform="" text-anchor="middle" visibility="visible">Accelerator</text><rect stroke="#000000" x="820px" height="56px" y="516px" id="rect6" stroke-width="3px" width="259px" fill="#ffffff" transform=""></rect><text stroke="none" style="outline-style: none;" id="text7" stroke-width="1px" x="944px" text-rendering="geometricPrecision" font-family="Helvetica" fill="#000000" font-size="20px" y="550px" transform="" text-anchor="middle">Cluster Environment
-</text></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   width="1200px"
+   height="700px"
+   viewBox="0 0 1200 700"
+   preserveAspectRatio="xMidYMid meet"
+   id="svg_document"
+   style="zoom: 1;"
+   visibility="visible"
+   sodipodi:docname="overview.svg"
+   inkscape:version="1.0.2-2 (e86c870879, 2021-01-15)">
+  <metadata
+     id="metadata50">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="2560"
+     inkscape:window-height="1377"
+     id="namedview48"
+     showgrid="true"
+     inkscape:snap-grids="true"
+     inkscape:zoom="0.89"
+     inkscape:cx="272.64846"
+     inkscape:cy="585.18097"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer3">
+    <inkscape:grid
+       type="xygrid"
+       id="grid941" />
+  </sodipodi:namedview>
+  <!-- Created with macSVG - https://macsvg.org/ - https://github.com/dsward2/macsvg/ -->
+  <title
+     id="svg_document_title">Untitled.svg</title>
+  <defs
+     id="svg_document_defs">
+    <rect
+       x="-310"
+       y="-140"
+       width="230"
+       height="170"
+       id="rect1002" />
+    <rect
+       x="-300"
+       y="810"
+       width="430"
+       height="80"
+       id="rect991" />
+    <rect
+       x="-410"
+       y="360"
+       width="270"
+       height="90"
+       id="rect985" />
+    <rect
+       x="-370"
+       y="230"
+       width="250"
+       height="90"
+       id="rect979" />
+    <rect
+       x="-390"
+       y="120"
+       width="260"
+       height="50"
+       id="rect971" />
+    <rect
+       x="-350"
+       y="80"
+       width="220"
+       height="100"
+       id="rect965" />
+    <rect
+       x="433.26308"
+       y="-36.48213"
+       width="130.44828"
+       height="30.363635"
+       id="rect955" />
+    <rect
+       x="-310"
+       y="-140"
+       width="230"
+       height="170"
+       id="rect1002-6" />
+    <rect
+       x="-310"
+       y="-140"
+       width="230"
+       height="170"
+       id="rect1015" />
+    <rect
+       x="-310"
+       y="-140"
+       width="230"
+       height="170"
+       id="rect1002-9" />
+    <rect
+       x="-310"
+       y="-140"
+       width="230"
+       height="170"
+       id="rect1080" />
+    <rect
+       x="-310"
+       y="-140"
+       width="230"
+       height="170"
+       id="rect1002-9-6" />
+    <rect
+       x="-310"
+       y="-140"
+       width="230"
+       height="170"
+       id="rect1139" />
+  </defs>
+  <text
+     stroke="none"
+     style="outline-style:none;"
+     id="text3"
+     stroke-width="1px"
+     x="412px"
+     text-rendering="geometricPrecision"
+     font-family="Helvetica"
+     fill="#000000"
+     font-size="20px"
+     y="286px"
+     transform=""
+     text-anchor="middle" />
+  <g
+     inkscape:groupmode="layer"
+     id="layer1"
+     inkscape:label="Trainer">
+    <g
+       id="g917"
+       transform="matrix(0.99656356,0,0,0.98802399,-351.7742,146.04522)">
+      <rect
+         stroke="#000000"
+         x="373.05618"
+         height="668"
+         y="-127.57304"
+         id="rect1"
+         stroke-width="3px"
+         width="1164"
+         fill="#ffffff"
+         ry="15.730337"
+         style="visibility:visible;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.8429px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.00778"
+         x="399.23654"
+         y="-87.620125"
+         id="text951"
+         transform="scale(0.99570622,1.0043123)"><tspan
+           sodipodi:role="line"
+           id="tspan949"
+           x="399.23654"
+           y="-87.620125"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.8429px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.00778">Trainer</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:22.8429px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:1.00778"
+         x="435.13141"
+         y="-36.325485"
+         id="text961"
+         transform="scale(0.99570627,1.0043123)"><tspan
+           sodipodi:role="line"
+           id="tspan959"
+           x="435.13141"
+           y="-36.325485"
+           style="stroke-width:1.00778">Tr</tspan></text>
+    </g>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="Training Loop">
+    <rect
+       stroke="#000000"
+       x="50.000023"
+       height="570"
+       y="90"
+       id="rect2"
+       stroke-width="3.06385px"
+       width="1100"
+       fill="#ffffff"
+       ry="18.597443"
+       style="visibility:visible" />
+    <text
+       xml:space="preserve"
+       id="text963"
+       style="font-size:22.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';white-space:pre;shape-inside:url(#rect965);"
+       transform="translate(425.8427,33.707865)"><tspan
+         x="-350"
+         y="100.67952"><tspan>Training Loop</tspan></tspan></text>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Accelerator">
+    <rect
+       stroke="#000000"
+       x="110.00002"
+       height="472.61795"
+       y="167.382"
+       stroke-width="3px"
+       width="1020"
+       id="rect3"
+       fill="#ffffff"
+       ry="17.204042"
+       style="visibility:visible;stroke-width:3.04748;stroke-miterlimit:4;stroke-dasharray:none;stroke:#792ee5;stroke-opacity:1" />
+    <text
+       xml:space="preserve"
+       id="text969"
+       style="font-size:22.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';white-space:pre;shape-inside:url(#rect971);"
+       transform="translate(530.33708,73.033708)"><tspan
+         x="-390"
+         y="140.67952"><tspan>Accelerator</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       id="text1000"
+       style="font-size:22.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';white-space:pre;shape-inside:url(#rect1002);"
+       transform="translate(450.5618,388.76404)"><tspan
+         x="-310"
+         y="-119.32048"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- CPU
+</tspan></tspan><tspan
+         x="-310"
+         y="-90.987108"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- TPU
+</tspan></tspan><tspan
+         x="-310"
+         y="-62.653734"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- GPU</tspan></tspan></text>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="Plugins">
+    <rect
+       stroke="#000000"
+       x="330"
+       height="330"
+       y="270"
+       id="rect4"
+       stroke-width="3.06417px"
+       width="360.00003"
+       fill="#ffffff"
+       ry="21.219711"
+       style="stroke:#792ee5;stroke-opacity:1" />
+    <g
+       id="g896"
+       transform="matrix(1.0055865,0,0,1,-11.128546,7.1235962)"
+       style="stroke-width:2.9916552;stroke-miterlimit:4;stroke-dasharray:none;stroke:#792ee5;stroke-opacity:1">
+      <rect
+         stroke="#000000"
+         x="737.01123"
+         height="332"
+         y="262.8764"
+         id="rect5"
+         stroke-width="3px"
+         width="358"
+         fill="#ffffff"
+         ry="21.348314"
+         style="stroke-width:2.9916552;stroke-miterlimit:4;stroke-dasharray:none;stroke:#792ee5;stroke-opacity:1" />
+    </g>
+    <text
+       xml:space="preserve"
+       id="text977"
+       style="font-size:22.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';white-space:pre;shape-inside:url(#rect979);"
+       transform="translate(1125.8427,61.797753)"><tspan
+         x="-370"
+         y="250.67952"><tspan>Training Type Plugin</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       id="text983"
+       style="font-size:22.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';white-space:pre;shape-inside:url(#rect985);"
+       transform="translate(762.92135,-66.292134)"><tspan
+         x="-410"
+         y="380.67952"><tspan>Precision Plugin</tspan></tspan></text>
+    <rect
+       stroke="#000000"
+       x="759.38202"
+       height="64.112366"
+       y="520"
+       id="rect6"
+       stroke-width="3.48688px"
+       width="305.61798"
+       fill="#ffffff"
+       ry="16.722729"
+       style="stroke:#792ee5;stroke-opacity:1;stroke-width:3;stroke-miterlimit:4;stroke-dasharray:none" />
+    <text
+       xml:space="preserve"
+       id="text989"
+       style="font-size:22.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';white-space:pre;shape-inside:url(#rect991);"
+       transform="translate(1095.3048,-270.18419)"><tspan
+         x="-300"
+         y="830.67952"><tspan>Cluster Environment</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       id="text1000-7"
+       style="font-size:22.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';white-space:pre;shape-inside:url(#rect1002-9);"
+       transform="translate(664.83146,491.46067)"><tspan
+         x="-310"
+         y="-119.32048"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- FP32
+</tspan></tspan><tspan
+         x="-310"
+         y="-90.987108"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- AMP
+</tspan></tspan><tspan
+         x="-310"
+         y="-62.653734"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- FP16 (TPU)</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       id="text1000-7-0"
+       style="font-size:22.6667px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';white-space:pre;shape-inside:url(#rect1002-9-6);"
+       transform="translate(1066.2921,485.16854)"><tspan
+         x="-310"
+         y="-119.32048"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- Single Device
+</tspan></tspan><tspan
+         x="-310"
+         y="-90.987108"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- Multiple Devices
+</tspan></tspan><tspan
+         x="-310"
+         y="-62.653734"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- RPC
+</tspan></tspan><tspan
+         x="-310"
+         y="-34.32036"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:18.6667px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal">- Sharded</tspan></tspan></text>
+  </g>
+</svg>
