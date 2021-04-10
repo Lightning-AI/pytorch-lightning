@@ -18,7 +18,11 @@ Currently there are accelerators for:
 Each Accelerator gets two plugins upon initialization:
 One to handle differences from the training routine and one to handle different precisions.
 
-.. code-block:: python
+.. testcode::
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.accelerators import GPUAccelerator
+    from pytorch_lightning.plugins import NativeMixedPrecisionPlugin, DDPPlugin
 
     accelerator = GPUAccelerator(
         precision_plugin=NativeMixedPrecisionPlugin(),
