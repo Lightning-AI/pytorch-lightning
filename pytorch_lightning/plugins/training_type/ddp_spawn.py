@@ -100,9 +100,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.mp_queue = smp.SimpleQueue()
 
     def set_world_ranks(self, process_idx):
+        self._local_rank = process_idx
         self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-        self._local_rank = process_idx
 
     @property
     def mp_spawn_kwargs(self):
