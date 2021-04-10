@@ -32,6 +32,7 @@ _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
 
+
 class Accelerator(object):
     """
     The Accelerator Base Class.
