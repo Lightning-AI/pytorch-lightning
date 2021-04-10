@@ -31,6 +31,19 @@ class HorovodPlugin(ParallelPlugin):
 
     def __init__(self, parallel_devices: Optional[List[torch.device]] = None):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
+        rank_zero_only.rank = self.global_rank
+
+    @property
+    def global_rank(self):
+        return hvd.rank()
+
+    @property
+    def local_rank(self):
+        return hvd.local_rank()
+
+    @property
+    def world_size(self):
+        return hvd.size()
 
     @property
     def root_device(self):
@@ -38,17 +51,11 @@ class HorovodPlugin(ParallelPlugin):
 
     @property
     def distributed_sampler_kwargs(self):
-        distributed_sampler_kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
+        distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
     def setup(self, model):
         self._model = model
-
-        self.global_rank = hvd.rank()
-        self.local_rank = hvd.local_rank()
-        self.world_size = hvd.size()
-        rank_zero_only.rank = self.global_rank
-
         self.model_to_device()
 
     def pre_dispatch(self):
@@ -63,14 +70,14 @@ class HorovodPlugin(ParallelPlugin):
         # increased total batch size
         for optimizer in optimizers:
             for param_group in optimizer.param_groups:
-                param_group["lr"] *= hvd.size()
+                param_group["lr"] *= self.world_size
 
         # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
         lr_schedulers = self.lightning_module.trainer.lr_schedulers
         for scheduler in lr_schedulers:
             scheduler = scheduler["scheduler"]
             if isinstance(scheduler, _LRScheduler):
-                scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
+                scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
 
         # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
         hvd.broadcast_parameters(self.lightning_module.state_dict(), root_rank=0)
