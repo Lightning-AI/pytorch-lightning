@@ -794,7 +794,7 @@ DeepSpeed ZeRO Stage 3
 DeepSpeed ZeRO Stage 3 shards the optimizer states, gradients and the model parameters (also optionally activations). Sharding model parameters and activations comes with an increase in distributed communication, however allows you to scale your models massively from one GPU to multiple GPUs.
 **The DeepSpeed team report the ability to fine-tune models with over 40B parameters on a single GPU and over 2 Trillion parameters on 512 GPUs.** For more information we suggest checking the `DeepSpeed ZeRO-3 Offload documentation <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`__.
 
-We've ran benchmarks and give a simple example of how all these features in Lightning, which you can see at `minGPT <https://github.com/SeanNaren/minGPT/tree/stage3>`_.
+We've ran benchmarks for all these features and given a simple example of how all these features work in Lightning, which you can see at `minGPT <https://github.com/SeanNaren/minGPT/tree/stage3>`_.
 
 Currently this functionality is only available on master and will be included in our next 1.3 Release Candidate and 1.3 release.
 
@@ -815,7 +815,7 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
 
 .. note::
     Currently we only support non-elastic checkpointing. This means saving the model across GPUs will save shards of the model on all processes, which will then require the same amount of GPUS to load.
-    This additionally means for inference you must use the ``Trainer.test` or ``Trainer.predict`` functionality as described below, to ensure we set up the distributed environment correctly.
+    This additionally means for inference you must use the ``Trainer.test`` or ``Trainer.predict`` functionality as described below, to ensure we set up the distributed environment correctly.
 
     This limitation is actively being worked on and will be resolved in the near future.
 
@@ -849,10 +849,10 @@ We expose a hook that layers initialized within the hook will be sharded instant
 This reduces the time taken to initialize very large models, as well as ensure we do not run out of memory when instantiating larger models. For more information you can refer to the DeepSpeed docs for `Constructing Massive Models <https://deepspeed.readthedocs.io/en/latest/zero3.html>`_.
 
 .. note::
-    When using ``configure_sharded_model`` hook to shard models, note that ``LightningModule.load_from_checkpoint`` for loading saved checkpoints may not work. If you've trained on one GPU, you can manually instantiate the model and call the hook,
+    When using the ``configure_sharded_model`` hook to shard models, note that ``LightningModule.load_from_checkpoint`` may not work for loading saved checkpoints. If you've trained on one GPU, you can manually instantiate the model and call the hook,
     however when using multiple GPUs, this will not work as ``LightningModule.load_from_checkpoint`` doesn't support sharded checkpoints.
 
-    We recommend using the ``Trainer`` and using ``Trainer.test`` or ``Trainer.predict`` for inference.
+    We recommend using ``Trainer.test`` or ``Trainer.predict`` for inference.
 
 .. code-block:: python
 
@@ -945,7 +945,7 @@ This saves memory when training larger models however requires using a checkpoin
 DeepSpeed ZeRO Stage 3 Tips
 """""""""""""""""""""""""""
 
-Here are some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lightning.
+Here is some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lightning.
 
 * If you're using Adam or AdamW, ensure to use FusedAdam or DeepSpeedCPUAdam (for CPU Offloading) rather than the default torch optimizers as they come with large speed benefits
 * Treat your GPU/CPU memory as one large pool. In some cases, you may not want to offload certain things (like activations) to provide even more space to offload model parameters

@@ -114,13 +114,13 @@ class ModelHooks:
         """
         Sets the model to eval during the val loop
         """
-        self.eval()
+        self.trainer.model.eval()
 
     def on_validation_model_train(self) -> None:
         """
         Sets the model to train during the val loop
         """
-        self.train()
+        self.trainer.model.train()
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
@@ -172,19 +172,19 @@ class ModelHooks:
         """
         Sets the model to train during the test loop
         """
-        self.train()
+        self.trainer.model.train()
 
     def on_test_model_eval(self) -> None:
         """
         Sets the model to eval during the test loop
         """
-        self.eval()
+        self.trainer.model.eval()
 
     def on_predict_model_eval(self) -> None:
         """
         Sets the model to eval during the predict loop
         """
-        self.eval()
+        self.trainer.model.eval()
 
     def on_epoch_start(self) -> None:
         """
