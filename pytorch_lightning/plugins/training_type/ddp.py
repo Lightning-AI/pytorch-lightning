@@ -281,9 +281,7 @@ class DDPPlugin(ParallelPlugin):
         self.barrier()
 
     def post_dispatch(self) -> None:
-        # If we've spawned processes within the trainer, remove the populated environment variables
-        # RFC: should we use environment variables specific to lightning spawning? world size is also used by torchelastic
-        # why doesn't this happen in teardown?
+        # If the plugin launched subprocesses, clean up the populated environment variable(s)
         if self.cluster_environment.creates_children:
             return
         if "WORLD_SIZE" in os.environ:
