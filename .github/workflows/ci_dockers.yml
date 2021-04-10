@@ -75,8 +75,8 @@ jobs:
             pytorch_version: 1.6
           - python_version: 3.8
             pytorch_version: 1.7
-          #- python_version: 3.9
-          #  pytorch_version: 1.8
+          #  - python_version: 3.9
+          #    pytorch_version: 1.7
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -109,8 +109,10 @@ jobs:
             pytorch_version: 1.4
           - python_version: 3.7
             pytorch_version: 1.7
-          - python_version: 3.7
+          - python_version: 3.8
             pytorch_version: 1.8
+          #  - python_version: 3.9
+          #    pytorch_version: 1.8
     steps:
       - name: Checkout
         uses: actions/checkout@v2

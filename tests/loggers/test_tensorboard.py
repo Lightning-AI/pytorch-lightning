@@ -301,3 +301,22 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     hparams_file = "hparams.yaml"
     assert os.path.isfile(os.path.join(trainer.log_dir, hparams_file))
     assert not os.path.isfile(os.path.join(tmpdir, hparams_file))
+
+
+@mock.patch('pytorch_lightning.loggers.tensorboard.log')
+def test_tensorboard_with_symlink(log, tmpdir):
+    """
+    Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
+    relative paths.
+    """
+    os.chdir(tmpdir)  # need to use relative paths
+    source = os.path.join('.', 'lightning_logs')
+    dest = os.path.join('.', 'sym_lightning_logs')
+
+    os.makedirs(source, exist_ok=True)
+    os.symlink(source, dest)
+
+    logger = TensorBoardLogger(save_dir=dest, name='')
+    _ = logger.version
+
+    log.warning.assert_not_called()

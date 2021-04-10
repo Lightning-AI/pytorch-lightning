@@ -931,7 +931,6 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode: int):
     assert trainer.dev_debugger.checkpoint_callback_history[-1]['epoch'] == len(monitor) - 1
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_checkpoint_repeated_strategy(tmpdir):
     """
     This test validates that the checkpoint can be called when provided to callbacks list
@@ -978,7 +977,6 @@ def test_checkpoint_repeated_strategy(tmpdir):
     assert set(os.listdir(tmpdir.join("lightning_logs"))) == {f'version_{i}' for i in range(4)}
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_checkpoint_repeated_strategy_extended(tmpdir):
     """
     This test validates checkpoint can be called several times without

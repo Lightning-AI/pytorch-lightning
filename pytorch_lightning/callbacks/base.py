@@ -29,6 +29,9 @@ class Callback(abc.ABC):
     Subclass this class and override any of the relevant hooks
     """
 
+    def on_configure_sharded_model(self, trainer, pl_module: LightningModule) -> None:
+        """Called before configure sharded model"""
+
     def on_before_accelerator_backend_setup(self, trainer, pl_module: LightningModule) -> None:
         """Called before accelerator is being setup"""
         pass

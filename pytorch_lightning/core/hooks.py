@@ -114,13 +114,13 @@ class ModelHooks:
         """
         Sets the model to eval during the val loop
         """
-        self.eval()
+        self.trainer.model.eval()
 
     def on_validation_model_train(self) -> None:
         """
         Sets the model to train during the val loop
         """
-        self.train()
+        self.trainer.model.train()
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
@@ -172,19 +172,19 @@ class ModelHooks:
         """
         Sets the model to train during the test loop
         """
-        self.train()
+        self.trainer.model.train()
 
     def on_test_model_eval(self) -> None:
         """
         Sets the model to eval during the test loop
         """
-        self.eval()
+        self.trainer.model.eval()
 
     def on_predict_model_eval(self) -> None:
         """
         Sets the model to eval during the predict loop
         """
-        self.eval()
+        self.trainer.model.eval()
 
     def on_epoch_start(self) -> None:
         """
@@ -308,6 +308,20 @@ class ModelHooks:
             def on_post_move_to_device(self):
                 self.decoder.weight = self.encoder.weight
 
+        """
+
+    def configure_sharded_model(self) -> None:
+        """
+        Hook to create modules in a distributed aware context. This is useful for when using sharded plugins,
+        where we'd like to shard the model instantly, which is useful for extremely large models
+        which can save memory and initialization time.
+
+        The accelerator manages whether to call this hook at every given stage.
+        For sharded plugins where model parallelism is required, the hook is usually on called once
+        to initialize the sharded parameters, and not called again in the same process.
+
+        By default for accelerators/plugins that do not use model sharding techniques,
+        this hook is called during each fit/val/test/predict stages.
         """
 
 

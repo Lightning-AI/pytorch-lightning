@@ -133,8 +133,8 @@ class HookResultStore:
                         warning_cache.warn(
                             f"The value associated to the key {non_metric_key}: {metric.cpu().tolist()} "
                             "doesn't appear to be the same accross all processes. "
-                            "HINT: One could either do: `self.log(..., sync_dist=True, sync_fn=torch.mean)`"
-                            " to force mean reduction across processes which can be inaccurate or implement"
+                            "HINT: One could either do: `self.log(..., sync_dist=True)` to force mean"
+                            " reduction by default across processes which can be inaccurate or implement"
                             " a `torchmetrics.Metric`"
                         )
                     warning_cache.warned_metrics.append(non_metric_key)
@@ -394,12 +394,10 @@ class EpochResultStore:
 
     def get_latest_batch_log_metrics(self) -> Dict:
         batch_log_metrics = self.run_batch_from_func_name("get_batch_log_metrics")
-        batch_log_metrics.update(self.legacy_batch_log_metrics)
         return batch_log_metrics
 
     def get_latest_batch_pbar_metrics(self) -> Dict:
         batch_pbar_metrics = self.run_batch_from_func_name("get_batch_pbar_metrics")
-        batch_pbar_metrics.update(self.legacy_batch_pbar_metrics)
         return batch_pbar_metrics
 
     @property
@@ -451,8 +449,6 @@ class EpochResultStore:
         self._opt_idx: Optional[int] = None
         self._batch_size: Optional[int] = None
         self._has_batch_loop_finished = False
-        self.legacy_batch_log_metrics = {}
-        self.legacy_batch_pbar_metrics = {}
 
     def __call__(
         self,
