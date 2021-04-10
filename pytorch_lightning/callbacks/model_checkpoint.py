@@ -30,7 +30,7 @@ import torch
 import yaml
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -202,7 +202,6 @@ class ModelCheckpoint(Callback):
         self.best_model_path = ""
         self.last_model_path = ""
         self.save_function = None
-        self.warned_result_obj = False
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
@@ -258,9 +257,9 @@ class ModelCheckpoint(Callback):
         to handle correct behaviour in distributed training, i.e., saving only on rank 0.
         """
         if unused is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "`ModelCheckpoint.save_checkpoint` signature has changed in v1.3. The `pl_module` parameter"
-                " has been removed. Support for the old signature will be removed in v1.5", DeprecationWarning
+                " has been removed. Support for the old signature will be removed in v1.5"
             )
 
         global_step = trainer.global_step
@@ -371,9 +370,9 @@ class ModelCheckpoint(Callback):
 
         # period takes precedence over every_n_val_epochs for backwards compatibility
         if period is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 'Argument `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
-                ' Please use `every_n_val_epochs` instead.', DeprecationWarning
+                ' Please use `every_n_val_epochs` instead.'
             )
             self._every_n_val_epochs = period
 
@@ -381,17 +380,17 @@ class ModelCheckpoint(Callback):
 
     @property
     def period(self) -> Optional[int]:
-        rank_zero_warn(
+        rank_zero_deprecation(
             'Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
-            ' Please use `every_n_val_epochs` instead.', DeprecationWarning
+            ' Please use `every_n_val_epochs` instead.'
         )
         return self._period
 
     @period.setter
     def period(self, value: Optional[int]) -> None:
-        rank_zero_warn(
+        rank_zero_deprecation(
             'Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
-            ' Please use `every_n_val_epochs` instead.', DeprecationWarning
+            ' Please use `every_n_val_epochs` instead.'
         )
         self._period = value
 
@@ -590,7 +589,7 @@ class ModelCheckpoint(Callback):
             m = (
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                 f" {list(metrics.keys())}. "
-                f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
+                f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
             raise MisconfigurationException(m)
 

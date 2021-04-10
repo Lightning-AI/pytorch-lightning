@@ -148,9 +148,10 @@ class ProgressBarBase(Callback):
         validation dataloader is of infinite size.
         """
         total_val_batches = 0
-        if not self.trainer.disable_validation:
-            is_val_epoch = (self.trainer.current_epoch) % self.trainer.check_val_every_n_epoch == 0
+        if self.trainer.enable_validation:
+            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
             total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
+
         return total_val_batches
 
     @property
@@ -200,7 +201,7 @@ class ProgressBarBase(Callback):
     def on_train_start(self, trainer, pl_module):
         self._train_batch_idx = trainer.batch_idx
 
-    def on_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -392,8 +393,8 @@ class ProgressBar(ProgressBarBase):
         super().on_train_start(trainer, pl_module)
         self.main_progress_bar = self.init_train_tqdm()
 
-    def on_epoch_start(self, trainer, pl_module):
-        super().on_epoch_start(trainer, pl_module)
+    def on_train_epoch_start(self, trainer, pl_module):
+        super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float('inf'):

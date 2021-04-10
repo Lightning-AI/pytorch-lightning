@@ -91,50 +91,47 @@ def test_v1_5_metrics_collection():
     target = torch.tensor([0, 2, 0, 2, 0, 1, 0, 2])
     preds = torch.tensor([2, 1, 2, 0, 1, 2, 2, 2])
 
-    MetricCollection.__init__.warned = False
-    with pytest.deprecated_call(
-        match="`pytorch_lightning.metrics.metric.MetricCollection` was deprecated since v1.3.0 in favor"
-        " of `torchmetrics.collections.MetricCollection`. It will be removed in v1.5.0."
-    ):
+    MetricCollection.__init__._warned = False
+    with pytest.deprecated_call(match="It will be removed in v1.5.0."):
         metrics = MetricCollection([Accuracy()])
     assert metrics(preds, target) == {'Accuracy': torch.tensor(0.1250)}
 
 
 def test_v1_5_metric_accuracy():
-    accuracy.warned = False
+    accuracy._warned = False
 
     preds = torch.tensor([0, 0, 1, 0, 1])
     target = torch.tensor([0, 0, 1, 1, 1])
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert accuracy(preds, target) == torch.tensor(0.8)
 
-    Accuracy.__init__.warned = False
+    Accuracy.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         Accuracy()
 
 
 def test_v1_5_metric_auc_auroc():
-    AUC.__init__.warned = False
+    AUC.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         AUC()
 
-    ROC.__init__.warned = False
+    ROC.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         ROC()
 
-    AUROC.__init__.warned = False
+    AUROC.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         AUROC()
 
     x = torch.tensor([0, 1, 2, 3])
     y = torch.tensor([0, 1, 2, 2])
-    auc.warned = False
+    auc._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert auc(x, y) == torch.tensor(4.)
 
     preds = torch.tensor([0, 1, 2, 3])
     target = torch.tensor([0, 1, 1, 1])
-    roc.warned = False
+    roc._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         fpr, tpr, thrs = roc(preds, target, pos_label=1)
     assert torch.equal(fpr, torch.tensor([0., 0., 0., 0., 1.]))
@@ -143,49 +140,49 @@ def test_v1_5_metric_auc_auroc():
 
     preds = torch.tensor([0.13, 0.26, 0.08, 0.19, 0.34])
     target = torch.tensor([0, 0, 1, 1, 1])
-    auroc.warned = False
+    auroc._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert auroc(preds, target) == torch.tensor(0.5)
 
 
 def test_v1_5_metric_precision_recall():
-    AveragePrecision.__init__.warned = False
+    AveragePrecision.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         AveragePrecision()
 
-    Precision.__init__.warned = False
+    Precision.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         Precision()
 
-    Recall.__init__.warned = False
+    Recall.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         Recall()
 
-    PrecisionRecallCurve.__init__.warned = False
+    PrecisionRecallCurve.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         PrecisionRecallCurve()
 
     pred = torch.tensor([0, 1, 2, 3])
     target = torch.tensor([0, 1, 1, 1])
-    average_precision.warned = False
+    average_precision._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert average_precision(pred, target) == torch.tensor(1.)
 
-    precision.warned = False
+    precision._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert precision(pred, target) == torch.tensor(0.5)
 
-    recall.warned = False
+    recall._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert recall(pred, target) == torch.tensor(0.5)
 
-    precision_recall.warned = False
+    precision_recall._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         prec, rc = precision_recall(pred, target)
-    assert prec == torch.tensor(0.5)
-    assert rc == torch.tensor(0.5)
+        assert prec == torch.tensor(0.5)
+        assert rc == torch.tensor(0.5)
 
-    precision_recall_curve.warned = False
+    precision_recall_curve._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         prec, rc, thrs = precision_recall_curve(pred, target)
     assert torch.equal(prec, torch.tensor([1., 1., 1., 1.]))
@@ -194,141 +191,141 @@ def test_v1_5_metric_precision_recall():
 
 
 def test_v1_5_metric_classif_mix():
-    ConfusionMatrix.__init__.warned = False
+    ConfusionMatrix.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         ConfusionMatrix(num_classes=1)
 
-    FBeta.__init__.warned = False
+    FBeta.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         FBeta(num_classes=1)
 
-    F1.__init__.warned = False
+    F1.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         F1(num_classes=1)
 
-    HammingDistance.__init__.warned = False
+    HammingDistance.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         HammingDistance()
 
-    StatScores.__init__.warned = False
+    StatScores.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         StatScores()
 
     target = torch.tensor([1, 1, 0, 0])
     preds = torch.tensor([0, 1, 0, 0])
-    confusion_matrix.warned = False
+    confusion_matrix._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert torch.equal(confusion_matrix(preds, target, num_classes=2), torch.tensor([[2., 0.], [1., 1.]]))
 
     target = torch.tensor([0, 1, 2, 0, 1, 2])
     preds = torch.tensor([0, 2, 1, 0, 0, 1])
-    fbeta.warned = False
+    fbeta._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert torch.allclose(fbeta(preds, target, num_classes=3, beta=0.5), torch.tensor(0.3333), atol=1e-4)
 
-    f1.warned = False
+    f1._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert torch.allclose(f1(preds, target, num_classes=3), torch.tensor(0.3333), atol=1e-4)
 
     target = torch.tensor([[0, 1], [1, 1]])
     preds = torch.tensor([[0, 1], [0, 1]])
-    hamming_distance.warned = False
+    hamming_distance._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert hamming_distance(preds, target) == torch.tensor(0.25)
 
     preds = torch.tensor([1, 0, 2, 1])
     target = torch.tensor([1, 1, 2, 0])
-    stat_scores.warned = False
+    stat_scores._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert torch.equal(stat_scores(preds, target, reduce='micro'), torch.tensor([2, 2, 6, 2, 4]))
 
 
 def test_v1_5_metric_detect():
-    IoU.__init__.warned = False
+    IoU.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         IoU(num_classes=1)
 
     target = torch.randint(0, 2, (10, 25, 25))
     preds = torch.tensor(target)
     preds[2:5, 7:13, 9:15] = 1 - preds[2:5, 7:13, 9:15]
-    iou.warned = False
+    iou._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = iou(preds, target)
     assert torch.allclose(res, torch.tensor(0.9660), atol=1e-4)
 
 
 def test_v1_5_metric_regress():
-    ExplainedVariance.__init__.warned = False
+    ExplainedVariance.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         ExplainedVariance()
 
-    MeanAbsoluteError.__init__.warned = False
+    MeanAbsoluteError.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         MeanAbsoluteError()
 
-    MeanSquaredError.__init__.warned = False
+    MeanSquaredError.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         MeanSquaredError()
 
-    MeanSquaredLogError.__init__.warned = False
+    MeanSquaredLogError.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         MeanSquaredLogError()
 
     target = torch.tensor([3, -0.5, 2, 7])
     preds = torch.tensor([2.5, 0.0, 2, 8])
-    explained_variance.warned = False
+    explained_variance._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = explained_variance(preds, target)
     assert torch.allclose(res, torch.tensor(0.9572), atol=1e-4)
 
     x = torch.tensor([0., 1, 2, 3])
     y = torch.tensor([0., 1, 2, 2])
-    mean_absolute_error.warned = False
+    mean_absolute_error._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert mean_absolute_error(x, y) == 0.25
 
-    mean_relative_error.warned = False
+    mean_relative_error._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert mean_relative_error(x, y) == 0.125
 
-    mean_squared_error.warned = False
+    mean_squared_error._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         assert mean_squared_error(x, y) == 0.25
 
-    mean_squared_log_error.warned = False
+    mean_squared_log_error._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = mean_squared_log_error(x, y)
     assert torch.allclose(res, torch.tensor(0.0207), atol=1e-4)
 
-    PSNR.__init__.warned = False
+    PSNR.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         PSNR()
 
-    R2Score.__init__.warned = False
+    R2Score.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         R2Score()
 
-    SSIM.__init__.warned = False
+    SSIM.__init__._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         SSIM()
 
     preds = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
     target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
-    psnr.warned = False
+    psnr._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = psnr(preds, target)
     assert torch.allclose(res, torch.tensor(2.5527), atol=1e-4)
 
     target = torch.tensor([3, -0.5, 2, 7])
     preds = torch.tensor([2.5, 0.0, 2, 8])
-    r2score.warned = False
+    r2score._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = r2score(preds, target)
     assert torch.allclose(res, torch.tensor(0.9486), atol=1e-4)
 
     preds = torch.rand([16, 1, 16, 16])
     target = preds * 0.75
-    ssim.warned = False
+    ssim._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = ssim(preds, target)
     assert torch.allclose(res, torch.tensor(0.9219), atol=1e-4)
@@ -337,13 +334,13 @@ def test_v1_5_metric_regress():
 def test_v1_5_metric_others():
     translate_corpus = ['the cat is on the mat'.split()]
     reference_corpus = [['there is a cat on the mat'.split(), 'a cat is on the mat'.split()]]
-    bleu_score.warned = False
+    bleu_score._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = bleu_score(translate_corpus, reference_corpus)
     assert torch.allclose(res, torch.tensor(0.7598), atol=1e-4)
 
     embeddings = torch.tensor([[1., 2., 3., 4.], [1., 2., 3., 4.], [4., 5., 6., 7.]])
-    embedding_similarity.warned = False
+    embedding_similarity._warned = False
     with pytest.deprecated_call(match='It will be removed in v1.5.0'):
         res = embedding_similarity(embeddings)
     assert torch.allclose(
