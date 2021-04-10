@@ -391,7 +391,6 @@ class Trainer(
             fast_dev_run,
         )
 
-
         self.accelerator.setup_environment(self)
 
         # Callback system

@@ -45,7 +45,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
         self.model = model
 
-    def setup_environment(self, trainer) -> None:
+    def setup_environment(self, trainer: 'Trainer') -> None:
         """
         Setup any processes or distributed connections.
         This is called before the LightningModule/DataModule setup hook

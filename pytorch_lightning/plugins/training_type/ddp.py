@@ -16,7 +16,7 @@ import os
 import subprocess
 import sys
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
@@ -46,6 +46,9 @@ if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
 log = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class DDPPlugin(ParallelPlugin):
@@ -97,7 +100,7 @@ class DDPPlugin(ParallelPlugin):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def setup_environment(self, trainer):
+    def setup_environment(self, trainer: 'Trainer'):
         # start the other scripts
         if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
             self._call_children_scripts(trainer)
@@ -107,7 +110,7 @@ class DDPPlugin(ParallelPlugin):
 
         self.setup_distributed()
 
-    def _call_children_scripts(self, trainer):
+    def _call_children_scripts(self, trainer: 'Trainer'):
 
         # bookkeeping of spawned processes
         assert self.global_rank == 0

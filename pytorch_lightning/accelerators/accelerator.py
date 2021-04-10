@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
@@ -29,6 +29,8 @@ from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, Li
 
 _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 class Accelerator(object):
     """
@@ -68,7 +70,7 @@ class Accelerator(object):
         """Transfers ownership of the model to this plugin"""
         self.training_type_plugin.connect(model)
 
-    def setup_environment(self, trainer) -> None:
+    def setup_environment(self, trainer: 'Trainer') -> None:
         """
         Setup any processes or distributed connections.
         This is called before the LightningModule/DataModule setup hook
