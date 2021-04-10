@@ -920,7 +920,7 @@ def test_gradient_clipping_by_value(tmpdir):
 
     grad_clip_val = 1e-10
     trainer = Trainer(
-        max_steps=10,
+        max_steps=1,
         max_epochs=1,
         gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm='value',
@@ -998,7 +998,7 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
     model = BoringModel()
     grad_clip_val = 1e-10
     trainer = Trainer(
-        max_steps=10,
+        max_steps=1,
         max_epochs=1,
         precision=16,
         gpus=1,
