@@ -53,6 +53,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _TORCH_QUANTIZE_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
+    _TPU_AVAILABLE,
     _XLA_AVAILABLE,
 )
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
