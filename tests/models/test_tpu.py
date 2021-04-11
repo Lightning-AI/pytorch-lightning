@@ -427,10 +427,17 @@ def test_tpu_sync_dist():
 
     def test_sync_dist(rank):
         tensor = torch.tensor([1.0])
+        training_type_plugin = TPUSpawnPlugin()
 
         res = Result()
-        res.log("test_tensor", tensor, sync_dist=True, sync_dist_op=torch.distributed.ReduceOp.SUM)
+        res.log(
+            "test_tensor",
+            tensor,
+            sync_fn=training_type_plugin.reduce,
+            sync_dist=True,
+            sync_dist_op=torch.distributed.ReduceOp.SUM
+        )
 
-        assert res["test_tensor"].item() == 1, "Result-Log does not work properly with TPU Spawn and Tensors"
+        assert res["test_tensor"].item() == 8, "Result-Log does not work properly with TPU Spawn and Tensors"
 
     xmp.spawn(test_sync_dist, nprocs=8, start_method='fork')
