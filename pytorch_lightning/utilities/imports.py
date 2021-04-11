@@ -89,6 +89,6 @@ _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
 _XLA_AVAILABLE = _module_available("torch_xla")
 
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: F401
+from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
