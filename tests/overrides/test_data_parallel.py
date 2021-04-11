@@ -26,7 +26,7 @@ from tests.helpers.runif import RunIf
         ("training", "training_step"),
         ("testing", "test_step"),
         ("validating", "validation_step"),
-        ("predicting", "predict"),
+        ("predicting", "predict_step"),
     ]
 )
 def test_lightning_wrapper_module_methods(wrapper_class, stage):

@@ -14,6 +14,7 @@
 import logging
 import os
 import pickle
+from typing import List, Optional
 from unittest import mock
 
 import cloudpickle
@@ -119,7 +120,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
         ([6, 5, 6, 5, 5, 5], 3, 4),
     ],
 )
-def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_epoch):
+def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expected_stop_epoch: int):
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 
     class ModelOverrideValidationReturn(BoringModel):
@@ -127,7 +128,7 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
 
         def validation_epoch_end(self, outputs):
             loss = self.validation_return_values[self.current_epoch]
-            return {"test_val_loss": loss}
+            self.log("test_val_loss", loss)
 
     model = ModelOverrideValidationReturn()
     early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
@@ -142,7 +143,7 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
     assert trainer.current_epoch == expected_stop_epoch
 
 
-@pytest.mark.parametrize('validation_step', ['base', None])
+@pytest.mark.parametrize('validation_step_none', [True, False])
 @pytest.mark.parametrize(
     "loss_values, patience, expected_stop_epoch",
     [
@@ -151,7 +152,9 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
         ([6, 5, 6, 5, 5, 5], 3, 4),
     ],
 )
-def test_early_stopping_patience_train(tmpdir, validation_step, loss_values, patience, expected_stop_epoch):
+def test_early_stopping_patience_train(
+    tmpdir, validation_step_none: bool, loss_values: list, patience: int, expected_stop_epoch: int
+):
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 
     class ModelOverrideTrainReturn(BoringModel):
@@ -163,7 +166,7 @@ def test_early_stopping_patience_train(tmpdir, validation_step, loss_values, pat
 
     model = ModelOverrideTrainReturn()
 
-    if validation_step is None:
+    if validation_step_none:
         model.validation_step = None
 
     early_stop_callback = EarlyStopping(monitor="train_loss", patience=patience, verbose=True)
@@ -217,7 +220,7 @@ def test_early_stopping_functionality(tmpdir):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
-            self.log('abc', torch.tensor(val_loss))
+            self.log('abc', val_loss)
 
     model = CurrentModel()
 
@@ -231,30 +234,8 @@ def test_early_stopping_functionality(tmpdir):
     assert trainer.current_epoch == 5, 'early_stopping failed'
 
 
-def test_early_stopping_functionality_arbitrary_key(tmpdir):
-    """Tests whether early stopping works with a custom key and dictionary results on val step."""
-
-    class CurrentModel(BoringModel):
-
-        def validation_epoch_end(self, outputs):
-            losses = [8, 4, 2, 3, 4, 5, 8, 10]
-            val_loss = losses[self.current_epoch]
-            return {'jiraffe': torch.tensor(val_loss)}
-
-    model = CurrentModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor='jiraffe')],
-        overfit_batches=0.20,
-        max_epochs=20,
-    )
-    trainer.fit(model)
-    assert trainer.current_epoch >= 5, 'early_stopping failed'
-
-
 @pytest.mark.parametrize('step_freeze, min_steps, min_epochs', [(5, 1, 1), (5, 1, 3), (3, 15, 1)])
-def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, min_steps, min_epochs):
+def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: int, min_steps: int, min_epochs: int):
     """Excepted Behaviour:
     IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being triggered,
     THEN the trainer should continue until reaching `trainer.global_step` == `min_steps`, and stop.
@@ -269,7 +250,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
         when `early_stopping` is being triggered,
     THEN the highest between `min_epochs * len(train_dataloader)` and `min_steps` would be reached.
 
-    Caviat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)
+    Caveat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)
 
     This test validate those expected behaviours
     """
@@ -306,7 +287,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze, mi
                 self._count_decrease += 1
                 self._loss_value -= self._eps
             self._values.append(_mean)
-            return {"test_val_loss": _mean}
+            self.log('test_val_loss', _mean)
 
     model = Model(step_freeze)
     model.training_step_end = None
@@ -386,10 +367,10 @@ class EarlyStoppingModel(BoringModel):
                      marks=RunIf(skip_windows=True)),
     ],
 )
-def test_multiple_early_stopping_callbacks(callbacks, expected_stop_epoch, accelerator, num_processes, tmpdir):
-    """
-    Ensure when using multiple early stopping callbacks we stop if any signals we should stop.
-    """
+def test_multiple_early_stopping_callbacks(
+    tmpdir, callbacks: List[EarlyStopping], expected_stop_epoch: int, accelerator: Optional[str], num_processes: int
+):
+    """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
     model = EarlyStoppingModel(expected_stop_epoch)
 

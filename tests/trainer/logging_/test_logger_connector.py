@@ -14,8 +14,10 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+import os
 from copy import deepcopy
 from typing import Any, Callable
+from unittest import mock
 
 import pytest
 import torch
@@ -53,13 +55,11 @@ def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Cal
     return decorator
 
 
-def test__logger_connector__epoch_result_store__train(tmpdir, monkeypatch):
+def test__logger_connector__epoch_result_store__train(tmpdir):
     """
     Tests that LoggerConnector will properly capture logged information
     and reduce them
     """
-    monkeypatch.setenv("PL_DEV_DEBUG", "1")
-
     class TestModel(BoringModel):
 
         train_losses = []
@@ -111,7 +111,7 @@ def test__logger_connector__epoch_result_store__train(tmpdir, monkeypatch):
     assert generated == excepted
 
 
-def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
+def test__logger_connector__epoch_result_store__train__tbptt(tmpdir):
     """
     Tests that LoggerConnector will properly capture logged information with ttbt
     and reduce them
@@ -142,6 +142,7 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
         @decorator_with_arguments(fx_name="training_step")
         def training_step(self, batch, batch_idx, hiddens):
+            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
             self.test_hidden = torch.rand(1)
 
             x_tensor, y_list = batch
@@ -207,12 +208,10 @@ def test__logger_connector__epoch_result_store__train__ttbt(tmpdir):
 
 
 @pytest.mark.parametrize('num_dataloaders', [1, 2])
-def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, monkeypatch, num_dataloaders):
+def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, num_dataloaders):
     """
     Tests that LoggerConnector will properly capture logged information in multi dataloaders scenario
     """
-    monkeypatch.setenv("PL_DEV_DEBUG", "1")
-
     class TestModel(BoringModel):
         test_losses = {dl_idx: [] for dl_idx in range(num_dataloaders)}
 
@@ -280,6 +279,7 @@ def test_call_back_validator(tmpdir):
         'on_epoch_end',
         'on_epoch_start',
         'on_fit_end',
+        'on_configure_sharded_model',
         'on_fit_start',
         'on_init_end',
         'on_init_start',
@@ -316,6 +316,7 @@ def test_call_back_validator(tmpdir):
         "on_before_accelerator_backend_setup",
         "on_fit_end",
         "on_fit_start",
+        "on_configure_sharded_model",
         "on_init_end",
         "on_init_start",
         "on_keyboard_interrupt",
@@ -447,11 +448,65 @@ def test_metrics_holder(to_float, tmpdir):
         "y": torch.tensor(2),
         "z": acc(preds, targets),
     })
-    metric_holder.convert(False, device)
+    metric_holder.convert(device)
     metrics = metric_holder.metrics
     assert excepted_function(metrics["x"])
     assert excepted_function(metrics["y"])
     assert excepted_function(metrics["z"])
+
+
+def test_metric_holder_raises(tmpdir):
+    """Check that an error is raised when trying to convert non-scalar tensors"""
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, *args, **kwargs):
+            output = self(batch)
+            self.log('test', output)
+
+        def test_step(self, *args, **kwargs):
+            return self.validation_step(*args, **kwargs)
+
+    model = TestModel()
+    model.validation_epoch_end = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+
+    match = "The metric `test` does not contain a single element"
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.validate(model)
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.test(model)
+
+
+def test_can_return_tensor_with_more_than_one_element(tmpdir):
+    """Ensure {validation,test}_step return values are not included as callback metrics. #6623"""
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, *args, **kwargs):
+            return {"val": torch.tensor([0, 1])}
+
+        def validation_epoch_end(self, outputs):
+            # ensure validation step returns still appear here
+            assert len(outputs) == 2
+            assert all(list(d) == ["val"] for d in outputs)  # check keys
+            assert all(torch.equal(d["val"], torch.tensor([0, 1])) for d in outputs)  # check values
+
+        def test_step(self, batch, *args, **kwargs):
+            return {"test": torch.tensor([0, 1])}
+
+        def test_epoch_end(self, outputs):
+            assert len(outputs) == 2
+            assert all(list(d) == ["test"] for d in outputs)  # check keys
+            assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, progress_bar_refresh_rate=0)
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
 
 
 def test_logging_to_progress_bar_with_reserved_key(tmpdir):
@@ -465,10 +520,7 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
             return output
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=2,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
         trainer.fit(model)
 
@@ -507,3 +559,28 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     else:
         assert 'val_loss_custom_naming_0' in logged
         assert 'val_loss_custom_naming_1' in logged
+
+
+@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+def test_logged_metrics_steps(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            loss_val = torch.randn(1)
+            self.log('val_loss', loss_val)
+            return loss_val
+
+    model = TestModel()
+    model.validation_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 1
+    assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 3
