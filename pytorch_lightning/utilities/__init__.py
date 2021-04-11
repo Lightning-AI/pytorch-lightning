@@ -56,9 +56,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _XLA_AVAILABLE,
 )
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: F401
-
-_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
