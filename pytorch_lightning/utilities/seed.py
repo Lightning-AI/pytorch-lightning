@@ -75,7 +75,7 @@ def pl_worker_init_function(worker_id: int) -> None:
     set the seed with :func:`~pytorch_lightning.utilities.seed.seed_everything`.
 
     See Also
-        `Randomness in Dataloades <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_
+        `Randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_
     """
     #
     worker_seed = torch.initial_seed() % (2 ** 32)
