@@ -78,6 +78,6 @@ def pl_worker_init_function(worker_id: int) -> None:
         `Randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_
     """
     #
-    worker_seed = torch.initial_seed() % (2**32)
+    worker_seed = (torch.initial_seed() + worker_id) % (2**32)
     numpy.random.seed(worker_seed)
     random.seed(worker_seed)
