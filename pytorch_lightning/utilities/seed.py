@@ -21,6 +21,7 @@ from typing import Optional
 import numpy
 import numpy as np
 import torch
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -86,6 +87,7 @@ def pl_worker_init_function(worker_id: int) -> None:
     See also the PyTorch documentation on
     `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
     """
-    worker_seed = (torch.initial_seed() + worker_id) % (2**32)
+    global_rank = rank_zero_only.rank
+    worker_seed = (torch.initial_seed() + worker_id + global_rank) % (2**32)
     numpy.random.seed(worker_seed)
     random.seed(worker_seed)
