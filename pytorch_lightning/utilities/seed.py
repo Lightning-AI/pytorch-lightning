@@ -27,17 +27,23 @@ from pytorch_lightning.utilities import rank_zero_warn
 log = logging.getLogger(__name__)
 
 
-def seed_everything(seed: Optional[int] = None) -> int:
+def seed_everything(seed: Optional[int] = None, workers: bool = True) -> int:
     """
     Function that sets seed for pseudo-random number generators in:
     pytorch, numpy, python.random
-    In addition, sets the env variable `PL_GLOBAL_SEED` which will be passed to
-    spawned subprocesses (e.g. ddp_spawn backend).
+    In addition, sets the following environment variables:
+
+    - `PL_GLOBAL_SEED`: will be passed to spawned subprocesses (e.g. ddp_spawn backend).
+    - `PL_SEED_WORKERS`: (optional) is set to 1 if ```workers=True``.
 
     Args:
         seed: the integer value seed for global random state in Lightning.
             If `None`, will read seed from `PL_GLOBAL_SEED` env variable
             or select it randomly.
+        workers: if set to ``True``, will properly configure all dataloaders passed to the
+            Trainer with a ``worker_init_fn``. If the user already provides such a function
+            for their dataloaders, setting this argument will have no influence. See also:
+            :func:`~pytorch_lightning.utilities.seed.pl_worker_init_function`.
     """
     max_seed_value = np.iinfo(np.uint32).max
     min_seed_value = np.iinfo(np.uint32).min
@@ -62,6 +68,10 @@ def seed_everything(seed: Optional[int] = None) -> int:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
+    if workers:
+        os.environ["PL_SEED_WORKERS"] = f"{int(workers)}"
+
     return seed
 
 
@@ -73,9 +83,8 @@ def pl_worker_init_function(worker_id: int) -> None:
     """
     The worker_init_fn that Lightning automatically adds to your dataloader if you previously set
     set the seed with :func:`~pytorch_lightning.utilities.seed.seed_everything`.
-
-    See Also
-        `Randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_
+    See also the PyTorch documentation on
+    `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
     """
     worker_seed = (torch.initial_seed() + worker_id) % (2**32)
     numpy.random.seed(worker_seed)

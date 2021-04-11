@@ -645,6 +645,10 @@ class NumpyRandomDataset(Dataset):
         return 16
 
 
+def _user_worker_init_fn(_):
+    pass
+
+
 def test_auto_add_worker_init_fn(tmpdir):
     """ Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used. """
     dataset = NumpyRandomDataset()
@@ -658,8 +662,20 @@ def test_auto_add_worker_init_fn(tmpdir):
     trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is None
 
-    # with pl.seed_everything()
-    seed_everything(0)
+    # with forcefully avoiding it
+    seed_everything(0, workers=False)
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is None
+
+    # when user already has a worker_init_fn
+    user_function = _user_worker_init_fn
+    dataloader.worker_init_fn = user_function
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is user_function
+    dataloader.worker_init_fn = None
+
+    # main use case
+    seed_everything(0, workers=True)
     trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is pl_worker_init_function
     unique_batches = set(tuple(batch.view(-1).tolist()) for batch in dataloader)
