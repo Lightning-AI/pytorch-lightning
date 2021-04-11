@@ -13,7 +13,7 @@
 # limitations under the License.
 import numbers
 import warnings
-from typing import Any, Optional
+from typing import Any
 
 import torch
 from torch.nn import DataParallel
@@ -89,34 +89,35 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         return output
 
     def update_replica_device_attributes(self, inputs: Any) -> None:
-        first_parameter = next(self.parameters(), None)
-        if first_parameter is None:
+        """
+        Updates the device information of LightningModule by reading the device from the inputs.
+        In :class:`~torch.nn.data_parallel.DataParallel` changes to the state during the `forward` pass
+        are lost when the replicas get discarded. The only way to know the current device is from the
+        inputs passed into the model.
+
+        Args:
+            inputs: A collection of inputs (typically a tuple). If the inputs don't contain tensors,
+                a warning is shown that accessing ``self.device`` will not return the correct device.
+        """
+        replica_device = None
+
+        def find_tensor_with_device(tensor: torch.Tensor) -> torch.Tensor:
+            nonlocal replica_device
+            if replica_device is None and tensor.device != torch.device("cpu"):
+                replica_device = tensor.device
+            return tensor
+
+        apply_to_collection(inputs, dtype=torch.Tensor, function=find_tensor_with_device)
+
+        if replica_device is not None:
+            # by calling .to() we force the update to the self.device property
+            self.module.to(device=replica_device)
+        else:
             rank_zero_warn(
                 "Could not determine on which device the inputs are."
-                "When using DataParallel (accelerator='dp'), be aware that in case you are using self.device"
-                "in your code it will reference only the root device."
+                " When using DataParallel (accelerator='dp'), be aware that in case you are using self.device"
+                " in your code, it will reference only the root device."
             )
-        else:
-            # by calling .to() we force the update to the self.device property
-            self.module.to(device=first_parameter.device)
-
-        # def find_tensor_with_device(tensor: torch.Tensor):
-        #     nonlocal replica_device
-        #     if replica_device is None and tensor.device != torch.device("cpu"):
-        #         replica_device = tensor.device
-        #     return tensor
-        #
-        # apply_to_collection(inputs, dtype=torch.Tensor, function=find_tensor_with_device)
-        #
-        # if replica_device is not None:
-        #     # by calling .to() we force the update to the self.device property
-        #     self.module.to(device=replica_device)
-        # else:
-        #     rank_zero_warn(
-        #         "Could not determine on which device the inputs are."
-        #         "When using DataParallel (accelerator='dp'), be aware that in case you are using self.device"
-        #         "in your code it will reference only the root device."
-        #     )
 
 
 def python_scalar_to_tensor(data: Any, device: torch.device = torch.device("cpu")) -> Any:
