@@ -31,23 +31,23 @@ Here is a minimal example of manual optimization.
  
 .. testcode:: python
 
-   from pytorch_lightning import LightningModule
+    from pytorch_lightning import LightningModule
 
-   class MyModel(LightningModule):
+    class MyModel(LightningModule):
 
-       def __init__(self):
-           super().__init__()
-           # Important: This property activates manual optimization.
-           self.automatic_optimization = False
+        def __init__(self):
+            super().__init__()
+            # Important: This property activates manual optimization.
+            self.automatic_optimization = False
 
-       def training_step(batch, batch_idx):
-           opt = self.optimizers()
+        def training_step(batch, batch_idx):
+            opt = self.optimizers()
 
-           loss = self.compute_loss(batch)
+            loss = self.compute_loss(batch)
 
-           opt.zero_grad()
-           self.manual_backward(loss)
-           opt.step()
+            opt.zero_grad()
+            self.manual_backward(loss)
+            opt.step()
 
 .. warning::
    Before 1.2, ``optimizer.step()`` was calling ``optimizer.zero_grad()`` internally.
@@ -76,46 +76,46 @@ Here is a example calling ``step()`` every step.
 
 .. testcode:: python
 
-   # step every batch
+    # step every batch
 
-   def __init__(self):
-       super().__init__()
-       self.automatic_optimization = False
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
 
-   def training_step(self, batch, batch_idx):
-       # do foward, backward, and optimization
-       ...
+    def training_step(self, batch, batch_idx):
+        # do foward, backward, and optimization
+        ...
 
-       # single scheduler
-       sch = self.lr_schedulers()
-       sch.step()
+        # single scheduler
+        sch = self.lr_schedulers()
+        sch.step()
 
-       # multiple schedulers
-       sch1, sch2 = self.lr_schedulers()
-       sch1.step()
-       sch2.step()
+        # multiple schedulers
+        sch1, sch2 = self.lr_schedulers()
+        sch1.step()
+        sch2.step()
 
 If you want to call ``lr_scheduler.step()`` every ``n`` steps/epochs, do the following.
 
 .. testcode:: python
 
-   def __init__(self):
-       super().__init__()
-       self.automatic_optimization = False
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
 
-   def training_step(self, batch, batch_idx):
-       # do forward, backward, and optimization
-       ...
+    def training_step(self, batch, batch_idx):
+        # do forward, backward, and optimization
+        ...
 
-       sch = self.lr_schedulers()
+        sch = self.lr_schedulers()
 
-       # step every `n` batches
-       if (batch_idx + 1) % n == 0:
-           sch.step()
+        # step every `n` batches
+        if (batch_idx + 1) % n == 0:
+            sch.step()
 
-       # step every `n` epochs
-       if self.trainer.is_last_batch and (self.trainer.current_epoch + 1) % n == 0:
-           sch.step()             
+        # step every `n` epochs
+        if self.trainer.is_last_batch and (self.trainer.current_epoch + 1) % n == 0:
+            sch.step()
 
 -----
 
@@ -126,22 +126,22 @@ To perform gradient accumulation with one optimizer, you can do as such.
 
 .. testcode:: python
 
-   # accumulate gradients over 2 batches
+    # accumulate gradients over 2 batches
 
-   def __init__(self):
-       super().__init__()
-       self.automatic_optimization = False
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
 
-   def training_step(self, batch, batch_idx):
-       opt = self.optimizers()
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
 
-       loss = self.compute_loss(batch)
-       self.manual_backward(loss)
+        loss = self.compute_loss(batch)
+        self.manual_backward(loss)
 
-       # accumulate gradients of 2 batches
-       if (batch_idx + 1) % 2 == 0:
-           opt.step()
-           opt.zero_grad()
+        # accumulate gradients of 2 batches
+        if (batch_idx + 1) % 2 == 0:
+            opt.step()
+            opt.zero_grad()
 
 -----
 
@@ -150,72 +150,71 @@ Use multiple optimizers [manual]
 
 .. testcode:: python
 
-   import torch
-   from torch import Tensor
-   from pytorch_lightning import LightningModule
+    import torch
+    from torch import Tensor
+    from pytorch_lightning import LightningModule
 
-   class SimpleGAN(LightningModule):
+    class SimpleGAN(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.G = Generator()
+            self.D = Discriminator()
 
-       def __init__(self):
-           super().__init__()
-           self.G = Generator()
-           self.D = Discriminator()
+            # Important: This property activates manual optimization.
+            self.automatic_optimization = False
 
-           # Important: This property activates manual optimization.
-           self.automatic_optimization = False
+        def sample_z(self, n) -> Tensor:
+            sample = self._Z.sample((n,))
+            return sample
 
-       def sample_z(self, n) -> Tensor:
-           sample = self._Z.sample((n,))
-           return sample
+        def sample_G(self, n) -> Tensor:
+            z = self.sample_z(n)
+            return self.G(z)
 
-       def sample_G(self, n) -> Tensor:
-           z = self.sample_z(n)
-           return self.G(z)
+        def training_step(self, batch, batch_idx):
+            # Implementation follows the PyTorch tutorial:
+            # https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+            g_opt, d_opt = self.optimizers()
 
-       def training_step(self, batch, batch_idx):
-           # Implementation follows the PyTorch tutorial:
-           # https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
-           g_opt, d_opt = self.optimizers()
+            X, _ = batch
+            batch_size = X.shape[0]
 
-           X, _ = batch
-           batch_size = X.shape[0]
+            real_label = torch.ones((batch_size, 1), device=self.device)
+            fake_label = torch.zeros((batch_size, 1), device=self.device)
 
-           real_label = torch.ones((batch_size, 1), device=self.device)
-           fake_label = torch.zeros((batch_size, 1), device=self.device)
+            g_X = self.sample_G(batch_size)
 
-           g_X = self.sample_G(batch_size)
+            ##########################
+            # Optimize Discriminator #
+            ##########################
+            d_x = self.D(X)
+            errD_real = self.criterion(d_x, real_label)
 
-           ##########################
-           # Optimize Discriminator #
-           ##########################
-           d_x = self.D(X)
-           errD_real = self.criterion(d_x, real_label)
+            d_z = self.D(g_X.detach())
+            errD_fake = self.criterion(d_z, fake_label)
 
-           d_z = self.D(g_X.detach())
-           errD_fake = self.criterion(d_z, fake_label)
+            errD = (errD_real + errD_fake)
 
-           errD = (errD_real + errD_fake)
+            d_opt.zero_grad()
+            self.manual_backward(errD)
+            d_opt.step()
 
-           d_opt.zero_grad()
-           self.manual_backward(errD)
-           d_opt.step()
+            ######################
+            # Optimize Generator #
+            ######################
+            d_z = self.D(g_X)
+            errG = self.criterion(d_z, real_label)
 
-           ######################
-           # Optimize Generator #
-           ######################
-           d_z = self.D(g_X)
-           errG = self.criterion(d_z, real_label)
+            g_opt.zero_grad()
+            self.manual_backward(errG)
+            g_opt.step()
 
-           g_opt.zero_grad()
-           self.manual_backward(errG)
-           g_opt.step()
+            self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
 
-           self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
-
-       def configure_optimizers(self):
-           g_opt = torch.optim.Adam(self.G.parameters(), lr=1e-5)
-           d_opt = torch.optim.Adam(self.D.parameters(), lr=1e-5)
-           return g_opt, d_opt
+        def configure_optimizers(self):
+            g_opt = torch.optim.Adam(self.G.parameters(), lr=1e-5)
+            d_opt = torch.optim.Adam(self.D.parameters(), lr=1e-5)
+            return g_opt, d_opt
 
 -----
 
@@ -239,60 +238,60 @@ Here is an example for advanced use-case.
 
 .. testcode:: python
 
-   # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
-   class SimpleGAN(LightningModule):
+    # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
+    class SimpleGAN(LightningModule):
 
-       def __init__(self):
-           super().__init__()
-           self.automatic_optimization = False
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
 
-       def training_step(self, batch, batch_idx):
-           # Implementation follows the PyTorch tutorial:
-           # https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
-           g_opt, d_opt = self.optimizers()
+        def training_step(self, batch, batch_idx):
+            # Implementation follows the PyTorch tutorial:
+            # https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+            g_opt, d_opt = self.optimizers()
 
-           X, _ = batch
-           X.requires_grad = True
-           batch_size = X.shape[0]
+            X, _ = batch
+            X.requires_grad = True
+            batch_size = X.shape[0]
 
-           real_label = torch.ones((batch_size, 1), device=self.device)
-           fake_label = torch.zeros((batch_size, 1), device=self.device)
+            real_label = torch.ones((batch_size, 1), device=self.device)
+            fake_label = torch.zeros((batch_size, 1), device=self.device)
 
-           # Sync and clear gradients only at the end of accumulation.
-           is_last_batch_to_accumulate = (batch_idx + 1) % 2 == 0
+            # Sync and clear gradients only at the end of accumulation.
+            is_last_batch_to_accumulate = (batch_idx + 1) % 2 == 0
 
-           g_X = self.sample_G(batch_size)
+            g_X = self.sample_G(batch_size)
 
-           ##########################
-           # Optimize Discriminator #
-           ##########################
-           with d_opt.toggle_model(sync_grad=is_last_batch_to_accumulate):
-               d_x = self.D(X)
-               errD_real = self.criterion(d_x, real_label)
+            ##########################
+            # Optimize Discriminator #
+            ##########################
+            with d_opt.toggle_model(sync_grad=is_last_batch_to_accumulate):
+                d_x = self.D(X)
+                errD_real = self.criterion(d_x, real_label)
 
-               d_z = self.D(g_X.detach())
-               errD_fake = self.criterion(d_z, fake_label)
+                d_z = self.D(g_X.detach())
+                errD_fake = self.criterion(d_z, fake_label)
 
-               errD = (errD_real + errD_fake)
+                errD = (errD_real + errD_fake)
 
-               self.manual_backward(errD)
-               if is_last_batch_to_accumulate:
-                   d_opt.step()
-                   d_opt.zero_grad()
+                self.manual_backward(errD)
+                if is_last_batch_to_accumulate:
+                    d_opt.step()
+                    d_opt.zero_grad()
 
-           ######################
-           # Optimize Generator #
-           ######################
-           with g_opt.toggle_model(sync_grad=is_last_batch_to_accumulate):
-               d_z = self.D(g_X)
-               errG = self.criterion(d_z, real_label)
+            ######################
+            # Optimize Generator #
+            ######################
+            with g_opt.toggle_model(sync_grad=is_last_batch_to_accumulate):
+                d_z = self.D(g_X)
+                errG = self.criterion(d_z, real_label)
 
-               self.manual_backward(errG)
-               if is_last_batch_to_accumulate:
-                   g_opt.step()
-                   g_opt.zero_grad()
+                self.manual_backward(errG)
+                if is_last_batch_to_accumulate:
+                    g_opt.step()
+                    g_opt.zero_grad()
 
-           self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
+            self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
 
 -----
 
@@ -306,23 +305,23 @@ Here is an example using a closure function.
 
 .. testcode:: python
 
-   def __init__(self):
-       super().__init__()
-       self.automatic_optimization = False
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
 
-   def configure_optimizers(self):
-       return torch.optim.LBFGS(...)
+    def configure_optimizers(self):
+        return torch.optim.LBFGS(...)
 
-   def training_step(self, batch, batch_idx):
-       opt = self.optimizers()
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
 
-       def closure():
-           loss = self.compute_loss(batch)
-           opt.zero_grad()
-           self.manual_backward(loss)
-           return loss
+        def closure():
+            loss = self.compute_loss(batch)
+            opt.zero_grad()
+            self.manual_backward(loss)
+            return loss
 
-       opt.step(closure=closure)
+        opt.step(closure=closure)
 
 ------
 
@@ -397,25 +396,25 @@ with the keyword ``"monitor"`` set to metric that the scheduler should be condit
 
 .. testcode::
 
-   # The ReduceLROnPlateau scheduler requires a monitor
-   def configure_optimizers(self):
-       optimizer = Adam(...)
-       return {
-           'optimizer': optimizer,
-           'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
-           'monitor': 'metric_to_track',
-       }
+    # The ReduceLROnPlateau scheduler requires a monitor
+    def configure_optimizers(self):
+        optimizer = Adam(...)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
+            'monitor': 'metric_to_track',
+        }
 
-   # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
-   def configure_optimizers(self):
-      optimizer1 = Adam(...)
-      optimizer2 = SGD(...)
-      scheduler1 = ReduceLROnPlateau(optimizer1, ...)
-      scheduler2 = LambdaLR(optimizer2, ...)
-      return (
-          {'optimizer': optimizer1, 'lr_scheduler': scheduler1, 'monitor': 'metric_to_track'},
-          {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
-      )
+    # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
+    def configure_optimizers(self):
+       optimizer1 = Adam(...)
+       optimizer2 = SGD(...)
+       scheduler1 = ReduceLROnPlateau(optimizer1, ...)
+       scheduler2 = LambdaLR(optimizer2, ...)
+       return (
+           {'optimizer': optimizer1, 'lr_scheduler': scheduler1, 'monitor': 'metric_to_track'},
+           {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
+       )
 
 .. note:: Metrics can be made available to condition on by simply logging it using ``self.log('metric_to_track', metric_val)`` in your :class:`~pytorch_lightning.LightningModule`.
 
@@ -437,21 +436,21 @@ a scheduler configuration should be returned as a dict which can contain the fol
 
 .. testcode:: python
 
-   # Same as the above example with additional params passed to the first scheduler
-   # In this case the ReduceLROnPlateau will step after every 10 processed batches
-   def configure_optimizers(self):
-      optimizers = [Adam(...), SGD(...)]
-      schedulers = [
-         {
-            'scheduler': ReduceLROnPlateau(optimizers[0], ...),
-            'monitor': 'metric_to_track',
-            'interval': 'step',
-            'frequency': 10,
-            'strict': True,
-         },
-         LambdaLR(optimizers[1], ...)
-      ]
-      return optimizers, schedulers
+    # Same as the above example with additional params passed to the first scheduler
+    # In this case the ReduceLROnPlateau will step after every 10 processed batches
+    def configure_optimizers(self):
+       optimizers = [Adam(...), SGD(...)]
+       schedulers = [
+          {
+             'scheduler': ReduceLROnPlateau(optimizers[0], ...),
+             'monitor': 'metric_to_track',
+             'interval': 'step',
+             'frequency': 10,
+             'strict': True,
+          },
+          LambdaLR(optimizers[1], ...)
+       ]
+       return optimizers, schedulers
 
 -----
 
@@ -461,34 +460,34 @@ To use multiple optimizers, return two or more optimizers from :meth:`pytorch_li
 
 .. testcode:: python
 
-   # two optimizers, no schedulers
-   def configure_optimizers(self):
-       return Adam(...), SGD(...)
+    # two optimizers, no schedulers
+    def configure_optimizers(self):
+        return Adam(...), SGD(...)
 
-   # two optimizers, one scheduler for adam only
-   def configure_optimizers(self):
-       return [Adam(...), SGD(...)], {'scheduler': ReduceLROnPlateau(), 'monitor': 'metric_to_track'}
+    # two optimizers, one scheduler for adam only
+    def configure_optimizers(self):
+        return [Adam(...), SGD(...)], {'scheduler': ReduceLROnPlateau(), 'monitor': 'metric_to_track'}
 
-   # two optimizers, two schedulers
-   def configure_optimizers(self):
-       opt1 = Adam(...)
-       opt2 = SGD(...)
-       return [opt1, opt2], [StepLR(opt1, ...), OneCycleLR(opt2, ...)]
+    # two optimizers, two schedulers
+    def configure_optimizers(self):
+        opt1 = Adam(...)
+        opt2 = SGD(...)
+        return [opt1, opt2], [StepLR(opt1, ...), OneCycleLR(opt2, ...)]
 
 Under the hood, Lightning will call each optimizer sequentially:
 
 .. code-block:: python
 
-   for epoch in epochs:
-       for batch in data:
-           for opt in optimizers:
-               loss = train_step(batch, batch_idx, optimizer_idx)
-               opt.zero_grad()
-               loss.backward()
-               opt.step()
+    for epoch in epochs:
+        for batch in data:
+            for opt in optimizers:
+                loss = train_step(batch, batch_idx, optimizer_idx)
+                opt.zero_grad()
+                loss.backward()
+                opt.step()
 
-       for lr_scheduler in lr_schedulers:
-           lr_scheduler.step()
+        for lr_scheduler in lr_schedulers:
+            lr_scheduler.step()
 
 -----
 
@@ -501,51 +500,51 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
 
 .. testcode::
 
-   # Alternating schedule for optimizer steps (e.g. GANs)
-   def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-       # update generator opt every 2 steps
-       if optimizer_idx == 0:
-           if batch_idx % 2 == 0:
-              optimizer.step(closure=optimizer_closure)
-
-       # update discriminator opt every 4 steps
-       if optimizer_idx == 1:
-           if batch_idx % 4 == 0:
+    # Alternating schedule for optimizer steps (e.g. GANs)
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+        # update generator opt every 2 steps
+        if optimizer_idx == 0:
+            if batch_idx % 2 == 0:
                optimizer.step(closure=optimizer_closure)
+
+        # update discriminator opt every 4 steps
+        if optimizer_idx == 1:
+            if batch_idx % 4 == 0:
+                optimizer.step(closure=optimizer_closure)
 
 Here we add a learning rate warm-up.
 
 .. testcode::
 
-   # learning rate warm-up
-   def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-       # skip the first 500 steps
-       if self.trainer.global_step < 500:
-           lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
-           for pg in optimizer.param_groups:
-               pg['lr'] = lr_scale * self.hparams.learning_rate
+    # learning rate warm-up
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+        # skip the first 500 steps
+        if self.trainer.global_step < 500:
+            lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
+            for pg in optimizer.param_groups:
+                pg['lr'] = lr_scale * self.hparams.learning_rate
 
-       # update params
-       optimizer.step(closure=optimizer_closure)
+        # update params
+        optimizer.step(closure=optimizer_closure)
 
 .. note:: The default :meth:`~pytorch_lightning.LightningModule.optimizer_step` is relying on the internal :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` to properly perform a step. It handles TPUs, AMP, gradient accumulation and much more ...
 
 .. testcode:: python
 
-   # function hook in LightningModule
-   def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-       optimizer.step(closure=optimizer_closure)
+    # function hook in LightningModule
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+        optimizer.step(closure=optimizer_closure)
 
 .. note:: To access your wrapped Optimizer from ``LightningOptimizer``, do as follow.
 
 .. testcode:: python
 
-   # function hook in LightningModule
-   def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+    # function hook in LightningModule
+    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
 
-       # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
-       # To access it, do as follow:
-       optimizer = optimizer.optimizer
+        # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
+        # To access it, do as follow:
+        optimizer = optimizer.optimizer
 
-       # run step. However, it won't work on TPU, AMP, etc...
-       optimizer.step(closure=optimizer_closure)
+        # run step. However, it won't work on TPU, AMP, etc...
+        optimizer.step(closure=optimizer_closure)
