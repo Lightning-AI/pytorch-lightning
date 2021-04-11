@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, TYPE_CHECKING, Union
+from typing import Any, Callable, Union
 
 from torch.optim import Optimizer
 
@@ -28,14 +28,13 @@ if _XLA_AVAILABLE:
 
     xla_clip_grad_norm_ = clip_grad_norm_
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
+import pytorch_lightning as pl
 
 
 class TPUAccelerator(Accelerator):
+    """ Accelerator for TPU devices. """
 
-    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:

@@ -3,7 +3,7 @@
 import logging
 import os
 
-from pytorch_lightning.info import (  # noqa: F401
+from pytorch_lightning.__info__ import (  # noqa: F401
     __author__,
     __author_email__,
     __copyright__,
