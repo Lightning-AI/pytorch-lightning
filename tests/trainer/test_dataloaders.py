@@ -637,6 +637,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
 
 class NumpyRandomDataset(Dataset):
+
     def __getitem__(self, index):
         return numpy.random.randint(0, 100, 3)
 
