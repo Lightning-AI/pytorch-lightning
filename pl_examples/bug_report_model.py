@@ -20,9 +20,7 @@
 # --------------------------------------------
 # --------------------------------------------
 import os
-import random
 
-import numpy
 import torch
 from torch.utils.data import Dataset
 
@@ -140,8 +138,6 @@ def test_run():
     train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
     val_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
     test_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
-
-    # train_data.worker_init_fn = worker_fn
 
     # model
     model = TestModel()
