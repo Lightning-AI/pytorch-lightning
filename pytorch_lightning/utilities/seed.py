@@ -89,5 +89,6 @@ def pl_worker_init_function(worker_id: int) -> None:
     """
     global_rank = rank_zero_only.rank
     worker_seed = (torch.initial_seed() + worker_id + global_rank) % (2**32)
+    torch.manual_seed(worker_seed)
     numpy.random.seed(worker_seed)
     random.seed(worker_seed)
