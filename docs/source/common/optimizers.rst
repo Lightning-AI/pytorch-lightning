@@ -456,7 +456,7 @@ a scheduler configuration should be returned as a dict which can contain the fol
 -----
 
 Use multiple optimizers (like GANs)
--------------------------------
+-----------------------------------
 To use multiple optimizers, return two or more optimizers from :meth:`pytorch_lightning.core.LightningModule.configure_optimizers`.
 
 .. testcode:: python
