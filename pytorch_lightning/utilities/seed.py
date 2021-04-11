@@ -18,6 +18,7 @@ import os
 import random
 from typing import Optional
 
+import numpy
 import numpy as np
 import torch
 
@@ -66,3 +67,17 @@ def seed_everything(seed: Optional[int] = None) -> int:
 
 def _select_seed_randomly(min_seed_value: int = 0, max_seed_value: int = 255) -> int:
     return random.randint(min_seed_value, max_seed_value)
+
+
+def pl_worker_init_function(worker_id: int) -> None:
+    """
+    The worker_init_fn that Lightning automatically adds to your dataloader if you previously set
+    set the seed with :func:`~pytorch_lightning.utilities.seed.seed_everything`.
+
+    See Also
+        `Randomness in Dataloades <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_
+    """
+    #
+    worker_seed = torch.initial_seed() % (2 ** 32)
+    numpy.random.seed(worker_seed)
+    random.seed(worker_seed)

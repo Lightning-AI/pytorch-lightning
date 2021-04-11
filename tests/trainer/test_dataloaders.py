@@ -15,18 +15,20 @@ import os
 from unittest import mock
 from unittest.mock import patch
 
+import numpy
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import IterableDataset, Subset
+from torch.utils.data.dataset import IterableDataset, Subset, Dataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
 import tests.helpers.pipelines as tpipes
-from pytorch_lightning import Callback, Trainer
+from pytorch_lightning import Callback, Trainer, seed_everything
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -632,6 +634,35 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
             trainer.test(model, test_dataloaders=test_multi_dl, ckpt_path=ckpt_path)
         else:
             trainer.fit(model, train_dataloader=train_multi_dl, val_dataloaders=val_multi_dl)
+
+
+class NumpyRandomDataset(Dataset):
+    def __getitem__(self, index):
+        return numpy.random.randint(0, 100, 3)
+
+    def __len__(self):
+        return 16
+
+
+def test_auto_add_worker_init_fn(tmpdir):
+    """ Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used. """
+    dataset = NumpyRandomDataset()
+    num_samples = len(dataset)
+    num_workers = 2
+    batch_size = 2
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+    trainer = Trainer(default_root_dir=tmpdir)
+
+    # without pl.seed_everything()
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is None
+
+    # with pl.seed_everything()
+    seed_everything(0)
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is pl_worker_init_function
+    unique_batches = set(tuple(batch.view(-1).tolist()) for batch in dataloader)
+    assert len(unique_batches) > (num_samples // (batch_size * num_workers))
 
 
 def test_warning_with_iterable_dataset_and_len(tmpdir):

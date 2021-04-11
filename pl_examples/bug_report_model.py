@@ -1,5 +1,7 @@
 import os
+import random
 
+import numpy
 import torch
 from torch.utils.data import Dataset
 
@@ -48,15 +50,23 @@ class BoringModel(LightningModule):
 def run():
 
     # fake data
-    train_data = torch.utils.data.DataLoader(RandomDataset(), batch_size=2, num_workers=4)
+    train_data = torch.utils.data.DataLoader(RandomDataset(), batch_size=2, num_workers=2)
+    #
+    # def worker_fn(worker_id):
+    #     worker_seed = torch.initial_seed() % (2 ** 32)
+    #     numpy.random.seed(worker_seed)
+    #     random.seed(worker_seed)
+
+    # train_data.worker_init_fn = worker_fn
 
     # model
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         limit_train_batches=4,
-        max_epochs=1,
+        max_epochs=2,
         weights_summary=None,
+        # reload_dataloaders_every_epoch=True,
         progress_bar_refresh_rate=0,
     )
     trainer.fit(model, train_data)
