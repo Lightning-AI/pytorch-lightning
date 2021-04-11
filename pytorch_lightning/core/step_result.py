@@ -103,6 +103,7 @@ class Result(Dict):
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
+        # sync across workers when using distributed training
         sync_fn = sync_fn or sync_ddp_if_available
 
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):

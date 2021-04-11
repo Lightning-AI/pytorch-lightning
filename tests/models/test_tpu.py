@@ -15,14 +15,13 @@ import os
 from argparse import ArgumentParser
 from unittest import mock
 
-import numpy as np
 import pytest
 import torch
 from torch.utils.data import DataLoader
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core.step_result import Result
