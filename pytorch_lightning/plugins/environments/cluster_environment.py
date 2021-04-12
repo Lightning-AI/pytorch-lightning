@@ -34,7 +34,7 @@ class ClusterEnvironment(ABC):
         """ An open and configured port in the master node through which all processes communicate. """
 
     @abstractmethod
-    def world_size(self) -> Optional[int]:
+    def world_size(self) -> int:
         """ The number of processes across all devices and nodes. """
 
     @abstractmethod
@@ -42,7 +42,7 @@ class ClusterEnvironment(ABC):
         pass
 
     @abstractmethod
-    def global_rank(self) -> Optional[int]:
+    def global_rank(self) -> int:
         """ The rank (index) of the currently running process across all nodes and devices. """
 
     @abstractmethod

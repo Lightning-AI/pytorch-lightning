@@ -28,19 +28,19 @@ class DataParallelPlugin(ParallelPlugin):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     @property
-    def global_rank(self):
+    def global_rank(self) -> int:
         return 0
 
     @property
-    def local_rank(self):
+    def local_rank(self) -> int:
         return 0
 
     @property
-    def node_rank(self):
+    def node_rank(self) -> int:
         return 0
 
     @property
-    def world_size(self):
+    def world_size(self) -> int:
         return 1
 
     def setup(self, model):

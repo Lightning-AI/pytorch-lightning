@@ -51,19 +51,19 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return unwrap_lightning_module(self._model)
 
     @property
-    def global_rank(self):
+    def global_rank(self) -> int:
         return self.cluster_environment.global_rank() if self.cluster_environment is not None else 0
 
     @property
-    def local_rank(self):
+    def local_rank(self) -> int:
         return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
 
     @property
-    def node_rank(self):
+    def node_rank(self) -> int:
         return self.cluster_environment.node_rank() if self.cluster_environment is not None else 0
 
     @property
-    def world_size(self):
+    def world_size(self) -> int:
         return self.cluster_environment.world_size() if self.cluster_environment is not None else 1
 
     @property

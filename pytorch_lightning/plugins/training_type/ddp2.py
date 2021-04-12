@@ -20,7 +20,7 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 class DDP2Plugin(DDPPlugin):
 
     @property
-    def global_rank(self):
+    def global_rank(self) -> int:
         return self.node_rank
 
     @property

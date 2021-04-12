@@ -34,15 +34,15 @@ class HorovodPlugin(ParallelPlugin):
         rank_zero_only.rank = self.global_rank
 
     @property
-    def global_rank(self):
+    def global_rank(self) -> int:
         return hvd.rank()
 
     @property
-    def local_rank(self):
+    def local_rank(self) -> int:
         return hvd.local_rank()
 
     @property
-    def world_size(self):
+    def world_size(self) -> int:
         return hvd.size()
 
     @property

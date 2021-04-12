@@ -58,7 +58,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
         # no-op, we are not allowed to change world size in torchelastic
         pass
 
-    def global_rank(self) -> Optional[int]:
+    def global_rank(self) -> int:
         return int(os.environ["RANK"])
 
     def set_global_rank(self, rank: int) -> None:

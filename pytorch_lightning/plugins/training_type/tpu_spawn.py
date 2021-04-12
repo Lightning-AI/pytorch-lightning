@@ -56,15 +56,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.start_method = None
 
     @property
-    def global_rank(self):
+    def global_rank(self) -> int:
         return self.tpu_local_core_rank
 
     @property
-    def local_rank(self):
+    def local_rank(self) -> int:
         return self.tpu_local_core_rank
 
     @property
-    def world_size(self):
+    def world_size(self) -> int:
         return self.num_processes
 
     @staticmethod
