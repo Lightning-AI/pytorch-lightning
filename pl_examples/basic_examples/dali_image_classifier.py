@@ -23,13 +23,8 @@ from torch.nn import functional as F
 from torch.utils.data import random_split
 
 import pytorch_lightning as pl
-from pl_examples import (
-    _DALI_AVAILABLE,
-    _DATASETS_PATH,
-    _TORCHVISION_AVAILABLE,
-    _TORCHVISION_MNIST_AVAILABLE,
-    cli_lightning_logo,
-)
+from pl_examples import _DALI_AVAILABLE, _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms
