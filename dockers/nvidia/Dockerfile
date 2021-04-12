@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-03.html#rel_21-03
-FROM nvcr.io/nvidia/pytorch:20.10-py3
+FROM nvcr.io/nvidia/pytorch:20.12-py3
 
 MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
