@@ -231,13 +231,6 @@ class EvaluationLoop(object):
 
         # capture logging
         self.trainer.logger_connector.cache_logged_metrics()
-        # depre warning
-        if eval_results is not None and user_reduced:
-            step = 'testing_epoch_end' if self.trainer.testing else 'validation_epoch_end'
-            self.warning_cache.warn(
-                f'The {step} should not return anything as of 9.1.'
-                ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
-            )
 
         if not isinstance(eval_results, list):
             eval_results = [eval_results]
