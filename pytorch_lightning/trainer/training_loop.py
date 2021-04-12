@@ -573,6 +573,9 @@ class TrainLoop:
             # capture logging
             self.trainer.logger_connector.cache_logged_metrics()
 
+        # inform logger the batch loop has finished
+        self.trainer.logger_connector.on_train_epoch_end()
+
         self.trainer.call_hook('on_train_epoch_end', processed_epoch_output)
         self.trainer.call_hook('on_epoch_end')
 

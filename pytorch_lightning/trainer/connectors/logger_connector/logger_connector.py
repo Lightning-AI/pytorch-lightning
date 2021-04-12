@@ -331,8 +331,6 @@ class LoggerConnector:
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
 
-        self.on_train_epoch_end()
-
         # log/aggregate metrics automatically
         epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
 
