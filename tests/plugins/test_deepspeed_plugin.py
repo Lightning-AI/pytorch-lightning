@@ -462,13 +462,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModel)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
-@pytest.mark.parametrize("save_full_weights", [False, True])
-def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, save_full_weights):
-    """
-    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
-    and see convergence.
-    """
+def run_checkpoint_test(tmpdir, save_full_weights):
     seed_everything(42)
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
@@ -507,6 +501,24 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, save_full_weights):
     dm.predict_dataloader = dm.test_dataloader
     results = trainer.predict(datamodule=dm)
     assert results[-1] > 0.7
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    and see convergence.
+    """
+    run_checkpoint_test(tmpdir, save_full_weights=False)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    and see convergence.
+    """
+    run_checkpoint_test(tmpdir, save_full_weights=True)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
