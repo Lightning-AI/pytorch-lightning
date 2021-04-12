@@ -353,10 +353,13 @@ class TrainLoop:
         """
         processed_outputs = []
         for opt_outputs in outputs:
+            if len(opt_outputs) == 0:
+                continue
+
             processed_batch_outputs = []
 
             batch_mode = False
-            if len(opt_outputs) > 0 and not isinstance(opt_outputs[0], list):
+            if not isinstance(opt_outputs[0], list):
                 opt_outputs = [opt_outputs]
                 batch_mode = True  # these are outputs from batch end
 
