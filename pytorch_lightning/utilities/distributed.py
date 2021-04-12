@@ -295,13 +295,13 @@ def register_ddp_comm_hook(
         )
     """
     if not _TORCH_GREATER_EQUAL_1_8:
-        rank_zero_warn("Not registering DDP comm hook. " "To use communication hooks, please use pytorch>=1.8.0.")
+        rank_zero_warn("Not registering DDP comm hook. To use communication hooks, please use pytorch>=1.8.0.")
         return
     if ddp_comm_hook is None:
         return
     if ddp_comm_wrapper is not None:
         if not _TORCH_GREATER_EQUAL_1_9:
-            rank_zero_warn("Not applying DDP comm wrapper. " "To use communication wrapper, please use pytorch>=1.9.0.")
+            rank_zero_warn("Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0.")
         else:
             rank_zero_info(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
