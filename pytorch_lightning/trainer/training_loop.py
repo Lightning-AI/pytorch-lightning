@@ -351,13 +351,16 @@ class TrainLoop:
         """
         Extract required information from batch or epoch end results.
         """
+        # outputs is a 3-dimensional list of Result objects with dimensions: [optimizer outs][batch outs][tbptt steps]
         processed_outputs = []
         for opt_outputs in outputs:
+            # handle an edge case where an optimizer output is the empty list
             if len(opt_outputs) == 0:
                 continue
 
             processed_batch_outputs = []
 
+            # batch_mode = True if these outputs are from batch end, otherwise they are from epoch end
             batch_mode = False
             if not isinstance(opt_outputs[0], list):
                 opt_outputs = [opt_outputs]
@@ -371,14 +374,17 @@ class TrainLoop:
                     out['loss'] = tbptt_output.minimize
                     processed_tbptt_outputs.append(out)
 
+                # if there was only one tbptt step then we can collapse that dimension
                 if len(processed_tbptt_outputs) == 1:
                     processed_tbptt_outputs = processed_tbptt_outputs[0]
                 processed_batch_outputs.append(processed_tbptt_outputs)
 
+            # batch_outputs should be just one dict (or a list of dicts if using tbptt) per optimizer
             if batch_mode:
                 processed_batch_outputs = processed_batch_outputs[0]
             processed_outputs.append(processed_batch_outputs)
 
+        # if there is only one optimiser then we collapse that dimension
         if len(processed_outputs) == 1:
             processed_outputs = processed_outputs[0]
         return processed_outputs
@@ -557,6 +563,7 @@ class TrainLoop:
         # prepare epoch output
         processed_epoch_output = TrainLoop._prepare_outputs(epoch_output)
 
+        # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
 
         if is_overridden('training_epoch_end', model=model):
@@ -576,6 +583,7 @@ class TrainLoop:
             # capture logging
             self.trainer.logger_connector.cache_logged_metrics()
 
+        # call train epoch end hooks
         self.trainer.call_hook('on_train_epoch_end', processed_epoch_output)
         self.trainer.call_hook('on_epoch_end')
 
