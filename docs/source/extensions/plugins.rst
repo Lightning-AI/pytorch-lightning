@@ -20,14 +20,16 @@ these plugins automatically depending on the provided Trainer arguments. For exa
 
 There are two types of Plugins in Lightning with different responsibilities:
 
-TrainingTypePlugin:
+TrainingTypePlugin
+==============
 
 - Launching and teardown of training processes (if applicable)
 - Setup communication between processes (NCCL, GLOO, MPI, ...)
 - Provide a unified communication interface for reduction, broadcast, etc.
 - Provide access to the wrapped LightningModule
 
-PrecisionPlugin:
+PrecisionPlugin
+===========
 
 - Perform pre- and post backward/optimizer step operations such as scaling gradients
 - Provide context managers for forward, training_step, etc.
@@ -36,7 +38,9 @@ PrecisionPlugin:
 
 .. image:: ../_static/images/accelerator/overview.svg
 
-
+#################
+Create a custom plugin
+#################
 Expert users may choose to extend an existing plugin by overriding its methods ...
 
 .. code-block:: python
@@ -135,4 +139,3 @@ Cluster Environments
     LightningEnvironment
     TorchElasticEnvironment
     SLURMEnvironment
-
