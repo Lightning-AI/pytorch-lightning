@@ -998,8 +998,11 @@ For customizable options use the :class:`~pytorch_lightning.callbacks.timer.Time
     # Default (disabled)
     trainer = Trainer(max_time=None)
 
-    # Stop after 12 hours of training or when reaching 10 epochs
+    # Stop after 12 hours of training or when reaching 10 epochs (string)
     trainer = Trainer(max_time="00:12:00:00", max_epochs=10)
+
+    # Stop after 1 day and 5 hours (dict)
+    trainer = Trainer(max_time={"days": 1, "hours": 5})
 
 In case ``max_time`` is used together with ``min_steps`` or ``min_epochs``, the ``min_*`` requirement
 always has precedence.
