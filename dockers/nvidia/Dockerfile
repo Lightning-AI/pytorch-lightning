@@ -39,7 +39,7 @@ RUN \
     pip install -r ./pytorch-lightning/requirements/extra.txt -U --no-cache-dir && \
     pip install -r ./pytorch-lightning/requirements/examples.txt -U --no-cache-dir && \
     pip install ./pytorch-lightning --no-cache-dir && \
-    pip install "Pillow>=8.1" "ipython[all]" --upgrade-strategy only-if-needed && \
+    pip install "Pillow>=8.1" ipython[all] --no-cache-dir --upgrade-strategy only-if-needed && \
     rm -rf pytorch-lightning
 
 RUN python --version && \
