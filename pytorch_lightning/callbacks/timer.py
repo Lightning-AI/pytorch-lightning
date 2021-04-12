@@ -91,7 +91,7 @@ class Timer(Callback):
         self._offset = timedelta()
 
     @property
-    def start_time(self):
+    def start_time(self) -> datetime:
         return self._start_time
 
     @property
