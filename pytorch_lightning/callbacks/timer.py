@@ -16,10 +16,12 @@ Timer
 ^^^^^
 """
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, Optional
 
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import LightningEnum
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -87,25 +89,22 @@ class Timer(Callback):
         self._duration = duration
         self._interval = interval
         self._verbose = verbose
-        self._start_time = None
+        self._start_time = defaultdict(lambda: None)
         self._offset = timedelta()
 
-    @property
-    def start_time(self) -> datetime:
-        return self._start_time
+    def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[datetime]:
+        return self._start_time[stage]
 
-    @property
-    def time_elapsed(self) -> timedelta:
-        if self._start_time is None:
+    def time_elapsed(self, stage: str = RunningStage.TRAINING) -> timedelta:
+        if self.start_time(stage) is None:
             return self._offset
-        return datetime.now() - self._start_time + self._offset
+        return datetime.now() - self.start_time(stage) + self._offset
 
-    @property
-    def time_remaining(self) -> timedelta:
-        return self._duration - self.time_elapsed
+    def time_remaining(self, stage: str = RunningStage.TRAINING) -> timedelta:
+        return self._duration - self.time_elapsed(stage)
 
     def on_train_start(self, trainer, *args, **kwargs) -> None:
-        self._start_time = datetime.now()
+        self._start_time.update({RunningStage.TRAINING: datetime.now()})
 
     def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
         if self._interval != Interval.step:
@@ -119,14 +118,15 @@ class Timer(Callback):
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            "time_elapsed": self.time_elapsed,
+            "time_elapsed": {k.value: self.time_elapsed(k) for k in RunningStage}
         }
 
     def on_load_checkpoint(self, callback_state: Dict[str, Any]):
-        self._offset = callback_state.get("time_elapsed", timedelta())
+        time_elapsed = callback_state.get("time_elapsed", defaultdict(timedelta))
+        self._offset = time_elapsed[RunningStage.TRAINING.value]
 
     def _check_time_remaining(self, trainer) -> None:
-        should_stop = self.time_elapsed >= self._duration
+        should_stop = self.time_elapsed() >= self._duration
         should_stop = trainer.accelerator.broadcast(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop and self._verbose:

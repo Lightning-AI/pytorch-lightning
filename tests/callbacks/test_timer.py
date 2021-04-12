@@ -33,7 +33,7 @@ from tests.helpers import BoringModel
 )
 def test_timer_parse_duration(duration, expected):
     timer = Timer(duration=duration)
-    assert timer.time_remaining == expected
+    assert timer.time_remaining() == expected
 
 
 def test_timer_interval_choice():
@@ -50,26 +50,26 @@ def test_timer_time_remaining(datetime_mock):
     duration = timedelta(seconds=10)
     datetime_mock.now.return_value = start_time
     timer = Timer(duration=duration)
-    assert timer.time_remaining == duration
-    assert timer.time_elapsed == timedelta(0)
+    assert timer.time_remaining() == duration
+    assert timer.time_elapsed() == timedelta(0)
 
     # timer not started yet
     datetime_mock.now.return_value = start_time + timedelta(minutes=1)
-    assert timer.start_time is None
-    assert timer.time_remaining == timedelta(seconds=10)
-    assert timer.time_elapsed == timedelta(seconds=0)
+    assert timer.start_time() is None
+    assert timer.time_remaining() == timedelta(seconds=10)
+    assert timer.time_elapsed() == timedelta(seconds=0)
 
     # start timer
     datetime_mock.now.return_value = start_time
     timer.on_train_start(trainer=Mock(), pl_module=Mock())
-    assert timer.start_time == start_time
+    assert timer.start_time() == start_time
 
     # pretend time has elapsed
     elapsed = timedelta(seconds=3)
     datetime_mock.now.return_value = start_time + elapsed
-    assert timer.start_time == start_time
-    assert timer.time_remaining == timedelta(seconds=7)
-    assert timer.time_elapsed == timedelta(seconds=3)
+    assert timer.start_time() == start_time
+    assert timer.time_remaining() == timedelta(seconds=7)
+    assert timer.time_elapsed() == timedelta(seconds=3)
 
 
 def test_timer_stops_training(tmpdir):
@@ -129,7 +129,7 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
         assert trainer.current_epoch >= min_epochs - 1
     if min_steps:
         assert trainer.global_step >= min_steps - 1
-    assert timer.time_elapsed > duration
+    assert timer.time_elapsed() > duration
 
 
 def test_timer_resume_training(tmpdir):
@@ -146,7 +146,7 @@ def test_timer_resume_training(tmpdir):
     )
     trainer.fit(model)
     assert not timer._offset
-    assert timer.time_remaining <= timedelta(0)
+    assert timer.time_remaining() <= timedelta(0)
     assert trainer.current_epoch < 99
     saved_global_step = trainer.global_step
 
