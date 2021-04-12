@@ -516,7 +516,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
 def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
     """
     Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
-    and see convergence.
+    where we save the full weights to one file.
     """
     run_checkpoint_test(tmpdir, save_full_weights=True)
 
