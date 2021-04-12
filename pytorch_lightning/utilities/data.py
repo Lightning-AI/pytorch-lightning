@@ -41,7 +41,7 @@ def has_len(dataloader: DataLoader) -> bool:
         rank_zero_warn(
             'Your `IterableDataset` has `__len__` defined.'
             ' In combination with multi-process data loading (when num_workers > 1),'
-            ' `__len__` could be inaccurate if each worker is not configured independently
+            ' `__len__` could be inaccurate if each worker is not configured independently'
             ' to avoid having duplicate data.'
         )
     return has_len
