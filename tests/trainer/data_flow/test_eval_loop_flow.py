@@ -15,7 +15,6 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 
-import pytest
 import torch
 
 from pytorch_lightning import Trainer

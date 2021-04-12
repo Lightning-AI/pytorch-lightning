@@ -215,19 +215,15 @@ class EvaluationLoop(object):
         if num_dataloaders == 1:
             eval_results = outputs[0]
 
-        user_reduced = False
-
         if self.trainer.testing:
             if is_overridden('test_epoch_end', model=model):
                 model._current_fx_name = 'test_epoch_end'
                 eval_results = model.test_epoch_end(eval_results)
-                user_reduced = True
 
         else:
             if is_overridden('validation_epoch_end', model=model):
                 model._current_fx_name = 'validation_epoch_end'
                 eval_results = model.validation_epoch_end(eval_results)
-                user_reduced = True
 
         # capture logging
         self.trainer.logger_connector.cache_logged_metrics()
