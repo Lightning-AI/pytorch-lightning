@@ -26,6 +26,7 @@ from torch.utils.data.sampler import SequentialSampler
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, Trainer, seed_everything
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import pl_worker_init_function
@@ -649,37 +650,56 @@ def _user_worker_init_fn(_):
     pass
 
 
-def test_auto_add_worker_init_fn(tmpdir):
+def test_auto_add_worker_init_fn():
     """ Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used. """
     dataset = NumpyRandomDataset()
     num_samples = len(dataset)
     num_workers = 2
     batch_size = 2
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
-    trainer = Trainer(default_root_dir=tmpdir)
 
     # without pl.seed_everything()
-    trainer.auto_add_worker_init_fn(dataloader)
+    Trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is None
 
     # with forcefully avoiding it
     seed_everything(0, workers=False)
-    trainer.auto_add_worker_init_fn(dataloader)
+    Trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is None
 
     # when user already has a worker_init_fn
     user_function = _user_worker_init_fn
     dataloader.worker_init_fn = user_function
-    trainer.auto_add_worker_init_fn(dataloader)
+    Trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is user_function
     dataloader.worker_init_fn = None
 
     # main use case
     seed_everything(0, workers=True)
-    trainer.auto_add_worker_init_fn(dataloader)
+    Trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is pl_worker_init_function
     unique_batches = set(tuple(batch.view(-1).tolist()) for batch in dataloader)
     assert len(unique_batches) > (num_samples // (batch_size * num_workers))
+
+
+def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
+    """ Test that the lightning worker_init_fn takes care of dataloaders in multi-gpu/multi-node training. """
+    dataset = NumpyRandomDataset()
+    num_workers = 2
+    batch_size = 2
+    world_size = 2
+    num_samples = len(dataset)
+
+    # simulate distributed processes by setting rank and collecting the batches
+    unique_batches_world = set()
+    for current_rank in range(world_size):
+        dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+        seed_everything(0, workers=True)
+        monkeypatch.setattr(rank_zero_only, "rank", current_rank)
+        Trainer.auto_add_worker_init_fn(dataloader)
+        unique_batches_world |= set(tuple(batch.view(-1).tolist()) for batch in dataloader)
+
+    assert len(unique_batches_world) > (num_samples // (batch_size * num_workers * world_size))
 
 
 def test_warning_with_iterable_dataset_and_len(tmpdir):
