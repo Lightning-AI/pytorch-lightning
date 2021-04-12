@@ -7,9 +7,8 @@ Plugins
 Plugins allow custom integrations to the internals of the Trainer such as a custom precision or
 distributed implementation.
 
-We expose Accelerators and Plugins mainly for expert users who want to extend Lightning to work with new
-hardware and distributed training or clusters. For everyone else, the Lightning Trainer by default selects
-these plugins automatically depending on the provided Trainer arguments. For example:
+Under the hood, the Lightning Trainer is using plugins in the training routine, added automatically
+depending on the provided Trainer arguments. For example:
 
 .. code-block:: python
 
@@ -18,10 +17,18 @@ these plugins automatically depending on the provided Trainer arguments. For exa
     # precision: NativeMixedPrecisionPlugin
     trainer = Trainer(gpus=4, precision=16)
 
+
+We expose Accelerators and Plugins mainly for expert users that want to extend Lightning for:
+
+- New hardware (like TPU plugin)
+- Distributed backends (e.g. a backend not yet supported by
+  `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself)
+- Clusters (e.g. customized access to the cluster's environment interface)
+
 There are two types of Plugins in Lightning with different responsibilities:
 
 TrainingTypePlugin
-==============
+------------------
 
 - Launching and teardown of training processes (if applicable)
 - Setup communication between processes (NCCL, GLOO, MPI, ...)
@@ -29,7 +36,7 @@ TrainingTypePlugin
 - Provide access to the wrapped LightningModule
 
 PrecisionPlugin
-===========
+---------------
 
 - Perform pre- and post backward/optimizer step operations such as scaling gradients
 - Provide context managers for forward, training_step, etc.
@@ -38,9 +45,11 @@ PrecisionPlugin
 
 .. image:: ../_static/images/accelerator/overview.svg
 
-#################
+
+######################
 Create a custom plugin
-#################
+######################
+
 Expert users may choose to extend an existing plugin by overriding its methods ...
 
 .. code-block:: python
