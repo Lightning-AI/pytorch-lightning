@@ -26,8 +26,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store im
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.utilities import DeviceType, flatten_dict
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class LoggerConnector:
