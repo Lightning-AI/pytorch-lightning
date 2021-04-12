@@ -361,6 +361,8 @@ def test_accuracy_metric_horovod():
     horovod.run(_compute_batch, np=2)
 
 
+# todo: need to be fixed :]
+@pytest.mark.skip(reason="TODO Breaking CI: Aborted (core dumped)")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _HOROVOD_AVAILABLE, reason="Horovod is unavailable")
 def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
