@@ -189,8 +189,6 @@ def test__eval_step__epoch_end__flow(tmpdir):
             assert out_a == self.out_a
             assert out_b == self.out_b
 
-            return {'no returns needed'}
-
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
@@ -206,8 +204,7 @@ def test__eval_step__epoch_end__flow(tmpdir):
         weights_summary=None,
     )
 
-    with pytest.warns(UserWarning, match=r".*should not return anything as of 9.1.*"):
-        trainer.fit(model)
+    trainer.fit(model)
 
     # make sure correct steps were called
     assert model.validation_step_called
@@ -254,8 +251,6 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
             assert out_a == self.out_a
             assert out_b == self.out_b
 
-            return {'no returns needed'}
-
         def backward(self, loss, optimizer, optimizer_idx):
             return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
@@ -270,8 +265,7 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
         weights_summary=None,
     )
 
-    with pytest.warns(UserWarning, match=r".*should not return anything as of 9.1.*"):
-        trainer.fit(model)
+    trainer.fit(model)
 
     # make sure correct steps were called
     assert model.validation_step_called
