@@ -70,8 +70,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = True) -> int:
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-    if workers:
-        os.environ["PL_SEED_WORKERS"] = f"{int(workers)}"
+    os.environ["PL_SEED_WORKERS"] = f"{int(workers)}"
 
     return seed
 
