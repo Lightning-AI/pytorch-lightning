@@ -170,6 +170,7 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock, setup_distributed_mock
     os.environ, {
         "CUDA_VISIBLE_DEVICES": "0,1",
         "WORLD_SIZE": "2",
+        "LOCAL_WORLD_SIZE": "2",
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
