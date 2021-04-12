@@ -118,7 +118,7 @@ class HorovodPlugin(ParallelPlugin):
 
     def barrier(self, *args, **kwargs):
         if torch_distrib.is_initialized():
-
+            self.join()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         obj = hvd.broadcast_object(obj, src)
