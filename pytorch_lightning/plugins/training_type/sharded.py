@@ -30,7 +30,7 @@ if _FAIRSCALE_AVAILABLE:
 
 
 class DDPShardedPlugin(DDPPlugin):
-    """ Optimizer sharded training provided by FairScale. """
+    """ Optimizer and gradient sharded training provided by FairScale. """
 
     def configure_ddp(self):
         self._wrap_optimizers()
