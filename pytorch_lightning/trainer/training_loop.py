@@ -667,12 +667,6 @@ class TrainLoop:
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
 
-        # if len(splits) == 1:
-        #     batch_outputs = [batch_output[0] for batch_output in batch_outputs]
-        #
-        # if len(optimizers) == 1:
-        #     batch_outputs = batch_outputs[0]
-
         result = AttributeDict(
             signal=0,
             grad_norm_dic=grad_norm_dic,
