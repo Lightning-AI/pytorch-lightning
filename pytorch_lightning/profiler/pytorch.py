@@ -26,7 +26,7 @@ from torch.autograd.profiler import record_function
 from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8_1
 
 if TYPE_CHECKING:
     from torch.autograd.profiler import EventList
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
     from pytorch_lightning.core.lightning import LightningModule
 
-if _KINETO_AVAILABLE:
+if _TORCH_GREATER_EQUAL_1_8_1:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
@@ -104,8 +104,8 @@ class ScheduleWrapper:
     """
 
     def __init__(self, schedule: Callable) -> None:
-        if not _KINETO_AVAILABLE:
-            raise ModuleNotFoundError("You are trying to use `ScheduleWrapper` which require kineto install.")
+        if not _TORCH_GREATER_EQUAL_1_8_1:
+            raise ModuleNotFoundError("You are trying to use `ScheduleWrapper` which requires torch>=1.8.1.")
         self._schedule = schedule
         self.reset()
 
@@ -308,7 +308,7 @@ class PyTorchProfiler(BaseProfiler):
         self._start_action_name: Optional[str] = None
         self._schedule: Optional[ScheduleWrapper] = None
 
-        if _KINETO_AVAILABLE:
+        if _TORCH_GREATER_EQUAL_1_8_1:
             self._init_kineto(profiler_kwargs)
 
         if self._sort_by_key not in self.AVAILABLE_SORT_KEYS:
@@ -365,13 +365,13 @@ class PyTorchProfiler(BaseProfiler):
 
     @staticmethod
     def _default_schedule() -> Optional[callable]:
-        if _KINETO_AVAILABLE:
+        if _TORCH_GREATER_EQUAL_1_8_1:
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
 
     def _default_activities(self) -> List['ProfilerActivity']:
         activities = []
-        if not _KINETO_AVAILABLE:
+        if not _TORCH_GREATER_EQUAL_1_8_1:
             return activities
         if self._profiler_kwargs.get("use_cpu", True):
             activities.append(ProfilerActivity.CPU)
@@ -417,7 +417,7 @@ class PyTorchProfiler(BaseProfiler):
             self._recording_map[action_name].__exit__(None, None, None)
             del self._recording_map[action_name]
 
-        if not _KINETO_AVAILABLE or self._emit_nvtx:
+        if not _TORCH_GREATER_EQUAL_1_8_1 or self._emit_nvtx:
             return
 
         if self.profiler is not None and action_name in self.STEP_FUNCTIONS:
@@ -452,7 +452,7 @@ class PyTorchProfiler(BaseProfiler):
         if not self.function_events:
             return ""
 
-        if self._export_to_chrome and not _KINETO_AVAILABLE:
+        if self._export_to_chrome and not _TORCH_GREATER_EQUAL_1_8_1:
             filename = f"{self.local_rank}_trace.json"
             path_to_trace = (filename if self.dirpath is None else os.path.join(self.dirpath, filename))
             self.function_events.export_chrome_trace(path_to_trace)
@@ -470,7 +470,7 @@ class PyTorchProfiler(BaseProfiler):
         else:
             self._parent_profiler = None
             self.profiler = self._create_profiler(
-                torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
+                torch.profiler.profile if _TORCH_GREATER_EQUAL_1_8_1 else torch.autograd.profiler.profile
             )
         if self._record_module_names and self._lightning_module is not None:
             self._register = RegisterRecordFunction(self._lightning_module)
@@ -483,7 +483,7 @@ class PyTorchProfiler(BaseProfiler):
     def _cache_functions_events(self) -> None:
         if self._emit_nvtx:
             return
-        self.function_events = self.profiler.events() if _KINETO_AVAILABLE else self.profiler.function_events
+        self.function_events = self.profiler.events() if _TORCH_GREATER_EQUAL_1_8_1 else self.profiler.function_events
 
     def _delete_profilers(self) -> None:
         if self.profiler is not None:
