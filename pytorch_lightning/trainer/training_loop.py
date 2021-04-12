@@ -185,6 +185,8 @@ class TrainLoop:
         self.trainer.call_hook("on_train_epoch_start")
 
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
+        batch_end_outputs = [opt_idx_out for opt_idx_out in batch_end_outputs if len(opt_idx_out)]
+
         processed_batch_end_outputs = TrainLoop._prepare_outputs(batch_end_outputs)
 
         # hook
@@ -354,7 +356,7 @@ class TrainLoop:
             processed_batch_outputs = []
 
             batch_mode = False
-            if not isinstance(opt_outputs[0], list):
+            if len(opt_outputs) > 0 and not isinstance(opt_outputs[0], list):
                 opt_outputs = [opt_outputs]
                 batch_mode = True  # these are outputs from batch end
 
@@ -564,6 +566,9 @@ class TrainLoop:
                     'training_epoch_end expects a return of None. '
                     'HINT: remove the return statement in training_epoch_end'
                 )
+
+            # capture logging
+            self.trainer.logger_connector.cache_logged_metrics()
 
         self.trainer.call_hook('on_train_epoch_end', processed_epoch_output)
         self.trainer.call_hook('on_epoch_end')
