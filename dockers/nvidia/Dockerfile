@@ -36,8 +36,8 @@ RUN \
 
 # Installations
     python -c "fname = './pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
-    pip install -r ./pytorch-lightning/requirements/extra.txt -U --no-cache-dir && \
-    pip install -r ./pytorch-lightning/requirements/examples.txt -U --no-cache-dir && \
+    pip install -r ./pytorch-lightning/requirements/extra.txt --no-cache-dir --upgrade-strategy only-if-needed && \
+    pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install ./pytorch-lightning --no-cache-dir && \
     pip install "Pillow>=8.1" ipython[all] --no-cache-dir --upgrade-strategy only-if-needed && \
     rm -rf pytorch-lightning
