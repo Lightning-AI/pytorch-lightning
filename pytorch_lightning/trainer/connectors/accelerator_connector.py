@@ -60,7 +60,7 @@ from pytorch_lightning.utilities import (
     DeviceType,
     DistributedType,
 )
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn, rank_zero_deprecation
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _HOROVOD_AVAILABLE:

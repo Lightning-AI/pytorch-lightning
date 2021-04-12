@@ -15,7 +15,7 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 import torch.multiprocessing as mp
@@ -40,7 +40,6 @@ else:
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
-
 
 if TYPE_CHECKING:
     from torch.nn import Module
