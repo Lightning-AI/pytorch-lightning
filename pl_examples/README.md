@@ -1,7 +1,5 @@
 # Examples
 
----
-
 ## Basic examples
 
 The existing examples are the following:
@@ -14,8 +12,6 @@ The existing examples are the following:
 | [RPC sequential](./basic_examples/conv_sequential_example.py) | Example of the experimental DDP Sequential Plugin | |
 | [NVIDIA DALI](./basic_examples/dali_image_classifier.py) | Integration with NVIDIA DALI | |
 | [1.8.1 Profiler](./basic_examples/profiler_example.py) | Shows usage of the PyTorch 1.8.1 profiler | |
-
----
 
 ## Domain examples
 
