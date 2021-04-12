@@ -308,11 +308,6 @@ class EvaluationLoop(object):
         self.trainer.call_hook('on_epoch_end')
 
     def call_on_evaluation_epoch_end_hook(self, outputs):
-        # outputs = self.outputs
-        #
-        # # free memory
-        # self.outputs = []
-
         model_ref = self.trainer.lightning_module
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
 
