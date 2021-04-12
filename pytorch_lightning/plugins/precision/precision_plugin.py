@@ -17,6 +17,7 @@ from typing import Any, Callable, Generator, Sequence, Tuple, TYPE_CHECKING, Uni
 import torch
 
 from pytorch_lightning.plugins.base_plugin import Plugin
+from pytorch_lightning.utilities import GradClipAlgorithmType
 
 if TYPE_CHECKING:
     from torch.nn import Module
@@ -32,6 +33,13 @@ class PrecisionPlugin(Plugin):
     """
     EPSILON: float = 1e-6
     precision: Union[str, int] = 32
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.clip_grad_funcs = {
+            GradClipAlgorithmType.VALUE: self.clip_grad_by_value,
+            GradClipAlgorithmType.NORM: self.clip_grad_by_norm,
+        }
 
     def master_params(self, optimizer: 'Optimizer') -> Generator[torch.Tensor, None, None]:
         """The master params of the model. Returns the plain model params here.
@@ -98,19 +106,34 @@ class PrecisionPlugin(Plugin):
     def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
 
-    def clip_gradients(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
-        """Clips the gradients to a specific value"""
+    def clip_gradients(
+        self,
+        model: 'LightningModule',
+        optimizer: 'Optimizer',
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+        """Clips the gradients"""
         if clip_val is None:
             return
 
-        grad_clip_val = float(clip_val)
-
-        if grad_clip_val <= 0:
+        clip_val = float(clip_val)
+        if clip_val <= 0:
             return
 
-        parameters = list(self.master_params(optimizer))
+        clip_grad_func = self.clip_grad_funcs[gradient_clip_algorithm]
+        clip_grad_func(optimizer, clip_val)  # type: ignore
 
-        max_norm = grad_clip_val
+    def clip_grad_by_value(self, optimizer: 'Optimizer', clip_val: Union[int, float]) -> None:
+        """Clip gradients by value"""
+        parameters = list(self.master_params(optimizer))
+        torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
+
+    def clip_grad_by_norm(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
+        """Clip gradients by norm"""
+        # TODO: separate TPU case from here
+        parameters = list(self.master_params(optimizer))
+        max_norm = clip_val
 
         if isinstance(parameters, torch.Tensor):
             parameters = [parameters]

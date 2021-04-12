@@ -32,7 +32,6 @@ from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__validation_step__log(tmpdir):
     """
     Tests that validation_step can log
@@ -88,12 +87,10 @@ def test__validation_step__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
     callback_metrics = set(trainer.callback_metrics.keys())
-    callback_metrics.remove('debug_epoch')
     expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
     assert expected_cb_metrics == callback_metrics
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__validation_step__step_end__epoch_end__log(tmpdir):
     """
     Tests that validation_step can log
@@ -119,8 +116,6 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
 
         def validation_step_end(self, acc):
             self.validation_step_end_called = True
-            # self.log('e', acc)
-            # self.log('f', acc, on_step=True, on_epoch=True)
             return ['random_thing']
 
         def validation_epoch_end(self, outputs):
@@ -153,10 +148,6 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         'd_step/epoch_0',
         'd_step/epoch_1',
         'd_epoch',
-        # 'e',
-        #  'f_step/epoch_0',
-        # 'f_step/epoch_1',
-        # 'f_epoch',
         'g',
     }
     assert expected_logged_metrics == logged_metrics
@@ -167,9 +158,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     callback_metrics = set(trainer.callback_metrics.keys())
-    callback_metrics.remove('debug_epoch')
     expected_cb_metrics = {'a', 'b', 'b_epoch', 'c', 'd', 'd_epoch', 'g', 'b_step'}
-    # expected_cb_metrics = {'a', 'b', 'c', 'd', 'e', 'b_epoch', 'd_epoch', 'f_epoch', 'f', 'g', 'b_step'}
     assert expected_cb_metrics == callback_metrics
 
 
@@ -223,7 +212,6 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert len(trainer.dev_debugger.logged_metrics) == max_epochs
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_eval_float_logging(tmpdir):
     """
     Tests that only training_step can be used

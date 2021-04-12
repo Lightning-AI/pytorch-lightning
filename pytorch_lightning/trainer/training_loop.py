@@ -29,8 +29,8 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -243,12 +243,7 @@ class TrainLoop:
         return [[opt_idx, self.trainer.optimizers[opt_idx]]]
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
-        is_result_obj = isinstance(training_step_output, Result)
-
-        if is_result_obj:
-            training_step_output = training_step_output.detach()
-        else:
-            training_step_output.batch_loss = training_step_output.batch_loss.detach()
+        training_step_output.detach()
 
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
@@ -285,24 +280,16 @@ class TrainLoop:
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
                 training_step_output, split_batch
             )
-            is_result_obj = isinstance(training_step_output, Result)
-
             if training_step_output_for_epoch_end is None:
-                return None
+                return
 
         # enable empty loss when using manual opt
         closure_loss = None
         untouched_loss = None
 
         if self.automatic_optimization:
-            # accumulate loss
-            # (if accumulate_grad_batches = 1 no effect)
-            if is_result_obj:
-                closure_loss = training_step_output.minimize
-            else:
-                closure_loss = training_step_output.batch_loss
-
-            closure_loss = closure_loss / self.trainer.accumulate_grad_batches
+            # accumulate loss. if accumulate_grad_batches==1, no effect
+            closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
 
             # the loss will get scaled for amp. avoid any modifications to it
             untouched_loss = closure_loss.detach().clone()
@@ -323,35 +310,6 @@ class TrainLoop:
         if training_step_output_for_epoch_end is None:
             return None, None
 
-        # -----------------------------------------
-        # process hybrid (1.0)
-        # -----------------------------------------
-        # no need for these checks in 1.0.0
-        # TODO: remove checks in 1.0.0
-        is_tensor = isinstance(training_step_output_for_epoch_end, torch.Tensor)
-        is_1_0_output = is_tensor or ("log" not in training_step_output and "progress_bar" not in training_step_output)
-        if is_1_0_output:
-            return self._process_training_step_output_1_0(training_step_output, split_batch)
-
-        # -----------------------------------------
-        # process old dict (deprecate 1.0)
-        # -----------------------------------------
-        training_step_output = self.trainer.process_dict_result(training_step_output, train=True)
-
-        training_step_output = AttributeDict(
-            batch_loss=training_step_output[0],
-            pbar_on_batch_end=training_step_output[1],
-            log_metrics=training_step_output[2],
-        )
-        # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-        if isinstance(training_step_output_for_epoch_end, torch.Tensor):
-            training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
-        else:
-            training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
-
-        return training_step_output_for_epoch_end, training_step_output
-
-    def _process_training_step_output_1_0(self, training_step_output, split_batch):
         result = self.trainer.lightning_module._results
 
         loss = None
@@ -362,6 +320,8 @@ class TrainLoop:
         if isinstance(training_step_output, dict):
             loss = training_step_output.pop("loss", None)
             hiddens = training_step_output.pop("hiddens", None)
+            if hiddens is not None:
+                hiddens = hiddens.detach()
             result["extra"] = training_step_output
 
         # handle scalar return
@@ -381,10 +341,7 @@ class TrainLoop:
         if self.trainer.move_metrics_to_cpu:
             training_step_output_for_epoch_end = training_step_output_for_epoch_end.cpu()
 
-        # what flows back into the system
-        training_step_output = result
-
-        return training_step_output_for_epoch_end, training_step_output
+        return training_step_output_for_epoch_end, result
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.lightning_module
@@ -681,7 +638,7 @@ class TrainLoop:
 
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
-                self.trainer.detect_nan_tensors(opt_closure_result.loss)
+                self._check_finite(opt_closure_result.loss)
 
             # track all the outputs across all steps
             batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
@@ -723,7 +680,7 @@ class TrainLoop:
 
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
-                        self.trainer.detect_nan_tensors(result.loss)
+                        self._check_finite(result.loss)
 
                 else:
                     self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
@@ -733,6 +690,12 @@ class TrainLoop:
                     self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
         return result
+
+    def _check_finite(self, loss: torch.Tensor) -> None:
+        if not torch.isfinite(loss).all():
+            raise ValueError(f'The loss returned in `training_step` is {loss}.')
+        model = self.trainer.lightning_module
+        detect_nan_parameters(model)
 
     def backward(self, result, optimizer, opt_idx, *args, **kwargs):
         self.trainer.dev_debugger.track_event("backward_call")
@@ -772,7 +735,9 @@ class TrainLoop:
 
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
-            self.trainer.global_step += 1
+            self.trainer.global_step = self.trainer.accelerator.update_global_step(
+                self.trainer.total_batch_idx, self.trainer.global_step
+            )
 
     def _accumulated_batches_reached(self):
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0

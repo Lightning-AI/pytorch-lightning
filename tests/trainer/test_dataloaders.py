@@ -636,28 +636,42 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
 def test_warning_with_iterable_dataset_and_len(tmpdir):
     """ Tests that a warning message is shown when an IterableDataset defines `__len__`. """
-    model = EvalModelTemplate()
+    model = BoringModel()
     original_dataset = model.train_dataloader().dataset
 
-    class IterableWithLen(IterableDataset):
+    class IterableWithoutLen(IterableDataset):
 
         def __iter__(self):
             return iter(original_dataset)
 
+    class IterableWithLen(IterableWithoutLen):
+
         def __len__(self):
             return len(original_dataset)
 
+    # with __len__ defined
     dataloader = DataLoader(IterableWithLen(), batch_size=16)
     assert has_len(dataloader)
     assert has_iterable_dataset(dataloader)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=3,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    with pytest.warns(UserWarning, match='Your `IterableDataset` has `__len__` defined.'):
+        trainer.validate(model, val_dataloaders=[dataloader])
     with pytest.warns(UserWarning, match='Your `IterableDataset` has `__len__` defined.'):
         trainer.fit(model, train_dataloader=dataloader, val_dataloaders=[dataloader])
     with pytest.warns(UserWarning, match='Your `IterableDataset` has `__len__` defined.'):
         trainer.test(model, test_dataloaders=[dataloader])
+    with pytest.warns(UserWarning, match='Your `IterableDataset` has `__len__` defined.'):
+        trainer.predict(model, dataloaders=[dataloader])
+
+    # without __len__ defined
+    dataloader = DataLoader(IterableWithoutLen(), batch_size=16)
+    assert not has_len(dataloader)
+    assert has_iterable_dataset(dataloader)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    trainer.validate(model, val_dataloaders=dataloader)
+    trainer.fit(model, train_dataloader=dataloader, val_dataloaders=[dataloader])
+    trainer.test(model, test_dataloaders=dataloader)
+    trainer.predict(model, dataloaders=dataloader)
 
 
 @RunIf(min_gpus=2)

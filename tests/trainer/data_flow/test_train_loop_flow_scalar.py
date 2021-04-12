@@ -14,8 +14,6 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-import os
-from unittest import mock
 
 import pytest
 import torch
@@ -27,7 +25,6 @@ from tests.helpers.deterministic_model import DeterministicModel
 from tests.helpers.utils import no_warning_call
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__flow_scalar(tmpdir):
     """
     Tests that only training_step can be used
@@ -63,7 +60,6 @@ def test__training_step__flow_scalar(tmpdir):
     assert not model.training_epoch_end_called
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__tr_step_end__flow_scalar(tmpdir):
     """
     Tests that only training_step can be used
@@ -106,7 +102,6 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
     assert not model.training_epoch_end_called
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__epoch_end__flow_scalar(tmpdir):
     """
     Tests that only training_step can be used
@@ -154,11 +149,35 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert not model.training_step_end_called
     assert model.training_epoch_end_called
 
+    # assert epoch end metrics were added
+    assert len(trainer.logger_connector.callback_metrics) == 0
+    assert len(trainer.logger_connector.progress_bar_metrics) == 0
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
+    # make sure training outputs what is expected
+    for batch_idx, batch in enumerate(model.train_dataloader()):
+        break
+
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+    assert out.signal == 0
+    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
+
+    train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
+    assert isinstance(train_step_out['minimize'], torch.Tensor)
+    assert train_step_out['minimize'].item() == 171
+
+    # make sure the optimizer closure returns the correct things
+    opt_closure_result = trainer.train_loop.training_step_and_backward(
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+    )
+    assert opt_closure_result['loss'].item() == 171
+
+
 def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     """
-    Tests that only training_step can be used
+    Checks train_step + training_step_end + training_epoch_end
+    (all with scalar return from train_step)
     """
 
     class TestModel(DeterministicModel):
@@ -208,6 +227,30 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert model.training_step_called
     assert model.training_step_end_called
     assert model.training_epoch_end_called
+
+    # assert epoch end metrics were added
+    assert len(trainer.logger_connector.callback_metrics) == 0
+    assert len(trainer.logger_connector.progress_bar_metrics) == 0
+
+    # make sure training outputs what is expected
+    for batch_idx, batch in enumerate(model.train_dataloader()):
+        break
+
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+    assert out.signal == 0
+    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
+
+    train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
+    assert isinstance(train_step_out['minimize'], torch.Tensor)
+    assert train_step_out['minimize'].item() == 171
+
+    # make sure the optimizer closure returns the correct things
+    opt_closure_result = trainer.train_loop.training_step_and_backward(
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+    )
+    assert opt_closure_result['loss'].item() == 171
 
 
 def test_train_step_no_return(tmpdir):
