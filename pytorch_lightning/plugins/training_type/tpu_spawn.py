@@ -52,7 +52,20 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
         self.tpu_local_core_rank = 0
+        self.tpu_global_core_rank = 0
         self.start_method = None
+
+    @property
+    def global_rank(self):
+        return self.tpu_local_core_rank
+
+    @property
+    def local_rank(self):
+        return self.tpu_local_core_rank
+
+    @property
+    def world_size(self):
+        return self.num_processes
 
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List['DataLoader'], 'DataLoader']):
@@ -118,8 +131,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def set_world_ranks(self, process_idx: int) -> None:
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
-        self.global_rank = self.tpu_local_core_rank
-        self.world_size = self.num_nodes * self.num_processes
 
     def new_process(self, process_idx: int, trainer, mp_queue) -> None:
         self.mp_queue = mp_queue
