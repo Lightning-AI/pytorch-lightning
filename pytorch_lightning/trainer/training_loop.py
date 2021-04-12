@@ -185,8 +185,10 @@ class TrainLoop:
         self.trainer.call_hook("on_train_epoch_start")
 
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
+        processed_batch_end_outputs = TrainLoop._prepare_outputs(batch_end_outputs)
+
         # hook
-        self.trainer.call_hook('on_train_batch_end', batch_end_outputs, batch, batch_idx, dataloader_idx)
+        self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, batch_idx, dataloader_idx)
         self.trainer.call_hook('on_batch_end')
 
         # figure out what to track for epoch end
@@ -342,32 +344,39 @@ class TrainLoop:
 
         return training_step_output_for_epoch_end, result
 
-    def _prepare_epoch_end_outputs(self, epoch_output):
+    @staticmethod
+    def _prepare_outputs(outputs):
         """
-        Pulls out only the "extra" information for epoch end
-
-        Return:
-            a single list, each element per optimizer then batch then time
+        Extract required information from batch or epoch end results.
         """
-        gathered_epoch_outputs = []
-        for opt_outputs in epoch_output:
-            # gather across time first
-            time_gathered_outputs = []
-            for tbptt_outs in opt_outputs:
-                result = []
-                for x in tbptt_outs:
-                    out = x.extra
-                    out['loss'] = x.minimize
-                    result.append(out)
+        processed_outputs = []
+        for opt_outputs in outputs:
+            processed_batch_outputs = []
 
-                # when time = 0, pass in the literal dict instead of array
-                if len(result) == 1:
-                    result = result[0]
-                time_gathered_outputs.append(result)
+            batch_mode = False
+            if not isinstance(opt_outputs[0], list):
+                opt_outputs = [opt_outputs]
+                batch_mode = True  # these are outputs from batch end
 
-            gathered_epoch_outputs.append(time_gathered_outputs)
+            for batch_outputs in opt_outputs:
+                processed_tbptt_outputs = []
 
-        return gathered_epoch_outputs
+                for tbptt_output in batch_outputs:
+                    out = tbptt_output.extra
+                    out['loss'] = tbptt_output.minimize
+                    processed_tbptt_outputs.append(out)
+
+                if len(processed_tbptt_outputs) == 1:
+                    processed_tbptt_outputs = processed_tbptt_outputs[0]
+                processed_batch_outputs.append(processed_tbptt_outputs)
+
+            if batch_mode:
+                processed_batch_outputs = processed_batch_outputs[0]
+            processed_outputs.append(processed_batch_outputs)
+
+        if len(processed_outputs) == 1:
+            processed_outputs = processed_outputs[0]
+        return processed_outputs
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.lightning_module
@@ -452,10 +461,15 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            batch_end_outputs = self.process_train_step_outputs(batch_output.training_step_output_for_epoch_end)
             # hook
             # TODO: add outputs to batches
-            self.on_train_batch_end(epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx)
+            self.on_train_batch_end(
+                epoch_output,
+                batch_output.training_step_output_for_epoch_end,
+                batch,
+                batch_idx,
+                dataloader_idx,
+            )
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
@@ -533,10 +547,7 @@ class TrainLoop:
 
     def on_train_epoch_end(self, epoch_output):
         # prepare epoch output
-        processed_epoch_output = self._prepare_epoch_end_outputs(epoch_output)
-
-        if self.num_optimizers == 1 or not self.trainer.train_loop.automatic_optimization:
-            processed_epoch_output = processed_epoch_output[0]
+        processed_epoch_output = TrainLoop._prepare_outputs(epoch_output)
 
         model = self.trainer.lightning_module
 
@@ -564,8 +575,10 @@ class TrainLoop:
         # bookkeeping
         self.trainer.hiddens = None
 
+        optimizers = self.prepare_optimizers()
+
         # track all outputs across time and num of optimizers
-        batch_outputs = [[] for _ in range(len(self.get_optimizers_iterable()))]
+        batch_outputs = [[] for _ in range(len(optimizers))]
 
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
@@ -586,7 +599,7 @@ class TrainLoop:
         for split_idx, split_batch in enumerate(splits):
 
             # create an iterable for optimizers and loop over them
-            for opt_idx, optimizer in self.prepare_optimizers():
+            for opt_idx, optimizer in optimizers:
 
                 # toggle model params + set info to logger_connector
                 self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
@@ -648,6 +661,12 @@ class TrainLoop:
 
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
+
+        # if len(splits) == 1:
+        #     batch_outputs = [batch_output[0] for batch_output in batch_outputs]
+        #
+        # if len(optimizers) == 1:
+        #     batch_outputs = batch_outputs[0]
 
         result = AttributeDict(
             signal=0,
@@ -840,16 +859,6 @@ class TrainLoop:
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
-
-    def process_train_step_outputs(self, all_train_step_outputs):
-        """
-        Figure out what needs to be tracked/logged at the end of the epoch
-        """
-        # the training step outputs a list per optimizer. The list contains the outputs at each time step
-        # when no TBPTT is used, then the list has 1 item per batch
-        # when TBPTT IS used, then the list has n items (1 per time step)
-        # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
-        return [opt_idx_out for opt_idx_out in all_train_step_outputs if len(opt_idx_out)]
 
     def prepare_optimizers(self):
         # in manual optimization we loop over all optimizers at once
