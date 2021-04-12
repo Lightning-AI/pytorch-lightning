@@ -342,6 +342,33 @@ class TrainLoop:
 
         return training_step_output_for_epoch_end, result
 
+    def _prepare_epoch_end_outputs(self, epoch_output):
+        """
+        Pulls out only the "extra" information for epoch end
+
+        Return:
+            a single list, each element per optimizer then batch then time
+        """
+        gathered_epoch_outputs = []
+        for opt_outputs in epoch_output:
+            # gather across time first
+            time_gathered_outputs = []
+            for tbptt_outs in opt_outputs:
+                result = []
+                for x in tbptt_outs:
+                    out = x.extra
+                    out['loss'] = x.minimize
+                    result.append(out)
+
+                # when time = 0, pass in the literal dict instead of array
+                if len(result) == 1:
+                    result = result[0]
+                time_gathered_outputs.append(result)
+
+            gathered_epoch_outputs.append(time_gathered_outputs)
+
+        return gathered_epoch_outputs
+
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.lightning_module
 
@@ -477,11 +504,11 @@ class TrainLoop:
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 
-        # epoch end hook
+        # handle epoch_output on epoch end
         self.on_train_epoch_end(epoch_output)
 
         # log epoch metrics
-        self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output, self.num_optimizers)
+        self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
 
         should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
@@ -503,6 +530,32 @@ class TrainLoop:
         # increment the global step once
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
+
+    def on_train_epoch_end(self, epoch_output):
+        # prepare epoch output
+        processed_epoch_output = self._prepare_epoch_end_outputs(epoch_output)
+
+        if self.num_optimizers == 1 or not self.trainer.train_loop.automatic_optimization:
+            processed_epoch_output = processed_epoch_output[0]
+
+        model = self.trainer.lightning_module
+
+        if is_overridden('training_epoch_end', model=model):
+            # run training_epoch_end
+            # refresh the result for custom logging at the epoch level
+            model._current_fx_name = 'training_epoch_end'
+
+            # lightningmodule hook
+            training_epoch_end_output = model.training_epoch_end(processed_epoch_output)
+
+            if training_epoch_end_output is not None:
+                raise MisconfigurationException(
+                    'training_epoch_end expects a return of None. '
+                    'HINT: remove the return statement in training_epoch_end'
+                )
+
+        self.trainer.call_hook('on_train_epoch_end', processed_epoch_output)
+        self.trainer.call_hook('on_epoch_end')
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
@@ -720,13 +773,6 @@ class TrainLoop:
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
-
-    def on_train_epoch_end(self, epoch_output):
-        # inform logger the batch loop has finished
-        self.trainer.logger_connector.on_train_epoch_end()
-
-        self.trainer.call_hook('on_train_epoch_end', epoch_output)
-        self.trainer.call_hook('on_epoch_end')
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self._accumulated_batches_reached()

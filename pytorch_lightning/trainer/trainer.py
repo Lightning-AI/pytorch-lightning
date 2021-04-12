@@ -711,11 +711,20 @@ class Trainer(
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
 
+        outputs = self.evaluation_loop.outputs
+
+        # reset outputs
+        self.evaluation_loop.outputs = []
+
+        # with a single dataloader don't pass an array
+        if self.evaluation_loop.num_dataloaders == 1:
+            outputs = outputs[0]
+
         # lightning module method
-        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
+        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end(outputs)
 
         # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
+        self.evaluation_loop.on_evaluation_epoch_end(outputs)
 
         # update epoch-level lr_schedulers
         if on_epoch:
