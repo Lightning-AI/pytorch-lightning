@@ -551,6 +551,9 @@ class TrainLoop:
         self.increment_accumulated_grad_global_step()
 
     def on_train_epoch_end(self, epoch_output):
+        # inform logger the batch loop has finished
+        self.trainer.logger_connector.on_train_epoch_end()
+
         # prepare epoch output
         processed_epoch_output = TrainLoop._prepare_outputs(epoch_output)
 
@@ -572,9 +575,6 @@ class TrainLoop:
 
             # capture logging
             self.trainer.logger_connector.cache_logged_metrics()
-
-        # inform logger the batch loop has finished
-        self.trainer.logger_connector.on_train_epoch_end()
 
         self.trainer.call_hook('on_train_epoch_end', processed_epoch_output)
         self.trainer.call_hook('on_epoch_end')
