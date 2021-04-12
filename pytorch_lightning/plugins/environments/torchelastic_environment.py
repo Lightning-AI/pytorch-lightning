@@ -24,6 +24,12 @@ log = logging.getLogger(__name__)
 
 class TorchElasticEnvironment(ClusterEnvironment):
 
+    @staticmethod
+    def is_using_torchelastic() -> bool:
+        """ Returns ``True`` if the current process was launched using the torchelastic command. """
+        required_env_vars = ("RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
+        return all(v in os.environ for v in required_env_vars)
+
     def creates_children(self) -> bool:
         return True
 

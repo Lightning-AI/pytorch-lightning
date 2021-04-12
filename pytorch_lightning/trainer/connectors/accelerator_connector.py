@@ -60,7 +60,7 @@ from pytorch_lightning.utilities import (
     DeviceType,
     DistributedType,
 )
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn, rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _HOROVOD_AVAILABLE:
@@ -302,8 +302,11 @@ class AcceleratorConnector(object):
 
     @property
     def is_using_torchelastic(self) -> bool:
-        required_env_vars = ("RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
-        return all(v in os.environ for v in required_env_vars)
+        rank_zero_deprecation(
+            "The property `AcceleratorConnector.is_using_torchelastic` was deprecated in v1.3"
+            " and will be removed in 1.4. Use `TorchElasticEnvironmentis_using_torchelastic()` instead.",
+        )
+        return TorchElasticEnvironment.is_using_torchelastic()
 
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
@@ -367,11 +370,11 @@ class AcceleratorConnector(object):
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
-            use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
+            use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
             use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
             use_tpu_spawn = self.on_tpu and self._distrib_type == DistributedType.TPU_SPAWN
-            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
+            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
@@ -459,7 +462,7 @@ class AcceleratorConnector(object):
             return self._cluster_environment
         if self.is_slurm_managing_tasks:
             env = SLURMEnvironment()
-        elif self.is_using_torchelastic:
+        elif TorchElasticEnvironment.is_using_torchelastic():
             env = TorchElasticEnvironment()
         else:
             env = LightningEnvironment()
