@@ -24,9 +24,6 @@ log = logging.getLogger(__name__)
 
 class TorchElasticEnvironment(ClusterEnvironment):
 
-    def __init__(self):
-        super().__init__()
-
     def creates_children(self) -> bool:
         return True
 
