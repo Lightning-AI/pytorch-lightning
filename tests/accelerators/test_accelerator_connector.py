@@ -166,7 +166,15 @@ def test_accelerator_choice_ddp2_slurm(device_count_mock, setup_distributed_mock
 
 
 @RunIf(min_gpus=1)
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2", "RANK": "1", "LOCAL_RANK": "1", "GROUP_RANK": "0"})
+@mock.patch.dict(
+    os.environ, {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+        "GROUP_RANK": "0",
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=2)
 @mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
 def test_accelerator_choice_ddp_te(device_count_mock, setup_distributed_mock):
@@ -195,14 +203,16 @@ def test_accelerator_choice_ddp_te(device_count_mock, setup_distributed_mock):
 
 
 @RunIf(min_gpus=1)
-@mock.patch.dict(os.environ, {
-    "CUDA_VISIBLE_DEVICES": "0,1",
-    "WORLD_SIZE": "2",
-    "LOCAL_WORLD_SIZE": "2",
-    "RANK": "1",
-    "LOCAL_RANK": "1",
-    "GROUP_RANK": "0",
-})
+@mock.patch.dict(
+    os.environ, {
+        "CUDA_VISIBLE_DEVICES": "0,1",
+        "WORLD_SIZE": "2",
+        "LOCAL_WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+        "GROUP_RANK": "0",
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=2)
 @mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
 def test_accelerator_choice_ddp2_te(device_count_mock, setup_distributed_mock):
@@ -230,13 +240,15 @@ def test_accelerator_choice_ddp2_te(device_count_mock, setup_distributed_mock):
         trainer.fit(model)
 
 
-@mock.patch.dict(os.environ, {
-    "WORLD_SIZE": "2",
-    "LOCAL_WORLD_SIZE": "2",
-    "RANK": "1",
-    "LOCAL_RANK": "1",
-    "GROUP_RANK": "0",
-})
+@mock.patch.dict(
+    os.environ, {
+        "WORLD_SIZE": "2",
+        "LOCAL_WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+        "GROUP_RANK": "0",
+    }
+)
 @mock.patch('torch.cuda.device_count', return_value=0)
 @mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
 def test_accelerator_choice_ddp_cpu_te(device_count_mock, setup_distributed_mock):

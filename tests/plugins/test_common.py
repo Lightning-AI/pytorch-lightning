@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin, DDPShardedPlugin, DDP2Plugin, DeepSpeedPlugin, \
+from pytorch_lightning.plugins import DDPPlugin, DDPShardedPlugin, DDP2Plugin, DeepSpeedPlugin, \
     RPCSequentialPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning.utilities import rank_zero_only
@@ -46,13 +46,15 @@ def environment_combinations():
     yield environment, variables, expected
 
 
-@pytest.mark.parametrize("plugin_cls", [
-    DDPPlugin,
-    DDPShardedPlugin,
-    DDP2Plugin,
-    pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
-    pytest.param(RPCSequentialPlugin, marks=RunIf(fairscale_pipe=True)),
-])
+@pytest.mark.parametrize(
+    "plugin_cls", [
+        DDPPlugin,
+        DDPShardedPlugin,
+        DDP2Plugin,
+        pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
+        pytest.param(RPCSequentialPlugin, marks=RunIf(fairscale_pipe=True)),
+    ]
+)
 def test_ranks_available_manual_plugin_selection(plugin_cls):
     """ Test that the rank information is readily available after Trainer initialization. """
     num_nodes = 2
@@ -75,11 +77,14 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
             assert trainer.world_size == expected["world_size"]
 
 
-@pytest.mark.parametrize("trainer_kwargs", [
-    dict(accelerator="ddp"),
-    dict(accelerator="ddp_sharded"),
-    # dict(accelerator="ddp2"),
-])
+@pytest.mark.parametrize(
+    "trainer_kwargs",
+    [
+        dict(accelerator="ddp"),
+        dict(accelerator="ddp_sharded"),
+        # dict(accelerator="ddp2"),
+    ]
+)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=4)
 def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs):
