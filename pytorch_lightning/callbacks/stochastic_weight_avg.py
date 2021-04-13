@@ -63,7 +63,7 @@ class StochasticWeightAveraging(Callback):
 
         .. warning:: ``StochasticWeightAveraging`` is currently not supported for multiple optimizers/schedulers.
 
-        .. warning:: ``StochasticWeightAveraging`` is currently omly supported on every epoch.
+        .. warning:: ``StochasticWeightAveraging`` is currently only supported on every epoch.
 
         SWA can easily be activated directly from the Trainer as follow:
 
