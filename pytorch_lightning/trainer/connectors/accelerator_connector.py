@@ -302,6 +302,13 @@ class AcceleratorConnector(object):
 
     @property
     def is_using_torchelastic(self) -> bool:
+        """
+        .. deprecated:: v1.3
+            Will be removed in v1.5.0.
+        
+        Returns:
+            ``True`` if the current process was launched using the torchelastic command.
+        """
         rank_zero_deprecation(
             "The property `AcceleratorConnector.is_using_torchelastic` was deprecated in v1.3"
             " and will be removed in 1.5. Use `TorchElasticEnvironment.is_using_torchelastic()` instead.",

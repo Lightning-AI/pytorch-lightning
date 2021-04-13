@@ -14,7 +14,6 @@
 
 import os
 import socket
-from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_only
