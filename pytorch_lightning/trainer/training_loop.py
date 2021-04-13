@@ -112,9 +112,8 @@ class TrainLoop:
             return
         self._teardown_already_run = True
 
-        # check if the epoch finished
-        epoch_finished = self.trainer.max_steps is None or self.trainer.max_steps >= self.trainer.global_step
-        if epoch_finished:
+        # check if training has finished
+        if self.trainer.max_steps is None or self.trainer.max_steps >= self.trainer.global_step:
             self.trainer.current_epoch += 1
 
         self.check_checkpoint_callback(should_update=True, is_last=True)

@@ -132,7 +132,9 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
 
 
 def test_correct_step_and_epoch(tmpdir):
+
     class TestModel(BoringModel):
+
         def on_pretrain_routine_end(self) -> None:
             assert self.trainer.global_step == 4
 
@@ -150,7 +152,7 @@ def test_correct_step_and_epoch(tmpdir):
     assert torch.load(ckpt)["global_step"] == 4
 
     trainer = Trainer(default_root_dir=tmpdir, resume_from_checkpoint=ckpt, max_epochs=4, limit_train_batches=2)
-    # TODO
+    # TODO: these values should be available after creation, not after fit
     assert trainer.current_epoch == 0
     assert trainer.global_step == 0
 
@@ -164,6 +166,7 @@ def test_fit_twice(tmpdir):
 
     class TestModel(BoringModel):
         epochs = []
+
         def on_train_epoch_end(self, *_):
             epochs.append(self.current_epoch)
 
