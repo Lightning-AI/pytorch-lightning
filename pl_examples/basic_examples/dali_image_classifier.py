@@ -198,13 +198,28 @@ class MyDataModule(pl.LightningDataModule):
         self.pipe_test = ExternalSourcePipeline(batch_size=batch_size, eii=eii_test, num_threads=2, device_id=0)
 
     def train_dataloader(self):
-        return DALIClassificationLoader(self.pipe_train, size=len(self.mnist_train), auto_reset=True, fill_last_batch=True)
+        return DALIClassificationLoader(
+            self.pipe_train,
+            size=len(self.mnist_train),
+            auto_reset=True,
+            fill_last_batch=True
+        )
 
     def val_dataloader(self):
-        return DALIClassificationLoader(self.pipe_val, size=len(self.mnist_val), auto_reset=True, fill_last_batch=False)
+        return DALIClassificationLoader(
+            self.pipe_val,
+            size=len(self.mnist_val),
+            auto_reset=True,
+            fill_last_batch=False
+        )
 
     def test_dataloader(self):
-        return DALIClassificationLoader(self.pipe_test, size=len(self.mnist_test), auto_reset=True, fill_last_batch=False)
+        return DALIClassificationLoader(
+            self.pipe_test,
+            size=len(self.mnist_test),
+            auto_reset=True,
+            fill_last_batch=False
+        )
 
 
 def cli_main():
