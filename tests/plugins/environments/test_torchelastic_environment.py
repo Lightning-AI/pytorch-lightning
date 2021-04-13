@@ -1,3 +1,4 @@
+import logging
 import os
 from unittest import mock
 
@@ -30,7 +31,7 @@ def test_default_attributes():
         "GROUP_RANK": "3",
     }
 )
-def test_attributes_from_environment_variables():
+def test_attributes_from_environment_variables(caplog):
     """ Test that the torchelastic cluster environment takes the attributes from the environment variables. """
     env = TorchElasticEnvironment()
     assert env.master_address() == "1.2.3.4"
@@ -40,5 +41,14 @@ def test_attributes_from_environment_variables():
     assert env.local_rank() == 2
     assert env.node_rank() == 3
     # setter should be no-op
-    env.set_global_rank(100)
+    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.plugins.environments"):
+        env.set_global_rank(100)
     assert env.global_rank() == 1
+    assert "setting global rank is not allowed" in caplog.text
+
+    caplog.clear()
+
+    with caplog.at_level(logging.DEBUG, logger="pytorch_lightning.plugins.environments"):
+        env.set_world_size(100)
+    assert env.world_size() == 20
+    assert "setting world size is not allowed" in caplog.text

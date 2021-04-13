@@ -55,15 +55,15 @@ class TorchElasticEnvironment(ClusterEnvironment):
         return int(world_size) if world_size is not None else world_size
 
     def set_world_size(self, size: int) -> None:
-        # no-op, we are not allowed to change world size in torchelastic
-        pass
+        log.debug("TorchElasticEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
     def global_rank(self) -> int:
         return int(os.environ["RANK"])
 
     def set_global_rank(self, rank: int) -> None:
-        # no-op, we are not allowed to change rank in torchelastic
-        pass
+        log.debug(
+            "TorchElasticEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored."
+        )
 
     def local_rank(self) -> int:
         return int(os.environ['LOCAL_RANK'])

@@ -33,6 +33,8 @@ def test_attributes_from_environment_variables():
     assert env.node_rank() == 3
     env.set_global_rank(100)
     assert env.global_rank() == 100
+    env.set_world_size(100)
+    assert env.world_size() == 100
 
 
 @mock.patch.dict(os.environ, {
