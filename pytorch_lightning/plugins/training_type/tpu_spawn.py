@@ -127,7 +127,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
         pass
 
-    def set_world_ranks(self, process_idx: int) -> None:
+    def set_world_ranks(self, process_idx: int = 0) -> None:
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
 
@@ -138,7 +138,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if seed is not None:
             seed_everything(int(seed))
 
-        self.set_world_ranks(process_idx)
+        self.set_world_ranks()
 
         # set warning rank
         rank_zero_only.rank = self.global_rank
