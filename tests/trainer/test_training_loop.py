@@ -11,16 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import mock
-from unittest.mock import PropertyMock
 
-import pytest
 import torch
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.trainer.states import TrainerState
-from tests.helpers import BoringDataModule, BoringModel, RandomDataset
-from tests.helpers.runif import RunIf
+from pytorch_lightning import Trainer
+from tests.helpers import BoringModel
 
 
 def test_training_loop_hook_call_order(tmpdir):
