@@ -1935,6 +1935,7 @@ class TestDummyModelForCheckpoint(BoringModel):
     def validation_epoch_end(self, outputs) -> None:
         pass
 
+
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller. """
 
