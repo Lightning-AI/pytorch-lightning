@@ -241,6 +241,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed model checkpointing at end of training ([#6671](https://github.com/PyTorchLightning/pytorch-lightning/pull/6671))
 
 
+- Fixed `sync_dist` for tpus ([#6950](https://github.com/PyTorchLightning/pytorch-lightning/pull/6950))
+
+
+- Fixed `self.device` not returning the correct device in replicas of data-parallel ([#6414](https://github.com/PyTorchLightning/pytorch-lightning/pull/6414))
+
+
 ## [1.2.7] - 2021-04-06
 
 ### Fixed
