@@ -28,11 +28,14 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
+
+if _TORCH_GREATER_EQUAL_1_8:
+    from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +50,9 @@ class DDPSpawnPlugin(ParallelPlugin):
         num_nodes: int = 1,
         cluster_environment: ClusterEnvironment = None,
         sync_batchnorm: bool = False,
+        ddp_comm_state: Optional[object] = None,
+        ddp_comm_hook: Optional[callable] = None,
+        ddp_comm_wrapper: Optional[callable] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
@@ -54,9 +60,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.sync_batchnorm = sync_batchnorm
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
-        self.num_processes = len(parallel_devices)
+        self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self.node_rank = 0
         self.mp_queue = None
+        self._ddp_comm_state = ddp_comm_state
+        self._ddp_comm_hook = ddp_comm_hook
+        self._ddp_comm_wrapper = ddp_comm_wrapper
 
     def __getstate__(self):
         """ Makes this plugin pickleable without destroying the queue in the current process. """
@@ -76,9 +85,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def _is_single_process_single_device(self):
+        return True
+
     def setup(self, model):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-
         # pass in a state q
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
@@ -181,6 +193,17 @@ class DDPSpawnPlugin(ParallelPlugin):
             )
             self._ddp_kwargs["find_unused_parameters"] = True
 
+    def _register_ddp_hooks(self) -> None:
+        # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
+        # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
+        if (_TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device):
+            register_ddp_comm_hook(
+                model=self._model,
+                ddp_comm_state=self._ddp_comm_state,
+                ddp_comm_hook=self._ddp_comm_hook,
+                ddp_comm_wrapper=self._ddp_comm_wrapper,
+            )
+
     def configure_ddp(self):
         self.pre_configure_ddp()
         self._model = DistributedDataParallel(
@@ -188,6 +211,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             device_ids=self.determine_ddp_device_ids(),
             **self._ddp_kwargs,
         )
+        self._register_ddp_hooks()
 
     def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
         # TODO: this code is duplicated in DDP and DDPSpawn, make this a function
