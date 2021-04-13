@@ -243,6 +243,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `AttributeError for `require_backward_grad_sync` when running manual optimization with sharded plugin ([#6915](https://github.com/PyTorchLightning/pytorch-lightning/pull/6915))
 
 
+- Fixed a bug where `LightningModule.training_epoch_end` was called after the `on_train_end_epoch` hook ([#6969](https://github.com/PyTorchLightning/pytorch-lightning/pull/6969))
+
+
+- Fixed a bug where the outputs object passed to `LightningModule.training_epoch_end` was different from the object passed to the `on_train_end_epoch` hook ([#6969](https://github.com/PyTorchLightning/pytorch-lightning/pull/6969))
+
+
+- Fixed a bug where the outputs passed to `train_batch_end` would be lists even when using a single optimizer and no truncated backprop through time steps ([#6969](https://github.com/PyTorchLightning/pytorch-lightning/pull/6969))
+
+
 - Fixed `sync_dist` for tpus ([#6950](https://github.com/PyTorchLightning/pytorch-lightning/pull/6950))
 
 
