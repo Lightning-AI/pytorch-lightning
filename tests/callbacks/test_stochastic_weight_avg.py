@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 from unittest import mock
 
@@ -26,8 +27,9 @@ from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_6:
-    from pytorch_lightning.callbacks import StochasticWeightAveraging
     from torch.optim.swa_utils import SWALR
+
+    from pytorch_lightning.callbacks import StochasticWeightAveraging
 
     class SwaTestModel(BoringModel):
 
@@ -52,8 +54,10 @@ if _TORCH_GREATER_EQUAL_1_6:
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return {
                 "optimizer": optimizer,
-                "scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1),
-                "interval": self.interval,
+                "lr_scheduler": {
+                    "scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1),
+                    "interval": self.interval,
+                }
             }
 
     class SwaTestCallback(StochasticWeightAveraging):
@@ -156,8 +160,17 @@ def test_swa_callback(tmpdir, batchnorm: bool):
 
 @RunIf(min_torch="1.6.0")
 @pytest.mark.parametrize("interval", ("epoch", "step"))
-def test_swa_callback_scheduler_step(tmpdir, interval: bool):
+def test_swa_callback_scheduler_step(tmpdir, interval: str):
     train_with_swa(tmpdir, interval=interval)
+
+
+@RunIf(min_torch="1.6.0")
+def test_swa_warns(tmpdir, caplog):
+    model = SwaTestModel(interval="step")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, stochastic_weight_avg=True)
+    with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
+        trainer.fit(model)
+    assert "Swapping scheduler" in caplog.text
 
 
 @RunIf(min_torch="1.6.0")
