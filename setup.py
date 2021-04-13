@@ -21,7 +21,7 @@ import sys
 from setuptools import find_packages, setup
 
 try:
-    from pytorch_lightning import __info__ as info, setup_tools
+    from pytorch_lightning import __about__ as info, setup_tools
 except ImportError:
     # alternative https://stackoverflow.com/a/67692/4521646
     sys.path.append("pytorch_lightning")
