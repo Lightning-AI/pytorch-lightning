@@ -17,7 +17,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -46,16 +46,13 @@ class DDPShardedPlugin(DDPPlugin):
                 optimizer = optimizer._optimizer
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
-                is_fp16 = self.lightning_module.trainer.precision == 16
-                zero_optimizer = OSS(
-                    params=optimizer.param_groups,
-                    optim=optim_class,
+                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
+                if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
+                    is_fp16 = self.lightning_module.trainer.precision == 16
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade
                     # the model performance.
-                    broadcast_fp16=is_fp16 and self.num_nodes > 1,
-                    **optimizer.defaults
-                )
+                    zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
                 optimizers[x] = zero_optimizer
                 del optimizer
         trainer = self.lightning_module.trainer
