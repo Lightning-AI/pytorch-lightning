@@ -1548,8 +1548,10 @@ def test_pytorch_profiler_describe(pytorch_profiler):
     with pytorch_profiler.profile("test_step"):
         pass
 
-    # log to stdout and print to file
+    # logs to output file
     pytorch_profiler.describe()
+    # ensures file is flushed before reading
+    pytorch_profiler.output_file.close()
     data = Path(pytorch_profiler.output_fname).read_text()
     assert len(data) > 0
 

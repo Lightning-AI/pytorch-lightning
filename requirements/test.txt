@@ -13,5 +13,5 @@ mypy>=0.720, <0.800
 pre-commit>=1.0
 
 cloudpickle>=1.3
-nltk>=3.3
+nltk<3.6
 pandas  # needed in benchmarks

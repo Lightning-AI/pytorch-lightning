@@ -45,38 +45,6 @@ def test_lightning_wrapper_module_methods(wrapper_class):
     pl_module.predict.assert_called_with(batch)
 
 
-@pytest.mark.parametrize("wrapper_class", [
-    LightningParallelModule,
-    LightningDistributedModule,
-])
-def test_lightning_wrapper_module_warn_none_output(wrapper_class):
-    """ Test that the LightningWrapper module warns about forgotten return statement. """
-    warning_cache.clear()
-    pl_module = MagicMock()
-    wrapped_module = wrapper_class(pl_module)
-
-    pl_module.training_step.return_value = None
-    pl_module.validation_step.return_value = None
-    pl_module.test_step.return_value = None
-
-    with pytest.warns(UserWarning, match="Your training_step returned None"):
-        pl_module.running_stage = RunningStage.TRAINING
-        wrapped_module()
-
-    with pytest.warns(UserWarning, match="Your test_step returned None"):
-        pl_module.running_stage = RunningStage.TESTING
-        wrapped_module()
-
-    with pytest.warns(UserWarning, match="Your validation_step returned None"):
-        pl_module.running_stage = RunningStage.EVALUATING
-        wrapped_module()
-
-    with pytest.warns(None) as record:
-        pl_module.running_stage = None
-        wrapped_module()
-        assert not record
-
-
 @pytest.mark.parametrize(
     "inp,expected", [
         [torch.tensor(1.0), torch.tensor([1.0])],
