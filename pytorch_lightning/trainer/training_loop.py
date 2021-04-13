@@ -350,7 +350,7 @@ class TrainLoop:
     def _prepare_outputs(
             outputs: List[List[List[Result]]],
             batch_mode: bool,
-    ) -> Union[List[List[List[Dict]]], List[List[Dict], List[Dict]], Dict]:
+    ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
         """
         Extract required information from batch or epoch end results.
 
