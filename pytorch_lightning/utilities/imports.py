@@ -55,9 +55,7 @@ def _compare_version(package: str, op, version) -> bool:
         return False
     try:
         pkg_version = Version(pkg.__version__)
-    except AttributeError:
-        return False
-    if not (hasattr(pkg_version, "vstring") and hasattr(pkg_version, "version")):
+    except TypeError:
         # this is mock by sphinx, so it shall return True ro generate all summaries
         return True
     return op(pkg_version, Version(version))
