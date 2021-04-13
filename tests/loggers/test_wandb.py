@@ -37,9 +37,11 @@ def test_wandb_logger_init(wandb, recwarn):
 
     # test wandb.init called when there is no W&B run
     wandb.run = None
-    logger = WandbLogger()
+    logger = WandbLogger(name='test_name', save_dir='test_save_dir',
+                         id='test_id', project='test_project', resume='never')
     logger.log_metrics({'acc': 1.0})
-    wandb.init.assert_called_once()
+    wandb.init.assert_called_once_with(name='test_name', dir='test_save_dir', id='test_id',
+                                       project='test_project', resume='never', anonymous=False)
     wandb.init().log.assert_called_once_with({'acc': 1.0})
 
     # test wandb.init not called if there is a W&B run
