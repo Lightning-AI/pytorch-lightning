@@ -136,7 +136,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `PytorchProfiler(profiled_functions)` in favor of `record_functions` ([#6349](https://github.com/PyTorchLightning/pytorch-lightning/pull/6349))
 
 
-- Deprecated `@auto_move_data` in favor of `trainer.predict` ([]())
+- Deprecated `@auto_move_data` in favor of `trainer.predict` ([#6993](https://github.com/PyTorchLightning/pytorch-lightning/pull/6993))
 
 
 - Deprecated metrics in favor of `torchmetrics` ([#6505](https://github.com/PyTorchLightning/pytorch-lightning/pull/6505),
