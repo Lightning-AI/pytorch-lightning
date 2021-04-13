@@ -217,6 +217,7 @@ class DDPPlugin(ParallelPlugin):
         if self.cluster_environment is not None:
             self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
             self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+            rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`

@@ -66,6 +66,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
+        self.set_world_ranks()
 
     @property
     def local_rank(self) -> int:
@@ -99,10 +100,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
 
-    def set_world_ranks(self, process_idx: int) -> None:
+    def set_world_ranks(self, process_idx: int = 0) -> None:
         self._local_rank = process_idx
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        if self.cluster_environment is not None:
+            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+            rank_zero_only.rank = self.cluster_environment.global_rank()
 
     @property
     def mp_spawn_kwargs(self):
