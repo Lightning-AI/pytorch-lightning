@@ -11,7 +11,7 @@ python simple_image_classifier.py
 python simple_image_classifier.py --trainer.gpus 2
 
 # dataparallel
-python simple_image_classifier.py --trainer.gpus 2 --trainer.distributed_backend 'dp'
+python simple_image_classifier.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 
 ---
@@ -33,7 +33,7 @@ python backbone_image_classifier.py
 python backbone_image_classifier.py --trainer.gpus 2
 
 # dataparallel
-python backbone_image_classifier.py --trainer.gpus 2 --trainer.distributed_backend 'dp'
+python backbone_image_classifier.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 
 ---
@@ -47,7 +47,7 @@ python autoencoder.py
 python autoencoder.py --trainer.gpus 2
 
 # dataparallel
-python autoencoder.py --trainer.gpus 2 --trainer.distributed_backend 'dp'
+python autoencoder.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 ---
 # Multi-node example
