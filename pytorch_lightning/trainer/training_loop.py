@@ -358,7 +358,7 @@ class TrainLoop:
             outputs: A 3-dimensional list of ``Result`` objects with dimensions:
                 [optimizer outs][batch outs][tbptt steps].
 
-            batch_mode: If True, ignore the batch output dimension
+            batch_mode: If True, ignore the batch output dimension.
 
         Returns:
             The cleaned outputs with ``Result`` objects converted to dictionaries. All list dimensions of size one will
