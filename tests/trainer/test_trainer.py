@@ -1936,6 +1936,7 @@ class TestDummyModelForCheckpoint(BoringModel):
         pass
 
 
+@RunIf(skip_windows=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller. """
 
