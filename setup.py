@@ -25,7 +25,7 @@ try:
 except ImportError:
     # alternative https://stackoverflow.com/a/67692/4521646
     sys.path.append("pytorch_lightning")
-    import __info__ as info
+    import __about__ as info
     import setup_tools
 
 # https://packaging.python.org/guides/single-sourcing-package-version/

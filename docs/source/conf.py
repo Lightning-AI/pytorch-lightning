@@ -32,7 +32,7 @@ try:
 except ImportError:
     # alternative https://stackoverflow.com/a/67692/4521646
     sys.path.append(os.path.join(PATH_ROOT, "pytorch_lightning"))
-    import __info__ as info
+    import __about__ as info
 
 # -- Project documents -------------------------------------------------------
 
