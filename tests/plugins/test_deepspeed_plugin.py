@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any
+from typing import Any, Dict
 
 import pytest
 import torch
@@ -27,6 +27,9 @@ class ModelParallelBoringModel(BoringModel):
 
     def configure_sharded_model(self) -> None:
         self.linear = torch.nn.Linear(32, 2)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        self.configure_sharded_model()
 
 
 def test_deepspeed_lightning_module(tmpdir):
@@ -456,23 +459,17 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     trainer.fit(model)
     trainer.test(model)
 
-    # todo (tchaton) Currently load_from_checkpoint is not support for zero-v3
-    # _assert_save_model_is_equal(model, tmpdir, trainer)
+    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModel)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
-    """
-    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
-    and see convergence.
-    """
+def run_checkpoint_test(tmpdir, save_full_weights):
     seed_everything(42)
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
         max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3)],
+        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
         default_root_dir=tmpdir,
         gpus=2,
         precision=16,
@@ -490,7 +487,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
 
     trainer = Trainer(
         max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3)],
+        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
         default_root_dir=tmpdir,
         gpus=2,
         precision=16,
@@ -504,6 +501,24 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     dm.predict_dataloader = dm.test_dataloader
     results = trainer.predict(datamodule=dm)
     assert results[-1] > 0.7
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    and see convergence.
+    """
+    run_checkpoint_test(tmpdir, save_full_weights=False)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    where we save the full weights to one file.
+    """
+    run_checkpoint_test(tmpdir, save_full_weights=True)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
