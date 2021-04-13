@@ -400,7 +400,6 @@ class AcceleratorConnector(object):
                 cluster_environment=self.cluster_environment,
                 sync_batchnorm=self.sync_batchnorm,
             )
-
         elif self.use_dp:
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
         elif self.use_horovod:
