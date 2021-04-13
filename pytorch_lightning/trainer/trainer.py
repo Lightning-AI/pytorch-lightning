@@ -581,11 +581,11 @@ class Trainer(
         self.checkpoint_connector.has_trained = False
 
         # enable train mode
-        model = self.lightning_module
-        model.train()
+        self.model.train()
         torch.set_grad_enabled(True)
 
         # reload data when needed
+        model = self.lightning_module
         self.train_loop.reset_train_val_dataloaders(model)
 
         # hook
@@ -714,7 +714,7 @@ class Trainer(
             self.evaluation_loop.outputs.append(dl_outputs)
 
         # lightning module method
-        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
+        self.evaluation_loop.evaluation_epoch_end()
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
@@ -727,7 +727,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_end()
 
         # log epoch metrics
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
+        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -737,7 +737,7 @@ class Trainer(
 
         torch.set_grad_enabled(True)
 
-        return eval_loop_results, deprecated_eval_results
+        return eval_loop_results
 
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
@@ -759,7 +759,7 @@ class Trainer(
         assert self.evaluating
 
         with self.profiler.profile(f"run_{self._running_stage}_evaluation"):
-            eval_loop_results, _ = self.run_evaluation()
+            eval_loop_results = self.run_evaluation()
 
         if len(eval_loop_results) == 0:
             return 1
@@ -774,8 +774,6 @@ class Trainer(
         return eval_loop_results
 
     def run_predict(self):
-        self.predict_loop.on_predict_start()
-
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -790,6 +788,9 @@ class Trainer(
         self.predict_loop.on_predict_model_eval()
         model.zero_grad()
         torch.set_grad_enabled(False)
+
+        # call hook
+        self.predict_loop.on_predict_start()
 
         # set up the eval loop
         self.predict_loop.setup(model, max_batches, dataloaders)
@@ -832,7 +833,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            _, eval_results = self.run_evaluation()
+            self.run_evaluation()
 
             self.on_sanity_check_end()
 
