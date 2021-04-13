@@ -190,61 +190,25 @@ class EvaluationLoop(object):
         # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end()
 
-        # call the model epoch end
-        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders)
-
-        # enable returning anything
-        for i, r in enumerate(deprecated_results):
-            if not isinstance(r, (dict, Result, torch.Tensor)):
-                deprecated_results[i] = []
-
-        return deprecated_results
-
-    def log_epoch_metrics_on_evaluation_end(self):
-        # get the final loop results
-        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results()
-        return eval_loop_results
-
-    def __run_eval_epoch_end(self, num_dataloaders):
-        model = self.trainer.lightning_module
-
-        # with a single dataloader don't pass an array
         outputs = self.outputs
+        # with a single dataloader don't pass an array
+        eval_results = outputs[0] if self.num_dataloaders == 1 else outputs
 
-        eval_results = outputs
-        if num_dataloaders == 1:
-            eval_results = outputs[0]
-
-        user_reduced = False
+        # call the model epoch end
+        model = self.trainer.lightning_module
 
         if self.trainer.testing:
             if is_overridden('test_epoch_end', model=model):
                 model._current_fx_name = 'test_epoch_end'
-                eval_results = model.test_epoch_end(eval_results)
-                user_reduced = True
+                model.test_epoch_end(eval_results)
 
         else:
             if is_overridden('validation_epoch_end', model=model):
                 model._current_fx_name = 'validation_epoch_end'
-                eval_results = model.validation_epoch_end(eval_results)
-                user_reduced = True
+                model.validation_epoch_end(eval_results)
 
         # capture logging
         self.trainer.logger_connector.cache_logged_metrics()
-        # depre warning
-        if eval_results is not None and user_reduced:
-            step = 'testing_epoch_end' if self.trainer.testing else 'validation_epoch_end'
-            self.warning_cache.warn(
-                f'The {step} should not return anything as of 9.1.'
-                ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
-            )
-
-        if not isinstance(eval_results, list):
-            eval_results = [eval_results]
-
-        self.trainer.logger_connector._track_callback_metrics(eval_results)
-
-        return eval_results
 
     def __gather_epoch_end_eval_results(self, outputs):
         eval_results = []
