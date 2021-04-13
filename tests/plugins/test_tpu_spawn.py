@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
@@ -51,8 +52,9 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
         (None, [_loader, _loader_no_len], None, None),
     ],
 )
+@mock.patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
 def test_error_patched_iterable_dataloaders(
-    tmpdir, train_dataloader, val_dataloaders, test_dataloaders, predict_dataloaders
+    _, tmpdir, train_dataloader, val_dataloaders, test_dataloaders, predict_dataloaders
 ):
     model = BoringModelNoDataloaders()
     connector = DataConnector(MagicMock())
@@ -69,6 +71,7 @@ def test_error_patched_iterable_dataloaders(
         TPUSpawnPlugin(MagicMock()).connect(model)
 
 
-def test_error_process_iterable_dataloader(tmpdir):
+@mock.patch("pytorch_lightning.plugins.training_type.tpu_spawn.xm")
+def test_error_process_iterable_dataloader(_):
     with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
         TPUSpawnPlugin(MagicMock()).process_dataloader(_loader_no_len)
