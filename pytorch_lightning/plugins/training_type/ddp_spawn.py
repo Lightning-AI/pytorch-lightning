@@ -68,7 +68,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self._local_rank = 0
 
     @property
-    def local_rank(self):
+    def local_rank(self) -> int:
         return self._local_rank
 
     def __getstate__(self):

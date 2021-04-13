@@ -35,8 +35,8 @@ class LightningEnvironment(ClusterEnvironment):
     def __init__(self):
         super().__init__()
         self._master_port = None
-        self._global_rank = 0
-        self._world_size = None
+        self._global_rank: int = 0
+        self._world_size: Optional[int] = None
 
     def creates_children(self) -> bool:
         return False
