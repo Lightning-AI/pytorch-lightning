@@ -36,7 +36,7 @@ class LightningEnvironment(ClusterEnvironment):
         super().__init__()
         self._master_port = None
         self._global_rank: int = 0
-        self._world_size: Optional[int] = None
+        self._world_size: int = 1
 
     def creates_children(self) -> bool:
         return False
@@ -49,7 +49,7 @@ class LightningEnvironment(ClusterEnvironment):
             self._master_port = os.environ.get("MASTER_PORT", find_free_network_port())
         return int(self._master_port)
 
-    def world_size(self) -> Optional[int]:
+    def world_size(self) -> int:
         return self._world_size
 
     def set_world_size(self, size: int) -> None:
