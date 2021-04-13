@@ -24,7 +24,7 @@ class DDP2Plugin(DDPPlugin):
         return self.node_rank
 
     @property
-    def world_size(self):
+    def world_size(self) -> int:
         return self.num_nodes
 
     def setup(self, model):
