@@ -497,9 +497,6 @@ class TrainLoop:
             # -----------------------------------------
             self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
-            # progress global step according to grads progress
-            self.increment_accumulated_grad_global_step()
-
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------

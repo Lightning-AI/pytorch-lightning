@@ -267,10 +267,6 @@ def test_trainer_model_hook_system(tmpdir):
             super().__init__()
             self.called = []
 
-        def configure_callbacks(self):
-            self.called.append("WOOW")
-            return []
-
         def on_after_backward(self):
             self.called.append("on_after_backward")
             super().on_after_backward()

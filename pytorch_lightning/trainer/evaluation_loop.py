@@ -96,7 +96,6 @@ class EvaluationLoop(object):
             model_ref.on_validation_model_train()
 
     def on_evaluation_end(self, *args, **kwargs):
-        # check if the epoch finished
         if self.trainer.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
