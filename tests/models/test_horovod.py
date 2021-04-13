@@ -377,7 +377,7 @@ def test_accuracy_metric_horovod():
 
 
 # todo: need to be fixed :]
-@pytest.mark.skip(reason="TODO Breaking CI: Aborted (core dumped)")
+@pytest.mark.skip('TODO: flaky test - Fatal Python error: Aborted')
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 

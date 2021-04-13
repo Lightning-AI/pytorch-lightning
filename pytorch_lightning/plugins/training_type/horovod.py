@@ -99,14 +99,14 @@ class HorovodPlugin(ParallelPlugin):
             self._results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user
-        hvd.join()
+        self.join()
 
     def start_evaluating(self, trainer):
         with ExitStack():
             self._results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user
-        hvd.join()
+        self.join()
 
     def start_predicting(self, trainer):
         with ExitStack():
@@ -114,11 +114,11 @@ class HorovodPlugin(ParallelPlugin):
             self._results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user
-        hvd.join()
+        self.join()
 
     def barrier(self, *args, **kwargs):
         if torch_distrib.is_initialized():
-            hvd.join()
+            self.join()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         obj = hvd.broadcast_object(obj, src)
@@ -128,6 +128,12 @@ class HorovodPlugin(ParallelPlugin):
         if self.on_gpu:
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
+
+    def join(self):
+        if self.on_gpu:
+            hvd.join(self.local_rank)
+        else:
+            hvd.join()
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
         """
@@ -156,7 +162,7 @@ class HorovodPlugin(ParallelPlugin):
             raise ValueError(f"unrecognized `reduce_op`: {reduce_op}")
 
         # sync all processes before reduction
-        hvd.join()
+        self.join()
         return hvd.allreduce(tensor, op=reduce_op)
 
     def all_gather(
@@ -176,7 +182,7 @@ class HorovodPlugin(ParallelPlugin):
             result = result.reshape(1)
 
         # sync and gather all
-        hvd.join()
+        self.join()
         gathered = hvd.allgather(result)
         gathered_result = list(gathered.split(1, dim=0))
         return gathered_result
