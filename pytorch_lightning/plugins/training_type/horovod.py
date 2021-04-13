@@ -136,7 +136,9 @@ class HorovodPlugin(ParallelPlugin):
                 "Unset `group`."
             )
 
-        if reduce_op is None or reduce_op == "sum":
+        if reduce_op in (None, "avg", "mean"):
+            reduce_op = hvd.Average
+        elif reduce_op in ("sum", ReduceOp.SUM):
             reduce_op = hvd.Sum
         elif isinstance(reduce_op, str) and reduce_op in ("avg", "mean"):
             reduce_op = hvd.Average
