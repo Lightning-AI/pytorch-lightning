@@ -31,7 +31,6 @@ jobs:
     - name: Setup macOS
       if: runner.os == 'macOS'
       run: |
-        brew update  # todo: find a better fix (libomp error)
         brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
 
     # Note: This uses an internal pip API and may not always work
