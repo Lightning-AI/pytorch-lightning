@@ -134,9 +134,9 @@ class WandbLogger(LightningLoggerBase):
             if v is not None:
                 self._wandb_kwargs[k] = v
         # extract parameters
-        self._save_dir = getattr(self._wandb_kwargs, 'dir', None)
-        self._name = getattr(self._wandb_kwargs, 'name', None)
-        self._id = getattr(self._wandb_kwargs, 'id', None)
+        self._save_dir = self._wandb_kwargs.get('dir', None)
+        self._name = self._wandb_kwargs.get('name', None)
+        self._id = self._wandb_kwargs.get('id', None)
 
     def __getstate__(self):
         state = self.__dict__.copy()
