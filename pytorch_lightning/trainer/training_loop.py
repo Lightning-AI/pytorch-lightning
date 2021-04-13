@@ -14,7 +14,7 @@
 
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
-from typing import Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -187,7 +187,7 @@ class TrainLoop:
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_end_outputs if len(opt_idx_out)]
 
-        processed_batch_end_outputs = TrainLoop._prepare_outputs(batch_end_outputs)
+        processed_batch_end_outputs = TrainLoop._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook
         self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, batch_idx, dataloader_idx)
@@ -347,11 +347,23 @@ class TrainLoop:
         return training_step_output_for_epoch_end, result
 
     @staticmethod
-    def _prepare_outputs(outputs):
+    def _prepare_outputs(
+            outputs: List[List[List[Result]]],
+            batch_mode: bool,
+    ) -> Union[List[List[List[Dict]]], List[List[Dict], List[Dict]], Dict]:
         """
         Extract required information from batch or epoch end results.
+
+        Args:
+            outputs: A 3-dimensional list of ``Result`` objects with dimensions:
+                [optimizer outs][batch outs][tbptt steps].
+
+            batch_mode: If True, ignore the batch output dimension
+
+        Returns:
+            The cleaned outputs with ``Result`` objects converted to dictionaries. All list dimensions of size one will
+            be collapsed.
         """
-        # outputs is a 3-dimensional list of Result objects with dimensions: [optimizer outs][batch outs][tbptt steps]
         processed_outputs = []
         for opt_outputs in outputs:
             # handle an edge case where an optimizer output is the empty list
@@ -360,11 +372,8 @@ class TrainLoop:
 
             processed_batch_outputs = []
 
-            # batch_mode = True if these outputs are from batch end, otherwise they are from epoch end
-            batch_mode = False
-            if not isinstance(opt_outputs[0], list):
+            if batch_mode:
                 opt_outputs = [opt_outputs]
-                batch_mode = True  # these are outputs from batch end
 
             for batch_outputs in opt_outputs:
                 processed_tbptt_outputs = []
@@ -556,12 +565,12 @@ class TrainLoop:
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
-    def on_train_epoch_end(self, epoch_output) -> None:
+    def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
         # prepare epoch output
-        processed_epoch_output = TrainLoop._prepare_outputs(epoch_output)
+        processed_epoch_output = TrainLoop._prepare_outputs(epoch_output, batch_mode=False)
 
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module

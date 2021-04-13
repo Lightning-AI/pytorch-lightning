@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict, List, Union
 
 import torch
 
@@ -301,13 +302,7 @@ class EvaluationLoop(object):
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
-    def on_evaluation_epoch_end(self, outputs):
-        # call the callback hook
-        self.call_on_evaluation_epoch_end_hook(outputs)
-
-        self.trainer.call_hook('on_epoch_end')
-
-    def call_on_evaluation_epoch_end_hook(self, outputs):
+    def on_evaluation_epoch_end(self, outputs: Union[List[List[Dict]], List[Dict]]) -> None:
         model_ref = self.trainer.lightning_module
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
 
@@ -331,6 +326,8 @@ class EvaluationLoop(object):
                     model_hook_fx()
 
         self.trainer._cache_logged_metrics()
+
+        self.trainer.call_hook('on_epoch_end')
 
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.sanity_checking:

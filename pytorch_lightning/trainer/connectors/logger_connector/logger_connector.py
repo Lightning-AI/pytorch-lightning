@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Dict, Iterable, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import torch
 
@@ -326,7 +326,7 @@ class LoggerConnector:
         # inform cached logger connector epoch finished
         self.cached_results.has_batch_loop_finished = True
 
-    def log_train_epoch_end_metrics(self, epoch_output):
+    def log_train_epoch_end_metrics(self, epoch_output: List[List[List[Result]]]) -> None:
         # epoch output is a list. Each item in that list has all the outputs per optimizer
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
