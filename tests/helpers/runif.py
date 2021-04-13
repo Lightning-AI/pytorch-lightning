@@ -111,7 +111,7 @@ class RunIf:
 
         if min_python:
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-            conditions.append(py_version < Version(min_python))
+            conditions.append(Version(py_version) < Version(min_python))
             reasons.append(f"python>={min_python}")
 
         if quantization:
