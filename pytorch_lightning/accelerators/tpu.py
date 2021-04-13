@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, TYPE_CHECKING, Union
 
 from torch.optim import Optimizer
 
@@ -28,13 +28,17 @@ if _XLA_AVAILABLE:
 
     xla_clip_grad_norm_ = clip_grad_norm_
 
-import pytorch_lightning as pl
+if TYPE_CHECKING:
+    from torch.optim import Optimizer
+
+    from pytorch_lightning.core import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class TPUAccelerator(Accelerator):
     """ Accelerator for TPU devices. """
 
-    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
@@ -51,19 +55,12 @@ class TPUAccelerator(Accelerator):
         return super().setup(trainer, model)
 
     def run_optimizer_step(
-        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
+        self, optimizer: 'Optimizer', optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
     ) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def clip_gradients(
-        self,
-        optimizer: Optimizer,
-        clip_val: Union[float, int],
-        norm_type: float = 2.0,
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM
-    ) -> None:
-        assert gradient_clip_algorithm is GradClipAlgorithmType.NORM, \
-            "Only NORM gradient clipping is supported on TPU for now"
+            
+    def _clip_gradients_norm(self, clip_val: Union[float, int], norm_type: float = 2.0) -> None:
 
         model = self.lightning_module
         parameters = model.parameters()
@@ -75,3 +72,15 @@ class TPUAccelerator(Accelerator):
         max_norm = grad_clip_val
 
         xla_clip_grad_norm_(parameters, max_norm, norm_type)
+
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+
+        if gradient_clip_algorithm == GradClipAlgorithmType.NORM:
+            return self._clip_gradients_norm(clip_val=clip_val)
+
+        raise NotImplementedError("Only NORM gradient clipping is supported on TPU for now")

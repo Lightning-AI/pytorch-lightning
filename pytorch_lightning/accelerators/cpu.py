@@ -11,16 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytorch_lightning as pl
+from typing import TYPE_CHECKING
+
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if TYPE_CHECKING:
+    from pytorch_lightning.core import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class CPUAccelerator(Accelerator):
     """ Accelerator for CPU devices. """
 
-    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:

@@ -12,20 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-import pytorch_lightning as pl
-from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType
+
+if TYPE_CHECKING:
+    from pytorch_lightning.core import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
 
 _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 
@@ -64,7 +66,7 @@ class Accelerator(object):
         self.lr_schedulers: Sequence = []
         self.optimizer_frequencies: Sequence = []
 
-    def connect(self, model: LightningModule) -> None:
+    def connect(self, model: 'LightningModule') -> None:
         """Transfers ownership of the model to this plugin"""
         self.training_type_plugin.connect(model)
 
@@ -76,7 +78,7 @@ class Accelerator(object):
         """
         self.training_type_plugin.setup_environment()
 
-    def setup(self, trainer: 'pl.Trainer', model: LightningModule) -> None:
+    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """
         Setup plugins for the trainer fit and creates optimizers.
 
@@ -89,23 +91,23 @@ class Accelerator(object):
             self.setup_optimizers(trainer)
         self.setup_precision_plugin(self.precision_plugin)
 
-    def start_training(self, trainer: 'pl.Trainer') -> None:
+    def start_training(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
 
-    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
+    def start_evaluating(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_evaluating(trainer)
 
-    def start_predicting(self, trainer: 'pl.Trainer') -> None:
+    def start_predicting(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_predicting(trainer)
 
-    def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
+    def pre_dispatch(self, trainer: 'Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.pre_dispatch()
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.precision_plugin.pre_dispatch()
 
-    def post_dispatch(self, trainer: 'pl.Trainer') -> None:
+    def post_dispatch(self, trainer: 'Trainer') -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
@@ -123,7 +125,7 @@ class Accelerator(object):
         self.training_type_plugin.model = new_model
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> 'LightningModule':
         """Returns the pure LightningModule.
         To get the potentially wrapped model use :attr:`Accelerator.model`
 
@@ -341,7 +343,7 @@ class Accelerator(object):
         """Hook to do something at the end of the training"""
         pass
 
-    def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
+    def setup_optimizers(self, trainer: 'Trainer') -> None:
         """creates optimizers and schedulers
 
         Args:
@@ -378,7 +380,7 @@ class Accelerator(object):
         return batch[0] if is_dict else batch
 
     @property
-    def amp_backend(self) -> Optional[LightningEnum]:
+    def amp_backend(self) -> Optional['AMPType']:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
         elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
