@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict, List, Union
 
 import torch
 
@@ -186,13 +187,9 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
-    def evaluation_epoch_end(self):
+    def evaluation_epoch_end(self, outputs):
         # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end()
-
-        outputs = self.outputs
-        # with a single dataloader don't pass an array
-        eval_results = outputs[0] if self.num_dataloaders == 1 else outputs
 
         # call the model epoch end
         model = self.trainer.lightning_module
@@ -200,12 +197,12 @@ class EvaluationLoop(object):
         if self.trainer.testing:
             if is_overridden('test_epoch_end', model=model):
                 model._current_fx_name = 'test_epoch_end'
-                model.test_epoch_end(eval_results)
+                model.test_epoch_end(outputs)
 
         else:
             if is_overridden('validation_epoch_end', model=model):
                 model._current_fx_name = 'validation_epoch_end'
-                model.validation_epoch_end(eval_results)
+                model.validation_epoch_end(outputs)
 
         # capture logging
         self.trainer.logger_connector.cache_logged_metrics()
@@ -271,18 +268,7 @@ class EvaluationLoop(object):
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
-    def on_evaluation_epoch_end(self, *args, **kwargs):
-        # call the callback hook
-        self.call_on_evaluation_epoch_end_hook()
-
-        self.trainer.call_hook('on_epoch_end')
-
-    def call_on_evaluation_epoch_end_hook(self):
-        outputs = self.outputs
-
-        # free memory
-        self.outputs = []
-
+    def on_evaluation_epoch_end(self, outputs: Union[List[List[Dict]], List[Dict]]) -> None:
         model_ref = self.trainer.lightning_module
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
 
@@ -306,6 +292,8 @@ class EvaluationLoop(object):
                     model_hook_fx()
 
         self.trainer._cache_logged_metrics()
+
+        self.trainer.call_hook('on_epoch_end')
 
     def log_evaluation_step_metrics(self, output, batch_idx):
         if self.trainer.sanity_checking:
