@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
@@ -13,6 +13,7 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("wrapper_class", [
