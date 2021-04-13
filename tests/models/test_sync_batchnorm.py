@@ -20,7 +20,7 @@ import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.plugins.environments import TorchElasticEnvironment
+from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
@@ -108,6 +108,13 @@ def test_sync_batchnorm_ddp(tmpdir):
     dm.setup(stage=None)
 
     model = SyncBNModule(gpu_count=2, bn_targets=bn_outputs)
+    ddp = DDPSpawnPlugin(
+        parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
+        num_nodes=1,
+        sync_batchnorm=True,
+        cluster_environment=LightningEnvironment(),
+        find_unused_parameters=True
+    )
 
     trainer = Trainer(
         gpus=2,
@@ -118,15 +125,7 @@ def test_sync_batchnorm_ddp(tmpdir):
         sync_batchnorm=True,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
-        plugins=[
-            DDPSpawnPlugin(
-                parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
-                num_nodes=1,
-                sync_batchnorm=True,
-                cluster_environment=TorchElasticEnvironment(),
-                find_unused_parameters=True
-            )
-        ]
+        plugins=[ddp],
     )
 
     trainer.fit(model, dm)

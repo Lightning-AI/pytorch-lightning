@@ -16,7 +16,8 @@ from pytorch_lightning.utilities import _APEX_AVAILABLE
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0"
+        "SLURM_LOCALID": "0",
+        "SLURM_PROCID": "0",
     }
 )
 @mock.patch('torch.cuda.device_count', return_value=2)
@@ -44,7 +45,8 @@ def test_amp_choice_default_ddp(mocked_device_count, ddp_backend, gpus):
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0"
+        "SLURM_LOCALID": "0",
+        "SLURM_PROCID": "0",
     }
 )
 @mock.patch('torch.cuda.device_count', return_value=2)

@@ -100,8 +100,8 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def init_ddp_connection(
         self,
-        global_rank: int,
-        world_size: int,
+        global_rank: Optional[int] = None,
+        world_size: Optional[int] = None,
     ) -> None:
         if self.lightning_module.trainer.amp_backend is not None:
             raise MisconfigurationException(
@@ -110,10 +110,10 @@ class RPCSequentialPlugin(RPCPlugin):
 
         if self._skip_init_connections():
             return
-        super().init_ddp_connection(
-            global_rank=global_rank,
-            world_size=world_size,
-        )
+
+        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
+        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
+        super().init_ddp_connection(global_rank, world_size)
         super().init_rpc_connection(global_rank=global_rank, world_size=world_size)
         model = self.lightning_module
         self.gpus_per_model = self._infer_check_num_gpus()

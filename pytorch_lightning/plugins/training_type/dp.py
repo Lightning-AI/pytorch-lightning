@@ -27,6 +27,22 @@ class DataParallelPlugin(ParallelPlugin):
     def __init__(self, parallel_devices: Optional[List[torch.device]]):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
+    @property
+    def global_rank(self) -> int:
+        return 0
+
+    @property
+    def local_rank(self) -> int:
+        return 0
+
+    @property
+    def node_rank(self) -> int:
+        return 0
+
+    @property
+    def world_size(self) -> int:
+        return 1
+
     def setup(self, model):
         # model needs to be moved to the device before it is wrapped
         model.to(self.root_device)

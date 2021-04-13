@@ -147,7 +147,8 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0"
+        "SLURM_LOCALID": "0",
+        "SLURM_PROCID": "0",
     }
 )
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
