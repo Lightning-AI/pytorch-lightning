@@ -1936,7 +1936,6 @@ def test_fit_test_synchronization(tmpdir):
             loss = self.loss(batch, output)
             self.log('x', loss)
 
-
     model = TestModel()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor='x', mode='min', save_top_k=1)
     trainer = Trainer(
