@@ -249,6 +249,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a bug where the outputs passed to `train_batch_end` would be lists even when using a single optimizer and no truncated backprop through time steps ([#6969](https://github.com/PyTorchLightning/pytorch-lightning/pull/6969))
 
 
+- Fixed `sync_dist` for tpus ([#6950](https://github.com/PyTorchLightning/pytorch-lightning/pull/6950))
+
+
 - Fixed `self.device` not returning the correct device in replicas of data-parallel ([#6414](https://github.com/PyTorchLightning/pytorch-lightning/pull/6414))
 
 
