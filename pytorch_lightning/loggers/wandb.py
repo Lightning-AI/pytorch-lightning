@@ -128,7 +128,8 @@ class WandbLogger(LightningLoggerBase):
         # set wandb init arguments
         self._wandb_kwargs = dict(resume='allow')
         self._wandb_kwargs.update(**wandb_kwargs)
-        for k, v in dict(name=name, id=version or id, dir=save_dir, project=project, anonymous='allow' if anonymous else None).items():
+        for k, v in dict(name=name, id=version or id, dir=save_dir, project=project,
+                         anonymous='allow' if anonymous else None).items():
             # don't overwrite args defined through `wandb_kwargs`
             if v is not None:
                 self._wandb_kwargs[k] = v
