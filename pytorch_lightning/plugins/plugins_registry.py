@@ -26,9 +26,16 @@ class _TrainingTypePluginsRegistry(UserDict):
     parameters to initialize the Plugin, which were defined durng the
     registeration.
 
-    The motivation for having a PluginRegistry is to make it convenient
+    The motivation for having a TrainingTypePluginRegistry is to make it convenient
     for the Users to try different Plugins by passing just strings
     to the plugins flag to the Trainer.
+
+    Example::
+
+        @TrainingTypePluginsRegistry.register("lightning", description="Super fast", a=1, b=True)
+        class LightningPlugin:
+            def __init__(self, a, b):
+                ...
 
     """
 
