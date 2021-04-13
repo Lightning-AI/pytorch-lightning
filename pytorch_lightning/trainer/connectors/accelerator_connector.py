@@ -361,7 +361,12 @@ class AcceleratorConnector(object):
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+            plugin = DDP2Plugin(
+                parallel_devices=self.parallel_devices,
+                num_nodes=self.num_nodes,
+                cluster_environment=self.cluster_environment,
+                sync_batchnorm=self.sync_batchnorm,
+            )
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
                 num_nodes=self.num_nodes,
