@@ -55,7 +55,7 @@ class LightningEnvironment(ClusterEnvironment):
     def set_world_size(self, size: int) -> None:
         self._world_size = size
 
-    def global_rank(self) -> Optional[int]:
+    def global_rank(self) -> int:
         return self._global_rank
 
     def set_global_rank(self, rank: int) -> None:
