@@ -135,12 +135,11 @@ def test_outputs_format(tmpdir):
     class HookedModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.log("foo", "bar")
-            return (batch[0] * 0.0).mean()
+            return super().training_step(batch, batch_idx)
 
         @staticmethod
         def _check_output(output):
             assert "loss" in output
-            assert torch.allclose(output["loss"], torch.zeros(1))
 
             assert "foo" in output
             assert output["foo"] == "bar"
@@ -172,4 +171,5 @@ def test_outputs_format(tmpdir):
         weights_summary=None,
     )
 
-    trainer.fit(model)
+    result = trainer.fit(model)
+    assert result == 1, "Training did not complete"
