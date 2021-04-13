@@ -192,54 +192,20 @@ class EvaluationLoop(object):
         self.trainer.logger_connector.evaluation_epoch_end()
 
         # call the model epoch end
-        deprecated_results = self.__run_eval_epoch_end(outputs)
-
-        # enable returning anything
-        for i, r in enumerate(deprecated_results):
-            if not isinstance(r, (dict, Result, torch.Tensor)):
-                deprecated_results[i] = []
-
-        return deprecated_results
-
-    def log_epoch_metrics_on_evaluation_end(self):
-        # get the final loop results
-        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results()
-        return eval_loop_results
-
-    def __run_eval_epoch_end(self, outputs):
         model = self.trainer.lightning_module
-
-        epoch_end_output = None
-        user_reduced = False
 
         if self.trainer.testing:
             if is_overridden('test_epoch_end', model=model):
                 model._current_fx_name = 'test_epoch_end'
-                epoch_end_output = model.test_epoch_end(outputs)
-                user_reduced = True
+                model.test_epoch_end(outputs)
 
         else:
             if is_overridden('validation_epoch_end', model=model):
                 model._current_fx_name = 'validation_epoch_end'
-                epoch_end_output = model.validation_epoch_end(outputs)
-                user_reduced = True
+                model.validation_epoch_end(outputs)
 
         # capture logging
         self.trainer.logger_connector.cache_logged_metrics()
-        # depre warning
-        if epoch_end_output is not None and user_reduced:
-            step = 'testing_epoch_end' if self.trainer.testing else 'validation_epoch_end'
-            self.warning_cache.warn(
-                f'The {step} should not return anything as of 9.1.'
-                ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
-            )
-
-        if not isinstance(outputs, list):
-            outputs = [outputs]
-
-        self.trainer.logger_connector._track_callback_metrics(outputs)
-
-        return outputs
 
     def __gather_epoch_end_eval_results(self, outputs):
         eval_results = []

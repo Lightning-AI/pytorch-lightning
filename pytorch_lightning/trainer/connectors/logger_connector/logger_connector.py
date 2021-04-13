@@ -25,7 +25,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validat
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
-from pytorch_lightning.utilities import DeviceType, flatten_dict
+from pytorch_lightning.utilities import DeviceType
 
 
 class LoggerConnector:
@@ -294,33 +294,6 @@ class LoggerConnector:
         # clear mem
         self.eval_loop_results = []
         return results
-
-    def _track_callback_metrics(self, eval_results):
-        if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
-            return
-
-        flat = {}
-        if isinstance(eval_results, list):
-            for eval_result in eval_results:
-                # with a scalar return, auto set it to "val_loss" for callbacks
-                if isinstance(eval_result, torch.Tensor):
-                    flat = {'val_loss': eval_result}
-                elif isinstance(eval_result, dict):
-                    flat = flatten_dict(eval_result)
-
-                self.trainer.logger_connector.callback_metrics.update(flat)
-                if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
-                    self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
-        else:
-            # with a scalar return, auto set it to "val_loss" for callbacks
-            if isinstance(eval_results, torch.Tensor):
-                flat = {'val_loss': eval_results}
-            else:
-                flat = flatten_dict(eval_results)
-
-            self.trainer.logger_connector.callback_metrics.update(flat)
-            if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
-                self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
 
     def on_train_epoch_end(self):
         # inform cached logger connector epoch finished
