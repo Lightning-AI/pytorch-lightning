@@ -634,6 +634,7 @@ class Trainer(
             if not self.interrupted:
                 self.state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
+                # same treatment as below
                 self.accelerator.on_train_end()
                 self._running_stage = None
         except BaseException:
