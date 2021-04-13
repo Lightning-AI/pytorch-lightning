@@ -305,7 +305,7 @@ class AcceleratorConnector(object):
         """
         .. deprecated:: v1.3
             Will be removed in v1.5.0.
-        
+
         Returns:
             ``True`` if the current process was launched using the torchelastic command.
         """

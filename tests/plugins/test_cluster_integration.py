@@ -78,8 +78,7 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 
 
 @pytest.mark.parametrize(
-    "trainer_kwargs",
-    [
+    "trainer_kwargs", [
         dict(accelerator="ddp", gpus=[1, 2]),
         dict(accelerator="ddp_sharded", gpus=[1, 2]),
         dict(accelerator="ddp2", gpus=[1, 2]),
