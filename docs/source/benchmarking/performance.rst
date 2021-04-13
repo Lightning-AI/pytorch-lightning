@@ -148,6 +148,7 @@ Sharded DDP can work across all DDP variants by adding the additional ``--plugin
 
 Refer to the :doc:`distributed computing guide for more details <../advanced/multi_gpu>`.
 
+----------
 
 Sequential Model Parallelism with Checkpointing
 -----------------------------------------------
@@ -156,6 +157,7 @@ Sequential Model Parallelism splits a sequential module onto multiple GPUs, redu
 
 For more information, refer to :ref:`sequential-parallelism`.
 
+----------
 
 Preload Data Into RAM
 ---------------------
@@ -181,3 +183,20 @@ Most UNIX-based operating systems provide direct access to tmpfs through a mount
     .. code-block:: python
 
         datamodule = MyDataModule(data_root="/dev/shm/my_data")
+
+----------
+
+Zero Grad ``set_to_none=True``
+------------------------------
+
+In order to modestly improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
+
+For a more detailed explanation of pros / cons of this technique,
+read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
+
+.. testcode::
+
+    class Model(LightningModule):
+
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+            optimizer.zero_grad(set_to_none=True)

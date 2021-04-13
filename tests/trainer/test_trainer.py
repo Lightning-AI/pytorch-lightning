@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import math
 import os
 import pickle
 import sys
 from argparse import Namespace
 from copy import deepcopy
-from distutils.version import LooseVersion
 from pathlib import Path
 from unittest.mock import ANY, call, patch
 
@@ -34,19 +34,12 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
-
-
-@pytest.fixture
-def pytorch_profiler(tmpdir):
-    profiler = PyTorchProfiler(output_filename=os.path.join(tmpdir, "profiler.txt"), local_rank=0)
-    return profiler
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -309,23 +302,6 @@ def test_loading_yaml(tmpdir):
     assert tags["batch_size"] == 32 and tags["hidden_dim"] == 1000
 
 
-def test_dp_output_reduce():
-    mixin = TrainerLoggingMixin()
-
-    # test identity when we have a single gpu
-    out = torch.rand(3, 1)
-    assert mixin.reduce_distributed_output(out, num_gpus=1) is out
-
-    # average when we have multiples
-    assert mixin.reduce_distributed_output(out, num_gpus=2) == out.mean()
-
-    # when we have a dict of vals
-    out = {"a": out, "b": {"c": out}}
-    reduced = mixin.reduce_distributed_output(out, num_gpus=3)
-    assert reduced["a"] == out["a"]
-    assert reduced["b"]["c"] == out["b"]["c"]
-
-
 @pytest.mark.parametrize(
     "save_top_k,save_last,expected_files",
     [
@@ -553,6 +529,40 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     assert trainer.global_step >= math.floor(num_train_samples * 1.5), "Model did not train for at least min_steps"
 
 
+def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
+    """ Test that min_epochs/min_steps in Trainer are enforced even if EarlyStopping is triggered. """
+
+    class TestModel(BoringModel):
+        training_step_invoked = 0
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
+            self.log("loss", output["loss"])
+            self.training_step_invoked += 1
+            assert not self.trainer.should_stop
+            return output
+
+    model = TestModel()
+    early_stop = EarlyStopping(monitor="loss", patience=0)
+    min_epochs = 5
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        min_epochs=min_epochs,
+        limit_val_batches=0,
+        limit_train_batches=2,
+        callbacks=[early_stop]
+    )
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.trainer.trainer"):
+        trainer.fit(model)
+
+    message = f"minimum epochs ({min_epochs}) or minimum steps (None) has not been met. Training will continue"
+    num_messages = len([record.message for record in caplog.records if message in record.message])
+    assert num_messages == min_epochs - 2
+    assert model.training_step_invoked == min_epochs * 2
+
+
 def test_trainer_max_steps_accumulate_batches(tmpdir):
     """Verify model trains according to specified max steps with grad accumulated batches"""
     model = BoringModel()
@@ -603,7 +613,9 @@ def test_benchmark_option(tmpdir):
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
 @pytest.mark.parametrize("fn", ("validate", "test"))
 def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
+
     class TestModel(BoringModel):
+
         def validation_step(self, batch, batch_idx):
             self.log("foo", -batch_idx)
             return super().validation_step(batch, batch_idx)
@@ -787,7 +799,7 @@ def test_nan_loss_detection(tmpdir):
         terminate_on_nan=True,
     )
 
-    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is nan or inf.*"):
+    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_step_inf_loss
 
@@ -898,6 +910,46 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
+def test_gradient_clipping_by_value(tmpdir):
+    """
+    Test gradient clipping by value
+    """
+    tutils.reset_seed()
+
+    model = BoringModel()
+
+    grad_clip_val = 0.0001
+    trainer = Trainer(
+        max_steps=10,
+        max_epochs=1,
+        gradient_clip_val=grad_clip_val,
+        gradient_clip_algorithm='value',
+        default_root_dir=tmpdir,
+    )
+
+    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+
+    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
+        """
+        wrap the forward step in a closure so second order methods work
+        """
+        # test that gradient is clipped correctly
+        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        parameters = model.parameters()
+        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+        grad_max = torch.max(torch.stack(grad_max_list))
+        assert round(grad_max.item(), 6) <= grad_clip_val, \
+            f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
+
+        return ret_val
+
+    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    # for the test
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
 @RunIf(min_gpus=1, amp_native=True)
 def test_gradient_clipping_fp16(tmpdir):
     """
@@ -927,6 +979,46 @@ def test_gradient_clipping_fp16(tmpdir):
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+
+        return ret_val
+
+    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
+@RunIf(min_gpus=1, amp_native=True)
+def test_gradient_clipping_by_value_fp16(tmpdir):
+    """
+    Test gradient clipping by value with fp16
+    """
+    tutils.reset_seed()
+
+    model = BoringModel()
+    grad_clip_val = 0.0001
+    trainer = Trainer(
+        max_steps=10,
+        max_epochs=1,
+        precision=16,
+        gpus=1,
+        gradient_clip_val=grad_clip_val,
+        gradient_clip_algorithm='value',
+        default_root_dir=tmpdir,
+    )
+
+    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+
+    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
+        """
+        wrap the forward step in a closure so second order methods work
+        """
+        # test that gradient is clipped correctly
+        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        parameters = model.parameters()
+        grad_max = torch.max(torch.stack([p.grad.detach() for p in parameters]))
+        assert round(grad_max.item(), 6) <= grad_clip_val, \
+            f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
 
         return ret_val
 
@@ -1346,7 +1438,14 @@ def test_trainer_setup_call(tmpdir, stage):
 )
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
-    model = EvalModelTemplate()
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args, **kwargs):
+            self.log("foo", -1)
+            return super().training_step(*args, **kwargs)
+
+    model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         log_every_n_steps=log_interval,
@@ -1445,14 +1544,28 @@ def test_trainer_predict_no_return(tmpdir):
 
     class CustomBoringModel(BoringModel):
 
-        def predict(self, batch, batch_idx, dataloader_idx=None):
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
             if (batch_idx + 1) % 2 == 0:
                 return
 
-            return super().predict(batch, batch_idx, dataloader_idx)
+            return super().predict_step(batch, batch_idx, dataloader_idx)
 
     with pytest.warns(UserWarning, match='predict returned None'):
         predict(tmpdir, None, None, 1, model=CustomBoringModel())
+
+
+def test_trainer_predict_grad(tmpdir):
+
+    class CustomBoringModel(BoringModel):
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            assert batch.expand_as(batch).grad_fn is None
+            return super().predict_step(batch, batch_idx, dataloader_idx)
+
+    predict(tmpdir, None, None, 1, model=CustomBoringModel())
+
+    x = torch.zeros(1, requires_grad=True)
+    assert x.expand_as(x).grad_fn is not None
 
 
 @pytest.mark.parametrize('datamodule', [False, True])
@@ -1466,7 +1579,7 @@ def test_trainer_predict_dp(tmpdir, num_gpus):
     predict(tmpdir, "dp", num_gpus, None)
 
 
-@RunIf(min_gpus=2, special=True)
+@RunIf(min_gpus=2, special=True, fairscale=True)
 def test_trainer_predict_ddp(tmpdir):
     predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
 
@@ -1484,124 +1597,6 @@ def test_trainer_predict_1_gpu(tmpdir):
 @RunIf(skip_windows=True, special=True)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
-
-
-def test_pytorch_profiler_describe(pytorch_profiler):
-    """Ensure the profiler won't fail when reporting the summary."""
-    with pytorch_profiler.profile("test_step"):
-        pass
-
-    # log to stdout and print to file
-    pytorch_profiler.describe()
-    data = Path(pytorch_profiler.output_fname).read_text()
-    assert len(data) > 0
-
-
-def test_pytorch_profiler_value_errors(pytorch_profiler):
-    """Ensure errors are raised where expected."""
-
-    action = "test_step"
-    with pytest.raises(ValueError):
-        pytorch_profiler.stop(action)
-
-    pytorch_profiler.start(action)
-    pytorch_profiler.stop(action)
-
-
-@RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize("use_output_filename", [False, True])
-def test_pytorch_profiler_trainer_ddp(tmpdir, use_output_filename):
-    """Ensure that the profiler can be given to the training and default step are properly recorded. """
-
-    if use_output_filename:
-        output_filename = os.path.join(tmpdir, "profiler.txt")
-    else:
-        output_filename = None
-
-    profiler = PyTorchProfiler(output_filename=output_filename)
-
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        profiler=profiler,
-        accelerator="ddp",
-        gpus=2,
-    )
-    trainer.fit(model)
-
-    enabled = use_output_filename or not use_output_filename and profiler.local_rank == 0
-
-    if enabled:
-        assert len(profiler.summary()) > 0
-        assert set(profiler.profiled_actions.keys()) == {'training_step_and_backward', 'validation_step'}
-    else:
-        assert profiler.summary() is None
-        assert set(profiler.profiled_actions.keys()) == set()
-
-    if use_output_filename:
-        profiler.describe()
-        data = Path(profiler.output_fname).read_text()
-        assert len(data) > 0
-
-
-def test_pytorch_profiler_nested(tmpdir):
-    """Ensure that the profiler handles nested context"""
-
-    pytorch_profiler = PyTorchProfiler(
-        profiled_functions=["a", "b", "c"], use_cuda=False, output_filename=os.path.join(tmpdir, "profiler.txt")
-    )
-
-    with pytorch_profiler.profile("a"):
-        a = torch.ones(42)
-        with pytorch_profiler.profile("b"):
-            b = torch.zeros(42)
-        with pytorch_profiler.profile("c"):
-            _ = a + b
-
-    pa = pytorch_profiler.profiled_actions
-
-    # From PyTorch 1.8.0, less operation are being traced.
-    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
-        expected_ = {
-            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'add'],
-            'b': ['zeros', 'empty', 'zero_'],
-            'c': ['add'],
-        }
-    # From PyTorch 1.6.0, more operation are being traced.
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        expected_ = {
-            'a': ['ones', 'empty', 'fill_', 'zeros', 'empty', 'zero_', 'fill_', 'add', 'empty'],
-            'b': ['zeros', 'empty', 'zero_', 'fill_'],
-            'c': ['add', 'empty'],
-        }
-    else:
-        expected_ = {
-            'a': ['add'],
-            'b': [],
-            'c': ['add'],
-        }
-
-    for n in ('a', 'b', 'c'):
-        pa[n] = [e.name for e in pa[n]]
-        if LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
-            pa[n] = [e.replace("aten::", "") for e in pa[n]]
-        assert pa[n] == expected_[n]
-
-
-@RunIf(min_gpus=1, special=True)
-def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
-    """
-    This test check emit_nvtx is correctly supported
-    """
-    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
-
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        profiler=profiler,
-        gpus=1,
-    )
-    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -1854,3 +1849,74 @@ def test_check_val_every_n_epoch_exception(tmpdir):
             max_epochs=1,
             check_val_every_n_epoch=1.2,
         )
+
+
+def test_trainer_attach_data_pipeline_to_model(tmpdir):
+
+    class DataPipeline:
+
+        pass
+
+    class TestDataModule(LightningDataModule):
+
+        data_pipeline = DataPipeline()
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+        def val_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+        def test_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+    class TestCallback(Callback):
+
+        def on_fit_start(self, trainer, pl_module: LightningModule) -> None:
+            """Called when fit begins"""
+            assert isinstance(pl_module.data_pipeline, DataPipeline)
+
+    model = BoringModel()
+    dm = TestDataModule()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[TestCallback()])
+    trainer.fit(model, datamodule=dm)
+
+
+def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+
+    with pytest.raises(MisconfigurationException, match=r"\.validate\(\)` with `fast_dev_run=True"):
+        trainer.validate()
+    with pytest.raises(MisconfigurationException, match=r"\.test\(\)` with `fast_dev_run=True"):
+        trainer.test()
+
+
+class TrainerStagesModel(BoringModel):
+
+    def on_train_start(self) -> None:
+        assert self.trainer.model.training
+        assert self.training
+
+    def on_validation_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+    def on_test_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+    def on_predict_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+
+@pytest.mark.parametrize(['accelerator', 'num_processes'],
+                         [(None, 1), pytest.param('ddp', 2, marks=RunIf(skip_windows=True))])
+def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
+    model = TrainerStagesModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model, model.val_dataloader())

@@ -572,9 +572,7 @@ Next, install the required xla library (adds support for PyTorch on TPUs)
 
 .. code-block:: shell
 
-    !curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
-
-    !python pytorch-xla-env-setup.py --version nightly --apt-packages libomp5 libopenblas-dev
+    !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.8-cp37-cp37m-linux_x86_64.whl
 
 In distributed training (multiple GPUs and multiple TPU cores) each GPU or TPU core will run a copy
 of this program. This means that without taking any care you will download the dataset N times which
@@ -882,8 +880,8 @@ Or maybe we have a model that we use to do generation
     generated_imgs = model(z)
 
 
-To perform inference at scale, it is possible to use ``trainer.predict`` with LightningModule ``predict`` function
-By default, LightningModule ``predict`` calls forward, but it can be overriden to add any processing logic.
+To perform inference at scale, it is possible to use ``trainer.predict`` with LightningModule ``predict_step`` function
+By default, LightningModule ``predict_step`` calls forward, but it can be overriden to add any processing logic.
 
 .. code-block:: python
 
@@ -893,7 +891,7 @@ By default, LightningModule ``predict`` calls forward, but it can be overriden t
             imgs = self.decoder(z)
             return imgs
 
-        def predict(self, batch, batch_idx: int , dataloader_idx: int = None):
+        def predict_step(self, batch, batch_idx: int , dataloader_idx: int = None):
             return self(batch)
 
 

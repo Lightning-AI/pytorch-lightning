@@ -105,8 +105,6 @@ def cli_main():
     # ------------
     # testing
     # ------------
-    # todo: without passing model it fails for missing best weights
-    # MisconfigurationException, 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
     result = trainer.test(model, datamodule=dm)
     pprint(result)
 

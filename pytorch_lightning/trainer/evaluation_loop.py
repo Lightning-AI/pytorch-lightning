@@ -11,12 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict, List, Union
+
 import torch
 
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -98,6 +102,10 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
+        if self.trainer.state != TrainerState.FITTING:
+            # summarize profile results
+            self.trainer.profiler.describe()
+
     def reload_evaluation_dataloaders(self):
         model = self.trainer.lightning_module
         if self.trainer.testing:
@@ -119,6 +127,8 @@ class EvaluationLoop(object):
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
     def on_evaluation_epoch_start(self, *args, **kwargs):
+        self.trainer.call_hook('on_epoch_start', *args, **kwargs)
+
         if self.trainer.testing:
             self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
@@ -178,79 +188,30 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
-    def evaluation_epoch_end(self):
+    def evaluation_epoch_end(self, outputs):
         # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end()
 
         # call the model epoch end
-        deprecated_results = self.__run_eval_epoch_end(self.num_dataloaders)
-
-        # enable returning anything
-        for i, r in enumerate(deprecated_results):
-            if not isinstance(r, (dict, Result, torch.Tensor)):
-                deprecated_results[i] = []
-
-        return deprecated_results
-
-    def log_epoch_metrics_on_evaluation_end(self):
-        # get the final loop results
-        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results()
-        return eval_loop_results
-
-    def __run_eval_epoch_end(self, num_dataloaders):
         model = self.trainer.lightning_module
-
-        # with a single dataloader don't pass an array
-        outputs = self.outputs
-
-        # free memory
-        self.outputs = []
-
-        eval_results = outputs
-        if num_dataloaders == 1:
-            eval_results = outputs[0]
-
-        user_reduced = False
 
         if self.trainer.testing:
             if is_overridden('test_epoch_end', model=model):
                 model._current_fx_name = 'test_epoch_end'
-                eval_results = model.test_epoch_end(eval_results)
-                user_reduced = True
+                model.test_epoch_end(outputs)
 
         else:
             if is_overridden('validation_epoch_end', model=model):
                 model._current_fx_name = 'validation_epoch_end'
-                eval_results = model.validation_epoch_end(eval_results)
-                user_reduced = True
+                model.validation_epoch_end(outputs)
 
         # capture logging
         self.trainer.logger_connector.cache_logged_metrics()
-        # depre warning
-        if eval_results is not None and user_reduced:
-            step = 'testing_epoch_end' if self.trainer.testing else 'validation_epoch_end'
-            self.warning_cache.warn(
-                f'The {step} should not return anything as of 9.1.'
-                ' To log, use self.log(...) or self.write(...) directly in the LightningModule'
-            )
-
-        if not isinstance(eval_results, list):
-            eval_results = [eval_results]
-
-        # track depreceated metrics
-        self.trainer.logger_connector.track_metrics_deprecated(eval_results)
-
-        return eval_results
 
     def __gather_epoch_end_eval_results(self, outputs):
         eval_results = []
         for epoch_output in outputs:
             result = epoch_output[0].__class__.gather(epoch_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
-
             eval_results.append(result)
 
         # with 1 dataloader don't pass in a list
@@ -264,10 +225,6 @@ class EvaluationLoop(object):
         for dl_output in outputs:
             result = dl_output[0]
             result = result.__class__.reduce_on_epoch_end(dl_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
             eval_results.append(result)
 
         return eval_results
@@ -312,12 +269,30 @@ class EvaluationLoop(object):
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
-    def on_evaluation_epoch_end(self, *args, **kwargs):
-        # call the callback hook
-        if self.trainer.testing:
-            self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
-        else:
-            self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
+    def on_evaluation_epoch_end(self, outputs: Union[List[List[Dict]], List[Dict]]) -> None:
+        model_ref = self.trainer.lightning_module
+        hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
+
+        self.trainer._reset_result_and_set_hook_fx_name(hook_name)
+
+        with self.trainer.profiler.profile(hook_name):
+
+            if hasattr(self.trainer, hook_name):
+                on_evaluation_epoch_end_hook = getattr(self.trainer, hook_name)
+                on_evaluation_epoch_end_hook(outputs)
+
+            if is_overridden(hook_name, model_ref):
+                model_hook_fx = getattr(model_ref, hook_name)
+                if is_param_in_hook_signature(model_hook_fx, "outputs"):
+                    model_hook_fx(outputs)
+                else:
+                    self.warning_cache.warn(
+                        f"`ModelHooks.{hook_name}` signature has changed in v1.3. `outputs` parameter has been added."
+                        " Support for the old signature will be removed in v1.5", DeprecationWarning
+                    )
+                    model_hook_fx()
+
+        self.trainer._cache_logged_metrics()
 
         self.trainer.call_hook('on_epoch_end')
 

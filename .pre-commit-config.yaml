@@ -33,8 +33,3 @@ repos:
     hooks:
       - id: yapf
         args: [--parallel, --in-place]
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.790
-    hooks:
-      - id: mypy

@@ -19,6 +19,14 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 
 class DDP2Plugin(DDPPlugin):
 
+    @property
+    def global_rank(self) -> int:
+        return self.node_rank
+
+    @property
+    def world_size(self) -> int:
+        return self.num_nodes
+
     def setup(self, model):
         self._model = model
         # set the task idx
@@ -59,8 +67,10 @@ class DDP2Plugin(DDPPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.num_nodes, rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def _is_single_process_single_device(self) -> bool:
+        return False
+
     def set_world_ranks(self):
-        self.local_rank = self.task_idx
-        self.node_rank = self.cluster_environment.node_rank()
-        self.global_rank = self.node_rank
-        self.world_size = self.num_nodes
+        self.cluster_environment.set_global_rank(self.node_rank)
+        self.cluster_environment.set_world_size(self.num_nodes)

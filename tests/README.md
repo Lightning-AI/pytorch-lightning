@@ -17,7 +17,7 @@ git clone https://github.com/PyTorchLightning/pytorch-lightning
 cd pytorch-lightning
 
 # install AMP support
-bash requirements/install_AMP.sh
+bash requirements/install_Apex.sh
 
 # install dev deps
 pip install -r requirements/devel.txt

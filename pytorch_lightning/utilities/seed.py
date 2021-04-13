@@ -53,6 +53,8 @@ def seed_everything(seed: Optional[int] = None) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
+    # using `log.info` instead of `rank_zero_info`,
+    # so users can verify the seed is properly set in distributed training.
     log.info(f"Global seed set to {seed}")
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)

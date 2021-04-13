@@ -30,6 +30,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
     def __init__(self, amp_level: str = "O2") -> None:
+        super().__init__()
         self.backend = AMPType.APEX
         self.amp_level = amp_level
 
@@ -169,5 +170,4 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             pl_module.trainer.call_hook("on_after_backward")
 
         optimizer.step(**kwargs)
-
         return False
