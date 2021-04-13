@@ -276,4 +276,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return xm.all_gather(tensor.unsqueeze(0))
+        if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
+            tensor = tensor.unsqueeze(0)
+        return xm.all_gather(tensor)
