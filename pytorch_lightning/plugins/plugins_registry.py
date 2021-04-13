@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import UserDict
-from typing import Any, Callable, List, Optional
+from typing import Callable, List, Optional
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class _PluginsRegistry(UserDict):
+class _TrainingTypePluginsRegistry(UserDict):
     """
-    This class is a Registry that stores information about the Plugins.
+    This class is a Registry that stores information about the Training Type Plugins.
 
     The Plugins are mapped to strings. These strings are names that idenitify
     a plugin, eg., "deepspeed". It also returns Optional description and
@@ -84,4 +84,4 @@ class _PluginsRegistry(UserDict):
         return "Registered Plugins: {}".format(", ".join(self.keys()))
 
 
-PluginsRegistry = _PluginsRegistry()
+TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
