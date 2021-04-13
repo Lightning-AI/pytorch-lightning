@@ -174,8 +174,10 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
     # record at least one event
     with advanced_profiler.profile("test"):
         pass
-    # log to stdout and print to file
+    # logs to output file
     advanced_profiler.describe()
+    # ensures file is flushed before reading
+    advanced_profiler.output_file.close()
     data = Path(advanced_profiler.output_fname).read_text()
     assert len(data) > 0
 
