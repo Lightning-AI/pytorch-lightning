@@ -69,6 +69,7 @@ _TORCH_LOWER_EQUAL_1_4 = _compare_version("torch", operator.le, "1.5.0")
 _TORCH_GREATER_EQUAL_1_6 = _compare_version("torch", operator.ge, "1.6.0")
 _TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
+_TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 
 _APEX_AVAILABLE = _module_available("apex.amp")
@@ -80,7 +81,7 @@ _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.grou
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _module_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
-_KINETO_AVAILABLE = torch.profiler.kineto_available() if _TORCH_GREATER_EQUAL_1_8 else False
+_KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NATIVE_AMP_AVAILABLE = _module_available("torch.cuda.amp") and hasattr(torch.cuda.amp, "autocast")
 _OMEGACONF_AVAILABLE = _module_available("omegaconf")
 _RPC_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.rpc')
@@ -88,3 +89,7 @@ _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supporte
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
 _XLA_AVAILABLE = _module_available("torch_xla")
+
+from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
+
+_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
