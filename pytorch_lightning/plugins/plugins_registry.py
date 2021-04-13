@@ -32,13 +32,23 @@ class _PluginsRegistry(UserDict):
 
     """
 
-    def register(self, name: str, func: Optional[Callable] = None, description: Optional[str] = None, **init_params):
+    def register(
+        self,
+        name: str,
+        func: Optional[Callable] = None,
+        description: Optional[str] = None,
+        override: bool = False,
+        **init_params
+    ):
 
         if not (name is None or isinstance(name, str)):
             raise TypeError(f'`name` must be a str, found {name}')
 
-        if name in self:
-            raise MisconfigurationException(f"{name} is already present in the registry.")
+        if name in self and not override:
+            raise MisconfigurationException(
+                f"'{name}' is already present in the registry."
+                " HINT: Use `override=True`."
+            )
 
         data = {}
         data["description"] = description if description is not None else ""
@@ -57,7 +67,9 @@ class _PluginsRegistry(UserDict):
 
     def get(self, name: str):
         if name in self:
-            return self[name]
+            data = self[name]
+            return data["func"](**data["init_params"])
+
         err_msg = "'{}' not found in registry. Available names: {}"
         available_names = ", ".join(sorted(self.keys())) or "none"
         raise KeyError(err_msg.format(name, available_names))
