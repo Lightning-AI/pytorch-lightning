@@ -57,7 +57,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
 
     callback0 = StatefulCallback0()
     callback1 = StatefulCallback1()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="all_states", trigger_on_train_end=True)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True, trigger_on_train_end=True)
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -67,7 +67,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     )
     trainer.fit(model)
 
-    ckpt = torch.load(str(tmpdir / "all_states.ckpt"))
+    ckpt = torch.load(str(tmpdir / "last.ckpt"))
     state0 = ckpt["callbacks"][type(callback0)]
     state1 = ckpt["callbacks"][type(callback1)]
     assert "content0" in state0 and state0["content0"] == 0
