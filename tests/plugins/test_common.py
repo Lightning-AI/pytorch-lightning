@@ -80,22 +80,30 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
-        dict(accelerator="ddp", gpus=[1, 2], num_nodes=2),
-        dict(accelerator="ddp_sharded", gpus=[1, 2], num_nodes=2),
-        dict(accelerator="ddp2", gpus=[1, 2], num_nodes=2),
-        # dict(accelerator="ddp_cpu", num_processes=2),
+        dict(accelerator="ddp", gpus=[1, 2]),
+        dict(accelerator="ddp_sharded", gpus=[1, 2]),
+        dict(accelerator="ddp2", gpus=[1, 2]),
+        dict(accelerator="ddp_cpu", num_processes=2),
+        dict(accelerator="ddp_spawn", gpus=[1, 2]),
     ]
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=4)
 def test_ranks_available_automatic_plugin_selection(mock0, mock1, trainer_kwargs):
     """ Test that the rank information is readily available after Trainer initialization. """
-    num_nodes = trainer_kwargs.get("num_nodes", 1)
+    num_nodes = 2
+    trainer_kwargs.update(num_nodes=num_nodes)
 
     for cluster, variables, expected in environment_combinations():
 
         if trainer_kwargs["accelerator"] == "ddp2":
             expected.update(global_rank=expected["node_rank"], world_size=num_nodes)
+        if trainer_kwargs["accelerator"] in ("ddp_cpu", "ddp_spawn"):
+            if isinstance(cluster, (SLURMEnvironment, TorchElasticEnvironment)):
+                # slurm and torchelastic do not work with spawn plugins
+                continue
+            # when using spawn, we don't reach rank > 0 until we call Trainer.fit()
+            expected.update(global_rank=(expected["node_rank"] * 2), local_rank=0)
 
         with mock.patch.dict(os.environ, variables):
             trainer = Trainer(**trainer_kwargs)
