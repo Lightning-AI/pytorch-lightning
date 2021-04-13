@@ -20,7 +20,10 @@ from typing import Any, Optional, Union
 
 import torch
 
-log = logging.getLogger(__name__)
+from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
+
+if _TPU_AVAILABLE:
+    import torch_xla.core.xla_model as xm
 
 if torch.distributed.is_available():
     from torch.distributed import group, ReduceOp
@@ -32,6 +35,9 @@ else:
 
     class group:
         WORLD = None
+
+
+log = logging.getLogger(__name__)
 
 
 def rank_zero_only(fn):
@@ -222,3 +228,9 @@ def all_gather_ddp_if_available(
             with torch.no_grad():
                 return AllGatherGrad.apply(tensor, group)
     return tensor
+
+
+def tpu_distributed() -> bool:
+    if _TPU_AVAILABLE:
+        return xm.xrt_world_size() > 1
+    return False
