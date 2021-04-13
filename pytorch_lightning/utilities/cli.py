@@ -97,6 +97,7 @@ class LightningCLI:
         save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
+        seed_everything_default: int = None,
         description: str = 'pytorch-lightning trainer command line tool',
         env_prefix: str = 'PL',
         env_parse: bool = False,
@@ -132,6 +133,7 @@ class LightningCLI:
             save_config_callback: A callback class to save the training config.
             trainer_class: An optional extension of the Trainer class.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
+            seed_everything_default: Default value for seed_everything argument.
             description: Description of the tool shown when running --help.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
@@ -152,6 +154,7 @@ class LightningCLI:
         self.save_config_callback = save_config_callback
         self.trainer_class = trainer_class
         self.trainer_defaults = {} if trainer_defaults is None else trainer_defaults
+        self.seed_everything_default = seed_everything_default
         self.subclass_mode_model = subclass_mode_model
         self.subclass_mode_data = subclass_mode_data
         self.parser_kwargs = {} if parser_kwargs is None else parser_kwargs
@@ -187,6 +190,7 @@ class LightningCLI:
         self.parser.add_argument(
             '--seed_everything',
             type=Optional[int],
+            default=self.seed_everything_default,
             help='Set to an int to run seed_everything with this value before classes instantiation',
         )
         self.parser.add_lightning_class_args(self.trainer_class, 'trainer')

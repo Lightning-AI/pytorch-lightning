@@ -18,8 +18,6 @@ To run:
 python simple_image_classifier.py --trainer.max_epochs=50
 """
 
-from pprint import pprint
-
 import torch
 from torch.nn import functional as F
 
@@ -77,18 +75,10 @@ class LitClassifier(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
 
-class MyLightningCLI(LightningCLI):
-
-    def before_parse_arguments(self, parser):
-        parser.set_defaults(seed_everything=1234)
-
-    def after_fit(self):
-        result = self.trainer.test(self.model, datamodule=self.datamodule)
-        pprint(result)
-
-
 def cli_main():
-    MyLightningCLI(LitClassifier, MNISTDataModule)
+    cli = LightningCLI(LitClassifier, MNISTDataModule, seed_everything_default=1234)
+    result = cli.trainer.test(cli.model, datamodule=cli.datamodule)
+    print(result)
 
 
 if __name__ == '__main__':

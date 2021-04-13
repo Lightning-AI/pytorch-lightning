@@ -113,18 +113,10 @@ class MyDataModule(pl.LightningDataModule):
         return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
 
-class MyLightningCLI(LightningCLI):
-
-    def before_parse_arguments(self, parser):
-        parser.set_defaults(seed_everything=1234)
-
-    def after_fit(self):
-        result = self.trainer.test(test_dataloaders=self.datamodule.test_dataloader())
-        print(result)
-
-
 def cli_main():
-    MyLightningCLI(LitAutoEncoder, MyDataModule)
+    cli = LightningCLI(LitAutoEncoder, MyDataModule, seed_everything_default=1234)
+    result = cli.trainer.test(cli.model, datamodule=cli.datamodule)
+    print(result)
 
 
 if __name__ == '__main__':

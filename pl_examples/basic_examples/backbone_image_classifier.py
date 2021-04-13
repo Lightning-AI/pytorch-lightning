@@ -128,20 +128,15 @@ class MyLightningCLI(LightningCLI):
     def add_arguments_to_parser(self, parser):
         parser.add_class_arguments(Backbone, 'model.backbone')
 
-    def before_parse_arguments(self, parser):
-        parser.set_defaults(seed_everything=1234)
-
     def instantiate_model(self):
         self.config_init['model']['backbone'] = Backbone(**self.config['model']['backbone'])
         super().instantiate_model()
 
-    def after_fit(self):
-        result = self.trainer.test(test_dataloaders=self.datamodule.test_dataloader())
-        print(result)
-
 
 def cli_main():
-    MyLightningCLI(LitClassifier, MyDataModule)
+    cli = MyLightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234)
+    result = cli.trainer.test(cli.model, datamodule=cli.datamodule)
+    print(result)
 
 
 if __name__ == '__main__':
