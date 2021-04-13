@@ -17,9 +17,6 @@ from abc import ABC, abstractmethod
 class ClusterEnvironment(ABC):
     """ Specification of a cluster environment. """
 
-    def __init__(self):
-        super().__init__()
-
     @abstractmethod
     def creates_children(self) -> bool:
         """ Whether the environment creates the subprocesses or not. """
