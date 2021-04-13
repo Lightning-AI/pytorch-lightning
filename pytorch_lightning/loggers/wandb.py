@@ -59,7 +59,7 @@ class WandbLogger(LightningLoggerBase):
         log_model: Save checkpoints in wandb dir to upload on W&B servers.
         prefix: A string to put at the beginning of metric keys.
         experiment: WandB experiment object. Automatically set when creating a run.
-        \**wandb_kwargs: Arguments passed to :func:`wandb.init` like `entity`, `group`, `tags`, etc.
+        \**kwargs: Arguments passed to :func:`wandb.init` like `entity`, `group`, `tags`, etc.
 
     Raises:
         ImportError:
@@ -88,18 +88,16 @@ class WandbLogger(LightningLoggerBase):
 
     def __init__(
         self,
-        name: Optional[str] = None,
         save_dir: Optional[str] = None,
         offline: Optional[bool] = False,
         id: Optional[str] = None,
         anonymous: Optional[bool] = False,
         version: Optional[str] = None,
-        project: Optional[str] = None,
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = '',
         sync_step: Optional[bool] = None,
-        **wandb_kwargs
+        **kwargs
     ):
         if wandb is None:
             raise ImportError(
@@ -126,17 +124,12 @@ class WandbLogger(LightningLoggerBase):
         self._prefix = prefix
         self._experiment = experiment
         # set wandb init arguments
-        self._wandb_kwargs = dict(resume='allow')
-        self._wandb_kwargs.update(**wandb_kwargs)
-        for k, v in dict(name=name, id=version or id, dir=save_dir, project=project,
-                         anonymous='allow' if anonymous else None).items():
-            # don't overwrite args defined through `wandb_kwargs`
-            if v is not None:
-                self._wandb_kwargs[k] = v
+        self._wandb_init = dict(resume='allow', id=version or id, dir=save_dir, anonymous='allow' if anonymous is True else anonymous)
+        self._wandb_init.update(**kwargs)
         # extract parameters
-        self._save_dir = self._wandb_kwargs.get('dir', None)
-        self._name = self._wandb_kwargs.get('name', None)
-        self._id = self._wandb_kwargs.get('id', None)
+        self._save_dir = self._wandb_init.get('dir', None)
+        self._name = self._wandb_init.get('name', None)
+        self._id = self._wandb_init.get('id', None)
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -163,7 +156,7 @@ class WandbLogger(LightningLoggerBase):
         if self._experiment is None:
             if self._offline:
                 os.environ['WANDB_MODE'] = 'dryrun'
-            self._experiment = wandb.init(**self._wandb_kwargs) if wandb.run is None else wandb.run
+            self._experiment = wandb.init(**self._wandb_init) if wandb.run is None else wandb.run
 
             # save checkpoints in wandb dir to upload on W&B servers
             if self._save_dir is None:
