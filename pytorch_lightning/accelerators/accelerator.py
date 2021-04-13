@@ -26,7 +26,7 @@ from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 if _NATIVE_AMP_AVAILABLE:
@@ -91,23 +91,23 @@ class Accelerator:
             self.setup_optimizers(trainer)
         self.setup_precision_plugin(self.precision_plugin)
 
-    def start_training(self, trainer: 'pl.Trainer') -> None:
+    def start_training(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
 
-    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
+    def start_evaluating(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_evaluating(trainer)
 
-    def start_predicting(self, trainer: 'pl.Trainer') -> None:
+    def start_predicting(self, trainer: 'Trainer') -> None:
         self.training_type_plugin.start_predicting(trainer)
 
-    def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
+    def pre_dispatch(self, trainer: 'Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.pre_dispatch()
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.precision_plugin.pre_dispatch()
 
-    def post_dispatch(self, trainer: 'pl.Trainer') -> None:
+    def post_dispatch(self, trainer: 'Trainer') -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
@@ -374,7 +374,7 @@ class Accelerator:
         return self.batch_to_device(batch, self.root_device)
 
     @property
-    def amp_backend(self) -> Optional[LightningEnum]:
+    def amp_backend(self) -> Optional['AMPType']:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
         elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):

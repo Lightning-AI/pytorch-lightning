@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, TYPE_CHECKING, Union
 
 from torch.optim import Optimizer
 
@@ -51,7 +51,7 @@ class TPUAccelerator(Accelerator):
         return super().setup(trainer, model)
 
     def run_optimizer_step(
-        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
+        self, optimizer: 'Optimizer', optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
     ) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
