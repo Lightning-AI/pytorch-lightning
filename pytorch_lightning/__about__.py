@@ -34,3 +34,13 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/latest
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
+
+__all__ = [
+    "__author__",
+    "__author_email__",
+    "__copyright__",
+    "__docs__",
+    "__homepage__",
+    "__license__",
+    "__version__",
+]
