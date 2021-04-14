@@ -1098,18 +1098,18 @@ plugins
 
 |
 
-Plugins allow you to connect arbitrary backends, precision libraries, SLURM, etc... For example:
+:ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- DDP
-- SLURM
-- TorchElastic
-- Apex
+- :ref:`DDP <multi_gpu>`
+- `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
+- :ref:`Apex <amp>`
 
-To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own cluster.
+To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
+:class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins.environments import cluster_environment
+    from pytorch_lightning.plugins.environments import ClusterEnvironment
 
     class MyCluster(ClusterEnvironment):
 
@@ -1122,7 +1122,8 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
         def world_size(self):
             return the_world_size
 
-    trainer = Trainer(cluster_environment=cluster_environment())
+    trainer = Trainer(plugins=[MyCluster()], ...)
+
 
 prepare_data_per_node
 ^^^^^^^^^^^^^^^^^^^^^

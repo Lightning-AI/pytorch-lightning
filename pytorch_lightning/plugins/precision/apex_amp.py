@@ -14,6 +14,7 @@
 from typing import Any, Callable, ContextManager, Iterator, List, Sequence, Tuple, Type, TYPE_CHECKING
 
 import torch
+from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
@@ -139,7 +140,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         return model, optimizers
 
     @staticmethod
-    def reinit_scheduler_properties(optimizers: Sequence['Optimizer'], schedulers: Sequence[Any]) -> None:
+    def reinit_scheduler_properties(optimizers: Sequence[Optimizer], schedulers: Sequence[Any]) -> None:
         """Reinitializes schedulers with correct properties"""
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
@@ -163,7 +164,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def pre_optimizer_step(
         self,
         pl_module: LightningModule,
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,

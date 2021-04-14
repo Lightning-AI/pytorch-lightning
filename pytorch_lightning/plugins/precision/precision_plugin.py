@@ -15,7 +15,10 @@ import math
 from typing import Any, Callable, Iterator, List, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
+import torch.nn as nn
+from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 
@@ -27,7 +30,8 @@ if TYPE_CHECKING:
 
 
 class PrecisionPlugin(Plugin):
-    """ Plugin handling the precision-specific parts of the training.
+    """
+    Base class for all plugins handling the precision-specific parts of the training.
     The static classattributes EPSILON and precision must be overwritten in child-classes and their
     default values reflect fp32 training.
     """
@@ -45,18 +49,18 @@ class PrecisionPlugin(Plugin):
 
     def connect(
         self,
-        model: 'Module',
-        optimizers: Sequence['Optimizer'],
+        model: nn.Module,
+        optimizers: Sequence[Optimizer],
         lr_schedulers: Sequence[Any],
-    ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
+    ) -> Tuple[nn.Module, Sequence[Optimizer], Sequence[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
     def backward(
         self,
-        model: 'LightningModule',
+        model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
@@ -87,8 +91,8 @@ class PrecisionPlugin(Plugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'LightningModule',
-        optimizer: 'Optimizer',
+        pl_module: 'pl.LightningModule',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
@@ -96,7 +100,7 @@ class PrecisionPlugin(Plugin):
         """Hook to do something before each optimizer step."""
         return True
 
-    def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
 
     def clip_gradients(
