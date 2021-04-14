@@ -13,6 +13,7 @@
 # limitations under the License
 import logging
 import os
+import warnings
 from typing import Callable, List, Optional
 
 import torch
@@ -91,7 +92,7 @@ class RPCSequentialPlugin(RPCPlugin):
             at the same time. Defaults to `True` if
             `get_model_parallel_world_size() > 1`
         """
-        rank_zero_warn(
+        warnings.warn(
             "RPC Sequential Plugin has been deprecated. Please use the `FullyShardedPlugin` "
             "which provides better performance and scaling without pipelining the model.", DeprecationWarning
         )
