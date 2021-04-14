@@ -48,7 +48,7 @@
 # Testing
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
 
-/.github/CODEOWNERS         @williamfalcon
-/README.md                  @williamfalcon @edenlightning @borda
-/setup.py                   @williamfalcon @borda
-/pytorch_lightning/info.py  @williamfalcon @borda
+/.github/CODEOWNERS             @williamfalcon
+/README.md                      @williamfalcon @edenlightning @borda
+/setup.py                       @williamfalcon @borda
+/pytorch_lightning/__info__.py  @williamfalcon @borda

@@ -13,24 +13,22 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if TYPE_CHECKING:
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
 
 _log = logging.getLogger(__name__)
 
 
 class GPUAccelerator(Accelerator):
+    """ Accelerator for GPU devices. """
 
-    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
