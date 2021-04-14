@@ -13,15 +13,13 @@
 # limitations under the License.
 from typing import Any, Callable, TYPE_CHECKING, Union
 
-import torch
-from torch.optim import Optimizer
-
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
+    from torch import Tensor
     from torch.optim import Optimizer
 
     from pytorch_lightning.core.lightning import LightningModule
@@ -39,7 +37,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def pre_optimizer_step(
         self,
         pl_module: 'LightningModule',
-        optimizer: Optimizer,
+        optimizer: 'Optimizer',
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
@@ -58,13 +56,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def backward(
         self,
         model: 'LightningModule',
-        closure_loss: torch.Tensor,
-        optimizer: Optimizer,
+        closure_loss: 'Tensor',
+        optimizer: 'Optimizer',
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
-    ) -> torch.Tensor:
+    ) -> 'Tensor':
         if is_overridden('backward', model):
             warning_cache.warn(
                 "Overridden backward hook in the LightningModule will be ignored since DeepSpeed handles"
