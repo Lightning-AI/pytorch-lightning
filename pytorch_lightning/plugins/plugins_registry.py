@@ -16,7 +16,8 @@ import os
 import sys
 from collections import UserDict
 from inspect import getmembers, isclass
-from typing import Callable, List, Optional
+from pathlib import Path
+from typing import Any, Callable, List, Optional
 
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin  # noqa: F401
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -50,7 +51,7 @@ class _TrainingTypePluginsRegistry(UserDict):
         plugin: Optional[Callable] = None,
         description: Optional[str] = None,
         override: bool = False,
-        **init_params
+        **init_params: Any,
     ) -> Callable:
         """
         Registers a plugin mapped to a name and with required metadata.
@@ -76,7 +77,7 @@ class _TrainingTypePluginsRegistry(UserDict):
 
         data["init_params"] = init_params
 
-        def do_register(plugin):
+        def do_register(plugin: Callable) -> Callable:
             data["plugin"] = plugin
             self[name] = data
             return plugin
@@ -110,14 +111,14 @@ class _TrainingTypePluginsRegistry(UserDict):
         """Returns a list of registered plugins"""
         return list(self.keys())
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Registered Plugins: {}".format(", ".join(self.keys()))
 
 
 TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
 
 
-def is_register_plugins_overriden(plugin) -> bool:
+def is_register_plugins_overriden(plugin: Callable) -> bool:
     method_name = "register_plugins"
     plugin_attr = getattr(plugin, method_name)
     super_attr = getattr(TrainingTypePlugin, method_name)
@@ -129,7 +130,7 @@ def is_register_plugins_overriden(plugin) -> bool:
     return is_overridden
 
 
-def call_training_type_register_plugins(root: str, base_module: str) -> None:
+def call_training_type_register_plugins(root: Path, base_module: str) -> None:
     directory = "training_type"
     for file in os.listdir(root / directory):
         if file.endswith(".py") and not file.startswith("_"):
