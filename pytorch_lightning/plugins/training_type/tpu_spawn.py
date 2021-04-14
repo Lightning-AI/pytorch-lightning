@@ -11,17 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 import torch.multiprocessing as mp
-from torch.nn import Module
-from torch.utils.data import DataLoader
+from torch.utils.data import BatchSampler, DataLoader, Dataset
 
+from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerState
@@ -42,6 +43,10 @@ else:
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
+
+if TYPE_CHECKING:
+    from torch.nn import Module
+    from torch.utils.data import DataLoader
 
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
@@ -95,7 +100,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def connect(self, model: 'Module') -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
-        return super().connect(model)
+        return super().connect(xmp.MpModelWrapper(LightningDistributedModule(model)))
 
     def setup(self, model: 'Module') -> 'Module':
         self.create_mp_queue()
@@ -114,8 +119,31 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def is_distributed(self):
         return self.world_size != 1
 
-    def process_dataloader(self, dataloader: 'DataLoader') -> MpDeviceLoader:
+    @staticmethod
+    def _re_instantiate_dataloader(dataloader: DataLoader, dataset: Dataset):
+        skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
+
+        attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
+
+        params = set(inspect.signature(dataloader.__init__).parameters)
+
+        if type(dataloader) is not DataLoader:
+            params.update(inspect.signature(DataLoader.__init__).parameters)
+
+        dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
+
+        multiprocessing_context = dataloader.multiprocessing_context
+        dl_args['multiprocessing_context'] = multiprocessing_context
+        dl_args['dataset'] = dataset
+
+        dataloader = type(dataloader)(**dl_args)
+        dataloader.multiprocessing_context = multiprocessing_context
+        return dataloader
+
+    def process_dataloader(self, dataloader: 'DataLoader') -> 'MpDeviceLoader':
         TPUSpawnPlugin._validate_dataloader(dataloader)
+        dataset = xmp.MpSerialExecutor()(dataloader.dataset)
+        dataloader = self._re_instantiate_dataloader(dataloader, dataset)
         device = xm.xla_device()
         dataloader = MpDeviceLoader(dataloader, device)
         return dataloader
@@ -254,16 +282,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def training_step(self, *args, **kwargs):
-        return self.lightning_module.training_step(*args, **kwargs)
+        return self.model.training_step(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        return self.lightning_module.validation_step(*args, **kwargs)
+        return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.lightning_module.test_step(*args, **kwargs)
+        return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        return self.lightning_module.predict_step(*args, **kwargs)
+        return self.model.predict_step(*args, **kwargs)
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
