@@ -26,6 +26,7 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.plugins_registry import TrainingTypePluginsRegistry
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
@@ -70,6 +71,11 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         return batch
 
 
+@TrainingTypePluginsRegistry.register('deepspeed')
+@TrainingTypePluginsRegistry.register('deepspeed_stage_2', stage=2)
+@TrainingTypePluginsRegistry.register('deepspeed_stage_2_offload', stage=2, cpu_offload=True)
+@TrainingTypePluginsRegistry.register('deepspeed_stage_3', stage=3)
+@TrainingTypePluginsRegistry.register('deepspeed_stage_3_offload', stage=3, cpu_offload=True)
 class DeepSpeedPlugin(DDPPlugin):
     distributed_backend = "deepspeed"
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"

@@ -48,39 +48,3 @@ __all__ = [
     'DDPShardedPlugin',
     'DDPSpawnShardedPlugin',
 ]
-
-REGISTRY_TRAINING_TYPE_PLUGINS = [{
-    "plugin": DeepSpeedPlugin,
-    "variants": [{
-        "name": "deepspeed",
-        "description": "Default DeepSpeed Plugin"
-    }, {
-        "name": "deepspeed_stage_2",
-        "description": "DeepSpeed with ZeRO Stage 2 enabled",
-        "stage": 2
-    }, {
-        "name": "deepspeed_stage_2_offload",
-        "description": "DeepSpeed with ZeRO Stage 2 enabled and Offload",
-        "stage": 2,
-        "cpu_offload": True
-    }, {
-        "name": "deepspeed_stage_3",
-        "description": "DeepSpeed with ZeRO Stage 3 enabled",
-        "stage": 3
-    }, {
-        "name": "deepspeed_stage_3_offload",
-        "description": "DeepSpeed with ZeRO Stage 2 enabled and Offload",
-        "stage": 3,
-        "cpu_offload": True
-    }]
-}]
-
-
-def register_training_type_plugins(plugins):
-    for plugin_info in plugins:
-        plugin = plugin_info["plugin"]
-        for variant in plugin_info["variants"]:
-            TrainingTypePluginsRegistry.register(**variant)
-
-
-register_training_type_plugins(REGISTRY_TRAINING_TYPE_PLUGINS)
