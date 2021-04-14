@@ -19,7 +19,7 @@ from inspect import getmembers, isclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -42,6 +42,10 @@ class _TrainingTypePluginsRegistry(UserDict):
         class LightningPlugin:
             def __init__(self, a, b):
                 ...
+
+        or
+
+        TrainingTypePluginsRegistry.register("lightning", LightningPlugin, description="Super fast", a=1, b=True)
 
     """
 
@@ -131,6 +135,7 @@ def is_register_plugins_overriden(plugin: Callable) -> bool:
 
 
 def call_training_type_register_plugins(root: Path, base_module: str) -> None:
+    # Ref: https://github.com/facebookresearch/ClassyVision/blob/master/classy_vision/generic/registry_utils.py#L14
     directory = "training_type"
     for file in os.listdir(root / directory):
         if file.endswith(".py") and not file.startswith("_"):

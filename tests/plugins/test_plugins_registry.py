@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.plugins_registry import TrainingTypePluginsRegistry
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
 from tests.helpers.boring_model import BoringModel
