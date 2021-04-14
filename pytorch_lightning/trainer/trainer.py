@@ -13,6 +13,7 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
+import os
 import warnings
 from itertools import count
 from pathlib import Path
@@ -62,6 +63,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.seed import reset_seed
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -580,6 +582,8 @@ class Trainer(
         self.run_sanity_check(self.lightning_module)
 
         self.checkpoint_connector.has_trained = False
+
+        reset_seed()
 
         # enable train mode
         self.model.train()
