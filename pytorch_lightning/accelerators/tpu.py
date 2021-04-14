@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
-
-from torch.optim import Optimizer
+from typing import Any, Callable, TYPE_CHECKING, Union
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
@@ -22,19 +20,20 @@ from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+if TYPE_CHECKING:
+    from torch.optim import Optimizer
+
+    from pytorch_lightning import LightningModule, Trainer
+
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
     from torch_xla._patched_functions import clip_grad_norm_
-
-    xla_clip_grad_norm_ = clip_grad_norm_
-
-import pytorch_lightning as pl
 
 
 class TPUAccelerator(Accelerator):
     """ Accelerator for TPU devices. """
 
-    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
@@ -51,27 +50,24 @@ class TPUAccelerator(Accelerator):
         return super().setup(trainer, model)
 
     def run_optimizer_step(
-        self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
+        self, optimizer: 'Optimizer', optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
     ) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
     def clip_gradients(
         self,
-        optimizer: Optimizer,
+        optimizer: 'Optimizer',
         clip_val: Union[float, int],
-        norm_type: float = 2.0,
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
-        assert gradient_clip_algorithm is GradClipAlgorithmType.NORM, \
+        assert gradient_clip_algorithm == GradClipAlgorithmType.NORM, \
             "Only NORM gradient clipping is supported on TPU for now"
-
-        model = self.lightning_module
-        parameters = model.parameters()
 
         grad_clip_val = float(clip_val)
         if grad_clip_val <= 0:
             return
 
-        max_norm = grad_clip_val
+        parameters = self.model.parameters()
+        norm_type = 2.0
 
-        xla_clip_grad_norm_(parameters, max_norm, norm_type)
+        clip_grad_norm_(parameters, grad_clip_val, norm_type)

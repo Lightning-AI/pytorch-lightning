@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, Callable, Generator, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterator, List, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 
@@ -20,9 +20,9 @@ from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 
 if TYPE_CHECKING:
-    from torch.nn import Module
+    from torch.nn import Module, Parameter
     from torch.optim import Optimizer
-
+    PARAMETERS = Iterator[Parameter]
     from pytorch_lightning.core import LightningModule
 
 
@@ -34,17 +34,10 @@ class PrecisionPlugin(Plugin):
     EPSILON: float = 1e-6
     precision: Union[str, int] = 32
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.clip_grad_funcs = {
-            GradClipAlgorithmType.VALUE: self.clip_grad_by_value,
-            GradClipAlgorithmType.NORM: self.clip_grad_by_norm,
-        }
-
-    def master_params(self, optimizer: 'Optimizer') -> Generator[torch.Tensor, None, None]:
-        """The master params of the model. Returns the plain model params here.
+    def master_params(self, optimizer: 'Optimizer') -> PARAMETERS:
+        """
+        The master params of the model. Returns the plain model params here.
         Maybe different in other precision plugins.
-
         """
         for group in optimizer.param_groups:
             for p in group["params"]:
@@ -108,7 +101,6 @@ class PrecisionPlugin(Plugin):
 
     def clip_gradients(
         self,
-        model: 'LightningModule',
         optimizer: 'Optimizer',
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
@@ -121,24 +113,23 @@ class PrecisionPlugin(Plugin):
         if clip_val <= 0:
             return
 
-        clip_grad_func = self.clip_grad_funcs[gradient_clip_algorithm]
-        clip_grad_func(optimizer, clip_val)  # type: ignore
+        parameters = self.master_params(optimizer)
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            self.clip_grad_by_value(parameters, clip_val)
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
+            self.clip_grad_by_norm(parameters, clip_val, eps=self.EPSILON)
 
-    def clip_grad_by_value(self, optimizer: 'Optimizer', clip_val: Union[int, float]) -> None:
+    @staticmethod
+    def clip_grad_by_value(parameters: PARAMETERS, clip_val: Union[int, float]) -> None:
         """Clip gradients by value"""
-        parameters = list(self.master_params(optimizer))
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
-    def clip_grad_by_norm(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
+    def clip_grad_by_norm(self, parameters: PARAMETERS, clip_val: Union[int, float], eps: float = 1e-6) -> None:
         """Clip gradients by norm"""
+        # TODO: replace this with torch.nn.clip_grad_norm_
         # TODO: separate TPU case from here
-        parameters = list(self.master_params(optimizer))
-        max_norm = clip_val
-
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
+        norm_type = 2.0  # TODO. there should a mechanism to set this
         parameters = list(filter(lambda p: p.grad is not None, parameters))
-
         device = parameters[0].device
 
         if norm_type == math.inf:
@@ -149,9 +140,7 @@ class PrecisionPlugin(Plugin):
                 torch.norm(p.grad.data.to(device), norm_type, out=out[i])
             total_norm = torch.norm(out, norm_type)
 
-        eps = self.EPSILON
-
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
+        clip_coef = torch.tensor(clip_val, device=device) / (total_norm + eps)
         clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
         for p in parameters:
             p.grad.data.mul_(clip_coef.to(p.grad.data.device))

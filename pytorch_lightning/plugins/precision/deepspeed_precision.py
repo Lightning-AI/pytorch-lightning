@@ -21,6 +21,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
+    from torch.nn import Module
     from torch.optim import Optimizer
 
     from pytorch_lightning.core.lightning import LightningModule
@@ -78,7 +79,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def clip_gradients(
         self,
-        model: 'LightningModule',
         optimizer: 'Optimizer',
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
