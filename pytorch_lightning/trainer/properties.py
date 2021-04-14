@@ -61,6 +61,8 @@ class TrainerProperties(ABC):
     current_epoch: int
     global_step: int
     fast_dev_run: bool
+    should_stop: bool
+    log_every_n_steps: int
 
     @property
     def accelerator(self) -> Accelerator:

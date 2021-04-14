@@ -20,11 +20,15 @@ Monitor and logs learning rate for lr schedulers during training.
 
 """
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if TYPE_CHECKING:
+    from pytorch_lightning.core import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class LearningRateMonitor(Callback):
@@ -73,10 +77,11 @@ class LearningRateMonitor(Callback):
 
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
-        self.lrs = None
-        self.lr_sch_names = []
+        self.lrs: Dict[str, List] = {}
+        self.lr_sch_names: List[str] = []
+        self.last_momentum_values: Dict[str, Optional[float]] = {}
 
-    def on_train_start(self, trainer, *args, **kwargs):
+    def on_train_start(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
         """
         Called before training, determines unique names for all lr
         schedulers in the case of multiple of the same type or in
@@ -100,8 +105,9 @@ class LearningRateMonitor(Callback):
 
         if self.log_momentum:
 
-            def _check_no_key(key):
-                return any(key not in sch['scheduler'].optimizer.defaults for sch in trainer.lr_schedulers)
+            def _check_no_key(key: str) -> bool:
+                return any(key not in sch['scheduler'].optimizer.defaults
+                           for sch in trainer.lr_schedulers) if isinstance(trainer.lr_schedulers, Iterable) else True
 
             if _check_no_key('momentum') and _check_no_key('betas'):
                 rank_zero_warn(
@@ -116,7 +122,7 @@ class LearningRateMonitor(Callback):
         self.lrs = {name: [] for name in names}
         self.last_momentum_values = {name + "-momentum": None for name in names}
 
-    def on_train_batch_start(self, trainer, *args, **kwargs):
+    def on_train_batch_start(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
         if not self._should_log(trainer):
             return
 
@@ -127,7 +133,7 @@ class LearningRateMonitor(Callback):
             if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def on_train_epoch_start(self, trainer, *args, **kwargs):
+    def on_train_epoch_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         if self.logging_interval != 'step':
             interval = 'epoch' if self.logging_interval is None else 'any'
             latest_stat = self._extract_stats(trainer, interval)
@@ -135,10 +141,12 @@ class LearningRateMonitor(Callback):
             if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
+    def _extract_stats(self, trainer: 'Trainer', interval: str) -> Dict[str, float]:
         latest_stat = {}
 
-        for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
+        for name, scheduler in zip(
+            self.lr_sch_names, trainer.lr_schedulers if trainer.lr_schedulers is not None else []
+        ):
             if scheduler['interval'] == interval or interval == 'any':
                 opt = scheduler['scheduler'].optimizer
                 param_groups = opt.param_groups
@@ -155,53 +163,59 @@ class LearningRateMonitor(Callback):
 
         return latest_stat
 
-    def _extract_lr(self, param_group, name: str) -> Dict[str, float]:
-        lr = param_group.get('lr')
+    def _extract_lr(self, param_group: Dict[str, float], name: str) -> Dict[str, float]:
+        lr = param_group['lr']
         self.lrs[name].append(lr)
         return {name: lr}
 
-    def _extract_momentum(self, param_group, name: str, use_betas: bool) -> Dict[str, float]:
+    def _extract_momentum(self, param_group: Dict[str, Union[Sequence[float], float]], name: str,
+                          use_betas: bool) -> Dict[str, float]:
         if not self.log_momentum:
             return {}
 
-        momentum = param_group.get('betas')[0] if use_betas else param_group.get('momentum', 0)
+        _momentum = param_group['betas'] if use_betas else param_group.get('momentum', 0.)
+        if isinstance(_momentum, Sequence):
+            momentum = _momentum[0]
+        else:
+            momentum = _momentum
         self.last_momentum_values[name] = momentum
         return {name: momentum}
 
-    def _find_names(self, lr_schedulers) -> List[str]:
+    def _find_names(self, lr_schedulers: Optional[List[Any]]) -> List[str]:
         # Create uniqe names in the case we have multiple of the same learning
         # rate schduler + multiple parameter groups
         names = []
-        for scheduler in lr_schedulers:
-            sch = scheduler['scheduler']
-            if scheduler['name'] is not None:
-                name = scheduler['name']
-            else:
-                opt_name = 'lr-' + sch.optimizer.__class__.__name__
-                i, name = 1, opt_name
+        if lr_schedulers is not None:
+            for scheduler in lr_schedulers:
+                sch = scheduler['scheduler']
+                if scheduler['name'] is not None:
+                    name = scheduler['name']
+                else:
+                    opt_name = 'lr-' + sch.optimizer.__class__.__name__
+                    i, name = 1, opt_name
 
-                # Multiple schduler of the same type
-                while True:
-                    if name not in names:
-                        break
-                    i, name = i + 1, f'{opt_name}-{i}'
+                    # Multiple schduler of the same type
+                    while True:
+                        if name not in names:
+                            break
+                        i, name = i + 1, f'{opt_name}-{i}'
 
-            # Multiple param groups for the same schduler
-            param_groups = sch.optimizer.param_groups
+                # Multiple param groups for the same schduler
+                param_groups = sch.optimizer.param_groups
 
-            if len(param_groups) != 1:
-                for i, pg in enumerate(param_groups):
-                    temp = f'{name}/pg{i + 1}'
-                    names.append(temp)
-            else:
-                names.append(name)
+                if len(param_groups) != 1:
+                    for i, pg in enumerate(param_groups):
+                        temp = f'{name}/pg{i + 1}'
+                        names.append(temp)
+                else:
+                    names.append(name)
 
-            self.lr_sch_names.append(name)
+                self.lr_sch_names.append(name)
 
         return names
 
     @staticmethod
-    def _should_log(trainer) -> bool:
-        should_log = ((trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop)
+    def _should_log(trainer: "Trainer") -> bool:
+        should_log: bool = ((trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop)
 
         return should_log
