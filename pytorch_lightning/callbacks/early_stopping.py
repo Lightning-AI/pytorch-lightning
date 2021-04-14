@@ -19,7 +19,7 @@ Monitor a metric and stop training when it stops improving.
 
 """
 import logging
-from typing import Any, Dict, Optional, Tuple, Mapping, Callable
+from typing import Any, Dict, Mapping, Optional, Callable, Tuple
 
 import numpy as np
 import torch
