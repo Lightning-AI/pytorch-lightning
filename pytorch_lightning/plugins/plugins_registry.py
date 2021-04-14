@@ -46,8 +46,17 @@ class _TrainingTypePluginsRegistry(UserDict):
         description: Optional[str] = None,
         override: bool = False,
         **init_params
-    ):
+    ) -> Callable:
+        """
+        Registers a plugin mapped to a name and with required metadata.
 
+        Args:
+            name (str): the name that identifies a plugin, e.g. "deepspeed_stage_3"
+            plugin (callable): plugin class
+            description (str): plugin description
+            override (bool): overrides the registered plugin, if True
+            init_params: parameters to initialize the plugin
+        """
         if not (name is None or isinstance(name, str)):
             raise TypeError(f'`name` must be a str, found {name}')
 
@@ -72,7 +81,14 @@ class _TrainingTypePluginsRegistry(UserDict):
 
         return do_register
 
-    def get(self, name: str):
+    def get(self, name: str) -> Callable:
+        """
+        Calls the registered plugin with the required parameters
+        and returns the plugin object
+
+        Args:
+            name (str): the name that identifies a plugin, e.g. "deepspeed_stage_3"
+        """
         if name in self:
             data = self[name]
             return data["plugin"](**data["init_params"])
@@ -81,10 +97,12 @@ class _TrainingTypePluginsRegistry(UserDict):
         available_names = ", ".join(sorted(self.keys())) or "none"
         raise KeyError(err_msg.format(name, available_names))
 
-    def remove(self, name: str):
+    def remove(self, name: str) -> None:
+        """Removes the registered plugin by name"""
         self.pop(name)
 
     def available_plugins(self) -> List:
+        """Returns a list of registered plugins"""
         return list(self.keys())
 
     def __str__(self):
