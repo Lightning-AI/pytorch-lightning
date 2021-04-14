@@ -126,8 +126,14 @@ class WandbLogger(LightningLoggerBase):
         self._prefix = prefix
         self._experiment = experiment
         # set wandb init arguments
-        self._wandb_init = dict(resume='allow', id=version or id, dir=save_dir, name=name, project=project,
-                                anonymous='allow' if anonymous is True else None if anonymous is False else anonymous)
+        anonymous_lut = {True: 'allow', False: None}
+        self._wandb_init = dict(
+            name=name,
+            project=project,
+            id=version or id,
+            dir=save_dir,
+            resume='allow',
+            anonymous=anonymous_lut.get(anonymous, anonymous))
         self._wandb_init.update(**kwargs)
         # extract parameters
         self._save_dir = self._wandb_init.get('dir', None)
