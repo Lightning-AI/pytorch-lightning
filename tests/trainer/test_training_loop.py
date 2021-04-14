@@ -58,7 +58,17 @@ def test_training_loop_hook_call_order(tmpdir):
             super().on_after_backward()
 
         def optimizer_step(
-                self,
+            self,
+            epoch,
+            batch_idx,
+            optimizer,
+            optimizer_idx,
+            optimizer_closure,
+            on_tpu,
+            using_native_amp,
+            using_lbfgs,
+        ):
+            super().optimizer_step(
                 epoch,
                 batch_idx,
                 optimizer,
@@ -67,11 +77,10 @@ def test_training_loop_hook_call_order(tmpdir):
                 on_tpu,
                 using_native_amp,
                 using_lbfgs,
-        ):
-            super().optimizer_step(
-                epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
             )
-            self.called.append("optimizer_step")  # append after as closure calls other methods
+            self.called.append(
+                "optimizer_step"
+            )  # append after as closure calls other methods
 
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             self.called.append("on_train_batch_end")
@@ -106,23 +115,23 @@ def test_training_loop_hook_call_order(tmpdir):
 
     trainer.fit(model)
     expected = [
-        'on_epoch_start',  # validation
-        'on_epoch_end',
-        'on_epoch_start',  # training
-        'on_train_epoch_start',
-        'on_train_batch_start',
-        'training_step',
-        'on_before_zero_grad',
-        'optimizer_zero_grad',
-        'backward',
-        'on_after_backward',
-        'optimizer_step',
-        'on_train_batch_end',
-        'training_epoch_end',
-        'on_train_epoch_end',
-        'on_epoch_end',
-        'on_epoch_start',  # validation
-        'on_epoch_end'
+        "on_epoch_start",  # validation
+        "on_epoch_end",
+        "on_epoch_start",  # training
+        "on_train_epoch_start",
+        "on_train_batch_start",
+        "training_step",
+        "on_before_zero_grad",
+        "optimizer_zero_grad",
+        "backward",
+        "on_after_backward",
+        "optimizer_step",
+        "on_train_batch_end",
+        "training_epoch_end",
+        "on_train_epoch_end",
+        "on_epoch_end",
+        "on_epoch_start",  # validation
+        "on_epoch_end",
     ]
     assert model.called == expected
 
@@ -132,15 +141,16 @@ def test_outputs_format(tmpdir):
 
     class HookedModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            self.log("foo", "bar")
-            return super().training_step(batch, batch_idx)
+            output = super().training_step(batch, batch_idx)
+            self.log("foo", 123)
+            output["foo"] = 123
+            return output
 
         @staticmethod
         def _check_output(output):
             assert "loss" in output
-
             assert "foo" in output
-            assert output["foo"] == "bar"
+            assert output["foo"] == 123
 
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             HookedModel._check_output(outputs)
