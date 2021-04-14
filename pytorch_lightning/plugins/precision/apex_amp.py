@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Generator, List, Sequence, Tuple, Type, TYPE_CHECKING
+from typing import Any, Callable, Generator, List, Sequence, Tuple, Type
 
 import torch
+from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
@@ -21,9 +22,6 @@ from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, rank_zero_warn
 
 if _APEX_AVAILABLE:
     from apex import amp
-
-if TYPE_CHECKING:
-    from torch.optim import Optimizer
 
 
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
@@ -34,11 +32,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.APEX
         self.amp_level = amp_level
 
-    def master_params(self, optimizer: 'Optimizer') -> Generator[torch.Tensor, None, None]:
+    def master_params(self, optimizer: Optimizer) -> Generator[torch.Tensor, None, None]:
         return amp.master_params(optimizer)
 
-    def connect(self, model: torch.nn.Module, optimizers: Sequence['Optimizer'],
-                lr_schedulers: Sequence[Any]) -> Tuple[torch.nn.Module, Sequence['Optimizer'], Sequence[Any]]:
+    def connect(self, model: torch.nn.Module, optimizers: Sequence[Optimizer],
+                lr_schedulers: Sequence[Any]) -> Tuple[torch.nn.Module, Sequence[Optimizer], Sequence[Any]]:
         """Connects the precision plugin to the training process,
         configures apex and reinits the schedulers
         """
@@ -52,7 +50,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self,
         model: LightningModule,
         closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
@@ -100,9 +98,9 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self,
         amp: Type,
         model: LightningModule,
-        optimizers: List['Optimizer'],
+        optimizers: List[Optimizer],
         amp_level: str,
-    ) -> Tuple[LightningModule, List['Optimizer']]:
+    ) -> Tuple[LightningModule, List[Optimizer]]:
         r"""
         Override to init AMP your own way.
         Must return a model and list of optimizers.
@@ -131,7 +129,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         return model, optimizers
 
     @staticmethod
-    def reinit_scheduler_properties(optimizers: Sequence['Optimizer'], schedulers: Sequence[Any]) -> None:
+    def reinit_scheduler_properties(optimizers: Sequence[Optimizer], schedulers: Sequence[Any]) -> None:
         """Reinitializes schedulers with correct properties"""
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
@@ -155,7 +153,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def pre_optimizer_step(
         self,
         pl_module: LightningModule,
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,

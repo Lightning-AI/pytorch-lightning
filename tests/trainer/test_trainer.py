@@ -918,13 +918,13 @@ def test_gradient_clipping_by_value(tmpdir):
 
     model = BoringModel()
 
-    grad_clip_val = 0.0001
+    grad_clip_val = 1e-10
     trainer = Trainer(
-        max_steps=10,
+        max_steps=1,
         max_epochs=1,
         gradient_clip_val=grad_clip_val,
         gradient_clip_algorithm='value',
-        default_root_dir=tmpdir,
+        default_root_dir=tmpdir
     )
 
     trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
@@ -938,8 +938,8 @@ def test_gradient_clipping_by_value(tmpdir):
         parameters = model.parameters()
         grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
         grad_max = torch.max(torch.stack(grad_max_list))
-        assert round(grad_max.item(), 6) <= grad_clip_val, \
-            f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
+        assert abs(grad_max.item() - grad_clip_val) < 1e-11, \
+            f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
 
         return ret_val
 
@@ -996,9 +996,9 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
     tutils.reset_seed()
 
     model = BoringModel()
-    grad_clip_val = 0.0001
+    grad_clip_val = 1e-10
     trainer = Trainer(
-        max_steps=10,
+        max_steps=1,
         max_epochs=1,
         precision=16,
         gpus=1,
@@ -1016,9 +1016,10 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
         # test that gradient is clipped correctly
         ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
-        grad_max = torch.max(torch.stack([p.grad.detach() for p in parameters]))
-        assert round(grad_max.item(), 6) <= grad_clip_val, \
-            f"Gradient max value {grad_max} > grad_clip_val {grad_clip_val} ."
+        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+        grad_max = torch.max(torch.stack(grad_max_list))
+        assert abs(grad_max.item() - grad_clip_val) < 1e-11, \
+            f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
 
         return ret_val
 
@@ -1508,7 +1509,7 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True):
+def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
@@ -1524,6 +1525,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
         gpus=gpus,
         num_processes=num_processes,
         plugins=plugins,
+        progress_bar_refresh_rate=pbrr
     )
     if datamodule:
         results = trainer.predict(model, datamodule=dm)
@@ -1568,9 +1570,10 @@ def test_trainer_predict_grad(tmpdir):
     assert x.expand_as(x).grad_fn is not None
 
 
+@pytest.mark.parametrize('progress_bar_refresh_rate', [0, 5, None])
 @pytest.mark.parametrize('datamodule', [False, True])
-def test_trainer_predict_cpu(tmpdir, datamodule):
-    predict(tmpdir, None, None, 1, datamodule=datamodule)
+def test_trainer_predict_cpu(tmpdir, datamodule, progress_bar_refresh_rate):
+    predict(tmpdir, None, None, 1, datamodule=datamodule, pbrr=progress_bar_refresh_rate)
 
 
 @RunIf(min_gpus=2, special=True)
