@@ -15,11 +15,10 @@ import contextlib
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
-from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType
 
 if TYPE_CHECKING:
     from torch import device, Tensor
@@ -29,6 +28,9 @@ if TYPE_CHECKING:
     from torch.utils.data import DataLoader
 
     from pytorch_lightning import LightningModule, Trainer
+    from pytorch_lightning.plugins.precision import PrecisionPlugin
+    from pytorch_lightning.plugins.training_type import TrainingTypePlugin
+    from pytorch_lightning.utilities.enums import LightningEnum
     _STEP_OUTPUT_TYPE = Union[Tensor, Dict[str, Tensor], None]
 
 
@@ -50,8 +52,8 @@ class Accelerator:
 
     def __init__(
         self,
-        precision_plugin: PrecisionPlugin,
-        training_type_plugin: TrainingTypePlugin,
+        precision_plugin: 'PrecisionPlugin',
+        training_type_plugin: 'TrainingTypePlugin',
     ) -> None:
         """
         Args:
@@ -142,7 +144,7 @@ class Accelerator:
         """
         pass
 
-    def batch_to_device(self, batch: Any, device: Optional[device] = None) -> Any:
+    def batch_to_device(self, batch: Any, device: Optional['device'] = None) -> Any:
         """Moves the batch to the correct device.
         The returned batch is of the same type as the input batch, just having all tensors on the correct device.
 
@@ -164,7 +166,7 @@ class Accelerator:
     def training_step(
         self,
         args: List[Union[Any, int]],
-    ) -> _STEP_OUTPUT_TYPE:
+    ) -> '_STEP_OUTPUT_TYPE':
         """The actual training step.
 
         Args:
@@ -186,7 +188,7 @@ class Accelerator:
     def post_training_step(self) -> None:
         self.training_type_plugin.post_training_step()
 
-    def validation_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def validation_step(self, args: List[Union[Any, int]]) -> '_STEP_OUTPUT_TYPE':
         """The actual validation step.
 
         Args:
@@ -205,7 +207,7 @@ class Accelerator:
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*args)
 
-    def test_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def test_step(self, args: List[Union[Any, int]]) -> '_STEP_OUTPUT_TYPE':
         """The actual test step.
 
         Args:
@@ -224,7 +226,7 @@ class Accelerator:
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*args)
 
-    def predict_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def predict_step(self, args: List[Union[Any, int]]) -> '_STEP_OUTPUT_TYPE':
         """The actual predict step.
 
         Args:
@@ -244,7 +246,7 @@ class Accelerator:
         with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
             return self.training_type_plugin.predict_step(*args)
 
-    def training_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
+    def training_step_end(self, output: '_STEP_OUTPUT_TYPE') -> '_STEP_OUTPUT_TYPE':
         """A hook to do something at the end of the training step
 
         Args:
@@ -252,7 +254,7 @@ class Accelerator:
         """
         return self.training_type_plugin.training_step_end(output)
 
-    def test_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
+    def test_step_end(self, output: '_STEP_OUTPUT_TYPE') -> '_STEP_OUTPUT_TYPE':
         """A hook to do something at the end of the test step
 
         Args:
@@ -260,7 +262,7 @@ class Accelerator:
         """
         return self.training_type_plugin.test_step_end(output)
 
-    def validation_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
+    def validation_step_end(self, output: '_STEP_OUTPUT_TYPE') -> '_STEP_OUTPUT_TYPE':
         """A hook to do something at the end of the validation step
 
         Args:
@@ -329,7 +331,7 @@ class Accelerator:
         """clips all the optimizer parameters to the given value"""
         self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
-    def on_train_epoch_end(self, outputs: Sequence[_STEP_OUTPUT_TYPE]) -> None:
+    def on_train_epoch_end(self, outputs: Sequence['_STEP_OUTPUT_TYPE']) -> None:
         """Hook to do something on the end of an training epoch
 
         Args:
@@ -357,11 +359,11 @@ class Accelerator:
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def setup_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+    def setup_training_type_plugin(self, plugin: 'TrainingTypePlugin', model: 'LightningModule') -> None:
         """Attaches the training type plugin to the accelerator."""
         plugin.setup(model)
 
-    def setup_precision_plugin(self, plugin: PrecisionPlugin) -> None:
+    def setup_precision_plugin(self, plugin: 'PrecisionPlugin') -> None:
         """Attaches the precision plugin to the accelerator"""
         model, optimizers, schedulers = plugin.connect(self.model, self.optimizers, self.lr_schedulers)
         self.model = model
@@ -378,7 +380,7 @@ class Accelerator:
         return batch[0] if is_dict else batch
 
     @property
-    def amp_backend(self) -> Optional[LightningEnum]:
+    def amp_backend(self) -> Optional['LightningEnum']:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
         elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
@@ -397,14 +399,14 @@ class Accelerator:
     def rpc_enabled(self) -> bool:
         return self.training_type_plugin.rpc_enabled
 
-    def optimizer_state(self, optimizer: 'Optimizer') -> Dict[str, Tensor]:
+    def optimizer_state(self, optimizer: 'Optimizer') -> Dict[str, 'Tensor']:
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
         """
         return getattr(self.training_type_plugin, 'optimizer_state', lambda x: x.state_dict())(optimizer)
 
-    def on_save(self, checkpoint: Dict[str, Union[Any, Tensor]]) -> Dict[str, Union[Any, Tensor]]:
+    def on_save(self, checkpoint: Dict[str, Union[Any, 'Tensor']]) -> Dict[str, Union[Any, 'Tensor']]:
         return self.training_type_plugin.on_save(checkpoint)
 
     def barrier(self, name: Optional[str] = None) -> None:
@@ -419,7 +421,7 @@ class Accelerator:
         """
         return self.training_type_plugin.broadcast(obj, src)
 
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+    def all_gather(self, tensor: 'Tensor', group: Optional[Any] = None, sync_grads: bool = False) -> 'Tensor':
         """
         Function to gather a tensor from several distributed processes.
 
@@ -463,7 +465,7 @@ class Accelerator:
             yield
 
     # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+    def connect_training_type_plugin(self, plugin: 'TrainingTypePlugin', model: 'LightningModule') -> None:
         """
         Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin

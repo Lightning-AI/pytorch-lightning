@@ -49,9 +49,9 @@ class PrecisionPlugin(Plugin):
     def connect(
         self,
         model: 'Module',
-        optimizers: Sequence[Optimizer],
+        optimizers: Sequence['Optimizer'],
         lr_schedulers: Sequence[Any],
-    ) -> Tuple['Module', Sequence[Optimizer], Sequence[Any]]:
+    ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
