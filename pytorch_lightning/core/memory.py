@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
@@ -24,6 +24,9 @@ import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
 from pytorch_lightning.utilities import AMPType, DeviceType
+
+if TYPE_CHECKING:
+    from pytorch_lightning.core.lightning import LightningModule
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -65,10 +68,10 @@ class LayerSummary(object):
         super().__init__()
         self._module = module
         self._hook_handle = self._register_hook()
-        self._in_size = None
-        self._out_size = None
+        self._in_size: Optional[Union[str, List]] = None
+        self._out_size: Optional[Union[str, List]] = None
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.detach_hook()
 
     def _register_hook(self) -> Optional[RemovableHandle]:
@@ -82,19 +85,20 @@ class LayerSummary(object):
             A handle for the installed hook, or ``None`` if registering the hook is not possible.
         """
 
-        def hook(module, inp, out):
+        def hook(module: torch.nn.Module, inp: Any, out: Any) -> None:
             if len(inp) == 1:
                 inp = inp[0]
             self._in_size = parse_batch_shape(inp)
             self._out_size = parse_batch_shape(out)
-            self._hook_handle.remove()
+            if self._hook_handle is not None:
+                self._hook_handle.remove()
 
         handle = None
         if not isinstance(self._module, torch.jit.ScriptModule):
             handle = self._module.register_forward_hook(hook)
         return handle
 
-    def detach_hook(self):
+    def detach_hook(self) -> None:
         """
         Removes the forward hook if it was not already removed in the forward pass.
         Will be called after the summary is created.
@@ -182,7 +186,7 @@ class ModelSummary(object):
     MODE_DEFAULT = MODE_TOP
     MODES = [MODE_FULL, MODE_TOP]
 
-    def __init__(self, model, mode: str = MODE_DEFAULT):
+    def __init__(self, model: 'LightningModule', mode: str = MODE_DEFAULT) -> None:
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
@@ -252,8 +256,8 @@ class ModelSummary(object):
         input_ = model.example_input_array
         input_ = model._apply_batch_transfer_handler(input_, model.device)
 
-        if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
-            model.forward = torch.cuda.amp.autocast()(model.forward)
+        if trainer is not None and trainer.amp_backend is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
+            setattr(model, 'forward', torch.cuda.amp.autocast()(model.forward))
 
         mode = model.training
         model.eval()
@@ -267,7 +271,7 @@ class ModelSummary(object):
                 model(input_)
         model.train(mode)  # restore mode of module
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Makes a summary listing with:
 
@@ -288,7 +292,7 @@ class ModelSummary(object):
 
         return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
 
@@ -303,7 +307,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
     return UNKNOWN_SIZE
 
 
-def _format_summary_table(total_parameters: int, trainable_parameters: int, model_size: float, *cols) -> str:
+def _format_summary_table(total_parameters: int, trainable_parameters: int, model_size: float, *cols: Sequence) -> str:
     """
     Takes in a number of arrays, each specifying a column in
     the summary table, and combines them all into one big
@@ -345,7 +349,7 @@ def _format_summary_table(total_parameters: int, trainable_parameters: int, mode
     return summary
 
 
-def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
+def get_memory_profile(mode: str) -> Union[Dict[str, float], Dict[int, float]]:
     """ Get a profile of the current memory usage.
 
     Args:
@@ -373,7 +377,7 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
     return memory_map
 
 
-def get_gpu_memory_map() -> Dict[str, int]:
+def get_gpu_memory_map() -> Dict[str, float]:
     """
     Get the current gpu usage.
 
@@ -382,7 +386,7 @@ def get_gpu_memory_map() -> Dict[str, int]:
         values are memory usage as integers in MB.
     """
     result = subprocess.run(
-        [shutil.which("nvidia-smi"), "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
+        [str(shutil.which("nvidia-smi")), "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
         encoding="utf-8",
         # capture_output=True,          # valid for python version >=3.7
         stdout=subprocess.PIPE,
@@ -396,7 +400,7 @@ def get_gpu_memory_map() -> Dict[str, int]:
     return gpu_memory_map
 
 
-def get_formatted_model_size(total_model_size: float) -> float:
+def get_formatted_model_size(total_model_size: float) -> str:
     return f"{total_model_size:,.3f}"
 
 
