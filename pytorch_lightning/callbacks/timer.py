@@ -90,21 +90,45 @@ class Timer(Callback):
         self._interval = interval
         self._verbose = verbose
         self._start_time = defaultdict(lambda: None)
+        self._end_time = defaultdict(lambda: None)
         self._offset = timedelta()
 
     def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[datetime]:
         return self._start_time[stage]
 
+    def end_time(self, stage: str = RunningStage.TRAINING) -> Optional[datetime]:
+        return self._end_time[stage]
+
     def time_elapsed(self, stage: str = RunningStage.TRAINING) -> timedelta:
-        if self.start_time(stage) is None:
-            return self._offset
-        return datetime.now() - self.start_time(stage) + self._offset
+        start = self.start_time(stage)
+        end = self.end_time(stage)
+        offset = self._offset if stage == RunningStage.TRAINING else timedelta(0)
+        if start is None:
+            return offset
+        if end is None:
+            return datetime.now() - start + offset
+        return end - start + offset
 
     def time_remaining(self, stage: str = RunningStage.TRAINING) -> timedelta:
         return self._duration - self.time_elapsed(stage)
 
-    def on_train_start(self, trainer, *args, **kwargs) -> None:
+    def on_train_start(self, *args, **kwargs) -> None:
         self._start_time.update({RunningStage.TRAINING: datetime.now()})
+
+    def on_train_end(self, *args, **kwargs) -> None:
+        self._end_time.update({RunningStage.TRAINING: datetime.now()})
+
+    def on_validation_start(self, *args, **kwargs) -> None:
+        self._start_time.update({RunningStage.VALIDATING: datetime.now()})
+
+    def on_validation_end(self, *args, **kwargs) -> None:
+        self._end_time.update({RunningStage.VALIDATING: datetime.now()})
+
+    def on_test_start(self, *args, **kwargs) -> None:
+        self._start_time.update({RunningStage.TESTING: datetime.now()})
+
+    def on_test_end(self, *args, **kwargs) -> None:
+        self._end_time.update({RunningStage.TESTING: datetime.now()})
 
     def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
         if self._interval != Interval.step:
