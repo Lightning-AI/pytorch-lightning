@@ -56,8 +56,7 @@ class EarlyStopping(Callback):
             monitored has stopped decreasing and in ``'max'`` mode it will stop when the quantity
             monitored has stopped increasing.
         strict: whether to crash the training if `monitor` is not found in the validation metrics.
-        check_finite: Stops training when the monitor becomes NaN or infinite. Set this argument to ``False``
-            if this behavior is undesired.
+        check_finite: When set ``True``, stops training when the monitor becomes NaN or infinite.
         stopping_threshold: Stop training immediately once the monitored quantity reaches this threshold.
         divergence_threshold: Stop training as soon as the monitored quantity becomes worse than this threshold.
 
