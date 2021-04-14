@@ -38,7 +38,7 @@ class EvaluationLoop(object):
         self.num_dataloaders: Optional[int] = None
 
     def on_trainer_init(self) -> None:
-        self.trainer.num_sanity_val_batches = []
+        self.trainer.num_sanity_val_batches = []  # type: ignore[attr-defined]
         self.trainer.num_test_batches = []
         self.trainer.num_val_batches = []
         self.trainer.test_dataloaders = None
@@ -62,13 +62,17 @@ class EvaluationLoop(object):
             max_batches = self.trainer.num_test_batches
         else:
             # val
-            if self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
+            if (
+                self.trainer.val_dataloaders is None
+                or self.trainer.reload_dataloaders_every_epoch  # type: ignore[attr-defined]
+            ):
                 self.trainer.reset_val_dataloader(model)
             if self.trainer.sanity_checking:
-                self.trainer.num_sanity_val_batches = [
-                    min(self.trainer.num_sanity_val_steps, val_batches) for val_batches in self.trainer.num_val_batches
+                self.trainer.num_sanity_val_batches = [  # type: ignore[attr-defined]
+                    min(self.trainer.num_sanity_val_steps, val_batches)  # type: ignore[attr-defined]
+                    for val_batches in self.trainer.num_val_batches
                 ]
-                max_batches = self.trainer.num_sanity_val_batches
+                max_batches = self.trainer.num_sanity_val_batches  # type: ignore[attr-defined]
             else:
                 max_batches = self.trainer.num_val_batches
             dataloaders = self.trainer.val_dataloaders
@@ -105,7 +109,7 @@ class EvaluationLoop(object):
 
         if self.trainer.state != TrainerState.FITTING:
             # summarize profile results
-            self.trainer.profiler.describe()
+            self.trainer.profiler.describe()  # type: ignore[attr-defined]
 
     def reload_evaluation_dataloaders(self) -> None:
         model = self.trainer.lightning_module
@@ -168,11 +172,11 @@ class EvaluationLoop(object):
 
         if self.trainer.testing:
             model_ref._current_fx_name = "test_step"
-            with self.trainer.profiler.profile("test_step"):
+            with self.trainer.profiler.profile("test_step"):  # type: ignore[attr-defined]
                 output = self.trainer.accelerator.test_step(args)
         else:
             model_ref._current_fx_name = "validation_step"
-            with self.trainer.profiler.profile("validation_step"):
+            with self.trainer.profiler.profile("validation_step"):  # type: ignore[attr-defined]
                 output = self.trainer.accelerator.validation_step(args)
 
         # capture any logged information
@@ -249,7 +253,7 @@ class EvaluationLoop(object):
 
         self.trainer._reset_result_and_set_hook_fx_name(hook_name)
 
-        with self.trainer.profiler.profile(hook_name):
+        with self.trainer.profiler.profile(hook_name):  # type: ignore[attr-defined]
 
             if hasattr(self.trainer, hook_name):
                 on_evaluation_epoch_end_hook = getattr(self.trainer, hook_name)
@@ -282,7 +286,7 @@ class EvaluationLoop(object):
                 # make the metrics appear as a different line in the same graph
                 metrics_by_epoch = {}
                 for k, v in cached_batch_log_metrics.items():
-                    metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
+                    metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v  # type: ignore[attr-defined]
 
                 self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
