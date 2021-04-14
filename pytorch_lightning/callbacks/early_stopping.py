@@ -19,11 +19,12 @@ Monitor a metric and stop training when it stops improving.
 
 """
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Mapping
 
 import numpy as np
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -115,7 +116,7 @@ class EarlyStopping(Callback):
         torch_inf = torch.tensor(np.Inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
-    def _validate_condition_metric(self, logs):
+    def _validate_condition_metric(self, logs: Mapping):
         monitor_val = logs.get(self.monitor)
 
         error_msg = (
@@ -138,7 +139,8 @@ class EarlyStopping(Callback):
     def monitor_op(self):
         return self.mode_dict[self.mode]
 
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+    def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule',
+                           checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
@@ -152,14 +154,14 @@ class EarlyStopping(Callback):
         self.best_score = callback_state['best_score']
         self.patience = callback_state['patience']
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         from pytorch_lightning.trainer.states import TrainerState
         if trainer.state != TrainerState.FITTING or trainer.sanity_checking:
-            return
+            return None
 
         self._run_early_stopping_check(trainer)
 
-    def _run_early_stopping_check(self, trainer):
+    def _run_early_stopping_check(self, trainer: 'pl.Trainer') -> None:
         """
         Checks whether the early stopping condition is met
         and if so tells the trainer to stop the training.
@@ -170,7 +172,7 @@ class EarlyStopping(Callback):
             trainer.fast_dev_run  # disable early_stopping with fast_dev_run
             or not self._validate_condition_metric(logs)  # short circuit if metric not present
         ):
-            return  # short circuit if metric not present
+            return None  # short circuit if metric not present
 
         current = logs.get(self.monitor)
 

@@ -281,9 +281,10 @@ def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog):
     class TestPruning(ModelPruning):
 
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
-            super().on_save_checkpoint(trainer, pl_module, checkpoint)
+            ret_val = super().on_save_checkpoint(trainer, pl_module, checkpoint)
             assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]
             assert hasattr(pl_module.layer.mlp_3, "weight_orig")
+            return ret_val
 
     model = TestModel()
     pruning_callback = TestPruning(
