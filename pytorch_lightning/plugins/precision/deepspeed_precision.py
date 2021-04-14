@@ -11,19 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, TYPE_CHECKING, Union
 
 import torch
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
-    from torch.nn import Module
     from torch.optim import Optimizer
 
     from pytorch_lightning.core.lightning import LightningModule
@@ -40,7 +38,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'pl.LightningModule',
+        pl_module: 'LightningModule',
         optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
@@ -59,7 +57,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def backward(
         self,
-        model: 'pl.LightningModule',
+        model: 'LightningModule',
         closure_loss: torch.Tensor,
         optimizer: Optimizer,
         opt_idx: int,
