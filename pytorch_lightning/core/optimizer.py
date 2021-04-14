@@ -13,7 +13,7 @@
 # limitations under the License.
 import types
 from contextlib import contextmanager
-from typing import Callable, Optional
+from typing import Any, Callable, Dict, Generator, List, Optional, TYPE_CHECKING, Union
 from weakref import proxy
 
 from torch.optim import Optimizer
@@ -21,13 +21,16 @@ from torch.optim import Optimizer
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
-def is_lightning_optimizer(optimizer):
+
+def is_lightning_optimizer(optimizer: Union['LightningOptimizer', Optimizer, Any]) -> bool:
     return isinstance(optimizer, LightningOptimizer)
 
 
-def do_nothing_closure():
-    return
+def do_nothing_closure() -> None:
+    return None
 
 
 class LightningOptimizer:
@@ -36,7 +39,7 @@ class LightningOptimizer:
     the backward and optimizer_step logic across accelerators, AMP, accumulate_grad_batches
     """
 
-    def __init__(self, optimizer: Optimizer):
+    def __init__(self, optimizer: Optimizer) -> None:
 
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ('step', "__del__")}
 
@@ -45,71 +48,77 @@ class LightningOptimizer:
             self.__class__ = type(
                 "Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {}
             )
-            self.skip_synchronize = optimizer.skip_synchronize
-            self.synchronize = optimizer.synchronize
+            self.skip_synchronize = getattr(optimizer, 'skip_synchronize')
+            self.synchronize = getattr(optimizer, 'synchronize')
         else:
             self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
         self._optimizer = optimizer
         self._trainer = None
-        self._optimizer_idx = None
+        self._optimizer_idx: Optional[int] = None
         self._total_optimizer_step_calls = 0
 
     @property
-    def optimizer(self):
+    def optimizer(self) -> Optimizer:
         return self._optimizer
 
     @property
-    def defaults(self):
+    def defaults(self) -> Dict[str, Any]:
         return self._optimizer.defaults
 
     @defaults.setter
-    def defaults(self, defaults):
+    def defaults(self, defaults: Dict[str, Any]) -> None:
         self._optimizer.defaults = defaults
 
     @property
-    def state(self):
+    def state(self) -> Dict:
         return self._optimizer.state
 
     @state.setter
-    def state(self, state):
+    def state(self, state: Dict) -> None:
         self._optimizer.state = state
 
     @property
-    def param_groups(self):
+    def param_groups(self) -> List[Dict]:
         return self._optimizer.param_groups
 
     @param_groups.setter
-    def param_groups(self, param_groups):
+    def param_groups(self, param_groups: List[Dict]) -> None:
         self._optimizer.param_groups = param_groups
 
-    def _on_trainer_init(self, trainer):
+    def _on_trainer_init(self, trainer: 'Trainer') -> None:
         self._trainer = proxy(trainer)
+        if trainer.optimizers is None: raise ValueError('Expected the trainer to have at least one optimizer, got None')
         for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self._optimizer:
                 self._optimizer_idx = opt_idx
                 break
 
     @classmethod
-    def _to_lightning_optimizer(cls, optimizer, trainer, opt_idx):
+    def _to_lightning_optimizer(cls, optimizer: Optimizer, trainer: 'Trainer',
+                                opt_idx: int) -> Union['LightningOptimizer', Optimizer]:
         # apex overrides .step function and need to be wrapped on each step
-        if trainer.amp_backend == AMPType.APEX:
-            optimizer = cls(optimizer)
-            optimizer._on_trainer_init(trainer)
+        if trainer.amp_backend is not None and trainer.amp_backend == AMPType.APEX:
+            new_optimizer = cls(optimizer)
+            new_optimizer._on_trainer_init(trainer)
         else:
-            optimizer = trainer.lightning_optimizers[opt_idx]
+            new_optimizer = trainer.lightning_optimizers[opt_idx]
         return optimizer
 
-    def _toggle_model(self):
+    def _toggle_model(self) -> None:
+        if self._trainer is None:
+            raise ValueError('Expected to have trainer reference, but got None')
         model_ref = self._trainer.lightning_module
         model_ref.toggle_optimizer(self, self._optimizer_idx)
 
-    def _untoggle_model(self):
+    def _untoggle_model(self) -> None:
+        if self._trainer is None:
+            raise ValueError('Expected to have trainer reference, but got None')
         model_ref = self._trainer.lightning_module
         model_ref.untoggle_optimizer(self)
 
     @contextmanager
-    def toggle_model(self, sync_grad: bool = True):
+    def toggle_model(self, sync_grad: bool = True) -> Generator[None, None, None]:
         """
         This function is just a helper for advanced users.
 
@@ -121,19 +130,24 @@ class LightningOptimizer:
         during the accumulation phase.
         Setting `sync_grad` to False will block this synchronization and improve performance.
         """
+        if self._trainer is None:
+            raise ValueError('Expected to have trainer reference, but got None')
         with self._trainer.train_loop.block_ddp_sync_behaviour(not sync_grad):
             self._toggle_model()
             yield
             self._untoggle_model()
 
-    def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs):
+    def __optimizer_step(self, closure: Optional[Callable] = None, profiler_name: str = None, **kwargs: Any) -> None:
         trainer = self._trainer
         optimizer = self._optimizer
+
+        if trainer is None:
+            raise ValueError('Expected to have trainer reference, but got None')
 
         with trainer.profiler.profile(profiler_name):
             trainer.accelerator.optimizer_step(optimizer, self._optimizer_idx, lambda_closure=closure, **kwargs)
 
-    def step(self, *args, closure: Optional[Callable] = None, **kwargs):
+    def step(self, closure: Optional[Callable] = None, **kwargs: Any) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
         By using this we can ensure that all the proper scaling when using 16-bit, accelerator etc
@@ -211,10 +225,10 @@ class LightningOptimizer:
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 
-        self.__optimizer_step(*args, closure=closure, profiler_name=profiler_name, **kwargs)
+        self.__optimizer_step(closure=closure, profiler_name=profiler_name, **kwargs)
         self._total_optimizer_step_calls += 1
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         groups = [{k: round(v, 12) if isinstance(v, float) else v
                    for k, v in sorted(group.items()) if k != "params"} for group in self.param_groups]
         return f"{self.__class__.__name__}(groups={groups})"
