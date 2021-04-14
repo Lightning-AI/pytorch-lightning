@@ -133,7 +133,8 @@ class WandbLogger(LightningLoggerBase):
             id=version or id,
             dir=save_dir,
             resume='allow',
-            anonymous=anonymous_lut.get(anonymous, anonymous))
+            anonymous=anonymous_lut.get(anonymous, anonymous)
+        )
         self._wandb_init.update(**kwargs)
         # extract parameters
         self._save_dir = self._wandb_init.get('dir', None)
