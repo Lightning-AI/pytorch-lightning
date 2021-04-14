@@ -171,7 +171,7 @@ class AcceleratorConnector(object):
                     raise MisconfigurationException(
                         'You can only specify one precision and one training type plugin.'
                         ' Found more than 1 training type plugin:'
-                        f' {type(TrainingTypePluginsRegistry.get(plug)).__name__}'
+                        f' {TrainingTypePluginsRegistry["deepspeed"]["plugin"]} registered to {plug}'
                     )
             elif isinstance(plug, str):
                 # Reset the distributed type as the user has overridden training type
