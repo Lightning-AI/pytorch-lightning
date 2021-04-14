@@ -385,8 +385,8 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir):
     )
     results = trainer.test(model)
 
-    assert {"test_loss/dataloader_idx_0", "test_loss_epoch/dataloader_idx_0"} == set(results[0])
-    assert {"test_loss/dataloader_idx_1", "test_loss_epoch/dataloader_idx_1"} == set(results[1])
+    assert {"test_loss(dataloader_idx_0)", "test_loss_epoch(dataloader_idx_0)"} == set(results[0])
+    assert {"test_loss(dataloader_idx_1)", "test_loss_epoch(dataloader_idx_1)"} == set(results[1])
 
 
 def test_single_dataloader_no_suffix_added(tmpdir):
@@ -651,7 +651,7 @@ def test_log_works_in_test_callback(tmpdir):
                 num_dl_ext = ''
                 if pl_module._current_dataloader_idx is not None:
                     dl_idx = pl_module._current_dataloader_idx
-                    num_dl_ext = f"/dataloader_idx_{dl_idx}"
+                    num_dl_ext = f"(dataloader_idx_{dl_idx})"
                     func_name += num_dl_ext
 
                 # catch information for verification
@@ -777,7 +777,7 @@ def test_log_works_in_test_callback(tmpdir):
     trainer.callback_metrics.pop("debug_epoch")
 
     for dl_idx in range(num_dataloaders):
-        key = f"test_loss/dataloader_idx_{dl_idx}"
+        key = f"test_loss(dataloader_idx_{dl_idx})"
         assert key in trainer.callback_metrics
         assert torch.stack(model.manual_mean[str(dl_idx)]).mean() == trainer.callback_metrics[key]
         trainer.callback_metrics.pop(key)

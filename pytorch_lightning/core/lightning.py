@@ -298,7 +298,7 @@ class LightningModule(
                 )
 
             # make sure user doesn't introduce logic for multi-dataloaders
-            if "/dataloader_idx_" in name:
+            if "(dataloader_idx_" in name:
                 raise MisconfigurationException(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )

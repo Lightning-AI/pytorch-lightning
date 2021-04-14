@@ -554,8 +554,8 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
 
     # Check that the correct keys exist
     if add_dataloader_idx:
-        assert 'val_loss/dataloader_idx_0' in logged
-        assert 'val_loss/dataloader_idx_1' in logged
+        assert 'val_loss(dataloader_idx_0)' in logged
+        assert 'val_loss(dataloader_idx_1)' in logged
     else:
         assert 'val_loss_custom_naming_0' in logged
         assert 'val_loss_custom_naming_1' in logged
