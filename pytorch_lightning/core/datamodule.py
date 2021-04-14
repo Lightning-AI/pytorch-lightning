@@ -15,22 +15,26 @@
 
 import functools
 from argparse import ArgumentParser, Namespace
-from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class _DataModuleWrapper(type):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.__has_added_checks = False
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         """A wrapper for LightningDataModule that:
 
         1. Runs user defined subclass's __init__
@@ -40,11 +44,11 @@ class _DataModuleWrapper(type):
         if not cls.__has_added_checks:
             cls.__has_added_checks = True
             # Track prepare_data calls and make sure it runs on rank zero
-            cls.prepare_data = track_data_hook_calls(rank_zero_only(cls.prepare_data))
+            cls.prepare_data: Callable = track_data_hook_calls(rank_zero_only(cls.prepare_data))
             # Track setup calls
-            cls.setup = track_data_hook_calls(cls.setup)
+            cls.setup: Callable = track_data_hook_calls(cls.setup)
             # Track teardown calls
-            cls.teardown = track_data_hook_calls(cls.teardown)
+            cls.teardown: Callable = track_data_hook_calls(cls.teardown)
 
         # Get instance of LightningDataModule by mocking its __init__ via __call__
         obj = type.__call__(cls, *args, **kwargs)
@@ -52,7 +56,7 @@ class _DataModuleWrapper(type):
         return obj
 
 
-def track_data_hook_calls(fn):
+def track_data_hook_calls(fn: Callable) -> Callable:
     """A decorator that checks if prepare_data/setup/teardown has been called.
 
     - When ``dm.prepare_data()`` is called, ``dm.has_prepared_data`` gets set to True
@@ -69,7 +73,7 @@ def track_data_hook_calls(fn):
     """
 
     @functools.wraps(fn)
-    def wrapped_fn(*args, **kwargs):
+    def wrapped_fn(*args: Any, **kwargs: Any) -> Any:
 
         # The object instance from which setup or prepare_data was called
         obj = args[0]
@@ -141,23 +145,25 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
     """
 
-    name: str = ...
+    name: str
 
     def __init__(
         self,
-        train_transforms=None,
-        val_transforms=None,
-        test_transforms=None,
-        dims=None,
+        train_transforms: Optional[Callable] = None,
+        val_transforms: Optional[Callable] = None,
+        test_transforms: Optional[Callable] = None,
+        predict_transforms: Optional[Callable] = None,
+        dims: Optional[Tuple] = None,
     ):
         super().__init__()
         self._train_transforms = train_transforms
         self._val_transforms = val_transforms
         self._test_transforms = test_transforms
+        self._predict_transforms = predict_transforms
         self._dims = dims if dims is not None else ()
 
         # Pointer to the trainer object
-        self.trainer = None
+        self.trainer: Optional['Trainer'] = None
 
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False
@@ -173,50 +179,61 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         self._has_teardown_predict = False
 
     @property
-    def train_transforms(self):
+    def train_transforms(self) -> Optional[Callable]:
         """
         Optional transforms (or collection of transforms) you can apply to train dataset
         """
         return self._train_transforms
 
     @train_transforms.setter
-    def train_transforms(self, t):
+    def train_transforms(self, t: Optional[Callable]) -> None:
         self._train_transforms = t
 
     @property
-    def val_transforms(self):
+    def val_transforms(self) -> Optional[Callable]:
         """
         Optional transforms (or collection of transforms) you can apply to validation dataset
         """
         return self._val_transforms
 
     @val_transforms.setter
-    def val_transforms(self, t):
+    def val_transforms(self, t: Optional[Callable]) -> None:
         self._val_transforms = t
 
     @property
-    def test_transforms(self):
+    def test_transforms(self) -> Optional[Callable]:
         """
         Optional transforms (or collection of transforms) you can apply to test dataset
         """
         return self._test_transforms
 
     @test_transforms.setter
-    def test_transforms(self, t):
+    def test_transforms(self, t: Optional[Callable]) -> None:
         self._test_transforms = t
 
     @property
-    def dims(self):
+    def predict_transforms(self) -> Optional[Callable]:
+        """
+        Optional transforms (or collection of transforms) you can apply to predict dataset
+        """
+        return self._predict_transforms
+
+    @predict_transforms.setter
+    def predict_transforms(self, t: Optional[Callable]) -> None:
+        self._predict_transforms = t
+
+    @property
+    def dims(self) -> tuple:
         """
         A tuple describing the shape of your data. Extra functionality exposed in ``size``.
         """
         return self._dims
 
     @dims.setter
-    def dims(self, d):
+    def dims(self, d: tuple) -> None:
         self._dims = d
 
-    def size(self, dim=None) -> Union[Tuple, int]:
+    def size(self, dim: Optional[int] = None) -> Union[Tuple, int]:
         """
         Return the dimension of each input either as a tuple or list of tuples. You can index this
         just as you would with a torch tensor.
@@ -309,12 +326,12 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         return self._has_teardown_predict
 
     @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
+    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs: Any) -> ArgumentParser:
         """Extends existing argparse by default `LightningDataModule` attributes."""
         return add_argparse_args(cls, parent_parser, **kwargs)
 
     @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
+    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> ArgumentParser:
         """Create an instance from CLI arguments.
 
         Args:
@@ -346,9 +363,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         train_dataset: Optional[Union[Dataset, Sequence[Dataset], Mapping[str, Dataset]]] = None,
         val_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
         test_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
+        predict_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
         batch_size: int = 1,
         num_workers: int = 0,
-    ):
+    ) -> 'LightningDataModule':
         r"""
         Create an instance from torch.utils.data.Dataset.
 
@@ -356,13 +374,14 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
             train_dataset: (optional) Dataset to be used for train_dataloader()
             val_dataset: (optional) Dataset or list of Dataset to be used for val_dataloader()
             test_dataset: (optional) Dataset or list of Dataset to be used for test_dataloader()
+            predict_dataset: (optional) Dataset or list of Dataset to be used for predict_dataloader()
             batch_size: Batch size to use for each dataloader. Default is 1.
             num_workers: Number of subprocesses to use for data loading. 0 means that the
                 data will be loaded in the main process. Number of CPUs available.
 
         """
 
-        def dataloader(ds, shuffle=False):
+        def dataloader(ds: Dataset, shuffle: bool = False) -> DataLoader:
             return DataLoader(
                 ds,
                 batch_size=batch_size,
@@ -371,28 +390,45 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
                 pin_memory=True,
             )
 
-        def train_dataloader():
+        def train_dataloader() -> Union[DataLoader, Sequence[DataLoader], Mapping[str, DataLoader]]:
             if isinstance(train_dataset, Mapping):
                 return {key: dataloader(ds, shuffle=True) for key, ds in train_dataset.items()}
             if isinstance(train_dataset, Sequence):
                 return [dataloader(ds, shuffle=True) for ds in train_dataset]
+
+            if train_dataset is None:
+                raise MisconfigurationException('Expected a Dataset, but got None')
             return dataloader(train_dataset, shuffle=True)
 
-        def val_dataloader():
+        def val_dataloader() -> Union[Sequence[DataLoader], DataLoader]:
             if isinstance(val_dataset, Sequence):
                 return [dataloader(ds) for ds in val_dataset]
+            if val_dataset is None:
+                raise MisconfigurationException('Expected a Dataset, but got None')
             return dataloader(val_dataset)
 
-        def test_dataloader():
+        def test_dataloader() -> Union[Sequence[DataLoader], DataLoader]:
             if isinstance(test_dataset, Sequence):
                 return [dataloader(ds) for ds in test_dataset]
+            if test_dataset is None:
+                raise MisconfigurationException('Expected a Dataset, but got None')
             return dataloader(test_dataset)
+
+        def predict_dataloader() -> Union[Sequence[DataLoader], DataLoader]:
+            if isinstance(predict_dataset, Sequence):
+                return [dataloader(ds) for ds in predict_dataset]
+            if predict_dataset is None:
+                raise MisconfigurationException('Expected a Dataset, but got None')
+            return dataloader(predict_dataset)
 
         datamodule = cls()
         if train_dataset is not None:
-            datamodule.train_dataloader = train_dataloader
+            setattr(datamodule, 'train_dataloader', train_dataloader)
         if val_dataset is not None:
-            datamodule.val_dataloader = val_dataloader
+            setattr(datamodule, 'val_dataloader', val_dataloader)
         if test_dataset is not None:
-            datamodule.test_dataloader = test_dataloader
+            setattr(datamodule, 'test_dataloader', test_dataloader)
+        if predict_dataset is not None:
+            setattr(datamodule, 'predict_dataloader', predict_dataloader)
+
         return datamodule
