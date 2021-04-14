@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 import multiprocessing
+import os
 from abc import ABC
 from copy import deepcopy
 from typing import Iterable, List, Tuple, Union
@@ -197,7 +198,9 @@ class TrainerDataLoadingMixin(ABC):
 
     def _get_distributed_sampler(self, dataloader, shuffle):
         kwargs = self.distributed_sampler_kwargs
-        kwargs['shuffle'] = shuffle and not self.overfit_batches
+        kwargs["shuffle"] = shuffle and not self.overfit_batches
+        if "seed" not in kwargs and "PL_GLOBAL_SEED" in os.environ:
+            kwargs["seed"] = os.getenv("PL_GLOBAL_SEED")
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
