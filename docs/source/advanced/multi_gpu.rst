@@ -1063,7 +1063,7 @@ This should be kept within the ``sequential_module`` variable within your ``Ligh
 
 
 We provide a minimal example of Sequential Model Parallelism using a convolutional model training on cifar10, split onto GPUs `here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/basic_examples/conv_sequential_example.py>`_.
-To run the example, you need to install `Bolts <https://github.com/PyTorchLightning/pytorch-lightning-bolts>`_. Install with ``pip install pytorch-lightning-bolts``.
+To run the example, you need to install `Bolts <https://github.com/PyTorchLightning/lightning-bolts>`_. Install with ``pip install lightning-bolts``.
 
 When running the Sequential Model Parallelism example on 2 GPUS we achieve these memory savings.
 

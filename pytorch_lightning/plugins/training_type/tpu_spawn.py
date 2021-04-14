@@ -15,10 +15,12 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
+from torch.nn import Module
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -42,17 +44,26 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.utils.data import DataLoader
-
-
 class TPUSpawnPlugin(DDPSpawnPlugin):
+    """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
     def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
         self.tpu_local_core_rank = 0
+        self.tpu_global_core_rank = 0
         self.start_method = None
+
+    @property
+    def global_rank(self) -> int:
+        return self.tpu_local_core_rank
+
+    @property
+    def local_rank(self) -> int:
+        return self.tpu_local_core_rank
+
+    @property
+    def world_size(self) -> int:
+        return self.num_processes
 
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List['DataLoader'], 'DataLoader']):
@@ -115,11 +126,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
         pass
 
-    def set_world_ranks(self, process_idx: int) -> None:
+    def set_world_ranks(self, process_idx: int = 0) -> None:
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
-        self.global_rank = self.tpu_local_core_rank
-        self.world_size = self.num_nodes * self.num_processes
 
     def new_process(self, process_idx: int, trainer, mp_queue) -> None:
         self.mp_queue = mp_queue
@@ -128,7 +137,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if seed is not None:
             seed_everything(int(seed))
 
-        self.set_world_ranks(process_idx)
+        self.set_world_ranks()
 
         # set warning rank
         rank_zero_only.rank = self.global_rank
@@ -278,4 +287,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        return xm.all_gather(tensor.unsqueeze(0))
+        if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
+            tensor = tensor.unsqueeze(0)
+        return xm.all_gather(tensor)

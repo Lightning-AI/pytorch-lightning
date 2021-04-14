@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, TYPE_CHECKING, Union
+from typing import Any, Callable, Union
 
 from torch.optim import Optimizer
 
@@ -19,7 +19,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities import _XLA_AVAILABLE, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
@@ -28,14 +28,13 @@ if _XLA_AVAILABLE:
 
     xla_clip_grad_norm_ = clip_grad_norm_
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
+import pytorch_lightning as pl
 
 
 class TPUAccelerator(Accelerator):
+    """ Accelerator for TPU devices. """
 
-    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
@@ -56,7 +55,12 @@ class TPUAccelerator(Accelerator):
     ) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0):
+    def clip_gradients(
+        self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0,
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM
+    ) -> None:
+        assert gradient_clip_algorithm is GradClipAlgorithmType.NORM, \
+            "Only NORM gradient clipping is supported on TPU for now"
 
         model = self.lightning_module
         parameters = model.parameters()
