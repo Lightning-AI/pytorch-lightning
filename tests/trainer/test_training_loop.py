@@ -21,6 +21,7 @@ def test_training_loop_hook_call_order(tmpdir):
     https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html#hooks"""
 
     class HookedModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.called = []
@@ -58,15 +59,15 @@ def test_training_loop_hook_call_order(tmpdir):
             super().on_after_backward()
 
         def optimizer_step(
-                self,
-                epoch,
-                batch_idx,
-                optimizer,
-                optimizer_idx,
-                optimizer_closure,
-                on_tpu,
-                using_native_amp,
-                using_lbfgs,
+            self,
+            epoch,
+            batch_idx,
+            optimizer,
+            optimizer_idx,
+            optimizer_closure,
+            on_tpu,
+            using_native_amp,
+            using_lbfgs,
         ):
             super().optimizer_step(
                 epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
@@ -131,6 +132,7 @@ def test_outputs_format(tmpdir):
     """Tests that outputs objects passed to model hooks and methods are consistent and in the correct format."""
 
     class HookedModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             self.log("foo", "bar")
             return super().training_step(batch, batch_idx)

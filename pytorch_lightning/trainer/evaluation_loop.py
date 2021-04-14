@@ -20,7 +20,6 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
-
 if TYPE_CHECKING:
     from torch.utils.data import DataLoader
 
@@ -220,11 +219,11 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_validation_batch_start', batch, batch_idx, dataloader_idx)
 
     def on_evaluation_batch_end(
-            self,
-            output: '_STEP_OUTPUT_TYPE',
-            batch: Any,
-            batch_idx: int,
-            dataloader_idx: int,
+        self,
+        output: '_STEP_OUTPUT_TYPE',
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
     ) -> None:
         if self.trainer.testing:
             self.trainer.call_hook('on_test_batch_end', output, batch, batch_idx, dataloader_idx)
@@ -281,10 +280,7 @@ class EvaluationLoop(object):
         self.__log_result_step_metrics(step_log_metrics, step_pbar_metrics, batch_idx)
 
     def __log_result_step_metrics(
-            self,
-            step_log_metrics: Dict[str, Any],
-            step_pbar_metrics: Dict[str, Any],
-            batch_idx: int
+        self, step_log_metrics: Dict[str, Any], step_pbar_metrics: Dict[str, Any], batch_idx: int
     ) -> None:
         cached_results = self.trainer.logger_connector.cached_results
         cached_batch_pbar_metrics, cached_batch_log_metrics = cached_results.update_logger_connector()

@@ -60,6 +60,7 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
     Tests that LoggerConnector will properly capture logged information
     and reduce them
     """
+
     class TestModel(BoringModel):
 
         train_losses = []
@@ -212,6 +213,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
     """
     Tests that LoggerConnector will properly capture logged information in multi dataloaders scenario
     """
+
     class TestModel(BoringModel):
         test_losses = {dl_idx: [] for dl_idx in range(num_dataloaders)}
 
@@ -563,7 +565,9 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_logged_metrics_steps(tmpdir):
+
     class TestModel(BoringModel):
+
         def validation_step(self, batch, batch_idx):
             loss_val = torch.randn(1)
             self.log('val_loss', loss_val)
