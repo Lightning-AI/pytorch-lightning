@@ -100,13 +100,13 @@ class RunIf:
             reasons.append(f"GPUs>={min_gpus}")
 
         if min_torch:
-            torch_version = Version(get_distribution("torch").version)
-            conditions.append(torch_version < Version(min_torch))
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) < Version(min_torch))
             reasons.append(f"torch>={min_torch}")
 
         if max_torch:
-            torch_version = Version(get_distribution("torch").version)
-            conditions.append(torch_version >= Version(max_torch))
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) >= Version(max_torch))
             reasons.append(f"torch<{max_torch}")
 
         if min_python:
