@@ -15,7 +15,7 @@
 
 import numbers
 from copy import copy
-from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_d
 
 class Result(Dict):
 
-    def __init__(self, minimize: Optional[Tensor] = None):
+    def __init__(self, minimize: Optional[Tensor] = None) -> None:
         super().__init__()
 
         if minimize is not None:
@@ -57,19 +57,19 @@ class Result(Dict):
         except KeyError:
             return None
 
-    def __setattr__(self, key: str, val: Union[Tensor, Any]):
+    def __setattr__(self, key: str, val: Union[Tensor, Any]) -> None:
         # ensure tensors are detached
         if isinstance(val, torch.Tensor) and key != 'minimize':
             val = val.detach()
         self[key] = val
 
-    def __getstate__(self):
+    def __getstate__(self) -> 'Result':
         return self
 
-    def __setstate__(self, d):
+    def __setstate__(self, d: Mapping) -> None:
         self.update(d)
 
-    def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ''):
+    def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = '') -> None:
         if x is not None:
             if not isinstance(x, Tensor):
                 raise TypeError(f'{name} must be a torch.Tensor')
@@ -98,7 +98,7 @@ class Result(Dict):
         sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
         device: torch.device = None,
-    ):
+    ) -> None:
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
@@ -195,7 +195,7 @@ class Result(Dict):
         tbptt_reduce_fx: Callable,
         forked: bool,
         dataloader_idx: Union[int, None],
-    ):
+    ) -> None:
         # set the meta for the item
         meta_value = value
         meta = dict(
@@ -217,12 +217,12 @@ class Result(Dict):
         _internal = self['meta']['_internal']
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
 
-    def track_batch_size(self, batch):
+    def track_batch_size(self, batch: Any) -> None:
         batch_size = Result.extract_batch_size(batch)
         Result.attach_batch_size(batch_size, self)
 
     @staticmethod
-    def extract_batch_size(batch):
+    def extract_batch_size(batch: Any) -> int:
         try:
             batch_size = Result.unpack_batch_size(batch)
         except RecursionError:
@@ -235,7 +235,7 @@ class Result(Dict):
             meta = result['meta']
             meta['_internal']['batch_sizes'].append(batch_size)
 
-    def get_batch_sizes(self):
+    def get_batch_sizes(self) -> torch.Tensor:
         meta = self['meta']
         return torch.tensor(meta['_internal']['batch_sizes'])
 
@@ -244,7 +244,7 @@ class Result(Dict):
             return f"{k}/dataloader_idx_{dataloader_idx}"
         return k
 
-    def get_batch_log_metrics(self, include_forked_originals=True, add_dataloader_idx=False) -> dict:
+    def get_batch_log_metrics(self, include_forked_originals: bool = True, add_dataloader_idx: bool = False) -> dict:
         """
         Gets the metrics to log at the end of the batch step
 
@@ -269,7 +269,7 @@ class Result(Dict):
 
         return result
 
-    def get_epoch_log_metrics(self, add_dataloader_idx=False) -> dict:
+    def get_epoch_log_metrics(self, add_dataloader_idx: bool = False) -> dict:
         """
         Gets the metrics to log at the end of epoch
         """
@@ -300,7 +300,7 @@ class Result(Dict):
 
         return result
 
-    def get_epoch_pbar_metrics(self, add_dataloader_idx=False):
+    def get_epoch_pbar_metrics(self, add_dataloader_idx: bool = False) -> dict:
         """
         Gets the metrics to log at the end of epoch
         """
@@ -332,7 +332,7 @@ class Result(Dict):
 
         return result
 
-    def get_forked_metrics(self, add_dataloader_idx=False):
+    def get_forked_metrics(self, add_dataloader_idx: bool = False) -> dict:
         """
         Gets the metrics to log at the end of epoch
         """
@@ -354,7 +354,7 @@ class Result(Dict):
 
         return result
 
-    def get_batch_pbar_metrics(self, include_forked_originals=True, add_dataloader_idx=False):
+    def get_batch_pbar_metrics(self, include_forked_originals: bool = True, add_dataloader_idx: bool = False) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -384,10 +384,10 @@ class Result(Dict):
                 self.__setitem__(k, v.detach())
         return self
 
-    def to(self, *args, **kwargs) -> 'Result':
+    def to(self, *args: Any, **kwargs: Any) -> 'Result':
         """Move all self attributes to the given device."""
         for k, v in self.items():
-            if isinstance(v, torch.Tensor):
+            if isinstance(v, (torch.Tensor, torch.nn.Module)):
                 self.__setitem__(k, v.to(*args, **kwargs))
         return self
 
@@ -395,7 +395,7 @@ class Result(Dict):
         """Move all self attributes to CPU."""
         return self.to(torch.device("cpu"))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         self_copy = self.copy()
 
         if 'meta' in self_copy:
@@ -403,13 +403,13 @@ class Result(Dict):
 
         return str(self_copy)
 
-    def __str__(self):
+    def __str__(self) -> str:
         copy = self.copy()
         del copy['meta']
 
         return str(copy)
 
-    def __copy__(self):
+    def __copy__(self) -> 'Result':
         newone = type(self)()
         for k, v in self.items():
             if isinstance(v, torch.Tensor):
@@ -418,7 +418,7 @@ class Result(Dict):
         return newone
 
     @staticmethod
-    def unpack_batch_size(sample):
+    def unpack_batch_size(sample: Union[torch.Tensor, str, Mapping, Iterable, Any]) -> int:
         """
         Recursively unpack sample to find a torch.Tensor.
         returns len(tensor) when found, or 1 when it hits an empty or non iterable.
@@ -427,7 +427,7 @@ class Result(Dict):
             size = sample.size(0)
         elif isinstance(sample, str):
             return len(sample)
-        elif isinstance(sample, dict):
+        elif isinstance(sample, Mapping):
             sample = next(iter(sample.values()), 1)
             size = Result.unpack_batch_size(sample)
         elif isinstance(sample, Iterable):
@@ -438,9 +438,9 @@ class Result(Dict):
         return size
 
     @classmethod
-    def gather(cls, outputs):
+    def gather(cls, outputs: List) -> Dict:
         meta = outputs[0].get('meta')
-        result = cls()
+        result: Dict = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
 
@@ -449,9 +449,9 @@ class Result(Dict):
         return result
 
     @classmethod
-    def padded_gather(cls, outputs):
+    def padded_gather(cls, outputs: List) -> 'Dict':
         meta = outputs[0].get('meta')
-        result = cls()
+        result: Dict = cls()
         result = recursive_gather(outputs, result)
 
         # find the padding used for other values
@@ -479,7 +479,7 @@ class Result(Dict):
         return result
 
     @classmethod
-    def reduce_on_epoch_end(cls, outputs):
+    def reduce_on_epoch_end(cls, outputs: List) -> 'Dict':
         # get the batch sizes for all outputs
         batch_sizes = []
         meta = {}
@@ -487,9 +487,9 @@ class Result(Dict):
             batch_sizes.append(x.get_batch_sizes())
             meta.update(x['meta'])
 
-        batch_sizes = torch.stack(batch_sizes).view(-1)
+        tensor_batch_sizes = torch.stack(batch_sizes).view(-1)
 
-        result = cls()
+        result: Dict = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
 
@@ -505,10 +505,10 @@ class Result(Dict):
             if option['on_epoch']:
                 fx = option['reduce_fx']
                 if fx == torch.mean:
-                    if isinstance(result[k], list):
+                    if isinstance(result[k], (list, tuple)):
                         result[k] = torch.tensor(result[k]).float()
                     try:
-                        reduced_val = weighted_mean(result[k], batch_sizes)
+                        reduced_val: Optional[Union[torch.Tensor, Dict]] = weighted_mean(result[k], tensor_batch_sizes)
                     # todo: specify the expected Exceptions to come
                     except Exception:
                         reduced_val = torch.mean(result[k])
@@ -523,11 +523,11 @@ class Result(Dict):
         return result
 
     @classmethod
-    def reduce_across_time(cls, time_outputs):
+    def reduce_across_time(cls, time_outputs: List) -> Dict:
         # auto-reduce across time for tbptt
         meta = time_outputs[0]['meta']
 
-        result = cls()
+        result: Dict = cls()
         result = recursive_gather(time_outputs, result)
         recursive_stack(result)
 
@@ -550,7 +550,7 @@ class Result(Dict):
         result['meta'] = meta
         return result
 
-    def dp_reduce(self):
+    def dp_reduce(self) -> None:
         for k, value in self.items():
             if k == 'meta' or isinstance(value, Metric):
                 continue
@@ -564,7 +564,7 @@ class Result(Dict):
     def should_reduce_on_epoch_end(self) -> bool:
         return self['meta']['_internal']['_reduce_on_epoch']
 
-    def rename_keys(self, map_dict: dict):
+    def rename_keys(self, map_dict: dict) -> None:
         """
         Maps key values to the target values. Useful when renaming variables in mass.
 
@@ -581,22 +581,24 @@ class Result(Dict):
             meta[dest] = meta[source]
             del meta[source]
 
-    def get_non_metrics_keys(self):
+    def get_non_metrics_keys(self) -> List:
         """
         This function is used to filter metric keys for which the value isn't a Metric
         """
         return [k for k, v in self.items() if not isinstance(v, Metric)]
 
 
-def choose_last(x):
-    if isinstance(x, (torch.Tensor, list)):
-        return x[-1]
-    if isinstance(x, dict):
+def choose_last(x: Union[torch.Tensor, MutableMapping, Sequence]) -> Union[torch.Tensor, Mapping, Sequence, Any]:
+    if isinstance(x, MutableMapping):
         for k, v in x.items():
             x[k] = x[k][-1]
+        return x
+
+    if isinstance(x, (torch.Tensor, Sequence)):
+        return x[-1]
 
 
-def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
+def recursive_gather(outputs: Sequence[dict], result: Dict) -> Dict:
     for out in outputs:
         if 'meta' in out:
             del out['meta']
@@ -606,7 +608,7 @@ def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] =
             if k == 'minimize' and v is None:
                 continue
 
-            if isinstance(v, dict):
+            if isinstance(v, Dict):
                 in_d = result.get(k, {})
                 v = recursive_gather([v], in_d)
                 result[k] = v
@@ -623,7 +625,7 @@ def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] =
     return result
 
 
-def recursive_stack(result: MutableMapping):
+def recursive_stack(result: MutableMapping) -> None:
     for k, v in result.items():
         if isinstance(v, dict):
             recursive_stack(v)
@@ -631,9 +633,9 @@ def recursive_stack(result: MutableMapping):
         result[k] = collate_tensors(v)
 
 
-def _recursive_fx_apply(input: dict, fx):
+def _recursive_fx_apply(input: dict, fx: Callable) -> None:
     for k, v in input.items():
-        if isinstance(v, list):
+        if isinstance(v, (list, tuple)):
             v = torch.tensor(v)
 
         if isinstance(v, torch.Tensor):
@@ -659,21 +661,21 @@ def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
     return items
 
 
-def weighted_mean(result, weights):
+def weighted_mean(result: Union[Dict, List, Tuple], weights: torch.Tensor) -> Optional[Union[torch.Tensor, Dict]]:
 
-    if isinstance(result, dict):
+    if isinstance(result, Mapping):
         _process_dataloader_aggregated_steps(result, weights)
-    else:
-        if isinstance(result, list):
-            result = torch.tensor(result)
+        return result
+    if isinstance(result, (list, tuple)):
+        tensor_result = torch.tensor(result)
 
-        weights = weights.to(result.device)[:result.size(0)]
-        numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
-        result = numerator / weights.sum().float()
-    return result
+    weights = weights.to(tensor_result.device)[:tensor_result.size(0)]
+    numerator = torch.dot(tensor_result.float(), weights.transpose(-1, 0).float())
+    tensor_result = numerator / weights.sum().float()
+    return tensor_result
 
 
-def _process_dataloader_aggregated_steps(result, weights):
+def _process_dataloader_aggregated_steps(result: MutableMapping, weights: torch.Tensor) -> None:
     internal_keys = {'meta'}
 
     moved = False
