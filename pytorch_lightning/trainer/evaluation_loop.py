@@ -136,9 +136,9 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
 
-    def _build_args(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Tuple[Any, int, int]:
+    def _build_args(self, batch: Any, batch_idx: int, dataloader_idx: int) -> List[Union[Any, int]]:
         # make dataloader_idx arg in validation_step optional
-        args = (batch, batch_idx)
+        args = [batch, batch_idx]
 
         multiple_val_loaders = (
             not self.trainer.testing and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1
@@ -146,7 +146,7 @@ class EvaluationLoop(object):
         multiple_test_loaders = (self.trainer.testing and self._get_num_dataloaders(self.trainer.test_dataloaders) > 1)
 
         if multiple_test_loaders or multiple_val_loaders:
-            args = args + (dataloader_idx,)
+            args.append(dataloader_idx)
 
         return args
 
