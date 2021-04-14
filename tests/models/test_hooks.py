@@ -99,7 +99,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
             self.len_outputs = 0
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
-            self.len_outputs = len(outputs[0])
+            self.len_outputs = len(outputs)
 
     class OverriddenModel(BoringModel):
 

@@ -26,8 +26,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
     class CB(Callback):
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            d = outputs[0][0]
-            assert 'minimize' in d
+            assert 'loss' in outputs
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             assert 'x' in outputs
@@ -42,8 +41,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
     class TestModel(BoringModel):
 
         def on_train_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
-            d = outputs[0][0]
-            assert 'minimize' in d
+            assert 'loss' in outputs
 
         def on_validation_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
             assert 'x' in outputs
@@ -52,8 +50,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
             assert 'x' in outputs
 
         def on_train_epoch_end(self, outputs) -> None:
-            d = outputs[0]
-            assert len(d) == self.trainer.num_training_batches
+            assert len(outputs) == self.trainer.num_training_batches
 
     model = TestModel()
 
@@ -79,9 +76,9 @@ def test_on_val_epoch_end_outputs(tmpdir):
 
         def on_validation_epoch_end(self, trainer, pl_module, outputs):
             if trainer.running_sanity_check:
-                assert len(outputs[0]) == trainer.num_sanity_val_batches[0]
+                assert len(outputs) == trainer.num_sanity_val_batches[0]
             else:
-                assert len(outputs[0]) == trainer.num_val_batches[0]
+                assert len(outputs) == trainer.num_val_batches[0]
 
     model = BoringModel()
 
@@ -102,7 +99,7 @@ def test_on_test_epoch_end_outputs(tmpdir):
     class CB(Callback):
 
         def on_test_epoch_end(self, trainer, pl_module, outputs):
-            assert len(outputs[0]) == trainer.num_test_batches[0]
+            assert len(outputs) == trainer.num_test_batches[0]
 
     model = BoringModel()
 
