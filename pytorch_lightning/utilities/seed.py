@@ -86,8 +86,12 @@ def pl_worker_init_function(worker_id: int) -> None:
     See also the PyTorch documentation on
     `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
     """
+    # implementation notes: https://github.com/pytorch/pytorch/issues/5059#issuecomment-817392562
     global_rank = rank_zero_only.rank
-    worker_seed = (torch.initial_seed() + worker_id + global_rank) % (2**32)
-    torch.manual_seed(worker_seed)
-    numpy.random.seed(worker_seed)
-    random.seed(worker_seed)
+    process_seed = torch.initial_seed()
+    # back out the base seed so we can use all the bits
+    base_seed = process_seed - worker_id
+    ss = np.random.SeedSequence([base_seed, worker_id, global_rank])
+    # use 128 bits (4 x 32-bit words)
+    np.random.seed(ss.generate_state(4))
+    torch.manual_seed((process_seed * global_rank) % (2**64))
