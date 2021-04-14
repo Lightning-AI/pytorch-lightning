@@ -71,21 +71,6 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         return batch
 
 
-@TrainingTypePluginsRegistry.register("deepspeed", description="Default DeepSpeed Plugin")
-@TrainingTypePluginsRegistry.register("deepspeed_stage_2", description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
-@TrainingTypePluginsRegistry.register(
-    "deepspeed_stage_2_offload",
-    description="DeepSpeed with ZeRO Stage 2 enabled and Offload",
-    stage=2,
-    cpu_offload=True
-)
-@TrainingTypePluginsRegistry.register("deepspeed_stage_3", description="DeepSpeed with ZeRO Stage 3 enabled", stage=3)
-@TrainingTypePluginsRegistry.register(
-    "deepspeed_stage_3_offload",
-    description="DeepSpeed with ZeRO Stage 3 enabled and Offload",
-    stage=3,
-    cpu_offload=True
-)
 class DeepSpeedPlugin(DDPPlugin):
     distributed_backend = "deepspeed"
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
@@ -536,3 +521,21 @@ class DeepSpeedPlugin(DDPPlugin):
             if total_batch_idx % self._original_accumulate_grad_batches == 0:
                 current_global_step += 1
             return current_global_step
+
+    @classmethod
+    def register_plugins(cls, plugin_registry):
+        plugin_registry.register("deepspeed", description="Default DeepSpeed Plugin")
+        plugin_registry.register("deepspeed_stage_2", description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
+        plugin_registry.register(
+            "deepspeed_stage_2_offload",
+            description="DeepSpeed with ZeRO Stage 2 enabled and Offload",
+            stage=2,
+            cpu_offload=True
+        )
+        plugin_registry.register("deepspeed_stage_3", description="DeepSpeed with ZeRO Stage 3 enabled", stage=3)
+        plugin_registry.register(
+            "deepspeed_stage_3_offload",
+            description="DeepSpeed with ZeRO Stage 3 enabled and Offload",
+            stage=3,
+            cpu_offload=True
+        )
