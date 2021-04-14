@@ -59,9 +59,8 @@ from pytorch_lightning.utilities import (
     device_parser,
     DeviceType,
     DistributedType,
-    rank_zero_only,
 )
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _HOROVOD_AVAILABLE:
@@ -111,12 +110,6 @@ class AcceleratorConnector(object):
         self._precision_plugin: Optional[PrecisionPlugin] = None
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
-
-        # init the default rank if exists
-        # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
-        # this way we only show it on rank 0
-        if "LOCAL_RANK" in os.environ:
-            rank_zero_only.rank = int(os.environ["LOCAL_RANK"])
 
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
@@ -309,8 +302,18 @@ class AcceleratorConnector(object):
 
     @property
     def is_using_torchelastic(self) -> bool:
-        te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
-        return te_flags_passed
+        """
+        .. deprecated:: v1.3
+            Will be removed in v1.5.0.
+
+        Returns:
+            ``True`` if the current process was launched using the torchelastic command.
+        """
+        rank_zero_deprecation(
+            "The property `AcceleratorConnector.is_using_torchelastic` was deprecated in v1.3"
+            " and will be removed in 1.5. Use `TorchElasticEnvironment.is_using_torchelastic()` instead.",
+        )
+        return TorchElasticEnvironment.is_using_torchelastic()
 
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
@@ -365,7 +368,12 @@ class AcceleratorConnector(object):
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+            plugin = DDP2Plugin(
+                parallel_devices=self.parallel_devices,
+                num_nodes=self.num_nodes,
+                cluster_environment=self.cluster_environment,
+                sync_batchnorm=self.sync_batchnorm,
+            )
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
                 num_nodes=self.num_nodes,
@@ -374,11 +382,11 @@ class AcceleratorConnector(object):
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
-            use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
+            use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
             use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
             use_tpu_spawn = self.on_tpu and self._distrib_type == DistributedType.TPU_SPAWN
-            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
+            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
@@ -466,7 +474,7 @@ class AcceleratorConnector(object):
             return self._cluster_environment
         if self.is_slurm_managing_tasks:
             env = SLURMEnvironment()
-        elif self.is_using_torchelastic:
+        elif TorchElasticEnvironment.is_using_torchelastic():
             env = TorchElasticEnvironment()
         else:
             env = LightningEnvironment()

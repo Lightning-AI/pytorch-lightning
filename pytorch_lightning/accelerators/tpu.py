@@ -11,16 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Union
 
-import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities import _XLA_AVAILABLE, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
@@ -29,14 +28,13 @@ if _XLA_AVAILABLE:
 
     xla_clip_grad_norm_ = clip_grad_norm_
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
+import pytorch_lightning as pl
 
 
 class TPUAccelerator(Accelerator):
+    """ Accelerator for TPU devices. """
 
-    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
@@ -57,22 +55,12 @@ class TPUAccelerator(Accelerator):
     ) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """
-        Function to gather a tensor from several distributed processes
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: not available with TPUs
-            sync_grads: not available with TPUs
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        # todo: Add support for backward with all_gather
-        if isinstance(self.training_type_plugin, TPUSpawnPlugin) and self.training_type_plugin.is_distributed:
-            return xm.all_gather(tensor).view(-1, *tensor.shape)
-        return tensor
-
-    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0):
+    def clip_gradients(
+        self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0,
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM
+    ) -> None:
+        assert gradient_clip_algorithm is GradClipAlgorithmType.NORM, \
+            "Only NORM gradient clipping is supported on TPU for now"
 
         model = self.lightning_module
         parameters = model.parameters()
