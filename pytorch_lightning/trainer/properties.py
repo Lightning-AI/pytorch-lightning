@@ -65,6 +65,9 @@ class TrainerProperties(ABC):
     log_every_n_steps: int
     accumulate_grad_batches: Union[int, Dict[int, int], List[list]]
     max_epochs: int
+    check_val_every_n_epoch: int
+    batch_idx: int
+    num_sanity_val_batches: List[int]
 
     @property
     def accelerator(self) -> Accelerator:

@@ -25,7 +25,7 @@ import sys
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-from typing import Optional, Union
+from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 
 if importlib.util.find_spec('ipywidgets') is not None:
     from tqdm.auto import tqdm as _tqdm
@@ -36,6 +36,10 @@ from pytorch_lightning.callbacks import Callback
 
 _PAD_SIZE = 5
 
+if TYPE_CHECKING:
+    from pytorch_lightning.core import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
+
 
 class tqdm(_tqdm):
     """
@@ -43,20 +47,23 @@ class tqdm(_tqdm):
     """
 
     @staticmethod
-    def format_num(n) -> str:
+    def format_num(n: Union[float, str]) -> str:
         """ Add additional padding to the formatted numbers """
         should_be_padded = isinstance(n, (float, str))
-        if not isinstance(n, str):
-            n = _tqdm.format_num(n)
-        if should_be_padded and 'e' not in n:
-            if '.' not in n and len(n) < _PAD_SIZE:
+        if isinstance(n, str):
+            formatted_n = n
+        else:
+            formatted_n = _tqdm.format_num(n)
+
+        if should_be_padded and 'e' not in formatted_n:
+            if '.' not in formatted_n and len(formatted_n) < _PAD_SIZE:
                 try:
-                    _ = float(n)
+                    _ = float(formatted_n)
                 except ValueError:
-                    return n
-                n += '.'
-            n += "0" * (_PAD_SIZE - len(n))
-        return n
+                    return formatted_n
+                formatted_n += '.'
+            formatted_n += "0" * (_PAD_SIZE - len(formatted_n))
+        return formatted_n
 
 
 class ProgressBarBase(Callback):
@@ -87,16 +94,16 @@ class ProgressBarBase(Callback):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
 
-        self._trainer = None
+        self._trainer: Optional['Trainer'] = None
         self._train_batch_idx = 0
         self._val_batch_idx = 0
         self._test_batch_idx = 0
         self._predict_batch_idx = 0
 
     @property
-    def trainer(self):
+    def trainer(self) -> Optional['Trainer']:
         return self._trainer
 
     @property
@@ -132,13 +139,13 @@ class ProgressBarBase(Callback):
         return self._predict_batch_idx
 
     @property
-    def total_train_batches(self) -> int:
+    def total_train_batches(self) -> float:
         """
         The total number of training batches during training, which may change from epoch to epoch.
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         training dataloader is of infinite size.
         """
-        return self.trainer.num_training_batches
+        return self.trainer.num_training_batches if self.trainer is not None else 0
 
     @property
     def total_val_batches(self) -> int:
@@ -148,9 +155,11 @@ class ProgressBarBase(Callback):
         validation dataloader is of infinite size.
         """
         total_val_batches = 0
+        if self.trainer is None:
+            return 0
         if self.trainer.enable_validation:
             is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
-            total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
+            total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0  # type: ignore
 
         return total_val_batches
 
@@ -161,7 +170,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         test dataloader is of infinite size.
         """
-        return sum(self.trainer.num_test_batches)
+        return sum(self.trainer.num_test_batches) if self.trainer is not None else 0  # type: ignore
 
     @property
     def total_predict_batches(self) -> int:
@@ -170,9 +179,9 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         predict dataloader is of infinite size.
         """
-        return sum(self.trainer.num_predict_batches)
+        return sum(self.trainer.num_predict_batches) if self.trainer is not None else 0  # type: ignore
 
-    def disable(self):
+    def disable(self) -> None:
         """
         You should provide a way to disable the progress bar.
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this to disable the
@@ -180,7 +189,7 @@ class ProgressBarBase(Callback):
         """
         raise NotImplementedError
 
-    def enable(self):
+    def enable(self) -> None:
         """
         You should provide a way to enable the progress bar.
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this in e.g. pre-training
@@ -189,40 +198,52 @@ class ProgressBarBase(Callback):
         """
         raise NotImplementedError
 
-    def print(self, *args, **kwargs):
+    def print(self, *args: Any, **kwargs: Any) -> None:
         """
         You should provide a way to print without breaking the progress bar.
         """
         print(*args, **kwargs)
 
-    def on_init_end(self, trainer):
+    def on_init_end(self, trainer: 'Trainer') -> None:
         self._trainer = trainer
 
-    def on_train_start(self, trainer, pl_module):
+    def on_train_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         self._train_batch_idx = trainer.batch_idx
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         self._train_batch_idx = 0
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(
+        self, trainer: 'Trainer', pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
         self._train_batch_idx += 1
 
-    def on_validation_start(self, trainer, pl_module):
+    def on_validation_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         self._val_batch_idx = 0
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(
+        self, trainer: 'Trainer', pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
         self._val_batch_idx += 1
 
-    def on_test_start(self, trainer, pl_module):
+    def on_test_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         self._test_batch_idx = 0
 
-    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(
+        self, trainer: 'Trainer', pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
         self._test_batch_idx += 1
 
-    def on_predict_start(self, trainer, pl_module):
+    def on_predict_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         self._predict_batch_idx = 0
 
-    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_predict_batch_end(
+        self, trainer: 'Trainer', pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
         self._predict_batch_idx += 1
 
 
@@ -274,16 +295,16 @@ class ProgressBar(ProgressBarBase):
 
     """
 
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0):
+    def __init__(self, refresh_rate: int = 1, process_position: int = 0) -> None:
         super().__init__()
         self._refresh_rate = refresh_rate
         self._process_position = process_position
         self._enabled = True
-        self.main_progress_bar = None
-        self.val_progress_bar = None
-        self.test_progress_bar = None
+        self.main_progress_bar: Optional[tqdm] = None
+        self.val_progress_bar: Optional[tqdm] = None
+        self.test_progress_bar: Optional[tqdm] = None
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         # can't pickle the tqdm objects
         state = self.__dict__.copy()
         state['main_progress_bar'] = None
@@ -379,39 +400,48 @@ class ProgressBar(ProgressBarBase):
         )
         return bar
 
-    def on_sanity_check_start(self, trainer, pl_module):
+    def on_sanity_check_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
         self.main_progress_bar = tqdm(disable=True)  # dummy progress bar
 
-    def on_sanity_check_end(self, trainer, pl_module):
+    def on_sanity_check_end(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_sanity_check_end(trainer, pl_module)
-        self.main_progress_bar.close()
-        self.val_progress_bar.close()
+        self.close_prog_bar(self.main_progress_bar)
+        self.close_prog_bar(self.val_progress_bar)
 
-    def on_train_start(self, trainer, pl_module):
+    def close_prog_bar(self, prog_bar: Optional[tqdm]) -> None:
+        if prog_bar is not None:
+            prog_bar.close()
+
+    def on_train_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_train_start(trainer, pl_module)
         self.main_progress_bar = self.init_train_tqdm()
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         if total_train_batches != float('inf'):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
-            total_val_batches = total_val_batches * val_checks_per_epoch
+            total_val_batches = int(total_val_batches) * int(val_checks_per_epoch)
         total_batches = total_train_batches + total_val_batches
-        reset(self.main_progress_bar, total_batches)
-        self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
+        reset(self.main_progress_bar, int(total_batches))
+        if self.main_progress_bar is not None:
+            self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(
+        self, trainer: 'Trainer', pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
+        if self._should_update(self.train_batch_idx, int(self.total_train_batches + self.total_val_batches)):
             self._update_bar(self.main_progress_bar)
-            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+            if self.main_progress_bar is not None:
+                self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
 
-    def on_validation_start(self, trainer, pl_module):
+    def on_validation_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_validation_start(trainer, pl_module)
         if trainer.sanity_checking:
             reset(self.val_progress_bar, sum(trainer.num_sanity_val_batches))
@@ -420,66 +450,81 @@ class ProgressBar(ProgressBarBase):
             self.val_progress_bar = self.init_validation_tqdm()
             reset(self.val_progress_bar, self.total_val_batches)
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(
+        self, trainer: 'Trainer', pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.val_batch_idx, self.total_val_batches):
             self._update_bar(self.val_progress_bar)
             self._update_bar(self.main_progress_bar)
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_validation_end(trainer, pl_module)
         if self.main_progress_bar is not None:
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
-        self.val_progress_bar.close()
+        self.close_prog_bar(self.val_progress_bar)
 
-    def on_train_end(self, trainer, pl_module):
+    def on_train_end(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_train_end(trainer, pl_module)
-        self.main_progress_bar.close()
+        self.close_prog_bar(self.main_progress_bar)
 
-    def on_test_start(self, trainer, pl_module):
+    def on_test_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_test_start(trainer, pl_module)
         self.test_progress_bar = self.init_test_tqdm()
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
-    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_test_batch_end(
+        self, trainer: 'Trainer', pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.test_batch_idx, self.total_test_batches):
             self._update_bar(self.test_progress_bar)
 
-    def on_test_end(self, trainer, pl_module):
+    def on_test_end(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_test_end(trainer, pl_module)
-        self.test_progress_bar.close()
+        self.close_prog_bar(self.test_progress_bar)
 
-    def on_predict_start(self, trainer, pl_module):
+    def on_predict_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         super().on_predict_start(trainer, pl_module)
         self.predict_progress_bar = self.init_predict_tqdm()
         self.predict_progress_bar.total = convert_inf(self.total_predict_batches)
 
-    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_predict_batch_end(
+        self, trainer: 'Trainer', pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
         super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
         if self._should_update(self.predict_batch_idx, self.total_predict_batches):
             self._update_bar(self.predict_progress_bar)
 
-    def on_predict_end(self, trainer, pl_module):
+    def on_predict_end(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         self.predict_progress_bar.close()
 
     def print(
-        self, *args, sep: str = ' ', end: str = os.linesep, file: Optional[io.TextIOBase] = None, nolock: bool = False
-    ):
+        self,
+        *args: Any,
+        sep: str = ' ',
+        end: str = os.linesep,
+        file: Optional[io.TextIOBase] = None,
+        nolock: bool = False,
+        **kwargs: Any
+    ) -> None:
         active_progress_bar = None
 
-        if not self.main_progress_bar.disable:
+        if not (self.main_progress_bar is not None and self.main_progress_bar.disable):
             active_progress_bar = self.main_progress_bar
-        elif not self.val_progress_bar.disable:
+        elif not (self.val_progress_bar is not None and self.val_progress_bar.disable):
             active_progress_bar = self.val_progress_bar
-        elif not self.test_progress_bar.disable:
+        elif not (self.test_progress_bar is not None and self.test_progress_bar.disable):
             active_progress_bar = self.test_progress_bar
 
         if active_progress_bar is not None:
             s = sep.join(map(str, args))
-            active_progress_bar.write(s, end=end, file=file, nolock=nolock)
+            active_progress_bar.write(s, end=end, file=file, nolock=nolock, **kwargs)
 
-    def _should_update(self, current, total):
+    def _should_update(self, current: int, total: int) -> bool:
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
     def _update_bar(self, bar: Optional[tqdm]) -> None:
@@ -502,7 +547,7 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     return x
 
 
-def reset(bar: tqdm, total: Optional[int] = None) -> None:
+def reset(bar: Optional[tqdm], total: Optional[int] = None) -> None:
     """ Resets the tqdm bar to 0 progress with a new total, unless it is disabled. """
-    if not bar.disable:
+    if bar is not None and not bar.disable:
         bar.reset(total=convert_inf(total))
