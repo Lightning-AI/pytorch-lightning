@@ -13,7 +13,7 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -21,9 +21,13 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.trainer import Trainer
+
 
 class ModelHooks:
     """Hooks to be used in LightningModule."""
+    trainer: 'Trainer'
 
     def on_fit_start(self) -> None:
         """
@@ -327,6 +331,8 @@ class ModelHooks:
 
 class DataHooks:
     """Hooks to be used for data related stuff."""
+
+    device: torch.device
 
     def prepare_data(self) -> None:
         """
@@ -684,7 +690,7 @@ class DataHooks:
         device = device or self.device
         return move_data_to_device(batch, device)
 
-    def on_before_batch_transfer(self, batch, dataloader_idx):
+    def on_before_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
@@ -717,7 +723,7 @@ class DataHooks:
         """
         return batch
 
-    def on_after_batch_transfer(self, batch, dataloader_idx):
+    def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         """
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
