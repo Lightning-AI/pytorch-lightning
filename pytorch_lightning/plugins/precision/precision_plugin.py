@@ -12,22 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, Callable, Generator, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Generator, Sequence, Tuple, Union
 
 import torch
+import torch.nn as nn
+from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.optim import Optimizer
-
-    from pytorch_lightning.core import LightningModule
-
 
 class PrecisionPlugin(Plugin):
-    """ Plugin handling the precision-specific parts of the training.
+    """
+    Base class for all plugins handling the precision-specific parts of the training.
     The static classattributes EPSILON and precision must be overwritten in child-classes and their
     default values reflect fp32 training.
     """
@@ -41,7 +39,7 @@ class PrecisionPlugin(Plugin):
             GradClipAlgorithmType.NORM: self.clip_grad_by_norm,
         }
 
-    def master_params(self, optimizer: 'Optimizer') -> Generator[torch.Tensor, None, None]:
+    def master_params(self, optimizer: Optimizer) -> Generator[torch.Tensor, None, None]:
         """The master params of the model. Returns the plain model params here.
         Maybe different in other precision plugins.
 
@@ -52,18 +50,18 @@ class PrecisionPlugin(Plugin):
 
     def connect(
         self,
-        model: 'Module',
-        optimizers: Sequence['Optimizer'],
+        model: nn.Module,
+        optimizers: Sequence[Optimizer],
         lr_schedulers: Sequence[Any],
-    ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
+    ) -> Tuple[nn.Module, Sequence[Optimizer], Sequence[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
     def backward(
         self,
-        model: 'LightningModule',
+        model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
@@ -94,8 +92,8 @@ class PrecisionPlugin(Plugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'LightningModule',
-        optimizer: 'Optimizer',
+        pl_module: 'pl.LightningModule',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
@@ -103,13 +101,13 @@ class PrecisionPlugin(Plugin):
         """Hook to do something before each optimizer step."""
         return True
 
-    def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
 
     def clip_gradients(
         self,
-        model: 'LightningModule',
-        optimizer: 'Optimizer',
+        model: 'pl.LightningModule',
+        optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
@@ -124,12 +122,12 @@ class PrecisionPlugin(Plugin):
         clip_grad_func = self.clip_grad_funcs[gradient_clip_algorithm]
         clip_grad_func(optimizer, clip_val)  # type: ignore
 
-    def clip_grad_by_value(self, optimizer: 'Optimizer', clip_val: Union[int, float]) -> None:
+    def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by value"""
         parameters = list(self.master_params(optimizer))
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
-    def clip_grad_by_norm(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
+    def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = 2.0) -> None:
         """Clip gradients by norm"""
         # TODO: separate TPU case from here
         parameters = list(self.master_params(optimizer))
