@@ -15,6 +15,8 @@ import inspect
 
 import pytest
 
+from torch.jit import ScriptModule
+
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     clean_namespace,
@@ -203,7 +205,7 @@ def test_is_picklable(tmpdir):
         pass
 
     true_cases = [None, True, 123, "str", (123, "str"), max]
-    false_cases = [unpicklable_function, UnpicklableClass]
+    false_cases = [unpicklable_function, UnpicklableClass, ScriptModule()]
 
     for case in true_cases:
         assert is_picklable(case) is True
