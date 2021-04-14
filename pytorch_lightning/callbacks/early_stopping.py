@@ -19,7 +19,7 @@ Monitor a metric and stop training when it stops improving.
 
 """
 import logging
-from typing import Any, Dict, Optional, Tuple, Mapping
+from typing import Any, Dict, Optional, Tuple, Mapping, Callable
 
 import numpy as np
 import torch
@@ -116,7 +116,7 @@ class EarlyStopping(Callback):
         torch_inf = torch.tensor(np.Inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
-    def _validate_condition_metric(self, logs: Mapping):
+    def _validate_condition_metric(self, logs: Mapping) -> bool:
         monitor_val = logs.get(self.monitor)
 
         error_msg = (
@@ -136,7 +136,7 @@ class EarlyStopping(Callback):
         return True
 
     @property
-    def monitor_op(self):
+    def monitor_op(self) -> Callable:
         return self.mode_dict[self.mode]
 
     def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule',
@@ -148,7 +148,7 @@ class EarlyStopping(Callback):
             'patience': self.patience
         }
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]):
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
         self.wait_count = callback_state['wait_count']
         self.stopped_epoch = callback_state['stopped_epoch']
         self.best_score = callback_state['best_score']
@@ -174,7 +174,7 @@ class EarlyStopping(Callback):
         ):
             return None  # short circuit if metric not present
 
-        current = logs.get(self.monitor)
+        current = logs[self.monitor]
 
         # when in dev debugging
         trainer.dev_debugger.track_early_stopping_history(self, current)
