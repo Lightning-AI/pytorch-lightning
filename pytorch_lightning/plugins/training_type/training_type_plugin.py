@@ -247,8 +247,8 @@ class TrainingTypePlugin(Plugin, ABC):
             filepath: write-target file's path
         """
         # dump states as a checkpoint dictionary object
+        checkpoint = self.on_save(checkpoint)
         if self.is_global_zero:
-            checkpoint = self.on_save(checkpoint)
             try:
                 # write the checkpoint dictionary on the file
                 atomic_save(checkpoint, filepath)

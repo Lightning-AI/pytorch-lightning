@@ -180,10 +180,6 @@ class FullyShardedPlugin(DDPPlugin):
     def lightning_module(self) -> LightningModule:
         return unwrap_lightning_module_fully_sharded(self.model)
 
-    @property
-    def move_to_device_in_prefetch(self):
-        return False
-
     def on_save(self, checkpoint: dict) -> dict:
         state_dict = self.collate_state_dict()
         checkpoint['state_dict'] = state_dict
@@ -201,4 +197,10 @@ class FullyShardedPlugin(DDPPlugin):
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
+        # Setup optimizers after the Fully Sharded Model has been made
         return True
+
+    @property
+    def move_to_device_in_prefetch(self):
+        # Fully Sharded handles moving to device
+        return False
