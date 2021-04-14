@@ -17,7 +17,7 @@ Quantization
 
 """
 import functools
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
 from torch.quantization import QConfig
@@ -27,10 +27,14 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_LOWER_EQUAL_1_4
 
+if TYPE_CHECKING:
+    from pytorch_lightning.core import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
+
 
 def wrap_qat_forward_context(
-    quant_cb,
-    model: pl.core.LightningModule,
+    quant_cb: Callback,
+    model: 'LightningModule',
     func: Callable,
     trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
@@ -40,33 +44,38 @@ def wrap_qat_forward_context(
     """
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
-    def wrapper(data) -> Any:
-        _is_func_true = isinstance(trigger_condition, Callable) and trigger_condition(model.trainer)
-        _is_count_true = isinstance(trigger_condition, int) and quant_cb._forward_calls < trigger_condition
+    def wrapper(data: torch.Tensor) -> Any:
+        _is_func_true = callable(trigger_condition) and trigger_condition(model.trainer)
+        _is_count_true = isinstance(
+            trigger_condition, int
+        ) and quant_cb._forward_calls < trigger_condition  # type: ignore
         _quant_run = trigger_condition is None or _is_func_true or _is_count_true
         # apply custom trigger
         if _quant_run:
-            quant_cb._forward_calls += 1
-            data = model.quant(data)
+            quant_cb._forward_calls += 1  # type: ignore
+            if callable(model.quant):
+                data = model.quant(data)
         data = func(data)
         # apply custom trigger
-        if _quant_run:
+        if _quant_run and callable(model.dequant):
             data = model.dequant(data)
         return data
 
     return wrapper
 
 
-def wrap_quantize_forward_context(model: pl.core.LightningModule, func: Callable) -> Callable:
+def wrap_quantize_forward_context(model: 'LightningModule', func: Callable) -> Callable:
     """
     Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
     """
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
-    def wrapper(data) -> Any:
-        data = model.quant(data)
+    def wrapper(data: torch.Tensor) -> Any:
+        if callable(model.quant):
+            data = model.quant(data)
         data = func(data)
-        data = model.dequant(data)
+        if callable(model.dequant):
+            data = model.dequant(data)
         return data
 
     return wrapper
@@ -152,7 +161,9 @@ class QuantizationAwareTraining(Callback):
             raise MisconfigurationException(f'For using {observer_type} you need to be using pytorch>=1.5.')
         self._observer_type = observer_type
 
-        if collect_quantization is not None and not isinstance(collect_quantization, (int, Callable)):
+        if collect_quantization is not None and not (
+            isinstance(collect_quantization, int) or callable(collect_quantization)
+        ):
             raise MisconfigurationException(
                 f'Unsupported `collect_quantization` "{collect_quantization}", allowed are `int` or `Callable`.'
             )
@@ -162,7 +173,7 @@ class QuantizationAwareTraining(Callback):
         self._input_compatible = input_compatible
         self._forward_calls = 0
 
-    def _check_feasible_fuse(self, model):
+    def _check_feasible_fuse(self, model: 'LightningModule') -> bool:
         if not self.modules_to_fuse:
             return False
         for group in self.modules_to_fuse:
@@ -172,7 +183,7 @@ class QuantizationAwareTraining(Callback):
                 )
         return True
 
-    def on_fit_start(self, trainer, pl_module):
+    def on_fit_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         # QuantStub converts tensors from floating point to quantized
         pl_module.quant = torch.quantization.QuantStub()
         # DeQuantStub converts tensors from quantized to floating point
@@ -180,8 +191,12 @@ class QuantizationAwareTraining(Callback):
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
         self.__module_forward = pl_module.forward
-        pl_module.forward = wrap_qat_forward_context(
-            quant_cb=self, model=pl_module, func=pl_module.forward, trigger_condition=self._collect_quantization
+
+        setattr(
+            pl_module, 'forward',
+            wrap_qat_forward_context(
+                quant_cb=self, model=pl_module, func=pl_module.forward, trigger_condition=self._collect_quantization
+            )
         )
 
         # attach a global qconfig, which contains information about what kind
@@ -192,7 +207,7 @@ class QuantizationAwareTraining(Callback):
             elif self._observer_type == 'average':
                 pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
         elif isinstance(self._qconfig, QConfig):
-            pl_module.qconfig = self._qconfig
+            pl_module.qconfig = self._qconfig  # type: ignore
 
         if self._check_feasible_fuse(pl_module):
             torch.quantization.fuse_modules(pl_module, self.modules_to_fuse, inplace=True)
@@ -201,7 +216,7 @@ class QuantizationAwareTraining(Callback):
         # the model that will observe weight and activation tensors during calibration.
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
-    def on_fit_end(self, trainer, pl_module):
+    def on_fit_end(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         pl_module.eval()
         # Convert the observed model to a quantized model. This does several things:
         # quantizes the weights, computes and stores the scale and bias value to be
@@ -210,6 +225,6 @@ class QuantizationAwareTraining(Callback):
         torch.quantization.convert(pl_module, inplace=True)
         # check we shall preserve wrapper
         if self._input_compatible:
-            pl_module.forward = wrap_quantize_forward_context(model=pl_module, func=self.__module_forward)
+            setattr(pl_module, 'forward', wrap_quantize_forward_context(model=pl_module, func=self.__module_forward))
         else:
-            pl_module.forward = self.__module_forward
+            setattr(pl_module, 'forward', self.__module_forward)
