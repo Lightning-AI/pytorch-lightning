@@ -94,4 +94,10 @@ def pl_worker_init_function(worker_id: int) -> None:
     ss = np.random.SeedSequence([base_seed, worker_id, global_rank])
     # use 128 bits (4 x 32-bit words)
     np.random.seed(ss.generate_state(4))
-    torch.manual_seed((process_seed * global_rank) % (2**64))
+    # Spawn distinct SeedSequences for the PyTorch PRNG and the stdlib random module
+    torch_ss, stdlib_ss = ss.spawn(2)
+    # PyTorch takes a 64-bit seed
+    torch.manual_seed(torch_ss.generate_state(1, dtype=np.uint64)[0])
+    # use 128 bits expressed as an integer
+    stdlib_seed = (stdlib_ss.generate_state(2, dtype=np.uint64).astype(object) * [1 << 64, 1]).sum()
+    random.seed(stdlib_seed)
