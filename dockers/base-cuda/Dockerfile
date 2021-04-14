@@ -114,8 +114,8 @@ RUN \
     rm -rf apex
 
 RUN \
-    # install DeepSpeed
-    pip install deepspeed>=0.3.14
+    # install DeepSpeed and FairScale
+    pip install deepspeed>=0.3.14 fairscale>=0.3.4
 
 RUN \
     # Show what we have
