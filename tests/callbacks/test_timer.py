@@ -160,3 +160,20 @@ def test_timer_resume_training(tmpdir):
     trainer.fit(model)
     assert timer._offset > timedelta(0)
     assert trainer.global_step == saved_global_step + 1
+
+
+def test_timer_track_stages(tmpdir):
+    """ Test that the timer tracks time also for other stages (train/val/test). """
+    model = BoringModel()
+    timer = Timer()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=5,
+        callbacks=[timer],
+    )
+    trainer.fit(model)
+    assert timer.time_elapsed() == timer.time_elapsed("train") > timedelta(0)
+    assert timer.time_elapsed("validate") > timedelta(0)
+    assert timer.time_elapsed("test") == timedelta(0)
+    trainer.test(model)
+    assert timer.time_elapsed("test") > timedelta(0)
