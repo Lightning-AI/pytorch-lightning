@@ -66,6 +66,11 @@ class Timer(Callback):
 
         # force training to stop after given time limit
         trainer = Trainer(callbacks=[timer])
+
+        # query training/validation/test time
+        timer.time_elapsed("train")
+        timer.start_time("validate")
+        timer.end_time("test")
     """
 
     def __init__(
@@ -93,13 +98,13 @@ class Timer(Callback):
         self._end_time = defaultdict(lambda: None)
         self._offset = timedelta()
 
-    def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[datetime]:
+    def start_time(self, stage: str = RunningStage.TRAINING.value) -> Optional[datetime]:
         return self._start_time[stage]
 
-    def end_time(self, stage: str = RunningStage.TRAINING) -> Optional[datetime]:
+    def end_time(self, stage: str = RunningStage.TRAINING.value) -> Optional[datetime]:
         return self._end_time[stage]
 
-    def time_elapsed(self, stage: str = RunningStage.TRAINING) -> timedelta:
+    def time_elapsed(self, stage: str = RunningStage.TRAINING.value) -> timedelta:
         start = self.start_time(stage)
         end = self.end_time(stage)
         offset = self._offset if stage == RunningStage.TRAINING else timedelta(0)
@@ -109,26 +114,26 @@ class Timer(Callback):
             return datetime.now() - start + offset
         return end - start + offset
 
-    def time_remaining(self, stage: str = RunningStage.TRAINING) -> timedelta:
+    def time_remaining(self, stage: str = RunningStage.TRAINING.value) -> timedelta:
         return self._duration - self.time_elapsed(stage)
 
     def on_train_start(self, *args, **kwargs) -> None:
-        self._start_time.update({RunningStage.TRAINING: datetime.now()})
+        self._start_time.update({RunningStage.TRAINING.value: datetime.now()})
 
     def on_train_end(self, *args, **kwargs) -> None:
-        self._end_time.update({RunningStage.TRAINING: datetime.now()})
+        self._end_time.update({RunningStage.TRAINING.value: datetime.now()})
 
     def on_validation_start(self, *args, **kwargs) -> None:
-        self._start_time.update({RunningStage.VALIDATING: datetime.now()})
+        self._start_time.update({RunningStage.VALIDATING.value: datetime.now()})
 
     def on_validation_end(self, *args, **kwargs) -> None:
-        self._end_time.update({RunningStage.VALIDATING: datetime.now()})
+        self._end_time.update({RunningStage.VALIDATING.value: datetime.now()})
 
     def on_test_start(self, *args, **kwargs) -> None:
-        self._start_time.update({RunningStage.TESTING: datetime.now()})
+        self._start_time.update({RunningStage.TESTING.value: datetime.now()})
 
     def on_test_end(self, *args, **kwargs) -> None:
-        self._end_time.update({RunningStage.TESTING: datetime.now()})
+        self._end_time.update({RunningStage.TESTING.value: datetime.now()})
 
     def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
         if self._interval != Interval.step:
@@ -142,7 +147,7 @@ class Timer(Callback):
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            "time_elapsed": {k.value: self.time_elapsed(k) for k in RunningStage}
+            "time_elapsed": {k.value: self.time_elapsed(k.value) for k in RunningStage}
         }
 
     def on_load_checkpoint(self, callback_state: Dict[str, Any]):
