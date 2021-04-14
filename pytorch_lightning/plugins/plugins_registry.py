@@ -87,7 +87,7 @@ class _TrainingTypePluginsRegistry(UserDict):
 
         return do_register
 
-    def get(self, name: str) -> Callable:
+    def get(self, name: str) -> Any:
         """
         Calls the registered plugin with the required parameters
         and returns the plugin object
