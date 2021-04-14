@@ -171,8 +171,10 @@ def test__logger_connector__epoch_result_store__train__tbptt(tmpdir):
                 sampler=None,
             )
 
-        def training_step_end(self, *_):
+        def training_step_end(self, training_step_output):
             self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
+            # must return
+            return training_step_output
 
     model = TestModel()
     model.training_epoch_end = None
