@@ -20,7 +20,7 @@ from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_FULLY_S
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
-FullyShardedDataParallel = None
+FullyShardedDataParallel, ShardedDataParallel = None, None
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel import ShardedDataParallel
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
