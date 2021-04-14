@@ -102,6 +102,7 @@ class DeepSpeedPlugin(DDPPlugin):
         cpu_checkpointing: bool = False,
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
+        save_full_weights: bool = True,
     ) -> None:
         """
 
@@ -177,11 +178,16 @@ class DeepSpeedPlugin(DDPPlugin):
                 Not supported by all models
 
             synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
+
+            save_full_weights: Gathers weights across all processes before saving to disk
+                when using ZeRO Stage 3. This allows a single weight file to contain the entire model,
+                rather than individual sharded weight files.
+                Disable to save sharded states individually. (Default: True)
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
                 "To use the DeepSpeed plugin, you must have DeepSpeed installed."
-                " pip install deepspeed mpi4py"
+                " pip install deepspeed"
             )
         super().__init__(
             parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
@@ -205,10 +211,12 @@ class DeepSpeedPlugin(DDPPlugin):
                 allgather_partitions=allgather_partitions,
                 reduce_scatter=reduce_scatter,
                 allgather_bucket_size=allgather_bucket_size,
-                reduce_bucket_size=reduce_bucket_size
+                reduce_bucket_size=reduce_bucket_size,
             )
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
+
+        self.save_full_weights = save_full_weights
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -472,17 +480,27 @@ class DeepSpeedPlugin(DDPPlugin):
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
+            checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
-            weights_only: saving model weights only
         """
         if self.world_size > 1 and self.zero_stage_3:
+            if self.save_full_weights:
+                # todo: expose this as general function in deepspeed
+                state_dict = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
+                if self.is_global_zero:
+                    # State dict keys will include reference to wrapper LightningDeepSpeedModule
+                    # Delete `module` prefix before saving.
+                    state_dict = {k.partition('module.')[2]: state_dict[k] for k in state_dict.keys()}
+                    checkpoint['state_dict'] = state_dict
+                    return super().save_checkpoint(checkpoint, filepath)
+                return
+
             # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
             save_dir = self._filepath_to_dir(filepath)
             _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
             checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
             self.deepspeed_engine.save_checkpoint(save_dir, client_state=checkpoint)
-
         else:
             super().save_checkpoint(checkpoint, filepath)
 
@@ -491,7 +509,8 @@ class DeepSpeedPlugin(DDPPlugin):
         ckpt_path: str,
         map_location: Callable = lambda storage, loc: storage,
     ) -> Tuple[Dict, bool]:
-        if self.world_size > 1:
+        if not self.save_full_weights and self.world_size > 1:
+            # Rely on deepspeed to load the checkpoint and necessary information
             from pytorch_lightning.trainer.states import TrainerState
             stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
@@ -511,6 +530,10 @@ class DeepSpeedPlugin(DDPPlugin):
             # hook: give user access to checkpoint if needed.
             self.lightning_module.on_load_checkpoint(client_state)
             return client_state, False
+
+        # Broadcast to ensure we load from the rank 0 checkpoint
+        # This doesn't have to be the case when using deepspeed sharded checkpointing
+        ckpt_path = self.broadcast(ckpt_path)
         return super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
