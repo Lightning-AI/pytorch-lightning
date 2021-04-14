@@ -24,9 +24,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
-    from torch_xla._patched_functions import clip_grad_norm_
-
-    xla_clip_grad_norm_ = clip_grad_norm_
+    from torch_xla._patched_functions import _apply_patches
+    _apply_patches()  # patches torch.nn.utils.clip_grad_norm_
 
 import pytorch_lightning as pl
 
@@ -42,8 +41,7 @@ class TPUAccelerator(Accelerator):
         """
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(
-                "amp + tpu is not supported. "
-                "Only bfloats are supported on TPU. Consider using TPUHalfPrecisionPlugin"
+                "amp + tpu is not supported. Only bfloats are supported on TPU. Consider using TPUHalfPrecisionPlugin"
             )
 
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
@@ -54,21 +52,3 @@ class TPUAccelerator(Accelerator):
         self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
     ) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
-
-    def clip_gradients(
-        self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0,
-        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM
-    ) -> None:
-        assert gradient_clip_algorithm is GradClipAlgorithmType.NORM, \
-            "Only NORM gradient clipping is supported on TPU for now"
-
-        model = self.lightning_module
-        parameters = model.parameters()
-
-        grad_clip_val = float(clip_val)
-        if grad_clip_val <= 0:
-            return
-
-        max_norm = grad_clip_val
-
-        xla_clip_grad_norm_(parameters, max_norm, norm_type)

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
 from typing import Any, Callable, Generator, Sequence, Tuple, Union
 
 import torch
@@ -26,10 +25,9 @@ from pytorch_lightning.utilities import GradClipAlgorithmType
 class PrecisionPlugin(Plugin):
     """
     Base class for all plugins handling the precision-specific parts of the training.
-    The static classattributes EPSILON and precision must be overwritten in child-classes and their
-    default values reflect fp32 training.
+    The class attribute precision must be overwritten in child classes.
+    The default value reflects fp32 training.
     """
-    EPSILON: float = 1e-6
     precision: Union[str, int] = 32
 
     def __init__(self) -> None:
@@ -124,32 +122,10 @@ class PrecisionPlugin(Plugin):
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by value"""
-        parameters = list(self.master_params(optimizer))
+        parameters = self.master_params(optimizer)
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
-    def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = 2.0) -> None:
+    def clip_grad_by_norm(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by norm"""
-        # TODO: separate TPU case from here
-        parameters = list(self.master_params(optimizer))
-        max_norm = clip_val
-
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
-        parameters = list(filter(lambda p: p.grad is not None, parameters))
-
-        device = parameters[0].device
-
-        if norm_type == math.inf:
-            total_norm = max(p.grad.data.abs().max() for p in parameters)
-        else:
-            out = torch.empty(len(parameters), device=device)
-            for i, p in enumerate(parameters):
-                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
-            total_norm = torch.norm(out, norm_type)
-
-        eps = self.EPSILON
-
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
-        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
-        for p in parameters:
-            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
+        parameters = self.master_params(optimizer)
+        torch.nn.utils.clip_grad_norm_(parameters, clip_val)
