@@ -75,7 +75,7 @@ class Timer(Callback):
 
     def __init__(
         self,
-        duration: Optional[Union[str, timedelta, Dict[str, int]]],
+        duration: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         interval: str = Interval.step,
         verbose: bool = True,
     ):
@@ -137,12 +137,12 @@ class Timer(Callback):
         self._end_time.update({RunningStage.TESTING.value: datetime.now()})
 
     def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
-        if self._interval != Interval.step and self._duration is not None:
+        if self._interval != Interval.step or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
     def on_train_epoch_end(self, trainer, *args, **kwargs) -> None:
-        if self._interval != Interval.epoch and self._duration is not None:
+        if self._interval != Interval.epoch or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
