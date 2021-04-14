@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 
 
 class TorchElasticEnvironment(ClusterEnvironment):
+    """ Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_ """
 
     @staticmethod
     def is_using_torchelastic() -> bool:
