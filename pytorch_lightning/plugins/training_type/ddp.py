@@ -37,7 +37,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything, reset_seed
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig

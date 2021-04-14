@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything, reset_seed
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm

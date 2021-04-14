@@ -13,7 +13,6 @@
 # limitations under the License.
 """Trainer to automate the training."""
 import logging
-import os
 import warnings
 from itertools import count
 from pathlib import Path
