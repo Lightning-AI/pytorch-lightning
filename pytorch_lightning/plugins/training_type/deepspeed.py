@@ -26,7 +26,6 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.plugins_registry import TrainingTypePluginsRegistry
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
@@ -524,17 +523,19 @@ class DeepSpeedPlugin(DDPPlugin):
 
     @classmethod
     def register_plugins(cls, plugin_registry):
-        plugin_registry.register("deepspeed", description="Default DeepSpeed Plugin")
-        plugin_registry.register("deepspeed_stage_2", description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
+        plugin_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
+        plugin_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
         plugin_registry.register(
             "deepspeed_stage_2_offload",
+            cls,
             description="DeepSpeed with ZeRO Stage 2 enabled and Offload",
             stage=2,
             cpu_offload=True
         )
-        plugin_registry.register("deepspeed_stage_3", description="DeepSpeed with ZeRO Stage 3 enabled", stage=3)
+        plugin_registry.register("deepspeed_stage_3", cls, description="DeepSpeed with ZeRO Stage 3 enabled", stage=3)
         plugin_registry.register(
             "deepspeed_stage_3_offload",
+            cls,
             description="DeepSpeed with ZeRO Stage 3 enabled and Offload",
             stage=3,
             cpu_offload=True

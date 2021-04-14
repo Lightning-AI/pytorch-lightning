@@ -11,9 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import importlib
+import os
+import sys
 from collections import UserDict
+from inspect import getmembers, isclass
 from typing import Callable, List, Optional
 
+from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin  # noqa: F401
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -110,3 +115,27 @@ class _TrainingTypePluginsRegistry(UserDict):
 
 
 TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
+
+
+def is_register_plugins_overriden(plugin):
+    method_name = "register_plugins"
+    plugin_attr = getattr(plugin, method_name)
+    super_attr = getattr(TrainingTypePlugin, method_name)
+
+    if hasattr(plugin_attr, 'patch_loader_code'):
+        is_overridden = plugin_attr.patch_loader_code != str(super_attr.__code__)
+    else:
+        is_overridden = plugin_attr.__code__ is not super_attr.__code__
+    return is_overridden
+
+
+def call_register_plugins(root: str, base_module: str) -> None:
+    for file in os.listdir(str(root) + "/training_type"):
+        if file.endswith(".py") and not file.startswith("_"):
+            module = file[:file.find(".py")]
+            if module not in sys.modules:
+                module = importlib.import_module(".".join([base_module, module]))
+                for mod_info in getmembers(module, isclass):
+                    mod = mod_info[1]
+                    if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overriden(mod):
+                        mod.register_plugins(TrainingTypePluginsRegistry)
