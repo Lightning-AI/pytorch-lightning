@@ -42,7 +42,7 @@ class _TrainingTypePluginsRegistry(UserDict):
     def register(
         self,
         name: str,
-        func: Optional[Callable] = None,
+        plugin: Optional[Callable] = None,
         description: Optional[str] = None,
         override: bool = False,
         **init_params
@@ -62,20 +62,20 @@ class _TrainingTypePluginsRegistry(UserDict):
 
         data["init_params"] = init_params
 
-        def do_register(func):
-            data["func"] = func
+        def do_register(plugin):
+            data["plugin"] = plugin
             self[name] = data
-            return data
+            return plugin
 
-        if func is not None:
-            return do_register(func)
+        if plugin is not None:
+            return do_register(plugin)
 
         return do_register
 
     def get(self, name: str):
         if name in self:
             data = self[name]
-            return data["func"](**data["init_params"])
+            return data["plugin"](**data["init_params"])
 
         err_msg = "'{}' not found in registry. Available names: {}"
         available_names = ", ".join(sorted(self.keys())) or "none"
