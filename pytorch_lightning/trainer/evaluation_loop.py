@@ -33,9 +33,9 @@ class EvaluationLoop(object):
         self.trainer: 'Trainer' = trainer
         self.outputs: List['_STEP_OUTPUT_TYPE'] = []
         self.predictions: Optional[PredictionCollection] = None
-        self.max_batches: Optional[List[int, float]] = None
+        self.max_batches: Optional[List[Union[int, float]]] = None
         self.warning_cache: WarningCache = WarningCache()
-        self.num_dataloaders: int = None
+        self.num_dataloaders: Optional[int] = None
 
     def on_trainer_init(self) -> None:
         self.trainer.num_sanity_val_batches = []
@@ -51,7 +51,7 @@ class EvaluationLoop(object):
         # when true, print evaluation results in .validate() and .test()
         self.trainer.verbose_evaluate = True
 
-    def get_evaluation_dataloaders(self) -> Tuple[List['DataLoader'], List[Union[int, float]]]:
+    def get_evaluation_dataloaders(self) -> Tuple[Optional[List['DataLoader']], List[Union[int, float]]]:
         model = self.trainer.lightning_module
 
         # select dataloaders
@@ -125,7 +125,6 @@ class EvaluationLoop(object):
 
         self.max_batches = max_batches
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
-        self._predictions = [[] for _ in range(self.num_dataloaders)]
 
     def on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         self.trainer.call_hook('on_epoch_start', *args, **kwargs)
@@ -149,13 +148,16 @@ class EvaluationLoop(object):
 
         return args
 
-    def _get_num_dataloaders(self, dataloaders: List['DataLoader']) -> int:
+    def _get_num_dataloaders(self, dataloaders: Optional[List['DataLoader']]) -> int:
         # case where user does:
         # return dl1, dl2
-        length = len(dataloaders)
-        if len(dataloaders) > 0 and isinstance(dataloaders[0], (list, tuple)):
-            length = len(dataloaders[0])
-        return length
+        if dataloaders is not None:
+            length = len(dataloaders)
+            if len(dataloaders) > 0 and isinstance(dataloaders[0], (list, tuple)):
+                length = len(dataloaders[0])
+            return length
+        else:
+            return 0
 
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> '_STEP_OUTPUT_TYPE':
         # configure args
@@ -176,8 +178,7 @@ class EvaluationLoop(object):
         # capture any logged information
         self.trainer.logger_connector.cache_logged_metrics()
         # track batch size for weighted average
-        is_result_obj = isinstance(output, Result)
-        if is_result_obj:
+        if isinstance(output, Result):
             output.track_batch_size(batch)
 
         return output
@@ -235,9 +236,8 @@ class EvaluationLoop(object):
 
     def store_predictions(self, output: '_STEP_OUTPUT_TYPE', batch_idx: int, dataloader_idx: int) -> None:
         # Add step predictions to prediction collection to write later
-        if output is not None:
-            do_write_predictions = isinstance(output, Result) and self.trainer.testing
-            if do_write_predictions:
+        if output is not None and self.predictions is not None:
+            if isinstance(output, Result) and self.trainer.testing:
                 self.predictions.add(output.pop('predictions', None))
 
         # track debug metrics
@@ -270,31 +270,21 @@ class EvaluationLoop(object):
 
         self.trainer.call_hook('on_epoch_end')
 
-    def log_evaluation_step_metrics(self, output: '_STEP_OUTPUT_TYPE', batch_idx: int) -> None:
+    def log_evaluation_step_metrics(self, batch_idx: int) -> None:
         if self.trainer.sanity_checking:
             return
 
-        step_log_metrics = {}
-        step_pbar_metrics = {}
-
-        self.__log_result_step_metrics(step_log_metrics, step_pbar_metrics, batch_idx)
-
-    def __log_result_step_metrics(
-        self, step_log_metrics: Dict[str, Any], step_pbar_metrics: Dict[str, Any], batch_idx: int
-    ) -> None:
         cached_results = self.trainer.logger_connector.cached_results
-        cached_batch_pbar_metrics, cached_batch_log_metrics = cached_results.update_logger_connector()
+        if cached_results is not None:
+            cached_batch_pbar_metrics, cached_batch_log_metrics = cached_results.update_logger_connector()
 
-        step_log_metrics.update(cached_batch_log_metrics)
-        step_pbar_metrics.update(cached_batch_pbar_metrics)
+            if len(cached_batch_log_metrics) > 0:
+                # make the metrics appear as a different line in the same graph
+                metrics_by_epoch = {}
+                for k, v in cached_batch_log_metrics.items():
+                    metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
 
-        if len(step_log_metrics) > 0:
-            # make the metrics appear as a different line in the same graph
-            metrics_by_epoch = {}
-            for k, v in step_log_metrics.items():
-                metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
+                self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
-            self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
-
-        if len(step_pbar_metrics) > 0:
-            self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
+            if len(cached_batch_pbar_metrics) > 0:
+                self.trainer.logger_connector.add_progress_bar_metrics(cached_batch_pbar_metrics)
