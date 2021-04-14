@@ -69,8 +69,9 @@ def _select_seed_randomly(min_seed_value: int = 0, max_seed_value: int = 255) ->
 
 
 def reset_seed() -> None:
-    """ Reset the seed to the value that :func:`pytorch_lightning.utilities.seed.seed_everything` has set
-    previously.
+    """
+    Reset the seed to the value that :func:`pytorch_lightning.utilities.seed.seed_everything` previously set.
+    If :func:`pytorch_lightning.utilities.seed.seed_everything` is unused, this function will do nothing.
     """
     seed = os.environ.get("PL_GLOBAL_SEED", None)
     if seed is not None:
