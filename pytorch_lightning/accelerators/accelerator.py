@@ -127,9 +127,9 @@ class Accelerator:
 
     @property
     def lightning_module(self) -> 'LightningModule':
-        """Returns the pure LightningModule.
+        """
+        Returns the pure LightningModule.
         To get the potentially wrapped model use :attr:`Accelerator.model`
-
         """
         return self.training_type_plugin.lightning_module
 
@@ -480,7 +480,7 @@ class Accelerator:
         self.setup_training_type_plugin(plugin, model)
 
     # todo: remove in v1.5
-    def connect_precision_plugin(self, plugin: PrecisionPlugin) -> None:
+    def connect_precision_plugin(self, plugin: 'PrecisionPlugin') -> None:
         """Attaches the precision plugin to the accelerator
 
         .. deprecated::v1.3
