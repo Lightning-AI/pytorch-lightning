@@ -88,11 +88,13 @@ class WandbLogger(LightningLoggerBase):
 
     def __init__(
         self,
+        name: Optional[str] = None,
         save_dir: Optional[str] = None,
         offline: Optional[bool] = False,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         version: Optional[str] = None,
+        project: Optional[str] = None,
         log_model: Optional[bool] = False,
         experiment=None,
         prefix: Optional[str] = '',
@@ -124,7 +126,7 @@ class WandbLogger(LightningLoggerBase):
         self._prefix = prefix
         self._experiment = experiment
         # set wandb init arguments
-        self._wandb_init = dict(resume='allow', id=version or id, dir=save_dir,
+        self._wandb_init = dict(resume='allow', id=version or id, dir=save_dir, name=name, project=project,
                                 anonymous='allow' if anonymous is True else None if anonymous is False else anonymous)
         self._wandb_init.update(**kwargs)
         # extract parameters
