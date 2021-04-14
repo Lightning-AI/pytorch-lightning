@@ -46,9 +46,9 @@ PrecisionPlugin
 .. image:: ../_static/images/accelerator/overview.svg
 
 
-######################
+**********************
 Create a custom plugin
-######################
+**********************
 
 Expert users may choose to extend an existing plugin by overriding its methods ...
 
