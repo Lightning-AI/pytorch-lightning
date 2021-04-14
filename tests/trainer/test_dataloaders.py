@@ -788,7 +788,7 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
 @RunIf(min_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader """
-
+    seed_everything(123)
     model = ModelWithDataLoaderDistributedSampler()
     trainer = Trainer(
         gpus=[0, 1],
