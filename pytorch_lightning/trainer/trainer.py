@@ -711,11 +711,20 @@ class Trainer(
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
 
+        outputs = self.evaluation_loop.outputs
+
+        # reset outputs
+        self.evaluation_loop.outputs = []
+
+        # with a single dataloader don't pass a 2D list
+        if self.evaluation_loop.num_dataloaders == 1:
+            outputs = outputs[0]
+
         # lightning module method
-        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
+        self.evaluation_loop.evaluation_epoch_end(outputs)
 
         # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
+        self.evaluation_loop.on_evaluation_epoch_end(outputs)
 
         # update epoch-level lr_schedulers
         if on_epoch:
@@ -725,7 +734,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_end()
 
         # log epoch metrics
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
+        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -735,7 +744,7 @@ class Trainer(
 
         torch.set_grad_enabled(True)
 
-        return eval_loop_results, deprecated_eval_results
+        return eval_loop_results
 
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
@@ -757,7 +766,7 @@ class Trainer(
         assert self.evaluating
 
         with self.profiler.profile(f"run_{self._running_stage}_evaluation"):
-            eval_loop_results, _ = self.run_evaluation()
+            eval_loop_results = self.run_evaluation()
 
         if len(eval_loop_results) == 0:
             return 1
@@ -831,7 +840,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            _, eval_results = self.run_evaluation()
+            self.run_evaluation()
 
             self.on_sanity_check_end()
 
