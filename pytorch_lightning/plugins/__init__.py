@@ -1,5 +1,5 @@
 from pytorch_lightning.plugins.base_plugin import Plugin  # noqa: F401
-from pytorch_lightning.plugins.plugins_registry import call_register_plugins, TrainingTypePluginsRegistry
+from pytorch_lightning.plugins.plugins_registry import call_training_type_register_plugins, TrainingTypePluginsRegistry
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin  # noqa: F401
@@ -54,4 +54,4 @@ from pathlib import Path
 FILE_ROOT = Path(__file__).parent
 TRAINING_TYPE_BASE_MODULE = "pytorch_lightning.plugins.training_type"
 
-call_register_plugins(FILE_ROOT, TRAINING_TYPE_BASE_MODULE)
+call_training_type_register_plugins(FILE_ROOT, TRAINING_TYPE_BASE_MODULE)

@@ -117,7 +117,7 @@ class _TrainingTypePluginsRegistry(UserDict):
 TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
 
 
-def is_register_plugins_overriden(plugin):
+def is_register_plugins_overriden(plugin) -> bool:
     method_name = "register_plugins"
     plugin_attr = getattr(plugin, method_name)
     super_attr = getattr(TrainingTypePlugin, method_name)
@@ -129,13 +129,13 @@ def is_register_plugins_overriden(plugin):
     return is_overridden
 
 
-def call_register_plugins(root: str, base_module: str) -> None:
-    for file in os.listdir(str(root) + "/training_type"):
+def call_training_type_register_plugins(root: str, base_module: str) -> None:
+    directory = "training_type"
+    for file in os.listdir(root / directory):
         if file.endswith(".py") and not file.startswith("_"):
             module = file[:file.find(".py")]
             if module not in sys.modules:
                 module = importlib.import_module(".".join([base_module, module]))
-                for mod_info in getmembers(module, isclass):
-                    mod = mod_info[1]
+                for _, mod in getmembers(module, isclass):
                     if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overriden(mod):
                         mod.register_plugins(TrainingTypePluginsRegistry)
