@@ -15,7 +15,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from typing import cast, List, Optional, Type, TypeVar, Union
+from typing import cast, Dict, List, Optional, Type, TypeVar, Union
 
 import torch
 from torch.optim import Optimizer
@@ -63,6 +63,7 @@ class TrainerProperties(ABC):
     fast_dev_run: bool
     should_stop: bool
     log_every_n_steps: int
+    accumulate_grad_batches: Union[int, Dict[int, int], List[list]]
 
     @property
     def accelerator(self) -> Accelerator:
