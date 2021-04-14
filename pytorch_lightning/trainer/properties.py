@@ -58,6 +58,9 @@ class TrainerProperties(ABC):
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
+    current_epoch: int
+    global_step: int
+    fast_dev_run: bool
 
     @property
     def accelerator(self) -> Accelerator:
