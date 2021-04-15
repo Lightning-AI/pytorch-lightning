@@ -11,19 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+from typing import Any, Optional, TYPE_CHECKING
 
 from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.utilities.distributed import group as _group
 
+if TYPE_CHECKING:
+    import torch
+
 
 class LightningDistributed:
 
-    def __init__(self, rank=None, device=None):
+    def __init__(self, rank: Optional[int] = None, device: Optional['torch.device'] = None):
         self.rank = rank
         self.device = device
 
-    def broadcast(self, obj: Any, group=_group.WORLD):
+    def broadcast(self, obj: Any, group: Any = _group.WORLD) -> Any:
         # always wrap into a list so list can be brodcasted.
         obj = [obj]
 
