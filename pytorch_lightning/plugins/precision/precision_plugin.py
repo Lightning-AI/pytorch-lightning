@@ -116,22 +116,24 @@ class PrecisionPlugin(Plugin):
         if clip_val <= 0:
             return
 
-        parameters = self.master_params(optimizer)
         if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
-            self.clip_grad_by_value(parameters, clip_val)
+            self.clip_grad_by_value(optimizer, clip_val)
         elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
-            self.clip_grad_by_norm(parameters, clip_val, eps=self.EPSILON)
+            # TODO: there should be a mechanism to set `norm_type`
+            self.clip_grad_by_norm(optimizer, clip_val, eps=self.EPSILON)
 
-    @staticmethod
-    def clip_grad_by_value(parameters: 'PARAMETERS', clip_val: Union[int, float]) -> None:
+    def clip_grad_by_value(self, optimizer: 'Optimizer', clip_val: Union[int, float]) -> None:
         """Clip gradients by value"""
+        parameters = self.master_params(optimizer)
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
-    def clip_grad_by_norm(self, parameters: 'PARAMETERS', clip_val: Union[int, float], eps: float = 1e-6) -> None:
+    def clip_grad_by_norm(
+        self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0, eps: float = 1e-6
+    ) -> None:
         """Clip gradients by norm"""
+        parameters = self.master_params(optimizer)
+
         # TODO: replace this with torch.nn.clip_grad_norm_
-        # TODO: separate TPU case from here
-        norm_type = 2.0  # TODO. there should a mechanism to set this
         parameters = list(filter(lambda p: p.grad is not None, parameters))
         device = parameters[0].device
 
