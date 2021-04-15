@@ -199,8 +199,7 @@ class TrainerDataLoadingMixin(ABC):
     def _get_distributed_sampler(self, dataloader, shuffle):
         kwargs = self.distributed_sampler_kwargs
         kwargs["shuffle"] = shuffle and not self.overfit_batches
-        if "seed" not in kwargs and "PL_GLOBAL_SEED" in os.environ:
-            kwargs["seed"] = int(os.getenv("PL_GLOBAL_SEED"))
+        kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
