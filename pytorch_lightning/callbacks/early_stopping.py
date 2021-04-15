@@ -39,8 +39,8 @@ class EarlyStopping(Callback):
         monitor: quantity to be monitored.
         min_delta: minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no improvement.
-        patience: number of validation checks with no improvement
-            after which training will be stopped. Under the default configuration, one validation check happens after
+        patience: number of checks with no improvement
+            after which training will be stopped. Under the default configuration, one check happens after
             every training epoch. However, the frequency of validation can be modified by setting various parameters on
             the ``Trainer``, for example ``check_val_every_n_epoch`` and ``val_check_interval``.
 
@@ -59,6 +59,8 @@ class EarlyStopping(Callback):
         check_finite: When set ``True``, stops training when the monitor becomes NaN or infinite.
         stopping_threshold: Stop training immediately once the monitored quantity reaches this threshold.
         divergence_threshold: Stop training as soon as the monitored quantity becomes worse than this threshold.
+        check_on_train_epoch_end: whether to run early stopping at the end of the training epoch.
+            If this is ``False``, then the check runs at the end of validation.
 
     Raises:
         MisconfigurationException:
