@@ -22,6 +22,7 @@ import torch
 import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DataLoader, Dataset
 
+import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -98,9 +99,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if hasattr(model, 'predict_dataloader') and isinstance(model.predict_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
 
-    def connect(self, model: 'Module') -> None:
+    def connect(self, model: 'pl.LightningModule') -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
-        return super().connect(xmp.MpModelWrapper(LightningDistributedModule(model)))
+        # https://pytorch.org/xla/master/_modules/torch_xla/distributed/xla_multiprocessing.html
+        self._model = xmp.MpModelWrapper(LightningDistributedModule(model))
+        return super().connect(model)
 
     def setup(self, model: 'Module') -> 'Module':
         self.create_mp_queue()
@@ -119,34 +122,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def is_distributed(self):
         return self.world_size != 1
 
-    @staticmethod
-    def _re_instantiate_dataloader(dataloader: DataLoader, dataset: Dataset):
-        skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
-
-        attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
-
-        params = set(inspect.signature(dataloader.__init__).parameters)
-
-        if type(dataloader) is not DataLoader:
-            params.update(inspect.signature(DataLoader.__init__).parameters)
-
-        dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
-
-        multiprocessing_context = dataloader.multiprocessing_context
-        dl_args['multiprocessing_context'] = multiprocessing_context
-        dl_args['dataset'] = dataset
-
-        dataloader = type(dataloader)(**dl_args)
-        dataloader.multiprocessing_context = multiprocessing_context
-        return dataloader
-
     def process_dataloader(self, dataloader: 'DataLoader') -> 'MpDeviceLoader':
         TPUSpawnPlugin._validate_dataloader(dataloader)
-        dataset = xmp.MpSerialExecutor()(dataloader.dataset)
-        dataloader = self._re_instantiate_dataloader(dataloader, dataset)
-        device = xm.xla_device()
-        dataloader = MpDeviceLoader(dataloader, device)
-        return dataloader
+        return MpDeviceLoader(dataloader, self.device)
 
     def configure_ddp(self) -> None:
         pass
@@ -191,7 +169,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             time.sleep(2)
 
     def model_to_device(self) -> None:
-        self._model.to(xm.xla_device())
+        self.device = xm.xla_device()
+        self.model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
         rendezvous(name)
@@ -225,7 +204,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data).to(xm.xla_device(), dtype=torch.float)
+        data_tensor = torch.tensor(data).to(self.device, dtype=torch.float)
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
@@ -282,16 +261,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def training_step(self, *args, **kwargs):
-        return self.model.training_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        return self.model.validation_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.model.test_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        return self.model.predict_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
