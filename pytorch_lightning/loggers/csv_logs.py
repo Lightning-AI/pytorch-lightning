@@ -23,12 +23,13 @@ import io
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Hashable, List, Mapping, Optional, Union
 
 import torch
 
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -49,8 +50,8 @@ class ExperimentWriter(object):
     NAME_METRICS_FILE = 'metrics.csv'
 
     def __init__(self, log_dir: str) -> None:
-        self.hparams = {}
-        self.metrics = []
+        self.hparams: Dict[Hashable, Any] = {}
+        self.metrics: List[Any] = []
 
         self.log_dir = log_dir
         if os.path.exists(self.log_dir) and os.listdir(self.log_dir):
@@ -62,14 +63,14 @@ class ExperimentWriter(object):
 
         self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
 
-    def log_hparams(self, params: Dict[str, Any]) -> None:
+    def log_hparams(self, params: Mapping[Hashable, Any]) -> None:
         """Record hparams"""
         self.hparams.update(params)
 
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics"""
 
-        def _handle_value(value):
+        def _handle_value(value: Union[Any, torch.Tensor]) -> Union[Any, float]:
             if isinstance(value, torch.Tensor):
                 return value.item()
             return value
@@ -134,7 +135,7 @@ class CSVLogger(LightningLoggerBase):
         self._name = name or ''
         self._version = version
         self._prefix = prefix
-        self._experiment = None
+        self._experiment: Optional[ExperimentWriter] = None
 
     @property
     def root_dir(self) -> str:
@@ -143,9 +144,9 @@ class CSVLogger(LightningLoggerBase):
         If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used
         and the checkpoint will be saved in "save_dir/version_dir"
         """
-        if not self.name:
+        if not self.name and self.save_dir is not None:
             return self.save_dir
-        return os.path.join(self.save_dir, self.name)
+        return os.path.join(str(self.save_dir), self.name)
 
     @property
     def log_dir(self) -> str:
@@ -163,7 +164,8 @@ class CSVLogger(LightningLoggerBase):
     def save_dir(self) -> Optional[str]:
         return self._save_dir
 
-    @property
+    # https://github.com/python/mypy/issues/1362
+    @property  # type: ignore
     @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""
@@ -189,7 +191,8 @@ class CSVLogger(LightningLoggerBase):
         self.experiment.log_hparams(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
+        metrics = apply_to_collection(metrics, torch.Tensor, lambda x: x.item())
         metrics = self._add_prefix(metrics)
         self.experiment.log_metrics(metrics, step)
 
@@ -207,12 +210,12 @@ class CSVLogger(LightningLoggerBase):
         return self._name
 
     @property
-    def version(self) -> int:
+    def version(self) -> Union[int, str]:
         if self._version is None:
             self._version = self._get_next_version()
         return self._version
 
-    def _get_next_version(self):
+    def _get_next_version(self) -> int:
         root_dir = os.path.join(self._save_dir, self.name)
 
         if not os.path.isdir(root_dir):
