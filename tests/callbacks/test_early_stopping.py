@@ -383,7 +383,6 @@ class EarlyStoppingModel(BoringModel):
         self.log('abc', torch.tensor(loss))
         self.log('cba', torch.tensor(0))
 
-
     def training_epoch_end(self, outputs):
         if not self.early_stop_on_train:
             return
