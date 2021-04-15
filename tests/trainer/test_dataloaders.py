@@ -715,7 +715,6 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
         accelerator="ddp_spawn",
     )
     model = MultiProcessModel()
-    model.train_dataloader = None
     model.val_dataloader = None
     trainer.fit(model, train_dataloader=dataloader)
 

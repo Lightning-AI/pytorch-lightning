@@ -105,7 +105,7 @@ class TrainerDataLoadingMixin(ABC):
             )
 
     def auto_add_worker_init_fn(self, dataloader: DataLoader) -> None:
-        if dataloader.worker_init_fn is None and int(os.environ.get("PL_SEED_WORKERS", "0")):
+        if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
     def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
