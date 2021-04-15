@@ -295,7 +295,7 @@ class Trainer(
 
         """
         super().__init__()
-        self._log_api_event("init")
+        Trainer._log_api_event("init")
         distributed_backend = distributed_backend or accelerator
 
         # init connectors
@@ -416,7 +416,7 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
-        self._log_api_event("fit")
+        Trainer._log_api_event("fit")
         # we reuse fit for other functions. When already set, it shouldn't be modified.
         if not self.state.running:
             self.state = TrainerState.FITTING
@@ -882,7 +882,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self._log_api_event("validate")
+        Trainer._log_api_event("validate")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.VALIDATING
@@ -945,7 +945,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        self._log_api_event("test")
+        Trainer._log_api_event("test")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.TESTING
@@ -1042,7 +1042,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         # If you supply a datamodule you can't supply dataloaders
-        self._log_api_event("predict")
+        Trainer._log_api_event("predict")
 
         model = model or self.lightning_module
 
@@ -1088,7 +1088,7 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
-        self._log_api_event("tune")
+        Trainer._log_api_event("tune")
         self.state = TrainerState.TUNING
         self.tuning = True
 
@@ -1180,5 +1180,6 @@ class Trainer(
             self._cache_logged_metrics()
         return output
 
-    def _log_api_event(self, event: str) -> None:
+    @staticmethod
+    def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
