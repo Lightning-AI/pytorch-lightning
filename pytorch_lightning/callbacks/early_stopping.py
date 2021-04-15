@@ -94,6 +94,7 @@ class EarlyStopping(Callback):
         check_finite: bool = True,
         stopping_threshold: Optional[float] = None,
         divergence_threshold: Optional[float] = None,
+        check_on_train_epoch_end: bool = False,
     ):
         super().__init__()
         self.monitor = monitor
@@ -107,6 +108,7 @@ class EarlyStopping(Callback):
         self.divergence_threshold = divergence_threshold
         self.wait_count = 0
         self.stopped_epoch = 0
+        self._check_on_train_epoch_end = check_on_train_epoch_end
 
         if self.mode not in self.mode_dict:
             raise MisconfigurationException(f"`mode` can be {', '.join(self.mode_dict.keys())}, got {self.mode}")
@@ -157,12 +159,12 @@ class EarlyStopping(Callback):
         return trainer.state != TrainerState.FITTING or trainer.sanity_checking
 
     def on_train_epoch_end(self, trainer, pl_module, outputs) -> None:
-        if not self.during_training or self._should_skip_check(trainer):
+        if not self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
         self._run_early_stopping_check(trainer)
 
     def on_validation_end(self, trainer, pl_module):
-        if self.during_training or self._should_skip_check(trainer):
+        if self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
 
         self._run_early_stopping_check(trainer)
