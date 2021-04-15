@@ -19,7 +19,7 @@ import inspect
 import logging
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, cast, Dict, Hashable, List, Optional, Protocol, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Hashable, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 import torch.nn.utils.prune as pytorch_prune
