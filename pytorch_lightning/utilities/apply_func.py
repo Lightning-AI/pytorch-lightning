@@ -123,7 +123,7 @@ class TransferableDataType(ABC):
         return NotImplemented
 
 
-def move_data_to_device(batch: Any, device: torch.device):
+def move_data_to_device(batch: Any, device: Union[str, torch.device]):
     """
     Transfers a collection of data to the given device. Any object that defines a method
     ``to(device)`` will be moved and all other objects in the collection will be left untouched.
@@ -161,7 +161,7 @@ def move_data_to_device(batch: Any, device: torch.device):
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
-def convert_to_tensors(data, device: torch.device = None):
+def convert_to_tensors(data, device: Optional[Union[torch.device, str]] = None):
     if device is None:
         raise MisconfigurationException("device (torch.device) should be provided.")
 

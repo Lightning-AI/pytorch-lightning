@@ -97,7 +97,7 @@ class Result(Dict):
         sync_dist_group: Optional[Any] = None,
         sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
-        device: torch.device = None,
+        device: Optional[Union[str, torch.device]] = None,
     ) -> None:
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
