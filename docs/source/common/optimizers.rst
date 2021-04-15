@@ -564,7 +564,10 @@ Here we add a learning rate warm-up.
         optimizer.step(closure=optimizer_closure)
 
 .. note::
-    To access your wrapped Optimizer from :class:`~pytorch_lightning.core.optimizer.LightningOptimizer`, do as follow.
+    ``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
+    configured in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`. You can access your own
+    optimizer with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be
+    able to support accelerators and precision for you.
 
 .. testcode:: python
 
