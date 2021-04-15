@@ -24,4 +24,8 @@ source activate $1
 # -------------------------
 
 # run script from above
-srun python3 simple_image_classifier.py --accelerator 'ddp2' --gpus 2 --num_nodes 2 --max_epochs 5
+srun python3 simple_image_classifier.py \
+  --trainer.accelerator 'ddp2' \
+  --trainer.gpus 2 \
+  --trainer.num_nodes 2 \
+  --trainer.max_epochs 5
