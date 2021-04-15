@@ -334,7 +334,7 @@ class BackboneFinetuning(BaseFinetuning):
     def freeze_before_training(self, pl_module: 'LightningModule') -> None:
         self.freeze(pl_module.backbone)
 
-    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: 'Optimizer', opt_idx: int) -> None:
+    def finetune_function(self, pl_module: 'LightningModule', epoch: int, optimizer: 'Optimizer', opt_idx: int) -> None:
         """Called when the epoch begins."""
 
         if epoch == self.unfreeze_backbone_at_epoch:
