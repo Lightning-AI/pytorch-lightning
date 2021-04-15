@@ -446,8 +446,8 @@ class EarlyStoppingModel(BoringModel):
     ],
 )
 def test_multiple_early_stopping_callbacks(
-    tmpdir, callbacks: List[EarlyStopping], expected_stop_epoch: int, check_on_train_epoch_end: bool, accelerator: Optional[str],
-    num_processes: int
+    tmpdir, callbacks: List[EarlyStopping], expected_stop_epoch: int, check_on_train_epoch_end: bool,
+    accelerator: Optional[str], num_processes: int
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
