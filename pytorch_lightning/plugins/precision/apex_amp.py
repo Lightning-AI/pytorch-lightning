@@ -20,7 +20,7 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, rank_zero_warn
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 
 PARAMETERS = Iterator[torch.nn.Parameter]
 
