@@ -161,7 +161,6 @@ class EarlyStopping(Callback):
             return
         self._run_early_stopping_check(trainer)
 
-
     def on_validation_end(self, trainer, pl_module):
         if self.during_training or self._should_skip_check(trainer):
             return
