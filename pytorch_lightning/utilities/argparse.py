@@ -286,7 +286,7 @@ def _gpus_allowed_type(x) -> Union[int, str]:
         return int(x)
 
 
-def _gpus_arg_default(x) -> Union[int, str]:
+def _gpus_arg_default(x) -> Union[int, str]:  # pragma: no-cover
     # unused, but here for backward compatibility with old checkpoints that need to be able to
     # unpickle the function from the checkpoint, as it was not filtered out in versions < 1.2.8
     # see: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
