@@ -16,7 +16,6 @@ from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Seq
 
 import torch
 from torch import Tensor
-from torch.cuda.amp import GradScaler
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -25,9 +24,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
+
+if _NATIVE_AMP_AVAILABLE:
+    from torch.cuda.amp import GradScaler
 
 _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 
@@ -390,7 +392,7 @@ class Accelerator:
         return self.precision_plugin.precision
 
     @property
-    def scaler(self) -> Optional[GradScaler]:
+    def scaler(self) -> Optional['GradScaler']:
         return getattr(self.precision_plugin, 'scaler', None)
 
     @property
