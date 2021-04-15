@@ -27,7 +27,7 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
     This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test
     """
 
-    seed_everything(3)
+    seed_everything(4)
 
     checkpoint_callback = ModelCheckpoint(monitor='val_loss', dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
 
@@ -51,7 +51,6 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
         limit_train_batches=12,
         limit_val_batches=6,
         limit_test_batches=12,
-        num_sanity_val_steps=0,
         callbacks=[checkpoint_callback],
         logger=False,
     )
@@ -69,7 +68,6 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
             limit_train_batches=12,
             limit_val_batches=12,
             limit_test_batches=12,
-            num_sanity_val_steps=0,
             resume_from_checkpoint=best_model_paths[-1],
             progress_bar_refresh_rate=0,
         )
