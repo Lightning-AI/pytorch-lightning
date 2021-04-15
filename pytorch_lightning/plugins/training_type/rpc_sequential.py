@@ -13,7 +13,6 @@
 # limitations under the License
 import logging
 import os
-import warnings
 from typing import Callable, List, Optional
 
 import torch
@@ -26,7 +25,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.rpc import DEFAULT_RPC_TIMEOUT_SEC, RPCPlugin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_PIPE_AVAILABLE:
@@ -56,10 +55,6 @@ class RPCSequentialPlugin(RPCPlugin):
         If the module requires lots of memory, Pipe can be used to reduce this by leveraging multiple GPUs.
 
         .. _RPCSequentialPlugin: https://arxiv.org/abs/1811.06965
-
-        .. deprecated::
-               This plugin has been deprecated. Please use the ``FullyShardedPlugin`` which provides better performance
-               and scaling without pipelining the model.
 
         Pipeline parallelism comes with with checkpointing to reduce peak
         memory required to train while minimizing device under-utilization.
@@ -92,10 +87,6 @@ class RPCSequentialPlugin(RPCPlugin):
             at the same time. Defaults to `True` if
             `get_model_parallel_world_size() > 1`
         """
-        warnings.warn(
-            "RPC Sequential Plugin has been deprecated. Please use the `FullyShardedPlugin` "
-            "which provides better performance and scaling without pipelining the model.", DeprecationWarning
-        )
         self._check_pipe_available()
         super().__init__(rpc_timeout_sec=rpc_timeout_sec, **kwargs)
 
