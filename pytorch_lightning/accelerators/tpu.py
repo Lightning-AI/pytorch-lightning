@@ -56,7 +56,10 @@ class TPUAccelerator(Accelerator):
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
     def clip_gradients(
-        self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0,
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[float, int],
+        norm_type: float = 2.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM
     ) -> None:
         assert gradient_clip_algorithm is GradClipAlgorithmType.NORM, \
