@@ -65,6 +65,69 @@ Loggers API
     test_tube
     wandb
 
+Plugins API
+-----------
+
+Training Type Plugins
+^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.training_type
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    TrainingTypePlugin
+    SingleDevicePlugin
+    ParallelPlugin
+    DataParallelPlugin
+    DDPPlugin
+    DDP2Plugin
+    DDPShardedPlugin
+    DDPSpawnShardedPlugin
+    DDPSpawnPlugin
+    DeepSpeedPlugin
+    HorovodPlugin
+    RPCPlugin
+    RPCSequentialPlugin
+    SingleTPUPlugin
+    TPUSpawnPlugin
+
+Precision Plugins
+^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.precision
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    PrecisionPlugin
+    NativeMixedPrecisionPlugin
+    ShardedNativeMixedPrecisionPlugin
+    ApexMixedPrecisionPlugin
+    DeepSpeedPrecisionPlugin
+    TPUHalfPrecisionPlugin
+    DoublePrecisionPlugin
+
+Cluster Environments
+^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins.environments
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    ClusterEnvironment
+    LightningEnvironment
+    TorchElasticEnvironment
+    SLURMEnvironment
+
+
 Profiler API
 ------------
 
