@@ -26,9 +26,10 @@ The users are left with ``optimizer.zero_grad()``, gradient accumulation, model 
 
 To manually optimize, do the following:
 
-* Set the ``automatic_optimization`` property to ``False`` in your ``LightningModule`` ``__init__`` function.
+* Set the ``self.automatic_optimization = False`` in your ``LightningModule``'s ``__init__``.
 * Use the following functions and call them manually:
 
+  * ``self.optimizers()`` to access your optimizers (one or multiple)
   * ``optimizer.zero_grad()`` to clear the gradients from the previous training step
   * ``self.manual_backward(loss)`` instead of ``loss.backward()``
   * ``optimizer.step()`` to update your model parameters
@@ -55,7 +56,7 @@ Here is a minimal example of manual optimization.
 
 .. warning::
    Before 1.2, ``optimizer.step()`` was calling ``optimizer.zero_grad()`` internally.
-   From 1.2, it is left to the users expertise.
+   From 1.2, it is left to the user's expertise.
 
 .. tip::
    * ``self.optimizers()`` will return :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` objects. You can
@@ -169,14 +170,14 @@ Here is an example training a simple GAN with multiple optimizers.
 Learning rate scheduling [manual]
 ---------------------------------
 You can call ``lr_scheduler.step()`` at arbitrary intervals.
-Use ``self.lr_schedulers()`` in LightningModule to access your learning rate schedulers defined
-in your ``LightningModule.configure_optimizers()``.
+Use ``self.lr_schedulers()`` in  your :class:`~pytorch_lightning.LightningModule` to access any learning rate schedulers defined
+in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`.
 
 .. warning::
-   * Before 1.3, Lightning automatically calls ``lr_scheduler.step()`` in both automatic and manual optimization. From
-     1.3, ``lr_scheduler.step()`` is disabled in manual optimization so that you can call it at arbitrary intervals.
+   * Before 1.3, Lightning automatically called ``lr_scheduler.step()`` in both automatic and manual optimization. From
+     1.3, ``lr_scheduler.step()`` is now for the user to call at arbitrary intervals.
    * Note that the lr_dict keys, such as ``"step"`` and ``""interval"``, will be ignored even if they are provided in
-     your ``configure_optimizers()`` in manual optimization.
+     your ``configure_optimizers()`` during manual optimization.
 
 Here is an example calling ``lr_scheduler.step()`` every step.
 
@@ -433,7 +434,7 @@ keyword ``"monitor"`` set to metric that the scheduler should be conditioned on.
        )
 
 .. note::
-   Metrics can be made available to condition on by simply logging it using ``self.log('metric_to_track', metric_val)``
+   Metrics can be made available to monitor by simply logging it using ``self.log('metric_to_track', metric_val)``
    in your :class:`~pytorch_lightning.LightningModule`.
 
 By default, all schedulers will be called after each epoch ends. To change this behaviour, a scheduler configuration
