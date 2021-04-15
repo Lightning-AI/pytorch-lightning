@@ -13,7 +13,6 @@
 # limitations under the License.
 import importlib
 import os
-import sys
 from collections import UserDict
 from inspect import getmembers, isclass
 from pathlib import Path
