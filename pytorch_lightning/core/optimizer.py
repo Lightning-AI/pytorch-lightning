@@ -96,12 +96,14 @@ class LightningOptimizer:
 
     @classmethod
     def _to_lightning_optimizer(cls, optimizer: Optimizer, trainer: 'Trainer',
-                                opt_idx: int) -> Union['LightningOptimizer', Optimizer]:
+                                opt_idx: Optional[int]) -> Union['LightningOptimizer', Optimizer]:
         # apex overrides .step function and need to be wrapped on each step
         if trainer.amp_backend is not None and trainer.amp_backend == AMPType.APEX:
             new_optimizer = cls(optimizer)
             new_optimizer._on_trainer_init(trainer)
         else:
+            if opt_idx is None:
+                raise RuntimeError('Cannot get the correct optimizer without a proper index')
             new_optimizer = trainer.lightning_optimizers[opt_idx]
         return optimizer
 
