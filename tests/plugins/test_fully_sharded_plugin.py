@@ -13,7 +13,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import auto_wrap, default_auto_wrap_policy, FullyShardedDataParallel
+    from fairscale.nn import auto_wrap, default_auto_wrap_policy, FullyShardedDataParallel, wrap
 
 
 @RunIf(fairscale_fully_sharded=True)
@@ -22,6 +22,7 @@ def test_sharded_ddp_choice(tmpdir):
         Test to ensure that plugin is correctly chosen
     """
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
         plugins='ddp_fully_sharded',
     )
@@ -37,6 +38,7 @@ def test_invalid_apex_sharded(tmpdir):
     model = BoringModel()
     with pytest.raises(MisconfigurationException, match='Sharded Plugins are not supported with Apex AMP'):
         trainer = Trainer(
+            default_root_dir=tmpdir,
             fast_dev_run=True,
             plugins='ddp_fully_sharded',
             precision=16,
@@ -55,6 +57,7 @@ def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
         Test to ensure that plugin native amp plugin is correctly chosen when using sharded
     """
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
         gpus=1,
         precision=16,
@@ -78,6 +81,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         gpus=1,
         plugins='ddp_fully_sharded',
         fast_dev_run=True,
@@ -87,6 +91,33 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     trainer.fit(model)
 
     _assert_save_equality(tmpdir, trainer)
+
+
+@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True)
+def test_nested_fsdp(tmpdir):
+    """
+        Test that nested FSDP wrappers are set correctly to reshard after forward/backward pass.
+        This happens lazily so we need to run at-least one forward pass.
+    """
+
+    class TestModel(BoringModel):
+
+        def configure_sharded_model(self) -> None:
+            self.layer = wrap(
+                torch.nn.Sequential(wrap(torch.nn.Linear(32, 32)), torch.nn.ReLU(), wrap(torch.nn.Linear(32, 2)))
+            )
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, gpus=1, plugins=FullyShardedPlugin(reshard_after_forward=True)
+    )
+    trainer.fit(model)
+
+    # root should not be resharding
+    assert model.layer.reshard_after_forward is False
+    # Assert that the nested layers are set reshard_after_forward to True
+    assert model.layer.module[0].reshard_after_forward is True
+    assert model.layer.module[2].reshard_after_forward is True
 
 
 @pytest.mark.parametrize('automatic_module_wrap', [True, False])
@@ -116,6 +147,7 @@ def test_fully_sharded_plugin_checkpoint_manual_autowrap(automatic_module_wrap, 
     model = TestModel()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         gpus=1,
         plugins=FullyShardedPlugin(automatic_module_wrap=automatic_module_wrap, min_num_params=1),
         fast_dev_run=True,
@@ -141,6 +173,7 @@ def test_fully_sharded_plugin_multi_gpu(tmpdir):
     ck = ModelCheckpoint(save_last=True)
     model = TestModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         gpus=2,
         plugins='ddp_fully_sharded',
         max_epochs=5,
