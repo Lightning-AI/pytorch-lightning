@@ -246,7 +246,7 @@ class Trainer(
             max_time: Stop training after this amount of time has passed. Disabled by default (None).
                 The time duration can be specified in the format DD:HH:MM:SS (days, hours, minutes seconds), as a
                 :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
-                :class:`~datetime.timedelta`.
+                :class:`datetime.timedelta`.
 
             num_nodes: number of GPU nodes for distributed training.
 
