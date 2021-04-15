@@ -15,10 +15,12 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
+from torch.nn import Module
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -43,15 +45,11 @@ else:
 if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
 
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.utils.data import DataLoader
-
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
     """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
-    def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, parallel_devices: Optional[List[int]] = None, **_: Any) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -70,7 +68,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return self.num_processes
 
     @staticmethod
-    def _validate_dataloader(dataloaders: Union[List['DataLoader'], 'DataLoader']):
+    def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
@@ -82,7 +80,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 )
 
     @staticmethod
-    def _validate_patched_dataloaders(model: 'Module') -> None:
+    def _validate_patched_dataloaders(model: Module) -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit.
         """
         if hasattr(model, 'train_dataloader') and isinstance(model.train_dataloader, _PatchDataLoader):
@@ -102,7 +100,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self._model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def setup(self, model: 'Module') -> 'Module':
+    def setup(self, model: Module) -> Module:
         self.create_mp_queue()
         return self.model
 
@@ -112,14 +110,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.mp_queue = smp.SimpleQueue()
 
     @property
-    def distributed_sampler_kwargs(self) -> dict:
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
     @property
-    def is_distributed(self):
+    def is_distributed(self) -> bool:
         return self.world_size != 1
 
-    def process_dataloader(self, dataloader: 'DataLoader') -> 'MpDeviceLoader':
+    def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
         return MpDeviceLoader(dataloader, self.device)
 
