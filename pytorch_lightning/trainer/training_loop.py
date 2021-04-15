@@ -563,7 +563,7 @@ class TrainLoop:
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
         # update epoch level lr_schedulers if no val loop outside train loop is triggered
-        if (val_loop_called and not should_check_val) or should_train_only:
+        if (not val_loop_called and not should_check_val) or should_train_only:
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
         if should_train_only:
