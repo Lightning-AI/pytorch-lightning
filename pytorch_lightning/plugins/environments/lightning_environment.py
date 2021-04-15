@@ -68,6 +68,10 @@ class LightningEnvironment(ClusterEnvironment):
         group_rank = os.environ.get("GROUP_RANK", 0)
         return int(os.environ.get("NODE_RANK", group_rank))
 
+    def teardown(self) -> None:
+        if "WORLD_SIZE" in os.environ:
+            del os.environ["WORLD_SIZE"]
+
 
 def find_free_network_port() -> int:
     """

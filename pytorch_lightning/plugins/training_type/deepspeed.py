@@ -105,7 +105,6 @@ class DeepSpeedPlugin(DDPPlugin):
         save_full_weights: bool = True,
     ) -> None:
         """
-
         Provides capabilities to run training using the DeepSpeed library,
         with training optimizations for large billion parameter models.
         `For more information: https://www.deepspeed.ai/`.

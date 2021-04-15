@@ -25,6 +25,7 @@ from tests.helpers.dataloaders import CustomNotImplementedErrorDataloader
 
 
 class BoringModelNoDataloaders(BoringModel):
+
     def train_dataloader(self):
         raise NotImplementedError
 

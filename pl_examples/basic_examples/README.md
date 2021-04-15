@@ -8,10 +8,10 @@ Trains MNIST where the model is defined inside the `LightningModule`.
 python simple_image_classifier.py
 
 # gpus (any number)
-python simple_image_classifier.py --gpus 2
+python simple_image_classifier.py --trainer.gpus 2
 
 # dataparallel
-python simple_image_classifier.py --gpus 2 --distributed_backend 'dp'
+python simple_image_classifier.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 
 ---
@@ -30,10 +30,10 @@ Generic image classifier with an arbitrary backbone (ie: a simple system)
 python backbone_image_classifier.py
 
 # gpus (any number)
-python backbone_image_classifier.py --gpus 2
+python backbone_image_classifier.py --trainer.gpus 2
 
 # dataparallel
-python backbone_image_classifier.py --gpus 2 --distributed_backend 'dp'
+python backbone_image_classifier.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 
 ---
@@ -44,10 +44,10 @@ Showing the power of a system... arbitrarily complex training loops
 python autoencoder.py
 
 # gpus (any number)
-python autoencoder.py --gpus 2
+python autoencoder.py --trainer.gpus 2
 
 # dataparallel
-python autoencoder.py --gpus 2 --distributed_backend 'dp'
+python autoencoder.py --trainer.gpus 2 --trainer.accelerator 'dp'
 ```
 ---
 # Multi-node example
