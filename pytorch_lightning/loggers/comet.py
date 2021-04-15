@@ -25,7 +25,7 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.loggers.base import DummyExperiment, LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -125,6 +125,8 @@ class CometLogger(LightningLoggerBase):
     """
 
     LOGGER_JOIN_CHAR = '-'
+    _save_dir: Optional[str]
+    rest_api_key: Optional[str]
 
     def __init__(
         self,
@@ -136,7 +138,7 @@ class CometLogger(LightningLoggerBase):
         experiment_key: Optional[str] = None,
         offline: bool = False,
         prefix: str = '',
-        **kwargs
+        **kwargs: Any
     ):
         if comet_ml is None:
             raise ImportError(
@@ -144,7 +146,7 @@ class CometLogger(LightningLoggerBase):
                 " install it with `pip install comet-ml`."
             )
         super().__init__()
-        self._experiment = None
+        self._experiment: Union[CometExperiment, CometExperiment, CometOfflineExperiment] = None
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
         api_key = api_key or comet_ml.config.get_api_key(None, comet_ml.config.get_config())
@@ -171,7 +173,7 @@ class CometLogger(LightningLoggerBase):
         self._experiment_name = experiment_name
         self._prefix = prefix
         self._kwargs = kwargs
-        self._future_experiment_key = None
+        self._future_experiment_key: Optional[str] = None
 
         if rest_api_key is not None:
             # Comet.ml rest API, used to determine version number
@@ -183,9 +185,10 @@ class CometLogger(LightningLoggerBase):
 
         self._kwargs = kwargs
 
-    @property
+    # https://github.com/python/mypy/issues/1362
+    @property  # type: ignore
     @rank_zero_experiment
-    def experiment(self):
+    def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment, DummyExperiment]:
         r"""
         Actual Comet object. To use Comet features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
@@ -241,18 +244,18 @@ class CometLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
-        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
+        # mypy doesn't support dynamic assignments on functions
+        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"  # type: ignore
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
-            if is_tensor(val):
+            if isinstance(val, torch.Tensor):
                 metrics[key] = val.cpu().detach()
 
         metrics_without_epoch = metrics.copy()
         epoch = metrics_without_epoch.pop('epoch', None)
-        metrics_without_epoch = self._add_prefix(metrics_without_epoch)
-        self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
+        self.experiment.log_metrics(self._add_prefix(metrics_without_epoch), step=step, epoch=epoch)
 
-    def reset_experiment(self):
+    def reset_experiment(self) -> None:
         self._experiment = None
 
     @rank_zero_only
@@ -304,7 +307,7 @@ class CometLogger(LightningLoggerBase):
 
         return self._future_experiment_key
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
 
         # Save the experiment id in case an experiment object already exists,
@@ -318,6 +321,6 @@ class CometLogger(LightningLoggerBase):
         state["_experiment"] = None
         return state
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: LightningModule, input_array: Optional[Union[Any, torch.Tensor]] = None) -> None:
         if self._experiment is not None:
             self._experiment.set_model_graph(model)
