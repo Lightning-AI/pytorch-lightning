@@ -693,15 +693,19 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
     num_samples = len(dataset)
 
     # simulate distributed processes by setting rank and collecting the batches
-    unique_batches_world = set()
+    all_batches = []
     for current_rank in range(world_size):
-        dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+        dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, worker_init_fn=pl_worker_init_function)
         seed_everything(0, workers=True)
         monkeypatch.setattr(rank_zero_only, "rank", current_rank)
+        assert rank_zero_only.rank == current_rank
         Trainer.auto_add_worker_init_fn(dataloader)
-        unique_batches_world |= set(tuple(batch.view(-1).tolist()) for batch in dataloader)
+        all_batches.extend([batch for batch in dataloader])
 
-    assert len(unique_batches_world) > (num_samples // (batch_size * num_workers * world_size))
+    all_batches = torch.cat(all_batches)
+    print(all_batches)
+    assert all_batches.shape[0] == num_samples * world_size
+    assert len(torch.unique(all_batches, dim=0)) == num_samples * world_size
 
 
 def test_warning_with_iterable_dataset_and_len(tmpdir):
