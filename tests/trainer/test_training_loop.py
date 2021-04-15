@@ -72,9 +72,7 @@ def test_training_loop_hook_call_order(tmpdir):
             super().optimizer_step(
                 epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
             )
-            self.called.append(
-                "optimizer_step"
-            )  # append after as closure calls other methods
+            self.called.append("optimizer_step")  # append after as closure calls other methods
 
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             self.called.append("on_train_batch_end")
