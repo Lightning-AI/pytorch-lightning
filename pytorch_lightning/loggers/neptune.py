@@ -17,7 +17,7 @@ Neptune Logger
 """
 import logging
 from argparse import Namespace
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Hashable, Iterable, Optional, Union
 
 import torch
 from torch import is_tensor
@@ -189,7 +189,7 @@ class NeptuneLogger(LightningLoggerBase):
         experiment_name: Optional[str] = None,
         experiment_id: Optional[str] = None,
         prefix: str = '',
-        **kwargs
+        **kwargs: Any
     ):
         if neptune is None:
             raise ImportError(
@@ -209,7 +209,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         log.info(f'NeptuneLogger will work in {"offline" if self.offline_mode else "online"} mode')
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
 
         # Experiment cannot be pickled, and additionally its ID cannot be pickled in offline mode
@@ -219,7 +219,8 @@ class NeptuneLogger(LightningLoggerBase):
 
         return state
 
-    @property
+    # https://github.com/python/mypy/issues/1362
+    @property  # type: ignore
     @rank_zero_experiment
     def experiment(self) -> Experiment:
         r"""
@@ -300,7 +301,7 @@ class NeptuneLogger(LightningLoggerBase):
             metric_value: The value of the log (data-point).
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
-        if is_tensor(metric_value):
+        if isinstance(metric_value, torch.Tensor):
             metric_value = metric_value.cpu().detach()
 
         if step is None:
@@ -369,11 +370,11 @@ class NeptuneLogger(LightningLoggerBase):
                 If multiple - comma separated - str are passed, all of them are added as tags.
                 If list of str is passed, all elements of the list are added as tags.
         """
-        if str(tags) == tags:
+        if not isinstance(tags, Iterable):
             tags = [tags]  # make it as an iterable is if it is not yet
         self.experiment.append_tags(*tags)
 
-    def _create_or_get_experiment(self):
+    def _create_or_get_experiment(self) -> Union[Experiment]:
         if self.offline_mode:
             project = neptune.Session(backend=neptune.OfflineBackend()).get_project('dry-run/project')
         else:
