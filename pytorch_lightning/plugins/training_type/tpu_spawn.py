@@ -98,7 +98,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
 
     def connect(self, model: 'pl.LightningModule') -> None:
-        # https://pytorch.org/xla/master/_modules/torch_xla/distributed/xla_multiprocessing.html
         TPUSpawnPlugin._validate_patched_dataloaders(model)
         self._model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
