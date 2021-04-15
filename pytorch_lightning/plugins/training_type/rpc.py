@@ -42,7 +42,7 @@ class RPCPlugin(DDPPlugin):
         self,
         rpc_timeout_sec: float = DEFAULT_RPC_TIMEOUT_SEC,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: Optional[int] = None,
+        num_nodes: int = 1,
         cluster_environment: Optional[ClusterEnvironment] = None,
         sync_batchnorm: Optional[bool] = None,
         **kwargs

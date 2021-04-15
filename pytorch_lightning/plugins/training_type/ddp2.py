@@ -72,5 +72,6 @@ class DDP2Plugin(DDPPlugin):
         return False
 
     def set_world_ranks(self):
-        self.cluster_environment.set_global_rank(self.node_rank)
-        self.cluster_environment.set_world_size(self.num_nodes)
+        if self.cluster_environment is not None:
+            self.cluster_environment.set_global_rank(self.node_rank)
+            self.cluster_environment.set_world_size(self.num_nodes)

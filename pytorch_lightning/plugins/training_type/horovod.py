@@ -34,6 +34,10 @@ class HorovodPlugin(ParallelPlugin):
         rank_zero_only.rank = self.global_rank
 
     @property
+    def is_cluster_environment_resettable(self):
+        return False
+
+    @property
     def global_rank(self) -> int:
         return hvd.rank()
 

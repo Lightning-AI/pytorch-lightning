@@ -16,6 +16,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Union
 
+import numpy
 import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
@@ -33,7 +34,6 @@ from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.seed import seed_everything
-import numpy
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
@@ -61,7 +61,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.sync_batchnorm = sync_batchnorm
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
-        self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self.mp_queue = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -81,6 +80,10 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __setstate__(self, state):
         self.__dict__ = state
+
+    @property
+    def num_processes(self) -> int:
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def root_device(self):

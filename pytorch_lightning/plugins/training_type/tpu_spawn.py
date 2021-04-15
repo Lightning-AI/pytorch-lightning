@@ -55,6 +55,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.start_method = None
 
     @property
+    def is_cluster_environment_resettable(self):
+        return False
+
+    @property
     def global_rank(self) -> int:
         return self.tpu_local_core_rank
 

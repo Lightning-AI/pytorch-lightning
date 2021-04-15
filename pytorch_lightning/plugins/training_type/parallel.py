@@ -34,13 +34,25 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         cluster_environment: Optional[ClusterEnvironment] = None,
     ):
         super().__init__()
-        self.parallel_devices = parallel_devices
-        self.cluster_environment = cluster_environment
+        self._parallel_devices = parallel_devices
+        self._cluster_environment = cluster_environment
 
     @property
     @abstractmethod
     def root_device(self):
         raise NotImplementedError
+
+    @property
+    def parallel_devices(self):
+        return self._parallel_devices
+
+    @property
+    def cluster_environment(self):
+        return self._cluster_environment
+
+    @property
+    def is_cluster_environment_resettable(self):
+        return True
 
     @property
     def on_gpu(self):
