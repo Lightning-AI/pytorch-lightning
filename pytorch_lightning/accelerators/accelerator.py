@@ -359,7 +359,7 @@ class Accelerator(object):
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def setup_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+    def setup_training_type_plugin(self, plugin: TrainingTypePlugin, model: 'LightningModule') -> None:
         """Attaches the training type plugin to the accelerator."""
         plugin.setup(model)
 
@@ -466,7 +466,7 @@ class Accelerator(object):
             yield
 
     # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: 'LightningModule') -> None:
         """
         Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin

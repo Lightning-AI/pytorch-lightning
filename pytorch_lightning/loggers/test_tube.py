@@ -157,7 +157,7 @@ class TestTubeLogger(LightningLoggerBase):
         self.experiment.log(metrics, global_step=step)
 
     @rank_zero_only
-    def log_graph(self, model: LightningModule, input_array: Optional[Union[torch.Tensor, Any]] = None) -> None:
+    def log_graph(self, model: LightningModule, input_array: Optional[Union['torch.Tensor', Any]] = None) -> None:
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array
