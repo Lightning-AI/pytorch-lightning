@@ -377,21 +377,22 @@ class EarlyStoppingModel(BoringModel):
         self.expected_end_epoch = expected_end_epoch
         self.early_stop_on_train = early_stop_on_train
 
-    def training_epoch_end(self, outputs):
-        if not self.early_stop_on_train:
-            return
+    def _epoch_end(self) -> None:
         losses = [8, 4, 2, 3, 4, 5, 8, 10]
         loss = losses[self.current_epoch]
         self.log('abc', torch.tensor(loss))
         self.log('cba', torch.tensor(0))
 
+
+    def training_epoch_end(self, outputs):
+        if not self.early_stop_on_train:
+            return
+        self._epoch_end()
+
     def validation_epoch_end(self, outputs):
         if self.early_stop_on_train:
             return
-        losses = [8, 4, 2, 3, 4, 5, 8, 10]
-        loss = losses[self.current_epoch]
-        self.log('abc', torch.tensor(loss))
-        self.log('cba', torch.tensor(0))
+        self._epoch_end()
 
     def on_train_end(self) -> None:
         assert self.trainer.current_epoch == self.expected_end_epoch, 'Early Stopping Failed'
