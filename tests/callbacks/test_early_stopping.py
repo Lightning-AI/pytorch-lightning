@@ -417,28 +417,37 @@ class EarlyStoppingModel(BoringModel):
                      'ddp_cpu',
                      2,
                      marks=RunIf(skip_windows=True)),
-        ([EarlyStopping(monitor='abc', during_training=True), EarlyStopping(monitor='cba', patience=3, during_training=True)], 3, True, None, 1),
-        ([EarlyStopping(monitor='cba', patience=3, during_training=True),
-          EarlyStopping(monitor='abc', during_training=True)], 3, True, None, 1),
-        pytest.param([EarlyStopping(monitor='abc', during_training=True),
-                      EarlyStopping(monitor='cba', patience=3, during_training=True)],
+        ([
+            EarlyStopping(monitor='abc', during_training=True),
+            EarlyStopping(monitor='cba', patience=3, during_training=True)
+        ], 3, True, None, 1),
+        ([
+            EarlyStopping(monitor='cba', patience=3, during_training=True),
+            EarlyStopping(monitor='abc', during_training=True)
+        ], 3, True, None, 1),
+        pytest.param([
+            EarlyStopping(monitor='abc', during_training=True),
+            EarlyStopping(monitor='cba', patience=3, during_training=True)
+        ],
                      3,
                      True,
                      'ddp_cpu',
                      2,
                      marks=RunIf(skip_windows=True)),
-        pytest.param([EarlyStopping(monitor='cba', patience=3, during_training=True),
-                      EarlyStopping(monitor='abc', during_training=True)],
+        pytest.param([
+            EarlyStopping(monitor='cba', patience=3, during_training=True),
+            EarlyStopping(monitor='abc', during_training=True)
+        ],
                      3,
                      True,
                      'ddp_cpu',
                      2,
                      marks=RunIf(skip_windows=True)),
-
     ],
 )
 def test_multiple_early_stopping_callbacks(
-    tmpdir, callbacks: List[EarlyStopping], expected_stop_epoch: int, during_training: bool, accelerator: Optional[str], num_processes: int
+    tmpdir, callbacks: List[EarlyStopping], expected_stop_epoch: int, during_training: bool, accelerator: Optional[str],
+    num_processes: int
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
