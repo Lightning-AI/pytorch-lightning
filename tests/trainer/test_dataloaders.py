@@ -678,8 +678,10 @@ def test_auto_add_worker_init_fn():
     seed_everything(0, workers=True)
     Trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is pl_worker_init_function
-    unique_batches = set(tuple(batch.view(-1).tolist()) for batch in dataloader)
-    assert len(unique_batches) > (num_samples // (batch_size * num_workers))
+    all_batches = torch.cat([batch for batch in dataloader])
+    assert all_batches.shape[0] == num_samples
+    unique_samples = set([tuple(sample.tolist()) for sample in all_batches])
+    assert len(unique_samples) == num_samples
 
 
 def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
