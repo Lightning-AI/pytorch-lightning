@@ -19,7 +19,7 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Hashable, Optional, Union
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -83,7 +83,7 @@ class TensorBoardLogger(LightningLoggerBase):
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = '',
-        **kwargs
+        **kwargs: Any
     ):
         super().__init__()
         self._save_dir = save_dir
@@ -94,12 +94,12 @@ class TensorBoardLogger(LightningLoggerBase):
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
 
-        self._experiment = None
-        self.hparams = {}
+        self._experiment: Optional[SummaryWriter] = None
+        self.hparams: Dict[str, Any] = {}
         self._kwargs = kwargs
 
     @property
-    def root_dir(self) -> str:
+    def root_dir(self) -> Optional[str]:
         """
         Parent directory for all tensorboard checkpoint subdirectories.
         If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used
@@ -108,7 +108,7 @@ class TensorBoardLogger(LightningLoggerBase):
         if self.name is None or len(self.name) == 0:
             return self.save_dir
         else:
-            return os.path.join(self.save_dir, self.name)
+            return os.path.join(str(self.save_dir), self.name)
 
     @property
     def log_dir(self) -> str:
@@ -119,14 +119,15 @@ class TensorBoardLogger(LightningLoggerBase):
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
+        log_dir = os.path.join(str(self.root_dir), version)
         return log_dir
 
     @property
     def save_dir(self) -> Optional[str]:
         return self._save_dir
 
-    @property
+    # https://github.com/python/mypy/issues/1362
+    @property  # type: ignore
     @rank_zero_experiment
     def experiment(self) -> SummaryWriter:
         r"""
@@ -190,7 +191,7 @@ class TensorBoardLogger(LightningLoggerBase):
             writer.add_summary(sei)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[float, torch.Tensor]], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
@@ -210,7 +211,7 @@ class TensorBoardLogger(LightningLoggerBase):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_graph(self, model: LightningModule, input_array=None):
+    def log_graph(self, model: LightningModule, input_array: Optional[Union[torch.Tensor, Any]] = None) -> None:
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array
@@ -248,13 +249,13 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._name
 
     @property
-    def version(self) -> int:
+    def version(self) -> Union[int, str]:
         if self._version is None:
             self._version = self._get_next_version()
         return self._version
 
-    def _get_next_version(self):
-        root_dir = os.path.join(self.save_dir, self.name)
+    def _get_next_version(self) -> int:
+        root_dir = os.path.join(str(self.save_dir), self.name)
 
         if not self._fs.isdir(root_dir):
             log.warning('Missing logger folder: %s', root_dir)
@@ -272,7 +273,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
         return max(existing_versions) + 1
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         state["_experiment"] = None
         return state
