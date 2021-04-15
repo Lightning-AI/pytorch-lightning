@@ -19,6 +19,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import LightningEnum
@@ -77,7 +78,7 @@ class Timer(Callback):
         duration: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         interval: str = Interval.step,
         verbose: bool = True,
-    ):
+    ) -> None:
         super().__init__()
         if isinstance(duration, str):
             dhms = duration.strip().split(":")
@@ -137,24 +138,29 @@ class Timer(Callback):
     def on_test_end(self, *args, **kwargs) -> None:
         self._end_time[RunningStage.TESTING] = datetime.now()
 
-    def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
+    def on_train_batch_end(self, trainer: 'pl.Trainer', *args, **kwargs) -> None:
         if self._interval != Interval.step or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
-    def on_train_epoch_end(self, trainer, *args, **kwargs) -> None:
+    def on_train_epoch_end(self, trainer: 'pl.Trainer', *args, **kwargs) -> None:
         if self._interval != Interval.epoch or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+    def on_save_checkpoint(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        checkpoint: Dict[str, Any],
+    ) -> Dict[str, Any]:
         return {"time_elapsed": {stage: self.time_elapsed(stage) for stage in list(RunningStage)}}
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]):
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
         time_elapsed = callback_state.get("time_elapsed", {})
         self._offset = time_elapsed.get(RunningStage.TRAINING, timedelta())
 
-    def _check_time_remaining(self, trainer) -> None:
+    def _check_time_remaining(self, trainer: 'pl.Trainer') -> None:
         should_stop = self.time_elapsed() >= self._duration
         should_stop = trainer.accelerator.broadcast(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
