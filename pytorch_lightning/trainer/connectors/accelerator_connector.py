@@ -427,20 +427,19 @@ class AcceleratorConnector(object):
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
         # necessary for when the user has passed in a plugin
-        if hasattr(training_type, "parallel_devices") and not getattr(training_type, "parallel_devices"):
+        if hasattr(training_type, 'parallel_devices') and not getattr(training_type, 'parallel_devices'):
             training_type.parallel_devices = self.parallel_devices
+            if hasattr(training_type, 'num_processes'):
+                training_type.num_processes = len(self.parallel_devices)
 
-        if (
-            hasattr(training_type, "cluster_environment") and getattr(training_type, "cluster_environment") is None
-            and training_type.is_cluster_environment_resettable
-        ):
+        if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
             training_type.cluster_environment = self.select_cluster_environment()
 
-        if hasattr(training_type, "num_nodes"):
+        if hasattr(training_type, 'num_nodes'):
             # set num_nodes for training_type from trainer setting
             training_type.num_nodes = self.num_nodes
 
-        if hasattr(training_type, "sync_batchnorm"):
+        if hasattr(training_type, 'sync_batchnorm'):
             # Set sync_batchnorm for training_type from trainer setting.
             training_type.sync_batchnorm = self.sync_batchnorm
 

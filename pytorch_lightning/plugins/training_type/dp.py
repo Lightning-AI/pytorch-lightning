@@ -32,10 +32,6 @@ class DataParallelPlugin(ParallelPlugin):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
 
     @property
-    def is_cluster_environment_resettable(self):
-        return False
-
-    @property
     def global_rank(self) -> int:
         return 0
 

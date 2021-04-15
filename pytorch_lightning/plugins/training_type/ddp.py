@@ -75,14 +75,15 @@ class DDPPlugin(ParallelPlugin):
         self._num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self.dist = LightningDistributed()
+        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._has_spawned_children = False
         self.task_idx = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
-        # world ranks is related to num_nodes, cluster_environment and parallel_devices
-        # when resetting these parameters, need to reset world ranks
+        # note that world ranks is related to num_nodes, when resetting these parameters,
+        # need to reset world ranks
         self.set_world_ranks()
 
     @property
@@ -96,28 +97,6 @@ class DDPPlugin(ParallelPlugin):
     @num_nodes.setter
     def num_nodes(self, num_nodes: int):
         self._num_nodes = num_nodes
-        self.set_world_ranks()
-
-    @property
-    def parallel_devices(self):
-        return self._parallel_devices
-
-    @parallel_devices.setter
-    def parallel_devices(self, parallel_devices: List[torch.device]):
-        self._parallel_devices = parallel_devices
-        self.set_world_ranks()
-
-    @property
-    def num_processes(self) -> int:
-        return len(self.parallel_devices) if self.parallel_devices is not None else 0
-
-    @property
-    def cluster_environment(self):
-        return self._cluster_environment
-
-    @cluster_environment.setter
-    def cluster_environment(self, cluster_environment: ClusterEnvironment):
-        self._cluster_environment = cluster_environment
         self.set_world_ranks()
 
     @property
@@ -336,11 +315,13 @@ class DDPPlugin(ParallelPlugin):
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"):
         """
         Reduces a tensor from several distributed processes to one aggregated tensor.
+
         Args:
             tensor: the tensor to sync and reduce
             group: the process group to gather results from. Defaults to all processes (world)
             reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
                 Can also be a string 'sum' to calculate the sum during reduction.
+
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
         """

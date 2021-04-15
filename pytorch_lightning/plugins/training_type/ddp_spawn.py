@@ -60,15 +60,27 @@ class DDPSpawnPlugin(ParallelPlugin):
         **kwargs: Union[Any, Dict[str, Any]],
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
-        self.num_nodes = num_nodes
+        self._num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
+        self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
         self.mp_queue = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
+        # note that world ranks is related to num_nodes, when resetting these parameters,
+        # need to reset world ranks
+        self.set_world_ranks()
+
+    @property
+    def num_nodes(self):
+        return self._num_nodes
+
+    @num_nodes.setter
+    def num_nodes(self, num_nodes: int):
+        self._num_nodes = num_nodes
         self.set_world_ranks()
 
     @property
@@ -83,10 +95,6 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-    @property
-    def num_processes(self) -> int:
-        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def root_device(self):
