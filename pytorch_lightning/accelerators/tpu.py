@@ -59,7 +59,6 @@ class TPUAccelerator(Accelerator):
     ) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
-            
     def _clip_gradients_norm(self, clip_val: Union[float, int], norm_type: float = 2.0) -> None:
 
         model = self.lightning_module

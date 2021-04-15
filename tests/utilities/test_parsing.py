@@ -14,7 +14,6 @@
 import inspect
 
 import pytest
-
 from torch.jit import ScriptModule
 
 from pytorch_lightning.utilities.parsing import (
