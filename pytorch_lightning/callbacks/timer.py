@@ -16,9 +16,8 @@ Timer
 ^^^^^
 """
 import logging
-from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Union, Optional
+from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer.states import RunningStage
@@ -94,17 +93,19 @@ class Timer(Callback):
         self._duration = duration
         self._interval = interval
         self._verbose = verbose
-        self._start_time = defaultdict(lambda: None)
-        self._end_time = defaultdict(lambda: None)
+        self._start_time = {stage: None for stage in RunningStage}
+        self._end_time = {stage: None for stage in RunningStage}
         self._offset = timedelta()
 
-    def start_time(self, stage: str = RunningStage.TRAINING.value) -> Optional[datetime]:
+    def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[datetime]:
+        stage = RunningStage(stage)
         return self._start_time[stage]
 
-    def end_time(self, stage: str = RunningStage.TRAINING.value) -> Optional[datetime]:
+    def end_time(self, stage: str = RunningStage.TRAINING) -> Optional[datetime]:
+        stage = RunningStage(stage)
         return self._end_time[stage]
 
-    def time_elapsed(self, stage: str = RunningStage.TRAINING.value) -> timedelta:
+    def time_elapsed(self, stage: str = RunningStage.TRAINING) -> timedelta:
         start = self.start_time(stage)
         end = self.end_time(stage)
         offset = self._offset if stage == RunningStage.TRAINING else timedelta(0)
@@ -114,27 +115,27 @@ class Timer(Callback):
             return datetime.now() - start + offset
         return end - start + offset
 
-    def time_remaining(self, stage: str = RunningStage.TRAINING.value) -> Optional[timedelta]:
+    def time_remaining(self, stage: str = RunningStage.TRAINING) -> Optional[timedelta]:
         if self._duration is not None:
             return self._duration - self.time_elapsed(stage)
 
     def on_train_start(self, *args, **kwargs) -> None:
-        self._start_time.update({RunningStage.TRAINING.value: datetime.now()})
+        self._start_time[RunningStage.TRAINING] = datetime.now()
 
     def on_train_end(self, *args, **kwargs) -> None:
-        self._end_time.update({RunningStage.TRAINING.value: datetime.now()})
+        self._end_time[RunningStage.TRAINING] = datetime.now()
 
     def on_validation_start(self, *args, **kwargs) -> None:
-        self._start_time.update({RunningStage.VALIDATING.value: datetime.now()})
+        self._start_time[RunningStage.VALIDATING] = datetime.now()
 
     def on_validation_end(self, *args, **kwargs) -> None:
-        self._end_time.update({RunningStage.VALIDATING.value: datetime.now()})
+        self._end_time[RunningStage.VALIDATING] = datetime.now()
 
     def on_test_start(self, *args, **kwargs) -> None:
-        self._start_time.update({RunningStage.TESTING.value: datetime.now()})
+        self._start_time[RunningStage.TESTING] = datetime.now()
 
     def on_test_end(self, *args, **kwargs) -> None:
-        self._end_time.update({RunningStage.TESTING.value: datetime.now()})
+        self._end_time[RunningStage.TESTING] = datetime.now()
 
     def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
         if self._interval != Interval.step or self._duration is None:
@@ -147,13 +148,11 @@ class Timer(Callback):
         self._check_time_remaining(trainer)
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
-        return {
-            "time_elapsed": {k.value: self.time_elapsed(k.value) for k in RunningStage}
-        }
+        return {"time_elapsed": {stage: self.time_elapsed(stage) for stage in list(RunningStage)}}
 
     def on_load_checkpoint(self, callback_state: Dict[str, Any]):
-        time_elapsed = callback_state.get("time_elapsed", defaultdict(timedelta))
-        self._offset = time_elapsed[RunningStage.TRAINING.value]
+        time_elapsed = callback_state.get("time_elapsed", {})
+        self._offset = time_elapsed.get(RunningStage.TRAINING, timedelta())
 
     def _check_time_remaining(self, trainer) -> None:
         should_stop = self.time_elapsed() >= self._duration
