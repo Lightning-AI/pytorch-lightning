@@ -17,12 +17,11 @@ Weights and Biases Logger
 """
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
-
-import torch.nn as nn
+from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -30,12 +29,17 @@ warning_cache = WarningCache()
 
 _WANDB_AVAILABLE = _module_available("wandb")
 
-try:
+if _WANDB_AVAILABLE:
     import wandb
+    from wandb.dummy import Dummy
     from wandb.wandb_run import Run
-except ImportError:
+else:
     # needed for test mocks, these tests shall be updated
-    wandb, Run = None, None
+    # mypy complains about assignment to type
+    wandb, Run, Dummy = None, None  # type: ignore
+
+if TYPE_CHECKING:
+    import torch
 
 
 class WandbLogger(LightningLoggerBase):
@@ -97,11 +101,11 @@ class WandbLogger(LightningLoggerBase):
         version: Optional[str] = None,
         project: Optional[str] = None,
         log_model: Optional[bool] = False,
-        experiment=None,
+        experiment: Optional[Run] = None,
         prefix: Optional[str] = '',
         sync_step: Optional[bool] = None,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         if wandb is None:
             raise ImportError(
                 'You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
@@ -130,10 +134,10 @@ class WandbLogger(LightningLoggerBase):
         self._project = project
         self._log_model = log_model
         self._prefix = prefix
-        self._experiment = experiment
+        self._experiment: Optional[Union[Run, Dummy]] = experiment
         self._kwargs = kwargs
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         # args needed to reload correct experiment
         state['_id'] = self._experiment.id if self._experiment is not None else None
@@ -142,9 +146,10 @@ class WandbLogger(LightningLoggerBase):
         state['_experiment'] = None
         return state
 
-    @property
+    # https://github.com/python/mypy/issues/1362
+    @property  # type: ignore
     @rank_zero_experiment
-    def experiment(self) -> Run:
+    def experiment(self) -> Union[Run, Dummy]:
         r"""
 
         Actual wandb object. To use wandb features in your
@@ -173,13 +178,13 @@ class WandbLogger(LightningLoggerBase):
                 self._save_dir = self._experiment.dir
 
             # define default x-axis (for latest wandb versions)
-            if getattr(self._experiment, "define_metric", None):
-                self._experiment.define_metric("trainer/global_step")
-                self._experiment.define_metric("*", step_metric='trainer/global_step', step_sync=True)
+            getattr(self._experiment, 'define_metric', lambda *_: None)("trainer/global_step")
+            getattr(self._experiment, 'define_metric',
+                    lambda *_: None)("*", step_metric='trainer/global_step', step_sync=True)
 
         return self._experiment
 
-    def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
+    def watch(self, model: 'torch.nn.Module', log: str = 'gradients', log_freq: int = 100) -> None:
         self.experiment.watch(model, log=log, log_freq=log_freq)
 
     @rank_zero_only
@@ -190,26 +195,27 @@ class WandbLogger(LightningLoggerBase):
         self.experiment.config.update(params, allow_val_change=True)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Dict[str, Union['torch.Tensor', float]], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
+
+        metrics = apply_to_collection(metrics, torch.Tensor, lambda x: x.item())
         if step is not None:
-            self.experiment.log({**metrics, 'trainer/global_step': step})
-        else:
-            self.experiment.log(metrics)
+            metrics.update({'trainer/global_step': step})
+        self.experiment.log(metrics)
 
     @property
     def save_dir(self) -> Optional[str]:
         return self._save_dir
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str:
         # don't create an experiment if we don't have one
         return self._experiment.project_name() if self._experiment else self._name
 
     @property
-    def version(self) -> Optional[str]:
+    def version(self) -> str:
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
@@ -217,4 +223,4 @@ class WandbLogger(LightningLoggerBase):
     def finalize(self, status: str) -> None:
         # upload all checkpoints from saving dir
         if self._log_model:
-            wandb.save(os.path.join(self.save_dir, "*.ckpt"))
+            wandb.save(os.path.join(str(self.save_dir), "*.ckpt"))
