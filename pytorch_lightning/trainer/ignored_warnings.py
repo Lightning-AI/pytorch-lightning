@@ -15,7 +15,7 @@
 import warnings
 
 
-def ignore_scalar_return_in_dp():
+def ignore_scalar_return_in_dp() -> None:
     # Users get confused by this warning so we silence it
     warnings.filterwarnings(
         'ignore',

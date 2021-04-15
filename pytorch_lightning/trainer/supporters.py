@@ -46,7 +46,7 @@ class TensorRunningAccum(object):
         (tensor(12.), tensor(10.), tensor(8.), tensor(12.))
     """
 
-    def __init__(self, window_length: int):
+    def __init__(self, window_length: int) -> None:
         self.window_length = window_length
         self.memory = None
         self.current_idx: int = 0
@@ -57,12 +57,12 @@ class TensorRunningAccum(object):
         """Empty the accumulator."""
         self.__init__(self.window_length)
 
-    def last(self):
+    def last(self) -> None:
         """Get the last added element."""
         if self.last_idx is not None:
             return self.memory[self.last_idx]
 
-    def append(self, x):
+    def append(self, x: torch.Tensor) -> None:
         """Add an element to the accumulator."""
         if self.memory is None:
             self.memory = torch.zeros(self.window_length, *x.shape)
@@ -84,19 +84,19 @@ class TensorRunningAccum(object):
         if self.current_idx == 0:
             self.rotated = True
 
-    def mean(self):
+    def mean(self) -> Optional[torch.Tensor]:
         """Get mean value from stored elements."""
         return self._agg_memory('mean')
 
-    def max(self):
+    def max(self) -> Optional[torch.Tensor]:
         """Get maximal value from stored elements."""
         return self._agg_memory('max')
 
-    def min(self):
+    def min(self) -> Optional[torch.Tensor]:
         """Get minimal value from stored elements."""
         return self._agg_memory('min')
 
-    def _agg_memory(self, how: str):
+    def _agg_memory(self, how: str) -> Optional[torch.Tensor]:
         if self.last_idx is not None:
             if self.rotated:
                 return getattr(self.memory, how)()

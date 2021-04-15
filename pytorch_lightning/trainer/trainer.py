@@ -139,7 +139,7 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = 'max_size_cycle',
         stochastic_weight_avg: bool = False
-    ):
+    ) -> None:
         r"""
         Customize every aspect of training via flags
 
@@ -993,7 +993,7 @@ class Trainer(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
-            ckpt_path = self.checkpoint_callback.best_model_path
+            ckpt_path: str = self.checkpoint_callback.best_model_path
 
         if not ckpt_path:
             raise MisconfigurationException(
@@ -1016,7 +1016,7 @@ class Trainer(
         model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
-    ):
+    ) -> List[Any]:
         r"""
 
         Separates from fit to make sure you never run on your predictions set until you want to.
@@ -1068,7 +1068,7 @@ class Trainer(
         train_dataloader: Optional[DataLoader] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
-    ):
+    ) -> None:
         r"""
         Runs routines to tune hyperparameters before training.
 
@@ -1109,12 +1109,12 @@ class Trainer(
         # we will not call the hook; the hook has initialized the sharded model for example.
 
         # used on the model if the user re-create a trainer with resume_from_checkpoint
-        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+        model_call_configure_sharded_model_hook = getattr(model, "_call_configure_sharded_model_hook", False)
         if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
             with self.accelerator.model_sharded_context():
                 model.configure_sharded_model()
                 self.configure_sharded_model(model)
-            model.call_configure_sharded_model_hook = True
+            model._call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:
@@ -1129,7 +1129,7 @@ class Trainer(
         self.teardown(stage=state)
         model.teardown(stage=state)
 
-    def _reset_result_and_set_hook_fx_name(self, hook_name):
+    def _reset_result_and_set_hook_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step
         if "batch_start" in hook_name or "on_before_zero_grad" in hook_name:
             return True
@@ -1140,13 +1140,14 @@ class Trainer(
             model_ref._current_hook_fx_name = hook_name
         return False
 
-    def _cache_logged_metrics(self):
+    def _cache_logged_metrics(self) -> None:
         model_ref = self.lightning_module
         if model_ref is not None:
             # capture logging for this hook
             self.logger_connector.cache_logged_metrics()
 
-    def call_hook(self, hook_name, *args, **kwargs):
+    def call_hook(self, hook_name: str, *args: Any,
+                  **kwargs: Any) -> Optional[Union[torch.Tensor, Dict[str, torch.Tensor]]]:
         # set hook_name to model + reset Result obj
         skip = self._reset_result_and_set_hook_fx_name(hook_name)
 

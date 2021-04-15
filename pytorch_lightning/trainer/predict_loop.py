@@ -11,24 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
+from typing import List, Tuple, Union
 
+import torch
+from torch.utils.data import DataLoader
+
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class PredictLoop(object):
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
         self.max_batches = None
         self.num_dataloaders = None
         self.warning_cache = WarningCache()
 
-    def on_trainer_init(self):
+    def on_trainer_init(self) -> None:
         self.trainer.num_predict_batches = []
 
-    def get_predict_dataloaders(self):
+    def get_predict_dataloaders(self) -> Tuple[List[DataLoader], List[Union[int, float]]]:
         self.trainer.reset_predict_dataloader(self.trainer.lightning_module)
 
         dataloaders = self.trainer.predict_dataloaders
@@ -36,7 +40,7 @@ class PredictLoop(object):
 
         return dataloaders, max_batches
 
-    def should_skip_predict(self, max_batches):
+    def should_skip_predict(self, max_batches: Union[int, float]) -> bool:
         return sum(max_batches) == 0
 
     def on_predict_model_eval(self, *_, **__):

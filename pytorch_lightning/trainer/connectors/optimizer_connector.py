@@ -11,21 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict, Optional
+
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _METRIC_TYPE
 
 
 class OptimizerConnector:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
 
-    def on_trainer_init(self):
+    def on_trainer_init(self) -> None:
         self.trainer.lr_schedulers = []
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
 
-    def update_learning_rates(self, interval: str, monitor_metrics=None):
+    def update_learning_rates(self, interval: str, monitor_metrics: Optional[Dict[str, _METRIC_TYPE]] = None) -> None:
         """Update learning rates.
 
         Args:

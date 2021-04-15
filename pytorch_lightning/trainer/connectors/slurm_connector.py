@@ -2,16 +2,19 @@ import logging
 import os
 import signal
 from subprocess import call
+from sys import FrameType
+
+import pytorch_lightning as pl
 
 log = logging.getLogger(__name__)
 
 
 class SLURMConnector:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
 
-    def register_slurm_signal_handlers(self):
+    def register_slurm_signal_handlers(self) -> None:
         # see if we're using slurm (not interactive)
         on_slurm = False
         try:
@@ -27,7 +30,7 @@ class SLURMConnector:
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
 
-    def sig_handler(self, signum, frame):  # pragma: no-cover
+    def sig_handler(self, signum: int, frame: FrameType) -> None:  # pragma: no-cover
         if self.trainer.is_global_zero:
             # save weights
             log.info('handling SIGUSR1')
@@ -57,5 +60,5 @@ class SLURMConnector:
             # close experiment to avoid issues
             self.trainer.logger.close()
 
-    def term_handler(self, signum, frame):  # pragma: no-cover
+    def term_handler(self, signum: int, frame: FrameType) -> None:  # pragma: no-cover
         log.info("bypassing sigterm")

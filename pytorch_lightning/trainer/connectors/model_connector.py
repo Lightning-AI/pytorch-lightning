@@ -18,13 +18,15 @@ Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
 """
 from weakref import proxy
 
+import pytorch_lightning as pl
+
 
 class ModelConnector:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
 
-    def copy_trainer_model_properties(self, model):
+    def copy_trainer_model_properties(self, model: 'pl.LightningModule') -> None:
         ref_model = self.trainer.lightning_module or model
 
         automatic_optimization = ref_model.automatic_optimization and self.trainer.train_loop.automatic_optimization

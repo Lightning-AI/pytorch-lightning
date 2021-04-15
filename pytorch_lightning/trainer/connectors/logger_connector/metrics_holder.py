@@ -18,8 +18,7 @@ import torch
 from torchmetrics import Metric
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-_METRIC_TYPE = Union[Metric, torch.Tensor, int, float, Any]
+from pytorch_lightning.utilities.types import _METRIC_TYPE
 
 
 class MetricsHolder:
@@ -72,12 +71,12 @@ class MetricsHolder:
     @staticmethod
     def _convert_to_tensor(current: _METRIC_TYPE, device: Optional[torch.device]) -> torch.Tensor:
         if isinstance(current, Metric):
-            current = current.compute().detach()
+            current: torch.Tensor = current.compute().detach()
 
-        elif isinstance(current, numbers.Number):
+        elif isinstance(current, (int, float)):
             current = torch.tensor(current, device=device, dtype=torch.float)
 
         if isinstance(current, torch.Tensor) and current.device.type == "xla":
-            current = current.cpu()
+            current: torch.Tensor = current.cpu()
 
         return current

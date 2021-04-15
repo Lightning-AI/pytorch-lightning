@@ -106,6 +106,7 @@ class LightningModule(
         self._current_dataloader_idx = None
         self._automatic_optimization: bool = True
         self._param_requires_grad_state = dict()
+        self._call_configure_sharded_model_hook: bool = False
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:

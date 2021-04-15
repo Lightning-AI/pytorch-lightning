@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict, List
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -46,186 +47,186 @@ class CallbackHookNameValidator:
             )
 
     @staticmethod
-    def _on_before_accelerator_backend_setup_log():
+    def _on_before_accelerator_backend_setup_log() -> None:
         """Called before accelerator is being setup"""
         return None
 
     @staticmethod
-    def _setup_log():
+    def _setup_log() -> None:
         """Called when fit or test begins"""
         return None
 
     @staticmethod
-    def _on_configure_sharded_model_log():
+    def _on_configure_sharded_model_log() -> None:
         """Called before configure sharded model"""
         return None
 
     @staticmethod
-    def _teardown_log():
+    def _teardown_log() -> None:
         """Called at the end of fit and test"""
         return None
 
     @staticmethod
-    def _on_init_start_log():
+    def _on_init_start_log() -> None:
         """Called when the trainer initialization begins, model has not yet been set."""
         return None
 
     @staticmethod
-    def _on_init_end_log():
+    def _on_init_end_log() -> None:
         """Called when the trainer initialization ends, model has not yet been set."""
         return None
 
     @staticmethod
-    def _on_fit_start_log():
+    def _on_fit_start_log() -> None:
         """Called when the trainer initialization begins, model has not yet been set."""
         return None
 
     @staticmethod
-    def _on_fit_end_log():
+    def _on_fit_end_log() -> None:
         """Called when the trainer initialization begins, model has not yet been set."""
         return None
 
     @staticmethod
-    def _on_sanity_check_start_log():
+    def _on_sanity_check_start_log() -> None:
         """Called when the validation sanity check starts."""
         return None
 
     @staticmethod
-    def _on_sanity_check_end_log():
+    def _on_sanity_check_end_log() -> None:
         """Called when the validation sanity check ends."""
         return None
 
     @staticmethod
-    def _on_train_epoch_start_log():
+    def _on_train_epoch_start_log() -> Dict[str, List[bool]]:
         """Called when the epoch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_train_epoch_end_log():
+    def _on_train_epoch_end_log() -> Dict[str, List[bool]]:
         """Called when the epoch ends."""
         return {"on_step": [False], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_validation_epoch_start_log():
+    def _on_validation_epoch_start_log() -> Dict[str, List[bool]]:
         """Called when the epoch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_validation_epoch_end_log():
+    def _on_validation_epoch_end_log() -> Dict[str, List[bool]]:
         """Called when the epoch ends."""
         return {"on_step": [False], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_test_epoch_start_log():
+    def _on_test_epoch_start_log() -> Dict[str, List[bool]]:
         """Called when the epoch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_test_epoch_end_log():
+    def _on_test_epoch_end_log() -> Dict[str, List[bool]]:
         """Called when the epoch ends."""
         return {"on_step": [False], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_epoch_start_log():
+    def _on_epoch_start_log() -> Dict[str, List[bool]]:
         """Called when the epoch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_epoch_end_log():
+    def _on_epoch_end_log() -> Dict[str, List[bool]]:
         """Called when the epoch ends."""
         return {"on_step": [False], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_train_start_log():
+    def _on_train_start_log() -> Dict[str, List[bool]]:
         """Called when the train begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_train_end_log():
+    def _on_train_end_log() -> None:
         """Called when the train ends."""
         return None
 
     @staticmethod
-    def _on_pretrain_routine_start_log():
+    def _on_pretrain_routine_start_log() -> None:
         """Called when the train begins."""
         return None
 
     @staticmethod
-    def _on_pretrain_routine_end_log():
+    def _on_pretrain_routine_end_log() -> None:
         """Called when the train ends."""
         return None
 
     @staticmethod
-    def _on_batch_start_log():
+    def _on_batch_start_log() -> Dict[str, List[bool]]:
         """Called when the training batch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_batch_end_log():
+    def _on_batch_end_log() -> Dict[str, List[bool]]:
         """Called when the training batch ends."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_train_batch_start_log():
+    def _on_train_batch_start_log() -> Dict[str, List[bool]]:
         """Called when the training batch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_train_batch_end_log():
+    def _on_train_batch_end_log() -> Dict[str, List[bool]]:
         """Called when the training batch ends."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_validation_batch_start_log():
+    def _on_validation_batch_start_log() -> Dict[str, List[bool]]:
         """Called when the validation batch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_validation_batch_end_log():
+    def _on_validation_batch_end_log() -> Dict[str, List[bool]]:
         """Called when the validation batch ends."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_test_batch_start_log():
+    def _on_test_batch_start_log() -> Dict[str, List[bool]]:
         """Called when the test batch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_test_batch_end_log():
+    def _on_test_batch_end_log() -> Dict[str, List[bool]]:
         """Called when the test batch ends."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_validation_start_log():
+    def _on_validation_start_log() -> Dict[str, List[bool]]:
         """Called when the validation loop begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_validation_end_log():
+    def _on_validation_end_log() -> None:
         """Called when the validation loop ends."""
         return None
 
     @staticmethod
-    def _on_test_start_log():
+    def _on_test_start_log() -> Dict[str, List[bool]]:
         """Called when the test begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
-    def _on_test_end_log():
+    def _on_test_end_log() -> None:
         """Called when the test ends."""
         return None
 
     @staticmethod
-    def _on_keyboard_interrupt_log():
+    def _on_keyboard_interrupt_log() -> None:
         """Called when the training is interrupted by KeyboardInterrupt."""
         return None
 
     @staticmethod
-    def _on_save_checkpoint_log():
+    def _on_save_checkpoint_log() -> None:
         """Called when saving a model checkpoint."""
         return None
 
     @staticmethod
-    def _on_load_checkpoint_log():
+    def _on_load_checkpoint_log() -> None:
         """Called when loading a model checkpoint."""
         return None

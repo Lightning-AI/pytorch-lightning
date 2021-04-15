@@ -13,15 +13,17 @@
 # limitations under the License.
 
 from abc import ABC
+from typing import Dict
 
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _METRIC_TYPE
 
 
 class TrainerLoggingMixin(ABC):
 
-    def metrics_to_scalars(self, metrics):
+    def metrics_to_scalars(self, metrics: Dict[str, _METRIC_TYPE]) -> Dict[str, _METRIC_TYPE]:
         new_metrics = {}
         # TODO: this is duplicated in MetricsHolder. should be unified
         for k, v in metrics.items():

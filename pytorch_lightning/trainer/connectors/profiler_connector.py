@@ -14,6 +14,7 @@
 from typing import Union
 from weakref import proxy
 
+import pytorch_lightning as pl
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
@@ -32,10 +33,10 @@ PROFILERS = {
 
 class ProfilerConnector:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
 
-    def on_trainer_init(self, profiler: Union[BaseProfiler, str]):
+    def on_trainer_init(self, profiler: Union[BaseProfiler, str]) -> None:
 
         if profiler and not isinstance(profiler, (str, BaseProfiler)):
             raise MisconfigurationException(
