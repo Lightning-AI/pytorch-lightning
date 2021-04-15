@@ -105,7 +105,7 @@ class BaseFinetuning(Callback):
                 _modules.extend(BaseFinetuning.flatten_modules(m))
 
         else:
-            _modules = modules.modules()
+            _modules = list(modules.modules())
 
         # Leaf nodes in the graph have no children, so we use that to filter
         return [m for m in _modules if not list(m.children())]
@@ -229,7 +229,7 @@ class BaseFinetuning(Callback):
         BaseFinetuning.make_trainable(modules)
         params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
         denom_lr = initial_denom_lr if lr is None else 1.
-        params = BaseFinetuning.filter_params(modules, train_bn=train_bn, requires_grad=True)
+        params: Iterable = BaseFinetuning.filter_params(modules, train_bn=train_bn, requires_grad=True)
         params = BaseFinetuning.filter_on_optimizer(optimizer, params)
         if params:
             optimizer.add_param_group({
@@ -240,7 +240,7 @@ class BaseFinetuning(Callback):
     def on_before_accelerator_backend_setup(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         self.freeze_before_training(pl_module)
 
-    def on_train_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
         """Called when the epoch begins."""
         for opt_idx, optimizer in trainer.train_loop.prepare_optimizers():
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
