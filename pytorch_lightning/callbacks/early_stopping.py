@@ -139,7 +139,7 @@ class EarlyStopping(Callback):
         return True
 
     @property
-    def monitor_op(self):
+    def monitor_op(self) -> Callable:
         return self.mode_dict[self.mode]
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
@@ -165,13 +165,13 @@ class EarlyStopping(Callback):
             return
         self._run_early_stopping_check(trainer)
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer, pl_module) -> None:
         if self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
 
         self._run_early_stopping_check(trainer)
 
-    def _run_early_stopping_check(self, trainer):
+    def _run_early_stopping_check(self, trainer) -> None:
         """
         Checks whether the early stopping condition is met
         and if so tells the trainer to stop the training.
