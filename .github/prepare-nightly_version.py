@@ -4,7 +4,7 @@ import re
 
 # set paths
 _PATH_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-_PATH_INFO = os.path.join(_PATH_ROOT, 'pytorch_lightning', '__info__.py')
+_PATH_INFO = os.path.join(_PATH_ROOT, 'pytorch_lightning', '__about__.py')
 
 # get today date
 now = datetime.datetime.now()

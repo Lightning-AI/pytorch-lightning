@@ -15,10 +15,12 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
+from torch.nn import Module
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -41,12 +43,9 @@ else:
 if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
 
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.utils.data import DataLoader
-
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
+    """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
     def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)

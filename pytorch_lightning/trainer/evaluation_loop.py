@@ -229,7 +229,8 @@ class EvaluationLoop(object):
         return eval_results
 
     def on_predict_epoch_end(self):
-        self.trainer._progress_bar_callback.on_test_end(self.trainer, self.trainer.lightning_module)
+        if self.trainer._progress_bar_callback is not None:
+            self.trainer._progress_bar_callback.on_test_end(self.trainer, self.trainer.lightning_module)
 
         results = self._predictions
 
