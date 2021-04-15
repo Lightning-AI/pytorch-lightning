@@ -281,11 +281,7 @@ class DDPPlugin(ParallelPlugin):
         self.barrier()
 
     def post_dispatch(self) -> None:
-        # If the plugin launched subprocesses, clean up the populated environment variable(s)
-        if self.cluster_environment.creates_children:
-            return
-        if "WORLD_SIZE" in os.environ:
-            del os.environ["WORLD_SIZE"]
+        self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs):
         if torch_distrib.is_initialized():
