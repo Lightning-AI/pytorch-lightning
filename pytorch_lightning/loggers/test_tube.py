@@ -16,7 +16,7 @@ Test Tube Logger
 ----------------
 """
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
@@ -29,6 +29,9 @@ if _TESTTUBE_AVAILABLE:
     from test_tube import Experiment
 else:
     Experiment = None
+
+if TYPE_CHECKING:
+    import torch
 
 
 class TestTubeLogger(LightningLoggerBase):
@@ -110,7 +113,8 @@ class TestTubeLogger(LightningLoggerBase):
         self._prefix = prefix
         self._experiment = None
 
-    @property
+    # https://github.com/python/mypy/issues/1362
+    @property  # type: ignore
     @rank_zero_experiment
     def experiment(self) -> Experiment:
         r"""
@@ -146,14 +150,14 @@ class TestTubeLogger(LightningLoggerBase):
         self.experiment.argparse(Namespace(**params))
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[float, 'torch.Tensor']], step: Optional[int] = None) -> None:
         # TODO: HACK figure out where this is being set to true
         metrics = self._add_prefix(metrics)
         self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step)
 
     @rank_zero_only
-    def log_graph(self, model: LightningModule, input_array=None):
+    def log_graph(self, model: LightningModule, input_array: Optional[Union[torch.Tensor, Any]] = None) -> None:
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array
@@ -205,6 +209,7 @@ class TestTubeLogger(LightningLoggerBase):
     @property
     def version(self) -> int:
         if self._experiment is None:
+            assert self._version is not None
             return self._version
 
         return self.experiment.version
@@ -218,7 +223,7 @@ class TestTubeLogger(LightningLoggerBase):
         state["_experiment"] = self.experiment.get_meta_copy()
         return state
 
-    def __setstate__(self, state: Dict[Any, Any]):
+    def __setstate__(self, state: Dict[Any, Any]) -> None:
         self._experiment = state["_experiment"].get_non_ddp_exp()
         del state["_experiment"]
         self.__dict__.update(state)
