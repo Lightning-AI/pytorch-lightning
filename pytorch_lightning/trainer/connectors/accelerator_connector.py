@@ -148,8 +148,7 @@ class AcceleratorConnector(object):
         self.replace_sampler_ddp = replace_sampler_ddp
 
     def handle_given_plugins(
-        self,
-        plugins: Optional[Union[ClusterEnvironment, TrainingTypePlugin, PrecisionPlugin, Sequence]],
+        self, plugins: Optional[Union[ClusterEnvironment, TrainingTypePlugin, PrecisionPlugin, Sequence]]
     ):
         plugins = plugins if plugins is not None else []
 
@@ -176,16 +175,16 @@ class AcceleratorConnector(object):
 
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one precision and one training type plugin."
-                        f" Found more than 1 training type plugin: {type(plug).__name__}"
+                        'You can only specify one precision and one training type plugin.'
+                        f' Found more than 1 training type plugin: {type(plug).__name__}'
                     )
             elif isinstance(plug, PrecisionPlugin):
                 if precision is None:
                     precision = plug
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one precision and one training type plugin."
-                        f" Found more than 1 precision plugin: {type(plug).__name__}"
+                        'You can only specify one precision and one training type plugin.'
+                        f' Found more than 1 precision plugin: {type(plug).__name__}'
                     )
 
             elif isinstance(plug, ClusterEnvironment):
@@ -193,16 +192,16 @@ class AcceleratorConnector(object):
                     cluster_environment = plug
                 else:
                     raise MisconfigurationException(
-                        "You can only specify one cluster environment. Found more than 1 cluster environment plugin"
+                        'You can only specify one cluster environment. Found more than 1 cluster environment plugin'
                     )
             else:
                 raise MisconfigurationException(
-                    f"Found invalid type for plugin {plug}. Expected a precision or training type plugin."
+                    f'Found invalid type for plugin {plug}. Expected a precision or training type plugin.'
                 )
 
         self._training_type_plugin = training_type
         self._precision_plugin = precision
-        self._cluster_environment = (cluster_environment or self.select_cluster_environment())
+        self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
     def precision_plugin(self) -> PrecisionPlugin:
@@ -250,12 +249,8 @@ class AcceleratorConnector(object):
     @property
     def use_ddp(self) -> bool:
         return self._distrib_type in (
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN,
-            DistributedType.DEEPSPEED,
-            DistributedType.TPU_SPAWN,
+            DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED,
+            DistributedType.DDP_SHARDED_SPAWN, DistributedType.DEEPSPEED, DistributedType.TPU_SPAWN
         )
 
     @property
@@ -274,7 +269,7 @@ class AcceleratorConnector(object):
     def is_distributed(self) -> bool:
         # Used for custom plugins.
         # Custom plugins should implement is_distributed property.
-        if hasattr(self.training_type_plugin, "is_distributed") and not self.on_tpu:
+        if hasattr(self.training_type_plugin, 'is_distributed') and not self.on_tpu:
             return self.training_type_plugin.is_distributed
         is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
         if self.on_tpu:
@@ -303,14 +298,13 @@ class AcceleratorConnector(object):
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return (self.accelerator.root_device.index if not isinstance(self.accelerator, TPUAccelerator) else None)
+        return self.accelerator.root_device.index if not isinstance(self.accelerator, TPUAccelerator) else None
 
     @property
     def is_using_torchelastic(self) -> bool:
         """
         .. deprecated:: v1.3
             Will be removed in v1.5.0.
-
         Returns:
             ``True`` if the current process was launched using the torchelastic command.
         """
@@ -341,10 +335,8 @@ class AcceleratorConnector(object):
                         "You have asked for native AMP on CPU, but AMP is only available on GPU."
                     )
                 elif not _NATIVE_AMP_AVAILABLE:
-                    msg = (
-                        "You have asked for native AMP but your PyTorch version does not support it."
-                        " Consider upgrading with `pip install torch>=1.6`."
-                    )
+                    msg = "You have asked for native AMP but your PyTorch version does not support it." \
+                          " Consider upgrading with `pip install torch>=1.6`."
                     if _APEX_AVAILABLE:
                         self.amp_type = AMPType.APEX
                         msg += " We will attempt to use NVIDIA Apex for this session."
@@ -353,10 +345,7 @@ class AcceleratorConnector(object):
                         raise MisconfigurationException(msg)
                 else:
                     log.info("Using native 16bit precision.")
-                    if isinstance(
-                        self.training_type_plugin,
-                        (DDPShardedPlugin, DDPSpawnShardedPlugin),
-                    ):
+                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
                         return ShardedNativeMixedPrecisionPlugin()
                     return NativeMixedPrecisionPlugin()
 
@@ -388,18 +377,18 @@ class AcceleratorConnector(object):
             plugin = DeepSpeedPlugin(
                 num_nodes=self.num_nodes,
                 cluster_environment=self.select_cluster_environment(),
-                parallel_devices=self.parallel_devices,
+                parallel_devices=self.parallel_devices
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
-            use_torchelastic_ddp = (self.use_ddp and TorchElasticEnvironment.is_using_torchelastic())
+            use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
             use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
-            use_tpu_spawn = (self.on_tpu and self._distrib_type == DistributedType.TPU_SPAWN)
-            use_ddp_cpu_torch_elastic = (use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic())
+            use_tpu_spawn = self.on_tpu and self._distrib_type == DistributedType.TPU_SPAWN
+            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
-            use_ddp_sharded_spawn = (self._distrib_type == DistributedType.DDP_SHARDED_SPAWN)
+            use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
 
             # TODO: decouple from TE
             # ddp script mode uses the same flags as TE
@@ -412,7 +401,7 @@ class AcceleratorConnector(object):
                 ddp_plugin_cls = DDPShardedPlugin
             elif use_ddp_sharded_spawn:
                 ddp_plugin_cls = DDPSpawnShardedPlugin
-            elif (use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp):
+            elif use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
@@ -460,11 +449,11 @@ class AcceleratorConnector(object):
     def select_accelerator(self) -> Accelerator:
         if isinstance(self.distributed_backend, Accelerator):
             # custom accelerator from user
-            if (self._precision_plugin is not None or self._training_type_plugin is not None):
+            if self._precision_plugin is not None or self._training_type_plugin is not None:
                 # plugins also specified by user
                 rank_zero_warn(
-                    "Specified `Precision` and `TrainingType` plugins will be ignored,"
-                    " since an `Accelerator` instance was provided."
+                    'Specified `Precision` and `TrainingType` plugins will be ignored,'
+                    ' since an `Accelerator` instance was provided.'
                 )
             return self.distributed_backend
 
@@ -506,7 +495,7 @@ class AcceleratorConnector(object):
                 self._distrib_type = DistributedType.DDP
             elif self.num_gpus > 1:
                 rank_zero_warn(
-                    "You requested multiple GPUs but did not specify a backend, e.g."
+                    'You requested multiple GPUs but did not specify a backend, e.g.'
                     ' `Trainer(accelerator="dp"|"ddp"|"ddp2")`. Setting `accelerator="ddp_spawn"` for you.'
                 )
                 self.distributed_backend = "ddp_spawn"
@@ -516,14 +505,14 @@ class AcceleratorConnector(object):
             self._distrib_type = DistributedType.DDP
             if self.num_gpus > 0:
                 rank_zero_warn(
-                    "You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs."
+                    'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
                 )
                 self.parallel_device_ids = None
             if self.num_processes is None:
                 # define the max CPU available
                 self.num_processes = os.cpu_count()
         # special case with TPUs
-        elif self.distributed_backend == "tpu" or self.tpu_cores is not None:
+        elif self.distributed_backend == 'tpu' or self.tpu_cores is not None:
             self._device_type = DeviceType.TPU
             if isinstance(self.tpu_cores, int):
                 self._distrib_type = DistributedType.TPU_SPAWN
@@ -531,35 +520,30 @@ class AcceleratorConnector(object):
             self._distrib_type = DistributedType(self.distributed_backend)
 
         # unless you request explicitly for CPU and some GPU are available use them
-        _on_cpu = self.distributed_backend and "cpu" in self.distributed_backend
+        _on_cpu = self.distributed_backend and 'cpu' in self.distributed_backend
         if self.num_gpus > 0 and not _on_cpu:
             self._device_type = DeviceType.GPU
 
-        _gpu_distrib_types = (
-            DistributedType.DP,
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
-            DistributedType.DDP2,
-        )
+        _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
-        if (self.num_gpus == 0 and self._distrib_type in _gpu_distrib_types and not _on_cpu):
+        if self.num_gpus == 0 and self._distrib_type in _gpu_distrib_types and not _on_cpu:
             rank_zero_warn(
-                "You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`."
+                'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
             )
             # todo: in some cases it yield in comarison None and int
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
                 self._distrib_type = DistributedType.DDP
             else:
-                rank_zero_warn("You are running on single node with no parallelization, so distributed has no effect.")
+                rank_zero_warn('You are running on single node with no parallelization, so distributed has no effect.')
                 self._distrib_type = None
 
         # finished configuring self._distrib_type, check ipython environment
         self.check_interactive_compatibility()
 
         # for DDP overwrite nb processes by requested GPUs
-        if self._device_type == DeviceType.GPU and self._distrib_type in (
-            DistributedType.DDP,
-            DistributedType.DDP_SPAWN,
+        if (
+            self._device_type == DeviceType.GPU
+            and self._distrib_type in (DistributedType.DDP, DistributedType.DDP_SPAWN)
         ):
             self.num_processes = self.num_gpus
 
@@ -574,13 +558,13 @@ class AcceleratorConnector(object):
         if self.num_nodes > 1 and not using_valid_distributed:
             # throw error to force user to choose a supported distributed type such as ddp or ddp2
             raise MisconfigurationException(
-                "Your chosen distributed type does not support num_nodes > 1. "
-                "Please set accelerator=ddp or accelerator=ddp2."
+                'Your chosen distributed type does not support num_nodes > 1. '
+                'Please set accelerator=ddp or accelerator=ddp2.'
             )
 
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}")
+        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores")
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn(
@@ -606,8 +590,7 @@ class AcceleratorConnector(object):
         is not compatible with an interactive environment
         """
         from pytorch_lightning.utilities import _IS_INTERACTIVE
-
-        if (_IS_INTERACTIVE and self._distrib_type is not None and not self._distrib_type.is_interactive_compatible()):
+        if _IS_INTERACTIVE and self._distrib_type is not None and not self._distrib_type.is_interactive_compatible():
             raise MisconfigurationException(
                 f"Selected distributed backend {self._distrib_type} is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible backends:"
