@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
@@ -21,6 +22,25 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+
+
+def test_trainer_flag(caplog):
+
+    class TestModel(BoringModel):
+
+        def on_fit_start(self):
+            raise SystemExit()
+
+    trainer = Trainer(max_time=dict(seconds=1337))
+    with pytest.raises(SystemExit):
+        trainer.fit(TestModel())
+    timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
+    assert timer._duration.seconds == 1337
+
+    trainer = Trainer(max_time=dict(seconds=1337), callbacks=[Timer()])
+    with pytest.raises(SystemExit), caplog.at_level(level=logging.INFO):
+        trainer.fit(TestModel())
+    assert "callbacks list already contains a Timer" in caplog.text
 
 
 @pytest.mark.parametrize(
