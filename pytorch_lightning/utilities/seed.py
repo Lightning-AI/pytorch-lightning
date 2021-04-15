@@ -18,7 +18,6 @@ import os
 import random
 from typing import Optional
 
-import numpy
 import numpy as np
 import torch
 from pytorch_lightning.utilities.distributed import rank_zero_only
