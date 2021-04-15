@@ -140,8 +140,8 @@ def call_training_type_register_plugins(root: Path, base_module: str) -> None:
     for file in os.listdir(root / directory):
         if file.endswith(".py") and not file.startswith("_"):
             module = file[:file.find(".py")]
-            if module not in sys.modules:
-                module = importlib.import_module(".".join([base_module, module]))
-                for _, mod in getmembers(module, isclass):
-                    if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overriden(mod):
-                        mod.register_plugins(TrainingTypePluginsRegistry)
+            module = importlib.import_module(".".join([base_module, module]))
+            for _, mod in getmembers(module, isclass):
+                if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overriden(mod):
+                    mod.register_plugins(TrainingTypePluginsRegistry)
+                    break

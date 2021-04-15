@@ -16,7 +16,6 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import TrainingTypePluginsRegistry
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
-from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -71,18 +70,14 @@ def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init
     assert TrainingTypePluginsRegistry[plugin_name]["plugin"] == DeepSpeedPlugin
 
 
-@RunIf(min_gpus=1, deepspeed=True, special=True)
+@RunIf(deepspeed=True)
 @pytest.mark.parametrize("plugin", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
 def test_training_type_plugins_registry_with_trainer(tmpdir, plugin):
 
-    model = BoringModel()
-
     trainer = Trainer(
-        fast_dev_run=True,
         default_root_dir=tmpdir,
         plugins=plugin,
-        gpus=1,
         precision=16,
     )
 
-    trainer.fit(model)
+    assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
