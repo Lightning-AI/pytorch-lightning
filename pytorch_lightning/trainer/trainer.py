@@ -16,7 +16,7 @@ import logging
 import warnings
 from itertools import count
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -61,6 +61,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import _STEP_OUTPUT_TYPE
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -296,7 +297,7 @@ class Trainer(
         """
         super().__init__()
 
-        distributed_backend = distributed_backend or accelerator
+        distributed_backend: Optional[Union[str, Accelerator]] = distributed_backend or accelerator
 
         # init connectors
         self.dev_debugger = InternalDebugger(self)
@@ -326,8 +327,8 @@ class Trainer(
             raise MisconfigurationException(
                 f"`weights_summary` can be None, {', '.join(ModelSummary.MODES)}, but got {weights_summary}"
             )
-        self.weights_summary = weights_summary
-        self.shown_warnings = set()
+        self.weights_summary: Optional[str] = weights_summary
+        self.shown_warnings: Set[str] = set()
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
@@ -399,7 +400,7 @@ class Trainer(
         train_dataloader: Any = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
-    ):
+    ) -> Union[int, List[Dict[str, Any]]]:
         r"""
         Runs the full optimization routine.
 
@@ -507,7 +508,7 @@ class Trainer(
         # used for testing or when we need to know that training succeeded
         return self.accelerator.results or 1
 
-    def pre_dispatch(self):
+    def pre_dispatch(self) -> None:
         self.accelerator.pre_dispatch(self)
 
         # log hyper-parameters
@@ -517,11 +518,11 @@ class Trainer(
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
-    def post_dispatch(self):
+    def post_dispatch(self) -> None:
         self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
 
-    def dispatch(self):
+    def dispatch(self) -> None:
         if self.evaluating:
             self.accelerator.start_evaluating(self)
         elif self.predicting:
@@ -529,7 +530,7 @@ class Trainer(
         else:
             self.accelerator.start_training(self)
 
-    def run_stage(self):
+    def run_stage(self) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
         results = None
 
         self.profile_connector.setup()
@@ -542,7 +543,7 @@ class Trainer(
             self.run_train()
         return results
 
-    def _pre_training_routine(self):
+    def _pre_training_routine(self) -> None:
         # wait for all to join if on distributed
         self.accelerator.barrier("setup_training")
 
@@ -644,7 +645,7 @@ class Trainer(
             self._running_stage = None
             raise
 
-    def run_evaluation(self, on_epoch=False):
+    def run_evaluation(self, on_epoch: bool = False) -> List[Any]:
         if not (self.evaluating or self.sanity_checking):
             rank_zero_warn(
                 f"`trainer.run_evaluation()` was called but the running stage is set to {self._running_stage}."
@@ -660,7 +661,7 @@ class Trainer(
 
         # check if we want to skip this evaluation
         if self.evaluation_loop.should_skip_evaluation(max_batches):
-            return [], []
+            return []
 
         # enable eval mode + no grads
         self.evaluation_loop.on_evaluation_model_eval()
@@ -679,11 +680,11 @@ class Trainer(
         self.evaluation_loop.on_evaluation_epoch_start()
 
         # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
+        for dataloader_idx, dl in enumerate(dataloaders):
             # bookkeeping
-            dl_outputs = []
-            dataloader = self.accelerator.process_dataloader(dataloader)
-            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
+            dl_outputs: List[_STEP_OUTPUT_TYPE] = []
+            dataloader: Union[DataLoader, Iterable] = self.accelerator.process_dataloader(dl)
+            dl_max_batches = self.evaluation_loop.get_max_batches(dataloader_idx)
 
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
@@ -713,14 +714,8 @@ class Trainer(
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
 
-        outputs = self.evaluation_loop.outputs
-
-        # reset outputs
-        self.evaluation_loop.outputs = []
-
-        # with a single dataloader don't pass a 2D list
-        if self.evaluation_loop.num_dataloaders == 1:
-            outputs = outputs[0]
+        # get epoch outpus
+        outputs = self.evaluation_loop.get_outputs()
 
         # lightning module method
         self.evaluation_loop.evaluation_epoch_end(outputs)
@@ -739,7 +734,7 @@ class Trainer(
         eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
 
         # save predictions to disk
-        self.evaluation_loop.predictions.to_disk()
+        self.evaluation_loop.to_disk()
 
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
@@ -748,7 +743,8 @@ class Trainer(
 
         return eval_loop_results
 
-    def track_output_for_epoch_end(self, outputs, output):
+    def track_output_for_epoch_end(self, outputs: List[_STEP_OUTPUT_TYPE],
+                                   output: _STEP_OUTPUT_TYPE) -> List[_STEP_OUTPUT_TYPE]:
         if output is not None:
             if isinstance(output, Result):
                 output = output.detach()
@@ -761,7 +757,7 @@ class Trainer(
             outputs.append(output)
         return outputs
 
-    def run_evaluate(self):
+    def run_evaluate(self) -> Any:
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
@@ -782,7 +778,7 @@ class Trainer(
 
         return eval_loop_results
 
-    def run_predict(self):
+    def run_predict(self) -> List[Any]:
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -805,9 +801,10 @@ class Trainer(
         self.predict_loop.setup(model, max_batches, dataloaders)
 
         # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            dataloader = self.accelerator.process_dataloader(dataloader)
-            dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
+        for dataloader_idx, dl in enumerate(dataloaders):
+            dataloader: Union[DataLoader, Iterable] = self.accelerator.process_dataloader(dl)
+            match_batches = self.predict_loop.max_batches
+            dl_max_batches = 0 if match_batches is None else max_batches[dataloader_idx]
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue
@@ -828,7 +825,7 @@ class Trainer(
 
         return results
 
-    def run_sanity_check(self, ref_model):
+    def run_sanity_check(self, ref_model: LightningModule) -> None:
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
@@ -855,7 +852,7 @@ class Trainer(
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-    ):
+    ) -> Union[List[Dict[str, Any]], int]:
         r"""
         Perform one evaluation epoch over the validation set.
 
@@ -901,7 +898,7 @@ class Trainer(
         self.data_connector.attach_dataloaders(model, val_dataloaders=val_dataloaders)
 
         if not model_provided:
-            self.validated_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
+            self.validated_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run validate
         results = self.fit(model)
@@ -918,7 +915,7 @@ class Trainer(
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-    ):
+    ) -> Union[List[Dict[str, Any]], int]:
         r"""
         Perform one evaluation epoch over the test set. It's separated from
         fit to make sure you never run on your test set until you want to.
@@ -961,7 +958,7 @@ class Trainer(
         self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         if not model_provided:
-            self.tested_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
+            self.tested_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run test
         results = self.fit(model)
@@ -973,17 +970,21 @@ class Trainer(
 
     def __load_ckpt_weights(
         self,
-        model,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[str],
     ) -> Optional[str]:
         if ckpt_path is None:
-            return
+            return None
 
         fn = self.state.value
 
         if ckpt_path == 'best':
             # if user requests the best checkpoint but we don't have it, error
-            if not self.checkpoint_callback.best_model_path:
+
+            best_model_path = None
+            if self.checkpoint_callback:
+                best_model_path = self.checkpoint_callback.best_model_path
+
+            if not best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
                         f'You cannot execute `.{fn}()` with `fast_dev_run=True` unless you do'
@@ -993,7 +994,8 @@ class Trainer(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
-            ckpt_path: str = self.checkpoint_callback.best_model_path
+            if self.checkpoint_callback is not None:
+                ckpt_path = best_model_path
 
         if not ckpt_path:
             raise MisconfigurationException(
@@ -1016,7 +1018,7 @@ class Trainer(
         model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
-    ) -> List[Any]:
+    ) -> Union[List[Any], int]:
         r"""
 
         Separates from fit to make sure you never run on your predictions set until you want to.
@@ -1109,12 +1111,12 @@ class Trainer(
         # we will not call the hook; the hook has initialized the sharded model for example.
 
         # used on the model if the user re-create a trainer with resume_from_checkpoint
-        model_call_configure_sharded_model_hook = getattr(model, "_call_configure_sharded_model_hook", False)
+        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
         if self.accelerator.call_configure_sharded_model_hook and not model_call_configure_sharded_model_hook:
             with self.accelerator.model_sharded_context():
                 model.configure_sharded_model()
                 self.configure_sharded_model(model)
-            model._call_configure_sharded_model_hook = True
+            model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:

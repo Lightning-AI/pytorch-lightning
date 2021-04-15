@@ -26,6 +26,7 @@ import torch
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -279,7 +280,7 @@ class LightningLoggerBase(ABC):
         return params
 
     @abstractmethod
-    def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
+    def log_hyperparams(self, params: Union[argparse.Namespace, AttributeDict], *args, **kwargs):
         """
         Record hyperparameters.
 

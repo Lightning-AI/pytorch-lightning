@@ -71,6 +71,7 @@ class LightningModule(
         "local_rank",
         "logger",
         "model_size",
+        "call_configure_sharded_model_hook",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
@@ -107,6 +108,14 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._param_requires_grad_state = dict()
         self._call_configure_sharded_model_hook: bool = False
+
+    @property
+    def call_configure_sharded_model_hook(self) -> bool:
+        return self._call_configure_sharded_model_hook
+
+    @call_configure_sharded_model_hook.setter
+    def call_configure_sharded_model_hook(self, call_configure_sharded_model_hook: bool):
+        self._call_configure_sharded_model_hook = call_configure_sharded_model_hook
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:

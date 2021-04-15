@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-from typing import Union
+from typing import Optional, Union
 from weakref import proxy
 
 import pytorch_lightning as pl
@@ -36,7 +36,7 @@ class ProfilerConnector:
     def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
 
-    def on_trainer_init(self, profiler: Union[BaseProfiler, str]) -> None:
+    def on_trainer_init(self, profiler: Optional[Union[BaseProfiler, str]]) -> None:
 
         if profiler and not isinstance(profiler, (str, BaseProfiler)):
             raise MisconfigurationException(

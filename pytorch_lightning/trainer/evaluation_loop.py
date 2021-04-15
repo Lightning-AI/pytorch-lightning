@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from pytorch_lightning.core.step_result import Result
@@ -31,7 +32,7 @@ class EvaluationLoop(object):
 
     def __init__(self, trainer: 'Trainer'):
         self.trainer: 'Trainer' = trainer
-        self.outputs: List['_STEP_OUTPUT_TYPE'] = []
+        self.outputs: List[List[_STEP_OUTPUT_TYPE]] = []
         self.predictions: Optional[PredictionCollection] = None
         self.max_batches: Optional[List[Union[int, float]]] = None
         self.warning_cache: WarningCache = WarningCache()
@@ -190,7 +191,7 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
-    def evaluation_epoch_end(self, outputs: List['_STEP_OUTPUT_TYPE']) -> None:
+    def evaluation_epoch_end(self, outputs: Union[List[List[_STEP_OUTPUT_TYPE]], List[_STEP_OUTPUT_TYPE]]) -> None:
         # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end()
 
@@ -243,7 +244,7 @@ class EvaluationLoop(object):
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
-    def on_evaluation_epoch_end(self, outputs: Union[List[List[Dict]], List[Dict]]) -> None:
+    def on_evaluation_epoch_end(self, outputs: Union[List[List[_STEP_OUTPUT_TYPE]], List[_STEP_OUTPUT_TYPE]]) -> None:
         model_ref = self.trainer.lightning_module
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
 
@@ -288,3 +289,24 @@ class EvaluationLoop(object):
 
             if len(cached_batch_pbar_metrics) > 0:
                 self.trainer.logger_connector.add_progress_bar_metrics(cached_batch_pbar_metrics)
+
+    def to_disk(self) -> None:
+        if self.predictions is not None:
+            self.predictions.to_disk()
+
+    def get_outputs(self) -> Union[List[List[_STEP_OUTPUT_TYPE]], List[_STEP_OUTPUT_TYPE]]:
+        outputs = self.outputs
+
+        # reset outputs
+        self.outputs = []
+
+        # with a single dataloader don't pass a 2D list
+        if self.num_dataloaders == 1:
+            outputs = outputs[0]
+
+        return outputs
+
+    def get_max_batches(self, dataloader_idx: int) -> Union[int, float]:
+        if self.max_batches is not None:
+            return self.max_batches[dataloader_idx]
+        return math.inf

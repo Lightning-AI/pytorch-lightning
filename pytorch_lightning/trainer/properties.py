@@ -59,6 +59,9 @@ class TrainerProperties(ABC):
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
 
+    move_metrics_to_cpu: bool
+    should_stop: bool
+
     @property
     def accelerator(self) -> Accelerator:
         return self.accelerator_connector.accelerator
