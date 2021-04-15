@@ -35,6 +35,9 @@ We expose Accelerators and Plugins mainly for expert users who want to extend Li
 hardware and distributed training or clusters.
 
 
+.. image:: ../_static/images/accelerator/overview.svg
+
+
 .. warning:: The Accelerator API is in beta and subject to change.
     For help setting up custom plugins/accelerators, please reach out to us at **support@pytorchlightning.ai**
 
