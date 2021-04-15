@@ -11,7 +11,7 @@ def test_default_attributes():
     assert not env.creates_children()
     assert env.master_address() == "127.0.0.1"
     assert isinstance(env.master_port(), int)
-    assert env.world_size() is None
+    assert env.world_size() == 1
     assert env.local_rank() == 0
     assert env.node_rank() == 0
 
@@ -27,9 +27,14 @@ def test_attributes_from_environment_variables():
     env = LightningEnvironment()
     assert env.master_address() == "1.2.3.4"
     assert env.master_port() == 500
-    assert env.world_size() is None
+    assert env.world_size() == 1
+    assert env.global_rank() == 0
     assert env.local_rank() == 2
     assert env.node_rank() == 3
+    env.set_global_rank(100)
+    assert env.global_rank() == 100
+    env.set_world_size(100)
+    assert env.world_size() == 100
 
 
 @mock.patch.dict(os.environ, {
@@ -50,3 +55,14 @@ def test_random_master_port():
     assert isinstance(port, int)
     # repeated calls do not generate a new port number
     assert env.master_port() == port
+
+
+@mock.patch.dict(os.environ, {
+    "WORLD_SIZE": "1",
+})
+def test_teardown():
+    """ Test that the GROUP_RANK substitutes NODE_RANK. """
+    env = LightningEnvironment()
+    assert "WORLD_SIZE" in os.environ
+    env.teardown()
+    assert "WORLD_SIZE" not in os.environ

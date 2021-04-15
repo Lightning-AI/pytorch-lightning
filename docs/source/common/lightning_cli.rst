@@ -224,7 +224,7 @@ datamodule class. However, there are many cases in which the objective is to eas
 multiple models and datasets. For these cases the tool can be configured such that a model and/or a datamodule is
 specified by an import path and init arguments. For example, with a tool implemented as:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.utilities.cli import LightningCLI
 

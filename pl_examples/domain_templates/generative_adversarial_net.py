@@ -28,9 +28,10 @@ import torch.nn as nn
 import torch.nn.functional as F  # noqa
 from torch.utils.data import DataLoader
 
-from pl_examples import _TORCHVISION_AVAILABLE, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pl_examples import _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
 from pytorch_lightning.core import LightningDataModule, LightningModule
 from pytorch_lightning.trainer import Trainer
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     import torchvision
