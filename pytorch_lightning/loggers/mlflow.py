@@ -19,7 +19,7 @@ import logging
 import re
 from argparse import Namespace
 from time import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Hashable, Optional, TYPE_CHECKING, Union
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
@@ -35,6 +35,9 @@ except ImportError:
     _MLFLOW_AVAILABLE = False
     mlflow, MlflowClient, context = None, None, None
 
+if TYPE_CHECKING:
+    import torch
+
 # before v1.1.0
 if hasattr(context, 'resolve_tags'):
     from mlflow.tracking.context import resolve_tags
@@ -45,7 +48,7 @@ elif hasattr(context, 'registry'):
     from mlflow.tracking.context.registry import resolve_tags
 else:
 
-    def resolve_tags(tags=None):
+    def resolve_tags(tags: Optional[Dict[Hashable, Any]] = None) -> Optional[Dict[Hashable, Any]]:
         return tags
 
 
@@ -120,16 +123,17 @@ class MLFlowLogger(LightningLoggerBase):
             tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
 
         self._experiment_name = experiment_name
-        self._experiment_id = None
+        self._experiment_id: Optional[str] = None
         self._tracking_uri = tracking_uri
-        self._run_id = None
+        self._run_id: Optional[str] = None
         self.tags = tags
         self._prefix = prefix
         self._artifact_location = artifact_location
 
         self._mlflow_client = MlflowClient(tracking_uri)
 
-    @property
+    # https://github.com/python/mypy/issues/1362
+    @property  # type: ignore
     @rank_zero_experiment
     def experiment(self) -> MlflowClient:
         r"""
@@ -158,15 +162,17 @@ class MLFlowLogger(LightningLoggerBase):
         return self._mlflow_client
 
     @property
-    def run_id(self):
+    def run_id(self) -> str:
         # create the experiment if it does not exist to get the run id
         _ = self.experiment
+        assert self._run_id is not None
         return self._run_id
 
     @property
-    def experiment_id(self):
+    def experiment_id(self) -> str:
         # create the experiment if it does not exist to get the experiment id
         _ = self.experiment
+        assert self._experiment_id is not None
         return self._experiment_id
 
     @rank_zero_only
@@ -183,7 +189,7 @@ class MLFlowLogger(LightningLoggerBase):
             self.experiment.log_param(self.run_id, k, v)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[float, 'torch.Tensor']], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         metrics = self._add_prefix(metrics)
@@ -222,6 +228,8 @@ class MLFlowLogger(LightningLoggerBase):
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
             return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
+
+        return None
 
     @property
     def name(self) -> str:
