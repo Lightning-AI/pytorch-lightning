@@ -16,7 +16,7 @@ import logging
 import os
 import warnings
 from functools import partial, wraps
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -41,25 +41,36 @@ else:
 log = logging.getLogger(__name__)
 
 
-def rank_zero_only(fn):
+class _RankOnly:
+    rank: int
 
-    @wraps(fn)
-    def wrapped_fn(*args, **kwargs):
-        if rank_zero_only.rank == 0:
-            return fn(*args, **kwargs)
+    def __init__(self, target_rank: int = 0):
+        self.target_rank = target_rank
 
-    return wrapped_fn
+    def __call__(self, fn: Callable):
+
+        @wraps(fn)
+        def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
+            if self.rank == self.target_rank:
+                return fn(*args, **kwargs)
+
+        return wrapped_fn
+
+    # TODO: this should be part of the cluster environment
+    @staticmethod
+    def _get_rank() -> int:
+        rank_keys = ('RANK', 'SLURM_PROCID', 'LOCAL_RANK')
+        for key in rank_keys:
+            rank = os.environ.get(key)
+            if rank is not None:
+                return int(rank)
+        return 0
 
 
-# TODO: this should be part of the cluster environment
-def _get_rank() -> int:
-    rank_keys = ('RANK', 'SLURM_PROCID', 'LOCAL_RANK')
-    for key in rank_keys:
-        rank = os.environ.get(key)
-        if rank is not None:
-            return int(rank)
-    return 0
+rank_zero_only = _RankOnly(0)
 
+# backwards compatibility
+_get_rank = rank_zero_only._get_rank
 
 # add the attribute to the function but don't overwrite in case Trainer has already set it
 rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_rank())
