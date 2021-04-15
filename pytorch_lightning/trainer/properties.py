@@ -68,6 +68,8 @@ class TrainerProperties(ABC):
     check_val_every_n_epoch: int
     batch_idx: int
     num_sanity_val_batches: List[int]
+    split_idx: int
+    truncated_bptt_steps: Optional[int]
 
     @property
     def accelerator(self) -> Accelerator:

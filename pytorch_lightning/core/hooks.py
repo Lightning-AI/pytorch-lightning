@@ -13,6 +13,7 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
+from abc import ABCMeta, abstractmethod
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
 
 class ModelHooks:
     """Hooks to be used in LightningModule."""
-    trainer: 'Trainer'
+    trainer: Optional['Trainer']
 
     def on_fit_start(self) -> None:
         """
@@ -118,13 +119,15 @@ class ModelHooks:
         """
         Sets the model to eval during the val loop
         """
-        self.trainer.model.eval()
+        if self.trainer is not None:
+            self.trainer.model.eval()
 
     def on_validation_model_train(self) -> None:
         """
         Sets the model to train during the val loop
         """
-        self.trainer.model.train()
+        if self.trainer is not None:
+            self.trainer.model.train()
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
@@ -176,19 +179,22 @@ class ModelHooks:
         """
         Sets the model to train during the test loop
         """
-        self.trainer.model.train()
+        if self.trainer is not None:
+            self.trainer.model.train()
 
     def on_test_model_eval(self) -> None:
         """
         Sets the model to eval during the test loop
         """
-        self.trainer.model.eval()
+        if self.trainer is not None:
+            self.trainer.model.eval()
 
     def on_predict_model_eval(self) -> None:
         """
         Sets the model to eval during the predict loop
         """
-        self.trainer.model.eval()
+        if self.trainer is not None:
+            self.trainer.model.eval()
 
     def on_epoch_start(self) -> None:
         """
@@ -331,8 +337,18 @@ class ModelHooks:
 
 class DataHooks:
     """Hooks to be used for data related stuff."""
+    _device: Union[str, torch.device]
 
-    device: torch.device
+    @property
+    def device(self) -> Union[torch.device, str]:
+        """
+        This has to be implemented here for mypy. Actual implementation in DeviceDtypeModuleMixin
+        """
+        return self._device
+
+    @property
+    def device(self, new_device: Union[str, torch.device]) -> None:
+        self._device = new_device
 
     def prepare_data(self) -> None:
         """
@@ -638,7 +654,7 @@ class DataHooks:
     def on_predict_dataloader(self) -> None:
         """Called before requesting the predict dataloader."""
 
-    def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
+    def transfer_batch_to_device(self, batch: Any, device: Optional[Union[str, torch.device]] = None) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.

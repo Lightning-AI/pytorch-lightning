@@ -103,6 +103,10 @@ class ProgressBarBase(Callback):
         self._predict_batch_idx = 0
 
     @property
+    def is_enabled(self) -> bool:
+        return True
+
+    @property
     def trainer(self) -> Optional['Trainer']:
         return self._trainer
 
