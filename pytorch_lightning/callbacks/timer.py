@@ -16,7 +16,8 @@ Timer
 ^^^^^
 """
 import logging
-from datetime import datetime, timedelta
+import time
+from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
@@ -67,7 +68,7 @@ class Timer(Callback):
         # force training to stop after given time limit
         trainer = Trainer(callbacks=[timer])
 
-        # query training/validation/test time
+        # query training/validation/test time (in seconds)
         timer.time_elapsed("train")
         timer.start_time("validate")
         timer.end_time("test")
@@ -91,55 +92,56 @@ class Timer(Callback):
                 f"Unsupported parameter value `Timer(interval={interval})`. Possible choices are:"
                 f" {', '.join(set(Interval))}"
             )
-        self._duration = duration
+        self._duration = duration.total_seconds() if duration is not None else None
         self._interval = interval
         self._verbose = verbose
         self._start_time = {stage: None for stage in RunningStage}
         self._end_time = {stage: None for stage in RunningStage}
-        self._offset = timedelta()
+        self._offset = 0
 
-    def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[datetime]:
-        """Return the start time of a particular stage"""
+    def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
+        """Return the start time of a particular stage (in seconds)"""
         stage = RunningStage(stage)
         return self._start_time[stage]
 
-    def end_time(self, stage: str = RunningStage.TRAINING) -> Optional[datetime]:
-        """Return the end time of a particular stage"""
+    def end_time(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
+        """Return the end time of a particular stage (in seconds)"""
         stage = RunningStage(stage)
         return self._end_time[stage]
 
-    def time_elapsed(self, stage: str = RunningStage.TRAINING) -> timedelta:
-        """Return the time elapsed for a particular stage"""
+    def time_elapsed(self, stage: str = RunningStage.TRAINING) -> float:
+        """Return the time elapsed for a particular stage (in seconds)"""
         start = self.start_time(stage)
         end = self.end_time(stage)
-        offset = self._offset if stage == RunningStage.TRAINING else timedelta(0)
+        offset = self._offset if stage == RunningStage.TRAINING else 0
         if start is None:
             return offset
         if end is None:
-            return datetime.now() - start + offset
+            return time.monotonic() - start + offset
         return end - start + offset
 
-    def time_remaining(self, stage: str = RunningStage.TRAINING) -> Optional[timedelta]:
+    def time_remaining(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
+        """Return the time remaining for a particular stage (in seconds)"""
         if self._duration is not None:
             return self._duration - self.time_elapsed(stage)
 
     def on_train_start(self, *args, **kwargs) -> None:
-        self._start_time[RunningStage.TRAINING] = datetime.now()
+        self._start_time[RunningStage.TRAINING] = time.monotonic()
 
     def on_train_end(self, *args, **kwargs) -> None:
-        self._end_time[RunningStage.TRAINING] = datetime.now()
+        self._end_time[RunningStage.TRAINING] = time.monotonic()
 
     def on_validation_start(self, *args, **kwargs) -> None:
-        self._start_time[RunningStage.VALIDATING] = datetime.now()
+        self._start_time[RunningStage.VALIDATING] = time.monotonic()
 
     def on_validation_end(self, *args, **kwargs) -> None:
-        self._end_time[RunningStage.VALIDATING] = datetime.now()
+        self._end_time[RunningStage.VALIDATING] = time.monotonic()
 
     def on_test_start(self, *args, **kwargs) -> None:
-        self._start_time[RunningStage.TESTING] = datetime.now()
+        self._start_time[RunningStage.TESTING] = time.monotonic()
 
     def on_test_end(self, *args, **kwargs) -> None:
-        self._end_time[RunningStage.TESTING] = datetime.now()
+        self._end_time[RunningStage.TESTING] = time.monotonic()
 
     def on_train_batch_end(self, trainer: 'pl.Trainer', *args, **kwargs) -> None:
         if self._interval != Interval.step or self._duration is None:

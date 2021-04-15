@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from datetime import datetime, timedelta
+import time
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
@@ -35,7 +36,7 @@ def test_trainer_flag(caplog):
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
-    assert timer._duration.seconds == 1337
+    assert timer._duration == 1337
 
     trainer = Trainer(max_time=dict(seconds=1337), callbacks=[Timer()])
     with pytest.raises(SystemExit), caplog.at_level(level=logging.INFO):
@@ -54,7 +55,7 @@ def test_trainer_flag(caplog):
 )
 def test_timer_parse_duration(duration, expected):
     timer = Timer(duration=duration)
-    assert timer.time_remaining() == expected
+    assert (timer.time_remaining() == expected is None) or (timer.time_remaining() == expected.total_seconds())
 
 
 def test_timer_interval_choice():
@@ -64,33 +65,33 @@ def test_timer_interval_choice():
         Timer(duration=timedelta(), interval="invalid")
 
 
-@patch("pytorch_lightning.callbacks.timer.datetime")
-def test_timer_time_remaining(datetime_mock):
+@patch("pytorch_lightning.callbacks.timer.time")
+def test_timer_time_remaining(time_mock):
     """ Test that the timer tracks the elapsed and remaining time correctly. """
-    start_time = datetime.now()
+    start_time = time.monotonic()
     duration = timedelta(seconds=10)
-    datetime_mock.now.return_value = start_time
+    time_mock.monotonic.return_value = start_time
     timer = Timer(duration=duration)
-    assert timer.time_remaining() == duration
-    assert timer.time_elapsed() == timedelta(0)
+    assert timer.time_remaining() == duration.total_seconds()
+    assert timer.time_elapsed() == 0
 
     # timer not started yet
-    datetime_mock.now.return_value = start_time + timedelta(minutes=1)
+    time_mock.monotonic.return_value = start_time + 60
     assert timer.start_time() is None
-    assert timer.time_remaining() == timedelta(seconds=10)
-    assert timer.time_elapsed() == timedelta(seconds=0)
+    assert timer.time_remaining() == 10
+    assert timer.time_elapsed() == 0
 
     # start timer
-    datetime_mock.now.return_value = start_time
+    time_mock.monotonic.return_value = start_time
     timer.on_train_start(trainer=Mock(), pl_module=Mock())
     assert timer.start_time() == start_time
 
     # pretend time has elapsed
-    elapsed = timedelta(seconds=3)
-    datetime_mock.now.return_value = start_time + elapsed
+    elapsed = 3
+    time_mock.monotonic.return_value = start_time + elapsed
     assert timer.start_time() == start_time
-    assert timer.time_remaining() == timedelta(seconds=7)
-    assert timer.time_elapsed() == timedelta(seconds=3)
+    assert round(timer.time_remaining()) == 7
+    assert round(timer.time_elapsed()) == 3
 
 
 def test_timer_stops_training(tmpdir):
@@ -150,7 +151,7 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
         assert trainer.current_epoch >= min_epochs - 1
     if min_steps:
         assert trainer.global_step >= min_steps - 1
-    assert timer.time_elapsed() > duration
+    assert timer.time_elapsed() > duration.total_seconds()
 
 
 def test_timer_resume_training(tmpdir):
@@ -167,7 +168,7 @@ def test_timer_resume_training(tmpdir):
     )
     trainer.fit(model)
     assert not timer._offset
-    assert timer.time_remaining() <= timedelta(0)
+    assert timer.time_remaining() <= 0
     assert trainer.current_epoch < 99
     saved_global_step = trainer.global_step
 
@@ -179,7 +180,7 @@ def test_timer_resume_training(tmpdir):
         resume_from_checkpoint=checkpoint_callback.best_model_path,
     )
     trainer.fit(model)
-    assert timer._offset > timedelta(0)
+    assert timer._offset > 0
     assert trainer.global_step == saved_global_step + 1
 
 
@@ -193,8 +194,8 @@ def test_timer_track_stages(tmpdir):
         callbacks=[timer],
     )
     trainer.fit(model)
-    assert timer.time_elapsed() == timer.time_elapsed("train") > timedelta(0)
-    assert timer.time_elapsed("validate") > timedelta(0)
-    assert timer.time_elapsed("test") == timedelta(0)
+    assert timer.time_elapsed() == timer.time_elapsed("train") > 0
+    assert timer.time_elapsed("validate") > 0
+    assert timer.time_elapsed("test") == 0
     trainer.test(model)
-    assert timer.time_elapsed("test") > timedelta(0)
+    assert timer.time_elapsed("test") > 0
