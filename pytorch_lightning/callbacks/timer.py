@@ -159,11 +159,11 @@ class Timer(Callback):
         pl_module: 'pl.LightningModule',
         checkpoint: Dict[str, Any],
     ) -> Dict[str, Any]:
-        return {"time_elapsed": {stage: self.time_elapsed(stage) for stage in list(RunningStage)}}
+        return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in list(RunningStage)}}
 
     def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
         time_elapsed = callback_state.get("time_elapsed", {})
-        self._offset = time_elapsed.get(RunningStage.TRAINING, timedelta())
+        self._offset = time_elapsed.get(RunningStage.TRAINING.value, 0)
 
     def _check_time_remaining(self, trainer: 'pl.Trainer') -> None:
         should_stop = self.time_elapsed() >= self._duration
