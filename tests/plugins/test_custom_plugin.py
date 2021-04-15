@@ -18,6 +18,7 @@ from tests.helpers.runif import RunIf
 
 
 class CustomParallelPlugin(DDPPlugin):
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Set to None so it will be overwritten by the accelerator connector.

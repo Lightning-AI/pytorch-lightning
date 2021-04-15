@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import io
+import os
 from distutils.version import LooseVersion
 from pathlib import Path
 from typing import IO, Union
 
 import fsspec
-from fsspec.implementations.local import LocalFileSystem
-
 import torch
+from fsspec.implementations.local import LocalFileSystem
 
 
 class _LightningLocalFileSystem(LocalFileSystem):
