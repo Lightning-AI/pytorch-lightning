@@ -179,7 +179,6 @@ class DDPPlugin(ParallelPlugin):
             sleep(delay)
 
     def setup_distributed(self):
-        # TODO: check if needed
         reset_seed()
 
         # determine which process we are and world size

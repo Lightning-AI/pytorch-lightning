@@ -128,7 +128,6 @@ class DDPSpawnPlugin(ParallelPlugin):
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue
 
-        # TODO: check if needed
         reset_seed()
 
         self.set_world_ranks(process_idx)
