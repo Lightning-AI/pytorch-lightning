@@ -27,6 +27,9 @@ if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
     from torch_xla._patched_functions import clip_grad_norm_
 
+    # rename to mock in a test
+    xla_clip_grad_norm_ = clip_grad_norm_
+
 
 class TPUAccelerator(Accelerator):
     """ Accelerator for TPU devices. """
@@ -68,4 +71,4 @@ class TPUAccelerator(Accelerator):
         parameters = self.model.parameters()
         norm_type = 2.0
 
-        clip_grad_norm_(parameters, grad_clip_val, norm_type)
+        xla_clip_grad_norm_(parameters, grad_clip_val, norm_type)

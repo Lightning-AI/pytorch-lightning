@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
@@ -27,10 +27,7 @@ from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType
-
-if TYPE_CHECKING:
-    from pytorch_lightning.utilities.enums import LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 
 _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 
@@ -381,7 +378,7 @@ class Accelerator:
         return batch[0] if is_dict else batch
 
     @property
-    def amp_backend(self) -> Optional['LightningEnum']:
+    def amp_backend(self) -> Optional[LightningEnum]:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return AMPType.APEX
         elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):

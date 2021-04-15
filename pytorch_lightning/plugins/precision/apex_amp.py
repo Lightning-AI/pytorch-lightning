@@ -36,7 +36,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.APEX
         self.amp_level = amp_level
 
-    def master_params(self, optimizer: Optimizer) -> 'PARAMETERS':
+    def master_params(self, optimizer: Optimizer) -> PARAMETERS:
         return amp.master_params(optimizer)
 
     def connect(
