@@ -291,9 +291,8 @@ class DDPPlugin(ParallelPlugin):
 
         self.barrier()
 
-    def post_dispatch(self):
-        if "WORLD_SIZE" in os.environ:
-            del os.environ["WORLD_SIZE"]
+    def post_dispatch(self) -> None:
+        self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs):
         if torch_distrib.is_initialized():

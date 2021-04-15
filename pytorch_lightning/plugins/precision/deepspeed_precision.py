@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import Any, Callable, Union
 
-import torch
+from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -54,13 +54,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     def backward(
         self,
         model: 'pl.LightningModule',
-        closure_loss: torch.Tensor,
+        closure_loss: Tensor,
         optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         if is_overridden('backward', model):
             warning_cache.warn(
                 "Overridden backward hook in the LightningModule will be ignored since DeepSpeed handles"
@@ -76,7 +76,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def clip_gradients(
         self,
-        model: 'pl.LightningModule',
         optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
