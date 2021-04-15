@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from functools import partial
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import numpy
 import pytest
@@ -637,74 +638,86 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
             trainer.fit(model, train_dataloader=train_multi_dl, val_dataloaders=val_multi_dl)
 
 
-class NumpyRandomDataset(Dataset):
-
-    def __getitem__(self, index):
-        return numpy.random.randint(0, 100, 3)
-
-    def __len__(self):
-        return 16
-
-
 def _user_worker_init_fn(_):
     pass
 
 
 def test_auto_add_worker_init_fn():
     """ Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used. """
-    dataset = NumpyRandomDataset()
-    num_samples = len(dataset)
-    num_workers = 2
-    batch_size = 2
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+    dataset = Mock()
+    dataloader = DataLoader(dataset)
+    trainer = Trainer()
 
     # without pl.seed_everything()
-    Trainer.auto_add_worker_init_fn(dataloader)
+    trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is None
 
     # with forcefully avoiding it
     seed_everything(0, workers=False)
-    Trainer.auto_add_worker_init_fn(dataloader)
+    trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is None
 
     # when user already has a worker_init_fn
     user_function = _user_worker_init_fn
     dataloader.worker_init_fn = user_function
-    Trainer.auto_add_worker_init_fn(dataloader)
+    trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is user_function
     dataloader.worker_init_fn = None
 
     # main use case
     seed_everything(0, workers=True)
-    Trainer.auto_add_worker_init_fn(dataloader)
-    assert dataloader.worker_init_fn is pl_worker_init_function
-    all_batches = torch.cat([batch for batch in dataloader])
-    assert all_batches.shape[0] == num_samples
-    unique_samples = set([tuple(sample.tolist()) for sample in all_batches])
-    assert len(unique_samples) == num_samples
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is not None
 
 
+class NumpyRandomDataset(Dataset):
+    size = 16
+
+    def __getitem__(self, index):
+        return numpy.random.randint(0, 100, 3)
+
+    def __len__(self):
+        return self.size
+
+
+class MultiProcessModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.batches_seen = []
+
+    def training_step(self, batch, batch_idx):
+        self.batches_seen.append(batch)
+
+    def training_epoch_end(self, outputs):
+        world_size = 2
+        num_samples = NumpyRandomDataset.size
+        all_batches = torch.cat(self.batches_seen)
+        all_batches = self.all_gather(all_batches)
+        assert all_batches.shape[0] == world_size
+        all_batches = all_batches.view(-1, 3)
+        assert len(torch.unique(all_batches, dim=0)) == num_samples
+
+
+@RunIf(min_gpus=2)
 def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
     """ Test that the lightning worker_init_fn takes care of dataloaders in multi-gpu/multi-node training. """
     dataset = NumpyRandomDataset()
     num_workers = 2
     batch_size = 2
-    world_size = 2
-    num_samples = len(dataset)
 
-    # simulate distributed processes by setting rank and collecting the batches
-    all_batches = []
-    for current_rank in range(world_size):
-        dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, worker_init_fn=pl_worker_init_function)
-        seed_everything(0, workers=True)
-        monkeypatch.setattr(rank_zero_only, "rank", current_rank)
-        assert rank_zero_only.rank == current_rank
-        Trainer.auto_add_worker_init_fn(dataloader)
-        all_batches.extend([batch for batch in dataloader])
-
-    all_batches = torch.cat(all_batches)
-    assert all_batches.shape[0] == num_samples * world_size
-    assert len(torch.unique(all_batches, dim=0)) == num_samples * world_size
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+    seed_everything(0, workers=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=2,
+        accelerator="ddp_spawn",
+    )
+    model = MultiProcessModel()
+    model.train_dataloader = None
+    model.val_dataloader = None
+    trainer.fit(model, train_dataloader=dataloader)
 
 
 def test_warning_with_iterable_dataset_and_len(tmpdir):

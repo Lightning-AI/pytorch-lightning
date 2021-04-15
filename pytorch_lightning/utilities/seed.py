@@ -79,7 +79,7 @@ def _select_seed_randomly(min_seed_value: int = 0, max_seed_value: int = 255) ->
     return random.randint(min_seed_value, max_seed_value)
 
 
-def pl_worker_init_function(worker_id: int) -> None:
+def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:
     """
     The worker_init_fn that Lightning automatically adds to your dataloader if you previously set
     set the seed with :func:`~pytorch_lightning.utilities.seed.seed_everything`.
@@ -87,7 +87,7 @@ def pl_worker_init_function(worker_id: int) -> None:
     `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
     """
     # implementation notes: https://github.com/pytorch/pytorch/issues/5059#issuecomment-817392562
-    global_rank = rank_zero_only.rank
+    global_rank = rank if rank is not None else rank_zero_only.rank
     process_seed = torch.initial_seed()
     # back out the base seed so we can use all the bits
     base_seed = process_seed - worker_id

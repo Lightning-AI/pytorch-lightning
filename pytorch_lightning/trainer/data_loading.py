@@ -16,6 +16,7 @@ import multiprocessing
 import os
 from abc import ABC
 from copy import deepcopy
+from functools import partial
 from typing import Iterable, List, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
@@ -102,10 +103,9 @@ class TrainerDataLoadingMixin(ABC):
                 f' in the `DataLoader` init to improve performance.'
             )
 
-    @staticmethod
-    def auto_add_worker_init_fn(dataloader: DataLoader) -> None:
+    def auto_add_worker_init_fn(self, dataloader: DataLoader) -> None:
         if dataloader.worker_init_fn is None and int(os.environ.get("PL_SEED_WORKERS", "0")):
-            dataloader.worker_init_fn = pl_worker_init_function
+            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
     def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
 
