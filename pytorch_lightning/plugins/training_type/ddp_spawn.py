@@ -16,7 +16,6 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Union
 
-import numpy
 import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp

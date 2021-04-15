@@ -94,8 +94,8 @@ class DDPPlugin(ParallelPlugin):
         return self._num_nodes
 
     @num_nodes.setter
-    def num_nodes(self, x: int):
-        self._num_nodes = x
+    def num_nodes(self, num_nodes: int):
+        self._num_nodes = num_nodes
         self.set_world_ranks()
 
     @property
