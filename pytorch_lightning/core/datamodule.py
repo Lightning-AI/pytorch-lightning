@@ -324,6 +324,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
              These must be valid DataModule arguments.
 
         Example::
+        
             parser = ArgumentParser(add_help=False)
             parser = LightningDataModule.add_argparse_args(parser)
             module = LightningDataModule.from_argparse_args(args)
