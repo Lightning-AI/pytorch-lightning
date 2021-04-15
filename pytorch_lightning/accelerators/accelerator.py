@@ -108,7 +108,7 @@ class Accelerator:
             self.setup_optimizers(trainer)
         self.precision_plugin.pre_dispatch()
 
-    def post_dispatch(self, _: 'pl.Trainer') -> None:
+    def post_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
