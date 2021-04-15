@@ -703,7 +703,6 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
         all_batches.extend([batch for batch in dataloader])
 
     all_batches = torch.cat(all_batches)
-    print(all_batches)
     assert all_batches.shape[0] == num_samples * world_size
     assert len(torch.unique(all_batches, dim=0)) == num_samples * world_size
 
