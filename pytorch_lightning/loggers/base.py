@@ -19,7 +19,21 @@ import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Hashable,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 import torch
@@ -32,10 +46,10 @@ def rank_zero_experiment(fn: Callable) -> Callable:
     """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
 
     @wraps(fn)
-    def experiment(self):
+    def experiment(self: 'LightningLoggerBase') -> Union[Any, DummyExperiment]:
 
         @rank_zero_only
-        def get_experiment():
+        def get_experiment() -> Any:
             return fn(self)
 
         return get_experiment() or DummyExperiment()
@@ -61,12 +75,15 @@ class LightningLoggerBase(ABC):
         one logs metrics with the :meth:`~LightningLoggerBase.agg_and_log_metrics` method.
     """
 
+    _prefix: Optional[str]
+    LOGGER_JOIN_CHAR: str
+
     def __init__(
         self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_key_funcs: Optional[MutableMapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean
     ):
-        self._prev_step: int = -1
+        self._prev_step: Optional[int] = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
@@ -75,7 +92,7 @@ class LightningLoggerBase(ABC):
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean
-    ):
+    ) -> None:
         """
         Update aggregation methods.
 
@@ -100,7 +117,7 @@ class LightningLoggerBase(ABC):
 
     def _aggregate_metrics(self,
                            metrics: Dict[str, float],
-                           step: Optional[int] = None) -> Tuple[int, Optional[Dict[str, float]]]:
+                           step: Optional[int] = None) -> Tuple[Optional[int], Optional[Dict[str, float]]]:
         """
         Aggregates metrics.
 
@@ -125,7 +142,7 @@ class LightningLoggerBase(ABC):
         self._prev_step = step
         return agg_step, agg_mets
 
-    def _reduce_agg_metrics(self):
+    def _reduce_agg_metrics(self) -> Tuple[Optional[int], Optional[Dict[str, float]]]:
         """Aggregate accumulated metrics."""
         # compute the metrics
         if not self._metrics_to_agg:
@@ -136,7 +153,7 @@ class LightningLoggerBase(ABC):
             agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
         return self._prev_step, agg_mets
 
-    def _finalize_agg_metrics(self):
+    def _finalize_agg_metrics(self) -> None:
         """This shall be called before save/close."""
         agg_step, metrics_to_log = self._reduce_agg_metrics()
         self._metrics_to_agg = []
@@ -144,7 +161,7 @@ class LightningLoggerBase(ABC):
         if metrics_to_log is not None:
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         """
         Aggregates and records metrics.
         This method doesn't log the passed metrics instantaneously, but instead
@@ -160,7 +177,7 @@ class LightningLoggerBase(ABC):
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
     @abstractmethod
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         """
         Records metrics.
         This method logs metrics as as soon as it received them. If you want to aggregate
@@ -171,7 +188,6 @@ class LightningLoggerBase(ABC):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded
         """
-        pass
 
     @staticmethod
     def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
@@ -196,12 +212,12 @@ class LightningLoggerBase(ABC):
             dictionary with all callables sanitized
         """
 
-        def _sanitize_callable(val):
+        def _sanitize_callable(val: Any) -> Union[str, Any]:
             # Give them one chance to return a value. Don't go rabbit hole of recursive call
-            if isinstance(val, Callable):
+            if callable(val):
                 try:
                     _val = val()
-                    if isinstance(_val, Callable):
+                    if callable(_val):
                         return val.__name__
                     return _val
                 # todo: specify the possible exception
@@ -232,7 +248,8 @@ class LightningLoggerBase(ABC):
             {'5/a': 123}
         """
 
-        def _dict_generator(input_dict, prefixes=None):
+        def _dict_generator(input_dict: Union[MutableMapping[Any, Any], Namespace],
+                            prefixes: Optional[List] = None) -> Generator[Any, None, None]:
             prefixes = prefixes[:] if prefixes else []
             if isinstance(input_dict, MutableMapping):
                 for key, value in input_dict.items():
@@ -279,7 +296,7 @@ class LightningLoggerBase(ABC):
         return params
 
     @abstractmethod
-    def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
         """
         Record hyperparameters.
 
@@ -289,7 +306,7 @@ class LightningLoggerBase(ABC):
             kwargs: Optional keywoard arguments, depends on the specific logger being used
         """
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: LightningModule, input_array: Optional[Union[Any, torch.Tensor]] = None) -> None:
         """
         Record model graph
 
@@ -297,7 +314,6 @@ class LightningLoggerBase(ABC):
             model: lightning model
             input_array: input passes to `model.forward`
         """
-        pass
 
     def save(self) -> None:
         """Save log data."""
@@ -334,7 +350,7 @@ class LightningLoggerBase(ABC):
     def version(self) -> Union[int, str]:
         """Return the experiment version."""
 
-    def _add_prefix(self, metrics: Dict[str, float]):
+    def _add_prefix(self, metrics: Dict[str, float]) -> Dict[str, float]:
         if self._prefix:
             metrics = {f'{self._prefix}{self.LOGGER_JOIN_CHAR}{k}': v for k, v in metrics.items()}
 
@@ -361,7 +377,7 @@ class LoggerCollection(LightningLoggerBase):
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean
-    ):
+    ) -> None:
         for logger in self._logger_iterable:
             logger.update_agg_funcs(agg_key_funcs, agg_default_func)
 
@@ -369,7 +385,7 @@ class LoggerCollection(LightningLoggerBase):
     def experiment(self) -> List[Any]:
         return [logger.experiment for logger in self._logger_iterable]
 
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for logger in self._logger_iterable:
             logger.agg_and_log_metrics(metrics, step)
 
@@ -377,11 +393,11 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_metrics(metrics, step)
 
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
         for logger in self._logger_iterable:
-            logger.log_hyperparams(params)
+            logger.log_hyperparams(params, *args, **kwargs)
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: LightningModule, input_array: Optional[Union[Any, torch.Tensor]] = None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 
@@ -414,13 +430,13 @@ class LoggerCollection(LightningLoggerBase):
 class DummyExperiment(object):
     """ Dummy experiment """
 
-    def nop(*args, **kw):
+    def nop(*args: Any, **kw: Any) -> None:
         pass
 
-    def __getattr__(self, _):
+    def __getattr__(self, _: str) -> Callable:
         return self.nop
 
-    def __getitem__(self, idx) -> "DummyExperiment":
+    def __getitem__(self, idx: Hashable) -> "DummyExperiment":
         # enables self.logger.experiment[0].add_image(...)
         return self
 
@@ -431,7 +447,7 @@ class DummyLogger(LightningLoggerBase):
     logger for a feature, but still ensure that user code can run
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._experiment = DummyExperiment()
 
@@ -439,10 +455,10 @@ class DummyLogger(LightningLoggerBase):
     def experiment(self) -> DummyExperiment:
         return self._experiment
 
-    def log_metrics(self, *args, **kwargs) -> None:
+    def log_metrics(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def log_hyperparams(self, *args, **kwargs) -> None:
+    def log_hyperparams(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @property
@@ -453,7 +469,7 @@ class DummyLogger(LightningLoggerBase):
     def version(self) -> str:
         return ""
 
-    def __getitem__(self, idx) -> "DummyLogger":
+    def __getitem__(self, idx: Hashable) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
 
@@ -499,12 +515,14 @@ def merge_dicts(
     """
     agg_key_funcs = agg_key_funcs or dict()
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
-    d_out = {}
+    d_out: Dict[Hashable, Union[float, Any]] = {}
     for k in keys:
         fn = agg_key_funcs.get(k)
         values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]
 
         if isinstance(values_to_agg[0], dict):
+            if not (fn is None or isinstance(fn, Mapping)):
+                raise TypeError('Invalid Type for aggregation function')
             d_out[k] = merge_dicts(values_to_agg, fn, default_func)
         else:
             d_out[k] = (fn or default_func)(values_to_agg)
