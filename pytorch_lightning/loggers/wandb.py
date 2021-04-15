@@ -36,7 +36,7 @@ if _WANDB_AVAILABLE:
 else:
     # needed for test mocks, these tests shall be updated
     # mypy complains about assignment to type
-    wandb, Run, Dummy = None, None  # type: ignore
+    wandb, Run, Dummy = None, None, None  # type: ignore
 
 if TYPE_CHECKING:
     import torch
