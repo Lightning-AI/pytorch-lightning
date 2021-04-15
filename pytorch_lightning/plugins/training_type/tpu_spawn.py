@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 import io
 import os
 import re
@@ -20,7 +19,6 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 import torch
 import torch.multiprocessing as mp
-from torch.utils.data import BatchSampler, DataLoader, Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -100,8 +98,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
 
     def connect(self, model: 'pl.LightningModule') -> None:
-        TPUSpawnPlugin._validate_patched_dataloaders(model)
         # https://pytorch.org/xla/master/_modules/torch_xla/distributed/xla_multiprocessing.html
+        TPUSpawnPlugin._validate_patched_dataloaders(model)
         self._model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
