@@ -17,16 +17,14 @@ import os
 import warnings
 from functools import partial, wraps
 from typing import Any, Optional, Union
-from pytorch_lightning.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_8,
-    _TORCH_GREATER_EQUAL_1_9,
-)
 
 import torch
-
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-log = logging.getLogger(__name__)
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+
+if _TPU_AVAILABLE:
+    import torch_xla.core.xla_model as xm
 
 if torch.distributed.is_available():
     from torch.distributed import group, ReduceOp
@@ -38,6 +36,9 @@ else:
 
     class group:
         WORLD = None
+
+
+log = logging.getLogger(__name__)
 
 
 def rank_zero_only(fn):
@@ -294,19 +295,13 @@ def register_ddp_comm_hook(
         )
     """
     if not _TORCH_GREATER_EQUAL_1_8:
-        rank_zero_warn(
-            "Not registering DDP comm hook. "
-            "To use communication hooks, please use pytorch>=1.8.0."
-        )
+        rank_zero_warn("Not registering DDP comm hook. To use communication hooks, please use pytorch>=1.8.0.")
         return
     if ddp_comm_hook is None:
         return
     if ddp_comm_wrapper is not None:
         if not _TORCH_GREATER_EQUAL_1_9:
-            rank_zero_warn(
-                "Not applying DDP comm wrapper. "
-                "To use communication wrapper, please use pytorch>=1.9.0."
-            )
+            rank_zero_warn("Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0.")
         else:
             rank_zero_info(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
@@ -318,3 +313,9 @@ def register_ddp_comm_hook(
         state=ddp_comm_state,
         hook=ddp_comm_hook,
     )
+
+
+def tpu_distributed() -> bool:
+    if _TPU_AVAILABLE:
+        return xm.xrt_world_size() > 1
+    return False

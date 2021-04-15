@@ -1046,7 +1046,7 @@ This is the pseudocode to describe how all the hooks are called during a call to
                 val_loop()
 
         # end training epoch
-        outs = training_epoch_end(outs)
+        training_epoch_end(outs)
         on_train_epoch_end(outs)
         on_epoch_end()
 

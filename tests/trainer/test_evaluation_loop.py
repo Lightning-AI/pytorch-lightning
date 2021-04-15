@@ -17,10 +17,10 @@ from pytorch_lightning import Trainer
 from tests.helpers.boring_model import BoringModel
 
 
-@mock.patch("pytorch_lightning.trainer.evaluation_loop.EvaluationLoop.call_on_evaluation_epoch_end_hook")
-def test_call_on_evaluation_epoch_end_hook(eval_epoch_end_mock, tmpdir):
+@mock.patch("pytorch_lightning.trainer.evaluation_loop.EvaluationLoop.on_evaluation_epoch_end")
+def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     """
-    Tests that `call_on_evaluation_epoch_end_hook` is called
+    Tests that `on_evaluation_epoch_end` is called
     for `on_validation_epoch_end` and `on_test_epoch_end` hooks
     """
     model = BoringModel()

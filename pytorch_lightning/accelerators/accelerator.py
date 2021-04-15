@@ -106,7 +106,7 @@ class Accelerator(object):
         self.precision_plugin.pre_dispatch()
 
     def post_dispatch(self, trainer: 'pl.Trainer') -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
+        """Hook to do something after the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
 
@@ -325,7 +325,9 @@ class Accelerator(object):
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """clips all the optimizer parameters to the given value"""
-        self.precision_plugin.clip_gradients(self.model, optimizer, clip_val, gradient_clip_algorithm)
+        self.precision_plugin.clip_gradients(
+            self.model, optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+        )
 
     def on_train_epoch_end(self, outputs: Sequence[_STEP_OUTPUT_TYPE]) -> None:
         """Hook to do something on the end of an training epoch
