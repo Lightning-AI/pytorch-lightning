@@ -653,9 +653,6 @@ class Trainer(
             )
             self.validating = True
 
-        # reset cached results
-        self.logger_connector.reset()
-
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
@@ -746,6 +743,9 @@ class Trainer(
         self.evaluation_loop.on_evaluation_model_train()
 
         torch.set_grad_enabled(True)
+
+        # reset cached results
+        self.logger_connector.reset()
 
         return eval_loop_results
 
