@@ -650,15 +650,25 @@ def _user_worker_init_fn(_):
     pass
 
 
-@pytest.mark.skipif(not sys.platform.startswith('linux'), reason="only on platforms that fork")
 def test_missing_worker_init_fn():
-    """ Test that the dataloader workers produce duplicates when we use numpy but don't initialize the worker seed. """
-    seed_everything(0)
+    """ Test that naive worker seed initialization leads to undesired random state in subprocesses. """
     dataset = NumpyRandomDataset()
-    dataloader = DataLoader(dataset, batch_size=2, num_workers=2)
-    batches = [batch for batch in dataloader]
-    all_batches = torch.cat(batches)
-    assert len(torch.unique(all_batches, dim=0)) < len(dataset)
+
+    seed_everything(0)
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+    batches0 = torch.cat([batch for batch in dataloader])
+
+    seed_everything(0)
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+    batches1 = torch.cat([batch for batch in dataloader])
+
+    is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
+    is_deterministic = torch.eq(batches0, batches1).all()
+
+    # depending on the OS, we either have
+    # 1) the same seed in all worker proceses, producing duplicate samples / augmentations, or
+    # 2) different seeds in each worker process, but they are not derived from the seed of the main process
+    assert not is_deterministic or is_duplicated
 
 
 def test_auto_add_worker_init_fn():
