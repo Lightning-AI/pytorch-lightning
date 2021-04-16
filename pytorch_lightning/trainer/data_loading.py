@@ -16,7 +16,7 @@ import multiprocessing
 import os
 from abc import ABC
 from copy import deepcopy
-from typing import Iterable, List, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -42,9 +42,9 @@ class TrainerDataLoadingMixin(ABC):
     train_dataloader: DataLoader
     num_training_batches: Union[int, float]
     val_check_batch: float
-    val_dataloaders: List[DataLoader]
+    val_dataloaders: Optional[List[DataLoader]]
     num_val_batches: List[Union[int, float]]
-    test_dataloaders: List[DataLoader]
+    test_dataloaders: Optional[List[DataLoader]]
     num_test_batches: List[Union[int, float]]
     limit_train_batches: Union[int, float]
     overfit_batches: Union[int, float]

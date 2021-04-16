@@ -295,7 +295,7 @@ class Trainer(
 
         """
         super().__init__()
-
+        Trainer._log_api_event("init")
         distributed_backend = distributed_backend or accelerator
 
         # init connectors
@@ -416,6 +416,7 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        Trainer._log_api_event("fit")
         # we reuse fit for other functions. When already set, it shouldn't be modified.
         if not self.state.running:
             self.state = TrainerState.FITTING
@@ -673,7 +674,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_start()
 
         # set up the eval loop
-        self.evaluation_loop.setup(model, max_batches, dataloaders)
+        self.evaluation_loop.setup(max_batches, dataloaders)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_start()
@@ -705,7 +706,7 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # log batch metrics
-                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
+                self.evaluation_loop.log_evaluation_step_metrics(batch_idx)
 
                 # track epoch level outputs
                 dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
@@ -881,6 +882,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        Trainer._log_api_event("validate")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.VALIDATING
@@ -943,6 +945,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        Trainer._log_api_event("test")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.TESTING
@@ -1039,6 +1042,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         # If you supply a datamodule you can't supply dataloaders
+        Trainer._log_api_event("predict")
 
         model = model or self.lightning_module
 
@@ -1084,6 +1088,7 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        Trainer._log_api_event("tune")
         self.state = TrainerState.TUNING
         self.tuning = True
 
@@ -1174,3 +1179,7 @@ class Trainer(
         if not skip:
             self._cache_logged_metrics()
         return output
+
+    @staticmethod
+    def _log_api_event(event: str) -> None:
+        torch._C._log_api_usage_once("lightning.trainer." + event)
