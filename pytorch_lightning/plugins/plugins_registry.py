@@ -29,7 +29,7 @@ class _TrainingTypePluginsRegistry(UserDict):
     The Plugins are mapped to strings. These strings are names that idenitify
     a plugin, e.g., "deepspeed". It also returns Optional description and
     parameters to initialize the Plugin, which were defined durng the
-    registeration.
+    registration.
 
     The motivation for having a TrainingTypePluginRegistry is to make it convenient
     for the Users to try different Plugins by passing just strings
