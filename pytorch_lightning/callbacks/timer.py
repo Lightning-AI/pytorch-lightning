@@ -44,7 +44,7 @@ class Timer(Callback):
         duration: A string in the format DD:HH:MM:SS (days, hours, minutes seconds), or a :class:`datetime.timedelta`,
             or a dict containing key-value compatible with :class:`~datetime.timedelta`.
         interval: Determines if the interruption happens on epoch level or mid-epoch.
-            Can be either `epoch` or `step`.
+            Can be either ``"epoch"`` or ``"step"``.
         verbose: Set this to ``False`` to suppress logging messages.
 
     Raises:
