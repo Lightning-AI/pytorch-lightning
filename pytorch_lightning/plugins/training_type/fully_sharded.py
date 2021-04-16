@@ -156,9 +156,15 @@ class FullyShardedPlugin(DDPPlugin):
         ):
             yield
 
+    def _model_has_nested_fsdp(self):
+        for module in self.model.modules():
+            if isinstance(module, FullyShardedDataParallel):
+                return True
+        return False
+
     def configure_ddp(self):
         with self.model_sharded_context():
-            if self.automatic_module_wrap:
+            if self.automatic_module_wrap and not self._model_has_nested_fsdp():
                 self.model = auto_wrap(LightningFullyShardedModule(self.model))
                 if not isinstance(self.model, FullyShardedDataParallel):
                     self.model = wrap(self.model)
