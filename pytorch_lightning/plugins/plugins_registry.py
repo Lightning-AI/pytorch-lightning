@@ -137,4 +137,3 @@ def call_training_type_register_plugins(root: Path, base_module: str) -> None:
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overridden(mod):
             mod.register_plugins(TrainingTypePluginsRegistry)
-            break
