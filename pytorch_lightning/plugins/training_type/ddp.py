@@ -281,6 +281,9 @@ class DDPPlugin(ParallelPlugin):
 
         self.barrier()
 
+    def post_dispatch(self) -> None:
+        self.cluster_environment.teardown()
+
     @property
     def move_to_device_in_prefetch(self) -> bool:
         """
@@ -288,10 +291,6 @@ class DDPPlugin(ParallelPlugin):
         Useful for when plugin would like to call model_to_device at another time, or skip the call.
         """
         return True
-
-    def post_dispatch(self):
-        if "WORLD_SIZE" in os.environ:
-            del os.environ["WORLD_SIZE"]
 
     def barrier(self, *args, **kwargs):
         if torch_distrib.is_initialized():
