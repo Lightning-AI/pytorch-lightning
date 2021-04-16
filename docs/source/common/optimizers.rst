@@ -26,7 +26,7 @@ The users are left with ``optimizer.zero_grad()``, gradient accumulation, model 
 
 To manually optimize, do the following:
 
-* Set the ``self.automatic_optimization = False`` in your ``LightningModule``'s ``__init__``.
+* Set ``self.automatic_optimization=False`` in your ``LightningModule``'s ``__init__``.
 * Use the following functions and call them manually:
 
   * ``self.optimizers()`` to access your optimizers (one or multiple)
@@ -170,8 +170,8 @@ Here is an example training a simple GAN with multiple optimizers.
 Learning rate scheduling [manual]
 ---------------------------------
 You can call ``lr_scheduler.step()`` at arbitrary intervals.
-Use ``self.lr_schedulers()`` in  your :class:`~pytorch_lightning.LightningModule` to access any learning rate schedulers defined
-in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`.
+Use ``self.lr_schedulers()`` in  your :class:`~pytorch_lightning.LightningModule` to access any learning rate schedulers
+defined in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`.
 
 .. warning::
    * Before 1.3, Lightning automatically called ``lr_scheduler.step()`` in both automatic and manual optimization. From
@@ -434,8 +434,8 @@ keyword ``"monitor"`` set to metric that the scheduler should be conditioned on.
        )
 
 .. note::
-   Metrics can be made available to monitor by simply logging it using ``self.log('metric_to_track', metric_val)``
-   in your :class:`~pytorch_lightning.LightningModule`.
+    Metrics can be made available to monitor by simply logging it using ``self.log('metric_to_track', metric_val)`` in
+    your :class:`~pytorch_lightning.LightningModule`.
 
 By default, all schedulers will be called after each epoch ends. To change this behaviour, a scheduler configuration
 should be returned as a dict which can contain the following keywords:
@@ -474,8 +474,8 @@ should be returned as a dict which can contain the following keywords:
 
 Use multiple optimizers (like GANs)
 -----------------------------------
-To use multiple optimizers, return two or more optimizers from
-:meth:`pytorch_lightning.core.LightningModule.configure_optimizers`.
+To use multiple optimizers (optionally with learning rate schedulers), return two or more optimizers from
+:meth:`~pytorch_lightning.core.LightningModule.configure_optimizers`.
 
 .. testcode:: python
 
@@ -485,7 +485,11 @@ To use multiple optimizers, return two or more optimizers from
 
     # two optimizers, one scheduler for adam only
     def configure_optimizers(self):
-        return [Adam(...), SGD(...)], {'scheduler': ReduceLROnPlateau(), 'monitor': 'metric_to_track'}
+        opt1 = Adam(...)
+        opt2 = SGD(...)
+        optimizers = [opt1, opt2]
+        lr_schedulers = {'scheduler': ReduceLROnPlateau(opt1, ...), 'monitor': 'metric_to_track'}
+        return optimizers, lr_schedulers
 
     # two optimizers, two schedulers
     def configure_optimizers(self):
@@ -515,7 +519,12 @@ Step optimizers at arbitrary intervals
 To do more interesting things with your optimizers such as learning rate warm-up or odd scheduling,
 override the :meth:`~pytorch_lightning.LightningModule.optimizer_step` function.
 
-For example, here step optimizer A every 2 batches and optimizer B every 4 batches.
+.. warning::
+    If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter to
+    ``optimizer.step()`` function as shown in the examples because ``training_step()``, ``optimizer.zero_grad()``,
+    ``backward()`` are called in the closure function.
+
+For example, here step optimizer A every batch and optimizer B every 2 batches.
 
 .. testcode:: python
 
@@ -524,15 +533,17 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
         self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
         on_tpu=False, using_native_amp=False, using_lbfgs=False,
     ):
-        # update generator opt every 2 steps
+        # update generator every step
         if optimizer_idx == 0:
-            if batch_idx % 2 == 0:
-               optimizer.step(closure=optimizer_closure)
+            optimizer.step(closure=optimizer_closure)
 
-        # update discriminator opt every 4 steps
+        # update discriminator every 2 steps
         if optimizer_idx == 1:
-            if batch_idx % 4 == 0:
+            if (batch_idx + 1) % 2 == 0:
                 optimizer.step(closure=optimizer_closure)
+
+        # ...
+        # add as many optimizers as you want
 
 Here we add a learning rate warm-up.
 
@@ -552,22 +563,14 @@ Here we add a learning rate warm-up.
         # update params
         optimizer.step(closure=optimizer_closure)
 
-.. note::
-    The default :meth:`~pytorch_lightning.LightningModule.optimizer_step` is relying on the internal
-    :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` to properly perform a step. It handles TPUs, AMP,
-    gradient accumulation and much more ...
+-----
 
-.. testcode:: python
-
-    # function hook in LightningModule
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-        optimizer.step(closure=optimizer_closure)
-
-.. note::
-    ``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
-    configured in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`. You can access your own
-    optimizer with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be
-    able to support accelerators and precision for you.
+Access your own optimizer
+-------------------------
+``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
+configured in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`. You can access your own optimizer
+with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to
+support accelerators and precision for you.
 
 .. testcode:: python
 
@@ -576,9 +579,14 @@ Here we add a learning rate warm-up.
         self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
         on_tpu=False, using_native_amp=False, using_lbfgs=False,
     ):
-        # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
-        # To access it, do as follow:
-        optimizer = optimizer.optimizer
+        optimizer.step(closure=optimizer_closure)
 
-        # run step. However, it won't work on TPU, AMP, etc...
+    # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
+    # To access it, do the following.
+    # However, It won't work on TPU, AMP, etc...
+    def optimizer_step(
+        self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
+        on_tpu=False, using_native_amp=False, using_lbfgs=False,
+    ):
+        optimizer = optimizer.optimizer
         optimizer.step(closure=optimizer_closure)
