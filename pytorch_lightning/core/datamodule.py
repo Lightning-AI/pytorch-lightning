@@ -349,6 +349,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         test_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
         batch_size: int = 1,
         num_workers: int = 0,
+        shuffle: bool = False 
     ):
         r"""
         Create an instance from torch.utils.data.Dataset.
@@ -360,6 +361,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
             batch_size: Batch size to use for each dataloader. Default is 1.
             num_workers: Number of subprocesses to use for data loading. 0 means that the
                 data will be loaded in the main process. Number of CPUs available.
+            shuffle: Whether data is reshuffled at every epoch. Only applies to train_dataset.
 
         """
 
@@ -374,10 +376,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         def train_dataloader():
             if isinstance(train_dataset, Mapping):
-                return {key: dataloader(ds, shuffle=True) for key, ds in train_dataset.items()}
+                return {key: dataloader(ds, shuffle=shuffle) for key, ds in train_dataset.items()}
             if isinstance(train_dataset, Sequence):
-                return [dataloader(ds, shuffle=True) for ds in train_dataset]
-            return dataloader(train_dataset, shuffle=True)
+                return [dataloader(ds, shuffle=shuffle) for ds in train_dataset]
+            return dataloader(train_dataset, shuffle=shuffle)
 
         def val_dataloader():
             if isinstance(val_dataset, Sequence):
