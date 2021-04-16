@@ -233,7 +233,7 @@ class HookResultStore:
 
         self.has_reduced = True
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Call at the end of epoch to reset Result objects
         """
@@ -455,7 +455,7 @@ class EpochResultStore:
     def get_forked_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_forked_metrics")
 
-    def reset(self):
+    def reset(self) -> None:
         for k, value in self._internals.items():
             value.reset()
         self._internals = {}

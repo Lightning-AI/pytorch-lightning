@@ -578,7 +578,7 @@ class Result(Dict):
         """
         return [k for k, v in self.items() if not isinstance(v, Metric)]
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Call at the end of epoch to reset all metric objects
         """
