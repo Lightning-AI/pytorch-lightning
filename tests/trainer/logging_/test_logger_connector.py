@@ -679,10 +679,10 @@ def test_metrics_reset(tmpdir):
         acc = model._modules[f"acc_{stage}"]
         ap = model._modules[f"ap_{stage}"]
 
-        acc.reset.assert_called()
+        acc.reset.assert_called_once()
         acc.reset.reset_mock()
 
-        ap.reset.assert_called()
+        ap.reset.assert_called_once()
         ap.reset.reset_mock()
 
     model = TestModel()
