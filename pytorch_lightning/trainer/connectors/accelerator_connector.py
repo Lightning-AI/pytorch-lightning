@@ -42,6 +42,7 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
+    TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
@@ -163,7 +164,16 @@ class AcceleratorConnector(object):
         cluster_environment = None
 
         for plug in plugins:
-            if isinstance(plug, str):
+            if isinstance(plug, str) and plug in TrainingTypePluginsRegistry:
+                if training_type is None:
+                    training_type = TrainingTypePluginsRegistry.get(plug)
+                else:
+                    raise MisconfigurationException(
+                        'You can only specify one precision and one training type plugin.'
+                        ' Found more than 1 training type plugin:'
+                        f' {TrainingTypePluginsRegistry[plug]["plugin"]} registered to {plug}'
+                    )
+            elif isinstance(plug, str):
                 # Reset the distributed type as the user has overridden training type
                 # via the plugins argument
                 self._distrib_type = None
@@ -530,7 +540,7 @@ class AcceleratorConnector(object):
             rank_zero_warn(
                 'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
             )
-            # todo: in some cases it yield in comarison None and int
+            # todo: in some cases it yield in comparison None and int
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
                 self._distrib_type = DistributedType.DDP
             else:
