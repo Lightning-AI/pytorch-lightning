@@ -740,29 +740,29 @@ def test_dataloader_reinit_for_subclass(tmpdir):
 
 class DistribSamplerCallback(Callback):
 
-    def __init__(self, expected_seed=0):
-        self.expected_seed = expected_seed
+    def __init__(self, expected_seeds=(0, 0, 0)):
+        self.expected_seed = expected_seeds
 
     def on_train_start(self, trainer, pl_module):
         train_sampler = trainer.train_dataloader.sampler
         assert isinstance(train_sampler, DistributedSampler)
         assert train_sampler.shuffle
         if _TORCH_GREATER_EQUAL_1_6:
-            assert train_sampler.seed == self.expected_seed
+            assert train_sampler.seed == self.expected_seed[0]
 
     def on_validation_start(self, trainer, pl_module):
         val_sampler = trainer.val_dataloaders[0].sampler
         assert isinstance(val_sampler, DistributedSampler)
         assert not val_sampler.shuffle
         if _TORCH_GREATER_EQUAL_1_6:
-            assert val_sampler.seed == self.expected_seed
+            assert val_sampler.seed == self.expected_seed[1]
 
     def on_test_start(self, trainer, pl_module):
         test_sampler = trainer.test_dataloaders[0].sampler
         assert isinstance(test_sampler, DistributedSampler)
         assert not test_sampler.shuffle
         if _TORCH_GREATER_EQUAL_1_6:
-            assert test_sampler.seed == self.expected_seed
+            assert test_sampler.seed == self.expected_seed[2]
 
 
 @RunIf(min_gpus=2, skip_windows=True)
@@ -776,7 +776,7 @@ def test_dataloader_distributed_sampler(tmpdir):
         accelerator='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=1,
-        callbacks=[DistribSamplerCallback(expected_seed=123)],
+        callbacks=[DistribSamplerCallback(expected_seeds=(123, 123, 123))],
     )
     trainer.fit(model)
     trainer.test(ckpt_path=None)
@@ -786,7 +786,7 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
 
     def train_dataloader(self):
         dataloader = super().train_dataloader()
-        dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True)
+        dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True, seed=11)
         return DataLoader(
             dataloader.dataset, batch_size=self.batch_size, drop_last=False, sampler=dist_sampler, shuffle=False
         )
@@ -803,7 +803,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
         accelerator='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=100,
-        callbacks=[DistribSamplerCallback()],
+        callbacks=[DistribSamplerCallback(expected_seeds=(11, 123, 0))],
         replace_sampler_ddp=True,
     )
     trainer.fit(model)
