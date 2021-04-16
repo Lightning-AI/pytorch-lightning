@@ -287,7 +287,6 @@ class Result(Dict):
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
-                    # self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
@@ -296,7 +295,6 @@ class Result(Dict):
                 # NOTE: we must compute before reseting just in case the computed value is needed
                 # later (i.e. if the step metric gets visited first, and then the epoch metric)
                 self[k].compute()
-                # self[k].reset()
 
         return result
 
@@ -319,7 +317,6 @@ class Result(Dict):
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
-                    # self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
@@ -328,7 +325,6 @@ class Result(Dict):
                 # NOTE: we must compute before reseting just in case the computed value is needed
                 # later (i.e. if the step metric gets visited first, and then the epoch metric)
                 self[k].compute()
-                # self[k].reset()
 
         return result
 
@@ -348,7 +344,6 @@ class Result(Dict):
             if options['forked']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
-                    # self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
