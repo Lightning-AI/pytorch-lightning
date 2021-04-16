@@ -348,7 +348,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         test_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
         batch_size: int = 1,
         num_workers: int = 0,
-        shuffle: bool = False 
+        shuffle: bool = False
     ):
         r"""
         Create an instance from torch.utils.data.Dataset.
