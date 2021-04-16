@@ -741,10 +741,10 @@ class Trainer(
 
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
-        
+
         # reset cached results
         self.logger_connector.reset()
-        
+
         torch.set_grad_enabled(True)
 
         return eval_loop_results
