@@ -59,11 +59,8 @@ Here is a minimal example of manual optimization.
    From 1.2, it is left to the user's expertise.
 
 .. tip::
-   * ``self.optimizers()`` will return :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` objects. You can
-     access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step,
-     Lightning won't be able to support accelerators and precision for you.
-   * Be careful where you call ``optimizer.zero_grad()``, or your model won't converge.
-     It is good practice to call ``optimizer.zero_grad()`` before ``self.manual_backward(loss)``.
+   Be careful where you call ``optimizer.zero_grad()``, or your model won't converge.
+   It is good practice to call ``optimizer.zero_grad()`` before ``self.manual_backward(loss)``.
 
 -----
 
@@ -339,6 +336,30 @@ Here is an example using a closure function.
 
 ------
 
+Access your own optimizer [manual]
+----------------------------------
+``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
+configured in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`. You can access your own optimizer
+with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to
+support accelerators and precision for you.
+
+.. testcode:: python
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(batch, batch_idx):
+        optimizer = self.optimizers()
+
+        # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
+        # To access it, do the following.
+        # However, it won't work on TPU, AMP, etc...
+        optimizer = optimizer.optimizer
+        ...
+
+-----
+
 Automatic optimization
 ======================
 With Lightning, most users don't have to think about when to call ``.zero_grad()``, ``.backward()`` and ``.step()``
@@ -583,7 +604,7 @@ support accelerators and precision for you.
 
     # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
     # To access it, do the following.
-    # However, It won't work on TPU, AMP, etc...
+    # However, it won't work on TPU, AMP, etc...
     def optimizer_step(
         self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
         on_tpu=False, using_native_amp=False, using_lbfgs=False,
