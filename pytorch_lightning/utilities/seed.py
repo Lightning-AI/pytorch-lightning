@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 log = logging.getLogger(__name__)
 
 
-def seed_everything(seed: Optional[int] = None, workers: bool = True) -> int:
+def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     """
     Function that sets seed for pseudo-random number generators in:
     pytorch, numpy, python.random
@@ -81,7 +81,7 @@ def _select_seed_randomly(min_seed_value: int = 0, max_seed_value: int = 255) ->
 def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # pragma: no cover
     """
     The worker_init_fn that Lightning automatically adds to your dataloader if you previously set
-    set the seed with :func:`~pytorch_lightning.utilities.seed.seed_everything`.
+    set the seed with ``seed_everything(seed, workers=True)``.
     See also the PyTorch documentation on
     `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
     """

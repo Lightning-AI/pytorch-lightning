@@ -217,9 +217,9 @@ Example::
     trainer = Trainer(deterministic=True)
 
 
-In Lightning version 1.3 and above, ``seed_everything`` also guarantees unique seeds across all dataloader worker
-processes. This is turned on by default and ensures that e.g. data augmentations are not repeated across workers.
-If the old behavior is desired, set ``seed_everything(42, workers=False)``.
+By setting ``workers=True`` in :func:`~pytorch_lightning.utilities.seed.seed_everything`, Lightning derives
+unique seeds across all dataloader workers and processes for :mod:`torch`, :mod:`numpy` and stdlib
+:mod:`random` number generators. When turned on, it ensures that e.g. data augmentations are not repeated across workers.
 
 -------
 
