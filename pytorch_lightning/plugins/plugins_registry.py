@@ -90,7 +90,7 @@ class _TrainingTypePluginsRegistry(UserDict):
 
         return do_register
 
-    def get(self, name: str) -> Any:
+    def get(self, name: str, default: Optional[Any] = None) -> Any:
         """
         Calls the registered plugin with the required parameters
         and returns the plugin object
@@ -101,6 +101,9 @@ class _TrainingTypePluginsRegistry(UserDict):
         if name in self:
             data = self[name]
             return data["plugin"](**data["init_params"])
+
+        if default is not None:
+            return default
 
         err_msg = "'{}' not found in registry. Available names: {}"
         available_names = ", ".join(sorted(self.keys())) or "none"
