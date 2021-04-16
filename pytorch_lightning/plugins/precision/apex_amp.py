@@ -41,9 +41,9 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def connect(
         self,
         model: Module,
-        optimizers: Sequence[Optimizer],
-        lr_schedulers: Sequence[Any],
-    ) -> Tuple[Module, Sequence[Optimizer], Sequence[Any]]:
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects the precision plugin to the training process,
         configures apex and reinits the schedulers
         """

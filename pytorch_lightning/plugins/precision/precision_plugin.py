@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, Callable, Sequence, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -46,9 +46,9 @@ class PrecisionPlugin(Plugin):
     def connect(
         self,
         model: Module,
-        optimizers: Sequence[Optimizer],
-        lr_schedulers: Sequence[Any],
-    ) -> Tuple[Module, Sequence[Optimizer], Sequence[Any]]:
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
