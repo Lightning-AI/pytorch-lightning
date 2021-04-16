@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
+import inspect
 from collections import UserDict
 from inspect import getmembers, isclass
 from pathlib import Path
@@ -121,9 +122,14 @@ TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
 
 
 def is_register_plugins_overridden(plugin: Callable) -> bool:
+
+    if type(plugin) == type(TrainingTypePlugin):
+        return False
+
     method_name = "register_plugins"
     plugin_attr = getattr(plugin, method_name)
-    super_attr = getattr(TrainingTypePlugin, method_name)
+    previous_super_cls = inspect.getmro(plugin)[1]
+    super_attr = getattr(previous_super_cls, method_name)
 
     if hasattr(plugin_attr, 'patch_loader_code'):
         is_overridden = plugin_attr.patch_loader_code != str(super_attr.__code__)
