@@ -1178,6 +1178,8 @@ class Trainer(
 
         if not skip:
             self._cache_logged_metrics()
+        if hook_name == 'on_epoch_end':
+            self.logger_connector.reset()
         return output
 
     @staticmethod
