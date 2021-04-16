@@ -27,7 +27,7 @@ class _TrainingTypePluginsRegistry(UserDict):
     This class is a Registry that stores information about the Training Type Plugins.
 
     The Plugins are mapped to strings. These strings are names that idenitify
-    a plugin, eg., "deepspeed". It also returns Optional description and
+    a plugin, e.g., "deepspeed". It also returns Optional description and
     parameters to initialize the Plugin, which were defined durng the
     registeration.
 
@@ -60,10 +60,10 @@ class _TrainingTypePluginsRegistry(UserDict):
         Registers a plugin mapped to a name and with required metadata.
 
         Args:
-            name (str): the name that identifies a plugin, e.g. "deepspeed_stage_3"
-            plugin (callable): plugin class
-            description (str): plugin description
-            override (bool): overrides the registered plugin, if True
+            name : the name that identifies a plugin, e.g. "deepspeed_stage_3"
+            plugin : plugin class
+            description : plugin description
+            override : overrides the registered plugin, if True
             init_params: parameters to initialize the plugin
         """
         if not (name is None or isinstance(name, str)):
@@ -121,7 +121,7 @@ class _TrainingTypePluginsRegistry(UserDict):
 TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
 
 
-def is_register_plugins_overriden(plugin: Callable) -> bool:
+def is_register_plugins_overridden(plugin: Callable) -> bool:
     method_name = "register_plugins"
     plugin_attr = getattr(plugin, method_name)
     super_attr = getattr(TrainingTypePlugin, method_name)
@@ -141,6 +141,6 @@ def call_training_type_register_plugins(root: Path, base_module: str) -> None:
             module = file[:file.find(".py")]
             module = importlib.import_module(".".join([base_module, module]))
             for _, mod in getmembers(module, isclass):
-                if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overriden(mod):
+                if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overridden(mod):
                     mod.register_plugins(TrainingTypePluginsRegistry)
                     break
