@@ -532,7 +532,7 @@ class DeepSpeedPlugin(DDPPlugin):
             stage=2,
             cpu_offload=True
         )
-        plugin_registry.register("deepspeed_stage_3", cls, description="DeepSpeed with ZeRO Stage 3 enabled", stage=3)
+        plugin_registry.register("deepspeed_stage_3", cls, description="DeepSpeed ZeRO Stage 3", stage=3)
         plugin_registry.register(
             "deepspeed_stage_3_offload",
             cls,
