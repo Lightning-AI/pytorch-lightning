@@ -11,18 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Sequence, Tuple, TYPE_CHECKING
+from typing import Any, Sequence, Tuple
 
 import torch
+import torch.nn as nn
+from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.optim import Optimizer
 
 
 class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
@@ -89,8 +87,8 @@ class DoublePrecisionPlugin(PrecisionPlugin):
 
     def connect(
         self,
-        model: 'Module',
-        optimizers: Sequence['Optimizer'],
+        model: nn.Module,
+        optimizers: Sequence[Optimizer],
         lr_schedulers: Sequence[Any],
     ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
         """Converts the model to double precision and wraps it in a ``LightningDoublePrecisionModule`` to convert

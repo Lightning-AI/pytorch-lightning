@@ -15,20 +15,20 @@ from typing import Any, Callable, Union
 
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities import _XLA_AVAILABLE, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
     from torch_xla._patched_functions import clip_grad_norm_
 
+    # rename to mock in a test
     xla_clip_grad_norm_ = clip_grad_norm_
-
-import pytorch_lightning as pl
 
 
 class TPUAccelerator(Accelerator):
@@ -55,15 +55,20 @@ class TPUAccelerator(Accelerator):
     ) -> None:
         xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[float, int], norm_type: float = 2.0):
-
-        model = self.lightning_module
-        parameters = model.parameters()
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[float, int],
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+        assert gradient_clip_algorithm == GradClipAlgorithmType.NORM, \
+            "Only NORM gradient clipping is supported on TPU for now"
 
         grad_clip_val = float(clip_val)
         if grad_clip_val <= 0:
             return
 
-        max_norm = grad_clip_val
+        parameters = self.model.parameters()
+        norm_type = 2.0
 
-        xla_clip_grad_norm_(parameters, max_norm, norm_type)
+        xla_clip_grad_norm_(parameters, grad_clip_val, norm_type)

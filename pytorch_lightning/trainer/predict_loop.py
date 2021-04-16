@@ -56,7 +56,8 @@ class PredictLoop(object):
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
-        self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.lightning_module)
+        if self.trainer._progress_bar_callback is not None:
+            self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.lightning_module)
 
     def _get_num_dataloaders(self, dataloaders):
         # case where user does:
@@ -81,15 +82,18 @@ class PredictLoop(object):
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
         self._predictions[dataloader_idx].append(predictions)
-        self.trainer._progress_bar_callback.on_predict_batch_end(
-            self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
-        )
+
+        if self.trainer._progress_bar_callback is not None:
+            self.trainer._progress_bar_callback.on_predict_batch_end(
+                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
+            )
         return
 
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
-        self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
+        if self.trainer._progress_bar_callback is not None:
+            self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
 
         results = self._predictions
 
