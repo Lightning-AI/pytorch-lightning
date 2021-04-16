@@ -21,7 +21,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _STEP_OUTPUT
+from pytorch_lightning.utilities.types import _EPOCH_OUTPUT, _STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -29,7 +29,7 @@ class EvaluationLoop(object):
 
     def __init__(self, trainer: 'pl.Trainer'):
         self.trainer: 'pl.Trainer' = trainer
-        self.outputs: List[_STEP_OUTPUT] = []
+        self.outputs: _EPOCH_OUTPUT = []
         self.predictions: Optional[PredictionCollection] = None
         self.max_batches: Optional[List[Union[int, float]]] = None
         self.warning_cache = WarningCache()
@@ -81,14 +81,14 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_start', *args, **kwargs)
 
-    def on_evaluation_model_eval(self, *_: Any, **__: Any) -> None:
+    def on_evaluation_model_eval(self) -> None:
         model_ref = self.trainer.lightning_module
         if self.trainer.testing:
             model_ref.on_test_model_eval()
         else:
             model_ref.on_validation_model_eval()
 
-    def on_evaluation_model_train(self, *_: Any, **__: Any) -> None:
+    def on_evaluation_model_train(self) -> None:
         model_ref = self.trainer.lightning_module
         if self.trainer.testing:
             model_ref.on_test_model_train()
@@ -157,7 +157,7 @@ class EvaluationLoop(object):
         else:
             return 0
 
-    def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> _STEP_OUTPUT:
+    def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[_STEP_OUTPUT]:
         # configure args
         args = self._build_args(batch, batch_idx, dataloader_idx)
 
@@ -181,14 +181,14 @@ class EvaluationLoop(object):
 
         return output
 
-    def evaluation_step_end(self, *args: Any, **kwargs: Any) -> _STEP_OUTPUT:
+    def evaluation_step_end(self, *args: Any, **kwargs: Any) -> Optional[_STEP_OUTPUT]:
         if self.trainer.testing:
             output = self.trainer.call_hook('test_step_end', *args, **kwargs)
         else:
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
-    def evaluation_epoch_end(self, outputs: List[_STEP_OUTPUT]) -> None:
+    def evaluation_epoch_end(self, outputs: _EPOCH_OUTPUT) -> None:
         # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end()
 
@@ -219,7 +219,7 @@ class EvaluationLoop(object):
 
     def on_evaluation_batch_end(
         self,
-        output: _STEP_OUTPUT,
+        output: Optional[_STEP_OUTPUT],
         batch: Any,
         batch_idx: int,
         dataloader_idx: int,
@@ -232,7 +232,7 @@ class EvaluationLoop(object):
         # store predicitons if do_write_predictions and track eval loss history
         self.store_predictions(output, batch_idx, dataloader_idx)
 
-    def store_predictions(self, output: _STEP_OUTPUT, batch_idx: int, dataloader_idx: int) -> None:
+    def store_predictions(self, output: Optional[_STEP_OUTPUT], batch_idx: int, dataloader_idx: int) -> None:
         # Add step predictions to prediction collection to write later
         if output is not None and self.predictions is not None:
             if isinstance(output, Result) and self.trainer.testing:
