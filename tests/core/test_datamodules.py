@@ -508,7 +508,7 @@ class DummyIDS(torch.utils.data.IterableDataset):
 def test_dm_init_from_iter_datasets(tmpdir):
 
     train_ds = DummyIDS()
-    train_ds_sequence = torch.tensor([1])
+    train_ds_sequence = DummyDS()
     valid_ds = DummyIDS()
     test_ds = DummyIDS()
 
