@@ -23,6 +23,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_trainer_flag(caplog):
@@ -184,8 +185,10 @@ def test_timer_resume_training(tmpdir):
     assert trainer.global_step == saved_global_step + 1
 
 
+@RunIf(skip_windows=True)
 def test_timer_track_stages(tmpdir):
     """ Test that the timer tracks time also for other stages (train/val/test). """
+    # note: skipped on windows because time resolution of time.monotonic() is not high enough for this fast test
     model = BoringModel()
     timer = Timer()
     trainer = Trainer(
