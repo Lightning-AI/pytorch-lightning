@@ -123,13 +123,14 @@ TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
 
 def is_register_plugins_overridden(plugin: Callable) -> bool:
 
-    if type(plugin) == type(TrainingTypePlugin):
-        return False
-
     method_name = "register_plugins"
     plugin_attr = getattr(plugin, method_name)
     previous_super_cls = inspect.getmro(plugin)[1]
-    super_attr = getattr(previous_super_cls, method_name)
+
+    if issubclass(previous_super_cls, TrainingTypePlugin):
+        super_attr = getattr(previous_super_cls, method_name)
+    else:
+        return False
 
     if hasattr(plugin_attr, 'patch_loader_code'):
         is_overridden = plugin_attr.patch_loader_code != str(super_attr.__code__)
