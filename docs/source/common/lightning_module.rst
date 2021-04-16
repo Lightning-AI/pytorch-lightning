@@ -698,6 +698,12 @@ log_dict
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.log_dict
     :noindex:
 
+manual_backward
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
+    :noindex:
+
 print
 ~~~~~
 
@@ -1090,13 +1096,6 @@ get_progress_bar_dict
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
     :noindex:
-
-manual_backward
-~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
-    :noindex:
-
 
 on_after_backward
 ~~~~~~~~~~~~~~~~~
