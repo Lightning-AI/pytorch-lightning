@@ -75,7 +75,7 @@ class _TrainingTypePluginsRegistry(UserDict):
                 " HINT: Use `override=True`."
             )
 
-        data = {}
+        data: Dict[str, Any] = {}
         data["description"] = description if description is not None else ""
 
         data["init_params"] = init_params
