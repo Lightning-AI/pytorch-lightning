@@ -78,6 +78,11 @@ class EarlyStopping(Callback):
         'max': torch.gt,
     }
 
+    order_dict = {
+        'min': "<",
+        'max': ">",
+    }
+
     def __init__(
         self,
         monitor: str = 'early_stop_on',
@@ -194,13 +199,15 @@ class EarlyStopping(Callback):
         elif self.stopping_threshold is not None and self.monitor_op(current, self.stopping_threshold):
             should_stop = True
             reason = (
-                f"Below tolerance: {self.monitor} = {current} <= {self.stopping_threshold}."
+                "Stopping threshold reached:"
+                f" {self.monitor} = {current} {self.order_dict[self.mode]} {self.stopping_threshold}."
                 " Signaling Trainer to stop."
             )
         elif self.divergence_threshold is not None and self.monitor_op(-current, -self.divergence_threshold):
             should_stop = True
             reason = (
-                f"Divergence: {self.monitor} = {current} > {self.divergence_threshold}."
+                "Divergence threshold reached:"
+                f" {self.monitor} = {current} {self.order_dict[self.mode]} {self.divergence_threshold}."
                 " Signaling Trainer to stop."
             )
         elif self.monitor_op(current - self.min_delta, self.best_score):
