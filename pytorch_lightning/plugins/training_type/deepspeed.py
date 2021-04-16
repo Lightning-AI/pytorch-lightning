@@ -528,7 +528,7 @@ class DeepSpeedPlugin(DDPPlugin):
         plugin_registry.register(
             "deepspeed_stage_2_offload",
             cls,
-            description="DeepSpeed with ZeRO Stage 2 enabled and Offload",
+            description="DeepSpeed ZeRO Stage 2 and CPU Offload",
             stage=2,
             cpu_offload=True
         )
