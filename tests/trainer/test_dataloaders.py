@@ -12,19 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from unittest import mock
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import numpy
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import IterableDataset, Subset, Dataset
+from torch.utils.data.dataset import Dataset, IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
 import tests.helpers.pipelines as tpipes
-from pytorch_lightning import Callback, Trainer, seed_everything
+from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -635,8 +636,30 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
             trainer.fit(model, train_dataloader=train_multi_dl, val_dataloaders=val_multi_dl)
 
 
+class NumpyRandomDataset(Dataset):
+    # this datset uses numpy instead of torch to produce random numbers
+    size = 16
+
+    def __getitem__(self, index):
+        return numpy.random.randint(0, 100, 3)
+
+    def __len__(self):
+        return self.size
+
+
 def _user_worker_init_fn(_):
     pass
+
+
+@pytest.mark.skipif(not sys.platform.startswith('linux'), reason="only on platforms that fork")
+def test_missing_worker_init_fn():
+    """ Test that the dataloader workers produce duplicates when we use numpy but don't initialize the worker seed. """
+    seed_everything(0)
+    dataset = NumpyRandomDataset()
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2)
+    batches = [batch for batch in dataloader]
+    all_batches = torch.cat(batches)
+    assert len(torch.unique(all_batches, dim=0)) < len(dataset)
 
 
 def test_auto_add_worker_init_fn():
@@ -665,16 +688,6 @@ def test_auto_add_worker_init_fn():
     seed_everything(0, workers=True)
     trainer.auto_add_worker_init_fn(dataloader)
     assert dataloader.worker_init_fn is not None
-
-
-class NumpyRandomDataset(Dataset):
-    size = 16
-
-    def __getitem__(self, index):
-        return numpy.random.randint(0, 100, 3)
-
-    def __len__(self):
-        return self.size
 
 
 class MultiProcessModel(BoringModel):
