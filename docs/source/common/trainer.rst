@@ -987,6 +987,26 @@ Trainer will train model for at least min_steps or min_epochs (latest).
     # Run at least for 100 steps (disable min_epochs)
     trainer = Trainer(min_steps=100, min_epochs=0)
 
+max_time
+^^^^^^^^
+
+Set the maximum amount of time for training. Training will get interrupted mid-epoch.
+For customizable options use the :class:`~pytorch_lightning.callbacks.timer.Timer` callback.
+
+.. testcode::
+
+    # Default (disabled)
+    trainer = Trainer(max_time=None)
+
+    # Stop after 12 hours of training or when reaching 10 epochs (string)
+    trainer = Trainer(max_time="00:12:00:00", max_epochs=10)
+
+    # Stop after 1 day and 5 hours (dict)
+    trainer = Trainer(max_time={"days": 1, "hours": 5})
+
+In case ``max_time`` is used together with ``min_steps`` or ``min_epochs``, the ``min_*`` requirement
+always has precedence.
+
 num_nodes
 ^^^^^^^^^
 
