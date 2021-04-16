@@ -211,11 +211,15 @@ Example::
 
     from pytorch_lightning import Trainer, seed_everything
 
-    seed_everything(42)
+    seed_everything(42, workers=True)
     # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
     model = Model()
     trainer = Trainer(deterministic=True)
 
+
+In Lightning version 1.3 and above, ``seed_everything`` also guarantees unique seeds across all dataloader worker
+processes. This is turned on by default and ensures that e.g. data augmentations are not repeated across workers.
+If the old behavior is desired, set ``seed_everything(42, workers=False)``.
 
 -------
 
