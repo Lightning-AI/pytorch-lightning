@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from functools import partial
 from unittest import mock
 from unittest.mock import patch, Mock
 
@@ -27,10 +26,8 @@ from torch.utils.data.sampler import SequentialSampler
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, Trainer, seed_everything
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import pl_worker_init_function
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
