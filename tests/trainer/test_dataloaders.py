@@ -650,6 +650,17 @@ def _user_worker_init_fn(_):
     pass
 
 
+@pytest.mark.skipif(not sys.platform.startswith('linux'), reason="only on platforms that fork")
+def test_missing_worker_init_fn():
+    """ Test that the dataloader workers produce duplicates when we use numpy but don't initialize the worker seed. """
+    seed_everything(0)
+    dataset = NumpyRandomDataset()
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2)
+    batches = [batch for batch in dataloader]
+    all_batches = torch.cat(batches)
+    assert len(torch.unique(all_batches, dim=0)) < len(dataset)
+
+
 def test_auto_add_worker_init_fn():
     """ Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used. """
     dataset = Mock()
