@@ -740,26 +740,29 @@ def test_dataloader_reinit_for_subclass(tmpdir):
 
 class DistribSamplerCallback(Callback):
 
+    def __init__(self, expected_seed=0):
+        self.expected_seed = expected_seed
+
     def on_train_start(self, trainer, pl_module):
         train_sampler = trainer.train_dataloader.sampler
         assert isinstance(train_sampler, DistributedSampler)
         assert train_sampler.shuffle
         if _TORCH_GREATER_EQUAL_1_6:
-            assert train_sampler.seed == 123
+            assert train_sampler.seed == self.expected_seed
 
     def on_validation_start(self, trainer, pl_module):
         val_sampler = trainer.val_dataloaders[0].sampler
         assert isinstance(val_sampler, DistributedSampler)
         assert not val_sampler.shuffle
         if _TORCH_GREATER_EQUAL_1_6:
-            assert val_sampler.seed == 123
+            assert val_sampler.seed == self.expected_seed
 
     def on_test_start(self, trainer, pl_module):
         test_sampler = trainer.test_dataloaders[0].sampler
         assert isinstance(test_sampler, DistributedSampler)
         assert not test_sampler.shuffle
         if _TORCH_GREATER_EQUAL_1_6:
-            assert test_sampler.seed == 123
+            assert test_sampler.seed == self.expected_seed
 
 
 @RunIf(min_gpus=2, skip_windows=True)
@@ -773,7 +776,7 @@ def test_dataloader_distributed_sampler(tmpdir):
         accelerator='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=1,
-        callbacks=[DistribSamplerCallback()],
+        callbacks=[DistribSamplerCallback(expected_seed=123)],
     )
     trainer.fit(model)
     trainer.test(ckpt_path=None)
