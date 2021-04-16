@@ -16,7 +16,7 @@ import os
 from collections import UserDict
 from inspect import getmembers, isclass
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
