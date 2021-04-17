@@ -255,7 +255,7 @@ def test_v1_5_0_lightning_module_write_prediction(tmpdir):
 
         def test_step(self, batch, batch_idx):
             super().test_step(batch, batch_idx)
-            self.write_prediction(torch.Tensor(0), self._predictions_file)
+            self.write_prediction("a", torch.Tensor(0), self._predictions_file)
 
         def test_epoch_end(self, outputs):
             self.write_prediction_dict({"a": "b"}, self._predictions_file)
