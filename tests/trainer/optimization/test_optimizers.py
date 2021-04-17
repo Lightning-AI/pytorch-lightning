@@ -605,7 +605,7 @@ def test_optimizer_state_on_device(tmpdir):
 
 @pytest.mark.parametrize("check_val_every_n_epoch", [1, 2])
 @mock.patch("torch.optim.lr_scheduler.StepLR.step")
-def test_lr_scheduler_update_frequency(mocked_sched, check_val_every_n_epoch, tmpdir):
+def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch, tmpdir):
     epochs = 4
     expected_steps = epochs + 1  # every LRScheduler gets called once at init
 
