@@ -1208,9 +1208,6 @@ class LightningModule(
 
         See :ref:`manual optimization<common/optimizers:Manual optimization>` for more examples.
 
-        .. tip::
-            In manual mode, we still automatically clip grads if ``Trainer(gradient_clip_val=x)`` is set.
-
         Example::
 
             def training_step(...):
