@@ -20,5 +20,5 @@ Community Examples
 - `PyTorch-Forecasting: Time series forecasting package <https://github.com/jdb78/pytorch-forecasting>`_
 - `Transformers masked language modeling <https://github.com/yang-zhang/lightning-language-modeling>`_
 - `PyTorch Geometric examples with PyTorch Lightning and Hydra <https://github.com/tchaton/lightning-geometric>`_
-- `PyTorch Tabular: Deep Learning with tabular data <https://github.com/manujosephv/pytorch_tabular>`_
+- `PyTorch Tabular: Deep learning with tabular data <https://github.com/manujosephv/pytorch_tabular>`_
 - `Asteroid: An audio source separation toolkit for researchers <https://github.com/asteroid-team/asteroid>`_
