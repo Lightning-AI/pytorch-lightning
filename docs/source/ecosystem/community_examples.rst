@@ -17,7 +17,7 @@ Community Examples
 - `Transformers Question Answering (SQuAD) <https://github.com/tshrjn/Finetune-QA/>`_
 - `Atlas: End-to-End 3D Scene Reconstruction from Posed Images <https://github.com/magicleap/atlas>`_
 - `Self-Supervised Representation Learning (MoCo and BYOL) <https://github.com/untitled-ai/self_supervised>`_
-- `Pytorch-Forecasting: Time series forecasting package <https://github.com/jdb78/pytorch-forecasting>`_
+- `PyTorch-Forecasting: Time series forecasting package <https://github.com/jdb78/pytorch-forecasting>`_
 - `Transformers masked language modeling <https://github.com/yang-zhang/lightning-language-modeling>`_
 - `PyTorch Geometric examples with PyTorch Lightning and Hydra <https://github.com/tchaton/lightning-geometric>`_
 - `PyTorch Tabular: Deep Learning with tabular data <https://github.com/manujosephv/pytorch_tabular>`_
