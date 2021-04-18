@@ -664,7 +664,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir):
+def test_deepspeed_multigpu_stage_2_accumulated_grad_batches_cpu_offload(tmpdir):
     """ Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works, CPU offload works """
     _run_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload=True)
 
