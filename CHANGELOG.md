@@ -691,6 +691,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Remove hardcoding of local rank in accelerator connector ([#6878](https://github.com/PyTorchLightning/pytorch-lightning/pull/6878))
 
 
+- Fixed passing a custom `DDPPlugin` when choosing `accelerator="ddp_cpu"` for the accelerator ([#6208](https://github.com/PyTorchLightning/pytorch-lightning/pull/6208))
+
+
 ## [1.2.7] - 2021-04-06
 
 ### Fixed
