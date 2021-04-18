@@ -65,6 +65,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def world_size(self) -> int:
         return self.num_processes
 
+    @property
+    def root_device(self) -> torch.device:
+        return self.device
+
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List['DataLoader'], 'DataLoader']):
         if not isinstance(dataloaders, list):
@@ -116,9 +120,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def process_dataloader(self, dataloader: 'DataLoader') -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
-        device = xm.xla_device()
-        dataloader = MpDeviceLoader(dataloader, device)
-        return dataloader
+        return MpDeviceLoader(dataloader, self.device)
 
     def configure_ddp(self) -> None:
         pass
@@ -163,7 +165,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             time.sleep(2)
 
     def model_to_device(self) -> None:
-        self._model.to(xm.xla_device())
+        self.device = xm.xla_device()
+        self.model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
         rendezvous(name)
