@@ -414,7 +414,6 @@ def test_accelerator_choice_ddp_cpu_custom_plugin(ddp_plugin_class):
         trainer.fit(model)
 
 
-@pytest.mark.skip("debug")
 @mock.patch.dict(
     os.environ, {
         "SLURM_NTASKS": "2",
@@ -426,11 +425,8 @@ def test_accelerator_choice_ddp_cpu_custom_plugin(ddp_plugin_class):
     }
 )
 @mock.patch('torch.cuda.device_count', return_value=0)
-@mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
-def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock, setup_distributed_mock):
-    """
-    Test that we choose the custom cluster even when SLURM or TE flags are around
-    """
+def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
+    """ Test that we choose the custom cluster even when SLURM or TE flags are around """
 
     class CustomCluster(LightningEnvironment):
 
@@ -440,25 +436,17 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(device_count_mock, setup_dist
         def creates_children(self) -> bool:
             return True
 
-    class CB(Callback):
-
-        def on_fit_start(self, trainer, pl_module):
-            assert isinstance(trainer.accelerator, CPUAccelerator)
-            assert isinstance(trainer.training_type_plugin, DDPPlugin)
-            assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
-            raise SystemExit()
-
-    model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         plugins=[CustomCluster()],
         fast_dev_run=True,
         accelerator='ddp_cpu',
         num_processes=2,
-        callbacks=[CB()],
     )
-
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    assert trainer.use_ddp
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)
+    assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
 
 
 @mock.patch.dict(
