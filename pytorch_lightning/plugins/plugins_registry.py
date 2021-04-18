@@ -121,7 +121,7 @@ class _TrainingTypePluginsRegistry(UserDict):
 TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
 
 
-def is_register_plugins_overridden(plugin: Callable) -> bool:
+def is_register_plugins_overridden(plugin: type) -> bool:
 
     method_name = "register_plugins"
     plugin_attr = getattr(plugin, method_name)
