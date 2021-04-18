@@ -148,7 +148,8 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
     trainer.fit(model, datamodule=dm)
     # `True` if resume/restore successfully else `False`
     assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
-    assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
+    with pytest.raises(FileNotFoundError):
+        trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
 
 
 class CaptureCallbacksBeforeTraining(Callback):
