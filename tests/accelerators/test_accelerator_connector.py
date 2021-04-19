@@ -13,7 +13,6 @@
 # limitations under the License
 
 import os
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from typing import Optional
 from unittest import mock
 
