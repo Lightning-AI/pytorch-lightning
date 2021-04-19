@@ -1083,28 +1083,22 @@ class LightningModule(
         Return:
             Any of these 6 options.
 
-            - Single optimizer.
-            - List or Tuple - List of optimizers.
-            - Two lists - The first list has multiple optimizers, the second a list of LR schedulers (or lr_dict).
-            - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler'
+            - **Single optimizer**.
+            - **List or Tuple** of optimizers.
+            - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers (or
+              multiple lr_dict).
+            - **Dictionary**, with an ``"optimizer"`` key, and (optionally) a ``"lr_scheduler"``
               key whose value is a single LR scheduler or lr_dict.
-            - Tuple of dictionaries as described, with an optional 'frequency' key.
-            - None - Fit will run without any optimizer.
+            - **Tuple of dictionaries** as described above, with an optional ``"frequency"`` key.
+            - **None** - Fit will run without any optimizer.
 
         Note:
-            The 'frequency' value is an int corresponding to the number of sequential batches
-            optimized with the specific optimizer. It should be given to none or to all of the optimizers.
-            There is a difference between passing multiple optimizers in a list,
-            and passing multiple optimizers in dictionaries with a frequency of 1:
-            In the former case, all optimizers will operate on the given batch in each optimization step.
-            In the latter, only one optimizer will operate on the given batch at every step.
-
-            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
-            The default configuration is shown below.
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration. The default
+            configuration is shown below.
 
             .. code-block:: python
 
-                {
+                lr_dict = {
                     'scheduler': lr_scheduler, # The LR scheduler instance (required)
                     'interval': 'epoch', # The unit of the scheduler's step size
                     'frequency': 1, # The frequency of the scheduler
@@ -1114,43 +1108,51 @@ class LightningModule(
                     'name': None, # Custom name for LearningRateMonitor to use
                 }
 
-            Only the ``scheduler`` key is required, the rest will be set to the defaults above.
+            Only the ``"scheduler"`` key is required, the rest will be set to the defaults above.
+
+        Note:
+            The ``"frequency"`` value is an ``int`` corresponding to the number of sequential batches optimized with the
+            specific optimizer. It should be given to none or to all of the optimizers.
+
+            There is a difference between passing multiple optimizers in a list and passing multiple optimizers in
+            dictionaries with a frequency of 1:
+            In the former case, all optimizers will operate on the given batch in each optimization step.
+            In the latter, only one optimizer will operate on the given batch at every step.
 
         Examples::
 
             # most cases
             def configure_optimizers(self):
-                opt = Adam(self.parameters(), lr=1e-3)
-                return opt
+                return Adam(self.parameters(), lr=1e-3)
 
             # multiple optimizer case (e.g.: GAN)
             def configure_optimizers(self):
-                generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                return generator_opt, disriminator_opt
+                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
+                return gen_opt, dis_opt
 
             # example with learning rate schedulers
             def configure_optimizers(self):
-                generator_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                disriminator_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                discriminator_sched = CosineAnnealing(discriminator_opt, T_max=10)
-                return [generator_opt, disriminator_opt], [discriminator_sched]
+                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
+                dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
+                dis_sch = CosineAnnealing(dis_opt, T_max=10)
+                return [gen_opt, dis_opt], [dis_sch]
 
             # example with step-based learning rate schedulers
             def configure_optimizers(self):
                 gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
-                gen_sched = {'scheduler': ExponentialLR(gen_opt, 0.99),
-                             'interval': 'step'}  # called after each training step
-                dis_sched = CosineAnnealing(discriminator_opt, T_max=10) # called every epoch
-                return [gen_opt, dis_opt], [gen_sched, dis_sched]
+                dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
+                gen_sch = {'scheduler': ExponentialLR(gen_opt, 0.99),
+                           'interval': 'step'}  # called after each training step
+                dis_sch = CosineAnnealing(dis_opt, T_max=10) # called every epoch
+                return [gen_opt, dis_opt], [gen_sch, dis_sch]
 
             # example with optimizer frequencies
             # see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1
             # https://arxiv.org/abs/1704.00028
             def configure_optimizers(self):
                 gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                dis_opt = Adam(self.model_disc.parameters(), lr=0.02)
+                dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
                 n_critic = 5
                 return (
                     {'optimizer': dis_opt, 'frequency': n_critic},
@@ -1158,32 +1160,22 @@ class LightningModule(
                 )
 
         Note:
-
             Some things to know:
 
-            - Lightning calls ``.backward()`` and ``.step()`` on each optimizer
-              and learning rate scheduler as needed.
-
-            - If you use 16-bit precision (``precision=16``), Lightning will automatically
-              handle the optimizers for you.
-
-            - If you use multiple optimizers, :meth:`training_step` will have an additional
-              ``optimizer_idx`` parameter.
-
-            - If you use LBFGS Lightning handles the closure function automatically for you.
-
-            - If you use multiple optimizers, gradients will be calculated only
-              for the parameters of current optimizer at each training step.
-
-            - If you need to control how often those optimizers step or override the
-              default ``.step()`` schedule, override the :meth:`optimizer_step` hook.
-
-            - If you only want to call a learning rate scheduler every ``x`` step or epoch,
-              or want to monitor a custom metric, you can specify these in a lr_dict:
+            - Lightning calls ``.backward()`` and ``.step()`` on each optimizer and learning rate scheduler as needed.
+            - If you use 16-bit precision (``precision=16``), Lightning will automatically handle the optimizers.
+            - If you use multiple optimizers, :meth:`training_step` will have an additional ``optimizer_idx`` parameter.
+            - If you use :class:`torch.optim.LBFGS`, Lightning handles the closure function automatically for you.
+            - If you use multiple optimizers, gradients will be calculated only for the parameters of current optimizer
+              at each training step.
+            - If you need to control how often those optimizers step or override the default ``.step()`` schedule,
+              override the :meth:`optimizer_step` hook.
+            - If you only want to call a learning rate scheduler every ``x`` step or epoch, or want to monitor a custom
+              metric, you can specify these in a lr_dict:
 
               .. code-block:: python
 
-                  {
+                  lr_dict = {
                       'scheduler': lr_scheduler,
                       'interval': 'step',  # or 'epoch'
                       'monitor': 'val_f1',
@@ -1196,23 +1188,21 @@ class LightningModule(
     def manual_backward(self, loss: Tensor, optimizer: Optional[Optimizer] = None, *args, **kwargs) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
-        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you
+        By using this we can ensure that all the proper scaling when using 16-bit etc has been done for you.
 
         This function forwards all args to the .backward() call as well.
 
-        .. tip:: In manual mode we still automatically clip grads if Trainer(gradient_clip_val=x) is set
-
-        .. tip:: In manual mode we still automatically accumulate grad over batches if
-           Trainer(accumulate_grad_batches=x) is set and you use `optimizer.step()`
+        See :ref:`manual optimization<common/optimizers:Manual optimization>` for more examples.
 
         Example::
 
             def training_step(...):
-                opt_a, opt_b = self.optimizers()
+                opt = self.optimizers()
                 loss = ...
+                opt.zero_grad()
                 # automatically applies scaling, etc...
                 self.manual_backward(loss)
-                opt_a.step()
+                opt.step()
         """
         if optimizer is not None:
             rank_zero_deprecation(
@@ -1322,18 +1312,18 @@ class LightningModule(
         Warning:
             If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter
             to ``optimizer.step()`` function as shown in the examples. This ensures that
-            ``train_step_and_backward_closure`` is called within
+            ``training_step()``, ``optimizer.zero_grad()``, ``backward()`` are called within
             :meth:`~pytorch_lightning.trainer.training_loop.TrainLoop.run_training_batch`.
 
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
-            optimizer_idx: If you used multiple optimizers this indexes into that list.
-            optimizer_closure: closure for all optimizers
-            on_tpu: true if TPU backward is required
-            using_native_amp: True if using native amp
-            using_lbfgs: True if the matching optimizer is lbfgs
+            optimizer_idx: If you used multiple optimizers, this indexes into that list.
+            optimizer_closure: Closure for all optimizers
+            on_tpu: ``True`` if TPU backward is required
+            using_native_amp: ``True`` if using native amp
+            using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
 
         Examples::
 
@@ -1345,21 +1335,17 @@ class LightningModule(
             # Alternating schedule for optimizer steps (i.e.: GANs)
             def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
                                optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
-                # update generator opt every 2 steps
+                # update generator opt every step
                 if optimizer_idx == 0:
-                    if batch_idx % 2 == 0 :
-                        optimizer.step(closure=optimizer_closure)
-                        optimizer.zero_grad()
+                    optimizer.step(closure=optimizer_closure)
 
-                # update discriminator opt every 4 steps
+                # update discriminator opt every 2 steps
                 if optimizer_idx == 1:
-                    if batch_idx % 4 == 0 :
+                    if (batch_idx + 1) % 2 == 0 :
                         optimizer.step(closure=optimizer_closure)
-                        optimizer.zero_grad()
 
                 # ...
                 # add as many optimizers as you want
-
 
         Here's another example showing how to use this for more advanced things such as
         learning rate warm-up:
@@ -1377,7 +1363,6 @@ class LightningModule(
 
                 # update params
                 optimizer.step(closure=optimizer_closure)
-                optimizer.zero_grad()
 
         """
         if not isinstance(optimizer, LightningOptimizer):
@@ -1386,6 +1371,26 @@ class LightningModule(
         optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
+        """Override this method to change the default behaviour of ``optimizer.zero_grad()``.
+
+        Args:
+            epoch: Current epoch
+            batch_idx: Index of current batch
+            optimizer: A PyTorch optimizer
+            optimizer_idx: If you used multiple optimizers this indexes into that list.
+
+        Examples::
+
+            # DEFAULT
+            def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+                optimizer.zero_grad()
+
+            # Set gradients to `None` instead of zero to improve performance.
+            def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+                optimizer.zero_grad(set_to_none=True)
+
+        See :meth:`torch.optim.Optimizer.zero_grad` for the explanation of the above example.
+        """
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
