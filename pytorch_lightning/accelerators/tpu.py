@@ -61,14 +61,15 @@ class TPUAccelerator(Accelerator):
         clip_val: Union[float, int],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
-        assert gradient_clip_algorithm == GradClipAlgorithmType.NORM, \
-            "Only NORM gradient clipping is supported on TPU for now"
 
         grad_clip_val = float(clip_val)
         if grad_clip_val <= 0:
             return
 
-        parameters = self.model.parameters()
-        norm_type = 2.0
-
-        xla_clip_grad_norm_(parameters, grad_clip_val, norm_type)
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            self.precision_plugin.clip_grad_by_value(optimizer, clip_val)
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
+            parameters = self.model.parameters()
+            # TODO: there should be a mechanism to set `norm_type`
+            norm_type = 2.0
+            xla_clip_grad_norm_(parameters, grad_clip_val, norm_type)
