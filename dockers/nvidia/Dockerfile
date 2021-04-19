@@ -13,13 +13,15 @@
 # limitations under the License.
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-03.html#rel_21-03
-FROM nvcr.io/nvidia/pytorch:20.12-py3
+FROM nvcr.io/nvidia/pytorch:21.03-py3
 
 MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 ARG LIGHTNING_VERSION=""
 
 COPY ./ /workspace/pytorch-lightning/
+
+ENV TORCH_VERSION=$(python -c "import torch ; print(torch.__version__)")
 
 RUN \
     cd /workspace  && \
@@ -39,12 +41,13 @@ RUN \
     pip install -r ./pytorch-lightning/requirements/extra.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install ./pytorch-lightning --no-cache-dir && \
-    pip install "Pillow>=8.1" "torchtext>=0.9.0" ipython[all] --no-cache-dir --upgrade-strategy only-if-needed && \
+    pip install "Pillow>=8.1" "torchtext>=0.9.1" ipython[all] --no-cache-dir --upgrade-strategy only-if-needed && \
     rm -rf pytorch-lightning
 
 RUN python --version && \
     pip --version && \
     pip list && \
+    python -c "import torch; assert torch.__version__ == '$TORCH_VERSION', torch.__version__" && \
     python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
 # CMD ["/bin/bash"]
