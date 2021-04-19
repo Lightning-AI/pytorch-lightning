@@ -32,7 +32,7 @@ If the Trainer's ``gradient_clip_algorithm`` is set to ``'value'`` (``'norm'`` b
 :func:`torch.nn.utils.clip_grad_norm_` for each parameter instead.
 
 .. note::
-    If using mixed precision, The ``gradient_clip_val`` does not need to be changed as the gradients are unscaled
+    If using mixed precision, the ``gradient_clip_val`` does not need to be changed as the gradients are unscaled
     before applying the clipping function.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
