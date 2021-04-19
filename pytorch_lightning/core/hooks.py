@@ -260,7 +260,7 @@ class ModelHooks:
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
         """
-        Called after optimizer.step() and before optimizer.zero_grad().
+        Called after ``training_step()`` and before ``optimizer.zero_grad()``.
 
         Called in the training loop after taking an optimizer step and before zeroing grads.
         Good place to inspect weight information with weights updated.
@@ -268,9 +268,12 @@ class ModelHooks:
         This is where it is called::
 
             for optimizer in optimizers:
-                optimizer.step()
+                out = training_step(...)
+
                 model.on_before_zero_grad(optimizer) # < ---- called here
                 optimizer.zero_grad()
+
+                backward()
 
         Args:
             optimizer: The optimizer for which grads should be zeroed.
