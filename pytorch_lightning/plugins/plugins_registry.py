@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
-import os
+import inspect
 from collections import UserDict
 from inspect import getmembers, isclass
 from pathlib import Path
@@ -124,10 +124,16 @@ class _TrainingTypePluginsRegistry(UserDict):
 TrainingTypePluginsRegistry = _TrainingTypePluginsRegistry()
 
 
-def is_register_plugins_overridden(plugin: Callable) -> bool:
+def is_register_plugins_overridden(plugin: type) -> bool:
+
     method_name = "register_plugins"
     plugin_attr = getattr(plugin, method_name)
-    super_attr = getattr(TrainingTypePlugin, method_name)
+    previous_super_cls = inspect.getmro(plugin)[1]
+
+    if issubclass(previous_super_cls, TrainingTypePlugin):
+        super_attr = getattr(previous_super_cls, method_name)
+    else:
+        return False
 
     if hasattr(plugin_attr, 'patch_loader_code'):
         is_overridden = plugin_attr.patch_loader_code != str(super_attr.__code__)
@@ -137,13 +143,7 @@ def is_register_plugins_overridden(plugin: Callable) -> bool:
 
 
 def call_training_type_register_plugins(root: Path, base_module: str) -> None:
-    # Ref: https://github.com/facebookresearch/ClassyVision/blob/master/classy_vision/generic/registry_utils.py#L14
-    directory = "training_type"
-    for file in os.listdir(root / directory):
-        if file.endswith(".py") and not file.startswith("_"):
-            module = file[:file.find(".py")]
-            module = importlib.import_module(".".join([base_module, module]))
-            for _, mod in getmembers(module, isclass):
-                if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overridden(mod):
-                    mod.register_plugins(TrainingTypePluginsRegistry)
-                    break
+    module = importlib.import_module(base_module)
+    for _, mod in getmembers(module, isclass):
+        if issubclass(mod, TrainingTypePlugin) and is_register_plugins_overridden(mod):
+            mod.register_plugins(TrainingTypePluginsRegistry)
