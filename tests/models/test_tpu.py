@@ -224,7 +224,7 @@ def test_tpu_grad_norm(tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_clip_grad_by_value(tmpdir):
-    """Test if clip_gradients by value works on TPU. (It should not.)"""
+    """Test if clip_gradients by value works on TPU"""
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -238,8 +238,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
     )
 
     model = BoringModel()
-    with pytest.raises(AssertionError):
-        tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
 @RunIf(tpu=True)
