@@ -62,29 +62,7 @@ Here is a minimal example of manual optimization.
    Be careful where you call ``optimizer.zero_grad()``, or your model won't converge.
    It is good practice to call ``optimizer.zero_grad()`` before ``self.manual_backward(loss)``.
 
-.. warning:: Before 1.3, ``lr_scheduler.step`` was called automatically in both manual and automatic optimization. From 1.3, ``lr_scheduler.step`` is disabled in manual optimization so that you can call it at arbitrary intervals. Use ``self.lr_schedulers()`` in LightningModule to access your learning rate schedulers defined in ``LightningModule.configure_optimizers()``.
-
-.. testcode:: python
-
-    def __init__(self):
-        self.automatic_optimization = False
-
-    def training_step(self, batch, batch_idx):
-        # do forward, backward, and optimization
-        ...
-
-        # step every `n` batches
-        if (batch_idx + 1) % n == 0:
-            sch = self.lr_schedulers()
-            sch.step()
-
-        # step every `n` epochs
-        if self.trainer.is_last_batch and (self.trainer.current_epoch + 1) % n == 0:
-            sch = self.lr_schedulers()
-            sch.step()
-
-.. tip:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
-
+-----
 
 Gradient accumulation
 ---------------------
