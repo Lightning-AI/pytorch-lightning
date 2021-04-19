@@ -5,7 +5,7 @@ from torchmetrics import Metric
 """
 Convention:
  - Do not include any `_TYPE` suffix
- - Types used in public hooks (as those in the LightningModule and Callbacks) should be public (no trailing `_`)
+ - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no trailing `_`)
 """
 _METRIC = Union[Metric, torch.Tensor, int, float]
 STEP_OUTPUT = Union[torch.Tensor, Dict[str, Any]]
