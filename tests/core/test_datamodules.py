@@ -508,7 +508,7 @@ class DummyIDS(torch.utils.data.IterableDataset):
 def test_dm_init_from_iter_datasets(tmpdir):
 
     train_ds = DummyIDS()
-    train_ds_sequence = DummyDS()
+    train_ds_sequence = [DummyIDS(), DummyIDS()]
     valid_ds = DummyIDS()
     test_ds = DummyIDS()
 
@@ -521,7 +521,8 @@ def test_dm_init_from_iter_datasets(tmpdir):
     assert dm.test_dataloader() is None
 
     dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0, shuffle=False)
-    assert torch.all(next(iter(dm.train_dataloader())) == torch.ones(4))
+    assert torch.all(next(iter(dm.train_dataloader()[0])) == torch.ones(4))
+    assert torch.all(next(iter(dm.train_dataloader()[1])) == torch.ones(4))
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
