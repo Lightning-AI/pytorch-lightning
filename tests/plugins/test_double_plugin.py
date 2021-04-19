@@ -13,6 +13,9 @@
 # limitations under the License.
 import pytest
 import torch
+from typing import Optional, Callable
+from torch._C import dtype
+from torch.functional import Tensor
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
@@ -37,6 +40,7 @@ class DoublePrecisionBoringModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         float_data, int_data = batch
+        assert torch.tensor([1, 1, 2]).dtype == torch.float64
         assert float_data.dtype == torch.float64
         output = self(float_data)
         loss = self.loss(batch, output)
@@ -77,13 +81,20 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
 
     def training_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
+        assert torch.tensor([0]).dtype == torch.float64
+        assert torch.tensor([0], dtype=torch.float16).dtype == torch.float16
         output = self.layer(batch)
         assert output.dtype == torch.float64
         loss = self.loss(batch, output)
         return {"loss": loss}
 
+    def training_step_end(self, training_step_outputs):
+        assert torch.tensor([0]).dtype == torch.int64
+        return training_step_outputs
+
     def validation_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
+        assert torch.tensor([0]).dtype == torch.float64
         output = self.layer(batch)
         assert output.dtype == torch.float64
         loss = self.loss(batch, output)
@@ -91,6 +102,7 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
 
     def test_step(self, batch, batch_idx):
         assert batch.dtype == torch.float64
+        assert torch.tensor([0]).dtype == torch.float64
         output = self.layer(batch)
         assert output.dtype == torch.float64
         loss = self.loss(batch, output)
@@ -98,6 +110,7 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         assert batch.dtype == torch.float64
+        assert torch.tensor([0]).dtype == torch.float64
         output = self.layer(batch)
         assert output.dtype == torch.float64
         return output
