@@ -16,6 +16,7 @@ import multiprocessing
 import os
 from abc import ABC
 from copy import deepcopy
+from functools import partial
 from typing import Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
@@ -31,6 +32,7 @@ from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.seed import pl_worker_init_function
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -100,6 +102,10 @@ class TrainerDataLoadingMixin(ABC):
                 f' (try {num_cpus} which is the number of cpus on this machine)'
                 f' in the `DataLoader` init to improve performance.'
             )
+
+    def auto_add_worker_init_fn(self, dataloader: DataLoader) -> None:
+        if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
+            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
     def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
 
@@ -234,6 +240,9 @@ class TrainerDataLoadingMixin(ABC):
         # check the workers recursively
         apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, 'train dataloader')
 
+        # add worker_init_fn for correct seeding in worker processes
+        apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
+
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)
 
@@ -331,6 +340,9 @@ class TrainerDataLoadingMixin(ABC):
 
         # add samplers
         dataloaders = [self.auto_add_sampler(dl, shuffle=False) for dl in dataloaders if dl is not None]
+
+        # add worker_init_fn for correct seeding in worker processes
+        apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
 
         loader_num_batches = []
 

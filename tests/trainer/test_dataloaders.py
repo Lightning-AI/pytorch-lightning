@@ -13,12 +13,13 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import numpy
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import IterableDataset, Subset
+from torch.utils.data.dataset import Dataset, IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
@@ -633,6 +634,109 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
             trainer.test(model, test_dataloaders=test_multi_dl, ckpt_path=ckpt_path)
         else:
             trainer.fit(model, train_dataloader=train_multi_dl, val_dataloaders=val_multi_dl)
+
+
+class NumpyRandomDataset(Dataset):
+    # this datset uses numpy instead of torch to produce random numbers
+    size = 16
+
+    def __getitem__(self, index):
+        return numpy.random.randint(0, 100, 3)
+
+    def __len__(self):
+        return self.size
+
+
+def _user_worker_init_fn(_):
+    pass
+
+
+def test_missing_worker_init_fn():
+    """ Test that naive worker seed initialization leads to undesired random state in subprocesses. """
+    dataset = NumpyRandomDataset()
+
+    seed_everything(0)
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+    batches0 = torch.cat([batch for batch in dataloader])
+
+    seed_everything(0)
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+    batches1 = torch.cat([batch for batch in dataloader])
+
+    is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
+    is_deterministic = torch.eq(batches0, batches1).all()
+
+    # depending on the OS, we either have
+    # 1) the same seed in all worker proceses, producing duplicate samples / augmentations, or
+    # 2) different seeds in each worker process, but they are not derived from the seed of the main process
+    assert not is_deterministic or is_duplicated
+
+
+def test_auto_add_worker_init_fn():
+    """ Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used. """
+    dataset = Mock()
+    dataloader = DataLoader(dataset)
+    trainer = Trainer()
+
+    # without pl.seed_everything()
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is None
+
+    # with forcefully avoiding it
+    seed_everything(0, workers=False)
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is None
+
+    # when user already has a worker_init_fn
+    user_function = _user_worker_init_fn
+    dataloader.worker_init_fn = user_function
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is user_function
+    dataloader.worker_init_fn = None
+
+    # main use case
+    seed_everything(0, workers=True)
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is not None
+
+
+class MultiProcessModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.batches_seen = []
+
+    def training_step(self, batch, batch_idx):
+        self.batches_seen.append(batch)
+
+    def training_epoch_end(self, outputs):
+        world_size = 2
+        num_samples = NumpyRandomDataset.size
+        all_batches = torch.cat(self.batches_seen)
+        all_batches = self.all_gather(all_batches)
+        assert all_batches.shape[0] == world_size
+        all_batches = all_batches.view(-1, 3)
+        assert len(torch.unique(all_batches, dim=0)) == num_samples
+
+
+@RunIf(min_gpus=2)
+def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
+    """ Test that the lightning worker_init_fn takes care of dataloaders in multi-gpu/multi-node training. """
+    dataset = NumpyRandomDataset()
+    num_workers = 2
+    batch_size = 2
+
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+    seed_everything(0, workers=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=2,
+        accelerator="ddp_spawn",
+    )
+    model = MultiProcessModel()
+    model.val_dataloader = None
+    trainer.fit(model, train_dataloader=dataloader)
 
 
 def test_warning_with_iterable_dataset_and_len(tmpdir):
