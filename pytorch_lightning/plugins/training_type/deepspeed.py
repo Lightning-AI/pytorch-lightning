@@ -542,3 +542,23 @@ class DeepSpeedPlugin(DDPPlugin):
             if total_batch_idx % self._original_accumulate_grad_batches == 0:
                 current_global_step += 1
             return current_global_step
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
+        plugin_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
+        plugin_registry.register(
+            "deepspeed_stage_2_offload",
+            cls,
+            description="DeepSpeed ZeRO Stage 2 and CPU Offload",
+            stage=2,
+            cpu_offload=True
+        )
+        plugin_registry.register("deepspeed_stage_3", cls, description="DeepSpeed ZeRO Stage 3", stage=3)
+        plugin_registry.register(
+            "deepspeed_stage_3_offload",
+            cls,
+            description="DeepSpeed ZeRO Stage 3 and CPU Offload",
+            stage=3,
+            cpu_offload=True
+        )

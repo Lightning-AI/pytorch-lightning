@@ -11,8 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+MNIST backbone image classifier example.
 
-from argparse import ArgumentParser
+To run:
+python backbone_image_classifier.py --trainer.max_epochs=50
+"""
 
 import torch
 from torch.nn import functional as F
@@ -20,6 +24,7 @@ from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
 from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
+from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
@@ -59,7 +64,11 @@ class LitClassifier(pl.LightningModule):
     )
     """
 
-    def __init__(self, backbone, learning_rate=1e-3):
+    def __init__(
+        self,
+        backbone,
+        learning_rate: float = 0.0001,
+    ):
         super().__init__()
         self.save_hyperparameters()
         self.backbone = backbone
@@ -92,52 +101,42 @@ class LitClassifier(pl.LightningModule):
         # self.hparams available because we called self.save_hyperparameters()
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):
-        parser = parent_parser.add_argument_group("LitClassifier")
-        parser.add_argument('--learning_rate', type=float, default=0.0001)
-        return parent_parser
+
+class MyDataModule(pl.LightningDataModule):
+
+    def __init__(
+        self,
+        batch_size: int = 32,
+    ):
+        super().__init__()
+        dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
+        self.mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
+        self.mnist_train, self.mnist_val = random_split(dataset, [55000, 5000])
+        self.batch_size = batch_size
+
+    def train_dataloader(self):
+        return DataLoader(self.mnist_train, batch_size=self.batch_size)
+
+    def val_dataloader(self):
+        return DataLoader(self.mnist_val, batch_size=self.batch_size)
+
+    def test_dataloader(self):
+        return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
+
+class MyLightningCLI(LightningCLI):
+
+    def add_arguments_to_parser(self, parser):
+        parser.add_class_arguments(Backbone, 'model.backbone')
+
+    def instantiate_model(self):
+        self.config_init['model']['backbone'] = Backbone(**self.config['model']['backbone'])
+        super().instantiate_model()
 
 
 def cli_main():
-    pl.seed_everything(1234)
-
-    # ------------
-    # args
-    # ------------
-    parser = ArgumentParser()
-    parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--hidden_dim', type=int, default=128)
-    parser = pl.Trainer.add_argparse_args(parser)
-    parser = LitClassifier.add_model_specific_args(parser)
-    args = parser.parse_args()
-
-    # ------------
-    # data
-    # ------------
-    dataset = MNIST(_DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST(_DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
-    mnist_train, mnist_val = random_split(dataset, [55000, 5000])
-
-    train_loader = DataLoader(mnist_train, batch_size=args.batch_size)
-    val_loader = DataLoader(mnist_val, batch_size=args.batch_size)
-    test_loader = DataLoader(mnist_test, batch_size=args.batch_size)
-
-    # ------------
-    # model
-    # ------------
-    model = LitClassifier(Backbone(hidden_dim=args.hidden_dim), args.learning_rate)
-
-    # ------------
-    # training
-    # ------------
-    trainer = pl.Trainer.from_argparse_args(args)
-    trainer.fit(model, train_loader, val_loader)
-
-    # ------------
-    # testing
-    # ------------
-    result = trainer.test(test_dataloaders=test_loader)
+    cli = MyLightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234)
+    result = cli.trainer.test(cli.model, datamodule=cli.datamodule)
     print(result)
 
 
