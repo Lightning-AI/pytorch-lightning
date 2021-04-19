@@ -463,7 +463,7 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
 
 
 def run_checkpoint_test(tmpdir, save_full_weights):
-    seed_everything(42)
+    seed_everything(1)
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
