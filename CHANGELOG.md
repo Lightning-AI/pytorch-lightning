@@ -304,6 +304,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed metric objects passed directly to `self.log` not being reset correctly ([#7055](https://github.com/PyTorchLightning/pytorch-lightning/pull/7055))
 
 
+- Fixed `torch.float64` is the default dtype in `{}_step` function of the LightningModule when using `precision=64` ([#7107](https://github.com/PyTorchLightning/pytorch-lightning/pull/7107))
+
+
 ## [1.2.7] - 2021-04-06
 
 ### Fixed
