@@ -28,8 +28,8 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -348,8 +348,8 @@ class TrainLoop:
 
     @staticmethod
     def _prepare_outputs(
-            outputs: List[List[List[Result]]],
-            batch_mode: bool,
+        outputs: List[List[List[Result]]],
+        batch_mode: bool,
     ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
         """
         Extract required information from batch or epoch end results.
@@ -438,8 +438,7 @@ class TrainLoop:
 
         # clip gradients
         self.trainer.accelerator.clip_gradients(
-            optimizer, self.trainer.gradient_clip_val,
-            gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
+            optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
         )
         self._cur_grad_norm_dict = grad_norm_dic
 
@@ -749,9 +748,7 @@ class TrainLoop:
         return batch_outputs
 
     def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
+        """Wrap forward, zero_grad and backward in a closure so second order methods work"""
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)

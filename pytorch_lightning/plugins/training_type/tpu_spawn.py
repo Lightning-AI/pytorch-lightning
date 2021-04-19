@@ -15,10 +15,12 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
+from torch.nn import Module
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -41,12 +43,9 @@ else:
 if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
 
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.utils.data import DataLoader
-
 
 class TPUSpawnPlugin(DDPSpawnPlugin):
+    """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
     def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
@@ -65,6 +64,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @property
     def world_size(self) -> int:
         return self.num_processes
+
+    @property
+    def root_device(self) -> torch.device:
+        return self.device
 
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List['DataLoader'], 'DataLoader']):
@@ -117,9 +120,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def process_dataloader(self, dataloader: 'DataLoader') -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
-        device = xm.xla_device()
-        dataloader = MpDeviceLoader(dataloader, device)
-        return dataloader
+        return MpDeviceLoader(dataloader, self.device)
 
     def configure_ddp(self) -> None:
         pass
@@ -128,15 +129,15 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         pass
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
+        pass
 
     def new_process(self, process_idx: int, trainer, mp_queue) -> None:
         self.mp_queue = mp_queue
 
         reset_seed()
 
-        self.set_world_ranks()
+        self.tpu_local_core_rank = xm.get_local_ordinal()
+        self.tpu_global_core_rank = xm.get_ordinal()
 
         # set warning rank
         rank_zero_only.rank = self.global_rank
@@ -162,7 +163,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             time.sleep(2)
 
     def model_to_device(self) -> None:
-        self._model.to(xm.xla_device())
+        self.device = xm.xla_device()
+        self.model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
         rendezvous(name)

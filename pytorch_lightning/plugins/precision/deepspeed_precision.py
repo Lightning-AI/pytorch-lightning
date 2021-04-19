@@ -11,24 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, TYPE_CHECKING, Union
+from typing import Any, Callable, Union
 
-import torch
+from torch import Tensor
+from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
-if TYPE_CHECKING:
-    from torch.optim import Optimizer
-
-    from pytorch_lightning.core.lightning import LightningModule
-
 warning_cache = WarningCache()
 
 
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
+    """ Precision plugin for DeepSpeed integration. """
 
     def __init__(self, precision: int) -> None:
         super().__init__()
@@ -36,8 +34,8 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'LightningModule',
-        optimizer: 'Optimizer',
+        pl_module: 'pl.LightningModule',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
@@ -55,14 +53,14 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def backward(
         self,
-        model: 'LightningModule',
-        closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
+        model: 'pl.LightningModule',
+        closure_loss: Tensor,
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         if is_overridden('backward', model):
             warning_cache.warn(
                 "Overridden backward hook in the LightningModule will be ignored since DeepSpeed handles"
@@ -78,8 +76,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def clip_gradients(
         self,
-        model: 'LightningModule',
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
