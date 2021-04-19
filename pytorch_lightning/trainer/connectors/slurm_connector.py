@@ -2,7 +2,7 @@ import logging
 import os
 import signal
 from subprocess import call
-from sys import FrameType
+from types import FrameType
 
 import pytorch_lightning as pl
 
