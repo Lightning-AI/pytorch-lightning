@@ -22,3 +22,9 @@ Community Examples
 - `PyTorch Geometric examples with PyTorch Lightning and Hydra <https://github.com/tchaton/lightning-geometric>`_
 - `PyTorch Tabular: Deep learning with tabular data <https://github.com/manujosephv/pytorch_tabular>`_
 - `Asteroid: An audio source separation toolkit for researchers <https://github.com/asteroid-team/asteroid>`_
+
+
+PyTorch Ecosystem Examples
+==========================
+
+- `PyTorch Geometric: Deep learning on graphs and other irregular structures <https://github.com/rusty1s/pytorch_geometric/tree/master/examples/pytorch_lightning>`_.
