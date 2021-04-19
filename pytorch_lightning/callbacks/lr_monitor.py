@@ -26,9 +26,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
+import pytorch_lightning as pl
 
 
 class LearningRateMonitor(Callback):
@@ -81,7 +79,7 @@ class LearningRateMonitor(Callback):
         self.lr_sch_names: List[str] = []
         self.last_momentum_values: Dict[str, Optional[float]] = {}
 
-    def on_train_start(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
+    def on_train_start(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         """
         Called before training, determines unique names for all lr
         schedulers in the case of multiple of the same type or in
@@ -122,7 +120,7 @@ class LearningRateMonitor(Callback):
         self.lrs = {name: [] for name in names}
         self.last_momentum_values = {name + "-momentum": None for name in names}
 
-    def on_train_batch_start(self, trainer: 'Trainer', *args: Any, **kwargs: Any) -> None:
+    def on_train_batch_start(self, trainer: 'pl.Trainer', *args: Any, **kwargs: Any) -> None:
         if not self._should_log(trainer):
             return
 
@@ -133,7 +131,7 @@ class LearningRateMonitor(Callback):
             if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def on_train_epoch_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
+    def on_train_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         if self.logging_interval != 'step':
             interval = 'epoch' if self.logging_interval is None else 'any'
             latest_stat = self._extract_stats(trainer, interval)
@@ -141,7 +139,7 @@ class LearningRateMonitor(Callback):
             if latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
-    def _extract_stats(self, trainer: 'Trainer', interval: str) -> Dict[str, float]:
+    def _extract_stats(self, trainer: 'pl.Trainer', interval: str) -> Dict[str, float]:
         latest_stat = {}
 
         for name, scheduler in zip(
@@ -215,7 +213,7 @@ class LearningRateMonitor(Callback):
         return names
 
     @staticmethod
-    def _should_log(trainer: "Trainer") -> bool:
+    def _should_log(trainer: "pl.Trainer") -> bool:
         should_log: bool = ((trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop)
 
         return should_log

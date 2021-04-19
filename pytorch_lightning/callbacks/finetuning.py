@@ -28,12 +28,10 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TYPE_CHECKING:
-    from torch.nn.parameter import Parameter
-    from torch.optim.optimizer import Optimizer
+from torch.nn.parameter import Parameter
+from torch.optim.optimizer import Optimizer
 
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
+import pytorch_lightning as pl
 
 log = logging.getLogger(__name__)
 
@@ -237,21 +235,23 @@ class BaseFinetuning(Callback):
                 'lr': params_lr / denom_lr,
             })
 
-    def on_before_accelerator_backend_setup(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
+    def on_before_accelerator_backend_setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self.freeze_before_training(pl_module)
 
-    def on_train_epoch_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
+    def on_train_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the epoch begins."""
         for opt_idx, optimizer in trainer.train_loop.prepare_optimizers():
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
 
-    def finetune_function(self, pl_module: 'LightningModule', epoch: int, optimizer: 'Optimizer', opt_idx: int) -> None:
+    def finetune_function(
+        self, pl_module: 'pl.LightningModule', epoch: int, optimizer: 'Optimizer', opt_idx: int
+    ) -> None:
         """
         Override to add your unfreeze logic
         """
         raise NotImplementedError
 
-    def freeze_before_training(self, pl_module: 'LightningModule') -> None:
+    def freeze_before_training(self, pl_module: 'pl.LightningModule') -> None:
         """
         Override to add your freeze logic
         """
@@ -321,7 +321,7 @@ class BackboneFinetuning(BaseFinetuning):
         self.round = round
         self.verbose = verbose
 
-    def on_fit_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
+    def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
@@ -331,10 +331,12 @@ class BackboneFinetuning(BaseFinetuning):
             return None
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 
-    def freeze_before_training(self, pl_module: 'LightningModule') -> None:
+    def freeze_before_training(self, pl_module: 'pl.LightningModule') -> None:
         self.freeze(pl_module.backbone)
 
-    def finetune_function(self, pl_module: 'LightningModule', epoch: int, optimizer: 'Optimizer', opt_idx: int) -> None:
+    def finetune_function(
+        self, pl_module: 'pl.LightningModule', epoch: int, optimizer: 'Optimizer', opt_idx: int
+    ) -> None:
         """Called when the epoch begins."""
 
         if epoch == self.unfreeze_backbone_at_epoch:

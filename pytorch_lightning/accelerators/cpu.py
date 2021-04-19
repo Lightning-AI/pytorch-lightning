@@ -17,15 +17,13 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
+import pytorch_lightning as pl
 
 
 class CPUAccelerator(Accelerator):
     """ Accelerator for CPU devices. """
 
-    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:

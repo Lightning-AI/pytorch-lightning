@@ -28,11 +28,10 @@ from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 
-if TYPE_CHECKING:
-    from torch.autograd.profiler import EventList
-    from torch.utils.hooks import RemovableHandle
+from torch.autograd.profiler import EventList
+from torch.utils.hooks import RemovableHandle
 
-    from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 
 if _KINETO_AVAILABLE:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
@@ -301,7 +300,7 @@ class PyTorchProfiler(BaseProfiler):
 
         self.profiler: Optional[_PROFILER] = None
         self.function_events: Optional['EventList'] = None
-        self._lightning_module: Optional['LightningModule'] = None  # set by ProfilerConnector
+        self._lightning_module: Optional['pl.LightningModule'] = None  # set by ProfilerConnector
         self._register: Optional[RegisterRecordFunction] = None
         self._parent_profiler: Optional[_PROFILER] = None
         self._recording_map: Dict[str, record_function] = {}

@@ -24,9 +24,7 @@ import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
 from pytorch_lightning.utilities import AMPType, DeviceType
-
-if TYPE_CHECKING:
-    from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -186,7 +184,7 @@ class ModelSummary(object):
     MODE_DEFAULT = MODE_TOP
     MODES = [MODE_FULL, MODE_TOP]
 
-    def __init__(self, model: 'LightningModule', mode: str = MODE_DEFAULT) -> None:
+    def __init__(self, model: 'pl.LightningModule', mode: str = MODE_DEFAULT) -> None:
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()

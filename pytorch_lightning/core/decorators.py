@@ -16,10 +16,8 @@
 from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING, Union
 
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
-
-if TYPE_CHECKING:
-    from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_warn, rank_zero_deprecation
+import pytorch_lightning as pl
 
 
 def auto_move_data(fn: Callable) -> Callable:
@@ -56,7 +54,7 @@ def auto_move_data(fn: Callable) -> Callable:
     """
 
     @wraps(fn)
-    def auto_transfer_args(self: Union[Any, 'LightningModule'], *args: Any, **kwargs: Any) -> Any:
+    def auto_transfer_args(self: Union[Any, 'pl.LightningModule'], *args: Any, **kwargs: Any) -> Any:
         from pytorch_lightning.core.lightning import LightningModule
         if not isinstance(self, LightningModule):
             return fn(self, *args, **kwargs)
@@ -92,7 +90,7 @@ def parameter_validation(fn: Callable) -> Callable:
     """
 
     @wraps(fn)
-    def inner_fn(self: Union[Any, 'LightningModule'], *args: Any, **kwargs: Any) -> 'LightningModule':
+    def inner_fn(self: Union[Any, 'pl.LightningModule'], *args: Any, **kwargs: Any) -> 'pl.LightningModule':
         pre_layer_count = len(list(self.parameters()))
         module = fn(self, *args, **kwargs)
         self.on_post_move_to_device()

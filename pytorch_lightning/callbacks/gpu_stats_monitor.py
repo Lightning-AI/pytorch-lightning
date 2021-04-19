@@ -23,7 +23,7 @@ import os
 import shutil
 import subprocess
 import time
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import DeviceType, rank_zero_only

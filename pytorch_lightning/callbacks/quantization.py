@@ -27,14 +27,10 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_LOWER_EQUAL_1_4
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
-
 
 def wrap_qat_forward_context(
     quant_cb: Callback,
-    model: 'LightningModule',
+    model: 'pl.LightningModule',
     func: Callable,
     trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
@@ -64,7 +60,7 @@ def wrap_qat_forward_context(
     return wrapper
 
 
-def wrap_quantize_forward_context(model: 'LightningModule', func: Callable) -> Callable:
+def wrap_quantize_forward_context(model: 'pl.LightningModule', func: Callable) -> Callable:
     """
     Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
     """
@@ -173,7 +169,7 @@ class QuantizationAwareTraining(Callback):
         self._input_compatible = input_compatible
         self._forward_calls = 0
 
-    def _check_feasible_fuse(self, model: 'LightningModule') -> bool:
+    def _check_feasible_fuse(self, model: 'pl.LightningModule') -> bool:
         if not self.modules_to_fuse:
             return False
         for group in self.modules_to_fuse:
@@ -183,7 +179,7 @@ class QuantizationAwareTraining(Callback):
                 )
         return True
 
-    def on_fit_start(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
+    def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         # QuantStub converts tensors from floating point to quantized
         pl_module.quant = torch.quantization.QuantStub()
         # DeQuantStub converts tensors from quantized to floating point
@@ -216,7 +212,7 @@ class QuantizationAwareTraining(Callback):
         # the model that will observe weight and activation tensors during calibration.
         torch.quantization.prepare_qat(pl_module, inplace=True)
 
-    def on_fit_end(self, trainer: 'Trainer', pl_module: 'LightningModule') -> None:
+    def on_fit_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         pl_module.eval()
         # Convert the observed model to a quantized model. This does several things:
         # quantizes the weights, computes and stores the scale and bias value to be
