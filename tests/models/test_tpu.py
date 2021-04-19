@@ -382,7 +382,7 @@ def test_tpu_reduce():
 @RunIf(tpu=True)
 @pl_multi_process_test
 @pytest.mark.parametrize("clip_val", [10])
-@mock.patch("pytorch_lightning.accelerators.tpu.xla_clip_grad_norm_")
+@mock.patch("torch.nn.utils.clip_grad_norm_")
 def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
     """
     Ensure that clip gradients is only called if the value is greater than 0.
