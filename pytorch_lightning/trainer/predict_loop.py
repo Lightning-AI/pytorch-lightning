@@ -39,11 +39,12 @@ class PredictLoop(object):
     def should_skip_predict(self, max_batches):
         return sum(max_batches) == 0
 
-    def on_predict_model_eval(self, *_, **__):
+    def on_predict_model_eval(self):
         model_ref = self.trainer.lightning_module
         model_ref.on_predict_model_eval()
 
     def setup(self, model, max_batches, dataloaders):
+
         # copy properties for forward overrides
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
@@ -55,7 +56,8 @@ class PredictLoop(object):
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
-        self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.lightning_module)
+        if self.trainer._progress_bar_callback is not None:
+            self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.lightning_module)
 
     def _get_num_dataloaders(self, dataloaders):
         # case where user does:
@@ -65,7 +67,7 @@ class PredictLoop(object):
             length = len(dataloaders[0])
         return length
 
-    def predict(self, batch, batch_idx, dataloader_idx):
+    def predict_step(self, batch, batch_idx, dataloader_idx):
         # configure args
         args = [batch, batch_idx]
         if self.num_dataloaders:
@@ -74,19 +76,24 @@ class PredictLoop(object):
         model_ref = self.trainer.lightning_module
 
         model_ref._current_fx_name = "predict"
-        predictions = self.trainer.accelerator.predict(args)
+        predictions = self.trainer.accelerator.predict_step(args)
 
         if predictions is None:
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
         self._predictions[dataloader_idx].append(predictions)
-        self.trainer._progress_bar_callback.on_predict_batch_end(
-            self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
-        )
+
+        if self.trainer._progress_bar_callback is not None:
+            self.trainer._progress_bar_callback.on_predict_batch_end(
+                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
+            )
         return
 
     def on_predict_epoch_end(self):
-        self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
+        self.trainer.profiler.describe()
+
+        if self.trainer._progress_bar_callback is not None:
+            self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
 
         results = self._predictions
 
@@ -99,3 +106,11 @@ class PredictLoop(object):
             return results[0]
 
         return results
+
+    def on_predict_start(self):
+        # hook
+        self.trainer.call_hook("on_predict_start")
+
+    def on_predict_end(self):
+        # hook
+        self.trainer.call_hook("on_predict_end")

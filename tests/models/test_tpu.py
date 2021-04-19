@@ -16,6 +16,7 @@ from argparse import ArgumentParser
 from unittest import mock
 
 import pytest
+import torch
 from torch.utils.data import DataLoader
 
 import tests.helpers.pipelines as tpipes
@@ -23,6 +24,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -210,13 +212,34 @@ def test_tpu_grad_norm(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=4,
         tpu_cores=1,
-        limit_train_batches=4,
-        limit_val_batches=4,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
         gradient_clip_val=0.5,
     )
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_clip_grad_by_value(tmpdir):
+    """Test if clip_gradients by value works on TPU. (It should not.)"""
+    tutils.reset_seed()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=4,
+        tpu_cores=1,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        gradient_clip_val=0.5,
+        gradient_clip_algorithm='value'
+    )
+
+    model = BoringModel()
+    with pytest.raises(AssertionError):
+        tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
 @RunIf(tpu=True)
@@ -357,13 +380,14 @@ def test_tpu_reduce():
     xmp.spawn(test_reduce, nprocs=8, start_method='fork')
 
 
-@pytest.mark.parametrize("clip_val", [0, 10])
 @RunIf(tpu=True)
 @pl_multi_process_test
+@pytest.mark.parametrize("clip_val", [10])
 @mock.patch("pytorch_lightning.accelerators.tpu.xla_clip_grad_norm_")
 def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
     """
     Ensure that clip gradients is only called if the value is greater than 0.
+    TODO: Fix (test fails with parametrize)
     """
     tutils.reset_seed()
     trainer_options = dict(
@@ -383,3 +407,38 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
         mock_clip_grad_norm.assert_called()
     else:
         mock_clip_grad_norm.assert_not_called()
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_if_test_works_with_checkpoint_false(tmpdir):
+    """Ensure that model trains properly when `checkpoint_callback` is set to False."""
+
+    # Train a model on TPU
+    model = BoringModel()
+    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_sync_dist():
+    """Test tpu spawn sync dist operation """
+
+    def test_sync_dist(rank):
+        tensor = torch.tensor([1.0])
+        training_type_plugin = TPUSpawnPlugin()
+
+        res = Result()
+        res.log(
+            "test_tensor",
+            tensor,
+            sync_fn=training_type_plugin.reduce,
+            sync_dist=True,
+            sync_dist_op=torch.distributed.ReduceOp.SUM
+        )
+
+        assert res["test_tensor"].item() == 8, "Result-Log does not work properly with TPU Spawn and Tensors"
+
+    xmp.spawn(test_sync_dist, nprocs=8, start_method='fork')

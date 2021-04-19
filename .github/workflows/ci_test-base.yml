@@ -16,7 +16,7 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
-        python-version: [3.7]
+        python-version: [3.8]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
@@ -68,7 +68,7 @@ jobs:
     - name: Test Package [only]
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        python -m pytest pytorch_lightning -v --cov=pytorch_lightning --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2

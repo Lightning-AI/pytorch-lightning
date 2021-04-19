@@ -6,20 +6,28 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]
 
 jobs:
+
   pytest:
 
     runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-18.04, windows-2019, macOS-10.15]
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8, 3.9]
         requires: ['minimal', 'latest']
+        exclude:
+          - python-version: 3.9
+            requires: 'minimal'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 35  # TODO: the macOS is taking too long, probably caching did not work...
+    # TODO: the macOS is taking too long, probably caching did not work...
+    timeout-minutes: 40
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -27,7 +35,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Update Pip
+    - name: Update pip
       run: |
         # todo: unfreeze PIP after resolving minimal dependencies
         pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
@@ -47,6 +55,19 @@ jobs:
         lines = [line for line in open(fname).readlines() if not line.startswith('horovod')]
         open(fname, 'w').writelines(lines)
       shell: python
+
+    # todo: re-enable when allow testing py 3.9 with min config, atm some Hydra issues
+    #- name: Adjust minimal for Python 3.9
+    #  if: matrix.requires == 'minimal' && matrix.python-version == 3.9
+    #  run: |
+    #    import re
+    #    def _req(fname, ptn, ver):
+    #        req = re.sub(ptn, ver, open(fname).read())
+    #        open(fname, 'w').write(req)
+    #
+    #    _req('requirements.txt', r'torch>=[\d\.]+', 'torch>=1.8.0')
+    #    _req('requirements/extra.txt', r'onnxruntime>=[\d\.]+', 'onnxruntime>=1.7.0')
+    #  shell: python
 
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
@@ -84,7 +105,6 @@ jobs:
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
     - name: Pull checkpoints from S3
-      # todo: consider adding some caching, but ATM all models have less then 100KB
       run: |
         cd legacy
         # wget is simpler but does not work on Windows
@@ -92,6 +112,13 @@ jobs:
         ls -l .
         unzip -o checkpoints.zip
         ls -l checkpoints/
+
+    # todo: re-enable testing with Horovod
+    - name: py3.9 - temp skip Horovod
+      if: matrix.python-version == 3.9
+      run: |
+        # pip uninstall -y horovod
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
 
     - name: Install dependencies
       env:
@@ -112,7 +139,8 @@ jobs:
       shell: bash
 
     - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows'
+      # todo: re-enable horovod on py3.9 when it will be supported
+      if: runner.os != 'windows' && matrix.python-version != 3.9
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
       run: |
@@ -134,7 +162,7 @@ jobs:
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        python -m pytest pytorch_lightning tests --cov=pytorch_lightning -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Examples
       run: |

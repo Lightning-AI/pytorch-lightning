@@ -28,11 +28,11 @@ FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
 
 try:
-    from pytorch_lightning import info
+    from pytorch_lightning import __about__ as info
 except ImportError:
     # alternative https://stackoverflow.com/a/67692/4521646
     sys.path.append(os.path.join(PATH_ROOT, "pytorch_lightning"))
-    import info
+    import __about__ as info
 
 # -- Project documents -------------------------------------------------------
 
@@ -178,8 +178,8 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 # documentation.
 
 html_theme_options = {
-    'pytorch_project': info.__homepage__,
-    'canonical_url': info.__homepage__,
+    'pytorch_project': 'https://pytorchlightning.ai',
+    'canonical_url': info.__docs_url__,
     'collapse_navigation': False,
     'display_version': True,
     'logo_only': False,
@@ -331,9 +331,11 @@ PACKAGE_MAPPING = {
     'comet-ml': 'comet_ml',
     'neptune-client': 'neptune',
     'hydra-core': 'hydra',
+    'pyDeprecate': 'deprecate',
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
+    MOCK_PACKAGES += ['fairscale']
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements', 'extra.txt'))
@@ -387,6 +389,6 @@ from pytorch_lightning.utilities import (
     _TORCHVISION_AVAILABLE,
     _module_available,
 )
-TORCHVISION_AVAILABLE = _module_available("torchvision")
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 """
 coverage_skip_undoc_in_source = True

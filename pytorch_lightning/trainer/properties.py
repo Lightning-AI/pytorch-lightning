@@ -199,13 +199,7 @@ class TrainerProperties(ABC):
     @classmethod
     def default_attributes(cls) -> dict:
         init_signature = inspect.signature(cls)
-
-        args = {}
-        for param_name in init_signature.parameters:
-            value = init_signature.parameters[param_name].default
-            args[param_name] = value
-
-        return args
+        return {k: v.default for k, v in init_signature.parameters.items()}
 
     @classmethod
     def get_deprecated_arg_names(cls) -> List:
@@ -490,6 +484,16 @@ class TrainerProperties(ABC):
             self._running_stage = RunningStage.SANITY_CHECKING
         elif self.sanity_checking:
             self._running_stage = None
+
+    @property
+    def _setup_state(self) -> TrainerState:
+        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
+        return TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+
+    @property
+    def _teardown_state(self) -> Optional[TrainerState]:
+        if self.state.running:
+            return self._setup_state
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

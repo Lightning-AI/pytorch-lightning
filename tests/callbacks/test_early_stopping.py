@@ -128,7 +128,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
 
         def validation_epoch_end(self, outputs):
             loss = self.validation_return_values[self.current_epoch]
-            return {"test_val_loss": loss}
+            self.log("test_val_loss", loss)
 
     model = ModelOverrideValidationReturn()
     early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
@@ -213,47 +213,64 @@ def test_early_stopping_no_val_step(tmpdir):
     assert trainer.current_epoch < trainer.max_epochs - 1
 
 
-def test_early_stopping_functionality(tmpdir):
+@pytest.mark.parametrize("stopping_threshold,divergence_theshold,losses,expected_epoch", [
+    (None, None, [8, 4, 2, 3, 4, 5, 8, 10], 5),
+    (2.9, None, [9, 8, 7, 6, 5, 6, 4, 3, 2, 1], 8),
+    (None, 15.9, [9, 4, 2, 16, 32, 64], 3),
+])
+def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_theshold, losses, expected_epoch):
 
     class CurrentModel(BoringModel):
 
         def validation_epoch_end(self, outputs):
-            losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
-            self.log('abc', torch.tensor(val_loss))
+            self.log('abc', val_loss)
 
     model = CurrentModel()
-
+    early_stopping = EarlyStopping(
+        monitor='abc',
+        stopping_threshold=stopping_threshold,
+        divergence_threshold=divergence_theshold,
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor='abc')],
+        callbacks=[early_stopping],
         overfit_batches=0.20,
         max_epochs=20,
     )
     trainer.fit(model)
-    assert trainer.current_epoch == 5, 'early_stopping failed'
+    assert trainer.current_epoch == expected_epoch, 'early_stopping failed'
 
 
-def test_early_stopping_functionality_arbitrary_key(tmpdir):
-    """Tests whether early stopping works with a custom key and dictionary results on val step."""
+@pytest.mark.parametrize("stop_value", [
+    torch.tensor(np.inf),
+    torch.tensor(np.nan),
+])
+def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
+
+    losses = [4, 3, stop_value, 2, 1]
+    expected_stop_epoch = 2
 
     class CurrentModel(BoringModel):
 
         def validation_epoch_end(self, outputs):
-            losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
-            return {'jiraffe': torch.tensor(val_loss)}
+            self.log('val_loss', val_loss)
 
     model = CurrentModel()
-
+    early_stopping = EarlyStopping(
+        monitor='val_loss',
+        check_finite=True,
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor='jiraffe')],
+        callbacks=[early_stopping],
         overfit_batches=0.20,
-        max_epochs=20,
+        max_epochs=10,
     )
     trainer.fit(model)
-    assert trainer.current_epoch >= 5, 'early_stopping failed'
+    assert trainer.current_epoch == expected_stop_epoch
+    assert early_stopping.stopped_epoch == expected_stop_epoch
 
 
 @pytest.mark.parametrize('step_freeze, min_steps, min_epochs', [(5, 1, 1), (5, 1, 3), (3, 15, 1)])
@@ -272,7 +289,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
         when `early_stopping` is being triggered,
     THEN the highest between `min_epochs * len(train_dataloader)` and `min_steps` would be reached.
 
-    Caviat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)
+    Caveat: IF min_steps is divisible by len(train_dataloader), then it will do min_steps + len(train_dataloader)
 
     This test validate those expected behaviours
     """
@@ -309,7 +326,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
                 self._count_decrease += 1
                 self._loss_value -= self._eps
             self._values.append(_mean)
-            return {"test_val_loss": _mean}
+            self.log('test_val_loss', _mean)
 
     model = Model(step_freeze)
     model.training_step_end = None

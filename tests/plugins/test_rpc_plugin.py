@@ -19,6 +19,7 @@ from tests.helpers.runif import RunIf
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
+        "SLURM_PROCID": "0",
         "SLURM_LOCALID": "0",
     },
 )

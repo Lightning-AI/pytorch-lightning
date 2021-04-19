@@ -15,11 +15,14 @@
 from unittest import mock
 
 import pytest
+import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers import BoringModel
@@ -78,6 +81,11 @@ def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
     trainer.callbacks = [NewSignature(), ValidSignature1(), ValidSignature2()]
     with no_warning_call(DeprecationWarning):
         trainer.save_checkpoint(filepath)
+
+
+def test_v1_5_0_legacy_profiler_argument():
+    with pytest.deprecated_call(match="renamed to `record_functions` in v1.3"):
+        PyTorchProfiler(profiled_functions=[])
 
 
 def test_v1_5_0_running_sanity_check():
@@ -203,3 +211,34 @@ def test_v1_5_0_old_on_test_epoch_end(tmpdir):
     model = NewSignatureModel()
     with no_deprecated_call(match="`ModelHooks.on_test_epoch_end` signature has changed in v1.3."):
         trainer.test(model)
+
+
+@pytest.mark.parametrize("cls", (BaseProfiler, SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
+def test_v1_5_0_profiler_output_filename(tmpdir, cls):
+    filepath = str(tmpdir / "test.txt")
+    with pytest.deprecated_call(match="`output_filename` parameter has been removed"):
+        profiler = cls(output_filename=filepath)
+    assert profiler.dirpath == tmpdir
+    assert profiler.filename == "test"
+
+
+def test_v1_5_0_trainer_training_trick_mixin(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
+    trainer.fit(model)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.print_nan_gradients()
+
+    dummy_loss = torch.tensor(1.0)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.detect_nan_tensors(dummy_loss)
+
+
+def test_v1_5_0_auto_move_data():
+    with pytest.deprecated_call(match="deprecated in v1.3 and will be removed in v1.5.*was applied to `bar`"):
+
+        class Foo:
+
+            @auto_move_data
+            def bar(self):
+                pass
