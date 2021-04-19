@@ -108,11 +108,14 @@ class TrainerDataLoadingMixin(ABC):
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
     def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
-
         # don't do anything if it's not a dataloader
         is_dataloader = isinstance(dataloader, DataLoader)
         # don't manipulate iterable datasets
         is_iterable_ds = has_iterable_dataset(dataloader)
+
+        if isinstance(dataloader, CombinedLoader):
+            dataloader.loaders = apply_to_collection(dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle)
+            return dataloader
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
@@ -339,6 +342,7 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
 
         # add samplers
+        print("HERE", dataloaders[0], dataloaders[0].sampler)
         dataloaders = [self.auto_add_sampler(dl, shuffle=False) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes

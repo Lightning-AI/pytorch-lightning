@@ -15,7 +15,11 @@ from collections import Sequence
 
 import pytest
 import torch
-from torch.utils.data import TensorDataset
+from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data.dataset import Dataset
+from pytorch_lightning import LightningDataModule, Trainer
+from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 from pytorch_lightning.trainer.supporters import (
     _nested_calc_num_data,
@@ -237,3 +241,36 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
     calculated_length = _nested_calc_num_data(input_data, compute_func)
 
     assert calculated_length == expected_length
+
+
+@RunIf(min_gpus=2, special=True)
+def test_combined_data_loader_validation_test(tmpdir):
+
+    class CustomDataset(Dataset):
+
+        def __init__(self, data):
+            self.data = data
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, index):
+            return self.data[index]
+
+    class CustomDataModule(LightningDataModule):
+
+        def val_dataloader(self) -> CombinedLoader:
+            return CombinedLoader({"a": DataLoader(CustomDataset(range(10)))})
+
+    class CustomModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            v = batch['a']
+            assert (v + int(self.trainer.global_rank == 1)) % 2 == 0
+            
+
+    model = CustomModel()
+    model.validation_epoch_end = None
+    dm = CustomDataModule()
+    trainer = Trainer(max_epochs=1, accelerator="ddp", gpus=2, logger=False)
+    trainer.fit(model, datamodule=dm)
