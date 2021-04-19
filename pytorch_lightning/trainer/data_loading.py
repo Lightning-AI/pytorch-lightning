@@ -342,7 +342,6 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
 
         # add samplers
-        print("HERE", dataloaders[0], dataloaders[0].sampler)
         dataloaders = [self.auto_add_sampler(dl, shuffle=False) for dl in dataloaders if dl is not None]
 
         # add worker_init_fn for correct seeding in worker processes
