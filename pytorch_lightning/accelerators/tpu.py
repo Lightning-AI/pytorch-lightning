@@ -67,7 +67,7 @@ class TPUAccelerator(Accelerator):
             return
 
         if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
-            self.precision_plugin.clip_grad_by_value(optimizer, clip_val)
+            self.precision_plugin.clip_grad_by_value(optimizer, grad_clip_val)
         elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
             parameters = self.model.parameters()
             # TODO: there should be a mechanism to set `norm_type`
