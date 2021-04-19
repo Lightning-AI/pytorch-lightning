@@ -20,3 +20,9 @@ Community Examples
 - `Pytorch-Forecasting: Time series forecasting package <https://github.com/jdb78/pytorch-forecasting>`_.
 - `Transformers masked language modeling <https://github.com/yang-zhang/lightning-language-modeling>`_.
 - `Pytorch Geometric Examples with Pytorch Lightning and Hydra <https://github.com/tchaton/lightning-geometric>`_.
+
+
+Pytorch Ecosystem Examples
+==========================
+
+- `Pytorch Geometric: Deep learning on Graphs and other irregular structures <https://github.com/rusty1s/pytorch_geometric/tree/master/examples/pytorch_lightning>`_.
