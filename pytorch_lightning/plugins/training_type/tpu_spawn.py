@@ -101,7 +101,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def connect(self, model: 'pl.LightningModule') -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
-        self._model = xmp.MpModelWrapper(LightningDistributedModule(model))
+        self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
     def setup(self, model: Module) -> Module:
@@ -169,7 +169,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def model_to_device(self) -> None:
         self.device = xm.xla_device()
-        self.model.to(self.device)
+        self.model = self.wrapped_model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
         rendezvous(name)
