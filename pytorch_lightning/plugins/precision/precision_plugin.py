@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Generator, Sequence, Tuple, Union
+from typing import Any, Callable, Iterator, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -116,7 +116,7 @@ class PrecisionPlugin(Plugin):
             self.clip_grad_by_value(optimizer, clip_val)
         elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
             # TODO: there should be a mechanism to set `norm_type`
-            self.clip_grad_by_norm(optimizer, clip_val, eps=self.EPSILON)
+            self.clip_grad_by_norm(optimizer, clip_val)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by value"""
