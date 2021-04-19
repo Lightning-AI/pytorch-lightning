@@ -34,7 +34,9 @@ TBroadcast = TypeVar("T")
 
 
 class TrainingTypePlugin(Plugin, ABC):
-    """A Plugin to change the behaviour of the training, validation and test-loop."""
+    """
+    Base class for all training type plugins that change the behaviour of the training, validation and test-loop.
+    """
 
     def __init__(self) -> None:
         self._model = None
@@ -284,3 +286,7 @@ class TrainingTypePlugin(Plugin, ABC):
     @call_configure_sharded_model_hook.setter
     def call_configure_sharded_model_hook(self, mode: bool) -> None:
         self._call_configure_sharded_model_hook = mode
+
+    @classmethod
+    def register_plugins(cls, plugin_registry):
+        pass

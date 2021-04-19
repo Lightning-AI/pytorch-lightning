@@ -12,39 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, Callable, Generator, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, List, Tuple, Union
 
 import torch
+from torch import Tensor
+from torch.nn import Module
+from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
-
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.optim import Optimizer
-
-    from pytorch_lightning.core import LightningModule
+from pytorch_lightning.utilities.types import _PARAMETERS
 
 
 class PrecisionPlugin(Plugin):
-    """ Plugin handling the precision-specific parts of the training.
+    """
+    Base class for all plugins handling the precision-specific parts of the training.
     The static classattributes EPSILON and precision must be overwritten in child-classes and their
     default values reflect fp32 training.
     """
     EPSILON: float = 1e-6
     precision: Union[str, int] = 32
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.clip_grad_funcs = {
-            GradClipAlgorithmType.VALUE: self.clip_grad_by_value,
-            GradClipAlgorithmType.NORM: self.clip_grad_by_norm,
-        }
-
-    def master_params(self, optimizer: 'Optimizer') -> Generator[torch.Tensor, None, None]:
-        """The master params of the model. Returns the plain model params here.
+    def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
+        """
+        The master params of the model. Returns the plain model params here.
         Maybe different in other precision plugins.
-
         """
         for group in optimizer.param_groups:
             for p in group["params"]:
@@ -52,23 +45,23 @@ class PrecisionPlugin(Plugin):
 
     def connect(
         self,
-        model: 'Module',
-        optimizers: Sequence['Optimizer'],
-        lr_schedulers: Sequence[Any],
-    ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
+        model: Module,
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
     def backward(
         self,
-        model: 'LightningModule',
-        closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
+        model: 'pl.LightningModule',
+        closure_loss: Tensor,
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         """performs the actual backpropagation
 
         Args:
@@ -94,8 +87,8 @@ class PrecisionPlugin(Plugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'LightningModule',
-        optimizer: 'Optimizer',
+        pl_module: 'pl.LightningModule',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
@@ -103,13 +96,12 @@ class PrecisionPlugin(Plugin):
         """Hook to do something before each optimizer step."""
         return True
 
-    def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Hook to do something after each optimizer step."""
 
     def clip_gradients(
         self,
-        model: 'LightningModule',
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
@@ -121,24 +113,25 @@ class PrecisionPlugin(Plugin):
         if clip_val <= 0:
             return
 
-        clip_grad_func = self.clip_grad_funcs[gradient_clip_algorithm]
-        clip_grad_func(optimizer, clip_val)  # type: ignore
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            self.clip_grad_by_value(optimizer, clip_val)
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
+            # TODO: there should be a mechanism to set `norm_type`
+            self.clip_grad_by_norm(optimizer, clip_val, eps=self.EPSILON)
 
-    def clip_grad_by_value(self, optimizer: 'Optimizer', clip_val: Union[int, float]) -> None:
+    def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by value"""
-        parameters = list(self.master_params(optimizer))
+        parameters = self.master_params(optimizer)
         torch.nn.utils.clip_grad_value_(parameters, clip_value=clip_val)
 
-    def clip_grad_by_norm(self, optimizer: 'Optimizer', clip_val: Union[int, float], norm_type: float = 2.0) -> None:
+    def clip_grad_by_norm(
+        self, optimizer: Optimizer, clip_val: Union[int, float], norm_type: float = 2.0, eps: float = 1e-6
+    ) -> None:
         """Clip gradients by norm"""
-        # TODO: separate TPU case from here
-        parameters = list(self.master_params(optimizer))
-        max_norm = clip_val
+        parameters = self.master_params(optimizer)
 
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
+        # TODO: replace this with torch.nn.clip_grad_norm_
         parameters = list(filter(lambda p: p.grad is not None, parameters))
-
         device = parameters[0].device
 
         if norm_type == math.inf:
@@ -149,9 +142,7 @@ class PrecisionPlugin(Plugin):
                 torch.norm(p.grad.data.to(device), norm_type, out=out[i])
             total_norm = torch.norm(out, norm_type)
 
-        eps = self.EPSILON
-
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
+        clip_coef = torch.tensor(clip_val, device=device) / (total_norm + eps)
         clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
         for p in parameters:
             p.grad.data.mul_(clip_coef.to(p.grad.data.device))

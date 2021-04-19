@@ -130,7 +130,7 @@ So you can run it like so:
 
     if __name__ == '__main__':
         parser = ArgumentParser()
-        parser = Trainer.add_argparse_args()
+        parser = Trainer.add_argparse_args(parser)
         args = parser.parse_args()
 
         main(args)
@@ -144,8 +144,8 @@ So you can run it like so:
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
     The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown, including
-    running callbacks such as ``on_train_end``. The trainer object will also set an attribute
-    ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
+    running accelerator callback ``on_train_end`` to clean up memory. The trainer object will also set
+    an attribute ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
     resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs.
 
 ------------
@@ -171,33 +171,6 @@ Once you're done training, feel free to run the test set!
 .. code-block:: python
 
     trainer.test(test_dataloaders=test_dataloaders)
-
-------------
-
-Deployment / prediction
------------------------
-You just trained a LightningModule which is also just a torch.nn.Module.
-Use it to do whatever!
-
-.. code-block:: python
-
-    # load model
-    pretrained_model = LightningModule.load_from_checkpoint(PATH)
-    pretrained_model.freeze()
-
-    # use it for finetuning
-    def forward(self, x):
-        features = pretrained_model(x)
-        classes = classifier(features)
-
-    # or for prediction
-    out = pretrained_model(x)
-    api_write({'response': out}
-
-
-You may wish to run the model on a variety of devices. Instead of moving the data
-manually to the correct device, decorate the forward method (or any other method you use for inference)
-with :func:`~pytorch_lightning.core.decorators.auto_move_data` and Lightning will take care of the rest.
 
 ------------
 
@@ -987,6 +960,26 @@ Trainer will train model for at least min_steps or min_epochs (latest).
     # Run at least for 100 steps (disable min_epochs)
     trainer = Trainer(min_steps=100, min_epochs=0)
 
+max_time
+^^^^^^^^
+
+Set the maximum amount of time for training. Training will get interrupted mid-epoch.
+For customizable options use the :class:`~pytorch_lightning.callbacks.timer.Timer` callback.
+
+.. testcode::
+
+    # Default (disabled)
+    trainer = Trainer(max_time=None)
+
+    # Stop after 12 hours of training or when reaching 10 epochs (string)
+    trainer = Trainer(max_time="00:12:00:00", max_epochs=10)
+
+    # Stop after 1 day and 5 hours (dict)
+    trainer = Trainer(max_time={"days": 1, "hours": 5})
+
+In case ``max_time`` is used together with ``min_steps`` or ``min_epochs``, the ``min_*`` requirement
+always has precedence.
+
 num_nodes
 ^^^^^^^^^
 
@@ -1098,18 +1091,18 @@ plugins
 
 |
 
-Plugins allow you to connect arbitrary backends, precision libraries, SLURM, etc... For example:
+:ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- DDP
-- SLURM
-- TorchElastic
-- Apex
+- :ref:`DDP <multi_gpu>`
+- `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
+- :ref:`Apex <amp>`
 
-To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own cluster.
+To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
+:class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins.environments import cluster_environment
+    from pytorch_lightning.plugins.environments import ClusterEnvironment
 
     class MyCluster(ClusterEnvironment):
 
@@ -1122,7 +1115,8 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
         def world_size(self):
             return the_world_size
 
-    trainer = Trainer(cluster_environment=cluster_environment())
+    trainer = Trainer(plugins=[MyCluster()], ...)
+
 
 prepare_data_per_node
 ^^^^^^^^^^^^^^^^^^^^^

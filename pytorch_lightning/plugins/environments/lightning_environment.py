@@ -14,9 +14,9 @@
 
 import os
 import socket
-from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class LightningEnvironment(ClusterEnvironment):
@@ -34,6 +34,8 @@ class LightningEnvironment(ClusterEnvironment):
     def __init__(self):
         super().__init__()
         self._master_port = None
+        self._global_rank: int = 0
+        self._world_size: int = 1
 
     def creates_children(self) -> bool:
         return False
@@ -46,8 +48,18 @@ class LightningEnvironment(ClusterEnvironment):
             self._master_port = os.environ.get("MASTER_PORT", find_free_network_port())
         return int(self._master_port)
 
-    def world_size(self) -> Optional[int]:
-        return None
+    def world_size(self) -> int:
+        return self._world_size
+
+    def set_world_size(self, size: int) -> None:
+        self._world_size = size
+
+    def global_rank(self) -> int:
+        return self._global_rank
+
+    def set_global_rank(self, rank: int) -> None:
+        self._global_rank = rank
+        rank_zero_only.rank = rank
 
     def local_rank(self) -> int:
         return int(os.environ.get("LOCAL_RANK", 0))
@@ -55,6 +67,10 @@ class LightningEnvironment(ClusterEnvironment):
     def node_rank(self) -> int:
         group_rank = os.environ.get("GROUP_RANK", 0)
         return int(os.environ.get("NODE_RANK", group_rank))
+
+    def teardown(self) -> None:
+        if "WORLD_SIZE" in os.environ:
+            del os.environ["WORLD_SIZE"]
 
 
 def find_free_network_port() -> int:

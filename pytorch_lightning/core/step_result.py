@@ -21,7 +21,7 @@ import torch
 from torch import Tensor
 from torchmetrics import Metric
 
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
 
 
 class Result(Dict):
@@ -105,10 +105,11 @@ class Result(Dict):
 
         # sync across workers when using distributed training
         sync_fn = sync_fn or sync_ddp_if_available
+
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
             is_dist_initialized = torch.distributed.is_available() and torch.distributed.is_initialized()
             # TODO: Find a way to make the reduction only once, so we don't need to clone.
-            if is_dist_initialized and isinstance(value, torch.Tensor):
+            if (is_dist_initialized or tpu_distributed) and isinstance(value, torch.Tensor):
                 value = value.clone()
             else:
                 value = torch.tensor(value, device=device, dtype=torch.float)
@@ -286,16 +287,12 @@ class Result(Dict):
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
-                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # reset metric anyway so state does not accumulate
-                # NOTE: we must compute before reseting just in case the computed value is needed
-                # later (i.e. if the step metric gets visited first, and then the epoch metric)
+                # compute for reuse later
                 self[k].compute()
-                self[k].reset()
 
         return result
 
@@ -318,16 +315,12 @@ class Result(Dict):
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
-                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # reset metric anyway so state does not accumulate
-                # NOTE: we must compute before reseting just in case the computed value is needed
-                # later (i.e. if the step metric gets visited first, and then the epoch metric)
+                # compute for reuse later
                 self[k].compute()
-                self[k].reset()
 
         return result
 
@@ -347,7 +340,6 @@ class Result(Dict):
             if options['forked']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
-                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
@@ -585,6 +577,14 @@ class Result(Dict):
         This function is used to filter metric keys for which the value isn't a Metric
         """
         return [k for k, v in self.items() if not isinstance(v, Metric)]
+
+    def reset(self) -> None:
+        """
+        Call at the end of epoch to reset all metric objects
+        """
+        for k, value in self.items():
+            if isinstance(value, Metric):
+                value.reset()
 
 
 def choose_last(x):
