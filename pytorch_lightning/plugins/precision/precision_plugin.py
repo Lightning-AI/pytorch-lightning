@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import Any, Callable, Iterator, Sequence, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -22,8 +22,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
-
-PARAMETERS = Iterator[torch.nn.Parameter]
+from pytorch_lightning.utilities.types import _PARAMETERS
 
 
 class PrecisionPlugin(Plugin):
@@ -35,7 +34,7 @@ class PrecisionPlugin(Plugin):
     EPSILON: float = 1e-6
     precision: Union[str, int] = 32
 
-    def master_params(self, optimizer: Optimizer) -> PARAMETERS:
+    def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
         """
         The master params of the model. Returns the plain model params here.
         Maybe different in other precision plugins.
@@ -47,9 +46,9 @@ class PrecisionPlugin(Plugin):
     def connect(
         self,
         model: Module,
-        optimizers: Sequence[Optimizer],
-        lr_schedulers: Sequence[Any],
-    ) -> Tuple[Module, Sequence[Optimizer], Sequence[Any]]:
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
