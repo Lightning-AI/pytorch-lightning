@@ -15,12 +15,10 @@ from collections import Sequence
 
 import pytest
 import torch
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import Dataset
-from pytorch_lightning import LightningDataModule, Trainer
-from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
+from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.trainer.supporters import (
     _nested_calc_num_data,
     CombinedDataset,
@@ -30,6 +28,8 @@ from pytorch_lightning.trainer.supporters import (
     TensorRunningAccum,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_tensor_running_accum_reset():
@@ -245,6 +245,10 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
 
 @RunIf(min_gpus=2, special=True)
 def test_combined_data_loader_validation_test(tmpdir):
+    """
+    This test makes sure distributed sampler has been properly injected in dataloaders
+    when using CombinedLoader
+    """
 
     class CustomDataset(Dataset):
 
@@ -267,7 +271,6 @@ def test_combined_data_loader_validation_test(tmpdir):
         def validation_step(self, batch, batch_idx):
             v = batch['a']
             assert (v + int(self.trainer.global_rank == 1)) % 2 == 0
-            
 
     model = CustomModel()
     model.validation_epoch_end = None
