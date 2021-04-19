@@ -213,7 +213,7 @@ class TransferLearningModel(pl.LightningModule):
         self.fc = nn.Sequential(*_fc_layers)
 
         # 3. Loss:
-        self.loss_func = F.binary_cross_entropy_with_logits
+        self.loss_func = F.binary_cross_entropy
 
     def forward(self, x):
         """Forward pass. Returns logits."""
