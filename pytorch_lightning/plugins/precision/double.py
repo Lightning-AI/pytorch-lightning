@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from functools import wraps
-from typing import Any, List, Tuple
+from typing import Any, Generator, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -90,3 +91,14 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     def post_dispatch(self) -> None:
         while len(self.patches) > 0:
             self.patches.pop().teardown()
+
+    @contextlib.contextmanager
+    def train_step_context(self) -> Generator:
+        """A contextmanager for the trainstep"""
+        torch.set_default_tensor_type(torch.DoubleTensor)
+        yield
+        torch.set_default_tensor_type(torch.FloatTensor)
+
+    val_step_context = train_step_context
+    test_step_context = train_step_context
+    predict_context = train_step_context
