@@ -43,7 +43,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
-from pytorch_lightning.utilities.types import _EPOCH_OUTPUT, _STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 log = logging.getLogger(__name__)
 
@@ -536,7 +536,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args, **kwargs) -> _STEP_OUTPUT:
+    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -602,7 +602,7 @@ class LightningModule(
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
-    def training_step_end(self, *args, **kwargs) -> _STEP_OUTPUT:
+    def training_step_end(self, *args, **kwargs) -> STEP_OUTPUT:
         """
         Use this when training with dp or ddp2 because :meth:`training_step`
         will operate on only part of the batch. However, this is still optional
@@ -664,7 +664,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def training_epoch_end(self, outputs: _EPOCH_OUTPUT) -> None:
+    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called at the end of the training epoch with the outputs of all training steps.
         Use this in case you need to do something with all the outputs for every training_step.
@@ -705,7 +705,7 @@ class LightningModule(
                     # do something here
         """
 
-    def validation_step(self, *args, **kwargs) -> Optional[_STEP_OUTPUT]:
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -792,7 +792,7 @@ class LightningModule(
             the model goes back to training mode and gradients are enabled.
         """
 
-    def validation_step_end(self, *args, **kwargs) -> Optional[_STEP_OUTPUT]:
+    def validation_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """
         Use this when validating with dp or ddp2 because :meth:`validation_step`
         will operate on only part of the batch. However, this is still optional
@@ -846,7 +846,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def validation_epoch_end(self, outputs: _EPOCH_OUTPUT) -> None:
+    def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -891,7 +891,7 @@ class LightningModule(
                     self.log('final_metric', final_value)
         """
 
-    def test_step(self, *args, **kwargs) -> Optional[_STEP_OUTPUT]:
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
@@ -967,7 +967,7 @@ class LightningModule(
             to training mode and gradients are enabled.
         """
 
-    def test_step_end(self, *args, **kwargs) -> Optional[_STEP_OUTPUT]:
+    def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """
         Use this when testing with dp or ddp2 because :meth:`test_step` will operate
         on only part of the batch. However, this is still optional
@@ -1021,7 +1021,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def test_epoch_end(self, outputs: _EPOCH_OUTPUT) -> None:
+    def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called at the end of a test epoch with the output of all test steps.
 
