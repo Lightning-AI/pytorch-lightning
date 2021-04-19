@@ -195,6 +195,9 @@ class CheckpointConnector:
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
 
+        if 'logger' in checkpoint:
+            self.trainer.logger = checkpoint['logger']
+
     # ----------------------------------
     # PRIVATE OPS
     # ----------------------------------
@@ -303,6 +306,9 @@ class CheckpointConnector:
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
+
+            # dump logger
+            checkpoint['logger'] = self.trainer.logger
 
         # dump hyper-parameters
         if model.hparams:

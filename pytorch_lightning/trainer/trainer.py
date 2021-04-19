@@ -525,6 +525,10 @@ class Trainer(
     def pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
 
+        # restore training and model before hpc is called
+        # doing it here allows the logger to be restored
+        self.checkpoint_connector.restore_weights()
+
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started (this is where the first experiment logs are written)
@@ -576,9 +580,6 @@ class Trainer(
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             ref_model.summarize(mode=self.weights_summary)
-
-        # restore training and model before hpc is called
-        self.checkpoint_connector.restore_weights()
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
