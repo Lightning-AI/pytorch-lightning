@@ -121,7 +121,7 @@ class DDPPlugin(ParallelPlugin):
     def _call_children_scripts(self):
 
         # bookkeeping of spawned processes
-        assert self.global_rank == 0
+        assert self.local_rank == 0
         self._check_can_spawn_children()
         self._has_spawned_children = True
 
