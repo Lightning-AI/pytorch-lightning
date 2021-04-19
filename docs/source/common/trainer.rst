@@ -174,33 +174,6 @@ Once you're done training, feel free to run the test set!
 
 ------------
 
-Deployment / prediction
------------------------
-You just trained a LightningModule which is also just a torch.nn.Module.
-Use it to do whatever!
-
-.. code-block:: python
-
-    # load model
-    pretrained_model = LightningModule.load_from_checkpoint(PATH)
-    pretrained_model.freeze()
-
-    # use it for finetuning
-    def forward(self, x):
-        features = pretrained_model(x)
-        classes = classifier(features)
-
-    # or for prediction
-    out = pretrained_model(x)
-    api_write({'response': out}
-
-
-You may wish to run the model on a variety of devices. Instead of moving the data
-manually to the correct device, decorate the forward method (or any other method you use for inference)
-with :func:`~pytorch_lightning.core.decorators.auto_move_data` and Lightning will take care of the rest.
-
-------------
-
 Reproducibility
 ---------------
 

@@ -486,53 +486,14 @@ class LightningModule(
 
     def forward(self, *args, **kwargs) -> Any:
         r"""
-        Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define
-        the operations you want to use for prediction (i.e.: on a server or as a feature extractor).
-
-        Normally you'd call ``self()`` from your :meth:`training_step` method.
-        This makes it easy to write a complex system for training with the outputs
-        you'd want in a prediction setting.
-
-        You may also find the :func:`~pytorch_lightning.core.decorators.auto_move_data` decorator useful
-        when using the module outside Lightning in a production setting.
+        Same as :meth:`torch.nn.Module.forward()`.
 
         Args:
             *args: Whatever you decide to pass into the forward method.
             **kwargs: Keyword arguments are also possible.
 
         Return:
-            Predicted output
-
-        Examples::
-
-            # example if we were using this model as a feature extractor
-            def forward(self, x):
-                feature_maps = self.convnet(x)
-                return feature_maps
-
-            def training_step(self, batch, batch_idx):
-                x, y = batch
-                feature_maps = self(x)
-                logits = self.classifier(feature_maps)
-
-                # ...
-                return loss
-
-            # splitting it this way allows model to be used a feature extractor
-            model = MyModelAbove()
-
-            inputs = server.get_request()
-            results = model(inputs)
-            server.write_results(results)
-
-            # -------------
-            # This is in stark contrast to torch.nn.Module where normally you would have this:
-            def forward(self, batch):
-                x, y = batch
-                feature_maps = self.convnet(x)
-                logits = self.classifier(feature_maps)
-                return logits
-
+            Your model's output
         """
         return super().forward(*args, **kwargs)
 
@@ -1074,7 +1035,17 @@ class LightningModule(
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
         """
-        Use this function with trainer.predict(...). Override if you need to add any processing logic.
+        Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
+        By default, it calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`.
+        Override to add any processing logic.
+
+        Args:
+            batch: Current batch
+            batch_idx: Index of current batch
+            dataloader_idx: Index of the current dataloader
+
+        Return:
+            Predicted output
         """
         return self(batch)
 
