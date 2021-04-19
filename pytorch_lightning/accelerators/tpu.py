@@ -15,6 +15,7 @@ from typing import Any, Callable
 
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
@@ -26,8 +27,6 @@ if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
     from torch_xla._patched_functions import _apply_patches
     _apply_patches()  # patches torch.nn.utils.clip_grad_norm_
-
-import pytorch_lightning as pl
 
 
 class TPUAccelerator(Accelerator):

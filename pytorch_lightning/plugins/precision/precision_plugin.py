@@ -14,12 +14,15 @@
 from typing import Any, Callable, Generator, Sequence, Tuple, Union
 
 import torch
-import torch.nn as nn
+from torch import Tensor
+from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
+
+PARAMETERS = Iterator[torch.nn.Parameter]
 
 
 class PrecisionPlugin(Plugin):
@@ -30,17 +33,10 @@ class PrecisionPlugin(Plugin):
     """
     precision: Union[str, int] = 32
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.clip_grad_funcs = {
-            GradClipAlgorithmType.VALUE: self.clip_grad_by_value,
-            GradClipAlgorithmType.NORM: self.clip_grad_by_norm,
-        }
-
-    def master_params(self, optimizer: Optimizer) -> Generator[torch.Tensor, None, None]:
-        """The master params of the model. Returns the plain model params here.
+    def master_params(self, optimizer: Optimizer) -> PARAMETERS:
+        """
+        The master params of the model. Returns the plain model params here.
         Maybe different in other precision plugins.
-
         """
         for group in optimizer.param_groups:
             for p in group["params"]:
@@ -48,23 +44,23 @@ class PrecisionPlugin(Plugin):
 
     def connect(
         self,
-        model: nn.Module,
+        model: Module,
         optimizers: Sequence[Optimizer],
         lr_schedulers: Sequence[Any],
-    ) -> Tuple[nn.Module, Sequence[Optimizer], Sequence[Any]]:
+    ) -> Tuple[Module, Sequence[Optimizer], Sequence[Any]]:
         """Connects this plugin to the accelerator and the training process"""
         return model, optimizers, lr_schedulers
 
     def backward(
         self,
         model: 'pl.LightningModule',
-        closure_loss: torch.Tensor,
+        closure_loss: Tensor,
         optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         """performs the actual backpropagation
 
         Args:
@@ -104,7 +100,6 @@ class PrecisionPlugin(Plugin):
 
     def clip_gradients(
         self,
-        model: 'pl.LightningModule',
         optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
@@ -117,8 +112,11 @@ class PrecisionPlugin(Plugin):
         if clip_val <= 0:
             return
 
-        clip_grad_func = self.clip_grad_funcs[gradient_clip_algorithm]
-        clip_grad_func(optimizer, clip_val)  # type: ignore
+        if gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
+            self.clip_grad_by_value(optimizer, clip_val)
+        elif gradient_clip_algorithm == GradClipAlgorithmType.NORM:
+            # TODO: there should be a mechanism to set `norm_type`
+            self.clip_grad_by_norm(optimizer, clip_val, eps=self.EPSILON)
 
     def clip_grad_by_value(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         """Clip gradients by value"""

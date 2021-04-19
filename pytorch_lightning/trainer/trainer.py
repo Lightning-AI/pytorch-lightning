@@ -14,6 +14,7 @@
 """Trainer to automate the training."""
 import logging
 import warnings
+from datetime import timedelta
 from itertools import count
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -108,6 +109,7 @@ class Trainer(
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
+        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         limit_train_batches: Union[int, float] = 1.0,
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
@@ -241,6 +243,11 @@ class Trainer(
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
+            max_time: Stop training after this amount of time has passed. Disabled by default (None).
+                The time duration can be specified in the format DD:HH:MM:SS (days, hours, minutes seconds), as a
+                :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
+                :class:`datetime.timedelta`.
+
             num_nodes: number of GPU nodes for distributed training.
 
             num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
@@ -295,7 +302,7 @@ class Trainer(
 
         """
         super().__init__()
-
+        Trainer._log_api_event("init")
         distributed_backend = distributed_backend or accelerator
 
         # init connectors
@@ -332,8 +339,15 @@ class Trainer(
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
-            callbacks, checkpoint_callback, progress_bar_refresh_rate, process_position, default_root_dir,
-            weights_save_path, resume_from_checkpoint, stochastic_weight_avg
+            callbacks,
+            checkpoint_callback,
+            progress_bar_refresh_rate,
+            process_position,
+            default_root_dir,
+            weights_save_path,
+            resume_from_checkpoint,
+            stochastic_weight_avg,
+            max_time,
         )
 
         # hook
@@ -416,6 +430,7 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        Trainer._log_api_event("fit")
         # we reuse fit for other functions. When already set, it shouldn't be modified.
         if not self.state.running:
             self.state = TrainerState.FITTING
@@ -673,7 +688,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_start()
 
         # set up the eval loop
-        self.evaluation_loop.setup(model, max_batches, dataloaders)
+        self.evaluation_loop.setup(max_batches, dataloaders)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_start()
@@ -705,7 +720,7 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # log batch metrics
-                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
+                self.evaluation_loop.log_evaluation_step_metrics(batch_idx)
 
                 # track epoch level outputs
                 dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
@@ -881,6 +896,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        Trainer._log_api_event("validate")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.VALIDATING
@@ -943,6 +959,7 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        Trainer._log_api_event("test")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.TESTING
@@ -1039,6 +1056,7 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         # If you supply a datamodule you can't supply dataloaders
+        Trainer._log_api_event("predict")
 
         model = model or self.lightning_module
 
@@ -1084,6 +1102,7 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        Trainer._log_api_event("tune")
         self.state = TrainerState.TUNING
         self.tuning = True
 
@@ -1174,3 +1193,7 @@ class Trainer(
         if not skip:
             self._cache_logged_metrics()
         return output
+
+    @staticmethod
+    def _log_api_event(event: str) -> None:
+        torch._C._log_api_usage_once("lightning.trainer." + event)
