@@ -544,7 +544,7 @@ class DeepSpeedPlugin(DDPPlugin):
             return current_global_step
 
     @classmethod
-    def register_plugins(cls, plugin_registry):
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
         plugin_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
         plugin_registry.register(
