@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import wraps, partial
-from typing import Any, List, Tuple, Optional, Callable 
+from functools import partial, wraps
+from typing import Any, Callable, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from torch.optim import Optimizer
 from torch import dtype
+from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -52,7 +52,9 @@ class _DoublePrecisionPatch:
         @wraps(old_method)
         def new_method(*args: Any, **kwargs: Any) -> Any:
             _torch_tensor_ref = torch.tensor
-            torch.tensor = partial(DoublePrecisionPlugin.wrapping_function, wrapped_func=torch.tensor, default_dtype=torch.float64)
+            torch.tensor = partial(
+                DoublePrecisionPlugin.wrapping_function, wrapped_func=torch.tensor, default_dtype=torch.float64
+            )
             out = old_method(
                 *_DoublePrecisionPatch._move_float_tensors_to_double(args),
                 **_DoublePrecisionPatch._move_float_tensors_to_double(kwargs)

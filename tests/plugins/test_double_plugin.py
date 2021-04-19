@@ -13,9 +13,6 @@
 # limitations under the License.
 import pytest
 import torch
-from typing import Optional, Callable
-from torch._C import dtype
-from torch.functional import Tensor
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
