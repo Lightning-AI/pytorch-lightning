@@ -45,10 +45,12 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
-from argparse import Namespace
-
 import pytorch_lightning as pl
 
+from argparse import Namespace
+
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 
 if _OMEGACONF_AVAILABLE:
