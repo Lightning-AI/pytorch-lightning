@@ -67,6 +67,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def world_size(self) -> int:
         return self.num_processes
 
+    @property
+    def root_device(self) -> torch.device:
+        return self.device
+
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
         if not isinstance(dataloaders, list):
@@ -128,8 +132,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         pass
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
+        pass
 
     def new_process(self, process_idx: int, trainer, mp_queue) -> None:
         self.mp_queue = mp_queue
@@ -138,7 +141,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if seed is not None:
             seed_everything(int(seed))
 
-        self.set_world_ranks()
+        self.tpu_local_core_rank = xm.get_local_ordinal()
+        self.tpu_global_core_rank = xm.get_ordinal()
 
         # set warning rank
         rank_zero_only.rank = self.global_rank

@@ -280,3 +280,7 @@ class TrainingTypePlugin(Plugin, ABC):
     @call_configure_sharded_model_hook.setter
     def call_configure_sharded_model_hook(self, mode: bool) -> None:
         self._call_configure_sharded_model_hook = mode
+
+    @classmethod
+    def register_plugins(cls, plugin_registry):
+        pass
