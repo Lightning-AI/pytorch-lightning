@@ -515,22 +515,22 @@ def test_dm_init_from_iter_datasets(tmpdir):
     valid_dss = [DummyIDS(), DummyIDS()]
     test_dss = [DummyIDS(), DummyIDS()]
 
-    dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0, shuffle=False)
+    dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
     assert torch.all(next(iter(dm.train_dataloader())) == torch.ones(4))
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
-    dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0, shuffle=False)
+    dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0)
     assert torch.all(next(iter(dm.train_dataloader()[0])) == torch.ones(4))
     assert torch.all(next(iter(dm.train_dataloader()[1])) == torch.ones(4))
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
-    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0, shuffle=False)
+    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0)
     assert torch.all(next(iter(dm.val_dataloader())) == torch.ones(4))
     assert torch.all(next(iter(dm.test_dataloader())) == torch.ones(4))
 
-    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0, shuffle=False)
+    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
     assert torch.all(next(iter(dm.val_dataloader()[0])) == torch.ones(4))
     assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
     assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
