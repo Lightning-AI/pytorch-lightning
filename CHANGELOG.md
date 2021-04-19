@@ -105,7 +105,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added new `EarlyStopping` parameters `stopping_threshold` and `divergence_threshold` ([#6868](https://github.com/PyTorchLightning/pytorch-lightning/pull/6868))
 
 
-- Added `clip_grad_value` support with TPUs ([#7025](https://github.com/PyTorchLightning/pytorch-lightning/pull/7025))
+- Added `clip_grad_value` support for TPUs ([#7025](https://github.com/PyTorchLightning/pytorch-lightning/pull/7025))
 
 
 ### Changed
@@ -137,7 +137,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `pl.seed_everyting` will now also set the seed on the `DistributedSampler` ([#7024](https://github.com/PyTorchLightning/pytorch-lightning/pull/7024))
 
 
-- Changed `clip_grad_norm` to use `torch.nn.utils.clip_grad_norm` ([#7025](https://github.com/PyTorchLightning/pytorch-lightning/pull/7025))
+- Changed `clip_grad_norm` to use `torch.nn.utils.clip_grad_norm_` ([#7025](https://github.com/PyTorchLightning/pytorch-lightning/pull/7025))
 
 
 ### Deprecated
