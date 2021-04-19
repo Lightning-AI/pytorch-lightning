@@ -34,7 +34,7 @@ callback can be used to monitor a validation metric and stop the training when n
 To enable it:
 
 - Import :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback.
-- Log the metric you want to monitor using :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method.
+- Log the metric you want to monitor using :func:`~pytorch_lightning.core.lightning.LightningModule.log` method.
 - Init the callback, and set `monitor` to the logged metric of your choice.
 - Pass the :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback to the :class:`~pytorch_lightning.trainer.trainer.Trainer` callbacks flag.
 
@@ -47,7 +47,7 @@ To enable it:
 
     trainer = Trainer(callbacks=[EarlyStopping(monitor='val_loss')])
 
--   You can customize the callbacks behaviour by changing its parameters.
+You can customize the callbacks behaviour by changing its parameters.
 
 .. testcode::
 
@@ -87,12 +87,6 @@ and change where it is called:
    validation epochs with no improvement, and not the number of training epochs.
    Therefore, with parameters `check_val_every_n_epoch=10` and `patience=3`, the trainer
    will perform at least 40 training epochs before being stopped.
-
-.. seealso::
-    - :class:`~pytorch_lightning.trainer.trainer.Trainer`
-    - :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
-
-----------
 
 .. seealso::
     - :class:`~pytorch_lightning.trainer.trainer.Trainer`
