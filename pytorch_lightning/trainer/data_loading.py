@@ -13,9 +13,10 @@
 # limitations under the License.
 import inspect
 import multiprocessing
+import os
 from abc import ABC
 from copy import deepcopy
-from typing import Iterable, List, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -24,7 +25,7 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
@@ -41,9 +42,9 @@ class TrainerDataLoadingMixin(ABC):
     train_dataloader: DataLoader
     num_training_batches: Union[int, float]
     val_check_batch: float
-    val_dataloaders: List[DataLoader]
+    val_dataloaders: Optional[List[DataLoader]]
     num_val_batches: List[Union[int, float]]
-    test_dataloaders: List[DataLoader]
+    test_dataloaders: Optional[List[DataLoader]]
     num_test_batches: List[Union[int, float]]
     limit_train_batches: Union[int, float]
     overfit_batches: Union[int, float]
@@ -197,7 +198,9 @@ class TrainerDataLoadingMixin(ABC):
 
     def _get_distributed_sampler(self, dataloader, shuffle):
         kwargs = self.distributed_sampler_kwargs
-        kwargs['shuffle'] = shuffle and not self.overfit_batches
+        kwargs["shuffle"] = shuffle and not self.overfit_batches
+        if _TORCH_GREATER_EQUAL_1_6:
+            kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
