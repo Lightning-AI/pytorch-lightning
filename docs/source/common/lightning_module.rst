@@ -602,7 +602,6 @@ For cases like production, you might want to iterate different models inside a L
             loss = F.cross_entropy(y_hat, y)
             acc = FM.accuracy(y_hat, y)
 
-            # loss is tensor. The Checkpoint Callback is monitoring 'checkpoint_on'
             metrics = {'val_acc': acc, 'val_loss': loss}
             self.log_dict(metrics)
             return metrics
@@ -913,30 +912,6 @@ use_amp
 ~~~~~~~
 True if using Automatic Mixed Precision (AMP)
 
-------------
-
-use_ddp
-~~~~~~~
-True if using ddp
-
-------------
-
-use_ddp2
-~~~~~~~~
-True if using ddp2
-
-------------
-
-use_dp
-~~~~~~
-True if using dp
-
-------------
-
-use_tpu
-~~~~~~~
-True if using TPUs
-
 --------------
 
 automatic_optimization
@@ -1071,7 +1046,7 @@ This is the pseudocode to describe how all the hooks are called during a call to
                 val_loop()
 
         # end training epoch
-        outs = training_epoch_end(outs)
+        training_epoch_end(outs)
         on_train_epoch_end(outs)
         on_epoch_end()
 

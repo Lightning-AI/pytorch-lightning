@@ -12,23 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import wraps
-from typing import Any, Sequence, Tuple, TYPE_CHECKING, List
+from typing import Any, List, Sequence, Tuple
 
 import torch
+import torch.nn as nn
+from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.optim import Optimizer
-
 
 class _DoublePrecisionPatch:
     """Class to handle patching of methods in the ``LightningModule`` and subsequent teardown."""
 
-    def __init__(self, model: 'Module', method_name: str, old_method: Any) -> None:
+    def __init__(self, model: nn.Module, method_name: str, old_method: Any) -> None:
         self.model = model
         self.method_name = method_name
         self.old_method = old_method
@@ -44,12 +42,10 @@ class _DoublePrecisionPatch:
 
     @staticmethod
     def _move_float_tensors_to_double(collection: Any) -> Any:
-        return apply_to_collection(
-            collection, torch.Tensor, function=_DoublePrecisionPatch._to_double_precision
-        )
+        return apply_to_collection(collection, torch.Tensor, function=_DoublePrecisionPatch._to_double_precision)
 
     @classmethod
-    def patch(cls, model: 'Module', method_name: str) -> '_DoublePrecisionPatch':
+    def patch(cls, model: nn.Module, method_name: str) -> '_DoublePrecisionPatch':
         old_method = getattr(model, method_name)
 
         @wraps(old_method)
@@ -69,14 +65,15 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     precision: int = 64
 
     def __init__(self) -> None:
+        super().__init__()
         self.patches: List[_DoublePrecisionPatch] = []
 
     def connect(
         self,
-        model: 'Module',
-        optimizers: Sequence['Optimizer'],
+        model: nn.Module,
+        optimizers: Sequence[Optimizer],
         lr_schedulers: Sequence[Any],
-    ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
+    ) -> Tuple[nn.Module, Sequence[Optimizer], Sequence[Any]]:
         """Converts the model to double precision and wraps the `training_step`, `validation_step`, `test_step`,
         `predict_step`, and `forward` methods to convert incoming floating point data to double. Does not alter
         `optimizers` or `lr_schedulers`."""

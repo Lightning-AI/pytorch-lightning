@@ -11,34 +11,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
+import contextlib
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Union
 
 import torch
+from torch import Tensor
+from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.core import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, LightningEnum
+from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 
-if TYPE_CHECKING:
+if _NATIVE_AMP_AVAILABLE:
     from torch.cuda.amp import GradScaler
-
-    from pytorch_lightning.trainer.trainer import Trainer
 
 _STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 
 
-class Accelerator(object):
+class Accelerator:
     """
     The Accelerator Base Class.
     An Accelerator is meant to deal with one type of Hardware.
 
     Currently there are accelerators for:
+
     - CPU
     - GPU
     - TPU
@@ -54,7 +56,6 @@ class Accelerator(object):
         training_type_plugin: TrainingTypePlugin,
     ) -> None:
         """
-
         Args:
             precision_plugin: the plugin to handle precision-specific parts
             training_type_plugin: the plugin to handle different training routines
@@ -66,7 +67,7 @@ class Accelerator(object):
         self.lr_schedulers: Sequence = []
         self.optimizer_frequencies: Sequence = []
 
-    def connect(self, model: LightningModule) -> None:
+    def connect(self, model: 'pl.LightningModule') -> None:
         """Transfers ownership of the model to this plugin"""
         self.training_type_plugin.connect(model)
 
@@ -78,9 +79,10 @@ class Accelerator(object):
         """
         self.training_type_plugin.setup_environment()
 
-    def setup(self, trainer: 'Trainer', model: LightningModule) -> None:
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Setup plugins for the trainer fit and creates optimizers.
+
         Args:
             trainer: the trainer instance
             model: the LightningModule
@@ -90,44 +92,44 @@ class Accelerator(object):
             self.setup_optimizers(trainer)
         self.setup_precision_plugin(self.precision_plugin)
 
-    def start_training(self, trainer: 'Trainer') -> None:
+    def start_training(self, trainer: 'pl.Trainer') -> None:
         self.training_type_plugin.start_training(trainer)
 
-    def start_evaluating(self, trainer: 'Trainer') -> None:
+    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
         self.training_type_plugin.start_evaluating(trainer)
 
-    def start_predicting(self, trainer: 'Trainer') -> None:
+    def start_predicting(self, trainer: 'pl.Trainer') -> None:
         self.training_type_plugin.start_predicting(trainer)
 
-    def pre_dispatch(self, trainer: 'Trainer') -> None:
+    def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.pre_dispatch()
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
         self.precision_plugin.pre_dispatch()
 
-    def post_dispatch(self, trainer: 'Trainer') -> None:
-        """Hook to do something before the training/evaluation/prediction starts."""
+    def post_dispatch(self, trainer: 'pl.Trainer') -> None:
+        """Hook to do something after the training/evaluation/prediction starts."""
         self.training_type_plugin.post_dispatch()
         self.precision_plugin.post_dispatch()
 
     @property
-    def model(self) -> torch.nn.Module:
-        """Returns the model. This can also be a wrapped LightningModule.
+    def model(self) -> Module:
+        """
+        Returns the model. This can also be a wrapped LightningModule.
         For retrieving the pure LightningModule use :attr:`Accelerator.lightning_module`
-
         """
         return self.training_type_plugin.model
 
     @model.setter
-    def model(self, new_model: torch.nn.Module) -> None:
+    def model(self, new_model: Module) -> None:
         self.training_type_plugin.model = new_model
 
     @property
-    def lightning_module(self) -> LightningModule:
-        """Returns the pure LightningModule.
+    def lightning_module(self) -> 'pl.LightningModule':
+        """
+        Returns the pure LightningModule.
         To get the potentially wrapped model use :attr:`Accelerator.model`
-
         """
         return self.training_type_plugin.lightning_module
 
@@ -136,7 +138,8 @@ class Accelerator(object):
         return self.training_type_plugin.root_device
 
     def teardown(self) -> None:
-        """This method is called to teardown the training process.
+        """
+        This method is called to teardown the training process.
         It is the right place to release memory and free other ressources.
         """
         pass
@@ -168,12 +171,13 @@ class Accelerator(object):
 
         Args:
             args: the arguments for the models training step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): Integer displaying index of this batch
-                optimizer_idx (int): When using multiple optimizers, this argument will also be present.
-                hiddens(:class:`~torch.Tensor`): Passed in if
-                    :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
+
+                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                - batch_idx (int): Integer displaying index of this batch
+                - optimizer_idx (int): When using multiple optimizers, this argument will also be present.
+                - hiddens(:class:`~torch.Tensor`): Passed in if
+                  :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         """
         args[0] = self.to_device(args[0])
@@ -189,11 +193,12 @@ class Accelerator(object):
 
         Args:
             args: the arguments for the models validation step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): The index of this batch
-                dataloader_idx (int): The index of the dataloader that produced this batch
-                    (only if multiple val dataloaders used)
+
+                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                - batch_idx (int): The index of this batch
+                - dataloader_idx (int): The index of the dataloader that produced this batch
+                  (only if multiple val dataloaders used)
         """
         batch = self.to_device(args[0])
 
@@ -207,11 +212,12 @@ class Accelerator(object):
 
         Args:
             args: the arguments for the models test step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): The index of this batch.
-                dataloader_idx (int): The index of the dataloader that produced this batch
-                    (only if multiple test dataloaders used).
+
+                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                - batch_idx (int): The index of this batch.
+                - dataloader_idx (int): The index of the dataloader that produced this batch
+                  (only if multiple test dataloaders used).
         """
         batch = self.to_device(args[0])
 
@@ -225,11 +231,13 @@ class Accelerator(object):
 
         Args:
             args: the arguments for the models predict step. Can consist of the following:
-                batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                    The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
-                batch_idx (int): The index of this batch.
-                dataloader_idx (int): The index of the dataloader that produced this batch
-                    (only if multiple predict dataloaders used).
+
+                - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
+                  The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
+                - batch_idx (int): The index of this batch.
+                - dataloader_idx (int): The index of the dataloader that produced this batch
+                  (only if multiple predict dataloaders used).
+
         """
         batch = self.to_device(args[0])
 
@@ -264,13 +272,13 @@ class Accelerator(object):
 
     def backward(
         self,
-        closure_loss: torch.Tensor,
+        closure_loss: Tensor,
         optimizer: Optimizer,
         optimizer_idx: int,
         should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         """Forwards backward-calls to the precision plugin.
 
         Args:
@@ -314,10 +322,14 @@ class Accelerator(object):
         model_ref = self.lightning_module
         model_ref.optimizer_zero_grad(current_epoch, batch_idx, optimizer, opt_idx)
 
-    def clip_gradients(self, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
         """clips all the optimizer parameters to the given value"""
-
-        self.precision_plugin.clip_gradients(optimizer, clip_val)
+        self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
     def on_train_epoch_end(self, outputs: Sequence[_STEP_OUTPUT_TYPE]) -> None:
         """Hook to do something on the end of an training epoch
@@ -331,12 +343,12 @@ class Accelerator(object):
         """Hook to do something at the end of the training"""
         pass
 
-    def setup_optimizers(self, trainer: 'Trainer') -> None:
-        """creates optimizers and schedulers
+    def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
+        """
+        Creates optimizers and schedulers
 
         Args:
             trainer: the Trainer, these optimizers should be connected to
-            model: the model to be optimized by the created optimizers
         """
         if trainer.state not in (TrainerState.FITTING, TrainerState.TUNING):
             return
@@ -347,7 +359,7 @@ class Accelerator(object):
         self.lr_schedulers = lr_schedulers
         self.optimizer_frequencies = optimizer_frequencies
 
-    def setup_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+    def setup_training_type_plugin(self, plugin: TrainingTypePlugin, model: 'pl.LightningModule') -> None:
         """Attaches the training type plugin to the accelerator."""
         plugin.setup(model)
 
@@ -381,21 +393,20 @@ class Accelerator(object):
 
     @property
     def scaler(self) -> Optional['GradScaler']:
-
         return getattr(self.precision_plugin, 'scaler', None)
 
     @property
     def rpc_enabled(self) -> bool:
         return self.training_type_plugin.rpc_enabled
 
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, torch.Tensor]:
+    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """
         Returns state of an optimizer. Allows for syncing/collating optimizer state from processes in custom
         plugins.
         """
         return getattr(self.training_type_plugin, 'optimizer_state', lambda x: x.state_dict())(optimizer)
 
-    def on_save(self, checkpoint: Dict[str, Union[Any, torch.Tensor]]) -> Dict[str, Union[Any, torch.Tensor]]:
+    def on_save(self, checkpoint: Dict[str, Union[Any, Tensor]]) -> Dict[str, Union[Any, Tensor]]:
         return self.training_type_plugin.on_save(checkpoint)
 
     def barrier(self, name: Optional[str] = None) -> None:
@@ -410,7 +421,7 @@ class Accelerator(object):
         """
         return self.training_type_plugin.broadcast(obj, src)
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """
         Function to gather a tensor from several distributed processes.
 
@@ -418,6 +429,7 @@ class Accelerator(object):
             tensor: tensor of shape (batch, ...)
             group: the process group to gather results from. Defaults to all processes (world)
             sync_grads: flag that allows users to synchronize gradients for all_gather op
+
         Return:
             A tensor of shape (world_size, batch, ...)
         """
@@ -439,8 +451,21 @@ class Accelerator(object):
         """
         return self.training_type_plugin.results
 
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator[None, None, None]:
+        """
+        Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
+        shard the model instantly - useful for extremely large models. Can save memory and
+        initialization time.
+
+        Returns:
+            Model parallel context.
+        """
+        with self.training_type_plugin.model_sharded_context():
+            yield
+
     # todo: remove in v1.5
-    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: LightningModule) -> None:
+    def connect_training_type_plugin(self, plugin: TrainingTypePlugin, model: 'pl.LightningModule') -> None:
         """
         Attaches the training type plugin to the accelerator.
         Also transfers ownership of the model to this plugin
@@ -466,3 +491,42 @@ class Accelerator(object):
             ' It will be removed in v1.5.'
         )
         self.setup_precision_plugin(plugin)
+
+    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
+        """Save model/training states as a checkpoint file through state-dump and file-write.
+
+        Args:
+            checkpoint: dict containing model and trainer state
+            filepath: write-target file's path
+        """
+        self.training_type_plugin.save_checkpoint(checkpoint, filepath)
+
+    @property
+    def call_configure_sharded_model_hook(self) -> bool:
+        """
+        Allow model parallel hook to be called in suitable environments determined by the training type plugin.
+        This is useful for when we want to shard the model once within fit.
+
+        Returns:
+            True if we want to call the model parallel setup hook.
+        """
+        return self.training_type_plugin.call_configure_sharded_model_hook
+
+    @call_configure_sharded_model_hook.setter
+    def call_configure_sharded_model_hook(self, mode: bool) -> None:
+        self.training_type_plugin.call_configure_sharded_model_hook = mode
+
+    @property
+    def setup_optimizers_in_pre_dispatch(self) -> bool:
+        """
+        Override to delay setting optimizers and schedulers till after dispatch.
+        This is useful when the `TrainingTypePlugin` requires operating on the wrapped accelerator model.
+        However this may break certain precision plugins such as APEX which require optimizers to be set.
+
+        Returns:
+            If True, delay setup optimizers until `pre_dispatch`, else call within `setup`.
+        """
+        return self.training_type_plugin.setup_optimizers_in_pre_dispatch
+
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        return self.training_type_plugin.update_global_step(total_batch_idx, current_global_step)

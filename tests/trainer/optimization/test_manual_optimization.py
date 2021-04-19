@@ -29,7 +29,7 @@ from tests.helpers.runif import RunIf
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_multiple_optimizers_manual(tmpdir):
+def test_multiple_optimizers_manual_no_return(tmpdir):
     """
     Tests that only training_step can be used
     """
@@ -68,8 +68,9 @@ def test_multiple_optimizers_manual(tmpdir):
             assert torch.all(self.layer.weight.grad == 0)
 
         def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
+            # outputs is empty as training_step does not return
+            # and it is not automatic optimization
+            assert len(outputs) == 0
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -279,8 +280,9 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
             assert torch.all(self.layer.weight.grad == 0)
 
         def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
+            # outputs is empty as training_step does not return
+            # and it is not automatic optimization
+            assert len(outputs) == 0
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -310,7 +312,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1, amp_apex=True)
-def test_multiple_optimizers_manual_apex(tmpdir):
+def test_multiple_optimizers_manual_apex_no_return(tmpdir):
     """
     Tests that only training_step can be used
     """
@@ -353,8 +355,9 @@ def test_multiple_optimizers_manual_apex(tmpdir):
             assert torch.all(self.layer.weight.grad == 0)
 
         def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
+            # outputs is empty as training_step does not return
+            # and it is not automatic optimization
+            assert len(outputs) == 0
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -638,6 +641,8 @@ def test_multiple_optimizers_step(tmpdir):
             opt_b.step()
             opt_b.zero_grad()
 
+            return {'loss1': loss_1, 'loss2': loss_2}
+
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
             assert len(outputs) == 2
@@ -724,10 +729,6 @@ def test_step_with_optimizer_closure(tmpdir):
             weight_after = self.layer.weight.clone()
             assert not torch.equal(weight_before, weight_after)
 
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
@@ -788,10 +789,6 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
             else:
                 assert self.layer.weight.grad is not None
 
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
@@ -845,10 +842,6 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
             opt.step(closure=optimizer_closure)
             opt.zero_grad()
 
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
             return optimizer
@@ -872,7 +865,6 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     step_mock.assert_has_calls(expected_calls)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @patch("torch.optim.Adam.step")
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, mock_adam_step, tmpdir):
@@ -923,10 +915,6 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             if batch_idx % 4 == 0:
                 opt_dis.step(closure=dis_closure)
                 opt_dis.zero_grad()
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
 
         def configure_optimizers(self):
             optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -1031,10 +1019,6 @@ class TesManualOptimizationDDPModel(BoringModel):
         # therefore, no gradient accumulation for discriminator
         if make_dis_optimizer_step:
             opt_dis.step(closure=dis_closure)
-
-    def training_epoch_end(self, outputs) -> None:
-        # outputs should be an array with an entry per optimizer
-        assert len(outputs) == 2
 
     def configure_optimizers(self):
         optimizer_gen = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -1148,3 +1132,41 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
 @RunIf(min_gpus=2, special=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
     train_manual_optimization(tmpdir, "ddp", model_cls=TestManualOptimizationDDPModelToggleModel)
+
+
+def test_lr_schedulers(tmpdir):
+    """
+    Test `lr_schedulers()` returns the same objects
+    in the same order as `configure_optimizers()` returns.
+    """
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            scheduler_1, scheduler_2 = self.lr_schedulers()
+            assert scheduler_1 is self.scheduler_1
+            assert scheduler_2 is self.scheduler_2
+
+        def configure_optimizers(self):
+            optimizer_1 = torch.optim.SGD(self.parameters(), lr=0.1)
+            optimizer_2 = torch.optim.SGD(self.parameters(), lr=0.1)
+            self.scheduler_1 = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
+            self.scheduler_2 = torch.optim.lr_scheduler.StepLR(optimizer_2, step_size=1)
+            return [optimizer_1, optimizer_2], [self.scheduler_1, self.scheduler_2]
+
+    model = TestModel()
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+    )
+
+    trainer.fit(model)

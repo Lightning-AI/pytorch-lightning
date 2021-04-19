@@ -17,8 +17,9 @@ from warnings import warn
 
 from torch.utils.data import DataLoader, random_split
 
-from pl_examples import _DATASETS_PATH, _TORCHVISION_AVAILABLE, _TORCHVISION_MNIST_AVAILABLE
+from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE
 from pytorch_lightning import LightningDataModule
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib

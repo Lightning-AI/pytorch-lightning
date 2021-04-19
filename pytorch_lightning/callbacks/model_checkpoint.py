@@ -202,7 +202,6 @@ class ModelCheckpoint(Callback):
         self.best_model_path = ""
         self.last_model_path = ""
         self.save_function = None
-        self.warned_result_obj = False
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
@@ -216,7 +215,9 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer)
         self.save_function = trainer.save_checkpoint
 
-    def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
+    def on_train_batch_end(
+        self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         """ Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps` """
         if self._should_skip_saving_checkpoint(trainer):
             return
@@ -226,7 +227,7 @@ class ModelCheckpoint(Callback):
             return
         self.save_checkpoint(trainer)
 
-    def on_validation_end(self, trainer, *args, **kwargs) -> None:
+    def on_validation_end(self, trainer, pl_module) -> None:
         """
         checkpoints can be saved at the end of the val loop
         """
@@ -590,7 +591,7 @@ class ModelCheckpoint(Callback):
             m = (
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                 f" {list(metrics.keys())}. "
-                f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
+                f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
             raise MisconfigurationException(m)
 

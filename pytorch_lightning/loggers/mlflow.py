@@ -29,11 +29,24 @@ LOCAL_FILE_URI_PREFIX = "file:"
 _MLFLOW_AVAILABLE = _module_available("mlflow")
 try:
     import mlflow
-    from mlflow.tracking import MlflowClient
+    from mlflow.tracking import context, MlflowClient
 # todo: there seems to be still some remaining import error with Conda env
 except ImportError:
     _MLFLOW_AVAILABLE = False
-    mlflow, MlflowClient = None, None
+    mlflow, MlflowClient, context = None, None, None
+
+# before v1.1.0
+if hasattr(context, 'resolve_tags'):
+    from mlflow.tracking.context import resolve_tags
+
+
+# since v1.1.0
+elif hasattr(context, 'registry'):
+    from mlflow.tracking.context.registry import resolve_tags
+else:
+
+    def resolve_tags(tags=None):
+        return tags
 
 
 class MLFlowLogger(LightningLoggerBase):
@@ -78,6 +91,8 @@ class MLFlowLogger(LightningLoggerBase):
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
         prefix: A string to put at the beginning of metric keys.
+        artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
+            default.
 
     Raises:
         ImportError:
@@ -93,6 +108,7 @@ class MLFlowLogger(LightningLoggerBase):
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
+        artifact_location: Optional[str] = None,
     ):
         if mlflow is None:
             raise ImportError(
@@ -109,6 +125,8 @@ class MLFlowLogger(LightningLoggerBase):
         self._run_id = None
         self.tags = tags
         self._prefix = prefix
+        self._artifact_location = artifact_location
+
         self._mlflow_client = MlflowClient(tracking_uri)
 
     @property
@@ -129,10 +147,13 @@ class MLFlowLogger(LightningLoggerBase):
                 self._experiment_id = expt.experiment_id
             else:
                 log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
-                self._experiment_id = self._mlflow_client.create_experiment(name=self._experiment_name)
+                self._experiment_id = self._mlflow_client.create_experiment(
+                    name=self._experiment_name,
+                    artifact_location=self._artifact_location,
+                )
 
         if self._run_id is None:
-            run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=self.tags)
+            run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
         return self._mlflow_client
 

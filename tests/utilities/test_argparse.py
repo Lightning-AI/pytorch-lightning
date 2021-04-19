@@ -7,7 +7,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.argparse import (
-    _gpus_arg_default,
+    _gpus_allowed_type,
     _int_or_float_type,
     add_argparse_args,
     from_argparse_args,
@@ -205,9 +205,9 @@ def test_add_argparse_args_no_argument_group():
     assert args.my_parameter == 2
 
 
-def test_gpus_arg_default():
-    assert _gpus_arg_default('1,2') == '1,2'
-    assert _gpus_arg_default('1') == 1
+def test_gpus_allowed_type():
+    assert _gpus_allowed_type('1,2') == '1,2'
+    assert _gpus_allowed_type('1') == 1
 
 
 def test_int_or_float_type():

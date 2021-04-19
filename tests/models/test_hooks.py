@@ -19,7 +19,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.trainer.states import TrainerState
-from tests.helpers import BoringModel, RandomDataset, BoringDataModule
+from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
@@ -99,7 +99,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
             self.len_outputs = 0
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
-            self.len_outputs = len(outputs[0])
+            self.len_outputs = len(outputs)
 
     class OverriddenModel(BoringModel):
 
@@ -515,6 +515,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
     """Test the LightningDataModule hook system."""
 
     class HookedDataModule(BoringDataModule):
+
         def __init__(self):
             super().__init__()
             self.called = []
@@ -574,23 +575,10 @@ def test_trainer_datamodule_hook_system(tmpdir):
     trainer.fit(model, datamodule=dm)
 
     expected = [
-        'prepare_data',
-        'setup_fit',
-        'val_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'train_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'val_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
+        'prepare_data', 'setup_fit', 'val_dataloader', 'on_before_batch_transfer', 'transfer_batch_to_device',
+        'on_after_batch_transfer', 'train_dataloader', 'on_before_batch_transfer', 'transfer_batch_to_device',
+        'on_after_batch_transfer', 'on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer',
+        'val_dataloader', 'on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer',
         'teardown_fit'
     ]
     assert dm.called == expected
@@ -599,13 +587,8 @@ def test_trainer_datamodule_hook_system(tmpdir):
     trainer.validate(model, datamodule=dm, verbose=False)
 
     expected = [
-        'prepare_data',
-        'setup_validate',
-        'val_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'teardown_validate'
+        'prepare_data', 'setup_validate', 'val_dataloader', 'on_before_batch_transfer', 'transfer_batch_to_device',
+        'on_after_batch_transfer', 'teardown_validate'
     ]
     assert dm.called == expected
 
@@ -613,12 +596,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
     trainer.test(model, datamodule=dm, verbose=False)
 
     expected = [
-        'prepare_data',
-        'setup_test',
-        'test_dataloader',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'teardown_test'
+        'prepare_data', 'setup_test', 'test_dataloader', 'on_before_batch_transfer', 'transfer_batch_to_device',
+        'on_after_batch_transfer', 'teardown_test'
     ]
     assert dm.called == expected
