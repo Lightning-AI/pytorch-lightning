@@ -19,9 +19,9 @@ MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
 ARG LIGHTNING_VERSION=""
 
-COPY ./ /workspace/pytorch-lightning/
+RUN python -c "import torch ; print(torch.__version__)" >> torch_version.info
 
-ENV TORCH_VERSION=$(python -c "import torch ; print(torch.__version__)")
+COPY ./ /workspace/pytorch-lightning/
 
 RUN \
     cd /workspace  && \
@@ -41,13 +41,16 @@ RUN \
     pip install -r ./pytorch-lightning/requirements/extra.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install ./pytorch-lightning --no-cache-dir && \
-    pip install "Pillow>=8.1" "torchtext>=0.9.1" ipython[all] --no-cache-dir --upgrade-strategy only-if-needed && \
+    pip install "Pillow>=8.1" --no-cache-dir --upgrade-strategy only-if-needed && \
     rm -rf pytorch-lightning
 
-RUN python --version && \
+RUN \
+    TORCH_VERSION=$(cat torch_version.info) && \
+    rm torch_version.info && \
+    python --version && \
     pip --version && \
     pip list && \
-    python -c "import torch; assert torch.__version__ == '$TORCH_VERSION', torch.__version__" && \
+    python -c "import torch; assert torch.__version__ == '$TORCH_VERSION', f'got: `{torch.__version__}` instead of `$TORCH_VERSION`'" && \
     python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
 # CMD ["/bin/bash"]
