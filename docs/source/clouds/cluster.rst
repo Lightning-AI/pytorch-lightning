@@ -239,7 +239,8 @@ See also the multi-node examples
     )
 
 
-The other option is that you generate scripts on your own via a bash command or use another library.
+The other option is that you generate scripts on your own via a bash command or use our
+:doc:`native solution <../clouds/cloud_training>`.
 
 ----------
 
