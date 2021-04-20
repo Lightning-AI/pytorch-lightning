@@ -1645,8 +1645,6 @@ class LightningModule(
             "arg1": 1
             "arg3": 3.14
         """
-        if not frame:
-            frame = inspect.currentframe().f_back
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
