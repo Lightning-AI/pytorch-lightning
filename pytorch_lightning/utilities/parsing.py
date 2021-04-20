@@ -168,7 +168,7 @@ def save_hyperparameters(
     ignore: Optional[Union[Sequence[str], str]] = None,
     frame: Optional[types.FrameType] = None
 ) -> None:
-    """See :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters`"""
+    """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
     if not frame:
         frame = inspect.currentframe().f_back
     init_args = get_init_args(frame)
