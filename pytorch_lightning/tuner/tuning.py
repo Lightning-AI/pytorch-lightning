@@ -28,7 +28,7 @@ from pytorch_lightning.tuner.lr_finder import lr_find
 
 class Tuner:
 
-    def __init__(self, trainer: Trainer):
+    def __init__(self, trainer: 'Trainer'):
         self.trainer = trainer
 
     def on_trainer_init(self, auto_lr_find: Union[str, bool], auto_scale_batch_size: Union[str, bool]) -> None:
