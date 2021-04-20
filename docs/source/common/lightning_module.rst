@@ -698,6 +698,12 @@ log_dict
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.log_dict
     :noindex:
 
+manual_backward
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
+    :noindex:
+
 print
 ~~~~~
 
@@ -916,7 +922,10 @@ True if using Automatic Mixed Precision (AMP)
 
 automatic_optimization
 ~~~~~~~~~~~~~~~~~~~~~~
-When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling your optimizers. However, we do take care of precision and any accelerators used.
+When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling
+your optimizers. However, we do take care of precision and any accelerators used.
+
+See :ref:`manual optimization<common/optimizers:Manual optimization>` for details.
 
 .. code-block:: python
 
@@ -931,7 +940,9 @@ When set to ``False``, Lightning does not automate the optimization process. Thi
         self.manual_backward(loss)
         opt.step()
 
-This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter. Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
+This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note
+that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter.
+Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
 
 .. code-block:: python
 
@@ -1085,13 +1096,6 @@ get_progress_bar_dict
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
     :noindex:
-
-manual_backward
-~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
-    :noindex:
-
 
 on_after_backward
 ~~~~~~~~~~~~~~~~~

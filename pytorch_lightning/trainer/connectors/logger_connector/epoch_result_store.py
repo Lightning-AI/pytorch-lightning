@@ -233,6 +233,18 @@ class HookResultStore:
 
         self.has_reduced = True
 
+    def reset(self) -> None:
+        """
+        Call at the end of epoch to reset Result objects
+        """
+        for dl_idx in range(self.num_dataloaders):
+            epoch_metrics = self._internals[dl_idx] if not self.has_reduced else self._internals_reduced[dl_idx]
+            if self._internal_type == ResultStoreType.INSIDE_BATCH_TRAIN_LOOP:
+                for opt_idx in list(epoch_metrics):
+                    epoch_metrics[opt_idx].reset()
+            else:
+                epoch_metrics.reset()
+
     def __getitem__(self, key: str) -> Any:
         return self._internals.get(key, None)
 
@@ -262,6 +274,7 @@ class EpochResultStore:
         _should_warn = trainer.accelerator_connector.is_distributed
         _should_warn &= not trainer.training_type_plugin.rpc_enabled
         self._should_warn = _should_warn
+        self._internals = {}
 
         self.reset()
 
@@ -442,7 +455,9 @@ class EpochResultStore:
     def get_forked_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_forked_metrics")
 
-    def reset(self):
+    def reset(self) -> None:
+        for k, value in self._internals.items():
+            value.reset()
         self._internals = {}
         self._dataloader_idx: Optional[int] = None
         self._split_idx: Optional[int] = None

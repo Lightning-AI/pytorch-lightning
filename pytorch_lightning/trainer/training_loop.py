@@ -472,6 +472,7 @@ class TrainLoop:
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
             self.trainer.batch_idx = batch_idx
+            self.trainer.is_last_batch = is_last_batch
 
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
@@ -748,9 +749,7 @@ class TrainLoop:
         return batch_outputs
 
     def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
+        """Wrap forward, zero_grad and backward in a closure so second order methods work"""
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
