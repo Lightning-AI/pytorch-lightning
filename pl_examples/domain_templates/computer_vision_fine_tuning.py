@@ -213,7 +213,7 @@ class TransferLearningModel(pl.LightningModule):
         self.fc = nn.Sequential(*_fc_layers)
 
         # 3. Loss:
-        self.loss_func = F.binary_cross_entropy
+        self.loss_func = F.binary_cross_entropy_with_logits
 
     def forward(self, x):
         """Forward pass. Returns logits."""
@@ -222,10 +222,10 @@ class TransferLearningModel(pl.LightningModule):
         x = self.feature_extractor(x)
         x = x.squeeze(-1).squeeze(-1)
 
-        # 2. Classifier (returns logits):
+        # 2. Classifier (returns scores):
         x = self.fc(x)
 
-        return torch.sigmoid(x)
+        return x
 
     def loss(self, logits, labels):
         return self.loss_func(input=logits, target=labels)
@@ -233,11 +233,12 @@ class TransferLearningModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # 1. Forward pass:
         x, y = batch
-        y_logits = self.forward(x)
+        y_scores = self.forward(x)
+        y_logits = torch.sigmoid(y_scores)
         y_true = y.view((-1, 1)).type_as(x)
 
         # 2. Compute loss
-        train_loss = self.loss(y_logits, y_true)
+        train_loss = self.loss(y_scores, y_true)
 
         # 3. Compute accuracy:
         self.log("train_acc", self.train_acc(y_logits, y_true.int()), prog_bar=True)
@@ -247,11 +248,12 @@ class TransferLearningModel(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         # 1. Forward pass:
         x, y = batch
-        y_logits = self.forward(x)
+        y_scores = self.forward(x)
+        y_logits = torch.sigmoid(y_scores)
         y_true = y.view((-1, 1)).type_as(x)
 
         # 2. Compute loss
-        self.log("val_loss", self.loss(y_logits, y_true), prog_bar=True)
+        self.log("val_loss", self.loss(y_scores, y_true), prog_bar=True)
 
         # 3. Compute accuracy:
         self.log("val_acc", self.valid_acc(y_logits, y_true.int()), prog_bar=True)
