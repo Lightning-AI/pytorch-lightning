@@ -40,8 +40,8 @@ PyTorch Lightning follows the design of `PyTorch distributed communication packa
 - *NODE_RANK* - required; id of the node in the cluster
 
 
-Training script design
-----------------------
+Training script setup
+---------------------
 
 To train a model using multiple nodes, do the following:
 
