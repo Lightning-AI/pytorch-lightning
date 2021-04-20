@@ -272,7 +272,7 @@ class ModelPruning(Callback):
         trained = getattr(module, tensor_name)
         orig = getattr(orig_module, tensor_name)
         if trained is None or orig is None:
-            return None
+            return
         trained.data = orig.data.to(trained.device)
 
     def apply_lottery_ticket_hypothesis(self) -> None:
@@ -293,7 +293,7 @@ class ModelPruning(Callback):
             dst = getattr(new, name)
             src = getattr(old, name)
             if dst is None or src is None or not isinstance(dst, torch.Tensor) or not isinstance(src, torch.Tensor):
-                return None
+                return
             dst.data = src.data.to(dst.device)
 
         if self._original_layers is None:
@@ -388,7 +388,7 @@ class ModelPruning(Callback):
         prune = self._apply_pruning(current_epoch) if callable(self._apply_pruning) else self._apply_pruning
         amount = self.amount(current_epoch) if callable(self.amount) else self.amount
         if not prune or not amount:
-            return None
+            return
         self.apply_pruning(amount)
 
         if (
@@ -402,8 +402,12 @@ class ModelPruning(Callback):
             rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint.")
             self.make_pruning_permanent(pl_module)
 
-    def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: LightningModule,
-                           checkpoint: Dict[str, Any],) -> Dict[str, Any]:
+    def on_save_checkpoint(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: LightningModule,
+        checkpoint: Dict[str, Any],
+    ) -> Dict[str, Any]:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint.")
             prev_device = pl_module.device

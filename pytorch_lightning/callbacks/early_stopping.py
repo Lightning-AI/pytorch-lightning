@@ -157,7 +157,7 @@ class EarlyStopping(Callback):
     def on_validation_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         from pytorch_lightning.trainer.states import TrainerState
         if trainer.state != TrainerState.FITTING or trainer.sanity_checking:
-            return None
+            return
 
         self._run_early_stopping_check(trainer)
 
@@ -172,7 +172,7 @@ class EarlyStopping(Callback):
             trainer.fast_dev_run  # disable early_stopping with fast_dev_run
             or not self._validate_condition_metric(logs)  # short circuit if metric not present
         ):
-            return None  # short circuit if metric not present
+            return  # short circuit if metric not present
 
         current = logs[self.monitor]
 

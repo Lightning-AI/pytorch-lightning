@@ -325,7 +325,7 @@ class BackboneFinetuning(BaseFinetuning):
                 If LightningModule has no nn.Module `backbone` attribute.
         """
         if hasattr(pl_module, "backbone") and isinstance(pl_module.backbone, Module):
-            return None
+            return
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 
     def freeze_before_training(self, pl_module: 'pl.LightningModule') -> None:

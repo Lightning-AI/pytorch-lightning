@@ -228,7 +228,7 @@ class ModelCheckpoint(Callback):
         step = trainer.global_step
         skip_batch = self._every_n_train_steps < 1 or ((step + 1) % self._every_n_train_steps != 0)
         if skip_batch:
-            return None
+            return
         self.save_checkpoint(trainer)
 
     def on_validation_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
@@ -548,7 +548,7 @@ class ModelCheckpoint(Callback):
         """
         # Todo: required argument `pl_module` is not used
         if self.dirpath is not None:
-            return None  # short circuit
+            return  # short circuit
 
         if trainer.logger is not None:
             if trainer.weights_save_path != trainer.default_root_dir:
@@ -631,7 +631,7 @@ class ModelCheckpoint(Callback):
 
     def _save_last_checkpoint(self, trainer: 'pl.Trainer', monitor_candidates: Dict[str, Any]) -> None:
         if not self.save_last:
-            return None
+            return
 
         filepath = self._format_checkpoint_name(
             self.CHECKPOINT_NAME_LAST,

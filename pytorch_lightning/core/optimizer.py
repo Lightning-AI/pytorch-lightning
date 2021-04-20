@@ -28,7 +28,7 @@ def is_lightning_optimizer(optimizer: Union['LightningOptimizer', Optimizer, Any
 
 
 def do_nothing_closure() -> None:
-    return None
+    return
 
 
 class LightningOptimizer:
