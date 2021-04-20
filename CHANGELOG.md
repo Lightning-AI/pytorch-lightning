@@ -96,6 +96,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `model` parameter to precision plugins' `clip_gradients` signature ([#6764](https://github.com/PyTorchLightning/pytorch-lightning/pull/6764))
 
 
+- Added `is_last_batch` attribute to `Trainer` ([#6825](https://github.com/PyTorchLightning/pytorch-lightning/pull/6825))
+
+
 - Added `LightningModule.lr_schedulers()` for manual optimization  ([#6567](https://github.com/PyTorchLightning/pytorch-lightning/pull/6567))
 
 
@@ -127,6 +130,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Changed `PyTorchProfiler` to use `torch.autograd.profiler.record_function` to record functions ([#6349](https://github.com/PyTorchLightning/pytorch-lightning/pull/6349))
+
+
+- Disabled `lr_scheduler.step()` in manual optimization  ([#6825](https://github.com/PyTorchLightning/pytorch-lightning/pull/6825))
 
 
 - Changed warnings and recommendations for dataloaders in `ddp_spawn` ([#6762](https://github.com/PyTorchLightning/pytorch-lightning/pull/6762/))

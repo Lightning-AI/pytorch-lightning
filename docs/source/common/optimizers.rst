@@ -35,7 +35,7 @@ To manually optimize, do the following:
   * ``optimizer.step()`` to update your model parameters
 
 Here is a minimal example of manual optimization.
- 
+
 .. testcode:: python
 
     from pytorch_lightning import LightningModule
