@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping,
 import numpy as np
 import torch
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -289,7 +289,7 @@ class LightningLoggerBase(ABC):
             kwargs: Optional keywoard arguments, depends on the specific logger being used
         """
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
         """
         Record model graph
 
@@ -381,7 +381,7 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_hyperparams(params)
 
-    def log_graph(self, model: LightningModule, input_array=None) -> None:
+    def log_graph(self, model: 'pl.LightningModule', input_array=None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 
