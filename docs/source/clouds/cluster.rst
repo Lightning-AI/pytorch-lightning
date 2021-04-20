@@ -2,22 +2,90 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
+*****************
+Computing cluster
+*****************
+
+With Lightning it is easy to run your training script on a computing cluster without almost any modifications to the script.
+In this guide, we cover
+
+1.  General purpose cluster (not managed)
+
+2.  SLURM cluster
+
+3.  Custom cluster environment
+
+4.  General tips for multi-node training
+
+--------
+
+.. _non-slurm:
+
+1. General purpose cluster
+==========================
+
+This guide shows how to run a training job on a general purpose cluster. We recommend beginners to try this method
+first because it requires the least amount of configuration and changes to the code.
+To setup a multi-node computing cluster you need:
+
+1) Multiple computers with PyTorch Lightning installed
+2) A network connectivity between them with firewall rules that allow traffic flow on a specified *MASTER_PORT*.
+3) Defined environment variables on each node required for the PyTorch Lightning multi-node distributed training
+
+PyTorch Lightning follows the design of `PyTorch distributed communication package <https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization>`_. and requires the following environment variables to be defined on each node:
+
+- *MASTER_PORT* - required; has to be a free port on machine with NODE_RANK 0
+- *MASTER_ADDR* - required (except for NODE_RANK 0); address of NODE_RANK 0 node
+- *WORLD_SIZE* - required; how many nodes are in the cluster
+- *NODE_RANK* - required; id of the node in the cluster
+
+
+Training script design
+----------------------
+
+To train a model using multiple nodes, do the following:
+
+1.  Design your :ref:`lightning_module` (no need to add anything specific here).
+
+2.  Enable DDP in the trainer
+
+    .. code-block:: python
+
+       # train on 32 GPUs across 4 nodes
+       trainer = Trainer(gpus=8, num_nodes=4, accelerator='ddp')
+
+
+Submit a job to the cluster
+---------------------------
+
+To submit a training job to the cluster you need to run the same training script on each node of the cluster.
+This means that you need to:
+
+1. Copy all third-party libraries to each node (usually means - distribute requirements.txt file and install it).
+2. Copy all your import dependencies and the script itself to each node.
+3. Run the script on each node.
+
+
+--------
+
+
 .. _slurm:
 
-Computing cluster (SLURM)
-=========================
+2. SLURM managed cluster
+========================
 
-Lightning automates the details behind training on a SLURM-powered cluster.
+Lightning automates the details behind training on a SLURM-powered cluster. In contrast to the general purpose
+cluster above, the user does not start the jobs manually on each node and instead submits it to SLURM which
+schedules the resources and time for which the job is allowed to run.
 
 .. _multi-node:
 
-----------
+Training script design
+----------------------
 
-Multi-node training
--------------------
 To train a model using multiple nodes, do the following:
 
-1.  Design your :doc:`lightning module <../common/lightning_module>`.
+1.  Design your :ref:`lightning_module` (no need to add anything specific here).
 
 2.  Enable DDP in the trainer
 
@@ -94,31 +162,6 @@ To train a model using multiple nodes, do the following:
 
         sbatch submit.sh
 
-.. note::
-    When running in DDP mode, any errors in your code will show up as an NCCL issue.
-    Set the `NCCL_DEBUG=INFO` flag to see the ACTUAL error.
-
-
-Normally now you would need to add a
-:class:`~torch.utils.data.distributed.DistributedSampler` to your dataset, however
-Lightning automates this for you. But if you still need to set a sampler set the Trainer flag
-:paramref:`~pytorch_lightning.Trainer.replace_sampler_ddp` to ``False``.
-
-Here's an example of how to add your own sampler (again, not needed with Lightning).
-
-.. testcode::
-
-    # in your LightningModule
-    def train_dataloader(self):
-        dataset = MyDataset()
-        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-        dataloader = Dataloader(dataset, sampler=dist_sampler)
-        return dataloader
-
-    # in your training script
-    trainer = Trainer(replace_sampler_ddp=False)
-
-----------
 
 Wall time auto-resubmit
 -----------------------
@@ -136,7 +179,6 @@ To get this behavior make sure to add the correct signal to your SLURM script
     # 90 seconds before training ends
     SBATCH --signal=SIGUSR1@90
 
-----------
 
 Building SLURM scripts
 ----------------------
@@ -201,6 +243,81 @@ See also the multi-node examples
 The other option is that you generate scripts on your own via a bash command or use another library.
 
 ----------
+
+
+3. Custom cluster
+=================
+
+Lightning provides an interface for providing your own definition of a cluster environment. It mainly consists of
+parsing the right environment variables to access information such as world size, global and local rank (process id),
+and node rank (node id). Here is an example of a custom
+:class:`~pytorch_lightning.plugins.environment.cluster_environment.ClusterEnvironment`:
+
+.. testcode::
+    import os
+    from pytorch_lightning.plugins.environments import ClusterEnvironment
+
+    class MyClusterEnvironment(ClusterEnvironment):
+
+        def creates_children(self) -> bool:
+            # return True if the cluster is managed (you don't launch processes yourself)
+            return True
+
+        def world_size(self) -> int:
+            return int(os.environ["WORLD_SIZE"])
+
+        def global_rank(self) -> int:
+            return int(os.environ["RANK"])
+
+        def local_rank(self) -> int:
+            return int(os.environ["LOCAL_RANK"])
+
+        def node_rank(self) -> int:
+            return int(os.environ["NODE_RANK"])
+
+        def master_address(self) -> str:
+            return os.environ["MASTER_ADDRESS"]
+
+        def master_port(self) -> int:
+            return int(os.environ["MASTER_PORT"])
+
+
+4. General tips for multi-node training
+=======================================
+
+Debugging flags
+---------------
+
+When running in DDP mode, some errors in your code can show up as an NCCL issue.
+Set the `NCCL_DEBUG=INFO` environment variable to see the ACTUAL error.
+
+.. code-block:: bash
+
+    python NCCL_DEBUG=INFO train.py ...
+
+
+Distributed sampler
+-------------------
+
+Normally now you would need to add a
+:class:`~torch.utils.data.distributed.DistributedSampler` to your dataset, however
+Lightning automates this for you. But if you still need to set a sampler set the Trainer flag
+:paramref:`~pytorch_lightning.Trainer.replace_sampler_ddp` to ``False``.
+
+Here's an example of how to add your own sampler (again, not needed with Lightning).
+
+.. testcode::
+
+    # in your LightningModule
+    def train_dataloader(self):
+        dataset = MyDataset()
+        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+        dataloader = Dataloader(dataset, sampler=dist_sampler)
+        return dataloader
+
+    # in your training script
+    trainer = Trainer(replace_sampler_ddp=False)
+
 
 Self-balancing architecture (COMING SOON)
 -----------------------------------------
