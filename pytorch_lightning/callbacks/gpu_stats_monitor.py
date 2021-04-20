@@ -30,6 +30,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import DeviceType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class GPUStatsMonitor(Callback):
@@ -144,7 +145,7 @@ class GPUStatsMonitor(Callback):
 
     @rank_zero_only
     def on_train_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         if self._log_stats.inter_step_time:

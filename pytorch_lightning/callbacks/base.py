@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
 class Callback(abc.ABC):
@@ -77,7 +78,7 @@ class Callback(abc.ABC):
         pass
 
     def on_train_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         """Called when the train batch ends."""
@@ -87,7 +88,7 @@ class Callback(abc.ABC):
         """Called when the train epoch begins."""
         pass
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: List[Any]) -> None:
+    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT) -> None:
         """Called when the train epoch ends."""
         pass
 
@@ -96,7 +97,7 @@ class Callback(abc.ABC):
         pass
 
     def on_validation_epoch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: List[Any]
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT
     ) -> None:
         """Called when the val epoch ends."""
         pass
@@ -105,7 +106,7 @@ class Callback(abc.ABC):
         """Called when the test epoch begins."""
         pass
 
-    def on_test_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: List[Any]) -> None:
+    def on_test_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT) -> None:
         """Called when the test epoch ends."""
         pass
 
@@ -128,7 +129,7 @@ class Callback(abc.ABC):
         pass
 
     def on_validation_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         """Called when the validation batch ends."""
@@ -141,7 +142,7 @@ class Callback(abc.ABC):
         pass
 
     def on_test_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         """Called when the test batch ends."""

@@ -46,16 +46,15 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import BATCH, EPOCH_OUTPUT, STEP_OUTPUT
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
 _HYPERPARAMS = Union[Namespace, Dict, 'OmegaConf']
 
-_BATCHTYPE = Union[Dict[str, Union[torch.Tensor, Any]], Sequence[Union[torch.Tensor, Any]], torch.Tensor, Any]
-_LRSCHED = Union[Sequence[Any], Sequence[Dict[str, Union[Any, str, int]]]]
-_OPTIM_LR_DICT = Dict[str, Union[Optimizer, _LRSCHED]]
-_BACKWARD_ARGS = Union[None, bool, torch.Tensor, Sequence[torch.Tensor]]
+LRSCHED = Union[Sequence[Any], Sequence[Dict[str, Union[Any, str, int]]]]
+OPTIM_LR_DICT = Dict[str, Union[Optimizer, LRSCHED]]
+BACKWARD_ARGS = Union[None, bool, torch.Tensor, Sequence[torch.Tensor]]
 
 log = logging.getLogger(__name__)
 
@@ -531,27 +530,25 @@ class LightningModule(
         return super().forward(*args, **kwargs)
 
     @overload
-    def training_step(self, batch: '_BATCHTYPE', batch_idx: int) -> Union[torch.Tensor, Dict, None]:
+    def training_step(self, batch: BATCH, batch_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def training_step(self, batch: '_BATCHTYPE', batch_idx: int, optimizer_idx: int) -> Union[torch.Tensor, Dict, None]:
+    def training_step(self, batch: BATCH, batch_idx: int, optimizer_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def training_step(self, batch: '_BATCHTYPE', batch_idx: int,
-                      hiddens: torch.Tensor) -> Union[torch.Tensor, Dict, None]:
+    def training_step(self, batch: BATCH, batch_idx: int, hiddens: torch.Tensor) -> STEP_OUTPUT:
         ...
 
     @overload
-    def training_step(self, batch: '_BATCHTYPE', batch_idx: int, optimizer_idx: int,
-                      hiddens: torch.Tensor) -> Union[torch.Tensor, Dict, None]:
+    def training_step(self, batch: BATCH, batch_idx: int, optimizer_idx: int, hiddens: torch.Tensor) -> STEP_OUTPUT:
         ...
 
     def training_step(
-        self, batch: '_BATCHTYPE', batch_idx: int, *args: Optional[Union[int, torch.Tensor]],
+        self, batch: BATCH, batch_idx: int, *args: Optional[Union[int, torch.Tensor]],
         **kwargs: Optional[Union[int, torch.Tensor]]
-    ) -> Union[torch.Tensor, Dict, None]:
+    ) -> STEP_OUTPUT:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -616,9 +613,9 @@ class LightningModule(
             so it differs from the actual loss returned in train/validation step.
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
-        return None
+        raise NotImplementedError
 
-    def training_step_end(self, batch_part_outputs: Union[List[None], List[Dict], List[torch.Tensor]]) -> Any:
+    def training_step_end(self, batch_part_outputs: STEP_OUTPUT) -> Any:
         """
         Use this when training with dp or ddp2 because :meth:`training_step`
         will operate on only part of the batch. However, this is still optional
@@ -680,7 +677,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def training_epoch_end(self, outputs: Union[List[None], List[torch.Tensor], List[Dict], List[Any]]) -> None:
+    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called at the end of the training epoch with the outputs of all training steps.
         Use this in case you need to do something with all the outputs for every training_step.
@@ -722,14 +719,14 @@ class LightningModule(
         """
 
     @overload
-    def validation_step(self, batch: '_BATCHTYPE', batch_idx: int) -> Union[Any, None]:
+    def validation_step(self, batch: BATCH, batch_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def validation_step(self, batch: '_BATCHTYPE', batch_idx: int, dataloader_idx: int) -> Union[Any, None]:
+    def validation_step(self, batch: BATCH, batch_idx: int, dataloader_idx: int) -> STEP_OUTPUT:
         ...
 
-    def validation_step(self, batch: '_BATCHTYPE', batch_idx: int, *args: int, **kwargs: int) -> Union[Any, None]:
+    def validation_step(self, batch: BATCH, batch_idx: int, *args: int, **kwargs: int) -> STEP_OUTPUT:
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -816,7 +813,7 @@ class LightningModule(
             the model goes back to training mode and gradients are enabled.
         """
 
-    def validation_step_end(self, batch_parts_outputs: Union[List[Any], List[None]]) -> Union[Any, None]:
+    def validation_step_end(self, batch_parts_outputs: STEP_OUTPUT) -> Union[Any, None]:
         """
         Use this when validating with dp or ddp2 because :meth:`validation_step`
         will operate on only part of the batch. However, this is still optional
@@ -870,7 +867,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def validation_epoch_end(self, outputs: Union[List[Any], List[None]]) -> None:
+    def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -916,14 +913,14 @@ class LightningModule(
         """
 
     @overload
-    def test_step(self, batch: '_BATCHTYPE', batch_idx: int) -> Union[Any, None]:
+    def test_step(self, batch: BATCH, batch_idx: int) -> Union[Any, None]:
         ...
 
     @overload
-    def test_step(self, batch: '_BATCHTYPE', batch_idx: int, dataloader_idx: int) -> Union[Any, None]:
+    def test_step(self, batch: BATCH, batch_idx: int, dataloader_idx: int) -> Union[Any, None]:
         ...
 
-    def test_step(self, batch: '_BATCHTYPE', batch_idx: int, *args: int, **kwargs: int) -> Union[Any, None]:
+    def test_step(self, batch: BATCH, batch_idx: int, *args: int, **kwargs: int) -> Union[Any, None]:
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
@@ -999,7 +996,7 @@ class LightningModule(
             to training mode and gradients are enabled.
         """
 
-    def test_step_end(self, batch_part_outputs: Union[List[Any], List[None]]) -> Union[Any, None]:
+    def test_step_end(self, batch_part_outputs: EPOCH_OUTPUT) -> Union[Any, None]:
         """
         Use this when testing with dp or ddp2 because :meth:`test_step` will operate
         on only part of the batch. However, this is still optional
@@ -1053,7 +1050,7 @@ class LightningModule(
             See the :ref:`advanced/multi_gpu:Multi-GPU training` guide for more details.
         """
 
-    def test_epoch_end(self, outputs: Union[List[Any], List[None]]) -> None:
+    def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called at the end of a test epoch with the output of all test steps.
 
@@ -1105,14 +1102,14 @@ class LightningModule(
         """
 
     @overload
-    def predict_step(self, batch: '_BATCHTYPE', batch_idx: int) -> Any:
+    def predict_step(self, batch: BATCH, batch_idx: int) -> STEP_OUTPUT:
         ...
 
     @overload
-    def predict_step(self, batch: '_BATCHTYPE', batch_idx: int, dataloader_idx: int) -> Any:
+    def predict_step(self, batch: BATCH, batch_idx: int, dataloader_idx: int) -> STEP_OUTPUT:
         ...
 
-    def predict_step(self, batch: '_BATCHTYPE', batch_idx: int, *args: int, **kwargs: int) -> Any:
+    def predict_step(self, batch: BATCH, batch_idx: int, *args: int, **kwargs: int) -> STEP_OUTPUT:
         """
         Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
         By default, it calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`.
@@ -1156,8 +1153,8 @@ class LightningModule(
 
     def configure_optimizers(
         self
-    ) -> Union[Optimizer, Sequence[Optimizer], Sequence[Union[Sequence[Optimizer], Sequence['_LRSCHED'],
-                                                              '_OPTIM_LR_DICT']], Sequence['_OPTIM_LR_DICT'], None]:
+    ) -> Union[Optimizer, Sequence[Optimizer], Sequence[Union[Sequence[Optimizer], Sequence[LRSCHED], OPTIM_LR_DICT]],
+               Sequence[OPTIM_LR_DICT], None]:
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
@@ -1272,8 +1269,8 @@ class LightningModule(
         self,
         loss: Tensor,
         optimizer: Optional[Optimizer] = None,
-        *args: ' _BACKWARD_ARGS',
-        **kwargs: '_BACKWARD_ARGS'
+        *args: BACKWARD_ARGS,
+        **kwargs: BACKWARD_ARGS
     ) -> None:
         """
         Call this directly from your training_step when doing optimizations manually.
@@ -1310,8 +1307,7 @@ class LightningModule(
         self._running_manual_backward = False
 
     def backward(
-        self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args: '_BACKWARD_ARGS',
-        **kwargs: '_BACKWARD_ARGS'
+        self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args: BACKWARD_ARGS, **kwargs: BACKWARD_ARGS
     ) -> None:
         """
         Override backward with your own implementation if you need to.

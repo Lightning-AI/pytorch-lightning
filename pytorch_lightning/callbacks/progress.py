@@ -27,6 +27,8 @@ import sys
 # to ensure it won't fail and a progress bar is displayed
 from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 
+from pytorch_lightning.utilities.types import STEP_OUTPUT
+
 if importlib.util.find_spec('ipywidgets') is not None:
     from tqdm.auto import tqdm as _tqdm
 else:
@@ -215,7 +217,7 @@ class ProgressBarBase(Callback):
         self._train_batch_idx = 0
 
     def on_train_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         self._train_batch_idx += 1
@@ -224,7 +226,7 @@ class ProgressBarBase(Callback):
         self._val_batch_idx = 0
 
     def on_validation_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         self._val_batch_idx += 1
@@ -233,7 +235,7 @@ class ProgressBarBase(Callback):
         self._test_batch_idx = 0
 
     def on_test_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         self._test_batch_idx += 1
@@ -242,7 +244,7 @@ class ProgressBarBase(Callback):
         self._predict_batch_idx = 0
 
     def on_predict_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         self._predict_batch_idx += 1
@@ -433,7 +435,7 @@ class ProgressBar(ProgressBarBase):
             self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
 
     def on_train_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -452,7 +454,7 @@ class ProgressBar(ProgressBarBase):
             reset(self.val_progress_bar, self.total_val_batches)
 
     def on_validation_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -476,7 +478,7 @@ class ProgressBar(ProgressBarBase):
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
     def on_test_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
@@ -493,7 +495,7 @@ class ProgressBar(ProgressBarBase):
         self.predict_progress_bar.total = convert_inf(self.total_predict_batches)
 
     def on_predict_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         super().on_predict_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)

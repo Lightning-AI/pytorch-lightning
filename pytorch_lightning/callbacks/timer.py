@@ -26,6 +26,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import LightningEnum
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 log = logging.getLogger(__name__)
 
@@ -146,14 +147,14 @@ class Timer(Callback):
         self._end_time[RunningStage.TESTING] = time.monotonic()
 
     def on_train_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: STEP_OUTPUT, batch: Any, batch_idx: int,
         dataloader_idx: int
     ) -> None:
         if self._interval != Interval.step or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: List[Any]) -> None:
+    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT) -> None:
         if self._interval != Interval.epoch or self._duration is None:
             return
         self._check_time_remaining(trainer)

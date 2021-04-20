@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 if TYPE_CHECKING:
     from pytorch_lightning.trainer.trainer import Trainer
@@ -105,7 +106,7 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop after the batch.
 
@@ -142,7 +143,7 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_validation_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_validation_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the validation loop after the batch.
 
@@ -165,7 +166,7 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_test_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_test_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the test loop after the batch.
 
@@ -216,7 +217,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_train_epoch_end(self, outputs: List[Any]) -> None:
+    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called in the training loop at the very end of the epoch.
         """
@@ -228,7 +229,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_validation_epoch_end(self, outputs: List[Any]) -> None:
+    def on_validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called in the validation loop at the very end of the epoch.
         """
@@ -240,7 +241,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_test_epoch_end(self, outputs: List[Any]) -> None:
+    def on_test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called in the test loop at the very end of the epoch.
         """

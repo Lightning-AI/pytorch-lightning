@@ -31,6 +31,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 log = logging.getLogger(__name__)
 
@@ -51,9 +52,6 @@ _PYTORCH_PRUNING_METHOD = {
 _PARAM_TUPLE = Tuple[nn.Module, str]
 _PARAM_LIST = Sequence[_PARAM_TUPLE]
 _MODULE_CONTAINERS = (LightningModule, nn.Sequential, nn.ModuleList, nn.ModuleDict)
-
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class ModelPruning(Callback):
@@ -386,7 +384,7 @@ class ModelPruning(Callback):
                 self._original_layers.setdefault(id_, {"data": deepcopy(module), "names": []})
                 self._original_layers[id_]["names"].append((i, name))  # type: ignore
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: LightningModule, outputs: List[Any]) -> None:
+    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: LightningModule, outputs: EPOCH_OUTPUT) -> None:
         current_epoch = pl_module.current_epoch
         prune = self._apply_pruning(current_epoch) if callable(self._apply_pruning) else self._apply_pruning
         amount = self.amount(current_epoch) if callable(self.amount) else self.amount
@@ -421,8 +419,8 @@ class ModelPruning(Callback):
     @staticmethod
     def sanitize_parameters_to_prune(
         pl_module: LightningModule,
-        parameters_to_prune: Optional[_PARAM_LIST] = None,
-        parameter_names: Optional[Sequence[str]] = None,
+        parameters_to_prune: _PARAM_LIST = (),
+        parameter_names: Sequence[str] = (),
     ) -> _PARAM_LIST:
         """
         This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``.
@@ -431,7 +429,7 @@ class ModelPruning(Callback):
         Raises:
             MisconfigurationException:
                 If ``parameters_to_prune`` doesn't exist in the model, or
-                if ``parameters_to_prune`` is neither a list of tuple nor ``None``.
+                if ``parameters_to_prune`` is neither a list nor a tuple.
         """
         parameters = parameter_names or ModelPruning.PARAMETER_NAMES
 
