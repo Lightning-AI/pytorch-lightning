@@ -197,17 +197,9 @@ class AverageDataset(Dataset):
     def __init__(self, dataset_len=300, sequence_len=100):
         self.dataset_len = dataset_len
         self.sequence_len = sequence_len
-        self.input_seq = self._generate_data()
+        self.input_seq = torch.randn(dataset_len, sequence_len, 10)
         top, bottom = self.input_seq.chunk(2, -1)
         self.output_seq = top + bottom.roll(shifts=1, dims=-1)
-
-    def _generate_data(self):
-        # generates fixed random data such that every instance of AverageDataset() has the same data
-        old_seed = torch.initial_seed()
-        torch.manual_seed(12)
-        input_seq = torch.randn(self.dataset_len, self.sequence_len, 10)
-        torch.manual_seed(old_seed)
-        return input_seq
 
     def __len__(self):
         return self.dataset_len

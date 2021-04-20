@@ -160,6 +160,7 @@ def lightning_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
     seed_everything(idx)
 
     model = cls_model()
+    dataloader = model.train_dataloader()
     # init model parts
     trainer = Trainer(
         # as the first run is skipped, no need to run it long
@@ -172,6 +173,6 @@ def lightning_loop(cls_model, idx, device_type: str = 'cuda', num_epochs=10):
         logger=False,
         replace_sampler_ddp=False,
     )
-    trainer.fit(model)
+    trainer.fit(model, dataloader)
 
     return trainer.train_loop.running_loss.last().item(), _hook_memory()
