@@ -472,7 +472,6 @@ class TrainLoop:
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
-        val_loop_called = False
 
         batch_idx = None
         is_last_batch = None
@@ -514,7 +513,6 @@ class TrainLoop:
                 self.trainer.validating = True
                 self.trainer._run_evaluation()
                 self.trainer.training = True
-                val_loop_called = True
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
