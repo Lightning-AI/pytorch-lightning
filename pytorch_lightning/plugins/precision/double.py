@@ -94,7 +94,10 @@ class DoublePrecisionPlugin(PrecisionPlugin):
 
     @contextlib.contextmanager
     def tensor_type_context(self) -> Generator:
-        """A contextmanager for the trainstep"""
+        """
+        A context manager to change the default tensor type.
+        See: :meth:`torch.set_default_tensor_type`
+        """
         torch.set_default_tensor_type(torch.DoubleTensor)
         yield
         torch.set_default_tensor_type(torch.FloatTensor)
