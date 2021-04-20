@@ -154,7 +154,7 @@ class StochasticWeightAveraging(Callback):
             raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
 
         if isinstance(self._swa_start, float):
-            self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
+            self._swa_epoch_start = int(trainer.max_epochs * self._swa_start)
 
         self._model_contains_batch_norm = self.pl_module_contains_batch_norm(pl_module)
 

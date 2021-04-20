@@ -20,6 +20,7 @@ import torch
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 
 if TYPE_CHECKING:
@@ -28,7 +29,7 @@ if TYPE_CHECKING:
 
 class ModelHooks:
     """Hooks to be used in LightningModule."""
-    trainer: Optional['Trainer']
+    trainer: Optional['pl.Trainer']
 
     def on_fit_start(self) -> None:
         """

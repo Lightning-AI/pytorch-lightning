@@ -19,13 +19,11 @@ from typing import Any, Callable, Iterable, List, Mapping, Optional, Sequence, T
 
 from torch.utils.data import DataLoader, Dataset
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class _DataModuleWrapper(type):
@@ -163,7 +161,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         self._dims = dims if dims is not None else ()
 
         # Pointer to the trainer object
-        self.trainer: Optional['Trainer'] = None
+        self.trainer: Optional['pl.Trainer'] = None
 
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False

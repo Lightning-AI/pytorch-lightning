@@ -18,11 +18,9 @@ from weakref import proxy
 
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.trainer import Trainer
 
 
 def is_lightning_optimizer(optimizer: Union['LightningOptimizer', Optimizer, Any]) -> bool:
@@ -86,7 +84,7 @@ class LightningOptimizer:
     def param_groups(self, param_groups: List[Dict]) -> None:
         self._optimizer.param_groups = param_groups
 
-    def _on_trainer_init(self, trainer: 'Trainer') -> None:
+    def _on_trainer_init(self, trainer: 'pl.Trainer') -> None:
         self._trainer = proxy(trainer)
         if trainer.optimizers is None: raise ValueError('Expected the trainer to have at least one optimizer, got None')
         for opt_idx, opt in enumerate(trainer.optimizers):
@@ -95,7 +93,7 @@ class LightningOptimizer:
                 break
 
     @classmethod
-    def _to_lightning_optimizer(cls, optimizer: Optimizer, trainer: 'Trainer',
+    def _to_lightning_optimizer(cls, optimizer: Optimizer, trainer: 'pl.Trainer',
                                 opt_idx: Optional[int]) -> Union['LightningOptimizer', Optimizer]:
         # apex overrides .step function and need to be wrapped on each step
         if trainer.amp_backend is not None and trainer.amp_backend == AMPType.APEX:

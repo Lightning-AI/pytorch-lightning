@@ -20,15 +20,13 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.trainer import Trainer
 
 TBroadcast = TypeVar("T")
 
@@ -139,15 +137,15 @@ class TrainingTypePlugin(Plugin, ABC):
     def rpc_enabled(self) -> bool:
         return False
 
-    def start_training(self, trainer: 'Trainer') -> None:
+    def start_training(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the training loop
         self._results = trainer.run_stage()
 
-    def start_evaluating(self, trainer: 'Trainer') -> None:
+    def start_evaluating(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the test loop
         self._results = trainer.run_stage()
 
-    def start_predicting(self, trainer: 'Trainer') -> None:
+    def start_predicting(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the predicting loop
         self._results = trainer.run_stage()
 

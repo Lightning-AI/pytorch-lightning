@@ -369,7 +369,7 @@ class ModelPruning(Callback):
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
-    def on_before_accelerator_backend_setup(self, trainer: 'Trainer', pl_module: LightningModule) -> None:
+    def on_before_accelerator_backend_setup(self, trainer: 'pl.Trainer', pl_module: LightningModule) -> None:
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
         )
@@ -385,7 +385,7 @@ class ModelPruning(Callback):
                 self._original_layers.setdefault(id_, {"data": deepcopy(module), "names": []})
                 self._original_layers[id_]["names"].append((i, name))  # type: ignore
 
-    def on_train_epoch_end(self, trainer: 'Trainer', pl_module: LightningModule, outputs: List[Any]) -> None:
+    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: LightningModule, outputs: List[Any]) -> None:
         current_epoch = pl_module.current_epoch
         prune = self._apply_pruning(current_epoch) if callable(self._apply_pruning) else self._apply_pruning
         amount = self.amount(current_epoch) if callable(self.amount) else self.amount
@@ -399,12 +399,12 @@ class ModelPruning(Callback):
         ):
             self.apply_lottery_ticket_hypothesis()
 
-    def on_train_end(self, trainer: 'Trainer', pl_module: LightningModule) -> None:
+    def on_train_end(self, trainer: 'pl.Trainer', pl_module: LightningModule) -> None:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint.")
             self.make_pruning_permanent(pl_module)
 
-    def on_save_checkpoint(self, trainer: 'Trainer', pl_module: LightningModule,
+    def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: LightningModule,
                            checkpoint: Dict[str, Any]) -> Dict[Any, Any]:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint.")
