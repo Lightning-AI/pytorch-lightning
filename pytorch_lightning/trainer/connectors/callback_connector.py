@@ -13,9 +13,10 @@
 # limitations under the License.
 import os
 from datetime import timedelta
-from typing import List, Union, Optional, Dict
+from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks.predictions import PredictionWriter
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info
@@ -58,6 +59,8 @@ class CallbackConnector:
         # configure swa callback
         self._configure_swa_callbacks()
 
+        # configure the timer callback.
+        # responsible to stop the training when max_time is reached.
         self._configure_timer_callback(max_time)
 
         # init progress bar
@@ -115,12 +118,24 @@ class CallbackConnector:
         if max_time is None:
             return
         if any(isinstance(cb, Timer) for cb in self.trainer.callbacks):
-            rank_zero_info(
-                "Ignoring `Trainer(max_time=...)`, callbacks list already contains a Timer."
-            )
+            rank_zero_info("Ignoring `Trainer(max_time=...)`, callbacks list already contains a Timer.")
             return
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)
+
+    def configure_prediction_writer(self, output_dir: Optional[str], write_interval: Optional[str]) -> None:
+        prediction_writer_index = [
+            idx for idx, c in enumerate(self.trainer.callbacks) if isinstance(c, PredictionWriter)
+        ]
+        if len(prediction_writer_index) > 1:
+            raise MisconfigurationException('You added ``PredictionWriter`` to the Trainer, but currently only one')
+        prediction_writer = PredictionWriter(output_dir, write_interval=write_interval)
+
+        if len(prediction_writer_index) == 1:
+            prediction_writer_index = prediction_writer_index[0]
+            self.trainer.callbacks[prediction_writer_index] = prediction_writer
+        else:
+            self.trainer.callbacks.append(prediction_writer)
 
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0

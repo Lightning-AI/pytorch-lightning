@@ -17,14 +17,17 @@ import os
 from abc import ABC
 from copy import deepcopy
 from functools import partial
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import Sampler
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnRepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -107,7 +110,9 @@ class TrainerDataLoadingMixin(ABC):
         if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
             dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
-    def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
+    def auto_add_sampler(
+        self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
+    ) -> DataLoader:
         # don't do anything if it's not a dataloader
         is_dataloader = isinstance(dataloader, DataLoader)
         # don't manipulate iterable datasets
@@ -133,16 +138,19 @@ class TrainerDataLoadingMixin(ABC):
                 )
 
             # replace with distributed sampler
-            sampler = self._get_distributed_sampler(dataloader, shuffle)
-            dataloader = self.replace_sampler(dataloader, sampler)
+            sampler = self._get_distributed_sampler(dataloader, shuffle, mode=mode)
+            dataloader = self.replace_sampler(dataloader, sampler, mode=mode)
 
         return dataloader
 
     @staticmethod
-    def _resolve_batch_sampler(dl_args, dataloader, sampler):
+    def _resolve_batch_sampler(dl_args, dataloader, sampler, mode: Optional[RunningStage] = None) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
-        if batch_sampler is not None and type(batch_sampler) is not BatchSampler:
-            batch_sampler = type(batch_sampler)(
+        is_predicting = mode == RunningStage.PREDICTING
+        if batch_sampler is not None and type(batch_sampler) is not BatchSampler or mode == RunningStage.PREDICTING:
+            batch_sampler_type = IndexBatchSampler if is_predicting else type(batch_sampler)
+            print(batch_sampler_type)
+            batch_sampler = batch_sampler_type(
                 sampler,
                 batch_size=batch_sampler.batch_size,
                 drop_last=batch_sampler.drop_last,
@@ -159,7 +167,7 @@ class TrainerDataLoadingMixin(ABC):
 
         return dl_args
 
-    def replace_sampler(self, dataloader, sampler):
+    def replace_sampler(self, dataloader, sampler, mode: Optional[RunningStage] = None):
         skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
         skip_signature_keys = ('args', 'kwargs', 'self')
 
@@ -205,12 +213,15 @@ class TrainerDataLoadingMixin(ABC):
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
 
-    def _get_distributed_sampler(self, dataloader, shuffle):
+    def _get_distributed_sampler(self, dataloader, shuffle: bool, mode: Optional[RunningStage] = None) -> Sampler:
         kwargs = self.distributed_sampler_kwargs
         kwargs["shuffle"] = shuffle and not self.overfit_batches
         if _TORCH_GREATER_EQUAL_1_6:
             kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        sampler = DistributedSampler(dataloader.dataset, **kwargs)
+        if mode == RunningStage.PREDICTING:
+            sampler = UnRepeatedDistributedSampler(dataloader.dataset, **kwargs)
+        else:
+            sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
     def reset_train_dataloader(self, model: LightningModule) -> None:
@@ -296,7 +307,7 @@ class TrainerDataLoadingMixin(ABC):
 
         Args:
             model: The current `LightningModule`
-            mode: Either `'val'` or `'test'`
+            mode: Either `'val'`, `'test'` or `'predict'`
 
         Returns:
             Tuple (num_batches, dataloaders)
@@ -342,7 +353,9 @@ class TrainerDataLoadingMixin(ABC):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
 
         # add samplers
-        dataloaders = [self.auto_add_sampler(dl, shuffle=False) for dl in dataloaders if dl is not None]
+        dataloaders = [
+            self.auto_add_sampler(dl, shuffle=False, mode=self._running_stage) for dl in dataloaders if dl is not None
+        ]
 
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)

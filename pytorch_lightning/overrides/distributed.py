@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any
+from typing import Any, List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data import BatchSampler, DistributedSampler
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -75,3 +76,58 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any):
             model.reducer.prepare_for_backward([])
     else:
         model.require_forward_param_sync = False
+
+
+# Taken from https://github.com/jpuigcerver/PyLaia/blob/master/laia/data/unpadded_distributed_sampler.py#L35
+class UnRepeatedDistributedSampler(DistributedSampler):
+    """
+    This sampler doesn't repeat data, instead it
+    allows the number of batches per process to be off-by-one between the ranks.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.num_samples = len(range(self.rank, len(self.dataset), self.num_replicas))
+        self.total_size = len(self.dataset)
+        # If any process has at least one batch, every other process needs to
+        # have at least one batch, or the DistributedDataParallel could lock up.
+        assert self.num_samples >= 1 or self.total_size == 0
+
+    def __iter__(self):
+        if self.shuffle:
+            # deterministically shuffle based on epoch
+            g = torch.Generator()
+            g.manual_seed(self.epoch)
+            indices = torch.randperm(len(self.dataset), generator=g).tolist()
+        else:
+            indices = list(range(len(self.dataset)))
+
+        assert len(indices) == self.total_size
+
+        # subsample
+        indices = indices[self.rank:self.total_size:self.num_replicas]
+        assert len(indices) == self.num_samples
+
+        return iter(indices)
+
+
+class IndexBatchSampler(BatchSampler):
+    """
+    This class is used to capture the batch indices.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.batch_indices: Optional[List[int]] = None
+
+    def __iter__(self):
+        batch = []
+        for idx in self.sampler:
+            batch.append(idx)
+            if len(batch) == self.batch_size:
+                self.batch_indices = batch
+                yield batch
+                batch = []
+        if len(batch) > 0 and not self.drop_last:
+            self.batch_indices = batch
+            yield batch

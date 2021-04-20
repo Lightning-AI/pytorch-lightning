@@ -104,6 +104,14 @@ class Callback(abc.ABC):
         """Called when the test epoch ends."""
         pass
 
+    def on_predict_epoch_start(self, trainer, pl_module: LightningModule) -> None:
+        """Called when the predict epoch begins."""
+        pass
+
+    def on_predict_epoch_end(self, trainer, pl_module: LightningModule, outputs: List[Any]) -> None:
+        """Called when the predict epoch ends."""
+        pass
+
     def on_epoch_start(self, trainer, pl_module: LightningModule) -> None:
         """Called when either of train/val/test epoch begins."""
         pass

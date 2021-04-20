@@ -19,7 +19,7 @@ import sys
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import ANY, call, Optional, patch
+from unittest.mock import ANY, call, patch
 
 import cloudpickle
 import pytest
@@ -1513,16 +1513,6 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
-    class WriterCallback(Callback):
-
-        intervals = ("step", "epoch")
-
-        def __init__(self, output_dir: Optional[str] = None, interval: str = "step"):
-            if interval not in self.intervals:
-                raise MisconfigurationException(f"interval should be within {self.intervals}. Found {interval}")
-            self._output_dir = output_dir
-            self._interval = interval
-
     model = model or BoringModel()
     dm = TestLightningDataModule(dataloaders)
 
@@ -1538,9 +1528,9 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
         progress_bar_refresh_rate=pbrr
     )
     if datamodule:
-        results = trainer.predict(model, datamodule=dm)
+        results = trainer.predict(model, datamodule=dm, output_dir=tmpdir, write_interval="step")
     else:
-        results = trainer.predict(model, dataloaders=dataloaders)
+        results = trainer.predict(model, dataloaders=dataloaders, output_dir=tmpdir, write_interval="step")
 
     # todo: address this in another PR
     num_samples = 1 if accelerator in ["ddp", "ddp_cpu", "ddp_spawn"] else 2
@@ -1607,7 +1597,7 @@ def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, None, 1, None)
 
 
-@RunIf(skip_windows=True, special=True)
+@RunIf(skip_windows=True)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
 
