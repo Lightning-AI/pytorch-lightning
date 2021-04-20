@@ -11,14 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from collections import Sequence
+from unittest import mock
 
 import pytest
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataset import Dataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import Sampler
 
-from pytorch_lightning import LightningDataModule, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
     _nested_calc_num_data,
     CombinedDataset,
@@ -27,9 +31,8 @@ from pytorch_lightning.trainer.supporters import (
     CycleIterator,
     TensorRunningAccum,
 )
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
 def test_tensor_running_accum_reset():
@@ -243,8 +246,10 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
     assert calculated_length == expected_length
 
 
-@RunIf(min_gpus=2, special=True)
-def test_combined_data_loader_validation_test(tmpdir):
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
+@mock.patch('torch.cuda.device_count', return_value=2)
+@mock.patch('torch.cuda.is_available', return_value=True)
+def test_combined_data_loader_validation_test(cuda_available_mock, device_count_mock, tmpdir):
     """
     This test makes sure distributed sampler has been properly injected in dataloaders
     when using CombinedLoader
@@ -261,19 +266,24 @@ def test_combined_data_loader_validation_test(tmpdir):
         def __getitem__(self, index):
             return self.data[index]
 
-    class CustomDataModule(LightningDataModule):
+    dataloader = CombinedLoader({
+        "a": DataLoader(CustomDataset(range(10))),
+        "b": {
+            "c": DataLoader(CustomDataset(range(10))),
+            "d": DataLoader(CustomDataset(range(10)))
+        },
+        "e": [DataLoader(CustomDataset(range(10))),
+              DataLoader(CustomDataset(range(10)))]
+    })
 
-        def val_dataloader(self) -> CombinedLoader:
-            return CombinedLoader({"a": DataLoader(CustomDataset(range(10)))})
+    trainer = Trainer(replace_sampler_ddp=True, accelerator="ddp", gpus=2)
+    dataloader = trainer.auto_add_sampler(dataloader, shuffle=True)
+    _count = 0
 
-    class CustomModel(BoringModel):
+    def _assert_distributed_sampler(v):
+        nonlocal _count
+        _count += 1
+        assert isinstance(v, DistributedSampler)
 
-        def validation_step(self, batch, batch_idx):
-            v = batch['a']
-            assert (v + int(self.trainer.global_rank == 1)) % 2 == 0
-
-    model = CustomModel()
-    model.validation_epoch_end = None
-    dm = CustomDataModule()
-    trainer = Trainer(max_epochs=1, accelerator="ddp", gpus=2, logger=False)
-    trainer.fit(model, datamodule=dm)
+    apply_to_collection(dataloader.sampler, Sampler, _assert_distributed_sampler)
+    assert _count == 5
