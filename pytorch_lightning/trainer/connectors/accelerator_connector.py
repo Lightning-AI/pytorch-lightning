@@ -123,6 +123,7 @@ class AcceleratorConnector(object):
 
         self.handle_given_plugins(plugins)
 
+        self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
 
         # override dist backend when using tpus
@@ -210,6 +211,7 @@ class AcceleratorConnector(object):
                 )
 
         self._training_type_plugin = training_type
+        print(f"self._training_type_plugin is {self._training_type_plugin}")
         self._precision_plugin = precision
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
@@ -221,10 +223,14 @@ class AcceleratorConnector(object):
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
+        if self._training_type_plugin_resolved:
+            # avoid calling `resolve_training_type_plugin` multiple times
+            return self._training_type_plugin
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
         else:
             self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+        self._training_type_plugin_resolved = True
 
         return self._training_type_plugin
 
@@ -437,7 +443,7 @@ class AcceleratorConnector(object):
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
         # necessary for when the user has passed in a plugin
-        if hasattr(training_type, 'parallel_devices') and not getattr(training_type, 'parallel_devices'):
+        if hasattr(training_type, 'parallel_devices') and getattr(training_type, 'parallel_devices') is None:
             training_type.parallel_devices = self.parallel_devices
             if hasattr(training_type, 'num_processes'):
                 training_type.num_processes = len(self.parallel_devices)
