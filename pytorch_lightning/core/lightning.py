@@ -1645,7 +1645,7 @@ class LightningModule(
             "arg1": 1
             "arg3": 3.14
         """
-        # the frame needs to be create in this file.
+        # the frame needs to be created in this file.
         if not frame:
             frame = inspect.currentframe().f_back
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
