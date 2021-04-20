@@ -236,20 +236,19 @@ class ModelPruning(Callback):
         ELSE, pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
 
         """
-
-        pruning_func: Callable
+        pruning_fn = (
+            _PYTORCH_PRUNING_METHOD[pruning_fn]
+            if self._use_global_unstructured else _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]
+        )
+        assert callable(pruning_fn)
         if self._use_global_unstructured:
-            pruning_func = _PYTORCH_PRUNING_METHOD[pruning_fn]
             self._global_kwargs = kwargs
-        else:
-            # Callable doesn't work here: https://github.com/python/mypy/issues/708
-            pruning_func = _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]  # type: ignore
         # save the function __name__ now because partial does not include it
         # and there are issues setting the attribute manually in ddp.
-        self._pruning_fn_name = pruning_func.__name__
+        self._pruning_fn_name = pruning_fn.__name__
         if self._use_global_unstructured:
-            return pruning_func
-        return ModelPruning._wrap_pruning_fn(pruning_func, **kwargs)
+            return pruning_fn
+        return ModelPruning._wrap_pruning_fn(pruning_fn, **kwargs)
 
     @staticmethod
     def _wrap_pruning_fn(pruning_fn: Callable, **kwargs: Any) -> partial:
