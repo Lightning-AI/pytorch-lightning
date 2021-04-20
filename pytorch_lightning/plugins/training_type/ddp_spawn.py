@@ -75,11 +75,11 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.set_world_ranks()
 
     @property
-    def num_nodes(self):
+    def num_nodes(self) -> int:
         return self._num_nodes
 
     @num_nodes.setter
-    def num_nodes(self, num_nodes: int):
+    def num_nodes(self, num_nodes: int) -> None:
         self._num_nodes = num_nodes
         self.set_world_ranks()
 
@@ -117,10 +117,11 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
         self._local_rank = process_idx
-        if self.cluster_environment is not None:
-            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-            rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     @property
     def mp_spawn_kwargs(self):

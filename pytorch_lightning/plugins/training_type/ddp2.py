@@ -72,7 +72,8 @@ class DDP2Plugin(DDPPlugin):
     def _is_single_process_single_device(self) -> bool:
         return False
 
-    def set_world_ranks(self):
-        if self.cluster_environment is not None:
-            self.cluster_environment.set_global_rank(self.node_rank)
-            self.cluster_environment.set_world_size(self.num_nodes)
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank)
+        self.cluster_environment.set_world_size(self.num_nodes)

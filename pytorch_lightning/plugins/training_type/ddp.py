@@ -82,8 +82,6 @@ class DDPPlugin(ParallelPlugin):
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
-        # note that world ranks is related to num_nodes, when resetting these parameters,
-        # need to reset world ranks
         self.set_world_ranks()
 
     @property
@@ -91,11 +89,13 @@ class DDPPlugin(ParallelPlugin):
         return self.parallel_devices[self.local_rank]
 
     @property
-    def num_nodes(self):
+    def num_nodes(self) -> int:
         return self._num_nodes
 
     @num_nodes.setter
-    def num_nodes(self, num_nodes: int):
+    def num_nodes(self, num_nodes: int) -> None:
+        # note that world ranks is related to num_nodes, when resetting these parameters,
+        # need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
 
@@ -225,10 +225,11 @@ class DDPPlugin(ParallelPlugin):
             )
 
     def set_world_ranks(self) -> None:
-        if self.cluster_environment is not None:
-            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-            rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`

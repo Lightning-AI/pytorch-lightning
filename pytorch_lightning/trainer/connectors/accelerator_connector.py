@@ -435,12 +435,12 @@ class AcceleratorConnector(object):
         if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
             training_type.cluster_environment = self.select_cluster_environment()
 
-        if hasattr(training_type, 'num_nodes') and getattr(training_type, 'num_nodes') != self.num_nodes:
+        if hasattr(training_type, 'num_nodes'):
             # set num_nodes for training_type from trainer setting
             training_type.num_nodes = self.num_nodes
 
-        if hasattr(training_type, 'sync_batchnorm') and getattr(training_type, 'sync_batchnorm') != self.sync_batchnorm:
-            # Set sync_batchnorm for training_type from trainer setting.
+        if hasattr(training_type, 'sync_batchnorm'):
+            # set sync_batchnorm for training_type from trainer setting
             training_type.sync_batchnorm = self.sync_batchnorm
 
         return training_type
