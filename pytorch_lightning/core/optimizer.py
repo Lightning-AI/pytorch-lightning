@@ -86,7 +86,8 @@ class LightningOptimizer:
 
     def _on_trainer_init(self, trainer: 'pl.Trainer') -> None:
         self._trainer = proxy(trainer)
-        if trainer.optimizers is None: raise ValueError('Expected the trainer to have at least one optimizer, got None')
+        if trainer.optimizers is None:
+            raise ValueError('Expected the trainer to have at least one optimizer, got None')
         for opt_idx, opt in enumerate(trainer.optimizers):
             if opt == self._optimizer:
                 self._optimizer_idx = opt_idx

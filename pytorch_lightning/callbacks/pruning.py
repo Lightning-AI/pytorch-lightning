@@ -298,8 +298,8 @@ class ModelPruning(Callback):
         if self._original_layers is None:
             raise RuntimeError
         for d in self._original_layers.values():
-            copy: Module = d['data']  # type: ignore
-            names: List[Tuple[int, str]] = d["names"]  # type: ignore
+            copy: Module = d['data']
+            names: List[Tuple[int, str]] = d["names"]
             if self._resample_parameters and hasattr(copy, "reset_parameters") and callable(copy.reset_parameters):
                 copy = deepcopy(copy)  # keep the original parameters
                 copy.reset_parameters()
@@ -380,7 +380,7 @@ class ModelPruning(Callback):
             for i, (module, name) in enumerate(self._parameters_to_prune):
                 id_ = id(module)
                 self._original_layers.setdefault(id_, {"data": deepcopy(module), "names": []})
-                self._original_layers[id_]["names"].append((i, name))  # type: ignore
+                self._original_layers[id_]["names"].append((i, name))
 
     def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: LightningModule, outputs: EPOCH_OUTPUT) -> None:
         current_epoch = pl_module.current_epoch

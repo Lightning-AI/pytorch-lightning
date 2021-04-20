@@ -17,13 +17,12 @@ from typing import Any, TYPE_CHECKING
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 _log = logging.getLogger(__name__)
-
-import pytorch_lightning as pl
 
 
 class GPUAccelerator(Accelerator):

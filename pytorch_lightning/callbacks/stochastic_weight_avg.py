@@ -16,11 +16,12 @@ Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
 from copy import deepcopy
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Optional, Union
 
 import torch
 from torch import nn
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_info, rank_zero_warn
@@ -30,7 +31,6 @@ if _TORCH_GREATER_EQUAL_1_6:
     from torch.optim.swa_utils import SWALR
 
 _AVG_FN = Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]
-import pytorch_lightning as pl
 
 
 class StochasticWeightAveraging(Callback):

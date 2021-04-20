@@ -203,7 +203,7 @@ class QuantizationAwareTraining(Callback):
             elif self._observer_type == 'average':
                 pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig)
         elif isinstance(self._qconfig, QConfig):
-            pl_module.qconfig = self._qconfig  # type: ignore
+            pl_module.qconfig = self._qconfig
 
         if self._check_feasible_fuse(pl_module):
             torch.quantization.fuse_modules(pl_module, self.modules_to_fuse, inplace=True)

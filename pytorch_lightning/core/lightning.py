@@ -348,6 +348,10 @@ class LightningModule(
 
             reduce_fn: Callable
             if self.trainer is None:
+
+                def reduce_fn(x: Union[torch.Tensor, Any], *_: Any, **__: Any) -> Union[torch.Tensor, Any]:
+                    return x
+
                 reduce_fn = lambda x, *_, **__: x
             else:
                 reduce_fn = self.trainer.training_type_plugin.reduce
@@ -1370,7 +1374,7 @@ class LightningModule(
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
         # TODO: Fix typing here, mypy complains about args not being iterable
-        for opt in self.optimizers(use_pl_optimizer=False):  # type: ignore
+        for opt in self.optimizers(use_pl_optimizer=False):
             for group in opt.param_groups:
                 for param in group['params']:
                     # If a param already appear in param_requires_grad_state, continue
@@ -1396,7 +1400,7 @@ class LightningModule(
             optimizer_idx: Current optimizer idx in training_loop
         """
 
-        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):  # type: ignore
+        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
                     for param in group['params']:
