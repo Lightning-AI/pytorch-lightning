@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import wraps
-from typing import Any, List, Sequence, Tuple
+from typing import Any, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -71,9 +71,9 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     def connect(
         self,
         model: nn.Module,
-        optimizers: Sequence[Optimizer],
-        lr_schedulers: Sequence[Any],
-    ) -> Tuple[nn.Module, Sequence[Optimizer], Sequence[Any]]:
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
         """Converts the model to double precision and wraps the `training_step`, `validation_step`, `test_step`,
         `predict_step`, and `forward` methods to convert incoming floating point data to double. Does not alter
         `optimizers` or `lr_schedulers`."""

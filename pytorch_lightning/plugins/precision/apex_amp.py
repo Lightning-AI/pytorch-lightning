@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, ContextManager, Iterator, List, Sequence, Tuple, Type
+from typing import Any, Callable, ContextManager, List, Sequence, Tuple, Type
 
 import torch
 from torch import Tensor
@@ -21,8 +21,7 @@ from torch.optim import Optimizer
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
-
-PARAMETERS = Iterator[torch.nn.Parameter]
+from pytorch_lightning.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
     from apex import amp
@@ -36,15 +35,15 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.APEX
         self.amp_level = amp_level
 
-    def master_params(self, optimizer: Optimizer) -> PARAMETERS:
+    def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
     def connect(
         self,
         model: Module,
-        optimizers: Sequence[Optimizer],
-        lr_schedulers: Sequence[Any],
-    ) -> Tuple[Module, Sequence[Optimizer], Sequence[Any]]:
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects the precision plugin to the training process,
         configures apex and reinits the schedulers
         """
