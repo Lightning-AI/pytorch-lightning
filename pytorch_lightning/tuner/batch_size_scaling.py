@@ -15,6 +15,7 @@ import logging
 import os
 from typing import Optional, Tuple
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
@@ -28,14 +29,14 @@ log = logging.getLogger(__name__)
 
 
 def scale_batch_size(
-    trainer,
-    model: LightningModule,
-    mode: str = 'power',
-    steps_per_trial: int = 3,
-    init_val: int = 2,
-    max_trials: int = 25,
-    batch_arg_name: str = 'batch_size',
-    **fit_kwargs
+        trainer: Trainer,
+        model: LightningModule,
+        mode: str = 'power',
+        steps_per_trial: int = 3,
+        init_val: int = 2,
+        max_trials: int = 25,
+        batch_arg_name: str = 'batch_size',
+        **fit_kwargs
 ):
     r"""
     Will iteratively try to find the largest batch size for a given model
@@ -139,7 +140,7 @@ def scale_batch_size(
     return new_size
 
 
-def __scale_batch_dump_params(trainer):
+def __scale_batch_dump_params(trainer: Trainer):
     # Prevent going into infinite loop
     trainer.__dumped_params = {
         'auto_lr_find': trainer.auto_lr_find,
@@ -155,7 +156,7 @@ def __scale_batch_dump_params(trainer):
     }
 
 
-def __scale_batch_reset_params(trainer, model, steps_per_trial):
+def __scale_batch_reset_params(trainer: Trainer, model: LightningModule, steps_per_trial: int):
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
     trainer.current_epoch = 0
@@ -168,7 +169,7 @@ def __scale_batch_reset_params(trainer, model, steps_per_trial):
     trainer.model = model  # required for saving
 
 
-def __scale_batch_restore_params(trainer):
+def __scale_batch_restore_params(trainer: Trainer):
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
     trainer.current_epoch = trainer.__dumped_params['current_epoch']
     trainer.max_steps = trainer.__dumped_params['max_steps']
@@ -181,7 +182,8 @@ def __scale_batch_restore_params(trainer):
     del trainer.__dumped_params
 
 
-def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs):
+def _run_power_scaling(trainer: Trainer, model: LightningModule, new_size, batch_arg_name: str, max_trials: int,
+                       **fit_kwargs):
     """ Batch scaling mode where the size is doubled at each iteration until an
         OOM error is encountered. """
     for _ in range(max_trials):
@@ -207,7 +209,8 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **f
     return new_size
 
 
-def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs):
+def _run_binsearch_scaling(trainer: Trainer, model: LightningModule, new_size, batch_arg_name: str, max_trials: int,
+                           **fit_kwargs):
     """ Batch scaling mode where the size is initially is doubled at each iteration
         until an OOM error is encountered. Hereafter, the batch size is further
         refined using a binary search """
@@ -252,11 +255,11 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
 
 
 def _adjust_batch_size(
-    trainer,
-    batch_arg_name: str = 'batch_size',
-    factor: float = 1.0,
-    value: Optional[int] = None,
-    desc: Optional[str] = None
+        trainer: Trainer,
+        batch_arg_name: str = 'batch_size',
+        factor: float = 1.0,
+        value: Optional[int] = None,
+        desc: Optional[str] = None
 ) -> Tuple[int, bool]:
     """ Helper function for adjusting the batch size.
 
@@ -291,5 +294,5 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(current_size, dataloader):
+def _is_valid_batch_size(current_size: int, dataloader):
     return not has_len(dataloader) or current_size <= len(dataloader)

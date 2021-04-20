@@ -23,6 +23,7 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -42,7 +43,7 @@ else:
 log = logging.getLogger(__name__)
 
 
-def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
+def _determine_lr_attr_name(trainer: Trainer, model: LightningModule) -> str:
     if isinstance(trainer.auto_lr_find, str):
         if not lightning_hasattr(model, trainer.auto_lr_find):
             raise MisconfigurationException(
@@ -63,17 +64,17 @@ def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
 
 
 def lr_find(
-    trainer,
-    model: LightningModule,
-    train_dataloader: Optional[DataLoader] = None,
-    val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-    min_lr: float = 1e-8,
-    max_lr: float = 1,
-    num_training: int = 100,
-    mode: str = 'exponential',
-    early_stop_threshold: float = 4.0,
-    datamodule: Optional[LightningDataModule] = None,
-    update_attr: bool = False,
+        trainer: Trainer,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        min_lr: float = 1e-8,
+        max_lr: float = 1,
+        num_training: int = 100,
+        mode: str = 'exponential',
+        early_stop_threshold: float = 4.0,
+        datamodule: Optional[LightningDataModule] = None,
+        update_attr: bool = False,
 ):
     r"""
     ``lr_find`` enables the user to do a range test of good initial learning rates,
@@ -209,7 +210,7 @@ def lr_find(
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer, model):
+def __lr_finder_dump_params(trainer: Trainer, model: LightningModule):
     # Prevent going into infinite loop
     trainer.__dumped_params = {
         'auto_lr_find': trainer.auto_lr_find,
@@ -221,7 +222,7 @@ def __lr_finder_dump_params(trainer, model):
     }
 
 
-def __lr_finder_restore_params(trainer, model):
+def __lr_finder_restore_params(trainer: Trainer, model: LightningModule):
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
@@ -383,11 +384,11 @@ class _LRCallback(Callback):
     """
 
     def __init__(
-        self,
-        num_training: int,
-        early_stop_threshold: float = 4.0,
-        progress_bar_refresh_rate: int = 0,
-        beta: float = 0.98
+            self,
+            num_training: int,
+            early_stop_threshold: float = 4.0,
+            progress_bar_refresh_rate: int = 0,
+            beta: float = 0.98
     ):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
@@ -399,7 +400,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_batch_start(self, trainer: Trainer, pl_module: LightningModule):
         """ Called before each training batch, logs the lr that will be used """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -409,7 +410,9 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_train_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs, batch,
+                           batch_idx: Optional[int],
+                           dataloader_idx: Optional[int]):
         """ Called when the training batch ends, logs the calculated loss """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -422,7 +425,7 @@ class _LRCallback(Callback):
 
         # Avg loss (loss with momentum) + smoothing
         self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
-        smoothed_loss = self.avg_loss / (1 - self.beta**(current_step + 1))
+        smoothed_loss = self.avg_loss / (1 - self.beta ** (current_step + 1))
 
         # Check if we diverging
         if self.early_stop_threshold is not None:
@@ -502,7 +505,7 @@ class _ExponentialLR(_LRScheduler):
         r = curr_iter / self.num_iter
 
         if self.last_epoch > 0:
-            val = [base_lr * (self.end_lr / base_lr)**r for base_lr in self.base_lrs]
+            val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
         else:
             val = [base_lr for base_lr in self.base_lrs]
         self._lr = val

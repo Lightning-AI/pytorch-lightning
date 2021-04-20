@@ -30,7 +30,7 @@ class Tuner:
     def __init__(self, trainer: Trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, auto_lr_find: Union[str, bool], auto_scale_batch_size: Union[str, bool]):
+    def on_trainer_init(self, auto_lr_find: Union[str, bool], auto_scale_batch_size: Union[str, bool]) -> None:
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
@@ -40,7 +40,7 @@ class Tuner:
             train_dataloader: Optional[DataLoader] = None,
             val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
             datamodule: Optional[LightningDataModule] = None,
-    ):
+    ) -> None:
         self.trainer.model_connector.copy_trainer_model_properties(model)
         # setup data, etc...
         self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
@@ -48,7 +48,7 @@ class Tuner:
         self.trainer.data_connector.prepare_data(model)
 
     def tune(self, model: LightningModule, train_dataloader: Optional[DataLoader],
-             val_dataloaders: Optional[DataLoader], datamodule: Optional[LightningModule]):
+             val_dataloaders: Optional[DataLoader], datamodule: Optional[LightningModule]) -> None:
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, bool):
