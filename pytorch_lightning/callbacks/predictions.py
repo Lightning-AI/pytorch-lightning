@@ -51,7 +51,8 @@ class BasePredictionWriter(Callback):
             ):
                 torch.save(prediction, os.path.join(self.output_dir, dataloader_idx, f"{batch_idx}.pt")
 
-            def write_on_epoch(self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]):
+            def write_on_epoch(
+                self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]):
                 torch.save(predictions, os.path.join(self.output_dir, "predictions.pt")
     """
 
