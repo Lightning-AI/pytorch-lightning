@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TYPE_CHECKING, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch.nn import Module
@@ -21,7 +21,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import rank_zero_warn
@@ -41,7 +40,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._results = None
         self._call_configure_sharded_model_hook = True
 
-    def connect(self, model: 'Module') -> None:
+    def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
         self.model = model
 
@@ -52,7 +51,7 @@ class TrainingTypePlugin(Plugin, ABC):
         which allows the user to access the accelerator environment before setup is complete.
         """
 
-    def setup(self, model: 'Module') -> None:
+    def setup(self, model: Module) -> None:
         """Called by the accelerator to finish setup."""
 
     @property
@@ -120,7 +119,7 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = new_model
 
     @property
-    def lightning_module(self) -> LightningModule:
+    def lightning_module(self) -> 'pl.LightningModule':
         """Returns the pure LightningModule without potential wrappers"""
         return unwrap_lightning_module(self._model)
 
@@ -184,7 +183,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return dataloader
 
-    def init_optimizers(self, trainer: "Trainer", model: LightningModule):
+    def init_optimizers(self, trainer: 'pl.Trainer', model: 'pl.LightningModule'):
         return trainer.init_optimizers(model)
 
     def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
@@ -253,12 +252,9 @@ class TrainingTypePlugin(Plugin, ABC):
                 # write the checkpoint dictionary on the file
                 atomic_save(checkpoint, filepath)
             except AttributeError as err:
-                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-                    del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-                rank_zero_warn(
-                    'Warning, `hyper_parameters` dropped from checkpoint.'
-                    f' An attribute is not picklable {err}'
-                )
+                key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
+                checkpoint.pop(key, None)
+                rank_zero_warn(f'Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}')
                 atomic_save(checkpoint, filepath)
 
     @contextlib.contextmanager
