@@ -352,7 +352,6 @@ class LightningModule(
                 def reduce_fn(x: Union[torch.Tensor, Any], *_: Any, **__: Any) -> Union[torch.Tensor, Any]:
                     return x
 
-                reduce_fn = lambda x, *_, **__: x
             else:
                 reduce_fn = self.trainer.training_type_plugin.reduce
 
