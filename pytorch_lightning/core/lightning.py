@@ -113,14 +113,14 @@ class LightningModule(
         self._param_requires_grad_state: Dict = {}
 
     # Necessary since torchscript does not support forward references
-    @torch.jit.unused
+    @torch.jit.unused  # type: ignore
     @property
     def trainer(self) -> Optional['pl.Trainer']:
         return self._trainer
 
-    @torch.jit.unused
+    @torch.jit.unused  # type: ignore
     @trainer.setter
-    def trainer(self, trainer: Optional['pl.Trainer']):
+    def trainer(self, trainer: Optional['pl.Trainer']) -> None:
         self._trainer = trainer
 
     def optimizers(self,

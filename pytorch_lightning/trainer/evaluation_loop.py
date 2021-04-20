@@ -49,7 +49,9 @@ class EvaluationLoop(object):
         # when true, print evaluation results in .validate() and .test()
         self.trainer.verbose_evaluate = True
 
-    def get_evaluation_dataloaders(self) -> Tuple[Optional[List[DataLoader]], List[Union[int, float]]]:
+    def get_evaluation_dataloaders(
+        self
+    ) -> Tuple[Optional[List[DataLoader]], Union[List[int], List[Union[int, float]]]]:
         model = self.trainer.lightning_module
 
         # select dataloaders
@@ -57,7 +59,7 @@ class EvaluationLoop(object):
             self.trainer.reset_test_dataloader(model)
 
             dataloaders = self.trainer.test_dataloaders
-            max_batches = self.trainer.num_test_batches
+            max_batches: Union[List[int], List[Union[int, float]]] = self.trainer.num_test_batches
         else:
             # val
             if self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:

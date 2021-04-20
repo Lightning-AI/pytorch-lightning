@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
@@ -195,6 +195,7 @@ class ModelSummary(object):
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
+        mods: Union[Iterable, Iterator]
         if self._mode == ModelSummary.MODE_FULL:
             mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
