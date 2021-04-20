@@ -60,6 +60,15 @@ You can customize the callbacks behaviour by changing its parameters.
     )
     trainer = Trainer(callbacks=[early_stop_callback])
 
+
+Additional parameters that stop training at extreme points:
+
+- ``stopping_threshold``: Stops training immediately once the monitored quantity reaches this threshold.
+  It is useful when we know that going beyond a certain optimal value does not further benefit us.
+- ``divergence_threshold``: Stops training as soon as the monitored quantity becomes worse than this threshold.
+  When reaching a value this bad, we believe the model cannot recover anymore and it is better to stop early and run with different initial conditions.
+- ``check_finite``: When turned on, we stop training if the monitored metric becomes NaN or infinite.
+
 In case you need early stopping in a different part of training, subclass :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
 and change where it is called:
 
