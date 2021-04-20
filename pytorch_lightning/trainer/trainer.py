@@ -864,9 +864,9 @@ class Trainer(
 
             self._running_stage = stage
 
-        # reset the seed to what it was before sanity check
-        # prevents sanity check to affect random sampling in training
-        reset_seed()
+            # reset the seed to what it was before sanity check
+            # prevents sanity check to affect random sampling in training
+            reset_seed()
 
     def validate(
         self,
