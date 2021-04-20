@@ -596,8 +596,6 @@ class Trainer(
 
         self.checkpoint_connector.has_trained = False
 
-        reset_seed()
-
         # enable train mode
         self.model.train()
         torch.set_grad_enabled(True)
@@ -865,6 +863,10 @@ class Trainer(
             self.on_sanity_check_end()
 
             self._running_stage = stage
+
+        # reset the seed to what it was before sanity check
+        # prevents sanity check to affect random sampling in training
+        reset_seed()
 
     def validate(
         self,
