@@ -42,6 +42,13 @@ def test_wandb_logger_init(wandb, recwarn):
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0})
 
+    # test wandb.init and setting logger experiment externally
+    wandb.run = None
+    run = wandb.init()
+    logger = WandbLogger(experiment=run)
+    assert run.dir is not None
+    assert logger.save_dir == run.dir
+
     # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
     wandb.init.reset_mock()
@@ -148,16 +155,6 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=2.ckpt'}
     assert trainer.log_dir == logger.save_dir
-
-def test_wandb_logger_dirs_with_external_run_init(wandb):
-    """
-    Test that the logger sets the appropriate save_dir when wandb run is initiated externally
-    """
-
-    run = wandb.init()
-    logger = WandbLogger(experiment=run)
-
-    assert logger.save_dir == run.dir
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
