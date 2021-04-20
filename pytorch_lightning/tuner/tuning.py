@@ -49,7 +49,7 @@ class Tuner:
         self.trainer.data_connector.prepare_data(model)
 
     def tune(self, model: LightningModule, train_dataloader: Optional[DataLoader],
-             val_dataloaders: Optional[DataLoader], datamodule: Optional[LightningModule]) -> None:
+             val_dataloaders: Optional[DataLoader], datamodule: Optional[LightningDataModule]) -> None:
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, bool):
