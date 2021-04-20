@@ -520,7 +520,7 @@ class TrainLoop:
 
             # max steps reached, end training
             if (
-                self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1
+                self.trainer.max_steps is not None and self.trainer.max_steps <= self.trainer.global_step + 1
                 and self._accumulated_batches_reached()
             ):
                 break
