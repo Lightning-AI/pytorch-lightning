@@ -18,7 +18,6 @@ import types
 from argparse import Namespace
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
-import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 
 
