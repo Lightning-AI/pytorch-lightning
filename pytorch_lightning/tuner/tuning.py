@@ -83,7 +83,7 @@ class Tuner:
             max_trials: int = 25,
             batch_arg_name: str = 'batch_size',
             **fit_kwargs
-    ):
+    ) -> int:
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -160,5 +160,5 @@ class Tuner:
             update_attr,
         )
 
-    def pick_multiple_gpus(self, num_gpus: int):
+    def pick_multiple_gpus(self, num_gpus: int) -> List[int]:
         return pick_multiple_gpus(num_gpus)

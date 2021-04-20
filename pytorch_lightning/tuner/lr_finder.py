@@ -24,7 +24,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 if TYPE_CHECKING:
-    pass
+    import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -76,7 +76,7 @@ def lr_find(
         early_stop_threshold: float = 4.0,
         datamodule: Optional[LightningDataModule] = None,
         update_attr: bool = False,
-):
+) -> '_LRFinder':
     r"""
     ``lr_find`` enables the user to do a range test of good initial learning rates,
     to reduce the amount of guesswork in picking a good starting learning rate.
@@ -211,7 +211,7 @@ def lr_find(
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer: 'pl.Trainer', model: LightningModule):
+def __lr_finder_dump_params(trainer: 'pl.Trainer', model: LightningModule) -> None:
     # Prevent going into infinite loop
     trainer.__dumped_params = {
         'auto_lr_find': trainer.auto_lr_find,
@@ -223,7 +223,7 @@ def __lr_finder_dump_params(trainer: 'pl.Trainer', model: LightningModule):
     }
 
 
-def __lr_finder_restore_params(trainer: 'pl.Trainer', model: LightningModule):
+def __lr_finder_restore_params(trainer: 'pl.Trainer', model: LightningModule) -> None:
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
@@ -270,7 +270,7 @@ class _LRFinder(object):
         self.results = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, configure_optimizers: Callable):
+    def _exchange_scheduler(self, configure_optimizers: Callable) -> callable:
         """ Decorate configure_optimizers methods such that it returns the users
             originally specified optimizer together with a new scheduler that
             that takes care of the learning rate search.
@@ -313,7 +313,7 @@ class _LRFinder(object):
 
         return func
 
-    def plot(self, suggest: bool = False, show: bool = False):
+    def plot(self, suggest: bool = False, show: bool = False) -> 'plt.Figure':
         """ Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -344,7 +344,7 @@ class _LRFinder(object):
 
         return fig
 
-    def suggestion(self, skip_begin: int = 10, skip_end: int = 1):
+    def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> dict:
         """ This will propose a suggestion for choice of initial learning rate
         as the point with the steepest negative gradient.
 
@@ -401,7 +401,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
-    def on_batch_start(self, trainer: 'pl.Trainer', pl_module: LightningModule):
+    def on_batch_start(self, trainer: 'pl.Trainer', pl_module: LightningModule) -> None:
         """ Called before each training batch, logs the lr that will be used """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -413,7 +413,7 @@ class _LRCallback(Callback):
 
     def on_train_batch_end(self, trainer: 'pl.Trainer', pl_module: LightningModule, outputs, batch,
                            batch_idx: Optional[int],
-                           dataloader_idx: Optional[int]):
+                           dataloader_idx: Optional[int]) -> None:
         """ Called when the training batch ends, logs the calculated loss """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -463,7 +463,7 @@ class _LinearLR(_LRScheduler):
         self.num_iter = num_iter
         super(_LinearLR, self).__init__(optimizer, last_epoch)
 
-    def get_lr(self):
+    def get_lr(self) -> list:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -501,7 +501,7 @@ class _ExponentialLR(_LRScheduler):
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
 
-    def get_lr(self):
+    def get_lr(self) -> list:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
