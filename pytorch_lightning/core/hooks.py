@@ -252,7 +252,7 @@ class ModelHooks:
         """
         # do something at the start of predicting
 
-    def on_predict_end(self) -> None:
+    def on_predict_end(self, results: Any) -> None:
         """
         Called at the end of predicting.
         """

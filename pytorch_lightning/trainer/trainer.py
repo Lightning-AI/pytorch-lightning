@@ -836,7 +836,6 @@ class Trainer(
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
-        self.predict_loop.on_predict_end()
 
         # re-enable grads
         torch.set_grad_enabled(True)

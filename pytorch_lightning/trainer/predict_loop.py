@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
+from typing import Any, List
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -91,18 +91,12 @@ class PredictLoop(object):
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
-        if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
-
         results = self._predictions
-
-        def _convert_to_numpy(v):
-            return v.cpu().numpy()
-
-        results = apply_to_collection(results, torch.Tensor, _convert_to_numpy)
 
         if len(results) == 1:
             return results[0]
+
+        self.on_predict_end(results)
 
         return results
 
@@ -110,6 +104,6 @@ class PredictLoop(object):
         # hook
         self.trainer.call_hook("on_predict_start")
 
-    def on_predict_end(self):
+    def on_predict_end(self, results: List[Any]) -> None:
         # hook
-        self.trainer.call_hook("on_predict_end")
+        self.trainer.call_hook("on_predict_end", results)

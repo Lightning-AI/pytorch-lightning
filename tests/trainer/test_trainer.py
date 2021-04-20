@@ -19,7 +19,7 @@ import sys
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, call, Optional, patch
 
 import cloudpickle
 import pytest
@@ -1512,6 +1512,16 @@ class TestLightningDataModule(LightningDataModule):
 def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
+
+    class WriterCallback(Callback):
+
+        intervals = ("step", "epoch")
+
+        def __init__(self, output_dir: Optional[str] = None, interval: str = "step"):
+            if interval not in self.intervals:
+                raise MisconfigurationException(f"interval should be within {self.intervals}. Found {interval}")
+            self._output_dir = output_dir
+            self._interval = interval
 
     model = model or BoringModel()
     dm = TestLightningDataModule(dataloaders)

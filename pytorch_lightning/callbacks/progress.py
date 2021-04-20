@@ -25,7 +25,7 @@ import sys
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 if importlib.util.find_spec('ipywidgets') is not None:
     from tqdm.auto import tqdm as _tqdm
@@ -460,7 +460,7 @@ class ProgressBar(ProgressBarBase):
         if self._should_update(self.predict_batch_idx, self.total_predict_batches):
             self._update_bar(self.predict_progress_bar)
 
-    def on_predict_end(self, trainer, pl_module):
+    def on_predict_end(self, trainer, pl_module, results: Any):
         self.predict_progress_bar.close()
 
     def print(
