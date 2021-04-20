@@ -15,7 +15,7 @@ import pickle
 from argparse import ArgumentParser
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import PropertyMock
+from unittest.mock import call, PropertyMock
 
 import pytest
 import torch
@@ -474,64 +474,54 @@ class DummyDS(torch.utils.data.Dataset):
         return 100
 
 
-def test_dm_init_from_datasets(tmpdir):
-
-    train_ds = DummyDS()
-    valid_ds = DummyDS()
-    test_ds = DummyDS()
-
-    valid_dss = [DummyDS(), DummyDS()]
-    test_dss = [DummyDS(), DummyDS()]
-
-    dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.train_dataloader())) == torch.ones(4))
-    assert dm.val_dataloader() is None
-    assert dm.test_dataloader() is None
-
-    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.val_dataloader())) == torch.ones(4))
-    assert torch.all(next(iter(dm.test_dataloader())) == torch.ones(4))
-
-    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.val_dataloader()[0])) == torch.ones(4))
-    assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
-    assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
-    assert torch.all(next(iter(dm.test_dataloader()[1])) == torch.ones(4))
-
-
 class DummyIDS(torch.utils.data.IterableDataset):
 
     def __iter__(self):
         yield 1
 
 
-def test_dm_init_from_iter_datasets(tmpdir):
+@pytest.mark.parametrize("iterable", (False, True))
+def test_dm_init_from_datasets_dataloaders(iterable):
+    ds = DummyIDS if iterable else DummyDS
 
-    train_ds = DummyIDS()
-    train_ds_sequence = [DummyIDS(), DummyIDS()]
-    valid_ds = DummyIDS()
-    test_ds = DummyIDS()
-
-    valid_dss = [DummyIDS(), DummyIDS()]
-    test_dss = [DummyIDS(), DummyIDS()]
-
+    train_ds = ds()
     dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.train_dataloader())) == torch.ones(4))
+    with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
+        dm.train_dataloader()
+        dl_mock.assert_called_once_with(train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
+    train_ds_sequence = [ds(), ds()]
     dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.train_dataloader()[0])) == torch.ones(4))
-    assert torch.all(next(iter(dm.train_dataloader()[1])) == torch.ones(4))
+    with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
+        dm.train_dataloader()
+        dl_mock.assert_has_calls([
+            call(train_ds_sequence[0], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
+            call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
+        ])
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
-    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.val_dataloader())) == torch.ones(4))
-    assert torch.all(next(iter(dm.test_dataloader())) == torch.ones(4))
+    valid_ds = ds()
+    test_ds = ds()
+    dm = LightningDataModule.from_datasets(val_dataset=valid_ds, test_dataset=test_ds, batch_size=2, num_workers=0)
+    with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
+        dm.val_dataloader()
+        dl_mock.assert_called_with(valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
+        dm.test_dataloader()
+        dl_mock.assert_called_with(test_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
+    assert dm.train_dataloader() is None
 
+    valid_dss = [ds(), ds()]
+    test_dss = [ds(), ds()]
     dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.val_dataloader()[0])) == torch.ones(4))
-    assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
-    assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
-    assert torch.all(next(iter(dm.test_dataloader()[1])) == torch.ones(4))
+    with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
+        dm.val_dataloader()
+        dm.test_dataloader()
+        dl_mock.assert_has_calls([
+            call(valid_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(valid_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True)
+        ])
