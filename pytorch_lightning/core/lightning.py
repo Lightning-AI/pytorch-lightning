@@ -25,7 +25,21 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, overload, Sequence, Tuple, Type, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    overload,
+    Sequence,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
 
 import torch
 from torch import ScriptModule, Tensor
@@ -125,9 +139,15 @@ class LightningModule(
     def optimizers(self,
                    use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer], List]:
         opts: Union[List[LightningOptimizer], List[Optimizer], List]
+
         if use_pl_optimizer:
-            opts = list(self.trainer.lightning_optimizers
-                        ) if (self.trainer is not None and self.trainer.lightning_optimizers is not None) else []
+            _opts = self.trainer.lightning_optimizers if (
+                self.trainer is not None and self.trainer.lightning_optimizers is not None
+            ) else []
+            if isinstance(_opts, Mapping):
+                opts = [_opts[idx] for idx in range(len(_opts))]
+            else:
+                opts = list(_opts)
         else:
             opts = self.trainer.optimizers if (self.trainer is not None and self.trainer.optimizers is not None) else []
 

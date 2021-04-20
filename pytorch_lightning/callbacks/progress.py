@@ -424,13 +424,14 @@ class ProgressBar(ProgressBarBase):
     def on_train_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
-        total_val_batches = self.total_val_batches
+        total_val_batches: Union[float, int] = self.total_val_batches
         if total_train_batches != float('inf'):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
-            total_val_batches = int(total_val_batches) * int(val_checks_per_epoch)
+            total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
-        reset(self.main_progress_bar, int(total_batches))
+
+        reset(self.main_progress_bar, total_batches)
         if self.main_progress_bar is not None:
             self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
 
@@ -439,7 +440,7 @@ class ProgressBar(ProgressBarBase):
         dataloader_idx: int
     ) -> None:
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self._should_update(self.train_batch_idx, int(self.total_train_batches + self.total_val_batches)):
+        if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
             self._update_bar(self.main_progress_bar)
             if self.main_progress_bar is not None:
                 self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
@@ -527,7 +528,7 @@ class ProgressBar(ProgressBarBase):
             s = sep.join(map(str, args))
             active_progress_bar.write(s, end=end, file=file, nolock=nolock, **kwargs)
 
-    def _should_update(self, current: int, total: int) -> bool:
+    def _should_update(self, current: int, total: Union[float, int]) -> bool:
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
     def _update_bar(self, bar: Optional[tqdm]) -> None:
@@ -550,7 +551,7 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     return x
 
 
-def reset(bar: Optional[tqdm], total: Optional[int] = None) -> None:
+def reset(bar: Optional[tqdm], total: Optional[Union[int, float]] = None) -> None:
     """ Resets the tqdm bar to 0 progress with a new total, unless it is disabled. """
     if bar is not None and not bar.disable:
         bar.reset(total=convert_inf(total))
