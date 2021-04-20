@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import copy
 import inspect
 import pickle
+import types
 from argparse import Namespace
-from typing import Dict, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -159,6 +161,106 @@ def flatten_dict(source, result=None):
             result[k] = v
 
     return result
+
+
+def save_hyperparameters(
+    obj: Any,
+    *args,
+    ignore: Optional[Union[Sequence[str], str]] = None,
+    frame: Optional[types.FrameType] = None
+) -> None:
+    """Save model arguments to ``hparams`` attribute.
+
+    Args:
+        args: single object of `dict`, `NameSpace` or `OmegaConf`
+            or string names or arguments from class ``__init__``
+        ignore: an argument name or a list of argument names from
+            class ``__init__`` to be ignored
+        frame: a frame object. Default is None
+
+    Example::
+        >>> class ManuallyArgsModel(pl.LightningModule):
+        ...     def __init__(obj, arg1, arg2, arg3):
+        ...         super().__init__()
+        ...         # manually assign arguments
+        ...         obj.save_hyperparameters('arg1', 'arg3')
+        ...     def forward(obj, *args, **kwargs):
+        ...         ...
+        >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+        >>> model.hparams
+        "arg1": 1
+        "arg3": 3.14
+
+        >>> class AutomaticArgsModel(pl.LightningModule):
+        ...     def __init__(obj, arg1, arg2, arg3):
+        ...         super().__init__()
+        ...         # equivalent automatic
+        ...         obj.save_hyperparameters()
+        ...     def forward(obj, *args, **kwargs):
+        ...         ...
+        >>> model = AutomaticArgsModel(1, 'abc', 3.14)
+        >>> model.hparams
+        "arg1": 1
+        "arg2": abc
+        "arg3": 3.14
+
+        >>> class SingleArgModel(pl.LightningModule):
+        ...     def __init__(obj, params):
+        ...         super().__init__()
+        ...         # manually assign single argument
+        ...         obj.save_hyperparameters(params)
+        ...     def forward(obj, *args, **kwargs):
+        ...         ...
+        >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
+        >>> model.hparams
+        "p1": 1
+        "p2": abc
+        "p3": 3.14
+
+        >>> class ManuallyArgsModel(pl.LightningModule):
+        ...     def __init__(obj, arg1, arg2, arg3):
+        ...         super().__init__()
+        ...         # pass argument(s) to ignore as a string or in a list
+        ...         obj.save_hyperparameters(ignore='arg2')
+        ...     def forward(obj, *args, **kwargs):
+        ...         ...
+        >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+        >>> model.hparams
+        "arg1": 1
+        "arg3": 3.14
+    """
+    if not frame:
+        frame = inspect.currentframe().f_back
+    init_args = get_init_args(frame)
+    assert init_args, "failed to inspect the obj init"
+
+    if ignore is not None:
+        if isinstance(ignore, str):
+            ignore = [ignore]
+        if isinstance(ignore, (list, tuple)):
+            ignore = [arg for arg in ignore if isinstance(arg, str)]
+        init_args = {k: v for k, v in init_args.items() if k not in ignore}
+
+    if not args:
+        # take all arguments
+        hp = init_args
+        obj._hparams_name = "kwargs" if hp else None
+    else:
+        # take only listed arguments in `save_hparams`
+        isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
+        if len(isx_non_str) == 1:
+            hp = args[isx_non_str[0]]
+            cand_names = [k for k, v in init_args.items() if v == hp]
+            obj._hparams_name = cand_names[0] if cand_names else None
+        else:
+            hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
+            obj._hparams_name = "kwargs"
+
+    # `hparams` are expected here
+    if hp:
+        obj._set_hparams(hp)
+    # make deep copy so  there is not other runtime changes reflected
+    obj._hparams_initial = copy.deepcopy(obj._hparams)
 
 
 class AttributeDict(Dict):
