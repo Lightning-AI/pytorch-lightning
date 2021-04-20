@@ -135,7 +135,7 @@ class PrecisionPlugin(Plugin):
         device = parameters[0].device
 
         if norm_type == math.inf:
-            total_norm = max(p.grad.data.abs().max() for p in parameters)
+            total_norm = max([p.grad.data.abs().max() for p in parameters])
         else:
             out = torch.empty(len(parameters), device=device)
             for i, p in enumerate(parameters):

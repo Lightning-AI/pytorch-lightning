@@ -183,25 +183,26 @@ def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, accelerator="ddp_cpu", num_processes=2)
 
 
+class ModelPruningTestCallback(ModelPruning):
+    lth_calls = 0
+
+    def apply_lottery_ticket_hypothesis(self):
+        super().apply_lottery_ticket_hypothesis()
+        self.lth_calls += 1
+
+        for d in self._original_layers.values():
+            copy, names = d["data"], d["names"]
+            for i, name in names:
+                curr, curr_name = self._parameters_to_prune[i]
+                assert name == curr_name
+                actual, expected = getattr(curr, name).data, getattr(copy, name).data
+                allclose = torch.allclose(actual, expected)
+                assert not allclose if self._resample_parameters else allclose
+
+
 @pytest.mark.parametrize("resample_parameters", (False, True))
 def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
     model = TestModel()
-
-    class ModelPruningTestCallback(ModelPruning):
-        lth_calls = 0
-
-        def apply_lottery_ticket_hypothesis(self):
-            super().apply_lottery_ticket_hypothesis()
-            self.lth_calls += 1
-
-            for d in self._original_layers.values():
-                copy, names = d["data"], d["names"]
-                for i, name in names:
-                    curr, curr_name = self._parameters_to_prune[i]
-                    assert name == curr_name
-                    actual, expected = getattr(curr, name).data, getattr(copy, name).data
-                    allclose = torch.allclose(actual, expected)
-                    assert not allclose if self._resample_parameters else allclose
 
     pruning = ModelPruningTestCallback(
         "l1_unstructured", use_lottery_ticket_hypothesis=lambda e: bool(e % 2), resample_parameters=resample_parameters
@@ -270,6 +271,15 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     assert not has_pruning if make_pruning_permanent else has_pruning
 
 
+class TestPruning(ModelPruning):
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+        ret_val = super().on_save_checkpoint(trainer, pl_module, checkpoint)
+        assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]
+        assert hasattr(pl_module.layer.mlp_3, "weight_orig")
+        return ret_val
+
+
 def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog):
     """
     When a model is saved multiple times and make_permanent=True, we need to
@@ -277,14 +287,6 @@ def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog):
     with the same pruning buffers.
     """
     seed_everything(0)
-
-    class TestPruning(ModelPruning):
-
-        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
-            ret_val = super().on_save_checkpoint(trainer, pl_module, checkpoint)
-            assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]
-            assert hasattr(pl_module.layer.mlp_3, "weight_orig")
-            return ret_val
 
     model = TestModel()
     pruning_callback = TestPruning(
