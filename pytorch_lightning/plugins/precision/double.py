@@ -102,6 +102,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         yield
         torch.set_default_tensor_type(torch.FloatTensor)
 
-    val_step_context = train_step_context
-    test_step_context = train_step_context
-    predict_context = train_step_context
+    train_step_context = tensor_type_context
+    val_step_context = tensor_type_context
+    test_step_context = tensor_type_context
+    predict_step_context = tensor_type_context
