@@ -24,7 +24,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 if TYPE_CHECKING:
-    from pytorch_lightning import Trainer
+    pass
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -44,7 +44,7 @@ else:
 log = logging.getLogger(__name__)
 
 
-def _determine_lr_attr_name(trainer: 'Trainer', model: LightningModule) -> str:
+def _determine_lr_attr_name(trainer: 'pl.Trainer', model: LightningModule) -> str:
     if isinstance(trainer.auto_lr_find, str):
         if not lightning_hasattr(model, trainer.auto_lr_find):
             raise MisconfigurationException(
@@ -65,7 +65,7 @@ def _determine_lr_attr_name(trainer: 'Trainer', model: LightningModule) -> str:
 
 
 def lr_find(
-        trainer: 'Trainer',
+        trainer: 'pl.Trainer',
         model: LightningModule,
         train_dataloader: Optional[DataLoader] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
@@ -211,7 +211,7 @@ def lr_find(
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer: 'Trainer', model: LightningModule):
+def __lr_finder_dump_params(trainer: 'pl.Trainer', model: LightningModule):
     # Prevent going into infinite loop
     trainer.__dumped_params = {
         'auto_lr_find': trainer.auto_lr_find,
@@ -223,7 +223,7 @@ def __lr_finder_dump_params(trainer: 'Trainer', model: LightningModule):
     }
 
 
-def __lr_finder_restore_params(trainer: 'Trainer', model: LightningModule):
+def __lr_finder_restore_params(trainer: 'pl.Trainer', model: LightningModule):
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
@@ -401,7 +401,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
-    def on_batch_start(self, trainer: 'Trainer', pl_module: LightningModule):
+    def on_batch_start(self, trainer: 'pl.Trainer', pl_module: LightningModule):
         """ Called before each training batch, logs the lr that will be used """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -411,7 +411,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
-    def on_train_batch_end(self, trainer: 'Trainer', pl_module: LightningModule, outputs, batch,
+    def on_train_batch_end(self, trainer: 'pl.Trainer', pl_module: LightningModule, outputs, batch,
                            batch_idx: Optional[int],
                            dataloader_idx: Optional[int]):
         """ Called when the training batch ends, logs the calculated loss """
