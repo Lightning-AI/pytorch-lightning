@@ -73,18 +73,9 @@ class LightningModule(
     # Below is for property support of JIT in PyTorch 1.7
     # since none of them is important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = [
-        "datamodule",
-        "example_input_array",
-        "hparams",
-        "hparams_initial",
-        "on_gpu",
-        "current_epoch",
-        "global_step",
-        "global_rank",
-        "local_rank",
-        "logger",
-        "model_size",
-    ] + DeviceDtypeModuleMixin.__jit_unused_properties__
+        "datamodule", "example_input_array", "hparams", "hparams_initial", "on_gpu", "current_epoch", "global_step",
+        "global_rank", "local_rank", "logger", "model_size", "_trainer"
+    ] + DeviceDtypeModuleMixin.__jit_unused_properties__ + ModelHooks.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any):
         # https://github.com/python/mypy/issues/5887
@@ -99,7 +90,7 @@ class LightningModule(
         self.loaded_optimizer_states_dict: Dict = {}
 
         #: Pointer to the trainer object
-        self.trainer: Optional['pl.Trainer'] = None
+        self._trainer: Optional['pl.Trainer'] = None
 
         self._distrib_type = None
         self._device_type = None
@@ -120,6 +111,17 @@ class LightningModule(
         self._current_dataloader_idx = None
         self._automatic_optimization: bool = True
         self._param_requires_grad_state: Dict = {}
+
+    # Necessary since torchscript does not support forward references
+    @torch.jit.unused
+    @property
+    def trainer(self) -> Optional['pl.Trainer']:
+        return self._trainer
+
+    @torch.jit.unused
+    @trainer.setter
+    def trainer(self, trainer: Optional['pl.Trainer']):
+        self._trainer = trainer
 
     def optimizers(self,
                    use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer], List]:

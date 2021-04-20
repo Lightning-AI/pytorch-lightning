@@ -18,7 +18,7 @@ Timer
 import logging
 import time
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -95,8 +95,8 @@ class Timer(Callback):
         self._duration = duration.total_seconds() if duration is not None else None
         self._interval = interval
         self._verbose = verbose
-        self._start_time = {stage: None for stage in RunningStage}
-        self._end_time = {stage: None for stage in RunningStage}
+        self._start_time: Dict[RunningStage, Union[None, float]] = {stage: None for stage in RunningStage}
+        self._end_time: Dict[RunningStage, Union[None, float]] = {stage: None for stage in RunningStage}
         self._offset = 0
 
     def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
@@ -125,30 +125,35 @@ class Timer(Callback):
         if self._duration is not None:
             return self._duration - self.time_elapsed(stage)
 
-    def on_train_start(self, *args, **kwargs) -> None:
+        return None
+
+    def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self._start_time[RunningStage.TRAINING] = time.monotonic()
 
-    def on_train_end(self, *args, **kwargs) -> None:
+    def on_train_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self._end_time[RunningStage.TRAINING] = time.monotonic()
 
-    def on_validation_start(self, *args, **kwargs) -> None:
+    def on_validation_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self._start_time[RunningStage.VALIDATING] = time.monotonic()
 
-    def on_validation_end(self, *args, **kwargs) -> None:
+    def on_validation_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self._end_time[RunningStage.VALIDATING] = time.monotonic()
 
-    def on_test_start(self, *args, **kwargs) -> None:
+    def on_test_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self._start_time[RunningStage.TESTING] = time.monotonic()
 
-    def on_test_end(self, *args, **kwargs) -> None:
+    def on_test_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         self._end_time[RunningStage.TESTING] = time.monotonic()
 
-    def on_train_batch_end(self, trainer: 'pl.Trainer', *args, **kwargs) -> None:
+    def on_train_batch_end(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Any, batch: Any, batch_idx: int,
+        dataloader_idx: int
+    ) -> None:
         if self._interval != Interval.step or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', *args, **kwargs) -> None:
+    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: List[Any]) -> None:
         if self._interval != Interval.epoch or self._duration is None:
             return
         self._check_time_remaining(trainer)
@@ -166,8 +171,10 @@ class Timer(Callback):
         self._offset = time_elapsed.get(RunningStage.TRAINING.value, 0)
 
     def _check_time_remaining(self, trainer: 'pl.Trainer') -> None:
+        if self._duration is None:
+            raise MisconfigurationException('Cannot calculate remaining time if duration is None!')
         should_stop = self.time_elapsed() >= self._duration
         should_stop = trainer.accelerator.broadcast(should_stop)
-        trainer.should_stop = trainer.should_stop or should_stop
+        trainer.should_stop = bool(trainer.should_stop or should_stop)
         if should_stop and self._verbose:
             rank_zero_info(f"Time limit reached. Elapsed time is {self.time_elapsed}. Signaling Trainer to stop.")

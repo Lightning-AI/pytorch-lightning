@@ -189,7 +189,7 @@ class EarlyStopping(Callback):
         if reason:
             log.info(f"[{trainer.global_rank}] {reason}")
 
-    def _evalute_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
+    def _evalute_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, Optional[str]]:
         should_stop = False
         reason = None
         if self.check_finite and not torch.isfinite(current):

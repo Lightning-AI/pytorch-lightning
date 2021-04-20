@@ -562,7 +562,9 @@ class ModelCheckpoint(Callback):
             )
             name: str = trainer.logger.name
 
-            version, name = tuple(trainer.training_type_plugin.broadcast((version, name)))
+            broadcasted: Tuple = tuple(trainer.training_type_plugin.broadcast((version, name)))
+            version = str(broadcasted[0])
+            name = str(broadcasted[1])
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:

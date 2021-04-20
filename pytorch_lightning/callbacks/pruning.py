@@ -26,6 +26,7 @@ import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 from torch.nn.modules.module import Module
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_only

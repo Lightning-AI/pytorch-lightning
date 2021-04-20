@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 
 class ModelHooks:
+    __jit_unused_properties__ = ['trainer']
     """Hooks to be used in LightningModule."""
     trainer: Optional['pl.Trainer']
 

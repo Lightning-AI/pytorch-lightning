@@ -34,7 +34,7 @@ import pytorch_lightning as pl
 
 
 class StochasticWeightAveraging(Callback):
-    _swa_epoch_start: int
+    _swa_epoch_start: Union[int, float]
     _max_epochs: int
 
     def __init__(
@@ -118,7 +118,7 @@ class StochasticWeightAveraging(Callback):
         if device is not None and not isinstance(device, (torch.device, str)):
             raise MisconfigurationException(f"device is expected to be a torch.device or a str. Found {device}")
 
-        self._swa_start = swa_epoch_start
+        self._swa_epoch_start = swa_epoch_start
         self._swa_lrs = swa_lrs
         self._annealing_epochs = annealing_epochs
         self._annealing_strategy = annealing_strategy
@@ -153,8 +153,8 @@ class StochasticWeightAveraging(Callback):
         if lr_schedulers is not None and len(lr_schedulers) > 1:
             raise MisconfigurationException("SWA currently not supported for more than 1 `lr_scheduler`.")
 
-        if isinstance(self._swa_start, float):
-            self._swa_epoch_start = int(trainer.max_epochs * self._swa_start)
+        if isinstance(self._swa_epoch_start, float):
+            self._swa_epoch_start = int(trainer.max_epochs * self._swa_epoch_start)
 
         self._model_contains_batch_norm = self.pl_module_contains_batch_norm(pl_module)
 
