@@ -93,7 +93,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
             self.patches.pop().teardown()
 
     @contextlib.contextmanager
-    def train_step_context(self) -> Generator:
+    def tensor_type_context(self) -> Generator:
         """A contextmanager for the trainstep"""
         torch.set_default_tensor_type(torch.DoubleTensor)
         yield
