@@ -16,6 +16,7 @@ from typing import List, Optional, Union
 
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import TrainerState
@@ -26,19 +27,19 @@ from pytorch_lightning.tuner.lr_finder import lr_find
 
 class Tuner:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: Trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, auto_lr_find, auto_scale_batch_size):
+    def on_trainer_init(self, auto_lr_find: Union[str, bool], auto_scale_batch_size: Union[str, bool]):
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
     def setup_trainer(
-        self,
-        model: LightningModule,
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        datamodule: LightningDataModule = None,
+            self,
+            model: LightningModule,
+            train_dataloader: Optional[DataLoader] = None,
+            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            datamodule: Optional[LightningDataModule] = None,
     ):
         self.trainer.model_connector.copy_trainer_model_properties(model)
         # setup data, etc...
@@ -46,7 +47,8 @@ class Tuner:
         # hook
         self.trainer.data_connector.prepare_data(model)
 
-    def tune(self, model, train_dataloader, val_dataloaders, datamodule):
+    def tune(self, model: LightningModule, train_dataloader: Optional[DataLoader],
+             val_dataloaders: Optional[DataLoader], datamodule: Optional[LightningModule]):
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
             if isinstance(self.trainer.auto_scale_batch_size, bool):
@@ -72,14 +74,14 @@ class Tuner:
         self.trainer.state = TrainerState.FINISHED
 
     def scale_batch_size(
-        self,
-        model,
-        mode: str = 'power',
-        steps_per_trial: int = 3,
-        init_val: int = 2,
-        max_trials: int = 25,
-        batch_arg_name: str = 'batch_size',
-        **fit_kwargs
+            self,
+            model: LightningModule,
+            mode: str = 'power',
+            steps_per_trial: int = 3,
+            init_val: int = 2,
+            max_trials: int = 25,
+            batch_arg_name: str = 'batch_size',
+            **fit_kwargs
     ):
         r"""
         Will iteratively try to find the largest batch size for a given model
@@ -130,17 +132,17 @@ class Tuner:
         )
 
     def lr_find(
-        self,
-        model: LightningModule,
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        min_lr: float = 1e-8,
-        max_lr: float = 1,
-        num_training: int = 100,
-        mode: str = 'exponential',
-        early_stop_threshold: float = 4.0,
-        datamodule: Optional[LightningDataModule] = None,
-        update_attr: bool = False,
+            self,
+            model: LightningModule,
+            train_dataloader: Optional[DataLoader] = None,
+            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            min_lr: float = 1e-8,
+            max_lr: float = 1,
+            num_training: int = 100,
+            mode: str = 'exponential',
+            early_stop_threshold: float = 4.0,
+            datamodule: Optional[LightningDataModule] = None,
+            update_attr: bool = False,
     ):
         self.setup_trainer(model, train_dataloader, val_dataloaders, datamodule)
         return lr_find(
