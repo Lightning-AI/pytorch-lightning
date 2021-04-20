@@ -13,9 +13,10 @@
 # limitations under the License
 import logging
 import os
-from typing import Optional, Tuple
+from typing import Optional, Tuple, TYPE_CHECKING
 
-from pytorch_lightning import Trainer
+if TYPE_CHECKING:
+    from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn

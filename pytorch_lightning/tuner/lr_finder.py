@@ -15,7 +15,7 @@ import importlib
 import logging
 import os
 from functools import wraps
-from typing import Callable, List, Optional, Sequence, Union
+from typing import Callable, List, Optional, Sequence, Union, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -23,7 +23,8 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
+if TYPE_CHECKING:
+    from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule

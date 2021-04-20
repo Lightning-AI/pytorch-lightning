@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, TYPE_CHECKING
 
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
+if TYPE_CHECKING:
+    from pytorch_lightning import Trainer
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import TrainerState
