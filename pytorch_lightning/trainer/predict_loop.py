@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from typing import Any, List, Optional
+
 from pytorch_lightning.overrides.distributed import IndexBatchSampler
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -46,9 +46,12 @@ class PredictLoop(object):
         return self._return_predictions
 
     @return_predictions.setter
-    def return_predictions(self, return_predictions: Optional[bool]):
+    def return_predictions(self, return_predictions: Optional[bool]) -> None:
         if return_predictions and self.trainer.training_type_plugin.use_spawn:
-            raise MisconfigurationException(f"`return_predictions` should be set to `False` when using spawn accelerators.")
+            raise MisconfigurationException(
+                "`return_predictions` should be set to `False` when using spawn accelerators. "
+                f"Found {return_predictions}"
+            )
         if return_predictions is not None:
             self._return_predictions = return_predictions
 
@@ -134,7 +137,6 @@ class PredictLoop(object):
         self.trainer.profiler.describe()
 
         if self.return_predictions:
-            
             results = self._predictions
 
             if len(results) == 1:

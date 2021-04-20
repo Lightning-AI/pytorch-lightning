@@ -15,27 +15,27 @@ import logging
 import math
 import os
 import pickle
-from pytorch_lightning.callbacks.predictions import PredictionWriter
-from pytorch_lightning.trainer import callback_hook
 import sys
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
+from typing import Any, List, Union
 from unittest.mock import ANY, call, patch
-from typing import Union, Any, List
+
 import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf
 from torch.optim import SGD
 from torch.utils.data import DataLoader
-from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnRepeatedDistributedSampler
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks.predictions import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnRepeatedDistributedSampler
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -1512,29 +1512,43 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None, write_interval="step"):
+def predict(
+    tmpdir,
+    accelerator,
+    gpus,
+    num_processes,
+    model=None,
+    plugins=None,
+    datamodule=True,
+    pbrr=None,
+    write_interval="step"
+):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
     model = model or BoringModel()
     dm = TestLightningDataModule(dataloaders)
 
-    class CustomPredictionWriter(PredictionWriter):
+    class CustomBasePredictionWriter(BasePredictionWriter):
 
         def __init__(self, output_dir: str, write_interval: Union[str, int, float] = "step"):
             super().__init__(write_interval)
             self.output_dir = output_dir
 
-        def write_on_batch(self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any, batch_idx: int, dataloader_idx: int):
+        def write_on_batch(
+            self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any,
+            batch_idx: int, dataloader_idx: int
+        ):
             assert prediction.shape == torch.Size([1, 2])
             assert len(batch_indices) == 1
 
-        def write_on_epoch(self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]):
+        def write_on_epoch(
+            self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
+        ):
             assert len(predictions) == 2
             assert len(predictions[0]) == 2
             assert len(batch_indices) == 2
             assert len(batch_indices[0]) == 2
-
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1546,7 +1560,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
         num_processes=num_processes,
         plugins=plugins,
         progress_bar_refresh_rate=pbrr,
-        callbacks=[CustomPredictionWriter(tmpdir, write_interval=write_interval)]
+        callbacks=[CustomBasePredictionWriter(tmpdir, write_interval=write_interval)]
     )
     if datamodule:
         results = trainer.predict(model, datamodule=dm)

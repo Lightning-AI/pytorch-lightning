@@ -1032,7 +1032,7 @@ class Trainer(
         model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
-        return_predictions: Optional[bool] = None, 
+        return_predictions: Optional[bool] = None,
     ):
         r"""
 
@@ -1049,7 +1049,7 @@ class Trainer(
             datamodule: A instance of :class:`LightningDataModule`.
 
             return_predictions: Wheter to return predictions.
-                By default, `return_predictions` will be resolved to `True` 
+                By default, `return_predictions` will be resolved to `True`
                 expect for spawned accelerator (not supported).
 
         Returns:
