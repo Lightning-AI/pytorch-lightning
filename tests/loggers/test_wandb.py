@@ -149,6 +149,16 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=2.ckpt'}
     assert trainer.log_dir == logger.save_dir
 
+def test_wandb_logger_dirs_with_external_run_init(wandb):
+    """
+    Test that the logger sets the appropriate save_dir when wandb run is initiated externally
+    """
+
+    run = wandb.init()
+    logger = WandbLogger(experiment=run)
+
+    assert logger.save_dir == run.dir
+
 
 def test_wandb_sanitize_callable_params(tmpdir):
     """
