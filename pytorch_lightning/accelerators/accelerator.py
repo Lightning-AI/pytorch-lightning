@@ -223,7 +223,7 @@ class Accelerator:
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*kwargs.values())
 
-    def predict_step(self, args: List[Union[Any, int]]) -> STEP_OUTPUT:
+    def predict_step(self, kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual predict step.
 
         Args:
