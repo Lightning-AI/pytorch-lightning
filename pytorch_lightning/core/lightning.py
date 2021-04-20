@@ -1812,8 +1812,8 @@ class LightningModule(
         self,
         file_path: Union[str, Path],
         input_sample: Optional[Any] = None,
-        **kwargs: Union[bool, torch.onnx.TrainingMode, List, List[str], torch.onnx.OperatorExportTypes, int,
-                        Tuple[torch.Tensor], Dict[str, Union[int, Dict[str, int], List[int]]]],
+        **kwargs: Union[bool, List, List[str], torch.onnx.OperatorExportTypes, int, Tuple[torch.Tensor],
+                        Dict[str, Union[int, Dict[str, int], List[int]]]],
     ) -> None:
         """
         Saves the model in ONNX format
