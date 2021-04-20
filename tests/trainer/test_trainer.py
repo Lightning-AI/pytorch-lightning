@@ -15,18 +15,21 @@ import logging
 import math
 import os
 import pickle
+from pytorch_lightning.callbacks.predictions import PredictionWriter
+from pytorch_lightning.trainer import callback_hook
 import sys
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
 from unittest.mock import ANY, call, patch
-
+from typing import Union, Any, List
 import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf
 from torch.optim import SGD
 from torch.utils.data import DataLoader
+from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnRepeatedDistributedSampler
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
@@ -1509,12 +1512,29 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None):
+def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None, write_interval="step"):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
     model = model or BoringModel()
     dm = TestLightningDataModule(dataloaders)
+
+    class CustomPredictionWriter(PredictionWriter):
+
+        def __init__(self, output_dir: str, write_interval: Union[str, int, float] = "step"):
+            super().__init__(write_interval)
+            self.output_dir = output_dir
+
+        def write_on_batch(self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any, batch_idx: int, dataloader_idx: int):
+            assert prediction.shape == torch.Size([1, 2])
+            assert len(batch_indices) == 1
+
+        def write_on_epoch(self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]):
+            assert len(predictions) == 2
+            assert len(predictions[0]) == 2
+            assert len(batch_indices) == 2
+            assert len(batch_indices[0]) == 2
+
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1525,12 +1545,18 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
         gpus=gpus,
         num_processes=num_processes,
         plugins=plugins,
-        progress_bar_refresh_rate=pbrr
+        progress_bar_refresh_rate=pbrr,
+        callbacks=[CustomPredictionWriter(tmpdir, write_interval=write_interval)]
     )
     if datamodule:
-        results = trainer.predict(model, datamodule=dm, output_dir=tmpdir, write_interval="step")
+        results = trainer.predict(model, datamodule=dm)
     else:
-        results = trainer.predict(model, dataloaders=dataloaders, output_dir=tmpdir, write_interval="step")
+        results = trainer.predict(model, dataloaders=dataloaders)
+
+    if gpus == 2 or num_processes == 2:
+        for idx in range(len(dataloaders)):
+            assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnRepeatedDistributedSampler)
+            assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSampler)
 
     # todo: address this in another PR
     num_samples = 1 if accelerator in ["ddp", "ddp_cpu", "ddp_spawn"] else 2
@@ -1583,8 +1609,9 @@ def test_trainer_predict_dp(tmpdir, num_gpus):
 
 
 @RunIf(min_gpus=2, special=True, fairscale=True)
-def test_trainer_predict_ddp(tmpdir):
-    predict(tmpdir, "ddp", 2, None, plugins=["ddp_sharded"])
+@pytest.mark.parametrize("write_interval", ["step", "epoch"])
+def test_trainer_predict_ddp(write_interval, tmpdir):
+    predict(tmpdir, "ddp", 2, None, write_interval=write_interval)
 
 
 @RunIf(min_gpus=2, skip_windows=True, special=True)

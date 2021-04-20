@@ -147,13 +147,12 @@ class TrainerDataLoadingMixin(ABC):
     def _resolve_batch_sampler(dl_args, dataloader, sampler, mode: Optional[RunningStage] = None) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
-        if batch_sampler is not None and type(batch_sampler) is not BatchSampler or mode == RunningStage.PREDICTING:
+        if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or mode == RunningStage.PREDICTING:
             batch_sampler_type = IndexBatchSampler if is_predicting else type(batch_sampler)
-            print(batch_sampler_type)
             batch_sampler = batch_sampler_type(
                 sampler,
                 batch_size=batch_sampler.batch_size,
-                drop_last=batch_sampler.drop_last,
+                drop_last=True if is_predicting else batch_sampler.drop_last,
             )
             dl_args['batch_sampler'] = batch_sampler
             dl_args['batch_size'] = 1
@@ -182,7 +181,7 @@ class TrainerDataLoadingMixin(ABC):
 
         dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
 
-        dl_args = self._resolve_batch_sampler(dl_args, dataloader, sampler)
+        dl_args = self._resolve_batch_sampler(dl_args, dataloader, sampler, mode=mode)
 
         multiprocessing_context = dataloader.multiprocessing_context
         dl_args['multiprocessing_context'] = multiprocessing_context

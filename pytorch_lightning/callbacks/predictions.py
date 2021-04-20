@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional
-
+import os
+from typing import Any, List, Optional, Union
+import torch
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -22,22 +23,26 @@ class PredictionWriter(Callback):
 
     write_intervals = ("step", "epoch")
 
-    def __init__(self, output_dir: Optional[str], write_interval: Optional[str] = "step"):
-        if write_interval not in self.write_intervals:
+    def write_on_batch(self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any, batch_idx: int, dataloader_idx: int):
+        pass
+
+    def write_on_epoch(self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]):
+        pass
+
+    def __init__(self, write_interval: str = "step"):
+        if not isinstance(write_interval, str) or (isinstance(write_interval, str) and write_interval not in self.write_intervals):
             raise MisconfigurationException(
-                f"write_interval should be within {self.write_intervals}. Found {write_interval}"
+                f"`write_interval` should be within {self.write_intervals}.on_batch_end"
             )
-        self._output_dir = output_dir
+        
         self._write_interval = write_interval
 
     def on_predict_batch_end(
         self, trainer, pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         if self._write_interval == "step":
-            pass
-            #torch.save({"batch":batch, "indices": self.trainer.predict_loop.batch_indices}, "output_dir/preds_rank_batch_idx_{dl_idx}.pt"
+            self.write_on_batch(trainer, pl_module, outputs, trainer.predict_loop.batch_indices, batch, batch_idx, dataloader_idx)
 
     def on_predict_epoch_end(self, trainer, pl_module: 'LightningModule', outputs: List[Any]) -> None:
         if self._write_interval == "epoch":
-            pass
-            # torch.save({"batch":batch, "indices": self.trainer.predict_loop.batch_indices}, "output_dir/preds_rank_batch_idx_{dl_idx}.pt"
+            self.write_on_epoch(trainer, pl_module, trainer.predict_loop._predictions, trainer.predict_loop._batches_indices)

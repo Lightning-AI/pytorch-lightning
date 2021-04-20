@@ -36,6 +36,10 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def on_gpu(self) -> bool:
         return self.device.type == "cuda" and torch.cuda.is_available()
 
+    @property
+    def use_spawn(self) -> bool:
+        return False
+
     def reduce(self, tensor: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
         """
         Reduces a tensor from several distributed processes to one aggregated tensor.

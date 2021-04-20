@@ -1032,8 +1032,7 @@ class Trainer(
         model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
-        output_dir: Optional[str] = None,
-        write_interval: Optional[str] = "step",
+        return_predictions: Optional[bool] = None, 
     ):
         r"""
 
@@ -1049,9 +1048,9 @@ class Trainer(
 
             datamodule: A instance of :class:`LightningDataModule`.
 
-            output_dir: Directory where the predictions will be saved.
-
-            write_interval: Frequency at which the predictions will be saved. Can be "step" or "epoch".
+            return_predictions: Wheter to return predictions.
+                By default, `return_predictions` will be resolved to `True` 
+                expect for spawned accelerator (not supported).
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -1065,7 +1064,7 @@ class Trainer(
 
         model = model or self.lightning_module
 
-        self.callback_connector.configure_prediction_writer(output_dir, write_interval)
+        self.predict_loop.return_predictions = return_predictions
 
         self.state = TrainerState.PREDICTING
         self.predicting = True
