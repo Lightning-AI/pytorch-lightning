@@ -78,7 +78,6 @@ Lightning automates the details behind training on a SLURM-powered cluster. In c
 cluster above, the user does not start the jobs manually on each node and instead submits it to SLURM which
 schedules the resources and time for which the job is allowed to run.
 
-.. _multi-node:
 
 Training script design
 ----------------------
@@ -244,6 +243,7 @@ The other option is that you generate scripts on your own via a bash command or 
 
 ----------
 
+.. _custom-cluster:
 
 3. Custom cluster
 =================
@@ -251,9 +251,10 @@ The other option is that you generate scripts on your own via a bash command or 
 Lightning provides an interface for providing your own definition of a cluster environment. It mainly consists of
 parsing the right environment variables to access information such as world size, global and local rank (process id),
 and node rank (node id). Here is an example of a custom
-:class:`~pytorch_lightning.plugins.environment.cluster_environment.ClusterEnvironment`:
+:class:`~pytorch_lightning.plugins.environments.cluster_environment.ClusterEnvironment`:
 
 .. testcode::
+
     import os
     from pytorch_lightning.plugins.environments import ClusterEnvironment
 
@@ -282,6 +283,11 @@ and node rank (node id). Here is an example of a custom
             return int(os.environ["MASTER_PORT"])
 
 
+    trainer = Trainer(plugins=[MyClusterEnvironment()])
+
+
+----------
+
 4. General tips for multi-node training
 =======================================
 
@@ -289,7 +295,7 @@ Debugging flags
 ---------------
 
 When running in DDP mode, some errors in your code can show up as an NCCL issue.
-Set the `NCCL_DEBUG=INFO` environment variable to see the ACTUAL error.
+Set the ``NCCL_DEBUG=INFO`` environment variable to see the ACTUAL error.
 
 .. code-block:: bash
 
@@ -320,6 +326,6 @@ Here's an example of how to add your own sampler (again, not needed with Lightni
 
 
 Self-balancing architecture (COMING SOON)
------------------------------------------
+=========================================
 
 Here Lightning distributes parts of your module across available GPUs to optimize for speed and memory.
