@@ -211,7 +211,6 @@ class AcceleratorConnector(object):
                 )
 
         self._training_type_plugin = training_type
-        print(f"self._training_type_plugin is {self._training_type_plugin}")
         self._precision_plugin = precision
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 

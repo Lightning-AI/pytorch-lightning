@@ -14,7 +14,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -78,6 +78,8 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     @num_nodes.setter
     def num_nodes(self, num_nodes: int) -> None:
+        # note that world ranks is related to num_nodes, when resetting these parameters,
+        # need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
 
