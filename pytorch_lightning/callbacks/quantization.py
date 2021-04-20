@@ -17,7 +17,7 @@ Quantization
 
 """
 import functools
-from typing import Any, Callable, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 import torch
 from torch.quantization import QConfig

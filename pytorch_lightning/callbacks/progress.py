@@ -25,7 +25,7 @@ import sys
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
-from typing import Any, Dict, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 

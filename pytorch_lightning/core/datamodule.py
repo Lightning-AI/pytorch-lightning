@@ -15,7 +15,7 @@
 
 import functools
 from argparse import ArgumentParser, Namespace
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
 from torch.utils.data import DataLoader, Dataset
 

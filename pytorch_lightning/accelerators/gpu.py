@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 import torch
 

@@ -17,7 +17,7 @@ import logging
 import os
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
 
 import torch
 from torch import nn, Tensor

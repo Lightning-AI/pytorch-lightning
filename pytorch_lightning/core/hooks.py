@@ -13,8 +13,7 @@
 # limitations under the License.
 """Various hooks to be used in the Lightning code."""
 
-from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -23,9 +22,6 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
-
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.trainer import Trainer
 
 
 class ModelHooks:
@@ -352,7 +348,7 @@ class DataHooks:
         """
         return self._device
 
-    @property
+    @device.setter
     def device(self, new_device: Union[str, torch.device]) -> None:
         self._device = new_device
 

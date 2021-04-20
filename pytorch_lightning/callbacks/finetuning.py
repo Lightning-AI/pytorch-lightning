@@ -17,7 +17,7 @@ Finetuning Callback
 Freeze and unfreeze models for finetuning purposes
 """
 import logging
-from typing import Callable, Generator, Iterable, List, Optional, TYPE_CHECKING, Union
+from typing import Callable, Generator, Iterable, List, Optional, Union
 
 import torch
 from torch.nn import Module

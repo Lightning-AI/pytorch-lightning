@@ -267,7 +267,7 @@ class StochasticWeightAveraging(Callback):
                 dtype=cast(torch.dtype, module.running_var.dtype)
             )
             self.momenta[module] = module.momentum
-            module.momentum = None  # type: ignore
+            module.momentum = None
             module.num_batches_tracked *= 0
 
     def reset_momenta(self) -> None:

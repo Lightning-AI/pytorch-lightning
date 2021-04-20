@@ -20,7 +20,7 @@ Monitor and logs learning rate for lr schedulers during training.
 
 """
 
-from typing import Any, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback

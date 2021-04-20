@@ -14,7 +14,7 @@
 """Decorator for LightningModule methods."""
 
 from functools import wraps
-from typing import Any, Callable, TYPE_CHECKING, Union
+from typing import Any, Callable, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn

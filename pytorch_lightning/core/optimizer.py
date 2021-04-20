@@ -13,7 +13,7 @@
 # limitations under the License.
 import types
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Union
 from weakref import proxy
 
 from torch.optim import Optimizer

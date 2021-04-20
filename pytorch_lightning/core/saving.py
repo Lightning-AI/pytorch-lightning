@@ -20,7 +20,7 @@ import os
 from argparse import Namespace
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, IO, Mapping, MutableMapping, Optional, Union
+from typing import Any, Callable, Dict, IO, MutableMapping, Optional, Union
 from warnings import warn
 
 import torch

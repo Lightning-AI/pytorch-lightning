@@ -18,28 +18,13 @@ import copy
 import inspect
 import logging
 import os
-import tempfile
 import types
 import uuid
 from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    overload,
-    Sequence,
-    Tuple,
-    Type,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
