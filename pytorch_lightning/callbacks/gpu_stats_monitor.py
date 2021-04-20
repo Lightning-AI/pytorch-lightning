@@ -25,12 +25,11 @@ import subprocess
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import DeviceType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
-
-import pytorch_lightning as pl
 
 
 class GPUStatsMonitor(Callback):

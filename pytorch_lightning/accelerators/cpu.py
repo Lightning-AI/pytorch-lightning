@@ -13,11 +13,10 @@
 # limitations under the License.
 from typing import TYPE_CHECKING
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-import pytorch_lightning as pl
 
 
 class CPUAccelerator(Accelerator):

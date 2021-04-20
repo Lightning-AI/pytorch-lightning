@@ -194,26 +194,15 @@ class MyDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return DALIClassificationLoader(
-            self.pipe_train,
-            size=len(self.mnist_train),
-            auto_reset=True,
-            fill_last_batch=True
+            self.pipe_train, size=len(self.mnist_train), auto_reset=True, fill_last_batch=True
         )
 
     def val_dataloader(self):
-        return DALIClassificationLoader(
-            self.pipe_val,
-            size=len(self.mnist_val),
-            auto_reset=True,
-            fill_last_batch=False
-        )
+        return DALIClassificationLoader(self.pipe_val, size=len(self.mnist_val), auto_reset=True, fill_last_batch=False)
 
     def test_dataloader(self):
         return DALIClassificationLoader(
-            self.pipe_test,
-            size=len(self.mnist_test),
-            auto_reset=True,
-            fill_last_batch=False
+            self.pipe_test, size=len(self.mnist_test), auto_reset=True, fill_last_batch=False
         )
 
 

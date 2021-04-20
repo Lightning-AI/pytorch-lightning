@@ -22,11 +22,10 @@ Monitor and logs learning rate for lr schedulers during training.
 
 from typing import Any, Dict, Iterable, List, Optional, Sequence, TYPE_CHECKING, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-import pytorch_lightning as pl
 
 
 class LearningRateMonitor(Callback):

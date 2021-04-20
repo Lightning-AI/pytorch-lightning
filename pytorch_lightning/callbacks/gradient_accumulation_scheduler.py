@@ -22,8 +22,8 @@ Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 from typing import Dict
 
-from pytorch_lightning.callbacks.base import Callback
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.base import Callback
 
 
 class GradientAccumulationScheduler(Callback):

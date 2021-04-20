@@ -213,11 +213,13 @@ def test_early_stopping_no_val_step(tmpdir):
     assert trainer.current_epoch < trainer.max_epochs - 1
 
 
-@pytest.mark.parametrize("stopping_threshold,divergence_theshold,losses,expected_epoch", [
-    (None, None, [8, 4, 2, 3, 4, 5, 8, 10], 5),
-    (2.9, None, [9, 8, 7, 6, 5, 6, 4, 3, 2, 1], 8),
-    (None, 15.9, [9, 4, 2, 16, 32, 64], 3),
-])
+@pytest.mark.parametrize(
+    "stopping_threshold,divergence_theshold,losses,expected_epoch", [
+        (None, None, [8, 4, 2, 3, 4, 5, 8, 10], 5),
+        (2.9, None, [9, 8, 7, 6, 5, 6, 4, 3, 2, 1], 8),
+        (None, 15.9, [9, 4, 2, 16, 32, 64], 3),
+    ]
+)
 def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_theshold, losses, expected_epoch):
 
     class CurrentModel(BoringModel):

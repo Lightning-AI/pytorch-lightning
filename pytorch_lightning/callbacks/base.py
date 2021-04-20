@@ -18,6 +18,7 @@ Abstract base class used to build new callbacks.
 
 import abc
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl

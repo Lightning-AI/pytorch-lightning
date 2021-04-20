@@ -22,16 +22,13 @@ from typing import Callable, Generator, Iterable, List, Optional, TYPE_CHECKING,
 import torch
 from torch.nn import Module
 from torch.nn.modules.batchnorm import _BatchNorm
-from torch.optim.optimizer import Optimizer
-
-from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 from torch.nn.parameter import Parameter
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
 

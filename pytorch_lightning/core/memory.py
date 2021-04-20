@@ -23,8 +23,8 @@ import torch
 import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
-from pytorch_lightning.utilities import AMPType, DeviceType
 import pytorch_lightning as pl
+from pytorch_lightning.utilities import AMPType, DeviceType
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"

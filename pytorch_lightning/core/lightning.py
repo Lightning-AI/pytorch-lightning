@@ -32,26 +32,21 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
-
-import pytorch_lightning as pl
-
-from argparse import Namespace
-
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf

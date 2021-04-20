@@ -21,17 +21,14 @@ from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING
 
 import torch
 from torch import nn, Tensor
-from torch.autograd.profiler import record_function
+from torch.autograd.profiler import EventList, record_function
+from torch.utils.hooks import RemovableHandle
 
+import pytorch_lightning as pl
 from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
-
-from torch.autograd.profiler import EventList
-from torch.utils.hooks import RemovableHandle
-
-import pytorch_lightning as pl
 
 if _KINETO_AVAILABLE:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler

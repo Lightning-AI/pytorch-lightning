@@ -16,8 +16,8 @@
 from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING, Union
 
-from pytorch_lightning.utilities import rank_zero_warn, rank_zero_deprecation
 import pytorch_lightning as pl
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 
 
 def auto_move_data(fn: Callable) -> Callable:

@@ -29,13 +29,12 @@ import numpy as np
 import torch
 import yaml
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
-
-import pytorch_lightning as pl
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()

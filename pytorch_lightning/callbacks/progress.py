@@ -32,11 +32,10 @@ if importlib.util.find_spec('ipywidgets') is not None:
 else:
     from tqdm import tqdm as _tqdm
 
-from pytorch_lightning.callbacks import Callback
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import Callback
 
 _PAD_SIZE = 5
-
 
 
 class tqdm(_tqdm):
