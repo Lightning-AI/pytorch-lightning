@@ -436,7 +436,7 @@ class ModelPruning(Callback):
 
         current_modules = [m for m in pl_module.modules() if not isinstance(m, _MODULE_CONTAINERS)]
 
-        if parameters_to_prune is None:
+        if not parameters_to_prune:
             parameters_to_prune = [(m, p) for p in parameters for m in current_modules
                                    if getattr(m, p, None) is not None]
         elif (
