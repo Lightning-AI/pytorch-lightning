@@ -311,7 +311,6 @@ class ModelPruning(Callback):
                 copy_param(new, copy, name)
 
     def _apply_local_pruning(self, amount: float) -> None:
-
         for module, name in self._parameters_to_prune:
             self.pruning_fn(module, name=name, amount=amount)
 
@@ -406,7 +405,7 @@ class ModelPruning(Callback):
             self.make_pruning_permanent(pl_module)
 
     def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: LightningModule,
-                           checkpoint: Dict[str, Any]) -> Dict[Any, Any]:
+                           checkpoint: Dict[str, Any],) -> Dict[str, Any]:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint.")
             prev_device = pl_module.device
