@@ -3,7 +3,7 @@
 ################
 AWS/GCP training
 ################
-Lightning has a native solution for training on AWS/GCP at scale (Lightning-Grid).
+Lightning has a native solution for training on AWS/GCP at scale.
 Go to `grid.ai <https://www.grid.ai/>`_ to create an account.
 
 We've designed Grid to work for Lightning users without needing to make ANY changes to their code.
