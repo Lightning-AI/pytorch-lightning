@@ -140,6 +140,18 @@ class Callback(abc.ABC):
         """Called when the test batch ends."""
         pass
 
+    def on_predict_batch_start(
+        self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
+        """Called when the predict batch begins."""
+        pass
+
+    def on_predict_batch_end(
+        self, trainer, pl_module: LightningModule, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
+        """Called when the predict batch ends."""
+        pass
+
     def on_batch_end(self, trainer, pl_module: LightningModule) -> None:
         """Called when the training batch ends."""
         pass

@@ -75,18 +75,17 @@ class PredictLoop(object):
 
         model_ref = self.trainer.lightning_module
 
+        self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
+
         model_ref._current_fx_name = "predict"
         predictions = self.trainer.accelerator.predict_step(args)
 
         if predictions is None:
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
-        self._predictions[dataloader_idx].append(predictions)
+        self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
-        if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_batch_end(
-                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
-            )
+        self._predictions[dataloader_idx].append(predictions)
         return
 
     def on_predict_epoch_end(self):

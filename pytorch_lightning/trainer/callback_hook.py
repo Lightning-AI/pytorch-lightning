@@ -211,6 +211,16 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_test_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
 
+    def on_predict_batch_start(self, batch, batch_idx, dataloader_idx):
+        """Called when the predict batch begins."""
+        for callback in self.callbacks:
+            callback.on_predict_batch_start(self, self.lightning_module, batch, batch_idx, dataloader_idx)
+
+    def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
+        """Called when the predict batch ends."""
+        for callback in self.callbacks:
+            callback.on_predict_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
+
     def on_validation_start(self):
         """Called when the validation loop begins."""
         for callback in self.callbacks:
