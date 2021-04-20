@@ -260,7 +260,9 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
         assert chk['epoch'] == epoch + 1
-        assert chk['global_step'] == per_epoch_steps * (global_ix + 1) + (left_over_steps * (epoch + (1 if add else 0)))
+        epoch_num = epoch + (1 if add else 0)
+        expected_global_step = per_epoch_steps * (global_ix + 1) + (left_over_steps * epoch_num)
+        assert chk['global_step'] == expected_global_step
 
         mc_specific_data = chk['callbacks'][type(checkpoint)]
         assert mc_specific_data['dirpath'] == checkpoint.dirpath
