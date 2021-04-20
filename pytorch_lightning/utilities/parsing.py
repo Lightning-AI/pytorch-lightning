@@ -169,66 +169,7 @@ def save_hyperparameters(
     ignore: Optional[Union[Sequence[str], str]] = None,
     frame: Optional[types.FrameType] = None
 ) -> None:
-    """Save model arguments to ``hparams`` attribute.
-
-    Args:
-        args: single object of `dict`, `NameSpace` or `OmegaConf`
-            or string names or arguments from class ``__init__``
-        ignore: an argument name or a list of argument names from
-            class ``__init__`` to be ignored
-        frame: a frame object. Default is None
-
-    Example::
-        >>> class ManuallyArgsModel(pl.LightningModule):
-        ...     def __init__(obj, arg1, arg2, arg3):
-        ...         super().__init__()
-        ...         # manually assign arguments
-        ...         obj.save_hyperparameters('arg1', 'arg3')
-        ...     def forward(obj, *args, **kwargs):
-        ...         ...
-        >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-        >>> model.hparams
-        "arg1": 1
-        "arg3": 3.14
-
-        >>> class AutomaticArgsModel(pl.LightningModule):
-        ...     def __init__(obj, arg1, arg2, arg3):
-        ...         super().__init__()
-        ...         # equivalent automatic
-        ...         obj.save_hyperparameters()
-        ...     def forward(obj, *args, **kwargs):
-        ...         ...
-        >>> model = AutomaticArgsModel(1, 'abc', 3.14)
-        >>> model.hparams
-        "arg1": 1
-        "arg2": abc
-        "arg3": 3.14
-
-        >>> class SingleArgModel(pl.LightningModule):
-        ...     def __init__(obj, params):
-        ...         super().__init__()
-        ...         # manually assign single argument
-        ...         obj.save_hyperparameters(params)
-        ...     def forward(obj, *args, **kwargs):
-        ...         ...
-        >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
-        >>> model.hparams
-        "p1": 1
-        "p2": abc
-        "p3": 3.14
-
-        >>> class ManuallyArgsModel(pl.LightningModule):
-        ...     def __init__(obj, arg1, arg2, arg3):
-        ...         super().__init__()
-        ...         # pass argument(s) to ignore as a string or in a list
-        ...         obj.save_hyperparameters(ignore='arg2')
-        ...     def forward(obj, *args, **kwargs):
-        ...         ...
-        >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-        >>> model.hparams
-        "arg1": 1
-        "arg3": 3.14
-    """
+    """See :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters`"""
     if not frame:
         frame = inspect.currentframe().f_back
     init_args = get_init_args(frame)
