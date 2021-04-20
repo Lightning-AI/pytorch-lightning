@@ -38,7 +38,7 @@ def scale_batch_size(
         max_trials: int = 25,
         batch_arg_name: str = 'batch_size',
         **fit_kwargs
-) -> int:
+) -> Optional[int]:
     r"""
     Will iteratively try to find the largest batch size for a given model
     that does not give an out of memory (OOM) error.
