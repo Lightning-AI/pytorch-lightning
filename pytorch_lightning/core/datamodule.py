@@ -363,7 +363,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         """
 
-        def dataloader(ds, shuffle=False):
+        def dataloader(ds: Dataset, shuffle: bool = False) -> DataLoader:
+            shuffle &= not isinstance(ds, IterableDataset)
             return DataLoader(
                 ds,
                 batch_size=batch_size,
@@ -374,13 +375,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         def train_dataloader():
             if isinstance(train_dataset, Mapping):
-                return {
-                    key: dataloader(ds, shuffle=not isinstance(ds, IterableDataset))
-                    for key, ds in train_dataset.items()
-                }
+                return {key: dataloader(ds, shuffle=True) for key, ds in train_dataset.items()}
             if isinstance(train_dataset, Sequence):
-                return [dataloader(ds, shuffle=(not isinstance(ds, IterableDataset))) for ds in train_dataset]
-            return dataloader(train_dataset, shuffle=(not isinstance(train_dataset, IterableDataset)))
+                return [dataloader(ds, shuffle=True) for ds in train_dataset]
+            return dataloader(train_dataset, shuffle=True)
 
         def val_dataloader():
             if isinstance(val_dataset, Sequence):
