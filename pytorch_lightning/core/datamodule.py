@@ -379,8 +379,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
                     for key, ds in train_dataset.items()
                 }
             if isinstance(train_dataset, Sequence):
-                return [dataloader(ds, shuffle=not isinstance(ds, IterableDataset)) for ds in train_dataset]
-            return dataloader(train_dataset, shuffle=not isinstance(train_dataset, IterableDataset))
+                return [dataloader(ds, shuffle=(not isinstance(ds, IterableDataset))) for ds in train_dataset]
+            return dataloader(train_dataset, shuffle=(not isinstance(train_dataset, IterableDataset)))
 
         def val_dataloader():
             if isinstance(val_dataset, Sequence):
