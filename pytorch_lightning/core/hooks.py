@@ -251,13 +251,13 @@ class ModelHooks:
         """
         # do something at the end of testing
 
-    def on_predict_start(self) -> None:
+    def on_predict_epoch_start(self) -> None:
         """
         Called at the beginning of predicting.
         """
         # do something at the start of predicting
 
-    def on_predict_end(self, results: List[Any]) -> None:
+    def on_predict_epoch_end(self, results: List[Any]) -> None:
         """
         Called at the end of predicting.
         """

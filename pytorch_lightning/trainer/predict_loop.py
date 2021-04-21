@@ -57,7 +57,7 @@ class PredictLoop(object):
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
         if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.lightning_module)
+            self.trainer._progress_bar_callback.on_predict_epoch_start(self.trainer, self.trainer.lightning_module)
 
     def _get_num_dataloaders(self, dataloaders):
         # case where user does:
@@ -75,11 +75,15 @@ class PredictLoop(object):
 
         model_ref = self.trainer.lightning_module
 
+        self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
+
         model_ref._current_fx_name = "predict"
         predictions = self.trainer.accelerator.predict_step(args)
 
         if predictions is None:
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
+
+        self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
         self._predictions[dataloader_idx].append(predictions)
 
@@ -87,13 +91,15 @@ class PredictLoop(object):
             self.trainer._progress_bar_callback.on_predict_batch_end(
                 self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
             )
-        return
+
+    def on_predict_epoch_start(self):
+        self.trainer.call_hook("on_predict_epoch_start")
 
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
         if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
+            self.trainer._progress_bar_callback.on_predict_epoch_end(self.trainer, self.trainer.lightning_module)
 
         results = self._predictions
 
@@ -103,14 +109,8 @@ class PredictLoop(object):
         results = apply_to_collection(results, torch.Tensor, _convert_to_numpy)
 
         if len(results) == 1:
-            return results[0]
+            results = results[0]
+
+        self.trainer.call_hook("on_predict_epoch_end", results)
 
         return results
-
-    def on_predict_start(self):
-        # hook
-        self.trainer.call_hook("on_predict_start")
-
-    def on_predict_end(self):
-        # hook
-        self.trainer.call_hook("on_predict_end")
