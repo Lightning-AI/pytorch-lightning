@@ -552,12 +552,11 @@ class ModelCheckpoint(Callback):
                 trainer.logger.version
                 if isinstance(trainer.logger.version, str) else f"version_{trainer.logger.version}"
             )
-
-            version, name = trainer.training_type_plugin.broadcast((version, trainer.logger.name))
-
-            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
+            ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
+
+        ckpt_path = trainer.training_type_plugin.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
 
