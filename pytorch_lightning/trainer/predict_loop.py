@@ -98,19 +98,13 @@ class PredictLoop(object):
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
-        if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_epoch_end(self.trainer, self.trainer.lightning_module)
-
         results = self._predictions
+
+        self.trainer.call_hook("on_predict_epoch_end", results)
 
         def _convert_to_numpy(v):
             return v.cpu().numpy()
 
         results = apply_to_collection(results, torch.Tensor, _convert_to_numpy)
 
-        if len(results) == 1:
-            results = results[0]
-
-        self.trainer.call_hook("on_predict_epoch_end", results)
-
-        return results
+        return results[0] if len(results) == 1 else results

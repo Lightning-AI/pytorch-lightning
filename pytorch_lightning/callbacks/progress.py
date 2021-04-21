@@ -460,7 +460,7 @@ class ProgressBar(ProgressBarBase):
         if self._should_update(self.predict_batch_idx, self.total_predict_batches):
             self._update_bar(self.predict_progress_bar)
 
-    def on_predict_epoch_end(self, trainer, pl_module):
+    def on_predict_epoch_end(self, trainer, pl_module, outputs):
         self.predict_progress_bar.close()
 
     def print(
