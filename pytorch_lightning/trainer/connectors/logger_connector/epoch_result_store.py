@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 from weakref import proxy
@@ -22,19 +21,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType, LightningEnum
-from pytorch_lightning.utilities.warnings import WarningCache
-
-log = logging.getLogger(__name__)
-
-
-class MetricWarningCache(WarningCache):
-
-    def __init__(self):
-        super().__init__()
-        self.warned_metrics = []
-
-
-warning_cache = MetricWarningCache()
 
 
 class ResultStoreType(LightningEnum):
@@ -254,7 +240,6 @@ class EpochResultStore:
 
     def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = proxy(trainer)
-        self._internals = {}
         self.reset()
 
     def __getitem__(self, key: str) -> Any:
