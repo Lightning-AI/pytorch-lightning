@@ -264,10 +264,10 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         expected_global_step = per_epoch_steps * (global_ix + 1) + (left_over_steps * epoch_num)
         assert chk['global_step'] == expected_global_step
 
-            mc_specific_data = chk['callbacks']["ModelCheckpoint"]
-            assert mc_specific_data['dirpath'] == checkpoint.dirpath
-            assert mc_specific_data['monitor'] == monitor
-            assert mc_specific_data['current_score'] == score
+        mc_specific_data = chk['callbacks']["ModelCheckpoint"]
+        assert mc_specific_data['dirpath'] == checkpoint.dirpath
+        assert mc_specific_data['monitor'] == monitor
+        assert mc_specific_data['current_score'] == score
 
         if not reduce_lr_on_plateau:
             lr_scheduler_specific_data = chk['lr_schedulers'][0]

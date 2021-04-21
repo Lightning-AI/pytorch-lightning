@@ -14,9 +14,8 @@
 
 from abc import ABC
 from copy import deepcopy
-from distutils.version import LooseVersion
 from inspect import signature
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
@@ -264,7 +263,6 @@ class TrainerCallbackHookMixin(ABC):
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint."""
         callback_states = checkpoint.get('callbacks')
-        version = checkpoint.get('pytorch-lightning_version')
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
