@@ -16,7 +16,6 @@ from unittest import mock
 
 import pytest
 import torch
-from torchmetrics.classification.accuracy import Accuracy
 
 from pytorch_lightning import callbacks, seed_everything, Trainer
 from tests.helpers import BoringModel
