@@ -22,6 +22,8 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks.prediction_writer import PredictionWriterBase
+
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -308,6 +310,14 @@ class TrainerProperties(ABC):
         found in the Trainer.callbacks list.
         """
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+
+    @property
+    def prediction_writer_callbacks(self) -> List[PredictionWriterBase]:
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.prediction_writer.PredictionWriterBase`
+        found in the Trainer.callbacks list.
+        """
+        return [c for c in self.callbacks if isinstance(c, PredictionWriterBase)]
 
     @property
     def checkpoint_callback(self) -> Optional[ModelCheckpoint]:

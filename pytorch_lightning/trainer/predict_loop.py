@@ -28,18 +28,7 @@ class PredictLoop(object):
         self.num_dataloaders = None
         self.warning_cache = WarningCache()
         self.batch_indices: Optional[List[int]] = []
-        self._write_interval: Optional[str] = None
         self._return_predictions: bool = not trainer.training_type_plugin.use_spawn
-
-    @property
-    def write_interval(self) -> Optional[str]:
-        return self._write_interval
-
-    @write_interval.setter
-    def write_interval(self, write_interval: str):
-        if isinstance(write_interval, str) and write_interval not in self.write_intervals:
-            raise MisconfigurationException(f"write_interval should be within {self.write_intervals}")
-        self._write_interval = write_interval
 
     @property
     def return_predictions(self) -> bool:
@@ -57,7 +46,7 @@ class PredictLoop(object):
 
     @property
     def should_store_predictions(self) -> bool:
-        return self.return_predictions or self.write_interval == "epoch"
+        return self.return_predictions or any(c._write_interval == "epoch" for c in self.trainer.prediction_writer_callbacks)
 
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []
@@ -133,23 +122,19 @@ class PredictLoop(object):
             if self.should_store_predictions:
                 self._batches_indices[dataloader_idx].append(batch_sampler.batch_indices)
 
+    def on_predict_epoch_start(self):
+        # hook
+        self.trainer.call_hook("on_predict_epoch_start")
+
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
+        results = self._predictions
+
+        if len(results) == 1:
+            return results[0]
+
+        self.trainer.call_hook("on_predict_epoch_end", results)
+
         if self.return_predictions:
-            results = self._predictions
-
-            if len(results) == 1:
-                return results[0]
-
-            self.on_predict_end(results)
-
             return results
-
-    def on_predict_start(self):
-        # hook
-        self.trainer.call_hook("on_predict_start")
-
-    def on_predict_end(self, results: List[Any]) -> None:
-        # hook
-        self.trainer.call_hook("on_predict_end", results)

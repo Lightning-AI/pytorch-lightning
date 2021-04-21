@@ -19,7 +19,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class PredictionWriterBase(Callback, abc.ABC):
+class PredictionWriterBase(Callback):
 
     write_intervals = ("batch", "epoch")
     """
@@ -81,7 +81,7 @@ class PredictionWriterBase(Callback, abc.ABC):
     def on_predict_batch_end(
         self, trainer, pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self._write_interval == "step":
+        if self._write_interval == "batch":
             self.write_on_batch_end(
                 trainer, pl_module, outputs, trainer.predict_loop.batch_indices, batch, batch_idx, dataloader_idx
             )

@@ -32,7 +32,7 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.callbacks.predictions import PredictionWriterBase
+from pytorch_lightning.callbacks.prediction_writer import PredictionWriterBase
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnRepeatedDistributedSampler
@@ -1512,6 +1512,42 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
+
+class CustomPredictionWriter(PredictionWriterBase):
+
+    write_on_batch_end_called = False
+    write_on_epoch_end_called = False
+
+    def __init__(self, output_dir: str, write_interval: Union[str, int, float] = "batch"):
+        super().__init__(write_interval)
+        self.output_dir = output_dir
+
+    def write_on_batch_end(
+        self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any,
+        batch_idx: int, dataloader_idx: int
+    ):
+        assert prediction.shape == torch.Size([1, 2])
+        assert len(batch_indices) == 1
+        self.write_on_batch_end_called = True
+        
+
+    def write_on_epoch_end(
+        self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
+    ):
+        assert len(predictions) == 2
+        assert len(predictions[0]) == 1
+        assert len(batch_indices) == 2
+        assert len(batch_indices[0]) == 1
+        self.write_on_epoch_end_called = True
+
+    def on_predict_epoch_end(self, trainer, pl_module: LightningModule, outputs: List[Any]):
+        if trainer.accelerator_connector.is_distributed:
+            for idx in range(2):
+                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnRepeatedDistributedSampler)
+                assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSampler)
+        super().on_predict_epoch_end(trainer, pl_module, outputs)
+
+
 def predict(
     tmpdir,
     accelerator,
@@ -1520,35 +1556,15 @@ def predict(
     model=None,
     plugins=None,
     datamodule=True,
-    pbrr=None,
-    write_interval="batch"
-):
+    pbrr=None):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
     model = model or BoringModel()
     dm = TestLightningDataModule(dataloaders)
 
-    class CustomPredictionWriterBase(PredictionWriterBase):
-
-        def __init__(self, output_dir: str, write_interval: Union[str, int, float] = "batch"):
-            super().__init__(write_interval)
-            self.output_dir = output_dir
-
-        def write_on_batch_end(
-            self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any,
-            batch_idx: int, dataloader_idx: int
-        ):
-            assert prediction.shape == torch.Size([1, 2])
-            assert len(batch_indices) == 1
-
-        def write_on_epoch_end(
-            self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
-        ):
-            assert len(predictions) == 2
-            assert len(predictions[0]) == 2
-            assert len(batch_indices) == 2
-            assert len(batch_indices[0]) == 2
+    cb = CustomPredictionWriter(tmpdir, write_interval="batch")
+    cb_1 = CustomPredictionWriter(tmpdir, write_interval="epoch")
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1560,23 +1576,27 @@ def predict(
         num_processes=num_processes,
         plugins=plugins,
         progress_bar_refresh_rate=pbrr,
-        callbacks=[CustomPredictionWriterBase(tmpdir, write_interval=write_interval)]
+        callbacks=[cb, cb_1]
     )
     if datamodule:
         results = trainer.predict(model, datamodule=dm)
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
-    if gpus == 2 or num_processes == 2:
-        for idx in range(len(dataloaders)):
-            assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnRepeatedDistributedSampler)
-            assert isinstance(trainer.predict_dataloaders[idx].batch_sampler, IndexBatchSampler)
+    if not trainer.training_type_plugin.use_spawn:
+        assert cb.write_on_batch_end_called
+        assert not cb.write_on_epoch_end_called
 
-    # todo: address this in another PR
-    num_samples = 1 if accelerator in ["ddp", "ddp_cpu", "ddp_spawn"] else 2
-    assert len(results) == 2
-    assert len(results[0]) == num_samples
-    assert results[0][0].shape == torch.Size([1, 2])
+        assert not cb_1.write_on_batch_end_called
+        assert cb_1.write_on_epoch_end_called
+
+        # todo: address this in another PR
+        num_samples = 1 if accelerator == "ddp" else 2
+        assert len(results) == 2
+        assert len(results[0]) == num_samples
+        assert results[0][0].shape == torch.Size([1, 2])
+    else:
+        assert results == 1
 
 
 def test_trainer_predict_no_return(tmpdir):
@@ -1623,9 +1643,8 @@ def test_trainer_predict_dp(tmpdir, num_gpus):
 
 
 @RunIf(min_gpus=2, special=True, fairscale=True)
-@pytest.mark.parametrize("write_interval", ["step", "epoch"])
-def test_trainer_predict_ddp(write_interval, tmpdir):
-    predict(tmpdir, "ddp", 2, None, write_interval=write_interval)
+def test_trainer_predict_ddp(tmpdir):
+    predict(tmpdir, "ddp", 2, None)
 
 
 @RunIf(min_gpus=2, skip_windows=True, special=True)

@@ -814,7 +814,7 @@ class Trainer(
         torch.set_grad_enabled(False)
 
         # call hook
-        self.predict_loop.on_predict_start()
+        self.predict_loop.on_predict_epoch_start()
 
         # set up the eval loop
         self.predict_loop.setup(model, max_batches, dataloaders)
