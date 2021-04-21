@@ -80,7 +80,7 @@ class DDPPlugin(ParallelPlugin):
             )
         self._num_nodes = num_nodes or 1
         if sync_batchnorm is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.3, and will be removed in v1.5. "
                 "Notice that it will be overriden by the trainer setting."
             )

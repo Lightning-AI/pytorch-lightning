@@ -31,7 +31,13 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    rank_zero_only,
+    rank_zero_warn,
+    rank_zero_deprecation,
+    ReduceOp,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.seed import seed_everything
 
 if _TORCH_GREATER_EQUAL_1_8:
@@ -67,7 +73,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             )
         self._num_nodes = num_nodes or 1
         if sync_batchnorm is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.3, and will be removed in v1.5. "
                 "Notice that it will be overriden by the trainer setting."
             )
@@ -128,6 +134,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def setup(self, model):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
+        os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
         # pass in a state q
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
