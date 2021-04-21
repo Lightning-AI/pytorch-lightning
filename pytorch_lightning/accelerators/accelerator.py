@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
 from torch import Tensor
@@ -27,11 +27,10 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 if _NATIVE_AMP_AVAILABLE:
     from torch.cuda.amp import GradScaler
-
-_STEP_OUTPUT_TYPE = Union[torch.Tensor, Dict[str, torch.Tensor], None]
 
 
 class Accelerator:
@@ -63,9 +62,9 @@ class Accelerator:
         self.precision_plugin = precision_plugin
         self.training_type_plugin = training_type_plugin
 
-        self.optimizers: Sequence = []
-        self.lr_schedulers: Sequence = []
-        self.optimizer_frequencies: Sequence = []
+        self.optimizers: List = []
+        self.lr_schedulers: List = []
+        self.optimizer_frequencies: List = []
 
     def connect(self, model: 'pl.LightningModule') -> None:
         """Transfers ownership of the model to this plugin"""
@@ -166,7 +165,7 @@ class Accelerator:
     def training_step(
         self,
         args: List[Union[Any, int]],
-    ) -> _STEP_OUTPUT_TYPE:
+    ) -> STEP_OUTPUT:
         """The actual training step.
 
         Args:
@@ -188,7 +187,7 @@ class Accelerator:
     def post_training_step(self) -> None:
         self.training_type_plugin.post_training_step()
 
-    def validation_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def validation_step(self, args: List[Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
         Args:
@@ -207,7 +206,7 @@ class Accelerator:
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*args)
 
-    def test_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def test_step(self, args: List[Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
         Args:
@@ -226,7 +225,7 @@ class Accelerator:
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*args)
 
-    def predict_step(self, args: List[Union[Any, int]]) -> _STEP_OUTPUT_TYPE:
+    def predict_step(self, args: List[Union[Any, int]]) -> STEP_OUTPUT:
         """The actual predict step.
 
         Args:
@@ -243,10 +242,10 @@ class Accelerator:
 
         args[0] = batch
 
-        with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
+        with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*args)
 
-    def training_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
+    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
         """A hook to do something at the end of the training step
 
         Args:
@@ -254,7 +253,7 @@ class Accelerator:
         """
         return self.training_type_plugin.training_step_end(output)
 
-    def test_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
+    def test_step_end(self, output: Optional[STEP_OUTPUT]) -> Optional[STEP_OUTPUT]:
         """A hook to do something at the end of the test step
 
         Args:
@@ -262,7 +261,7 @@ class Accelerator:
         """
         return self.training_type_plugin.test_step_end(output)
 
-    def validation_step_end(self, output: _STEP_OUTPUT_TYPE) -> _STEP_OUTPUT_TYPE:
+    def validation_step_end(self, output: Optional[STEP_OUTPUT]) -> Optional[STEP_OUTPUT]:
         """A hook to do something at the end of the validation step
 
         Args:
@@ -331,7 +330,7 @@ class Accelerator:
         """clips all the optimizer parameters to the given value"""
         self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
-    def on_train_epoch_end(self, outputs: Sequence[_STEP_OUTPUT_TYPE]) -> None:
+    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """Hook to do something on the end of an training epoch
 
         Args:
@@ -372,12 +371,7 @@ class Accelerator:
 
     def to_device(self, batch: Any) -> Any:
         """Pushes the batch to the root device"""
-        # Todo (tchaton) Better fix
-        is_dict = isinstance(batch, dict)
-        if is_dict:
-            batch = [batch]
-        batch = self.batch_to_device(batch, self.root_device)
-        return batch[0] if is_dict else batch
+        return self.batch_to_device(batch, self.root_device)
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:

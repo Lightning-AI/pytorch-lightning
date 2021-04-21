@@ -77,7 +77,6 @@ PyTorch Lightning Documentation
    :name: Examples
    :caption: Examples
 
-   ecosystem/pytorch_ecoystem
    ecosystem/community_examples
    Autoencoder <https://lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
    BYOL <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>

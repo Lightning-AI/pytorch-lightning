@@ -23,6 +23,7 @@ from pytorch_lightning.callbacks.progress import ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.pruning import ModelPruning
 from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining
 from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+from pytorch_lightning.callbacks.timer import Timer
 
 __all__ = [
     'BackboneFinetuning',
@@ -39,4 +40,5 @@ __all__ = [
     'ProgressBarBase',
     'QuantizationAwareTraining',
     'StochasticWeightAveraging',
+    'Timer',
 ]

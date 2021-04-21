@@ -3,26 +3,38 @@
 ************
 Optimization
 ************
-
 Lightning offers two modes for managing the optimization process:
 
-- automatic optimization (AutoOpt)
+- automatic optimization
 - manual optimization
 
-For the majority of research cases, **automatic optimization** will do the right thing for you and it is what
-most users should use.
+For the majority of research cases, **automatic optimization** will do the right thing for you and it is what most
+users should use.
 
 For advanced/expert users who want to do esoteric optimization schedules or techniques, use **manual optimization**.
 
-------
+-----
 
 Manual optimization
 ===================
-For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable
-to manually manage the optimization process. To do so, do the following:
+For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable to
+manually manage the optimization process.
 
-* Set the ``automatic_optimization`` property to ``False`` in your ``LightningModule`` ``__init__`` function
-* Use ``self.manual_backward(loss)`` instead of ``loss.backward()``.
+This is only recommended for experts who need ultimate flexibility.
+Lightning will handle only precision and accelerators logic.
+The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
+
+To manually optimize, do the following:
+
+* Set ``self.automatic_optimization=False`` in your ``LightningModule``'s ``__init__``.
+* Use the following functions and call them manually:
+
+  * ``self.optimizers()`` to access your optimizers (one or multiple)
+  * ``optimizer.zero_grad()`` to clear the gradients from the previous training step
+  * ``self.manual_backward(loss)`` instead of ``loss.backward()``
+  * ``optimizer.step()`` to update your model parameters
+
+Here is a minimal example of manual optimization.
 
 .. testcode:: python
 
@@ -32,25 +44,37 @@ to manually manage the optimization process. To do so, do the following:
 
         def __init__(self):
             super().__init__()
-            # Important: This property activate ``manual optimization`` for your model
+            # Important: This property activates manual optimization.
             self.automatic_optimization = False
 
         def training_step(batch, batch_idx):
             opt = self.optimizers()
+            opt.zero_grad()
             loss = self.compute_loss(batch)
             self.manual_backward(loss)
+            opt.step()
 
-.. note:: This is only recommended for experts who need ultimate flexibility. Lightning will handle only precision and accelerators logic. The users are left with ``optimizer.zero_grad()``, gradient accumulation, model toggling, etc..
+.. warning::
+   Before 1.2, ``optimizer.step()`` was calling ``optimizer.zero_grad()`` internally.
+   From 1.2, it is left to the user's expertise.
 
-.. warning:: Before 1.2, ``optimzer.step`` was calling ``optimizer.zero_grad()`` internally. From 1.2, it is left to the users expertise.
+.. tip::
+   Be careful where you call ``optimizer.zero_grad()``, or your model won't converge.
+   It is good practice to call ``optimizer.zero_grad()`` before ``self.manual_backward(loss)``.
 
-.. tip:: To perform ``accumulate_grad_batches`` with one optimizer, you can do as such.
+-----
 
-.. tip:: ``self.optimizers()`` will return ``LightningOptimizer`` objects. You can access your own optimizer with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to support accelerators and precision for you.
+Gradient accumulation
+---------------------
+You can accumulate gradients over batches similarly to
+:attr:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches` of automatic optimization.
+To perform gradient accumulation with one optimizer, you can do as such.
 
-.. code-block:: python
+.. testcode:: python
 
+    # accumulate gradients over `n` batches
     def __init__(self):
+        super().__init__()
         self.automatic_optimization = False
 
     def training_step(self, batch, batch_idx):
@@ -59,36 +83,16 @@ to manually manage the optimization process. To do so, do the following:
         loss = self.compute_loss(batch)
         self.manual_backward(loss)
 
-        # accumulate gradient batches
-        if batch_idx % 2 == 0:
+        # accumulate gradients of `n` batches
+        if (batch_idx + 1) % n == 0:
             opt.step()
             opt.zero_grad()
 
-.. tip:: It is a good practice to provide the optimizer with a ``closure`` function that performs a ``forward``, ``zero_grad`` and ``backward`` of your model. It is optional for most optimizers, but makes your code compatible if you switch to an optimizer which requires a closure. See also `the PyTorch docs <https://pytorch.org/docs/stable/optim.html#optimizer-step-closure>`_.
+-----
 
-Here is the same example as above using a ``closure``.
-
-.. testcode:: python
-
-    def __init__(self):
-        self.automatic_optimization = False
-
-    def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
-
-        def closure():
-            # Only zero_grad on the first batch to accumulate gradients
-            is_first_batch_to_accumulate = batch_idx % 2 == 0
-            if is_first_batch_to_accumulate:
-                opt.zero_grad()
-
-            loss = self.compute_loss(batch)
-            self.manual_backward(loss)
-            return loss
-
-        opt.step(closure=closure)
-
-.. tip:: Be careful where you call ``zero_grad`` or your model won't converge. It is good pratice to call ``zero_grad`` before ``manual_backward``.
+Use multiple optimizers (like GANs) [manual]
+--------------------------------------------
+Here is an example training a simple GAN with multiple optimizers.
 
 .. testcode:: python
 
@@ -97,13 +101,12 @@ Here is the same example as above using a ``closure``.
     from pytorch_lightning import LightningModule
 
     class SimpleGAN(LightningModule):
-
         def __init__(self):
             super().__init__()
             self.G = Generator()
             self.D = Discriminator()
 
-            # Important: This property activate ``manual optimization`` for this model
+            # Important: This property activates manual optimization.
             self.automatic_optimization = False
 
         def sample_z(self, n) -> Tensor:
@@ -115,7 +118,8 @@ Here is the same example as above using a ``closure``.
             return self.G(z)
 
         def training_step(self, batch, batch_idx):
-            # Implementation follows https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+            # Implementation follows the PyTorch tutorial:
+            # https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
             g_opt, d_opt = self.optimizers()
 
             X, _ = batch
@@ -126,10 +130,9 @@ Here is the same example as above using a ``closure``.
 
             g_X = self.sample_G(batch_size)
 
-            ###########################
-            #  Optimize Discriminator #
-            ###########################
-            d_opt.zero_grad()
+            ##########################
+            # Optimize Discriminator #
+            ##########################
             d_x = self.D(X)
             errD_real = self.criterion(d_x, real_label)
 
@@ -138,17 +141,17 @@ Here is the same example as above using a ``closure``.
 
             errD = (errD_real + errD_fake)
 
+            d_opt.zero_grad()
             self.manual_backward(errD)
             d_opt.step()
 
-            #######################
-            #  Optimize Generator #
-            #######################
-            g_opt.zero_grad()
-
+            ######################
+            # Optimize Generator #
+            ######################
             d_z = self.D(g_X)
             errG = self.criterion(d_z, real_label)
 
+            g_opt.zero_grad()
             self.manual_backward(errG)
             g_opt.step()
 
@@ -159,32 +162,98 @@ Here is the same example as above using a ``closure``.
             d_opt = torch.optim.Adam(self.D.parameters(), lr=1e-5)
             return g_opt, d_opt
 
-.. note:: ``LightningOptimizer`` provides a ``toggle_model`` function as a ``@context_manager`` for advanced users. It can be useful when performing gradient accumulation with several optimizers or training in a distributed setting.
+-----
+
+Learning rate scheduling [manual]
+---------------------------------
+You can call ``lr_scheduler.step()`` at arbitrary intervals.
+Use ``self.lr_schedulers()`` in  your :class:`~pytorch_lightning.LightningModule` to access any learning rate schedulers
+defined in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`.
+
+.. warning::
+   * Before 1.3, Lightning automatically called ``lr_scheduler.step()`` in both automatic and manual optimization. From
+     1.3, ``lr_scheduler.step()`` is now for the user to call at arbitrary intervals.
+   * Note that the lr_dict keys, such as ``"step"`` and ``""interval"``, will be ignored even if they are provided in
+     your ``configure_optimizers()`` during manual optimization.
+
+Here is an example calling ``lr_scheduler.step()`` every step.
+
+.. testcode:: python
+
+    # step every batch
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        # do forward, backward, and optimization
+        ...
+
+        # single scheduler
+        sch = self.lr_schedulers()
+        sch.step()
+
+        # multiple schedulers
+        sch1, sch2 = self.lr_schedulers()
+        sch1.step()
+        sch2.step()
+
+If you want to call ``lr_scheduler.step()`` every ``n`` steps/epochs, do the following.
+
+.. testcode:: python
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        # do forward, backward, and optimization
+        ...
+
+        sch = self.lr_schedulers()
+
+        # step every `n` batches
+        if (batch_idx + 1) % n == 0:
+            sch.step()
+
+        # step every `n` epochs
+        if self.trainer.is_last_batch and (self.trainer.current_epoch + 1) % n == 0:
+            sch.step()
+
+-----
+
+Improve training speed with model toggling
+------------------------------------------
+Toggling models can improve your training speed when performing gradient accumulation with multiple optimizers in a
+distributed setting.
 
 Here is an explanation of what it does:
 
-Considering the current optimizer as A and all other optimizers as B.
-Toggling means that all parameters from B exclusive to A will have their ``requires_grad`` attribute set to ``False``. Their original state will be restored when exiting the context manager.
+* Considering the current optimizer as A and all other optimizers as B.
+* Toggling means that all parameters from B exclusive to A will have their ``requires_grad`` attribute set to ``False``.
+* Their original state will be restored when exiting the context manager.
 
 When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
 
+:class:`~pytorch_lightning.core.optimizer.LightningOptimizer` provides a
+:meth:`~pytorch_lightning.core.optimizer.LightningOptimizer.toggle_model` function as a
+:func:`contextlib.contextmanager` for advanced users.
 
 Here is an example for advanced use-case.
 
 .. testcode:: python
 
     # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
-
     class SimpleGAN(LightningModule):
 
-        ...
-
         def __init__(self):
+            super().__init__()
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx):
-            # Implementation follows https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+            # Implementation follows the PyTorch tutorial:
+            # https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
             g_opt, d_opt = self.optimizers()
 
             X, _ = batch
@@ -194,14 +263,18 @@ Here is an example for advanced use-case.
             real_label = torch.ones((batch_size, 1), device=self.device)
             fake_label = torch.zeros((batch_size, 1), device=self.device)
 
-            accumulated_grad_batches = batch_idx % 2 == 0
+            # Sync and clear gradients
+            # at the end of accumulation or
+            # at the end of an epoch.
+            is_last_batch_to_accumulate = \
+                (batch_idx + 1) % 2 == 0 or self.trainer.is_last_batch
 
             g_X = self.sample_G(batch_size)
 
-            ###########################
-            #  Optimize Discriminator #
-            ###########################
-            with d_opt.toggle_model(sync_grad=accumulated_grad_batches):
+            ##########################
+            # Optimize Discriminator #
+            ##########################
+            with d_opt.toggle_model(sync_grad=is_last_batch_to_accumulate):
                 d_x = self.D(X)
                 errD_real = self.criterion(d_x, real_label)
 
@@ -211,36 +284,88 @@ Here is an example for advanced use-case.
                 errD = (errD_real + errD_fake)
 
                 self.manual_backward(errD)
-                if accumulated_grad_batches:
+                if is_last_batch_to_accumulate:
                     d_opt.step()
                     d_opt.zero_grad()
 
-            #######################
-            #  Optimize Generator #
-            #######################
-            with g_opt.toggle_model(sync_grad=accumulated_grad_batches):
+            ######################
+            # Optimize Generator #
+            ######################
+            with g_opt.toggle_model(sync_grad=is_last_batch_to_accumulate):
                 d_z = self.D(g_X)
                 errG = self.criterion(d_z, real_label)
 
                 self.manual_backward(errG)
-                if accumulated_grad_batches:
+                if is_last_batch_to_accumulate:
                     g_opt.step()
                     g_opt.zero_grad()
 
             self.log_dict({'g_loss': errG, 'd_loss': errD}, prog_bar=True)
 
+-----
+
+Use closure for LBFGS-like optimizers
+-------------------------------------
+It is a good practice to provide the optimizer with a closure function that performs a ``forward``, ``zero_grad`` and
+``backward`` of your model. It is optional for most optimizers, but makes your code compatible if you switch to an
+optimizer which requires a closure, such as :class:`torch.optim.LBFGS`.
+
+See `the PyTorch docs <https://pytorch.org/docs/stable/optim.html#optimizer-step-closure>`_ for more about the closure.
+
+Here is an example using a closure function.
+
+.. testcode:: python
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def configure_optimizers(self):
+        return torch.optim.LBFGS(...)
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+
+        def closure():
+            loss = self.compute_loss(batch)
+            opt.zero_grad()
+            self.manual_backward(loss)
+            return loss
+
+        opt.step(closure=closure)
+
 ------
+
+Access your own optimizer [manual]
+----------------------------------
+``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
+configured in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`. You can access your own optimizer
+with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to
+support accelerators and precision for you.
+
+.. testcode:: python
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(batch, batch_idx):
+        optimizer = self.optimizers()
+
+        # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
+        # To access it, do the following.
+        # However, it won't work on TPU, AMP, etc...
+        optimizer = optimizer.optimizer
+        ...
+
+-----
 
 Automatic optimization
 ======================
-With Lightning most users don't have to think about when to call ``.zero_grad()``, ``.backward()`` and ``.step()``
+With Lightning, most users don't have to think about when to call ``.zero_grad()``, ``.backward()`` and ``.step()``
 since Lightning automates that for you.
 
-.. warning::
-   Before 1.2.2, ``.zero_grad()`` was called after ``.backward()`` and ``.step()`` internally.
-   From 1.2.2, Lightning calls ``.zero_grad()`` before ``.backward()``.
-
-Under the hood Lightning does the following:
+Under the hood, Lightning does the following:
 
 .. code-block:: python
 
@@ -269,221 +394,220 @@ In the case of multiple optimizers, Lightning does the following:
         for lr_scheduler in lr_schedulers:
             lr_scheduler.step()
 
+.. warning::
+   Before 1.2.2, Lightning internally calls ``backward``, ``step`` and ``zero_grad`` in the order.
+   From 1.2.2, the order is changed to ``zero_grad``, ``backward`` and ``step``.
+
+-----
 
 Learning rate scheduling
 ------------------------
-Every optimizer you use can be paired with any `Learning Rate Scheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
-In the basic use-case, the scheduler (or multiple schedulers) should be returned as the second output from the ``.configure_optimizers`` method:
+Every optimizer you use can be paired with any
+`Learning Rate Scheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_. In the basic
+use-case, the scheduler(s) should be returned as the second output from the
+:meth:`~pytorch_lightning.LightningModule.configure_optimizers` method:
 
-.. testcode::
+.. testcode:: python
 
    # no LR scheduler
    def configure_optimizers(self):
-      return Adam(...)
+       return Adam(...)
 
    # Adam + LR scheduler
    def configure_optimizers(self):
-      optimizer = Adam(...)
-      scheduler = LambdaLR(optimizer, ...)
-      return [optimizer], [scheduler]
+       optimizer = Adam(...)
+       scheduler = LambdaLR(optimizer, ...)
+       return [optimizer], [scheduler]
 
    # Two optimizers each with a scheduler
    def configure_optimizers(self):
-      optimizer1 = Adam(...)
-      optimizer2 = SGD(...)
-      scheduler1 = LambdaLR(optimizer1, ...)
-      scheduler2 = LambdaLR(optimizer2, ...)
-      return [optimizer1, optimizer2], [scheduler1, scheduler2]
+       optimizer1 = Adam(...)
+       optimizer2 = SGD(...)
+       scheduler1 = LambdaLR(optimizer1, ...)
+       scheduler2 = LambdaLR(optimizer2, ...)
+       return [optimizer1, optimizer2], [scheduler1, scheduler2]
 
-When there are schedulers in which the ``.step()`` method is conditioned on a metric value (for example the
-:class:`~torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler), Lightning requires that the output
-from ``configure_optimizers`` should be dicts, one for each optimizer, with the keyword ``monitor``
-set to metric that the scheduler should be conditioned on.
+When there are schedulers in which the ``.step()`` method is conditioned on a metric value, such as the
+:class:`~torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler, Lightning requires that the output from
+:meth:`~pytorch_lightning.LightningModule.configure_optimizers` should be dicts, one for each optimizer, with the
+keyword ``"monitor"`` set to metric that the scheduler should be conditioned on.
 
 .. testcode::
 
-   # The ReduceLROnPlateau scheduler requires a monitor
-   def configure_optimizers(self):
-      return {
-          'optimizer': Adam(...),
-          'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
-          'monitor': 'metric_to_track'
-      }
+    # The ReduceLROnPlateau scheduler requires a monitor
+    def configure_optimizers(self):
+        optimizer = Adam(...)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': ReduceLROnPlateau(optimizer, ...),
+            'monitor': 'metric_to_track',
+        }
 
-   # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
-   def configure_optimizers(self):
-      optimizer1 = Adam(...)
-      optimizer2 = SGD(...)
-      scheduler1 = ReduceLROnPlateau(optimizer1, ...)
-      scheduler2 = LambdaLR(optimizer2, ...)
-      return (
-          {'optimizer': optimizer1, 'lr_scheduler': scheduler1, 'monitor': 'metric_to_track'},
-          {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
-      )
+    # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
+    def configure_optimizers(self):
+       optimizer1 = Adam(...)
+       optimizer2 = SGD(...)
+       scheduler1 = ReduceLROnPlateau(optimizer1, ...)
+       scheduler2 = LambdaLR(optimizer2, ...)
+       return (
+           {'optimizer': optimizer1, 'lr_scheduler': scheduler1, 'monitor': 'metric_to_track'},
+           {'optimizer': optimizer2, 'lr_scheduler': scheduler2},
+       )
 
 .. note::
-    Metrics can be made availble to condition on by simply logging it using ``self.log('metric_to_track', metric_val)``
-    in your lightning module.
+    Metrics can be made available to monitor by simply logging it using ``self.log('metric_to_track', metric_val)`` in
+    your :class:`~pytorch_lightning.LightningModule`.
 
-By default, all schedulers will be called after each epoch ends. To change this behaviour, a scheduler configuration should be
-returned as a dict which can contain the following keywords:
+By default, all schedulers will be called after each epoch ends. To change this behaviour, a scheduler configuration
+should be returned as a dict which can contain the following keywords:
 
-* ``scheduler`` (required): the actual scheduler object
-* ``monitor`` (optional): metric to condition
-* ``interval`` (optional): either ``epoch`` (default) for stepping after each epoch ends or ``step`` for stepping
+* ``"scheduler"`` (required): the actual scheduler object
+* ``"monitor"`` (optional): metric to condition
+* ``"interval"`` (optional): either ``"epoch"`` (default) for stepping after each epoch ends or ``"step"`` for stepping
   after each optimization step
-* ``frequency`` (optional): how many epochs/steps should pass between calls to ``scheduler.step()``. Default is 1,
+* ``"frequency"`` (optional): how many epochs/steps should pass between calls to ``scheduler.step()``. Default is 1,
   corresponding to updating the learning rate after every epoch/step.
-* ``strict`` (optional): if set to ``True`` will enforce that value specified in ``monitor`` is available while trying
-  to call ``scheduler.step()``, and stop training if not found. If ``False`` will only give a warning and continue training
-  (without calling the scheduler).
-* ``name`` (optional): if using the :class:`~pytorch_lightning.callbacks.LearningRateMonitor` callback to monitor the
-  learning rate progress, this keyword can be used to specify a specific name the learning rate should be logged as.
+* ``"strict"`` (optional): if set to ``True``, will enforce that value specified in ``"monitor"`` is available while
+  trying to call ``scheduler.step()``, and stop training if not found. If ``False``, it will only give a warning and
+  continue training without calling the scheduler.
+* ``"name"`` (optional): if using the :class:`~pytorch_lightning.callbacks.LearningRateMonitor` callback to monitor the
+  learning rate progress, this keyword can be used to specify a name the learning rate should be logged as.
 
-.. testcode::
+.. testcode:: python
 
-   # Same as the above example with additional params passed to the first scheduler
-   # In this case the ReduceLROnPlateau will step after every 10 processed batches
-   def configure_optimizers(self):
-      optimizers = [Adam(...), SGD(...)]
-      schedulers = [
-         {
-            'scheduler': ReduceLROnPlateau(optimizers[0], ...),
-            'monitor': 'metric_to_track',
-            'interval': 'step',
-            'frequency': 10,
-            'strict': True,
-         },
-         LambdaLR(optimizers[1], ...)
-      ]
-      return optimizers, schedulers
+    # Same as the above example with additional params passed to the first scheduler
+    # In this case the ReduceLROnPlateau will step after every 10 processed batches
+    def configure_optimizers(self):
+       optimizers = [Adam(...), SGD(...)]
+       schedulers = [
+          {
+             'scheduler': ReduceLROnPlateau(optimizers[0], ...),
+             'monitor': 'metric_to_track',
+             'interval': 'step',
+             'frequency': 10,
+             'strict': True,
+          },
+          LambdaLR(optimizers[1], ...)
+       ]
+       return optimizers, schedulers
 
-----------
+-----
 
 Use multiple optimizers (like GANs)
 -----------------------------------
-To use multiple optimizers return two or more optimizers from :meth:`pytorch_lightning.core.LightningModule.configure_optimizers`
+To use multiple optimizers (optionally with learning rate schedulers), return two or more optimizers from
+:meth:`~pytorch_lightning.core.LightningModule.configure_optimizers`.
 
-.. testcode::
+.. testcode:: python
 
-   # one optimizer
-   def configure_optimizers(self):
-      return Adam(...)
+    # two optimizers, no schedulers
+    def configure_optimizers(self):
+        return Adam(...), SGD(...)
 
-   # two optimizers, no schedulers
-   def configure_optimizers(self):
-      return Adam(...), SGD(...)
+    # two optimizers, one scheduler for adam only
+    def configure_optimizers(self):
+        opt1 = Adam(...)
+        opt2 = SGD(...)
+        optimizers = [opt1, opt2]
+        lr_schedulers = {'scheduler': ReduceLROnPlateau(opt1, ...), 'monitor': 'metric_to_track'}
+        return optimizers, lr_schedulers
 
-   # Two optimizers, one scheduler for adam only
-   def configure_optimizers(self):
-      return [Adam(...), SGD(...)], {'scheduler': ReduceLROnPlateau(), 'monitor': 'metric_to_track'}
+    # two optimizers, two schedulers
+    def configure_optimizers(self):
+        opt1 = Adam(...)
+        opt2 = SGD(...)
+        return [opt1, opt2], [StepLR(opt1, ...), OneCycleLR(opt2, ...)]
 
-Lightning will call each optimizer sequentially:
+Under the hood, Lightning will call each optimizer sequentially:
 
 .. code-block:: python
 
-   for epoch in epochs:
-       for batch in data:
-           for opt in optimizers:
-               loss = train_step(batch, batch_idx, optimizer_idx)
-               opt.zero_grad()
-               loss.backward()
-               opt.step()
+    for epoch in epochs:
+        for batch in data:
+            for opt in optimizers:
+                loss = train_step(batch, batch_idx, optimizer_idx)
+                opt.zero_grad()
+                loss.backward()
+                opt.step()
 
-      for lr_scheduler in lr_schedulers:
-          lr_scheduler.step()
+        for lr_scheduler in lr_schedulers:
+            lr_scheduler.step()
 
-----------
+-----
 
 Step optimizers at arbitrary intervals
 --------------------------------------
 To do more interesting things with your optimizers such as learning rate warm-up or odd scheduling,
-override the :meth:`optimizer_step` function.
+override the :meth:`~pytorch_lightning.LightningModule.optimizer_step` function.
 
-For example, here step optimizer A every 2 batches and optimizer B every 4 batches
+.. warning::
+    If you are overriding this method, make sure that you pass the ``optimizer_closure`` parameter to
+    ``optimizer.step()`` function as shown in the examples because ``training_step()``, ``optimizer.zero_grad()``,
+    ``backward()`` are called in the closure function.
 
-.. testcode::
+For example, here step optimizer A every batch and optimizer B every 2 batches.
 
-    def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
-      optimizer.zero_grad()
+.. testcode:: python
 
-    # Alternating schedule for optimizer steps (ie: GANs)
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-        # update generator opt every 2 steps
+    # Alternating schedule for optimizer steps (e.g. GANs)
+    def optimizer_step(
+        self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
+        on_tpu=False, using_native_amp=False, using_lbfgs=False,
+    ):
+        # update generator every step
         if optimizer_idx == 0:
-            if batch_nb % 2 == 0 :
-               optimizer.step(closure=closure)
+            optimizer.step(closure=optimizer_closure)
 
-        # update discriminator opt every 4 steps
+        # update discriminator every 2 steps
         if optimizer_idx == 1:
-            if batch_nb % 4 == 0 :
-               optimizer.step(closure=closure)
+            if (batch_idx + 1) % 2 == 0:
+                optimizer.step(closure=optimizer_closure)
 
-Here we add a learning-rate warm up
+        # ...
+        # add as many optimizers as you want
 
-.. testcode::
+Here we add a learning rate warm-up.
+
+.. testcode:: python
 
     # learning rate warm-up
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-        # warm up lr
+    def optimizer_step(
+        self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
+        on_tpu=False, using_native_amp=False, using_lbfgs=False,
+    ):
+        # skip the first 500 steps
         if self.trainer.global_step < 500:
             lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
             for pg in optimizer.param_groups:
                 pg['lr'] = lr_scale * self.hparams.learning_rate
 
         # update params
-        optimizer.step(closure=closure)
+        optimizer.step(closure=optimizer_closure)
 
-.. note:: The default ``optimizer_step`` is relying on the internal ``LightningOptimizer`` to properly perform a step. It handles TPUs, AMP, accumulate_grad_batches and much more ...
+-----
 
-.. testcode::
+Access your own optimizer
+-------------------------
+``optimizer`` is a :class:`~pytorch_lightning.core.optimizer.LightningOptimizer` object wrapping your own optimizer
+configured in your :meth:`~pytorch_lightning.LightningModule.configure_optimizers`. You can access your own optimizer
+with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to
+support accelerators and precision for you.
+
+.. testcode:: python
 
     # function hook in LightningModule
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-      optimizer.step(closure=closure)
+    def optimizer_step(
+        self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
+        on_tpu=False, using_native_amp=False, using_lbfgs=False,
+    ):
+        optimizer.step(closure=optimizer_closure)
 
-.. note:: To access your wrapped Optimizer from ``LightningOptimizer``, do as follow.
-
-.. testcode::
-
-    # function hook in LightningModule
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-
-      # `optimizer is a ``LightningOptimizer`` wrapping the optimizer.
-      # To access it, do as follow:
-      optimizer = optimizer.optimizer
-
-      # run step. However, it won't work on TPU, AMP, etc...
-      optimizer.step(closure=closure)
-
-
-----------
-
-Using the closure functions for optimization
---------------------------------------------
-
-When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled. By default, this function is defined by wrapping the `training_step` and the backward steps as follows
-
-.. warning::
-   Before 1.2.2, ``.zero_grad()`` was called outside the closure internally.
-   From 1.2.2, the closure calls ``.zero_grad()`` inside, so there is no need to define your own closure
-   when using similar optimizers to :class:`torch.optim.LBFGS` which requires reevaluation of the loss with the closure in ``optimizer.step()``.
-
-.. testcode::
-
-    def second_order_closure(pl_module, split_batch, batch_idx, opt_idx, optimizer, hidden):
-        # Model training step on a given batch
-        result = pl_module.training_step(split_batch, batch_idx, opt_idx, hidden)
-
-        # Model backward pass
-        pl_module.backward(result, optimizer, opt_idx)
-
-        # on_after_backward callback
-        pl_module.on_after_backward(result.training_step_output, batch_idx, result.loss)
-
-        return result
-
-    # This default `second_order_closure` function can be enabled by passing it directly into the `optimizer.step`
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-        # update params
-        optimizer.step(second_order_closure)
+    # `optimizer` is a `LightningOptimizer` wrapping the optimizer.
+    # To access it, do the following.
+    # However, it won't work on TPU, AMP, etc...
+    def optimizer_step(
+        self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
+        on_tpu=False, using_native_amp=False, using_lbfgs=False,
+    ):
+        optimizer = optimizer.optimizer
+        optimizer.step(closure=optimizer_closure)
