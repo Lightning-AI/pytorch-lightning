@@ -31,7 +31,7 @@ def precision(
     num_classes: Optional[int] = None,
     threshold: float = 0.5,
     top_k: Optional[int] = None,
-    multiclass: Optional[bool] = None,
+    is_multiclass: Optional[bool] = None,
 ) -> torch.Tensor:
     """
     .. deprecated::
@@ -49,7 +49,7 @@ def recall(
     num_classes: Optional[int] = None,
     threshold: float = 0.5,
     top_k: Optional[int] = None,
-    multiclass: Optional[bool] = None,
+    is_multiclass: Optional[bool] = None,
 ) -> torch.Tensor:
     """
     .. deprecated::
@@ -67,7 +67,7 @@ def precision_recall(
     num_classes: Optional[int] = None,
     threshold: float = 0.5,
     top_k: Optional[int] = None,
-    multiclass: Optional[bool] = None,
+    is_multiclass: Optional[bool] = None,
 ) -> torch.Tensor:
     """
     .. deprecated::
