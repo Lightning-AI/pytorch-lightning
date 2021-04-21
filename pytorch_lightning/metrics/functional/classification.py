@@ -66,7 +66,7 @@ def stat_scores_multiple_classes(
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
 
-    num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
+    num_classes = get_num_classes(pred, target, num_classes=num_classes)
 
     if pred.dtype != torch.bool:
         pred = pred.clamp_max(max=num_classes)

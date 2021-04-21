@@ -71,7 +71,7 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
 
 
 @deprecated_metrics(target=_get_num_classes)
-def get_num_classes(pred: torch.Tensor, target: torch.Tensor, num_classes: Optional[int] = None) -> int:
+def get_num_classes(preds: torch.Tensor, target: torch.Tensor, num_classes: Optional[int] = None) -> int:
     """
     .. deprecated::
         Use :func:`torchmetrics.utilities.data.get_num_classes`. Will be removed in v1.5.0.
