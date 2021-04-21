@@ -227,8 +227,7 @@ class AcceleratorConnector(object):
             return self._training_type_plugin
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
-        else:
-            self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+        self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
         self._training_type_plugin_resolved = True
 
         return self._training_type_plugin
@@ -384,15 +383,11 @@ class AcceleratorConnector(object):
         if self.use_ddp2:
             plugin = DDP2Plugin(
                 parallel_devices=self.parallel_devices,
-                num_nodes=self.num_nodes,
                 cluster_environment=self.cluster_environment,
-                sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
-                num_nodes=self.num_nodes,
-                cluster_environment=self.select_cluster_environment(),
-                parallel_devices=self.parallel_devices
+                cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
@@ -425,9 +420,7 @@ class AcceleratorConnector(object):
 
             plugin = ddp_plugin_cls(
                 parallel_devices=self.parallel_devices,
-                num_nodes=self.num_nodes,
                 cluster_environment=self.cluster_environment,
-                sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_dp:
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)

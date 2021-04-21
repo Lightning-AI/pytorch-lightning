@@ -90,7 +90,7 @@ class DeepSpeedPlugin(DDPPlugin):
         zero_allow_untested_optimizer: bool = True,
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
-        num_nodes: int = 1,
+        num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,

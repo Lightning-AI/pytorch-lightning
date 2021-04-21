@@ -62,9 +62,9 @@ class DDPPlugin(ParallelPlugin):
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: int = 1,
+        num_nodes: Optional[int] = None,
         cluster_environment: ClusterEnvironment = None,
-        sync_batchnorm: bool = False,
+        sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -72,8 +72,16 @@ class DDPPlugin(ParallelPlugin):
     ) -> None:
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []
-        self._num_nodes = num_nodes
-        self.sync_batchnorm = sync_batchnorm
+        if num_nodes is not None:
+            rank_zero_warn(
+                "`num_nodes` passed in DDPPlugin constructor, but notice that it will be overriden by the trainer setting."
+            )
+        self._num_nodes = num_nodes or 1
+        if sync_batchnorm is not None:
+            rank_zero_warn(
+                "`sync_batchnorm` passed in DDPPlugin constructor, but notice that it will be overriden by the trainer setting."
+            )
+        self._sync_batchnorm = sync_batchnorm or False
         self.dist = LightningDistributed()
         self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
@@ -98,6 +106,14 @@ class DDPPlugin(ParallelPlugin):
         # need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
+
+    @property
+    def sync_batchnorm(self) -> bool:
+        return self._sync_batchnorm
+
+    @sync_batchnorm.setter
+    def sync_batchnorm(self, sync_batchnorm: bool) -> None:
+        self._sync_batchnorm = sync_batchnorm
 
     @property
     def distributed_sampler_kwargs(self):
