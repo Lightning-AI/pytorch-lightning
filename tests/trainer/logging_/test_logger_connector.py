@@ -624,8 +624,8 @@ def test_metrics_reset(tmpdir):
             ap = self._modules[f"ap_{stage}"]
 
             labels_int = labels.to(torch.long)
-            acc(probs, labels_int)
-            ap(probs, labels_int)
+            acc(probs.flatten(), labels_int)
+            ap(probs.flatten(), labels_int)
 
             # Metric.forward calls reset so reset the mocks here
             acc.reset.reset_mock()
