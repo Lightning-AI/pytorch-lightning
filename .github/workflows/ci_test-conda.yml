@@ -31,6 +31,8 @@ jobs:
         python ./requirements/adjust_versions.py requirements/extra.txt
         python ./requirements/adjust_versions.py requirements/examples.txt
         pip install --requirement requirements/devel.txt --upgrade-strategy only-if-needed
+        # TODO: remove later this is just to test to TM fix
+        pip install https://github.com/PyTorchLightning/metrics/archive/refs/heads/fix/PL-compatible.zip
         pip list
 
     - name: Pull checkpoints from S3
@@ -43,8 +45,6 @@ jobs:
 
     - name: Tests
       run: |
-        # todo: HACK
-        ppip install . -e
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       shell: bash -l {0}
