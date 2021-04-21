@@ -254,7 +254,7 @@ parsing the right environment variables to access information such as world size
 and node rank (node id). Here is an example of a custom
 :class:`~pytorch_lightning.plugins.environments.cluster_environment.ClusterEnvironment`:
 
-.. testcode::
+.. code-block:: python
 
     import os
     from pytorch_lightning.plugins.environments import ClusterEnvironment
