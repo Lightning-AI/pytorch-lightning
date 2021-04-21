@@ -43,9 +43,9 @@ class FullyShardedPlugin(DDPPlugin):
         automatic_module_wrap: bool = False,
         min_num_params: int = 1e8,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: int = 1,
+        num_nodes: Optional[int] = None,
         cluster_environment: ClusterEnvironment = None,
-        sync_batchnorm: Optional[bool] = False
+        sync_batchnorm: Optional[bool] = None
     ):
         """
 
@@ -111,7 +111,7 @@ class FullyShardedPlugin(DDPPlugin):
 
         if sync_batchnorm:
             raise MisconfigurationException("Currently sync batch norm is not supported by Full Sharded Training.")
-        super().__init__(parallel_devices, num_nodes, cluster_environment, sync_batchnorm=sync_batchnorm)
+        super().__init__(parallel_devices, num_nodes, cluster_environment, sync_batchnorm)
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
         self.flatten_parameters = flatten_parameters
@@ -129,13 +129,13 @@ class FullyShardedPlugin(DDPPlugin):
             self._process_group = torch.distributed.new_group()
         return self._process_group
 
-    @contextlib.contextmanager
-    def model_sharded_context(self) -> Generator:
-
-        # set the device before instantiate the wrapper
+    def setup_distributed(self):
+        super().setup_distributed()
         if self.root_device.type == "cuda":
             torch.cuda.set_device(self.root_device)
 
+    @contextlib.contextmanager
+    def model_sharded_context(self) -> Generator:
         precision = self.lightning_module.trainer.precision
 
         def wrap_policy(*args, **kwargs):
@@ -156,12 +156,6 @@ class FullyShardedPlugin(DDPPlugin):
         ):
             yield
 
-    def _model_has_nested_fsdp(self):
-        for module in self.model.modules():
-            if isinstance(module, FullyShardedDataParallel):
-                return True
-        return False
-
     def configure_ddp(self):
         with self.model_sharded_context():
             if self.automatic_module_wrap and not self._model_has_nested_fsdp():
@@ -181,6 +175,12 @@ class FullyShardedPlugin(DDPPlugin):
         self.model.to(self.root_device)
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
+
+    def pre_dispatch(self):
+        if self.sync_batchnorm:
+            self.model = self.configure_sync_batchnorm(self.model)
+        self.configure_ddp()
+        self.barrier()
 
     @property
     def lightning_module(self) -> LightningModule:
@@ -206,7 +206,8 @@ class FullyShardedPlugin(DDPPlugin):
         # Setup optimizers after the Fully Sharded Model has been made
         return True
 
-    @property
-    def move_to_device_in_prefetch(self):
-        # Fully Sharded handles moving to device
+    def _model_has_nested_fsdp(self):
+        for module in self.model.modules():
+            if isinstance(module, FullyShardedDataParallel):
+                return True
         return False

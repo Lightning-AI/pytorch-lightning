@@ -270,9 +270,8 @@ class DDPPlugin(ParallelPlugin):
             torch_distrib.init_process_group(self.torch_distributed_backend, rank=global_rank, world_size=world_size)
 
     def pre_dispatch(self):
-        if self.move_to_device_in_prefetch:
-            # move the model to the correct device
-            self.model_to_device()
+        # move the model to the correct device
+        self.model_to_device()
 
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
@@ -283,14 +282,6 @@ class DDPPlugin(ParallelPlugin):
 
     def post_dispatch(self) -> None:
         self.cluster_environment.teardown()
-
-    @property
-    def move_to_device_in_prefetch(self) -> bool:
-        """
-        We will call the model_to_device hook within pre-fetch if this is set to True.
-        Useful for when plugin would like to call model_to_device at another time, or skip the call.
-        """
-        return True
 
     def barrier(self, *args, **kwargs):
         if torch_distrib.is_initialized():
