@@ -305,10 +305,7 @@ def test_lr_candidates_between_min_and_max(tmpdir):
             self.save_hyperparameters()
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-    )
+    trainer = Trainer(default_root_dir=tmpdir)
 
     lr_min = 1e-8
     lr_max = 1.0
@@ -316,6 +313,7 @@ def test_lr_candidates_between_min_and_max(tmpdir):
         model,
         max_lr=lr_min,
         min_lr=lr_max,
+        num_training=3,
     )
     lr_candidates = lr_finder.results["lr"]
     assert all([lr_min <= lr <= lr_max for lr in lr_candidates])
@@ -334,7 +332,7 @@ def test_lr_finder_ends_before_num_training(tmpdir):
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir)
-    num_training = 100
+    num_training = 3
     _ = trainer.tuner.lr_find(
         model=model,
         num_training=num_training,
