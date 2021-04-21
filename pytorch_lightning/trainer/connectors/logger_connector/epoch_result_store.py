@@ -13,11 +13,10 @@
 # limitations under the License.
 import logging
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from weakref import proxy
 
 import torch
-import torchmetrics
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
@@ -307,7 +306,6 @@ class EpochResultStore:
             info = self.info
             fx_name = info["fx_name"]
 
-            all_gather_fn = self.trainer.lightning_module.all_gather
             self._internals.setdefault(fx_name, HookResultStore(fx_name))
 
             # attach capture batch_size
