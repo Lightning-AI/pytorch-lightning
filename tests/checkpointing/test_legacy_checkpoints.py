@@ -14,11 +14,18 @@
 import glob
 import os
 import sys
+from copy import deepcopy
+from pathlib import Path
 
 import pytest
+import torch
+from pytorch_lightning.callbacks.base import Callback
+
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from pytorch_lightning import Trainer
 from tests import PATH_LEGACY
+from tests.helpers import BoringModel
 
 LEGACY_CHECKPOINTS_PATH = os.path.join(PATH_LEGACY, 'checkpoints')
 CHECKPOINT_EXTENSION = ".ckpt"
@@ -87,3 +94,34 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     # assert result
 
     sys.path = orig_sys_paths
+
+
+class StatefulCallback(Callback):
+
+    def on_save_checkpoint(self, *args):
+        return {"content": 123}
+
+
+def test_callback_state_loading_by_type(tmpdir):
+    """ Test that legacy checkpoints that don't use a state identifier can still be loaded. """
+    model = BoringModel()
+    callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        callbacks=[callback],
+    )
+    trainer.fit(model)
+    # simulate old format where type(callback) was the key
+    new_checkpoint = torch.load(Path(tmpdir, "last.ckpt"))
+    old_checkpiont = deepcopy(new_checkpoint)
+    old_checkpiont["callbacks"] = {type(callback): new_checkpoint["callbacks"]["ModelCheckpoint"]}
+    torch.save(old_checkpiont, Path(tmpdir, "old.ckpt"))
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=2,
+        callbacks=[callback],
+        resume_from_checkpoint=Path(tmpdir, "old.ckpt"),
+    )
+    trainer.fit(model)
