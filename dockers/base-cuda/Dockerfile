@@ -115,11 +115,11 @@ RUN \
 
 RUN \
     # install FairScale
-    pip install fairscale>=0.3.4
+    pip install fairscale==0.3.4
 
 RUN \
     # install DeepSpeed
-    pip install deepspeed>=0.3.14
+    pip install deepspeed==0.3.14
 
 RUN \
     # Show what we have
