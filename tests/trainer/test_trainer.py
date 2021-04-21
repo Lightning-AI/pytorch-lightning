@@ -1512,7 +1512,6 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-
 class CustomPredictionWriter(PredictionWriterBase):
 
     write_on_batch_end_called = False
@@ -1529,7 +1528,6 @@ class CustomPredictionWriter(PredictionWriterBase):
         assert prediction.shape == torch.Size([1, 2])
         assert len(batch_indices) == 1
         self.write_on_batch_end_called = True
-        
 
     def write_on_epoch_end(
         self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
@@ -1548,16 +1546,7 @@ class CustomPredictionWriter(PredictionWriterBase):
         super().on_predict_epoch_end(trainer, pl_module, outputs)
 
 
-def predict(
-    tmpdir,
-    accelerator,
-    gpus,
-    num_processes,
-    model=None,
-    plugins=None,
-    datamodule=True,
-    pbrr=None):
-
+def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None):
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
     model = model or BoringModel()

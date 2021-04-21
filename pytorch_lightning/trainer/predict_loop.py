@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from pytorch_lightning.overrides.distributed import IndexBatchSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -46,7 +46,10 @@ class PredictLoop(object):
 
     @property
     def should_store_predictions(self) -> bool:
-        return self.return_predictions or any(c._write_interval == "epoch" for c in self.trainer.prediction_writer_callbacks)
+        return (
+            self.return_predictions
+            or any(c._write_interval == "epoch" for c in self.trainer.prediction_writer_callbacks)
+        )
 
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []

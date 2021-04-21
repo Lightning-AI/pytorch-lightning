@@ -16,7 +16,6 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
-from pytorch_lightning.callbacks.prediction_writer import PredictionWriterBase
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info
