@@ -342,8 +342,8 @@ def iou(
         " It will be removed in v1.4.0"
     )
     return __iou(
-        preds=pred,
-        target=target,
+        pred,
+        target,
         ignore_index=ignore_index,
         absent_score=absent_score,
         threshold=0.5,
