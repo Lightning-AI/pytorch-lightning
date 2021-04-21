@@ -61,15 +61,15 @@ class DDPSpawnPlugin(ParallelPlugin):
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         if num_nodes is not None:
-            rank_zero_warn(
-                "`num_nodes` passed in DDPSpawnPlugin constructor, but notice that it will be overriden by "
-                "the trainer setting."
+            rank_zero_deprecation(
+                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.3, and will be removed in v1.5. "
+                "Notice that it will be overriden by the trainer setting."
             )
         self._num_nodes = num_nodes or 1
         if sync_batchnorm is not None:
             rank_zero_warn(
-                "`sync_batchnorm` passed in DDPSpawnPlugin constructor, but notice that it will be overriden by "
-                "the trainer setting."
+                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.3, and will be removed in v1.5. "
+                "Notice that it will be overriden by the trainer setting."
             )
         self._sync_batchnorm = sync_batchnorm or False
         self._ddp_kwargs = kwargs

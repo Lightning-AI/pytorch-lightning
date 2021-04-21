@@ -33,6 +33,7 @@ from pytorch_lightning.utilities import (
     _HYDRA_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
+    rank_zero_deprecation,
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
@@ -73,15 +74,15 @@ class DDPPlugin(ParallelPlugin):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []
         if num_nodes is not None:
-            rank_zero_warn(
-                "`num_nodes` passed in DDPPlugin constructor, but notice that it will be overriden by "
-                "the trainer setting."
+            rank_zero_deprecation(
+                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.3, and will be removed in v1.5. "
+                "Notice that it will be overriden by the trainer setting."
             )
         self._num_nodes = num_nodes or 1
         if sync_batchnorm is not None:
             rank_zero_warn(
-                "`sync_batchnorm` passed in DDPPlugin constructor, but notice that it will be overriden by "
-                "the trainer setting."
+                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.3, and will be removed in v1.5. "
+                "Notice that it will be overriden by the trainer setting."
             )
         self._sync_batchnorm = sync_batchnorm or False
         self.dist = LightningDistributed()
