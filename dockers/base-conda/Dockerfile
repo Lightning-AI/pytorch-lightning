@@ -114,12 +114,9 @@ RUN \
     pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
 
 RUN \
-    # install NVIDIA AMP
-    git clone https://github.com/NVIDIA/apex && \
-    # todo: hardcode Apex version as later commits break CI when cpp extensions are compiling
-    cd ./apex && git checkout 705cba91fc26413d484f5ce2983427d840199a97 && cd ../ && \
-    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
-    rm -rf apex
+    # install NVIDIA apex
+    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
+    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
 
 RUN \
     # Show what we have
