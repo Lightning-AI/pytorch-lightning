@@ -116,6 +116,8 @@ RUN \
 RUN \
     # install NVIDIA AMP
     git clone https://github.com/NVIDIA/apex && \
+    # todo: hardcode Apex version as later commits break CI when cpp extensions are compiling
+    cd ./apex && git checkout 705cba91fc26413d484f5ce2983427d840199a97 && cd ../ && \
     pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
     rm -rf apex
 
