@@ -387,7 +387,7 @@ If you have any questions please:
 ## Grid AI
 Grid AI is our native platform for training models at scale on the cloud!
 
-**Sign up for [early access here](https://www.grid.ai/)**
+**Sign up [here](https://www.grid.ai/)**
 
 To use grid, take your regular command:
 
