@@ -184,7 +184,7 @@ To define a DataModule define 5 methods:
 - val_dataloader(s)
 - test_dataloader(s)
 
-and optionally a predict_dataloader.
+and optionally one or multiple predict_dataloader(s).
 
 
 prepare_data
