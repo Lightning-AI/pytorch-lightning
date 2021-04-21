@@ -32,7 +32,7 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.callbacks.predictions import BasePredictionWriter
+from pytorch_lightning.callbacks.predictions import PredictionWriterBase
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnRepeatedDistributedSampler
@@ -1521,7 +1521,7 @@ def predict(
     plugins=None,
     datamodule=True,
     pbrr=None,
-    write_interval="step"
+    write_interval="batch"
 ):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
@@ -1529,20 +1529,20 @@ def predict(
     model = model or BoringModel()
     dm = TestLightningDataModule(dataloaders)
 
-    class CustomBasePredictionWriter(BasePredictionWriter):
+    class CustomPredictionWriterBase(PredictionWriterBase):
 
-        def __init__(self, output_dir: str, write_interval: Union[str, int, float] = "step"):
+        def __init__(self, output_dir: str, write_interval: Union[str, int, float] = "batch"):
             super().__init__(write_interval)
             self.output_dir = output_dir
 
-        def write_on_batch(
+        def write_on_batch_end(
             self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any,
             batch_idx: int, dataloader_idx: int
         ):
             assert prediction.shape == torch.Size([1, 2])
             assert len(batch_indices) == 1
 
-        def write_on_epoch(
+        def write_on_epoch_end(
             self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
         ):
             assert len(predictions) == 2
@@ -1560,7 +1560,7 @@ def predict(
         num_processes=num_processes,
         plugins=plugins,
         progress_bar_refresh_rate=pbrr,
-        callbacks=[CustomBasePredictionWriter(tmpdir, write_interval=write_interval)]
+        callbacks=[CustomPredictionWriterBase(tmpdir, write_interval=write_interval)]
     )
     if datamodule:
         results = trainer.predict(model, datamodule=dm)

@@ -152,7 +152,7 @@ class TrainerDataLoadingMixin(ABC):
             batch_sampler = batch_sampler_type(
                 sampler,
                 batch_size=batch_sampler.batch_size,
-                drop_last=True if is_predicting else batch_sampler.drop_last,
+                drop_last=False if is_predicting else batch_sampler.drop_last,
             )
             dl_args['batch_sampler'] = batch_sampler
             dl_args['batch_size'] = 1

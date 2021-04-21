@@ -16,7 +16,7 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
-from pytorch_lightning.callbacks.predictions import BasePredictionWriter
+from pytorch_lightning.callbacks.predictions import PredictionWriterBase
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info
@@ -122,20 +122,6 @@ class CallbackConnector:
             return
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)
-
-    def configure_prediction_writer(self, output_dir: Optional[str], write_interval: Optional[str]) -> None:
-        prediction_writer_index = [
-            idx for idx, c in enumerate(self.trainer.callbacks) if isinstance(c, BasePredictionWriter)
-        ]
-        if len(prediction_writer_index) > 1:
-            raise MisconfigurationException('You added ``BasePredictionWriter`` to the Trainer, but currently only one')
-        prediction_writer = BasePredictionWriter(output_dir, write_interval=write_interval)
-
-        if len(prediction_writer_index) == 1:
-            prediction_writer_index = prediction_writer_index[0]
-            self.trainer.callbacks[prediction_writer_index] = prediction_writer
-        else:
-            self.trainer.callbacks.append(prediction_writer)
 
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
