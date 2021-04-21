@@ -113,14 +113,9 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     class TestModel(BoringModel):
 
-        acc = Accuracy()
-
         def training_step(self, batch, batch_idx):
             local_rank = int(os.getenv("LOCAL_RANK"))
             self.log('my_loss', batch_idx * (1 + local_rank), on_epoch=True)
-            self.acc.to(self.device)
-            t = torch.tensor([1.], device=self.device).contiguous()
-            self.acc(t, t.int())
             return super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs) -> None:
