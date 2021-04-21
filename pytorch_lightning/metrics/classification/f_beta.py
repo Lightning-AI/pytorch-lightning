@@ -28,7 +28,7 @@ class FBeta(_FBeta):
         beta: float = 1.0,
         threshold: float = 0.5,
         average: str = "micro",
-        multilabel: bool = False,
+        multiclass: bool = False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -39,7 +39,7 @@ class FBeta(_FBeta):
         .. deprecated::
             Use :class:`~torchmetrics.FBeta`. Will be removed in v1.5.0.
         """
-        _ = num_classes, beta, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group
+        _ = num_classes, beta, threshold, average, multiclass, compute_on_step, dist_sync_on_step, process_group
 
 
 class F1(_F1):
@@ -50,7 +50,7 @@ class F1(_F1):
         num_classes: int,
         threshold: float = 0.5,
         average: str = "micro",
-        multilabel: bool = False,
+        multiclass: bool = False,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -61,4 +61,4 @@ class F1(_F1):
         .. deprecated::
             Use :class:`~torchmetrics.F1`. Will be removed in v1.5.0.
         """
-        _ = num_classes, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group
+        _ = num_classes, threshold, average, multiclass, compute_on_step, dist_sync_on_step, process_group

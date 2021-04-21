@@ -21,7 +21,7 @@ from pytorch_lightning.metrics.utils import deprecated_metrics
 
 @deprecated_metrics(target=_iou)
 def iou(
-    pred: torch.Tensor,
+    preds: torch.Tensor,
     target: torch.Tensor,
     ignore_index: Optional[int] = None,
     absent_score: float = 0.0,
