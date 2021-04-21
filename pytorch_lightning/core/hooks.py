@@ -20,6 +20,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
 class ModelHooks:
@@ -98,7 +99,7 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop after the batch.
 
@@ -133,7 +134,9 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_validation_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_validation_batch_end(
+        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         """
         Called in the validation loop after the batch.
 
@@ -156,7 +159,9 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_test_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+    def on_test_batch_end(
+        self, outputs: Optional[STEP_OUTPUT], batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         """
         Called in the test loop after the batch.
 
@@ -204,7 +209,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_train_epoch_end(self, outputs: List[Any]) -> None:
+    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called in the training loop at the very end of the epoch.
         """
@@ -216,7 +221,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_validation_epoch_end(self, outputs: List[Any]) -> None:
+    def on_validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called in the validation loop at the very end of the epoch.
         """
@@ -228,7 +233,7 @@ class ModelHooks:
         """
         # do something when the epoch starts
 
-    def on_test_epoch_end(self, outputs: List[Any]) -> None:
+    def on_test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """
         Called in the test loop at the very end of the epoch.
         """
@@ -252,7 +257,7 @@ class ModelHooks:
         """
         # do something at the start of predicting
 
-    def on_predict_end(self) -> None:
+    def on_predict_end(self, results: List[Any]) -> None:
         """
         Called at the end of predicting.
         """
@@ -412,7 +417,7 @@ class DataHooks:
             stage: either ``'fit'``, ``'validate'``, ``'test'``, or ``'predict'``
         """
 
-    def train_dataloader(self) -> Any:
+    def train_dataloader(self) -> Union[DataLoader, List[DataLoader], Dict[str, DataLoader]]:
         """
         Implement one or more PyTorch DataLoaders for training.
 
@@ -687,7 +692,7 @@ class DataHooks:
         device = device or self.device
         return move_data_to_device(batch, device)
 
-    def on_before_batch_transfer(self, batch, dataloader_idx):
+    def on_before_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
@@ -720,7 +725,7 @@ class DataHooks:
         """
         return batch
 
-    def on_after_batch_transfer(self, batch, dataloader_idx):
+    def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         """
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
