@@ -324,9 +324,3 @@ Here's an example of how to add your own sampler (again, not needed with Lightni
 
     # in your training script
     trainer = Trainer(replace_sampler_ddp=False)
-
-
-Self-balancing architecture (COMING SOON)
-=========================================
-
-Here Lightning distributes parts of your module across available GPUs to optimize for speed and memory.
