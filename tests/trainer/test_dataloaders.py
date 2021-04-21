@@ -13,18 +13,20 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import numpy
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import IterableDataset, Subset
+from torch.utils.data.dataset import Dataset, IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
 import tests.helpers.pipelines as tpipes
-from pytorch_lightning import Callback, Trainer
+from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -634,6 +636,109 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
             trainer.fit(model, train_dataloader=train_multi_dl, val_dataloaders=val_multi_dl)
 
 
+class NumpyRandomDataset(Dataset):
+    # this datset uses numpy instead of torch to produce random numbers
+    size = 16
+
+    def __getitem__(self, index):
+        return numpy.random.randint(0, 100, 3)
+
+    def __len__(self):
+        return self.size
+
+
+def _user_worker_init_fn(_):
+    pass
+
+
+def test_missing_worker_init_fn():
+    """ Test that naive worker seed initialization leads to undesired random state in subprocesses. """
+    dataset = NumpyRandomDataset()
+
+    seed_everything(0)
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+    batches0 = torch.cat([batch for batch in dataloader])
+
+    seed_everything(0)
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+    batches1 = torch.cat([batch for batch in dataloader])
+
+    is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
+    is_deterministic = torch.eq(batches0, batches1).all()
+
+    # depending on the OS, we either have
+    # 1) the same seed in all worker proceses, producing duplicate samples / augmentations, or
+    # 2) different seeds in each worker process, but they are not derived from the seed of the main process
+    assert not is_deterministic or is_duplicated
+
+
+def test_auto_add_worker_init_fn():
+    """ Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used. """
+    dataset = Mock()
+    dataloader = DataLoader(dataset)
+    trainer = Trainer()
+
+    # without pl.seed_everything()
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is None
+
+    # with forcefully avoiding it
+    seed_everything(0, workers=False)
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is None
+
+    # when user already has a worker_init_fn
+    user_function = _user_worker_init_fn
+    dataloader.worker_init_fn = user_function
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is user_function
+    dataloader.worker_init_fn = None
+
+    # main use case
+    seed_everything(0, workers=True)
+    trainer.auto_add_worker_init_fn(dataloader)
+    assert dataloader.worker_init_fn is not None
+
+
+class MultiProcessModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.batches_seen = []
+
+    def training_step(self, batch, batch_idx):
+        self.batches_seen.append(batch)
+
+    def training_epoch_end(self, outputs):
+        world_size = 2
+        num_samples = NumpyRandomDataset.size
+        all_batches = torch.cat(self.batches_seen)
+        all_batches = self.all_gather(all_batches)
+        assert all_batches.shape[0] == world_size
+        all_batches = all_batches.view(-1, 3)
+        assert len(torch.unique(all_batches, dim=0)) == num_samples
+
+
+@RunIf(min_gpus=2)
+def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
+    """ Test that the lightning worker_init_fn takes care of dataloaders in multi-gpu/multi-node training. """
+    dataset = NumpyRandomDataset()
+    num_workers = 2
+    batch_size = 2
+
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+    seed_everything(0, workers=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=2,
+        accelerator="ddp_spawn",
+    )
+    model = MultiProcessModel()
+    model.val_dataloader = None
+    trainer.fit(model, train_dataloader=dataloader)
+
+
 def test_warning_with_iterable_dataset_and_len(tmpdir):
     """ Tests that a warning message is shown when an IterableDataset defines `__len__`. """
     model = BoringModel()
@@ -739,26 +844,35 @@ def test_dataloader_reinit_for_subclass(tmpdir):
 
 class DistribSamplerCallback(Callback):
 
+    def __init__(self, expected_seeds=(0, 0, 0)):
+        self.expected_seed = expected_seeds
+
     def on_train_start(self, trainer, pl_module):
         train_sampler = trainer.train_dataloader.sampler
         assert isinstance(train_sampler, DistributedSampler)
         assert train_sampler.shuffle
+        if _TORCH_GREATER_EQUAL_1_6:
+            assert train_sampler.seed == self.expected_seed[0]
 
     def on_validation_start(self, trainer, pl_module):
         val_sampler = trainer.val_dataloaders[0].sampler
         assert isinstance(val_sampler, DistributedSampler)
         assert not val_sampler.shuffle
+        if _TORCH_GREATER_EQUAL_1_6:
+            assert val_sampler.seed == self.expected_seed[1]
 
     def on_test_start(self, trainer, pl_module):
         test_sampler = trainer.test_dataloaders[0].sampler
         assert isinstance(test_sampler, DistributedSampler)
         assert not test_sampler.shuffle
+        if _TORCH_GREATER_EQUAL_1_6:
+            assert test_sampler.seed == self.expected_seed[2]
 
 
 @RunIf(min_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend """
-
+    seed_everything(123)
     model = EvalModelTemplate()
     trainer = Trainer(
         gpus=[0, 1],
@@ -766,7 +880,7 @@ def test_dataloader_distributed_sampler(tmpdir):
         accelerator='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=1,
-        callbacks=[DistribSamplerCallback()],
+        callbacks=[DistribSamplerCallback(expected_seeds=(123, 123, 123))],
     )
     trainer.fit(model)
     trainer.test(ckpt_path=None)
@@ -776,7 +890,7 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
 
     def train_dataloader(self):
         dataloader = super().train_dataloader()
-        dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True)
+        dist_sampler = DistributedSampler(dataloader.dataset, shuffle=True, seed=11)
         return DataLoader(
             dataloader.dataset, batch_size=self.batch_size, drop_last=False, sampler=dist_sampler, shuffle=False
         )
@@ -785,7 +899,7 @@ class ModelWithDataLoaderDistributedSampler(EvalModelTemplate):
 @RunIf(min_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on dataloader """
-
+    seed_everything(123)
     model = ModelWithDataLoaderDistributedSampler()
     trainer = Trainer(
         gpus=[0, 1],
@@ -793,7 +907,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
         accelerator='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=100,
-        callbacks=[DistribSamplerCallback()],
+        callbacks=[DistribSamplerCallback(expected_seeds=(11, 123, 0))],
         replace_sampler_ddp=True,
     )
     trainer.fit(model)

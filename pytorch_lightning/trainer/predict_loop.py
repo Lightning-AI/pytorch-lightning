@@ -39,7 +39,7 @@ class PredictLoop(object):
     def should_skip_predict(self, max_batches):
         return sum(max_batches) == 0
 
-    def on_predict_model_eval(self, *_, **__):
+    def on_predict_model_eval(self):
         model_ref = self.trainer.lightning_module
         model_ref.on_predict_model_eval()
 

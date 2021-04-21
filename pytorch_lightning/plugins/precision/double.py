@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 from functools import wraps
-from typing import Any, List, Sequence, Tuple
+from typing import Any, Generator, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -71,9 +72,9 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     def connect(
         self,
         model: nn.Module,
-        optimizers: Sequence[Optimizer],
-        lr_schedulers: Sequence[Any],
-    ) -> Tuple[nn.Module, Sequence[Optimizer], Sequence[Any]]:
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
         """Converts the model to double precision and wraps the `training_step`, `validation_step`, `test_step`,
         `predict_step`, and `forward` methods to convert incoming floating point data to double. Does not alter
         `optimizers` or `lr_schedulers`."""
@@ -90,3 +91,18 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     def post_dispatch(self) -> None:
         while len(self.patches) > 0:
             self.patches.pop().teardown()
+
+    @contextlib.contextmanager
+    def tensor_type_context(self) -> Generator:
+        """
+        A context manager to change the default tensor type.
+        See: :meth:`torch.set_default_tensor_type`
+        """
+        torch.set_default_tensor_type(torch.DoubleTensor)
+        yield
+        torch.set_default_tensor_type(torch.FloatTensor)
+
+    train_step_context = tensor_type_context
+    val_step_context = tensor_type_context
+    test_step_context = tensor_type_context
+    predict_step_context = tensor_type_context

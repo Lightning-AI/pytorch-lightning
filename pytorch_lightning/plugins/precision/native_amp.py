@@ -115,7 +115,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             yield
 
     @contextmanager
-    def predict_context(self) -> Generator[None, None, None]:
+    def predict_step_context(self) -> Generator[None, None, None]:
         """Enable autocast context"""
         with torch.cuda.amp.autocast():
             yield
