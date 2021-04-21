@@ -1035,7 +1035,7 @@ class LightningModule(
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
         """
-        Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
+        Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
         By default, it calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`.
         Override to add any processing logic.
 
