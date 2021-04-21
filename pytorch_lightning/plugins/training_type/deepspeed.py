@@ -15,10 +15,11 @@ import contextlib
 import json
 import logging
 import os
+import warnings
 from collections import OrderedDict
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 
@@ -36,6 +37,9 @@ from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
+
+if TYPE_CHECKING:
+    from pytorch_lightning.plugins.plugins_registry import TrainingTypePluginsRegistry
 
 
 def remove_module_hooks(model: torch.nn.Module) -> None:
@@ -78,9 +82,17 @@ class DeepSpeedPlugin(DDPPlugin):
         self,
         zero_optimization: bool = True,
         stage: int = 2,
-        cpu_offload: bool = False,
-        cpu_offload_params: bool = False,
-        cpu_offload_use_pin_memory: bool = False,
+        remote_device: str = 'cpu',
+        offload_optimizer: bool = False,
+        offload_parameters: bool = False,
+        offload_params_device: str = 'cpu',
+        nvme_path: str = '/local_nvme',
+        params_buffer_count: int = 5,
+        params_buffer_size: int = 1e8,
+        max_in_cpu: int = 1e9,
+        offload_optimizer_device: str = 'cpu',
+        optimizer_buffer_count: int = 4,
+        pin_memory: bool = False,
         contiguous_gradients: bool = True,
         overlap_comm: bool = True,
         allgather_partitions: bool = True,
@@ -103,11 +115,14 @@ class DeepSpeedPlugin(DDPPlugin):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         save_full_weights: bool = True,
+        cpu_offload: bool = False,
+        cpu_offload_params: bool = False,
+        cpu_offload_use_pin_memory: bool = False,
     ) -> None:
         """
         Provides capabilities to run training using the DeepSpeed library,
         with training optimizations for large billion parameter models.
-        `For more information: https://www.deepspeed.ai/`.
+        `For more information: https://pytorch-lightning.readthedocs.io/en/latest/advanced/multi_gpu.html#deepspeed`.
 
         .. warning:: ``DeepSpeedPlugin`` is in beta and subject to change.
 
@@ -120,13 +135,42 @@ class DeepSpeedPlugin(DDPPlugin):
             zero_optimization: Enable ZeRO optimization. This is only compatible with precision=16. (default: True)
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
-                1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning (default: 2)
+                1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
+                3 is optimizer+gradient_parameter partitioning using the infinity engine (default: 2)
 
-            cpu_offload: Enable offloading optimizer memory and computation to CPU
+            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``). (default: ``cpu``)
 
-            cpu_offload_params: When using ZeRO stage 3, offload parameters to CPU
+            offload_optimizer: Enable offloading optimizer memory and computation to CPU or NVMe
+                based on ``offload_optimizer_device`` (default: False)
 
-            cpu_offload_use_pin_memory: When using ZeRO stage 3, pin memory on CPU
+            offload_parameters: When using ZeRO Stage 3, Enable offloading parameter memory and computation
+                to CPU or NVMe based on ``offload_params_device`` (default: False)
+
+            offload_params_device: When offloading parameters choose the device to offload to, ``cpu`` or ``nvme``.
+                (default: ``cpu``)
+
+            offload_optimizer_device: When offloading optimizer state choose the device to offload to,
+                ``cpu`` or ``nvme``. (default: ``cpu``)
+
+            params_buffer_count: Number of buffers in buffer pool for
+                parameter offloading when ``offload_params_device`` is ``nvme`` (default: 5)
+
+            params_buffer_size: Size of buffers in buffer pool for parameter offloading
+                when ``offload_params_device`` is ``nvme``. (default: 1e8)
+
+            max_in_cpu: Number of parameter elements to maintain in CPU memory when offloading to NVMe is enabled.
+                (default: 1e9)
+
+            nvme_path: Filesystem path for NVMe device for optimizer/parameter state offloading.
+                (default: ``/local_nvme``)
+
+            optimizer_buffer_count: Number of buffers in buffer pool for optimizer state offloading
+                when ``offload_optimizer_device`` is set to to ``nvme``.
+                This should be at least the number of states maintained per parameter by the optimizer.
+                For example, Adam optimizer has 4 states (parameter, gradient, momentum, and variance) (default: 4)
+
+            pin_memory: When using ZeRO stage 3, pin optimizer state memory on CPU.
+                This could boost throughput at the cost of extra memory overhead. (Default: False)
 
             contiguous_gradients: Copies gradients to a continuous buffer as they are produced.
                 Avoids memory fragmentation during backwards. Useful when training large models. (default: True)
@@ -166,7 +210,7 @@ class DeepSpeedPlugin(DDPPlugin):
 
             min_loss_scale: The minimum FP16 dynamic loss scaling value (Default: 1000)
 
-            partition_activations: Enables partition activation when used with ZeRO stage 3.
+            partition_activations: Enables partition activation when used with ZeRO stage 3 and model parallelism.
                 Still requires you to wrap your forward functions in deepspeed.checkpointing.checkpoint.
                 See `deepspeed tutorial
                 <https://www.deepspeed.ai/tutorials/megatron/#deepspeed-activation-checkpoints-optional>`_
@@ -188,6 +232,17 @@ class DeepSpeedPlugin(DDPPlugin):
                 "To use the DeepSpeed plugin, you must have DeepSpeed installed."
                 " pip install deepspeed"
             )
+
+        if cpu_offload or cpu_offload_params or cpu_offload_use_pin_memory:
+            warnings.warn(
+                "The usage of ``cpu_offload`` ``cpu_offload_params`` and ``cpu_offload_use_pin_memory`` "
+                "is deprecated since v1.3 and will be removed in v1.4."
+                " From now on use ``offload_optimizer``, ``offload_parameters`` and ``pin_memory``.", DeprecationWarning
+            )
+            offload_optimizer = cpu_offload
+            offload_parameters = cpu_offload_params
+            pin_memory = cpu_offload_use_pin_memory
+
         super().__init__(
             parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
         )
@@ -197,14 +252,21 @@ class DeepSpeedPlugin(DDPPlugin):
             self.config = self._create_default_config(
                 zero_optimization,
                 zero_allow_untested_optimizer,
+                offload_optimizer=offload_optimizer,
+                offload_parameters=offload_parameters,
+                nvme_path=nvme_path,
+                offload_params_device=offload_params_device,
+                params_buffer_count=params_buffer_count,
+                params_buffer_size=params_buffer_size,
+                max_in_cpu=max_in_cpu,
+                pin_memory=pin_memory,
+                offload_optimizer_device=offload_optimizer_device,
+                optimizer_buffer_count=optimizer_buffer_count,
                 partition_activations=partition_activations,
                 cpu_checkpointing=cpu_checkpointing,
                 contiguous_memory_optimization=contiguous_memory_optimization,
                 synchronize_checkpoint_boundary=synchronize_checkpoint_boundary,
                 stage=stage,
-                cpu_offload=cpu_offload,
-                cpu_offload_params=cpu_offload_params,
-                cpu_offload_use_pin_memory=cpu_offload_use_pin_memory,
                 contiguous_gradients=contiguous_gradients,
                 overlap_comm=overlap_comm,
                 allgather_partitions=allgather_partitions,
@@ -215,6 +277,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
 
+        self.remote_device = remote_device
         self.save_full_weights = save_full_weights
 
         # default FP16 parameters.
@@ -237,22 +300,23 @@ class DeepSpeedPlugin(DDPPlugin):
                 config = json.load(f)
         return config
 
+    def setup_distributed(self):
+        super().setup_distributed()
+        if not self._config_initialized:
+            self._format_config()
+            self._config_initialized = True
+        if self.on_gpu:
+            torch.cuda.set_device(self.root_device)
+
     def pre_dispatch(self):
         self.init_deepspeed()
         self.barrier()
 
     def init_deepspeed(self):
-        if not self._config_initialized:
-            self._format_config()
-            self._config_initialized = True
-
         self._handle_gradient_accumulation_steps()
 
         precision = self.lightning_module.trainer.accelerator.precision
         model = LightningDeepSpeedModule(pl_module=self.model, precision=precision)
-
-        if self.on_gpu:
-            torch.cuda.set_device(self.root_device)
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
             self._initialize_deepspeed_train(model)
@@ -291,6 +355,7 @@ class DeepSpeedPlugin(DDPPlugin):
             optimizer=optimizer,
             lr_scheduler=lightning_scheduler,
             config_params=self.config,
+            dist_init_required=False
         )
         self._set_deepspeed_activation_checkpointing()
 
@@ -302,7 +367,10 @@ class DeepSpeedPlugin(DDPPlugin):
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
-            model_parallel_context = deepspeed.zero.Init(remote_device="cpu", pin_memory=True)
+            assert self._config_initialized
+            model_parallel_context = deepspeed.zero.Init(
+                remote_device=self.remote_device, pin_memory=True, param_dict=self.config
+            )
         else:
             model_parallel_context = super().model_sharded_context()
 
@@ -349,6 +417,7 @@ class DeepSpeedPlugin(DDPPlugin):
             lr_scheduler=lightning_scheduler,
             config_params=inference_config,
             model_parameters=[],
+            dist_init_required=False
         )
         self.model = model
 
@@ -450,6 +519,16 @@ class DeepSpeedPlugin(DDPPlugin):
         cpu_checkpointing: bool,
         contiguous_memory_optimization: bool,
         synchronize_checkpoint_boundary: bool,
+        offload_optimizer: bool,
+        offload_parameters: bool,
+        nvme_path: str,
+        offload_params_device: str,
+        params_buffer_count: int,
+        params_buffer_size: int,
+        max_in_cpu: int,
+        offload_optimizer_device: str,
+        optimizer_buffer_count: int,
+        pin_memory: bool,
         **zero_kwargs,
     ) -> Dict:
         cfg = {
@@ -461,9 +540,26 @@ class DeepSpeedPlugin(DDPPlugin):
             }
         }
         if zero_optimization:
+            zero_config = zero_kwargs
+
+            if offload_optimizer:
+                zero_config["offload_optimizer"] = {
+                    'device': offload_optimizer_device,
+                    'nvme_path': nvme_path,
+                    'buffer_count': optimizer_buffer_count,
+                    'pin_memory': pin_memory
+                }
+            if offload_parameters:
+                zero_config['offload_param'] = {
+                    'device': offload_params_device,
+                    'nvme_path': nvme_path,
+                    'buffer_count': params_buffer_count,
+                    'buffer_size': params_buffer_size,
+                    'max_in_cpu': max_in_cpu
+                }
             cfg = {
                 "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
-                "zero_optimization": zero_kwargs,
+                "zero_optimization": zero_config,
                 **cfg
             }
         return cfg
@@ -544,7 +640,7 @@ class DeepSpeedPlugin(DDPPlugin):
             return current_global_step
 
     @classmethod
-    def register_plugins(cls, plugin_registry: Dict) -> None:
+    def register_plugins(cls, plugin_registry: 'TrainingTypePluginsRegistry') -> None:
         plugin_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
         plugin_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
         plugin_registry.register(
@@ -552,7 +648,7 @@ class DeepSpeedPlugin(DDPPlugin):
             cls,
             description="DeepSpeed ZeRO Stage 2 and CPU Offload",
             stage=2,
-            cpu_offload=True
+            offload_optimizer=True
         )
         plugin_registry.register("deepspeed_stage_3", cls, description="DeepSpeed ZeRO Stage 3", stage=3)
         plugin_registry.register(
@@ -560,5 +656,17 @@ class DeepSpeedPlugin(DDPPlugin):
             cls,
             description="DeepSpeed ZeRO Stage 3 and CPU Offload",
             stage=3,
-            cpu_offload=True
+            offload_optimizer=True,
+            offload_parameters=True,
+        )
+        plugin_registry.register(
+            "deepspeed_stage_3_offload_nvme",
+            cls,
+            description="DeepSpeed ZeRO Stage 3 and NVMe Offload",
+            stage=3,
+            offload_optimizer=True,
+            offload_parameters=True,
+            remote_device='nvme',
+            offload_params_device='nvme',
+            offload_optimizer_device='nvme'
         )
