@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class PredictionWriterBase(Callback):
 
-    write_intervals = ("batch", "epoch")
+    write_intervals = ("batch", "epoch", "batch_epoch")
     """
     PredictionWriterBase is a base class to implement prediction writer.
 
@@ -81,13 +81,13 @@ class PredictionWriterBase(Callback):
     def on_predict_batch_end(
         self, trainer, pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self._write_interval == "batch":
+        if self._write_interval == "batch" or self._write_interval == "batch_epoch":
             self.write_on_batch_end(
                 trainer, pl_module, outputs, trainer.predict_loop.batch_indices, batch, batch_idx, dataloader_idx
             )
 
     def on_predict_epoch_end(self, trainer, pl_module: 'LightningModule', outputs: List[Any]) -> None:
-        if self._write_interval == "epoch":
+        if self._write_interval == "epoch" or self._write_interval == "batch_epoch":
             self.write_on_epoch_end(
                 trainer, pl_module, trainer.predict_loop._predictions, trainer.predict_loop._batches_indices
             )
