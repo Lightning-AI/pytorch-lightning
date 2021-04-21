@@ -17,7 +17,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.plugins import ShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
