@@ -28,7 +28,7 @@ def stat_scores(
     num_classes: Optional[int] = None,
     top_k: Optional[int] = None,
     threshold: float = 0.5,
-    is_multiclass: Optional[bool] = None,
+    multiclass: Optional[bool] = None,
     ignore_index: Optional[int] = None,
 ) -> torch.Tensor:
     """

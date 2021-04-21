@@ -17,15 +17,11 @@ from torchmetrics import Precision as _Precision
 from torchmetrics import Recall as _Recall
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
-from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_3, _TORCHMETRICS_LOWER_THAN_0_3
 
 
 class Precision(_Precision):
 
-    @deprecated_metrics(target=_Precision, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_3)
-    @deprecated_metrics(
-        target=_Precision, args_mapping=dict(multilabel="multiclass"), skip_if=_TORCHMETRICS_LOWER_THAN_0_3
-    )
+    @deprecated_metrics(target=_Precision)
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -35,7 +31,7 @@ class Precision(_Precision):
         mdmc_average: Optional[str] = None,
         ignore_index: Optional[int] = None,
         top_k: Optional[int] = None,
-        is_multiclass: Optional[bool] = None,
+        multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -47,16 +43,13 @@ class Precision(_Precision):
         .. deprecated::
             Use :class:`~torchmetrics.Precision`. Will be removed in v1.5.0.
         """
-        _ = num_classes, threshold, average, multilabel, mdmc_average, ignore_index, top_k, is_multiclass, \
+        _ = num_classes, threshold, average, multilabel, mdmc_average, ignore_index, top_k, multiclass, \
             compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
 
 
 class Recall(_Recall):
 
-    @deprecated_metrics(target=_Recall, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_3)
-    @deprecated_metrics(
-        target=_Recall, args_mapping=dict(multilabel="multiclass"), skip_if=_TORCHMETRICS_LOWER_THAN_0_3
-    )
+    @deprecated_metrics(target=_Recall)
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -66,7 +59,7 @@ class Recall(_Recall):
         mdmc_average: Optional[str] = None,
         ignore_index: Optional[int] = None,
         top_k: Optional[int] = None,
-        is_multiclass: Optional[bool] = None,
+        multiclass: Optional[bool] = None,
         compute_on_step: bool = True,
         dist_sync_on_step: bool = False,
         process_group: Optional[Any] = None,
@@ -78,5 +71,5 @@ class Recall(_Recall):
         .. deprecated::
             Use :class:`~torchmetrics.Recall`. Will be removed in v1.5.0.
         """
-        _ = num_classes, threshold, average, multilabel, mdmc_average, ignore_index, top_k, is_multiclass, \
+        _ = num_classes, threshold, average, multilabel, mdmc_average, ignore_index, top_k, multiclass, \
             compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
