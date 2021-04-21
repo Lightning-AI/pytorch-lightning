@@ -62,12 +62,14 @@ class DDPSpawnPlugin(ParallelPlugin):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         if num_nodes is not None:
             rank_zero_warn(
-                "`num_nodes` passed in DDPSpawnPlugin constructor, but notice that it will be overriden by the trainer setting."
+                "`num_nodes` passed in DDPSpawnPlugin constructor, but notice that it will be overriden by "
+                "the trainer setting."
             )
         self._num_nodes = num_nodes or 1
         if sync_batchnorm is not None:
             rank_zero_warn(
-                "`sync_batchnorm` passed in DDPSpawnPlugin constructor, but notice that it will be overriden by the trainer setting."
+                "`sync_batchnorm` passed in DDPSpawnPlugin constructor, but notice that it will be overriden by "
+                "the trainer setting."
             )
         self._sync_batchnorm = sync_batchnorm or False
         self._ddp_kwargs = kwargs
@@ -86,8 +88,7 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     @num_nodes.setter
     def num_nodes(self, num_nodes: int) -> None:
-        # note that world ranks is related to num_nodes, when resetting these parameters,
-        # need to reset world ranks
+        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
 

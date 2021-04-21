@@ -74,12 +74,14 @@ class DDPPlugin(ParallelPlugin):
         self.interactive_ddp_procs = []
         if num_nodes is not None:
             rank_zero_warn(
-                "`num_nodes` passed in DDPPlugin constructor, but notice that it will be overriden by the trainer setting."
+                "`num_nodes` passed in DDPPlugin constructor, but notice that it will be overriden by "
+                "the trainer setting."
             )
         self._num_nodes = num_nodes or 1
         if sync_batchnorm is not None:
             rank_zero_warn(
-                "`sync_batchnorm` passed in DDPPlugin constructor, but notice that it will be overriden by the trainer setting."
+                "`sync_batchnorm` passed in DDPPlugin constructor, but notice that it will be overriden by "
+                "the trainer setting."
             )
         self._sync_batchnorm = sync_batchnorm or False
         self.dist = LightningDistributed()
@@ -102,8 +104,7 @@ class DDPPlugin(ParallelPlugin):
 
     @num_nodes.setter
     def num_nodes(self, num_nodes: int) -> None:
-        # note that world ranks is related to num_nodes, when resetting these parameters,
-        # need to reset world ranks
+        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
         self.set_world_ranks()
 
