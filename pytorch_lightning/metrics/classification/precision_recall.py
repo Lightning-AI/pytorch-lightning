@@ -23,7 +23,9 @@ from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_3,
 class Precision(_Precision):
 
     @deprecated_metrics(target=_Precision, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_3)
-    @deprecated_metrics(target=_Precision, args_mapping=dict(multilabel="multiclass"), skip_if=_TORCHMETRICS_LOWER_THAN_0_3)
+    @deprecated_metrics(
+        target=_Precision, args_mapping=dict(multilabel="multiclass"), skip_if=_TORCHMETRICS_LOWER_THAN_0_3
+    )
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -52,7 +54,9 @@ class Precision(_Precision):
 class Recall(_Recall):
 
     @deprecated_metrics(target=_Recall, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_3)
-    @deprecated_metrics(target=_Recall, args_mapping=dict(multilabel="multiclass"), skip_if=_TORCHMETRICS_LOWER_THAN_0_3)
+    @deprecated_metrics(
+        target=_Recall, args_mapping=dict(multilabel="multiclass"), skip_if=_TORCHMETRICS_LOWER_THAN_0_3
+    )
     def __init__(
         self,
         num_classes: Optional[int] = None,
