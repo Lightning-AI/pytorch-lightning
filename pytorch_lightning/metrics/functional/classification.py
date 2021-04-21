@@ -326,7 +326,7 @@ def dice_score(
 
 # todo: remove in 1.4
 def iou(
-    preds: torch.Tensor,
+    pred: torch.Tensor,
     target: torch.Tensor,
     ignore_index: Optional[int] = None,
     absent_score: float = 0.0,
@@ -342,7 +342,7 @@ def iou(
         " It will be removed in v1.4.0"
     )
     return __iou(
-        preds=preds,
+        preds=pred,
         target=target,
         ignore_index=ignore_index,
         absent_score=absent_score,
