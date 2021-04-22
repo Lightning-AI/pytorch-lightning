@@ -20,6 +20,7 @@ from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
@@ -231,3 +232,13 @@ def test_v1_5_0_trainer_training_trick_mixin(tmpdir):
     dummy_loss = torch.tensor(1.0)
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         trainer.detect_nan_tensors(dummy_loss)
+
+
+def test_v1_5_0_auto_move_data():
+    with pytest.deprecated_call(match="deprecated in v1.3 and will be removed in v1.5.*was applied to `bar`"):
+
+        class Foo:
+
+            @auto_move_data
+            def bar(self):
+                pass

@@ -102,6 +102,8 @@ Lightning adds the correct samplers when needed, so no need to explicitly add sa
 .. note::
     By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
     ``drop_last`` in :class:`~torch.utils.data.distributed.DistributedSampler` will be set to its default value in PyTorch.
+    If you called :func:`~pytorch_lightning.utilities.seed.seed_everyting`, Lightning will set the same seed for the
+    sampler.
 
 .. note:: You can disable this behavior with ``Trainer(replace_sampler_ddp=False)``
 
