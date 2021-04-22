@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
@@ -100,7 +101,8 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
-    if tpu_cores is not None and not _TPU_AVAILABLE:
+    # PL_TPU_AVAILABLE is used to mock TPU env.
+    if tpu_cores is not None and (not _TPU_AVAILABLE and os.getenv("PL_TPU_AVAILABLE", "0") != '1'):
         raise MisconfigurationException('No TPU devices were found.')
 
     return tpu_cores

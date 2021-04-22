@@ -31,12 +31,12 @@ from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.accelerators import accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import PredictionWriterBase
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnRepeatedDistributedSampler
+from pytorch_lightning.plugins import DDPSpawnPlugin, TPUSpawnPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -1667,15 +1667,26 @@ def test_trainer_predict_ddp_cpu(tmpdir):
 
 @patch('torch.cuda.device_count', return_value=2)
 @patch('torch.cuda.is_available', return_value=True)
+@patch.dict(os.environ, {"PL_TPU_AVAILABLE": "1"})
 def test_spawn_predict_return_predictions(*_):
+    """
+    Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins.
+    """
 
-    trainer = Trainer(accelerator="ddp_spawn", gpus=2, fast_dev_run=True)
     model = BoringModel()
-    with pytest.raises(
-        MisconfigurationException,
-        match="`return_predictions` should be set to `False` when using spawn accelerators. Found True"
-    ):
-        trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
+
+    def run(expected_plugin, **trainer_kwargs):
+        trainer = Trainer(**trainer_kwargs, fast_dev_run=True)
+        assert isinstance(trainer.training_type_plugin, expected_plugin)
+        with pytest.raises(
+            MisconfigurationException,
+            match="`return_predictions` should be set to `False` when using spawn accelerators. Found True"
+        ):
+            trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
+
+    run(DDPSpawnPlugin, accelerator="ddp_spawn", gpus=2)
+    run(DDPSpawnPlugin, accelerator="ddp_cpu", num_processes=2)
+    run(TPUSpawnPlugin, tpu_cores=8, gpus=2)
 
 
 @pytest.mark.parametrize(
