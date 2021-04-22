@@ -229,3 +229,33 @@ class CallbackHookNameValidator:
     def _on_load_checkpoint_log():
         """Called when loading a model checkpoint."""
         return None
+
+    @staticmethod
+    def _on_predict_batch_start_log() -> None:
+        """Called when predict batch starts."""
+        return None
+
+    @staticmethod
+    def _on_predict_batch_end_log() -> None:
+        """Called when predict batch ends."""
+        return None
+
+    @staticmethod
+    def _on_predict_epoch_start_log() -> None:
+        """Called when predict epoch starts."""
+        return None
+
+    @staticmethod
+    def _on_predict_epoch_end_log() -> None:
+        """Called when predict epoch ends."""
+        return None
+
+    @staticmethod
+    def _on_predict_start_log() -> None:
+        """Called when predict starts."""
+        return None
+
+    @staticmethod
+    def _on_predict_end_log() -> None:
+        """Called when predict ends."""
+        return None
