@@ -348,12 +348,6 @@ def test_call_back_validator(tmpdir):
         "on_validation_end",
         "setup",
         "teardown",
-        "on_predict_batch_start",
-        "on_predict_batch_end",
-        "on_predict_epoch_start",
-        "on_predict_epoch_end",
-        "on_predict_start",
-        "on_predict_end",
     ]
 
     assert funcs_name == sorted(callbacks_func), (
@@ -377,7 +371,6 @@ def test_call_back_validator(tmpdir):
             allowed and "pretrain" not in func_name and "predict" not in func_name
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
-        allowed = (allowed and "predict" not in func_name)
         if allowed:
             validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:

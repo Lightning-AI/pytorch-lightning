@@ -809,8 +809,8 @@ class Trainer(
         self.predict_loop.setup(self.lightning_module, max_batches, dataloaders)
 
         # call hook
-        self.call_hook("on_predict_start")
-        self.predict_loop.on_predict_epoch_start()
+        self.predict_loop.on_predict_start()
+        self.call_hook("on_predict_epoch_start")
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
