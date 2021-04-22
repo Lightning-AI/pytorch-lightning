@@ -231,6 +231,16 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_predict_epoch_end(self, self.lightning_module, outputs)
 
+    def on_predict_start(self) -> None:
+        """Called when the predict begins."""
+        for callback in self.callbacks:
+            callback.on_predict_start(self, self.lightning_module)
+
+    def on_predict_end(self) -> None:
+        """Called when the predict ends."""
+        for callback in self.callbacks:
+            callback.on_predict_end(self, self.lightning_module)
+
     def on_validation_start(self):
         """Called when the validation loop begins."""
         for callback in self.callbacks:

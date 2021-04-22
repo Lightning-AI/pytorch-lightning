@@ -801,23 +801,18 @@ class Trainer(
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
+        # call hook
+        self.predict_loop.on_predict_start()
+
         # check if we want to skip this evaluation
         if self.predict_loop.should_skip_predict(max_batches):
             return []
-
-        # ref model
-        model = self.lightning_module
-
-        # enable eval mode + no grads
-        self.predict_loop.on_predict_model_eval()
-        model.zero_grad()
-        torch.set_grad_enabled(False)
 
         # call hook
         self.predict_loop.on_predict_epoch_start()
 
         # set up the eval loop
-        self.predict_loop.setup(model, max_batches, dataloaders)
+        self.predict_loop.setup(self.lightning_module, max_batches, dataloaders)
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -837,8 +832,7 @@ class Trainer(
 
         results = self.predict_loop.on_predict_epoch_end()
 
-        # re-enable grads
-        torch.set_grad_enabled(True)
+        self.predict_loop.on_predict_end()
 
         return results
 

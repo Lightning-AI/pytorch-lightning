@@ -1526,16 +1526,23 @@ class CustomPredictionWriter(PredictionWriterBase):
         batch_idx: int, dataloader_idx: int
     ):
         assert prediction.shape == torch.Size([1, 2])
-        assert len(batch_indices) == 1
+        if trainer.accelerator_connector.is_distributed:
+            assert len(batch_indices) == 1
+        else:
+            assert batch_indices is None
         self.write_on_batch_end_called = True
 
     def write_on_epoch_end(
         self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
     ):
+        expected = 1 if trainer.accelerator_connector.is_distributed else 2
         assert len(predictions) == 2
-        assert len(predictions[0]) == 1
-        assert len(batch_indices) == 2
-        assert len(batch_indices[0]) == 1
+        assert len(predictions[0]) == expected
+        if trainer.accelerator_connector.is_distributed:
+            assert len(batch_indices) == 2
+            assert len(batch_indices[0]) == expected
+        else:
+            assert batch_indices is None
         self.write_on_epoch_end_called = True
 
     def on_predict_epoch_end(self, trainer, pl_module: LightningModule, outputs: List[Any]):
@@ -1546,7 +1553,9 @@ class CustomPredictionWriter(PredictionWriterBase):
         super().on_predict_epoch_end(trainer, pl_module, outputs)
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None):
+def predict(
+    tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None, use_callbacks=True
+):
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
     model = model or BoringModel()
@@ -1565,19 +1574,24 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
         num_processes=num_processes,
         plugins=plugins,
         progress_bar_refresh_rate=pbrr,
-        callbacks=[cb, cb_1]
+        callbacks=[cb, cb_1] if use_callbacks else []
     )
+    if accelerator == "ddp_spawn":
+        with pytest.raises(MisconfigurationException):
+            trainer.predict(model, datamodule=dm, return_predictions=True)
+
     if datamodule:
         results = trainer.predict(model, datamodule=dm)
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
     if not trainer.training_type_plugin.use_spawn:
-        assert cb.write_on_batch_end_called
-        assert not cb.write_on_epoch_end_called
+        if use_callbacks:
+            assert cb.write_on_batch_end_called
+            assert not cb.write_on_epoch_end_called
 
-        assert not cb_1.write_on_batch_end_called
-        assert cb_1.write_on_epoch_end_called
+            assert not cb_1.write_on_batch_end_called
+            assert cb_1.write_on_epoch_end_called
 
         # todo: address this in another PR
         num_samples = 1 if accelerator == "ddp" else 2
@@ -1602,7 +1616,7 @@ def test_trainer_predict_no_return(tmpdir):
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
     with pytest.warns(UserWarning, match='predict returned None'):
-        predict(tmpdir, None, None, 1, model=CustomBoringModel())
+        predict(tmpdir, None, None, 1, model=CustomBoringModel(), use_callbacks=False)
 
 
 def test_trainer_predict_grad(tmpdir):
@@ -1613,7 +1627,7 @@ def test_trainer_predict_grad(tmpdir):
             assert batch.expand_as(batch).grad_fn is None
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
-    predict(tmpdir, None, None, 1, model=CustomBoringModel())
+    predict(tmpdir, None, None, 1, model=CustomBoringModel(), use_callbacks=False)
 
     x = torch.zeros(1, requires_grad=True)
     assert x.expand_as(x).grad_fn is not None

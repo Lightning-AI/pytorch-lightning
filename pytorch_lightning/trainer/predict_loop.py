@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional
+from typing import Any, List, Optional
+
+import torch
 
 from pytorch_lightning.overrides.distributed import IndexBatchSampler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -125,6 +127,24 @@ class PredictLoop(object):
             if self.should_store_predictions:
                 self._batches_indices[dataloader_idx].append(batch_sampler.batch_indices)
 
+    def on_predict_start(self):
+        # enable eval mode + no grads
+        self.on_predict_model_eval()
+        self.trainer.lightning_module.zero_grad()
+        torch.set_grad_enabled(False)
+        # hook
+        self.trainer.call_hook("on_predict_start")
+
+    def on_predict_end(self):
+        # clean memory
+        self._predictions = None
+        self._batches_indices = None
+
+        # enable eval mode + no grads
+        torch.set_grad_enabled(True)
+        # hook
+        self.trainer.call_hook("on_predict_end")
+
     def on_predict_epoch_start(self):
         # hook
         self.trainer.call_hook("on_predict_epoch_start")
@@ -132,12 +152,11 @@ class PredictLoop(object):
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
-        results = self._predictions
-
-        if len(results) == 1:
-            return results[0]
+        results: List[List[Any]] = self._predictions
 
         self.trainer.call_hook("on_predict_epoch_end", results)
 
         if self.return_predictions:
+            if len(results) == 1:
+                return results[0]
             return results

@@ -56,6 +56,7 @@ def test_lambda_call(tmpdir):
     )
     results = trainer.fit(model)
     trainer.test(model)
+    trainer.predict(model, dataloaders=model.train_dataloader())
 
     assert results
     assert checker == set(hooks)

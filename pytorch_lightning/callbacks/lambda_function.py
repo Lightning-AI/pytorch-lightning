@@ -65,6 +65,12 @@ class LambdaCallback(Callback):
         on_validation_batch_end: Optional[Callable] = None,
         on_test_batch_start: Optional[Callable] = None,
         on_test_batch_end: Optional[Callable] = None,
+        on_predict_batch_start: Optional[Callable] = None,
+        on_predict_batch_end: Optional[Callable] = None,
+        on_predict_epoch_start: Optional[Callable] = None,
+        on_predict_epoch_end: Optional[Callable] = None,
+        on_predict_start: Optional[Callable] = None,
+        on_predict_end: Optional[Callable] = None,
         on_batch_end: Optional[Callable] = None,
         on_train_start: Optional[Callable] = None,
         on_train_end: Optional[Callable] = None,
@@ -130,6 +136,18 @@ class LambdaCallback(Callback):
             self.on_test_batch_start = on_test_batch_start
         if on_test_batch_end is not None:
             self.on_test_batch_end = on_test_batch_end
+        if on_predict_batch_start is not None:
+            self.on_predict_batch_start = on_predict_batch_start
+        if on_predict_batch_end is not None:
+            self.on_predict_batch_end = on_predict_batch_end
+        if on_predict_epoch_start is not None:
+            self.on_predict_epoch_start = on_predict_epoch_start
+        if on_predict_epoch_end is not None:
+            self.on_predict_epoch_end = on_predict_epoch_end
+        if on_predict_start is not None:
+            self.on_predict_start = on_predict_start
+        if on_predict_end is not None:
+            self.on_predict_end = on_predict_end
         if on_batch_end is not None:
             self.on_batch_end = on_batch_end
         if on_train_start is not None:
