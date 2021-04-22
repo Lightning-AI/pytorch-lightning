@@ -3,6 +3,7 @@ name: Nightly events
 # https://jasonet.co/posts/scheduled-actions/
 # https://github.community/t/distinct-job-for-each-schedule/17811/2
 on:
+  push: {}
   schedule:
     - cron: "0 0 * * *" # At the end of every day
 
