@@ -118,6 +118,9 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
             return super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs) -> None:
+            local_rank = int(os.getenv("LOCAL_RANK"))
+            if self.trainer.is_global_zero:
+                self.log('my_loss_2', (1 + local_rank), on_epoch=True)
             data = str(self.global_rank)
             obj = [[data], (data, ), set(data)]
             out = self.trainer.training_type_plugin.broadcast(obj)
@@ -136,9 +139,6 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         limit_train_batches=64,
         limit_val_batches=32,
     )
+    trainer.fit(model)
     if os.getenv("LOCAL_RANK") == "0":
-        with pytest.raises(UserWarning, match="The value associated to the key my_loss_epoch: [15.5, 31.0]"):
-            trainer.fit(model)
         assert save_mock.call_count == expected
-    else:
-        trainer.fit(model)
