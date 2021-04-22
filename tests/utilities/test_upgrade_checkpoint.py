@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import pytest
-import torch
+import pytorch_lightning as pl
 
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
+from pytorch_lightning.utilities.migration.base import set_version, get_version
+from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
 
 
 @pytest.mark.parametrize(
@@ -33,7 +31,7 @@ from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
                 "epoch": 1,
                 "global_step": 23,
                 "callbacks": {
-                    ModelCheckpoint: {
+                    "ModelCheckpoint": {
                         "best_model_score": 0.34
                     }
                 }
@@ -49,7 +47,7 @@ from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
                 "epoch": 1,
                 "global_step": 23,
                 "callbacks": {
-                    ModelCheckpoint: {
+                    "ModelCheckpoint": {
                         "best_model_score": 0.99
                     }
                 }
@@ -65,7 +63,7 @@ from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
                 "epoch": 1,
                 "global_step": 23,
                 "callbacks": {
-                    ModelCheckpoint: {
+                    "ModelCheckpoint": {
                         "best_model_path": 'path'
                     }
                 }
@@ -82,7 +80,7 @@ from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
                 "epoch": 1,
                 "global_step": 23,
                 "callbacks": {
-                    EarlyStopping: {
+                    "EarlyStopping": {
                         "wait_count": 2,
                         "patience": 4
                     }
@@ -92,8 +90,8 @@ from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
     ],
 )
 def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint):
-    filepath = os.path.join(tmpdir, "model.ckpt")
-    torch.save(old_checkpoint, filepath)
-    upgrade_checkpoint(filepath)
-    updated_checkpoint = torch.load(filepath)
+    set_version(old_checkpoint, "0.9.0")
+    set_version(new_checkpoint, pl.__version__)
+    updated_checkpoint = migrate_checkpoint(old_checkpoint)
     assert updated_checkpoint == new_checkpoint
+    assert get_version(updated_checkpoint) == pl.__version__
