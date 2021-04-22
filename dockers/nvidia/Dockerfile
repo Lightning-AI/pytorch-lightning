@@ -57,4 +57,4 @@ RUN \
     python -c "from torch import __version__ as ver ; assert ver == '$TORCH_VERSION', ver" && \
     python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
-# CMD ["/bin/bash"]
+CMD ["jupyter", "notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0", "--allow-root"]
