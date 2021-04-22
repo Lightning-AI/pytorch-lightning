@@ -42,15 +42,16 @@ RUN \
     pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install ./pytorch-lightning --no-cache-dir && \
     pip install "Pillow>=8.1" --no-cache-dir --upgrade-strategy only-if-needed && \
-    rm -rf pytorch-lightning
+    rm -rf pytorch-lightning && \
+    pip list
 
 RUN \
     TORCH_VERSION=$(cat torch_version.info) && \
     rm torch_version.info && \
     python --version && \
     pip --version && \
-    pip list && \
-    python -c "import torch; assert torch.__version__ == '$TORCH_VERSION', f'got: `{torch.__version__}` instead of `$TORCH_VERSION`'" && \
+    pip list | grep torch && \
+    python -c "from torch import __version__ as ver ; assert ver == '$TORCH_VERSION', ver" && \
     python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
 # CMD ["/bin/bash"]
