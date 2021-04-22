@@ -68,6 +68,16 @@ class ModelHooks:
         Called at the end of testing.
         """
 
+    def on_predict_start(self) -> None:
+        """
+        Called at the beginning of predicting.
+        """
+
+    def on_predict_end(self) -> None:
+        """
+        Called at the end of predicting.
+        """
+
     def on_pretrain_routine_start(self) -> None:
         """
         Called at the beginning of the pretrain routine (between fit and train start).

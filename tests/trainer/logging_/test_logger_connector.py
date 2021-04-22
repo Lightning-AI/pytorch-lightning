@@ -313,10 +313,12 @@ def test_call_back_validator(tmpdir):
         'on_validation_epoch_end',
         'on_validation_epoch_start',
         'on_validation_start',
-        "on_predict_batch_start",
         "on_predict_batch_end",
-        "on_predict_epoch_start",
+        "on_predict_batch_start",
+        "on_predict_end",
         "on_predict_epoch_end",
+        "on_predict_epoch_start",
+        "on_predict_start",
         'setup',
         'teardown',
     ]
@@ -334,10 +336,12 @@ def test_call_back_validator(tmpdir):
         "on_pretrain_routine_start",
         "on_sanity_check_end",
         "on_sanity_check_start",
-        "on_predict_batch_start",
         "on_predict_batch_end",
-        "on_predict_epoch_start",
+        "on_predict_batch_start",
+        "on_predict_end",
         "on_predict_epoch_end",
+        "on_predict_epoch_start",
+        "on_predict_start",
         "on_save_checkpoint",
         "on_test_end",
         "on_train_end",
@@ -378,6 +382,7 @@ def test_call_back_validator(tmpdir):
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="function doesn't support"):
                 validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+                print(func_name)
 
         # should not fail
         validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)

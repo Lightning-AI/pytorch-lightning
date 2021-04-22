@@ -245,6 +245,14 @@ class Callback(abc.ABC):
         """Called when the test ends."""
         pass
 
+    def on_predict_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+        """Called when the predict begins."""
+        pass
+
+    def on_predict_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+        """Called when predict ends."""
+        pass
+
     def on_keyboard_interrupt(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the training is interrupted by ``KeyboardInterrupt``."""
         pass

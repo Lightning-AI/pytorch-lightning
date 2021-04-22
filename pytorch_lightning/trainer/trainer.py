@@ -813,11 +813,12 @@ class Trainer(
         model.zero_grad()
         torch.set_grad_enabled(False)
 
-        # call hook
-        self.predict_loop.on_predict_epoch_start()
-
         # set up the eval loop
         self.predict_loop.setup(model, max_batches, dataloaders)
+
+        # call hook
+        self.call_hook("on_predict_start")
+        self.call_hook("on_predict_epoch_start")
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -836,6 +837,7 @@ class Trainer(
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
+        self.call_hook("on_predict_end")
 
         # re-enable grads
         torch.set_grad_enabled(True)

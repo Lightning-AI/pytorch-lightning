@@ -217,7 +217,7 @@ class PyTorchProfiler(BaseProfiler):
         'on_fit_start',
         'on_validation_start',
         'on_test_start',
-        'on_predict_epoch_start',
+        'on_predict_start',
     }
 
     def __init__(

@@ -252,6 +252,16 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_test_end(self, self.lightning_module)
 
+    def on_predict_start(self):
+        """Called when predict begins."""
+        for callback in self.callbacks:
+            callback.on_predict_start(self, self.lightning_module)
+
+    def on_predict_end(self):
+        """Called when predict ends."""
+        for callback in self.callbacks:
+            callback.on_predict_end(self, self.lightning_module)
+
     def on_keyboard_interrupt(self):
         """Called when the training is interrupted by KeyboardInterrupt."""
         for callback in self.callbacks:
