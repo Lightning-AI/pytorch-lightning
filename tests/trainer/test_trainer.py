@@ -31,6 +31,7 @@ from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning.accelerators import accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import PredictionWriterBase
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
@@ -1662,6 +1663,19 @@ def test_trainer_predict_1_gpu(tmpdir):
 @RunIf(skip_windows=True)
 def test_trainer_predict_ddp_cpu(tmpdir):
     predict(tmpdir, "ddp_cpu", 0, 2)
+
+
+@patch('torch.cuda.device_count', return_value=2)
+@patch('torch.cuda.is_available', return_value=True)
+def test_spawn_predict_return_predictions(*_):
+
+    trainer = Trainer(accelerator="ddp_spawn", gpus=2, fast_dev_run=True)
+    model = BoringModel()
+    with pytest.raises(
+        MisconfigurationException,
+        match="`return_predictions` should be set to `False` when using spawn accelerators. Found True"
+    ):
+        trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
 
 @pytest.mark.parametrize(
