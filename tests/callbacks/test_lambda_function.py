@@ -44,7 +44,7 @@ def test_lambda_call(tmpdir):
     )
     trainer.fit(model)
 
-    # raises KeyBoardInterrupt, also loads from checkpoint
+    # raises KeyboardInterrupt and loads from checkpoint
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
