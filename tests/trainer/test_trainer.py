@@ -1483,6 +1483,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
 
 
 def test_trainer_predict_grad(tmpdir):
+
     class CustomBoringModel(BoringModel):
 
         def predict_step(self, batch, batch_idx, dataloader_idx=None):

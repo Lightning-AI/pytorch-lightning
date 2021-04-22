@@ -1,4 +1,4 @@
-from pytorch_lightning.utilities.argparse import parse_args_from_docstring, _gpus_allowed_type, _int_or_float_type
+from pytorch_lightning.utilities.argparse import _gpus_allowed_type, _int_or_float_type, parse_args_from_docstring
 
 
 def test_parse_args_from_docstring_normal():

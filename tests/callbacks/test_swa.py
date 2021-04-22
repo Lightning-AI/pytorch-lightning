@@ -27,8 +27,9 @@ from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_6:
-    from pytorch_lightning.callbacks import StochasticWeightAveraging
     from torch.optim.swa_utils import SWALR
+
+    from pytorch_lightning.callbacks import StochasticWeightAveraging
 
     class SwaTestModel(BoringModel):
 
