@@ -150,4 +150,4 @@ class PredictLoop(object):
         self.trainer.call_hook("on_predict_epoch_end", results)
 
         if self.return_predictions:
-          return results[0] if len(results) == 1 else results
+            return results[0] if len(results) == 1 else results
