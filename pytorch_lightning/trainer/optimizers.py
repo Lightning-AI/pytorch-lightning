@@ -80,7 +80,7 @@ class TrainerOptimizersMixin(ABC):
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
 
-        is_manual_optimization = not model.automatic_optimization
+        is_manual_optimization = not self.lightning_module.automatic_optimization
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor, is_manual_optimization)
         _validate_scheduler_optimizer(optimizers, lr_schedulers)
 
