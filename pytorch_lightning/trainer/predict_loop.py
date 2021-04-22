@@ -56,9 +56,6 @@ class PredictLoop(object):
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
-        if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.lightning_module)
-
     def _get_num_dataloaders(self, dataloaders):
         # case where user does:
         # return dl1, dl2
@@ -75,42 +72,28 @@ class PredictLoop(object):
 
         model_ref = self.trainer.lightning_module
 
+        self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
+
         model_ref._current_fx_name = "predict"
         predictions = self.trainer.accelerator.predict_step(args)
 
         if predictions is None:
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
 
-        self._predictions[dataloader_idx].append(predictions)
+        self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
-        if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_batch_end(
-                self.trainer, model_ref, predictions, batch, batch_idx, dataloader_idx
-            )
-        return
+        self._predictions[dataloader_idx].append(predictions)
 
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
-        if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_end(self.trainer, self.trainer.lightning_module)
-
         results = self._predictions
+
+        self.trainer.call_hook("on_predict_epoch_end", results)
 
         def _convert_to_numpy(v):
             return v.cpu().numpy()
 
         results = apply_to_collection(results, torch.Tensor, _convert_to_numpy)
 
-        if len(results) == 1:
-            return results[0]
-
-        return results
-
-    def on_predict_start(self):
-        # hook
-        self.trainer.call_hook("on_predict_start")
-
-    def on_predict_end(self):
-        # hook
-        self.trainer.call_hook("on_predict_end")
+        return results[0] if len(results) == 1 else results
