@@ -7,13 +7,13 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.argparse import (
+    _get_abbrev_qualified_cls_name,
     _gpus_allowed_type,
     _int_or_float_type,
+    _parse_args_from_docstring,
     add_argparse_args,
     from_argparse_args,
-    get_abbrev_qualified_cls_name,
     parse_argparser,
-    parse_args_from_docstring,
 )
 
 
@@ -48,7 +48,7 @@ def test_parse_argparser():
 
 
 def test_parse_args_from_docstring_normal():
-    args_help = parse_args_from_docstring(
+    args_help = _parse_args_from_docstring(
         """Constrain image dataset
 
         Args:
@@ -83,7 +83,7 @@ def test_parse_args_from_docstring_normal():
 
 
 def test_parse_args_from_docstring_empty():
-    args_help = parse_args_from_docstring(
+    args_help = _parse_args_from_docstring(
         """Constrain image dataset
 
         Args:
@@ -97,14 +97,14 @@ def test_parse_args_from_docstring_empty():
 
 
 def test_get_abbrev_qualified_cls_name():
-    assert get_abbrev_qualified_cls_name(Trainer) == "pl.Trainer"
+    assert _get_abbrev_qualified_cls_name(Trainer) == "pl.Trainer"
 
     class NestedClass:
         pass
 
     assert not __name__.startswith("pytorch_lightning.")
     expected_name = f"{__name__}.test_get_abbrev_qualified_cls_name.<locals>.NestedClass"
-    assert get_abbrev_qualified_cls_name(NestedClass) == expected_name
+    assert _get_abbrev_qualified_cls_name(NestedClass) == expected_name
 
 
 class AddArgparseArgsExampleClass:
