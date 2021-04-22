@@ -163,12 +163,11 @@ class LightningModule(
     def example_input_array(self, example: Any) -> None:
         self._example_input_array = example
 
-    @deprecated(deprecated_in="1.3.0", remove_in="1.5.0")
     @property
+    @deprecated(deprecated_in="1.3.0", remove_in="1.5.0", target=None)
     def datamodule(self) -> Any:
         return self._datamodule
 
-    @deprecated(deprecated_in="1.3.0", remove_in="1.5.0")
     @datamodule.setter
     def datamodule(self, datamodule: Any) -> None:
         self._datamodule = datamodule
