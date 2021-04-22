@@ -801,22 +801,18 @@ class Trainer(
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
-        # call hook
-        self.predict_loop.on_predict_start()
-
         # check if we want to skip this evaluation
         if self.predict_loop.should_skip_predict(max_batches):
             return []
 
         # call hook
-        self.predict_loop.on_predict_epoch_start()
+        self.predict_loop.on_predict_start()
 
         # set up the eval loop
         self.predict_loop.setup(self.lightning_module, max_batches, dataloaders)
 
         # call hook
-        self.call_hook("on_predict_start")
-        self.call_hook("on_predict_epoch_start")
+        self.predict_loop.on_predict_epoch_start()
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -835,7 +831,6 @@ class Trainer(
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
-
         self.predict_loop.on_predict_end()
 
         return results
