@@ -114,6 +114,7 @@ jobs:
 
     - script: |
         set -e
+        pip list
         python setup.py install
         pip list
         rm -rf pytorch_lightning
