@@ -275,9 +275,6 @@ class DDPSpawnPlugin(ParallelPlugin):
             return None
         return [self.root_device.index]
 
-    def on_save(self, checkpoint: dict) -> dict:
-        return checkpoint
-
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None

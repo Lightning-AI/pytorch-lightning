@@ -93,8 +93,8 @@ PyTorch Lightning Documentation
    :caption: Common Use Cases
 
    clouds/cloud_training
+   clouds/cluster
    advanced/amp
-   clouds/slurm
    common/child_modules
    common/debugging
    common/loggers
@@ -114,7 +114,6 @@ PyTorch Lightning Documentation
    advanced/pruning_quantization
    advanced/transfer_learning
    advanced/tpu
-   advanced/cluster
    common/test_set
    common/production_inference
 
