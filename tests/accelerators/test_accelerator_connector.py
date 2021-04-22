@@ -33,8 +33,8 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
     SingleDevicePlugin,
 )
-from pytorch_lightning.utilities import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
+from pytorch_lightning.utilities import _DEEPSPEED_AVAILABLE
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
