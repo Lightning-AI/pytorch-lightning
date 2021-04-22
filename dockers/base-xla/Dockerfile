@@ -94,7 +94,6 @@ COPY ./ ./pytorch-lightning/
 # Install pytorch-lightning dependencies.
 RUN \
     python --version && \
-# Install PL dependencies
     cd pytorch-lightning && \
     # drop Torch as it was installed with XLA
     python -c "fname = 'requirements.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)" && \
@@ -105,7 +104,8 @@ RUN \
     # drop TorchVision as it was installed with XLA
     python -c "fname = 'requirements/examples.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torchvision')] ; open(fname, 'w').writelines(lines)" && \
     python ./requirements/adjust_versions.py ./requirements/extra.txt && \
-    pip install --requirement ./requirements/devel.txt --no-cache-dir && \
+    # install PL dependencies
+    pip install -v --requirement ./requirements/devel.txt --no-cache-dir && \
     cd .. && \
     rm -rf pytorch-lightning && \
     rm -rf /root/.cache
