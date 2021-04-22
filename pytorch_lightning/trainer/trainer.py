@@ -1141,7 +1141,7 @@ class Trainer(
         state = self._teardown_state
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_teardown_{state}')
+            called = hasattr(self.datamodule, f'has_teardown_{state}') and getattr(self.datamodule, f'has_teardown_{state}')
             if not called:
                 self.datamodule.teardown(stage=state)
 
