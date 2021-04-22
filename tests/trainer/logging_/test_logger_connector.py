@@ -276,16 +276,51 @@ def test_call_back_validator(tmpdir):
     funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
 
     callbacks_func = [
-        'on_after_backward', 'on_batch_end', 'on_batch_start', 'on_before_accelerator_backend_setup',
-        'on_before_zero_grad', 'on_configure_sharded_model', 'on_epoch_end', 'on_epoch_start', 'on_fit_end',
-        'on_fit_start', 'on_init_end', 'on_init_start', 'on_keyboard_interrupt', 'on_load_checkpoint',
-        'on_predict_batch_end', 'on_predict_batch_start', 'on_predict_end', 'on_predict_epoch_end',
-        'on_predict_epoch_start', 'on_predict_start', 'on_pretrain_routine_end', 'on_pretrain_routine_start',
-        'on_sanity_check_end', 'on_sanity_check_start', 'on_save_checkpoint', 'on_test_batch_end',
-        'on_test_batch_start', 'on_test_end', 'on_test_epoch_end', 'on_test_epoch_start', 'on_test_start',
-        'on_train_batch_end', 'on_train_batch_start', 'on_train_end', 'on_train_epoch_end', 'on_train_epoch_start',
-        'on_train_start', 'on_validation_batch_end', 'on_validation_batch_start', 'on_validation_end',
-        'on_validation_epoch_end', 'on_validation_epoch_start', 'on_validation_start', 'setup', 'teardown'
+        'on_after_backward',
+        'on_batch_end',
+        'on_batch_start',
+        'on_before_accelerator_backend_setup',
+        'on_before_zero_grad',
+        'on_epoch_end',
+        'on_epoch_start',
+        'on_fit_end',
+        'on_configure_sharded_model',
+        'on_fit_start',
+        'on_init_end',
+        'on_init_start',
+        'on_keyboard_interrupt',
+        'on_load_checkpoint',
+        'on_pretrain_routine_end',
+        'on_pretrain_routine_start',
+        'on_sanity_check_end',
+        'on_sanity_check_start',
+        'on_save_checkpoint',
+        'on_test_batch_end',
+        'on_test_batch_start',
+        'on_test_end',
+        'on_test_epoch_end',
+        'on_test_epoch_start',
+        'on_test_start',
+        'on_train_batch_end',
+        'on_train_batch_start',
+        'on_train_end',
+        'on_train_epoch_end',
+        'on_train_epoch_start',
+        'on_train_start',
+        'on_validation_batch_end',
+        'on_validation_batch_start',
+        'on_validation_end',
+        'on_validation_epoch_end',
+        'on_validation_epoch_start',
+        'on_validation_start',
+        "on_predict_batch_end",
+        "on_predict_batch_start",
+        "on_predict_end",
+        "on_predict_epoch_end",
+        "on_predict_epoch_start",
+        "on_predict_start",
+        'setup',
+        'teardown',
     ]
 
     not_supported = [
@@ -301,6 +336,12 @@ def test_call_back_validator(tmpdir):
         "on_pretrain_routine_start",
         "on_sanity_check_end",
         "on_sanity_check_start",
+        "on_predict_batch_end",
+        "on_predict_batch_start",
+        "on_predict_end",
+        "on_predict_epoch_end",
+        "on_predict_epoch_start",
+        "on_predict_start",
         "on_save_checkpoint",
         "on_test_end",
         "on_train_end",
@@ -315,10 +356,10 @@ def test_call_back_validator(tmpdir):
         "on_predict_end",
     ]
 
-    assert (
-        funcs_name == sorted(callbacks_func)
-    ), """Detected new callback function.
-        Need to add its logging permission to CallbackHookNameValidator and update this test"""
+    assert funcs_name == sorted(callbacks_func), (
+        "Detected new callback function. Need to add its logging"
+        " permission to CallbackHookNameValidator and update this test"
+    )
 
     validator = CallbackHookNameValidator()
 
@@ -333,7 +374,7 @@ def test_call_back_validator(tmpdir):
             is_stage or "batch" in func_name or "epoch" in func_name or "grad" in func_name or "backward" in func_name
         )
         allowed = (
-            allowed and "pretrain" not in func_name
+            allowed and "pretrain" not in func_name and "predict" not in func_name
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         allowed = (allowed and "predict" not in func_name)

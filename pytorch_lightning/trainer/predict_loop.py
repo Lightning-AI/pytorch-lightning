@@ -85,9 +85,6 @@ class PredictLoop(object):
         self._predictions = [[] for _ in range(self.num_dataloaders)]
         self._batches_indices = [[] for _ in range(self.num_dataloaders)]
 
-        if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.lightning_module)
-
     def _get_num_dataloaders(self, dataloaders):
         # case where user does:
         # return dl1, dl2
@@ -145,10 +142,6 @@ class PredictLoop(object):
         # hook
         self.trainer.call_hook("on_predict_end")
 
-    def on_predict_epoch_start(self):
-        # hook
-        self.trainer.call_hook("on_predict_epoch_start")
-
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
@@ -157,6 +150,4 @@ class PredictLoop(object):
         self.trainer.call_hook("on_predict_epoch_end", results)
 
         if self.return_predictions:
-            if len(results) == 1:
-                return results[0]
-            return results
+          return results[0] if len(results) == 1 else results
