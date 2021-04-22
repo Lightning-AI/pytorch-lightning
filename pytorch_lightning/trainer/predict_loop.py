@@ -136,16 +136,6 @@ class PredictLoop(object):
         # hook
         self.trainer.call_hook("on_predict_epoch_start")
 
-    def on_predict_end(self):
-        # clean memory
-        self._predictions = None
-        self._batches_indices = None
-
-        # enable eval mode + no grads
-        torch.set_grad_enabled(True)
-        # hook
-        self.trainer.call_hook("on_predict_end")
-
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
@@ -155,3 +145,13 @@ class PredictLoop(object):
 
         if self.return_predictions:
             return results[0] if len(results) == 1 else results
+
+    def on_predict_end(self):
+        # clean memory
+        self._predictions = None
+        self._batches_indices = None
+
+        # enable eval mode + no grads
+        torch.set_grad_enabled(True)
+        # hook
+        self.trainer.call_hook("on_predict_end")

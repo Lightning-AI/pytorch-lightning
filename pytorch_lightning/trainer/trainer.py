@@ -830,7 +830,10 @@ class Trainer(
                 with self.profiler.profile("predict_step"):
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
+        # call hook
         results = self.predict_loop.on_predict_epoch_end()
+
+        # call hook
         self.predict_loop.on_predict_end()
 
         return results
