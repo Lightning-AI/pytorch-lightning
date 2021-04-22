@@ -382,7 +382,6 @@ def test_call_back_validator(tmpdir):
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="function doesn't support"):
                 validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
-                print(func_name)
 
         # should not fail
         validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
