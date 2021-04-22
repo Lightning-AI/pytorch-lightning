@@ -114,8 +114,7 @@ jobs:
 
     - script: |
         set -e
-        pip list
-        pip install . --user --quiet
+        python setup.py install
         pip list
         rm -rf pytorch_lightning
         python -m pytest pl_examples -v --maxfail=2 --durations=0
