@@ -33,7 +33,6 @@ def main(path_req: str, torch_version: Optional[str] = None) -> None:
     if not torch_version:
         import torch
         torch_version = torch.__version__
-    torch_version = "1.7"
     assert torch_version, f"invalid torch: {torch_version}"
 
     with open(path_req, "r") as fp:
