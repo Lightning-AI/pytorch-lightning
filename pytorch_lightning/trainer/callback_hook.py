@@ -299,7 +299,9 @@ class TrainerCallbackHookMixin(ABC):
         # https://github.com/pytorch/xla/issues/2773
         if callback_states is not None:
             for callback in self.callbacks:
-                state = callback_states.get(callback.state_identifier, callback_states.get(callback._legacy_state_identifier))
+                state = callback_states.get(
+                    callback.state_identifier, callback_states.get(callback._legacy_state_identifier)
+                )
                 if state:
                     state = deepcopy(state)
                     callback.on_load_checkpoint(state)

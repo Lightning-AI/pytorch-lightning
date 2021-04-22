@@ -17,9 +17,9 @@ import sys
 from pathlib import Path
 
 import pytest
-from pytorch_lightning.callbacks.base import Callback
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks.base import Callback
 from tests import PATH_LEGACY
 from tests.helpers import BoringModel
 
