@@ -572,12 +572,6 @@ class Result(Dict):
             meta[dest] = meta[source]
             del meta[source]
 
-    def get_non_metrics_keys(self):
-        """
-        This function is used to filter metric keys for which the value isn't a Metric
-        """
-        return [k for k, v in self.items() if not isinstance(v, Metric)]
-
     def reset(self) -> None:
         """
         Call at the end of epoch to reset all metric objects

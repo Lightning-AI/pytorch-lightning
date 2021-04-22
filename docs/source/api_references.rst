@@ -172,5 +172,5 @@ Utilities API
     :nosignatures:
 
     cli
-    argparse_utils
+    argparse
     seed
