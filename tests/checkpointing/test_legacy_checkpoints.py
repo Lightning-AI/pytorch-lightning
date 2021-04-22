@@ -114,9 +114,9 @@ def test_callback_state_loading_by_type(tmpdir):
     trainer.fit(model)
     # simulate old format where type(callback) was the key
     new_checkpoint = torch.load(Path(tmpdir, "last.ckpt"))
-    old_checkpiont = deepcopy(new_checkpoint)
-    old_checkpiont["callbacks"] = {type(callback): new_checkpoint["callbacks"]["ModelCheckpoint"]}
-    torch.save(old_checkpiont, Path(tmpdir, "old.ckpt"))
+    old_checkpoint = deepcopy(new_checkpoint)
+    old_checkpoint["callbacks"] = {type(callback): new_checkpoint["callbacks"]["ModelCheckpoint"]}
+    torch.save(old_checkpoint, Path(tmpdir, "old.ckpt"))
 
     trainer = Trainer(
         default_root_dir=tmpdir,
