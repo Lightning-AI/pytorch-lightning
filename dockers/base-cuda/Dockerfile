@@ -114,6 +114,7 @@ RUN \
 
 RUN \
     # install DeepSpeed
+    # TODO(@SeanNaren): 0.3.15 is broken - skipping to unblock
     pip install deepspeed>=0.3.14, !=0.3.15
 
 RUN \
