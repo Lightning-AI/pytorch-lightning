@@ -26,4 +26,5 @@ class pl_legacy_patch:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        delattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default")
+        if hasattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default"):
+            delattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default")

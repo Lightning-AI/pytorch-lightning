@@ -25,6 +25,8 @@ from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_enabled
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
+from pytorch_lightning.utilities.migration.base import pl_legacy_patch
+from pytorch_lightning.utilities.migration.migrations import migrate_checkpoint
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -104,6 +106,11 @@ class CheckpointConnector:
         # restore module states
         self.restore_datamodule()
         self.restore_model()
+        #with pl_legacy_patch():
+        #    checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
+        #   checkpoint_path, map_location=lambda storage, loc: storage
+        #    )
+        #migrate_checkpoint(checkpoint)
 
         # restore callback states
         self.restore_callbacks()
