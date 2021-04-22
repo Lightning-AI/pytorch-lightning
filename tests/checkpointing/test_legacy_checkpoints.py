@@ -14,14 +14,10 @@
 import glob
 import os
 import sys
-from copy import deepcopy
 from pathlib import Path
 
 import pytest
-import torch
 from pytorch_lightning.callbacks.base import Callback
-
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from pytorch_lightning import Trainer
 from tests import PATH_LEGACY
@@ -96,32 +92,41 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     sys.path = orig_sys_paths
 
 
-class StatefulCallback(Callback):
+class OldStatefulCallback(Callback):
+
+    def __init__(self, state):
+        self.state = state
+
+    @property
+    def state_identifier(self):
+        return type(self)
 
     def on_save_checkpoint(self, *args):
-        return {"content": 123}
+        return {"state": self.state}
+
+    def on_load_checkpoint(self, callback_state):
+        self.state = callback_state["state"]
 
 
-def test_callback_state_loading_by_type(tmpdir):
-    """ Test that legacy checkpoints that don't use a state identifier can still be loaded. """
+def test_resume_callback_state_saved_by_type(tmpdir):
+    """ Test that a legacy checkpoint that didn't use a state identifier before can still be loaded. """
     model = BoringModel()
-    callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    callback = OldStatefulCallback(state=111)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[callback],
     )
     trainer.fit(model)
-    # simulate old format where type(callback) was the key
-    new_checkpoint = torch.load(Path(tmpdir, "last.ckpt"))
-    old_checkpoint = deepcopy(new_checkpoint)
-    old_checkpoint["callbacks"] = {type(callback): new_checkpoint["callbacks"]["ModelCheckpoint"]}
-    torch.save(old_checkpoint, Path(tmpdir, "old.ckpt"))
+    ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
+    assert ckpt_path.exists()
 
+    callback = OldStatefulCallback(state=222)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=2,
         callbacks=[callback],
-        resume_from_checkpoint=Path(tmpdir, "old.ckpt"),
+        resume_from_checkpoint=ckpt_path,
     )
     trainer.fit(model)
+    assert callback.state == 111
