@@ -14,13 +14,13 @@
 
 import io
 import os
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import IO, Union
 
 import fsspec
 import torch
 from fsspec.implementations.local import LocalFileSystem
+from packaging.version import Version
 
 
 class _LightningLocalFileSystem(LocalFileSystem):
@@ -70,7 +70,7 @@ def atomic_save(checkpoint, filepath: str):
     # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
     # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
     # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-    if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
+    if Version(torch.__version__).release[:3] == (1, 6, 0):
         torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
     else:
         torch.save(checkpoint, bytesbuffer)
