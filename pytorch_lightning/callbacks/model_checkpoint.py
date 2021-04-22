@@ -245,12 +245,14 @@ class ModelCheckpoint(Callback):
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
-            "dirpath": self.dirpath
+            "dirpath": self.dirpath,
+            "best_k_models": self.best_k_models
         }
 
     def on_load_checkpoint(self, callback_state: Dict[str, Any]):
         self.best_model_score = callback_state["best_model_score"]
         self.best_model_path = callback_state["best_model_path"]
+        self.best_k_models = callback_state["best_k_models"]
 
     def save_checkpoint(self, trainer, unused: Optional = None):
         """
