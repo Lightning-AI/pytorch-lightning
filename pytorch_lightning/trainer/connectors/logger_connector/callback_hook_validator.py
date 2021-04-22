@@ -126,6 +126,16 @@ class CallbackHookNameValidator:
         return {"on_step": [False], "on_epoch": [False, True]}
 
     @staticmethod
+    def _on_predict_epoch_start_log() -> None:
+        """Called when the epoch begins."""
+        return None
+
+    @staticmethod
+    def _on_predict_epoch_end_log() -> None:
+        """Called when the epoch ends."""
+        return None
+
+    @staticmethod
     def _on_epoch_start_log():
         """Called when the epoch begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
@@ -196,6 +206,16 @@ class CallbackHookNameValidator:
         return {"on_step": [False, True], "on_epoch": [False, True]}
 
     @staticmethod
+    def _on_predict_batch_start_log() -> None:
+        """Called when the predict batch begins."""
+        return None
+
+    @staticmethod
+    def _on_predict_batch_end_log() -> None:
+        """Called when the predict batch ends."""
+        return None
+
+    @staticmethod
     def _on_validation_start_log():
         """Called when the validation loop begins."""
         return {"on_step": [False, True], "on_epoch": [False, True]}
@@ -213,6 +233,16 @@ class CallbackHookNameValidator:
     @staticmethod
     def _on_test_end_log():
         """Called when the test ends."""
+        return None
+
+    @staticmethod
+    def _on_predict_start_log() -> None:
+        """Called when predict begins."""
+        return None
+
+    @staticmethod
+    def _on_predict_end_log() -> None:
+        """Called when predict ends."""
         return None
 
     @staticmethod

@@ -85,9 +85,6 @@ class PredictLoop(object):
         self._predictions = [[] for _ in range(self.num_dataloaders)]
         self._batches_indices = [[] for _ in range(self.num_dataloaders)]
 
-        if self.trainer._progress_bar_callback is not None:
-            self.trainer._progress_bar_callback.on_predict_start(self.trainer, self.trainer.lightning_module)
-
     def _get_num_dataloaders(self, dataloaders):
         # case where user does:
         # return dl1, dl2
