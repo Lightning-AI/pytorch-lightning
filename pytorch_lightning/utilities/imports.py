@@ -15,10 +15,10 @@
 import importlib
 import operator
 import platform
-from distutils.version import LooseVersion
 from importlib.util import find_spec
 
 import torch
+from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
 
@@ -53,13 +53,11 @@ def _compare_version(package: str, op, version) -> bool:
     except (ModuleNotFoundError, DistributionNotFound):
         return False
     try:
-        pkg_version = LooseVersion(pkg.__version__)
-    except AttributeError:
-        return False
-    if not (hasattr(pkg_version, "vstring") and hasattr(pkg_version, "version")):
+        pkg_version = Version(pkg.__version__)
+    except TypeError:
         # this is mock by sphinx, so it shall return True ro generate all summaries
         return True
-    return op(pkg_version, LooseVersion(version))
+    return op(pkg_version, Version(version))
 
 
 _IS_WINDOWS = platform.system() == "Windows"
