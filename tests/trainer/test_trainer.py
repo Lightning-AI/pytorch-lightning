@@ -1593,7 +1593,6 @@ def predict(
             assert not cb_1.write_on_batch_end_called
             assert cb_1.write_on_epoch_end_called
 
-        # todo: address this in another PR
         num_samples = 1 if accelerator == "ddp" else 2
         assert len(results) == 2
         assert len(results[0]) == num_samples
