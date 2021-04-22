@@ -56,8 +56,6 @@ class PredictLoop(object):
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
         self._predictions = [[] for _ in range(self.num_dataloaders)]
 
-        self.trainer.call_hook("on_predict_epoch_start")
-
     def _get_num_dataloaders(self, dataloaders):
         # case where user does:
         # return dl1, dl2

@@ -142,12 +142,12 @@ class TrainerCallbackHookMixin(ABC):
                 )
                 callback.on_test_epoch_end(self, self.lightning_module)
 
-    def on_predict_epoch_start(self):
+    def on_predict_epoch_start(self) -> None:
         """Called when the epoch begins."""
         for callback in self.callbacks:
             callback.on_predict_epoch_start(self, self.lightning_module)
 
-    def on_predict_epoch_end(self, outputs: List[Any]):
+    def on_predict_epoch_end(self, outputs: List[Any]) -> None:
         """Called when the epoch ends."""
         for callback in self.callbacks:
             callback.on_predict_epoch_end(self, self.lightning_module, outputs)
@@ -222,12 +222,12 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_test_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
 
-    def on_predict_batch_start(self, batch, batch_idx, dataloader_idx):
+    def on_predict_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Called when the predict batch begins."""
         for callback in self.callbacks:
             callback.on_predict_batch_start(self, self.lightning_module, batch, batch_idx, dataloader_idx)
 
-    def on_predict_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx):
+    def on_predict_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """Called when the predict batch ends."""
         for callback in self.callbacks:
             callback.on_predict_batch_end(self, self.lightning_module, outputs, batch, batch_idx, dataloader_idx)
@@ -252,12 +252,12 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_test_end(self, self.lightning_module)
 
-    def on_predict_start(self):
+    def on_predict_start(self) -> None:
         """Called when predict begins."""
         for callback in self.callbacks:
             callback.on_predict_start(self, self.lightning_module)
 
-    def on_predict_end(self):
+    def on_predict_end(self) -> None:
         """Called when predict ends."""
         for callback in self.callbacks:
             callback.on_predict_end(self, self.lightning_module)
