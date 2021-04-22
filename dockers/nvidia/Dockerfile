@@ -25,8 +25,6 @@ COPY ./ /workspace/pytorch-lightning/
 
 RUN \
     cd /workspace  && \
-    mv pytorch-lightning/notebooks . && \
-    mv pytorch-lightning/pl_examples . && \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
@@ -35,6 +33,9 @@ RUN \
         mv pytorch-lightning-*/ pytorch-lightning ; \
         rm *.zip ; \
     fi && \
+# save the examples
+    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/pl_examples . && \
 
 # Installations
     python -c "fname = './pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
@@ -44,6 +45,8 @@ RUN \
     pip install "Pillow>=8.1" --no-cache-dir --upgrade-strategy only-if-needed && \
     rm -rf pytorch-lightning && \
     pip list
+
+ENV PYTHONPATH="/workspace"
 
 RUN \
     TORCH_VERSION=$(cat torch_version.info) && \
