@@ -71,7 +71,6 @@ def test_reset_seed_everything():
     seed_utils.seed_everything(123)
     assert os.environ["PL_GLOBAL_SEED"] == "123"
     before = torch.rand(1)
-    _ = torch.rand(1)
     seed_utils.reset_seed()
     after = torch.rand(1)
     assert torch.allclose(before, after)
