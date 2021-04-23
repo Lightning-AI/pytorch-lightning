@@ -38,6 +38,14 @@ except ImportError:
     _MLFLOW_AVAILABLE = False
     mlflow, MlflowClient, context = None, None, None
 
+_MATPLOTLIB_AVAILABLE = _module_available("matplotlib")
+
+if _MATPLOTLIB_AVAILABLE:
+    import matplotlib.pyplot as plt
+else:
+    from pytorch_lightning.utilities.mock_types import matplotlib as _matplotlib
+    plt = _matplotlib.pyplot
+
 
 # before v1.1.0
 if hasattr(context, 'resolve_tags'):
@@ -210,8 +218,7 @@ class MLFlowLogger(LightningLoggerBase):
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only
-    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
-        import matplotlib.pyplot as plt
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
 
         with tempfile.NamedTemporaryFile(suffix=self._figure_file_extension) as tmp_file:
             figure.savefig(tmp_file)

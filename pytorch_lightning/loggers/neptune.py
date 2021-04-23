@@ -35,6 +35,14 @@ else:
     # needed for test mocks, these tests shall be updated
     neptune, Experiment = None, None
 
+_MATPLOTLIB_AVAILABLE = _module_available("matplotlib")
+
+if _MATPLOTLIB_AVAILABLE:
+    import matplotlib.pyplot as plt
+else:
+    from pytorch_lightning.utilities.mock_types import matplotlib as _matplotlib
+    plt = _matplotlib.pyplot
+
 
 class NeptuneLogger(LightningLoggerBase):
     r"""
@@ -264,7 +272,7 @@ class NeptuneLogger(LightningLoggerBase):
             self.log_metric(key, val)
 
     @rank_zero_only
-    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
         import matplotlib.pyplot as plt
 
         description = f"step_{step}" if step is not None else None

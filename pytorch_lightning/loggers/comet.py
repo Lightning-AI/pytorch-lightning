@@ -49,6 +49,14 @@ else:
     CometExperiment, CometExistingExperiment, CometOfflineExperiment = None, None, None
     API = None
 
+_MATPLOTLIB_AVAILABLE = _module_available("matplotlib")
+
+if _MATPLOTLIB_AVAILABLE:
+    import matplotlib.pyplot as plt
+else:
+    from pytorch_lightning.utilities.mock_types import matplotlib as _matplotlib
+    plt = _matplotlib.pyplot
+
 
 class CometLogger(LightningLoggerBase):
     r"""
@@ -253,8 +261,7 @@ class CometLogger(LightningLoggerBase):
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
     @rank_zero_only
-    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
-        import matplotlib.pyplot as plt
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
 
         self.experiment.log_figure(figure_name=name, figure=figure, step=step)
         if close:

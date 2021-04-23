@@ -25,7 +25,15 @@ import numpy as np
 import torch
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import _module_available, rank_zero_only
+
+_MATPLOTLIB_AVAILABLE = _module_available("matplotlib")
+
+if _MATPLOTLIB_AVAILABLE:
+    import matplotlib.pyplot as plt
+else:
+    from pytorch_lightning.utilities.mock_types import matplotlib as _matplotlib
+    plt = _matplotlib.pyplot
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -173,7 +181,7 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
         """
         Logs a matplotlib figure.
 

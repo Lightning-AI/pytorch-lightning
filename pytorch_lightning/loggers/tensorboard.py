@@ -28,13 +28,22 @@ from torch.utils.tensorboard.summary import hparams
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import \
+    _OMEGACONF_AVAILABLE, _module_available, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
+
+_MATPLOTLIB_AVAILABLE = _module_available("matplotlib")
+
+if _MATPLOTLIB_AVAILABLE:
+    import matplotlib.pyplot as plt
+else:
+    from pytorch_lightning.utilities.mock_types import matplotlib as _matplotlib
+    plt = _matplotlib.pyplot
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -210,7 +219,7 @@ class TensorBoardLogger(LightningLoggerBase):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
+    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
         self.experiment.add_figure(tag=name, figure=figure, global_step=step, close=close)
 
     @rank_zero_only

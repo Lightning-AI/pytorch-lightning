@@ -320,9 +320,10 @@ Logging Figures
 ***************
 
 When training a model, often it is very indicative to log figures, e.g. of the in- and output.
-For standard ``matplotlib.pyplot`` figures, Lightning has a unified API that works with most of the implemented loggers.
+For standard ``matplotlib.pyplot`` figures, Lightning has a unified API that works with Tensorboard, Comet, ML Flow, Neptune, Weights and Biases.
 
 .. code-block:: python
+
     f = plt.figure()
     logger.log_figure(name='dummy_figure', figure=f, step=0, close=True)
 
