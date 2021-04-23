@@ -870,7 +870,7 @@ logger
 
 |
 
-:doc:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking.
+:doc:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking. A `True` value uses the default `TensorBoardLogger` shown below. `False` will disable logging.
 
 .. testcode::
 
