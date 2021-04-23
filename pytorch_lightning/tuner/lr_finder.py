@@ -180,7 +180,7 @@ def lr_find(
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
-        log.info('LR finder stopped early due to diverging loss.')
+        log.info(f'LR finder stopped early after {trainer.global_step} steps due to diverging loss.')
 
     # Transfer results from callback to lr finder object
     lr_finder.results.update({'lr': trainer.callbacks[0].lrs, 'loss': trainer.callbacks[0].losses})
