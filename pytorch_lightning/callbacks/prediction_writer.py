@@ -11,31 +11,44 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import abc
+r"""
+PredictionWriter
+====================
+
+Aids in saving predictions
+"""
+from abc import abstractmethod
 from typing import Any, List, Optional
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+
+class WriteInterval(LightningEnum):
+    BATCH = "batch"
+    EPOCH = "epoch"
+    BATCH_AND_EPOCH = "batch_and_epoch"
+
+    @property
+    def on_batch(self) -> bool:
+        return self in (self.STEP, self.STEP_AND_EPOCH)
+
+    @property
+    def on_epoch(self) -> bool:
+        return self in (self.EPOCH, self.BATCH_AND_EPOCH)
 
 
 class BasePredictionWriter(Callback):
     """
     Base class to implement how the predictions should be stored.
 
-    2 hooks to override are provided:
-        - write_on_batch_end: Logic to write a single batch.
-        - write_on_epoch_end: Logic to write all batches.
-
     Args:
-
-        write_interval: When to perform writing.
-            Currently, only "step" and "epoch" are supported.
+        write_interval: When to write.
 
     Example::
 
-        import torch
-        import os
         from pytorch_lightning.callbacks import BasePredictionWriter
 
         class CustomWriter(BasePredictionWriter):
@@ -56,44 +69,50 @@ class BasePredictionWriter(Callback):
                 torch.save(predictions, os.path.join(self.output_dir, "predictions.pt")
     """
 
-    write_intervals = ("batch", "epoch", "batch_and_epoch")
+    def __init__(self, write_interval: str = "batch") -> None:
+        if write_interval not in list(WriteInterval):
+            raise MisconfigurationException(f"`write_interval` should one of {list(WriteInterval)}.")
+        self.interval = WriteInterval(write_interval)
 
-    @abc.abstractclassmethod
+    @abstractmethod
     def write_on_batch_end(
-        self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: Optional[List[int]], batch: Any,
-        batch_idx: int, dataloader_idx: int
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        prediction: Any,
+        batch_indices: Optional[List[int]],
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
     ) -> None:
-        pass
+        """Override with logic to write a single batch."""
 
-    @abc.abstractclassmethod
+    @abstractmethod
     def write_on_epoch_end(
-        self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: Optional[List[Any]]
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        predictions: List[Any],
+        batch_indices: Optional[List[Any]],
     ) -> None:
-        pass
-
-    def __init__(self, write_interval: str):
-        if write_interval is None:
-            write_interval = "batch"
-        if not isinstance(write_interval,
-                          str) or (isinstance(write_interval, str) and write_interval not in self.write_intervals):
-            raise MisconfigurationException(f"`write_interval` should be within {self.write_intervals}.")
-
-        self._write_interval = write_interval
+        """Override with logic to write all batches."""
 
     def on_predict_batch_end(
-        self, trainer, pl_module: 'LightningModule', outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        outputs: Any,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
     ) -> None:
-        if "batch" in self._write_interval:
-            if trainer.accelerator_connector.is_distributed:
-                batch_indices = trainer.predict_loop.batch_indices
-            else:
-                batch_indices = None
-            self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
+        if not self.interval.on_batch:
+            return
+        batch_indices = trainer.predict_loop.batch_indices if trainer.accelerator_connector.is_distributed else None
+        self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
 
-    def on_predict_epoch_end(self, trainer, pl_module: 'LightningModule', outputs: List[Any]) -> None:
-        if "epoch" in self._write_interval:
-            if trainer.accelerator_connector.is_distributed:
-                batch_indices = trainer.predict_loop._batches_indices
-            else:
-                batch_indices = None
-            self.write_on_epoch_end(trainer, pl_module, trainer.predict_loop._predictions, batch_indices)
+    def on_predict_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: List[Any]) -> None:
+        if not self.interval.on_epoch:
+            return
+        batch_indices = trainer.predict_loop.batch_indices if trainer.accelerator_connector.is_distributed else None
+        self.write_on_epoch_end(trainer, pl_module, trainer.predict_loop._predictions, batch_indices)

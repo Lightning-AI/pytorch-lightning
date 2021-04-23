@@ -213,16 +213,14 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     def _get_distributed_sampler(
-        self, dataloader, shuffle: bool, mode: Optional[RunningStage] = None
+        self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
     ) -> DistributedSampler:
         kwargs = self.distributed_sampler_kwargs
         kwargs["shuffle"] = shuffle and not self.overfit_batches
         if _TORCH_GREATER_EQUAL_1_6:
             kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        if mode == RunningStage.PREDICTING:
-            sampler = UnrepeatedDistributedSampler(dataloader.dataset, **kwargs)
-        else:
-            sampler = DistributedSampler(dataloader.dataset, **kwargs)
+        cls = UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler
+        sampler = cls(dataloader.dataset, **kwargs)
         return sampler
 
     def reset_train_dataloader(self, model: LightningModule) -> None:

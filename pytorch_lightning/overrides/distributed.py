@@ -16,7 +16,7 @@ from typing import Any, Iterator, List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler, Sampler
+from torch.utils.data import BatchSampler, DistributedSampler
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -78,11 +78,20 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any):
         model.require_forward_param_sync = False
 
 
-# Taken from https://github.com/jpuigcerver/PyLaia/blob/v1.0.0/laia/data/unpadded_distributed_sampler.py
 class UnrepeatedDistributedSampler(DistributedSampler):
     """
-    This sampler doesn't repeat data, instead it
-    allows the number of batches per process to be off-by-one between the ranks.
+    A fork of the pytorch DistributedSampler that doesn't repeat data, instead
+    allowing the number of batches per process to be off-by-one from each other.
+    This makes this sampler usable for validation (it's deterministic and
+    doesn't require shuffling). It is potentially unsafe to use this sampler for
+    training, because during training the DistributedDataParallel syncs buffers
+    on each forward pass, so it could freeze if one of the processes runs one
+    fewer batch. During validation, buffers are only synced on the first batch,
+    so this is safe to use as long as each process runs at least one batch. We
+    verify this in an assert.
+
+    Taken from https://github.com/jpuigcerver/PyLaia/blob/v1.0.0/laia/data/unpadded_distributed_sampler.py
+    and https://github.com/pytorch/pytorch/issues/25162#issuecomment-634146002
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -116,23 +125,11 @@ class IndexBatchSampler(BatchSampler):
     This class is used to capture the batch indices.
     """
 
-    def __init__(self, batch_sampler: BatchSampler) -> None:
-        self.batch_sampler = batch_sampler
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self.batch_indices: Optional[List[int]] = None
 
     def __iter__(self) -> Iterator[List[int]]:
-        for batch in self.batch_sampler:
+        for batch in self.sampler:
             self.batch_indices = batch
             yield batch
-
-    @property
-    def drop_last(self) -> bool:
-        return self.batch_sampler.drop_last
-
-    @property
-    def batch_size(self) -> int:
-        return self.batch_sampler.batch_size
-
-    @property
-    def sampler(self) -> Sampler:
-        return self.batch_sampler.sampler
