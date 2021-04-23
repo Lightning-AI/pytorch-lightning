@@ -1043,16 +1043,12 @@ class Trainer(
         r"""
 
         Separates from fit to make sure you never run on your predictions set until you want to.
-
         This will call the model forward function to compute predictions.
 
         Args:
-            model: The model to predict on.
-
-            dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying inference samples.
-
-            datamodule: A instance of :class:`LightningDataModule`.
+            model: The model to predict with.
+            dataloaders: Either a single PyTorch DataLoader or a list of them, specifying inference samples.
+            datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
