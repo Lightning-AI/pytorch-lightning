@@ -13,7 +13,7 @@
 # limitations under the License.
 from unittest.mock import call, Mock
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
 
 
