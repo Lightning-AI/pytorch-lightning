@@ -369,17 +369,17 @@ def test_device_placement(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
     trainer.fit(model)
 
-    def run(device):
+    def assert_device(device: torch.device) -> None:
         assert model.device == device
         for p in model.parameters():
             assert p.device == device
 
-    run(torch.device("cpu"))
+    assert_device(torch.device("cpu"))
     model.to(torch.device("cuda:0"))
-    run(torch.device("cuda:0"))
+    assert_device(torch.device("cuda:0"))
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
     trainer.test(model)
-    run(torch.device("cpu"))
+    assert_device(torch.device("cpu"))
     trainer.predict(model, dataloaders=model.train_dataloader())
-    run(torch.device("cpu"))
+    assert_device(torch.device("cpu"))
