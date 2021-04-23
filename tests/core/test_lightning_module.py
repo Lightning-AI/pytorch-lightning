@@ -380,3 +380,9 @@ def test_device_placement(tmpdir):
 
     with pytest.raises(MisconfigurationException, match="xla should be set using device"):
         model.device = torch.device("xla")
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer.test(model)
+    run(torch.device("cpu"))
+    trainer.predict(model, dataloaders=model.train_dataloader())
+    run(torch.device("cpu"))
