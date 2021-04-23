@@ -200,7 +200,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         # move the model to the correct device
         self.model_to_device()
 
-        assert self.sync_batchnorm is not None
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
 
