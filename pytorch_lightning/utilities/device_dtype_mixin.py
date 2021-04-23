@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Optional, Union
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 import torch
 from torch.nn import Module
 
@@ -191,6 +191,6 @@ class DeviceDtypeModuleMixin(Module):
 
         # update LightningModule device
         self._device = device
-        
+
         # apply function
         self.apply(apply_fn)
