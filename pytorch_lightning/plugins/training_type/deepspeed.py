@@ -558,7 +558,8 @@ class DeepSpeedPlugin(DDPPlugin):
                     'nvme_path': nvme_path,
                     'buffer_count': params_buffer_count,
                     'buffer_size': params_buffer_size,
-                    'max_in_cpu': max_in_cpu
+                    'max_in_cpu': max_in_cpu,
+                    'pin_memory': pin_memory
                 }
             cfg = {
                 "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
