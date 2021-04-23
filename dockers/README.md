@@ -81,5 +81,5 @@ Inspiration comes from https://u.group/thinking/how-to-put-jupyter-notebooks-in-
     docker run --rm -it --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all -p 8888:8888 pytorch-lightning:v1.2.9
     ```
 3. Connect in local browser:
-    - copy the generated path e.g. ` http://hostname:8888/?token=0719fa7e1729778b0cec363541a608d5003e26d4910983c6`
+    - copy the generated path e.g. `http://hostname:8888/?token=0719fa7e1729778b0cec363541a608d5003e26d4910983c6`
     - replace the `hostname` by `localhost`
