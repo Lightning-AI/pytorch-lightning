@@ -113,10 +113,6 @@ RUN \
     pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
 
 RUN \
-    # install FairScale
-    pip install fairscale>=0.3.4
-
-RUN \
     # install DeepSpeed
     # TODO(@SeanNaren): 0.3.15 is broken - skipping to unblock
     pip install 'deepspeed>=0.3.14,!=0.3.15'
