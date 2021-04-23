@@ -213,25 +213,64 @@ def test_early_stopping_no_val_step(tmpdir):
     assert trainer.current_epoch < trainer.max_epochs - 1
 
 
-def test_early_stopping_functionality(tmpdir):
+@pytest.mark.parametrize("stopping_threshold,divergence_theshold,losses,expected_epoch", [
+    (None, None, [8, 4, 2, 3, 4, 5, 8, 10], 5),
+    (2.9, None, [9, 8, 7, 6, 5, 6, 4, 3, 2, 1], 8),
+    (None, 15.9, [9, 4, 2, 16, 32, 64], 3),
+])
+def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_theshold, losses, expected_epoch):
 
     class CurrentModel(BoringModel):
 
         def validation_epoch_end(self, outputs):
-            losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
             self.log('abc', val_loss)
 
     model = CurrentModel()
-
+    early_stopping = EarlyStopping(
+        monitor='abc',
+        stopping_threshold=stopping_threshold,
+        divergence_threshold=divergence_theshold,
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping(monitor='abc')],
+        callbacks=[early_stopping],
         overfit_batches=0.20,
         max_epochs=20,
     )
     trainer.fit(model)
-    assert trainer.current_epoch == 5, 'early_stopping failed'
+    assert trainer.current_epoch == expected_epoch, 'early_stopping failed'
+
+
+@pytest.mark.parametrize("stop_value", [
+    torch.tensor(np.inf),
+    torch.tensor(np.nan),
+])
+def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
+
+    losses = [4, 3, stop_value, 2, 1]
+    expected_stop_epoch = 2
+
+    class CurrentModel(BoringModel):
+
+        def validation_epoch_end(self, outputs):
+            val_loss = losses[self.current_epoch]
+            self.log('val_loss', val_loss)
+
+    model = CurrentModel()
+    early_stopping = EarlyStopping(
+        monitor='val_loss',
+        check_finite=True,
+    )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[early_stopping],
+        overfit_batches=0.20,
+        max_epochs=10,
+    )
+    trainer.fit(model)
+    assert trainer.current_epoch == expected_stop_epoch
+    assert early_stopping.stopped_epoch == expected_stop_epoch
 
 
 @pytest.mark.parametrize('step_freeze, min_steps, min_epochs', [(5, 1, 1), (5, 1, 3), (3, 15, 1)])

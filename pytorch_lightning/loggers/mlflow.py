@@ -31,8 +31,7 @@ LOCAL_FILE_URI_PREFIX = "file:"
 _MLFLOW_AVAILABLE = _module_available("mlflow")
 try:
     import mlflow
-    from mlflow.tracking import MlflowClient
-    from mlflow.tracking import context
+    from mlflow.tracking import context, MlflowClient
 # todo: there seems to be still some remaining import error with Conda env
 except ImportError:
     _MLFLOW_AVAILABLE = False
@@ -50,6 +49,8 @@ else:
 # before v1.1.0
 if hasattr(context, 'resolve_tags'):
     from mlflow.tracking.context import resolve_tags
+
+
 # since v1.1.0
 elif hasattr(context, 'registry'):
     from mlflow.tracking.context.registry import resolve_tags

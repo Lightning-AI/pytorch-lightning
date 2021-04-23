@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-import types
 from argparse import ArgumentParser
 from unittest import mock
 
@@ -43,6 +42,14 @@ def test_wandb_logger_init(wandb, recwarn):
     logger.log_metrics({'acc': 1.0})
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0})
+
+    # test wandb.init and setting logger experiment externally
+    wandb.run = None
+    run = wandb.init()
+    logger = WandbLogger(experiment=run)
+    assert logger.experiment
+    assert run.dir is not None
+    assert logger.save_dir == run.dir
 
     # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
@@ -173,11 +180,10 @@ def test_wandb_sanitize_callable_params(tmpdir):
     params.wrapper_something_wo_name = lambda: lambda: '1'
     params.wrapper_something = wrapper_something
 
-    assert isinstance(params.gpus, types.FunctionType)
     params = WandbLogger._convert_params(params)
     params = WandbLogger._flatten_dict(params)
     params = WandbLogger._sanitize_callable_params(params)
-    assert params["gpus"] == '_gpus_arg_default'
+    assert params["gpus"] == "None"
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"

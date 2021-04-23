@@ -42,6 +42,7 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
+    TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
@@ -60,7 +61,7 @@ from pytorch_lightning.utilities import (
     DeviceType,
     DistributedType,
 )
-from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _HOROVOD_AVAILABLE:
@@ -163,7 +164,16 @@ class AcceleratorConnector(object):
         cluster_environment = None
 
         for plug in plugins:
-            if isinstance(plug, str):
+            if isinstance(plug, str) and plug in TrainingTypePluginsRegistry:
+                if training_type is None:
+                    training_type = TrainingTypePluginsRegistry.get(plug)
+                else:
+                    raise MisconfigurationException(
+                        'You can only specify one precision and one training type plugin.'
+                        ' Found more than 1 training type plugin:'
+                        f' {TrainingTypePluginsRegistry[plug]["plugin"]} registered to {plug}'
+                    )
+            elif isinstance(plug, str):
                 # Reset the distributed type as the user has overridden training type
                 # via the plugins argument
                 self._distrib_type = None
@@ -302,8 +312,18 @@ class AcceleratorConnector(object):
 
     @property
     def is_using_torchelastic(self) -> bool:
-        te_flags_passed = "WORLD_SIZE" in os.environ and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
-        return te_flags_passed
+        """
+        .. deprecated:: v1.3
+            Will be removed in v1.5.0.
+
+        Returns:
+            ``True`` if the current process was launched using the torchelastic command.
+        """
+        rank_zero_deprecation(
+            "The property `AcceleratorConnector.is_using_torchelastic` was deprecated in v1.3"
+            " and will be removed in 1.5. Use `TorchElasticEnvironment.is_using_torchelastic()` instead.",
+        )
+        return TorchElasticEnvironment.is_using_torchelastic()
 
     def select_precision_plugin(self) -> PrecisionPlugin:
         # set precision type
@@ -358,7 +378,12 @@ class AcceleratorConnector(object):
 
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
-            plugin = DDP2Plugin(parallel_devices=self.parallel_devices, cluster_environment=self.cluster_environment)
+            plugin = DDP2Plugin(
+                parallel_devices=self.parallel_devices,
+                num_nodes=self.num_nodes,
+                cluster_environment=self.cluster_environment,
+                sync_batchnorm=self.sync_batchnorm,
+            )
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
                 num_nodes=self.num_nodes,
@@ -367,11 +392,11 @@ class AcceleratorConnector(object):
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
-            use_torchelastic_ddp = self.use_ddp and self.is_using_torchelastic
+            use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
             use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
             use_tpu_spawn = self.on_tpu and self._distrib_type == DistributedType.TPU_SPAWN
-            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and self.is_using_torchelastic
+            use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
@@ -459,7 +484,7 @@ class AcceleratorConnector(object):
             return self._cluster_environment
         if self.is_slurm_managing_tasks:
             env = SLURMEnvironment()
-        elif self.is_using_torchelastic:
+        elif TorchElasticEnvironment.is_using_torchelastic():
             env = TorchElasticEnvironment()
         else:
             env = LightningEnvironment()
@@ -515,7 +540,7 @@ class AcceleratorConnector(object):
             rank_zero_warn(
                 'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
             )
-            # todo: in some cases it yield in comarison None and int
+            # todo: in some cases it yield in comparison None and int
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
                 self._distrib_type = DistributedType.DDP
             else:
