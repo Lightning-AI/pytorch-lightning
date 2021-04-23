@@ -44,9 +44,9 @@ class BoringModel(LightningModule):
 
 
 def run():
-    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=2, num_workers=0)
-    val_data = torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=2, num_workers=0)
-    test_data = torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=2, num_workers=0)
+    train_data = torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=2)
+    val_data = torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=2)
+    test_data = torch.utils.data.DataLoader(RandomDataset(32, 64), batch_size=2)
 
     model = BoringModel()
     trainer = Trainer(
