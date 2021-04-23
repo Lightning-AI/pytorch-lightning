@@ -14,7 +14,9 @@
 """Helper functions to operate on metric values. """
 
 import torch
+
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 def metrics_to_scalars(metrics: dict) -> dict:
     """ Recursively walk through a dictionary of metrics and convert single-item tensors to scalar values. """
