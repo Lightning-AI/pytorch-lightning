@@ -49,7 +49,6 @@ class GPUAccelerator(Accelerator):
 
     def on_train_end(self) -> None:
         self.lightning_module.device = torch.device("cpu")
-        
         # clean up memory
         with torch.cuda.device(self.root_device):
             torch.cuda.empty_cache()

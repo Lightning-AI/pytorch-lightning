@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest.mock import Mock
-import torch
+
 import pytest
+import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
@@ -363,16 +364,16 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
 @RunIf(gpus=1)
 def test_device_placement(tmpdir):
+
     model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        gpus=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
     trainer.fit(model)
+
     def run(device):
         assert model.device == device
         for p in model.parameters():
             assert p.device == device
+
     run(torch.device("cpu"))
     model.device = torch.device("cuda:0")
     run(torch.device("cuda:0"))
