@@ -46,7 +46,7 @@ def test_wandb_logger_init(wandb, recwarn):
     wandb.run = None
     run = wandb.init()
     logger = WandbLogger(experiment=run)
-    logger.experiment
+    assert logger.experiment
     assert run.dir is not None
     assert logger.save_dir is not None
     assert logger.save_dir == run.dir
