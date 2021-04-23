@@ -168,14 +168,14 @@ class WandbLogger(LightningLoggerBase):
                 **self._kwargs
             ) if wandb.run is None else wandb.run
 
-            # save checkpoints in wandb dir to upload on W&B servers
-            if self._save_dir is None:
-                self._save_dir = self._experiment.dir
+        # save checkpoints in wandb dir to upload on W&B servers
+        if self._save_dir is None:
+            self._save_dir = self._experiment.dir
 
-            # define default x-axis (for latest wandb versions)
-            if getattr(self._experiment, "define_metric", None):
-                self._experiment.define_metric("trainer/global_step")
-                self._experiment.define_metric("*", step_metric='trainer/global_step', step_sync=True)
+        # define default x-axis (for latest wandb versions)
+        if getattr(self._experiment, "define_metric", None):
+            self._experiment.define_metric("trainer/global_step")
+            self._experiment.define_metric("*", step_metric='trainer/global_step', step_sync=True)
 
         return self._experiment
 

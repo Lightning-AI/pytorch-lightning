@@ -319,6 +319,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `CombinedLoader` in distributed settings for validation / testing ([#7102](https://github.com/PyTorchLightning/pytorch-lightning/pull/7102))
 
 
+- Fixed the save_dir in `WandbLogger` when the run was initiated externally ([#7106](https://github.com/PyTorchLightning/pytorch-lightning/pull/7106))
+
+
 - Fixed parsing for pre-release package versions ([#6999](https://github.com/PyTorchLightning/pytorch-lightning/pull/6999))
 
 
