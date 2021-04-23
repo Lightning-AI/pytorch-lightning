@@ -22,15 +22,14 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 class PredictLoop(object):
 
-    write_intervals = ("step", "epoch")
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.max_batches = None
         self.num_dataloaders = None
         self.warning_cache = WarningCache()
         self.batch_indices: Optional[List[int]] = []
-        self._return_predictions: bool = not trainer.training_type_plugin.use_spawn
+        self._return_predictions = not trainer.training_type_plugin.use_spawn
+        self._previous_grad_status: Optional[bool] = None
 
     @property
     def return_predictions(self) -> bool:
@@ -128,13 +127,11 @@ class PredictLoop(object):
         # enable eval mode + no grads
         self.on_predict_model_eval()
         self.trainer.lightning_module.zero_grad()
+        self._previous_grad_status = torch.is_grad_enabled()
         torch.set_grad_enabled(False)
+
         # hook
         self.trainer.call_hook("on_predict_start")
-
-    def on_predict_epoch_start(self):
-        # hook
-        self.trainer.call_hook("on_predict_epoch_start")
 
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
@@ -152,6 +149,6 @@ class PredictLoop(object):
         self._batches_indices = None
 
         # enable eval mode + no grads
-        torch.set_grad_enabled(True)
+        torch.set_grad_enabled(self._previous_grad_status)
         # hook
         self.trainer.call_hook("on_predict_end")

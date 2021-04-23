@@ -25,7 +25,7 @@ from torch.utils.data.sampler import Sampler
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnRepeatedDistributedSampler
+from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -147,13 +147,14 @@ class TrainerDataLoadingMixin(ABC):
     def _resolve_batch_sampler(dl_args, dataloader, sampler, mode: Optional[RunningStage] = None) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
-        if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or mode == RunningStage.PREDICTING:
-            batch_sampler_type = IndexBatchSampler if is_predicting else type(batch_sampler)
-            batch_sampler = batch_sampler_type(
+        if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
+            batch_sampler = type(batch_sampler)(
                 sampler,
                 batch_size=batch_sampler.batch_size,
                 drop_last=False if is_predicting else batch_sampler.drop_last,
             )
+            if is_predicting:
+                batch_sampler = IndexBatchSampler(batch_sampler)
             dl_args['batch_sampler'] = batch_sampler
             dl_args['batch_size'] = 1
             dl_args['shuffle'] = False
@@ -212,13 +213,15 @@ class TrainerDataLoadingMixin(ABC):
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
 
-    def _get_distributed_sampler(self, dataloader, shuffle: bool, mode: Optional[RunningStage] = None) -> Sampler:
+    def _get_distributed_sampler(
+        self, dataloader, shuffle: bool, mode: Optional[RunningStage] = None
+    ) -> DistributedSampler:
         kwargs = self.distributed_sampler_kwargs
         kwargs["shuffle"] = shuffle and not self.overfit_batches
         if _TORCH_GREATER_EQUAL_1_6:
             kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         if mode == RunningStage.PREDICTING:
-            sampler = UnRepeatedDistributedSampler(dataloader.dataset, **kwargs)
+            sampler = UnrepeatedDistributedSampler(dataloader.dataset, **kwargs)
         else:
             sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler

@@ -812,7 +812,7 @@ class Trainer(
         self.predict_loop.setup(self.lightning_module, max_batches, dataloaders)
 
         # call hook
-        self.predict_loop.on_predict_epoch_start()
+        self.call_hook("on_predict_epoch_start")
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -1045,8 +1045,8 @@ class Trainer(
             datamodule: A instance of :class:`LightningDataModule`.
 
             return_predictions: Wheter to return predictions.
-                By default, `return_predictions` will be resolved to `True`
-                expect for spawned accelerator (not supported).
+                By default, it will be set to ``True``
+                except when an accelerator that spawns processes is used (not supported).
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.

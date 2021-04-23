@@ -16,14 +16,14 @@ from typing import Any, List
 import pytest
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import PredictionWriterBase
+from pytorch_lightning.callbacks import BasePredictionWriter
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
 def test_prediction_writer(tmpdir):
 
-    class CustomPredictionWriter(PredictionWriterBase):
+    class CustomPredictionWriter(BasePredictionWriter):
 
         def __init__(self, writer_interval: str):
             super().__init__(writer_interval)

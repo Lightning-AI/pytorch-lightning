@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, List, Optional
+from typing import Any, Iterator, List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -78,14 +78,14 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any):
         model.require_forward_param_sync = False
 
 
-# Taken from https://github.com/jpuigcerver/PyLaia/blob/master/laia/data/unpadded_distributed_sampler.py#L35
-class UnRepeatedDistributedSampler(DistributedSampler):
+# Taken from https://github.com/jpuigcerver/PyLaia/blob/v1.0.0/laia/data/unpadded_distributed_sampler.py
+class UnrepeatedDistributedSampler(DistributedSampler):
     """
     This sampler doesn't repeat data, instead it
     allows the number of batches per process to be off-by-one between the ranks.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.num_samples = len(range(self.rank, len(self.dataset), self.num_replicas))
         self.total_size = len(self.dataset)
@@ -93,7 +93,7 @@ class UnRepeatedDistributedSampler(DistributedSampler):
         # have at least one batch, or the DistributedDataParallel could lock up.
         assert self.num_samples >= 1 or self.total_size == 0
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[List[int]]:
         if self.shuffle:
             # deterministically shuffle based on epoch
             g = torch.Generator()
@@ -116,18 +116,23 @@ class IndexBatchSampler(BatchSampler):
     This class is used to capture the batch indices.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, batch_sampler: BatchSampler) -> None:
+        self.batch_sampler = batch_sampler
         self.batch_indices: Optional[List[int]] = None
 
-    def __iter__(self):
-        batch = []
-        for idx in self.sampler:
-            batch.append(idx)
-            if len(batch) == self.batch_size:
-                self.batch_indices = batch
-                yield batch
-                batch = []
-        if len(batch) > 0 and not self.drop_last:
+    def __iter__(self) -> Iterator[List[int]]:
+        for batch in self.batch_sampler:
             self.batch_indices = batch
             yield batch
+
+    @property
+    def drop_last(self) -> bool:
+        return self.batch_sampler.drop_last
+
+    @property
+    def batch_size(self) -> int:
+        return self.batch_sampler.batch_size
+
+    @property
+    def sampler(self) -> Sampler:
+        return self.batch_sampler.sampler

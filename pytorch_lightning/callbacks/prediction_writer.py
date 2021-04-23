@@ -19,13 +19,11 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class PredictionWriterBase(Callback):
-
-    write_intervals = ("batch", "epoch", "batch_and_epoch")
+class BasePredictionWriter(Callback):
     """
-    PredictionWriterBase is a base class to implement prediction writer.
+    Base class to implement how the predictions should be stored.
 
-    PredictionWriterBase provides 2 hooks to override:
+    2 hooks to override are provided:
         - write_on_batch_end: Logic to write a single batch.
         - write_on_epoch_end: Logic to write all batches.
 
@@ -38,9 +36,9 @@ class PredictionWriterBase(Callback):
 
         import torch
         import os
-        from pytorch_lightning.callbacks import PredictionWriterBase
+        from pytorch_lightning.callbacks import BasePredictionWriter
 
-        class CustomWriter(PredictionWriterBase):
+        class CustomWriter(BasePredictionWriter):
 
             def __init__(self, output_dir: str, write_interval: str):
                 super().__init__(write_interval)
@@ -57,6 +55,8 @@ class PredictionWriterBase(Callback):
             ):
                 torch.save(predictions, os.path.join(self.output_dir, "predictions.pt")
     """
+
+    write_intervals = ("batch", "epoch", "batch_and_epoch")
 
     @abc.abstractclassmethod
     def write_on_batch_end(
