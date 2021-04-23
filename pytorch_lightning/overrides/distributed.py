@@ -16,7 +16,7 @@ from typing import Any, Iterator, List, Optional
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import DistributedSampler, Sampler
+from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -123,7 +123,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
 class IndexBatchSamplerWrapper:
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
-    def __init__(self, sampler: Sampler[int]) -> None:
+    def __init__(self, sampler: BatchSampler) -> None:
         self.batch_sampler = sampler
         self.batch_indices: Optional[List[int]] = None
 
