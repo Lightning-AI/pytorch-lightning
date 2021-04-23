@@ -21,7 +21,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import Sampler
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
