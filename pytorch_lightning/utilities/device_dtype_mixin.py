@@ -47,13 +47,6 @@ class DeviceDtypeModuleMixin(Module):
 
         return device
 
-    @device.setter
-    def device(self, device: Union[str, torch.device]):
-        if device.type == "xla":
-            raise MisconfigurationException("xla should be set using device")
-        self._device = device
-        self.to(device)
-
     @parameter_validation
     def to(self, *args, **kwargs) -> Module:
         """Moves and/or casts the parameters and buffers.
@@ -196,4 +189,8 @@ class DeviceDtypeModuleMixin(Module):
             if dtype is not None:
                 module._dtype = dtype
 
+        # update LightningModule device
+        self._device = device
+        
+        # apply function
         self.apply(apply_fn)
