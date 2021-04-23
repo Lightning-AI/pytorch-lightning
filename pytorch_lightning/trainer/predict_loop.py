@@ -15,7 +15,7 @@ from typing import Any, List, Optional
 
 import torch
 
-from pytorch_lightning.overrides.distributed import IndexBatchSampler
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -115,7 +115,7 @@ class PredictLoop(object):
 
     def _store_batch_indices(self, dataloader_idx: int) -> None:
         batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
-        if isinstance(batch_sampler, IndexBatchSampler):
+        if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             self.batch_indices = batch_sampler.batch_indices
             if self.should_store_predictions:
                 self._batches_indices[dataloader_idx].append(batch_sampler.batch_indices)

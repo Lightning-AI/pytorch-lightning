@@ -14,7 +14,7 @@
 
 from torch.utils.data import BatchSampler, SequentialSampler
 
-from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnrepeatedDistributedSampler
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 
 
 def test_unrepeated_distributed_sampler(tmpdir):
@@ -43,7 +43,7 @@ def test_index_batch_sampler(tmpdir):
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
-    index_batch_sampler = IndexBatchSampler(batch_sampler, 3, False)
+    index_batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
     for batch in index_batch_sampler:
         assert index_batch_sampler.batch_indices == batch

@@ -24,7 +24,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.overrides.distributed import IndexBatchSampler, UnrepeatedDistributedSampler
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -153,7 +153,7 @@ class TrainerDataLoadingMixin(ABC):
                 drop_last=False if is_predicting else batch_sampler.drop_last,
             )
             if is_predicting:
-                batch_sampler = IndexBatchSampler(batch_sampler)
+                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
             dl_args['batch_sampler'] = batch_sampler
             dl_args['batch_size'] = 1
             dl_args['shuffle'] = False
