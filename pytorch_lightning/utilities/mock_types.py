@@ -21,6 +21,7 @@ Examples:
 
 """
 
+
 class matplotlib:
     class pyplot:
         figure = None
