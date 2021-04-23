@@ -19,6 +19,8 @@ from typing import Any, Callable, Optional, Union
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -352,7 +354,7 @@ class CombinedLoader(object):
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
         """Return a collections of samplers extracting from loaders."""
-        return apply_to_collection(self.loaders, Iterable, getattr, 'sampler', None, wrong_dtype=(Sequence, Mapping))
+        return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, 'sampler', None)
 
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
