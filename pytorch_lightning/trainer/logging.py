@@ -14,10 +14,9 @@
 
 from abc import ABC
 
-import torch
-
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation
 from pytorch_lightning.utilities.metrics import metrics_to_scalars as new_metrics_to_scalars
+
 
 class TrainerLoggingMixin(ABC):
     """
