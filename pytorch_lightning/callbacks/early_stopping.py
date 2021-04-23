@@ -126,6 +126,10 @@ class EarlyStopping(Callback):
             )
         self.monitor = monitor or "early_stop_on"
 
+    @property
+    def state_id(self) -> str:
+        return self._generate_state_identifier(monitor=self.monitor)
+
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
 

@@ -33,6 +33,11 @@ from tests.helpers.simple_models import ClassificationModel
 _logger = logging.getLogger(__name__)
 
 
+def test_early_stopping_state_identifier():
+    early_stopping = EarlyStopping(monitor="val_loss")
+    assert early_stopping.state_identifier == "EarlyStopping[monitor=val_loss]"
+
+
 class EarlyStoppingTestRestore(EarlyStopping):
     # this class has to be defined outside the test function, otherwise we get pickle error
     def __init__(self, expected_state, *args, **kwargs):

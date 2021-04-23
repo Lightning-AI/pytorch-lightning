@@ -41,6 +41,11 @@ class Callback(abc.ABC):
     def _legacy_state_id(self) -> Type:
         return type(self)
 
+    def _generate_state_identifier(self, **kwargs: Any) -> str:
+        attrs = ", ".join(f"{k}={v}" for k, v in kwargs.items())
+        identifier = f"{self.__class__.__name__}[{attrs}]"
+        return identifier
+
     def on_configure_sharded_model(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called before configure sharded model"""
 

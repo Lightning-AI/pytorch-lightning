@@ -249,6 +249,10 @@ class ModelCheckpoint(Callback):
         self.__validate_init_configuration()
         self._save_function = None
 
+    @property
+    def state_id(self) -> str:
+        return self._generate_state_identifier(monitor=self.monitor)
+
     def on_pretrain_routine_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """
         When pretrain routine starts we build the ckpt dir on the fly
