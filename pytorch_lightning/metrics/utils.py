@@ -27,6 +27,7 @@ from torchmetrics.utilities.distributed import class_reduce as _class_reduce
 from torchmetrics.utilities.distributed import reduce as _reduce
 
 from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_3, _TORCHMETRICS_LOWER_THAN_0_3
 
 deprecated_metrics = partial(deprecated, deprecated_in="1.3.0", remove_in="1.5.0", stream=rank_zero_deprecation)
 
@@ -70,7 +71,8 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
     """
 
 
-@deprecated_metrics(target=_get_num_classes)
+@deprecated_metrics(target=_get_num_classes, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_3)
+@deprecated_metrics(target=_get_num_classes, args_mapping=dict(pred="preds"), skip_if=_TORCHMETRICS_LOWER_THAN_0_3)
 def get_num_classes(pred: torch.Tensor, target: torch.Tensor, num_classes: Optional[int] = None) -> int:
     """
     .. deprecated::
