@@ -60,7 +60,7 @@ class TrainLoop:
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.should_stop = False
-        self.trainer._state = TrainerState.INITIALIZING
+        self.trainer.state = TrainerState()
 
         self.trainer.total_batch_idx = 0
         self.trainer.batch_idx = 0
@@ -134,7 +134,7 @@ class TrainLoop:
         self.trainer.accelerator.on_train_end()
 
         # reset bookkeeping
-        self.trainer._running_stage = None
+        self.trainer.state.stage = None
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback

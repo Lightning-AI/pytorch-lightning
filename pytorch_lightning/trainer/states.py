@@ -11,28 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from dataclasses import dataclass
+from typing import Optional
 
 from pytorch_lightning.utilities import LightningEnum
 
 
-class TrainerState(LightningEnum):
-    """ State for the :class:`~pytorch_lightning.trainer.trainer.Trainer`
-    to indicate what is currently or was executed. It follows the user-called
-    functions such as `trainer.fit()` and `trainer.test().
-
-    >>> # you can compare the type with a string
-    >>> TrainerState.FITTING == 'fit'
-    True
-    >>> # which is case insensitive
-    >>> TrainerState.FINISHED == 'FINISHED'
-    True
-    """
+class TrainerStatus(LightningEnum):
+    """Status of the :class:`~pytorch_lightning.trainer.trainer.Trainer`"""
     INITIALIZING = 'initializing'  # trainer creation
-    FITTING = 'fit'  # trainer.fit()
-    VALIDATING = 'validate'  # trainer.validate()
-    TESTING = 'test'  # trainer.test()
-    PREDICTING = 'predict'  # trainer.predict()
-    TUNING = 'tune'  # trainer.tune()
+    RUNNING = 'running'
     FINISHED = 'finished'
     INTERRUPTED = 'interrupted'
 
@@ -40,21 +28,34 @@ class TrainerState(LightningEnum):
     def stopped(self) -> bool:
         return self in (self.FINISHED, self.INTERRUPTED)
 
+
+class TrainerFn(LightningEnum):
+    """
+    Functions of the :class:`~pytorch_lightning.trainer.trainer.Trainer`
+    functions such as ``trainer.fit()`` and ``trainer.test()``.
+    """
+    FITTING = 'fit'  # trainer.fit()
+    VALIDATING = 'validate'  # trainer.validate()
+    TESTING = 'test'  # trainer.test()
+    PREDICTING = 'predict'  # trainer.predict()
+    TUNING = 'tune'  # trainer.tune()
+
     @property
-    def running(self) -> bool:
-        return self in (self.FITTING, self.VALIDATING, self.TESTING, self.PREDICTING, self.TUNING)
+    def _setup_fn(self) -> 'TrainerFn':
+        """
+        'fit' is used instead of 'tune' as there aren't 'tune_dataloaders'.
+
+        This is used for the ``setup()`` and ``teardown()`` hooks
+        """
+        return TrainerFn.FITTING if self == TrainerFn.TUNING else self
 
 
 class RunningStage(LightningEnum):
     """Current running stage.
 
-    This stage complements :class:`TrainerState` for example to indicate that
-    `RunningStage.VALIDATING` will be set both during `TrainerState.FITTING`
-    and `TrainerState.VALIDATING`. It follows the internal code logic.
-
-    >>> # you can match the Enum with string
-    >>> RunningStage.TRAINING == 'train'
-    True
+    This stage complements :class:`TrainerState`, for example, to indicate that
+    `RunningStage.VALIDATING` will be set both during `TrainerFn.FITTING`
+    and `TrainerFn.VALIDATING`. It follows the internal code logic.
     """
     TRAINING = 'train'
     SANITY_CHECKING = 'sanity_check'
@@ -66,3 +67,19 @@ class RunningStage(LightningEnum):
     @property
     def evaluating(self) -> bool:
         return self in (self.VALIDATING, self.TESTING)
+
+
+@dataclass
+class TrainerState:
+    """Dataclass to encapsulate the current :class:`~pytorch_lightning.trainer.trainer.Trainer` state"""
+    status: TrainerStatus = TrainerStatus.INITIALIZING
+    fn: Optional[TrainerFn] = None
+    stage: Optional[RunningStage] = None
+
+    @property
+    def finished(self) -> bool:
+        return self.status == TrainerStatus.FINISHED
+
+    @property
+    def stopped(self) -> bool:
+        return self.status.stopped

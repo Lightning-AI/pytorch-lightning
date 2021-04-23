@@ -24,7 +24,7 @@ from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
 
 
@@ -76,7 +76,7 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self.trainer._running_stage)
+        return self._cached_results.get(self.trainer.state.stage)
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder: MetricsHolder = getattr(self, f"_{key}")
@@ -114,7 +114,7 @@ class LoggerConnector:
         self.cached_results._batch_size = None
 
     def cache_logged_metrics(self):
-        self._cached_results[self.trainer._running_stage].cache_result()
+        self._cached_results[self.trainer.state.stage].cache_result()
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
@@ -277,12 +277,12 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state != TrainerState.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
+            self.trainer.state.fn != TrainerFn.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate
         ):
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
-                print(f'DATALOADER:{result_idx} {self.trainer._running_stage.upper()} RESULTS')
+                print(f'DATALOADER:{result_idx} {self.trainer.state.stage.upper()} RESULTS')
                 pprint({
                     k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
                     for k, v in results.items()

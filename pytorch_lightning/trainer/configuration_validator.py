@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -31,16 +31,16 @@ class ConfigValidator(object):
             model: The model to check the configuration.
 
         """
-        if self.trainer.state == TrainerState.FITTING:
+        if self.trainer.state.fn == TrainerFn.FITTING:
             self.__verify_train_loop_configuration(model)
             self.__verify_eval_loop_configuration(model, 'val')
-        elif self.trainer.state == TrainerState.TUNING:
+        elif self.trainer.state.fn == TrainerFn.TUNING:
             self.__verify_train_loop_configuration(model)
-        elif self.trainer.state == TrainerState.VALIDATING:
+        elif self.trainer.state.fn == TrainerFn.VALIDATING:
             self.__verify_eval_loop_configuration(model, 'val')
-        elif self.trainer.state == TrainerState.TESTING:
+        elif self.trainer.state.fn == TrainerFn.TESTING:
             self.__verify_eval_loop_configuration(model, 'test')
-        elif self.trainer.state == TrainerState.PREDICTING:
+        elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
 
     def __verify_train_loop_configuration(self, model):

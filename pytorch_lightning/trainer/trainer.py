@@ -53,7 +53,7 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
@@ -431,10 +431,12 @@ class Trainer(
 
         """
         Trainer._log_api_event("fit")
+
         # we reuse fit for other functions. When already set, it shouldn't be modified.
-        if not self.state.running:
-            self.state = TrainerState.FITTING
-        if self._running_stage is None or self.tuning:
+        if not self.state.fn:
+            self.state.fn = TrainerFn.FITTING
+            self.state.status = TrainerStatus.RUNNING
+        if self.state.stage is None or self.tuning:
             self.training = True
 
         # set local properties on the model
@@ -492,7 +494,7 @@ class Trainer(
         # TRAIN
         # ----------------------------
         # hook
-        if self.state == TrainerState.FITTING:
+        if self.state.fn == TrainerFn.FITTING:
             self.call_hook("on_fit_start")
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
@@ -508,15 +510,15 @@ class Trainer(
         # POST-Training CLEAN UP
         # ----------------------------
         # hook
-        if self.state == TrainerState.FITTING:
+        if self.state.fn == TrainerFn.FITTING:
             self.call_hook('on_fit_end')
 
         # teardown
         self.call_teardown_hook(model)
 
-        if self.state != TrainerState.INTERRUPTED:
-            self.state = TrainerState.FINISHED
-        self._running_stage = None
+        if self.state.status != TrainerStatus.INTERRUPTED:
+            self.state.status = TrainerStatus.FINISHED
+        self.state.stage = None
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -647,22 +649,23 @@ class Trainer(
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
             # user could press Ctrl+c many times... only shutdown once
             if not self.interrupted:
-                self.state = TrainerState.INTERRUPTED
+                self.state.status = TrainerStatus.INTERRUPTED
                 self.on_keyboard_interrupt()
                 # same treatment as below
                 self.accelerator.on_train_end()
-                self._running_stage = None
+                self.state.stage = None
         except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
             # reset bookkeeping
-            self._running_stage = None
+            self.state.stage = None
             raise
 
     def run_evaluation(self, on_epoch=False):
         if not (self.evaluating or self.sanity_checking):
             rank_zero_warn(
-                f"`trainer.run_evaluation()` was called but the running stage is set to {self._running_stage}."
+                f"`trainer.run_evaluation()` was called but the running stage is set to {self.state.stage}."
                 " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
             )
             self.validating = True
@@ -782,7 +785,7 @@ class Trainer(
 
         assert self.evaluating
 
-        with self.profiler.profile(f"run_{self._running_stage}_evaluation"):
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
             eval_loop_results = self.run_evaluation()
 
         if len(eval_loop_results) == 0:
@@ -851,7 +854,7 @@ class Trainer(
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         if should_sanity_check:
-            stage = self._running_stage
+            stage = self.state.stage
             self.sanity_checking = True
 
             # hook and callback
@@ -862,7 +865,7 @@ class Trainer(
 
             self.on_sanity_check_end()
 
-            self._running_stage = stage
+            self.state.stage = stage
 
     def validate(
         self,
@@ -900,7 +903,8 @@ class Trainer(
         Trainer._log_api_event("validate")
         self.verbose_evaluate = verbose
 
-        self.state = TrainerState.VALIDATING
+        self.state.fn = TrainerFn.VALIDATING
+        self.state.status = TrainerStatus.RUNNING
         self.validating = True
 
         # If you supply a datamodule you can't supply val_dataloaders
@@ -918,7 +922,7 @@ class Trainer(
         self.data_connector.attach_dataloaders(model, val_dataloaders=val_dataloaders)
 
         if not model_provided:
-            self.validated_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
+            self.validated_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run validate
         results = self.fit(model)
@@ -963,7 +967,8 @@ class Trainer(
         Trainer._log_api_event("test")
         self.verbose_evaluate = verbose
 
-        self.state = TrainerState.TESTING
+        self.state.fn = TrainerFn.TESTING
+        self.state.status = TrainerStatus.RUNNING
         self.testing = True
 
         # If you supply a datamodule you can't supply test_dataloaders
@@ -979,7 +984,7 @@ class Trainer(
         self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         if not model_provided:
-            self.tested_ckpt_path = self.__load_ckpt_weights(model, ckpt_path=ckpt_path)
+            self.tested_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run test
         results = self.fit(model)
@@ -989,15 +994,11 @@ class Trainer(
 
         return results
 
-    def __load_ckpt_weights(
-        self,
-        model,
-        ckpt_path: Optional[str] = None,
-    ) -> Optional[str]:
+    def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:
         if ckpt_path is None:
             return
 
-        fn = self.state.value
+        fn = self.state.fn.value
 
         if ckpt_path == 'best':
             # if user requests the best checkpoint but we don't have it, error
@@ -1056,12 +1057,12 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        # If you supply a datamodule you can't supply dataloaders
         Trainer._log_api_event("predict")
 
         model = model or self.lightning_module
 
-        self.state = TrainerState.PREDICTING
+        self.state.fn = TrainerFn.PREDICTING
+        self.state.status = TrainerStatus.RUNNING
         self.predicting = True
 
         if dataloaders is not None and datamodule:
@@ -1104,7 +1105,9 @@ class Trainer(
 
         """
         Trainer._log_api_event("tune")
-        self.state = TrainerState.TUNING
+
+        self.state.fn = TrainerFn.TUNING
+        self.state.status = TrainerStatus.RUNNING
         self.tuning = True
 
         self.tuner.tune(model, train_dataloader, val_dataloaders, datamodule)
@@ -1113,16 +1116,15 @@ class Trainer(
         self.tuning = False
 
     def call_setup_hook(self, model: LightningModule) -> None:
-        assert self.state.running, f"TrainerState: {self.state}"
-        state = self._setup_state
+        fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_setup_{state}')
+            called = getattr(self.datamodule, f'has_setup_{fn}')
             if not called:
-                self.datamodule.setup(stage=state)
+                self.datamodule.setup(stage=fn)
 
-        self.setup(model, stage=state)
-        model.setup(stage=state)
+        self.setup(model, stage=fn)
+        model.setup(stage=fn)
 
     def call_configure_sharded_model(self, model: LightningModule) -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
@@ -1138,16 +1140,16 @@ class Trainer(
             self.accelerator.call_configure_sharded_model_hook = False
 
     def call_teardown_hook(self, model: LightningModule) -> None:
-        state = self._teardown_state
+        fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_teardown_{state}')
+            called = getattr(self.datamodule, f'has_teardown_{fn}')
             if not called:
-                self.datamodule.teardown(stage=state)
+                self.datamodule.teardown(stage=fn)
 
-        self.profiler.teardown(stage=state)
-        self.teardown(stage=state)
-        model.teardown(stage=state)
+        self.profiler.teardown(stage=fn)
+        self.teardown(stage=fn)
+        model.teardown(stage=fn)
 
     def _reset_result_and_set_hook_fx_name(self, hook_name):
         # on_before_zero_grad is called within training_step
