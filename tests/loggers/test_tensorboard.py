@@ -24,6 +24,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.utilities import _module_available
 from tests.helpers import BoringModel, plotting
 from tests.helpers.runif import RunIf
 
@@ -131,6 +132,9 @@ def test_tensorboard_log_metrics(tmpdir, step_idx):
     logger.log_metrics(metrics, step_idx)
 
 
+@pytest.mark.skipif(
+    not _module_available("matplotlib"),
+    reason="close figure test requires matplotlib to be installed.")
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_figure(tmpdir, step_idx):
     logger = TensorBoardLogger(tmpdir)

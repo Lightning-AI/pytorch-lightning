@@ -33,6 +33,7 @@ from pytorch_lightning.loggers import (
 )
 from pytorch_lightning.loggers.base import DummyExperiment
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import _module_available
 from tests.helpers import BoringModel, plotting
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
@@ -408,6 +409,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
 
 
+@pytest.mark.skipif(
+    not _module_available("matplotlib"),
+    reason="close figure test requires matplotlib to be installed.")
 @pytest.mark.parametrize("close", [True, False])
 @pytest.mark.parametrize("logger_class", [
     CometLogger,
@@ -415,12 +419,23 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     MLFlowLogger,
     NeptuneLogger,
     TensorBoardLogger,
-    WandbLogger,
+    # Wandb has its own close_figure test
 ])
-def test_logger_close_figure_all(logger_class, close, tmpdir):
-    f = plotting.dummy_figure()
+def test_logger_close_figure_all(tmpdir, monkeypatch, logger_class, close):
+    _patch_comet_atexit(monkeypatch)
+    try:
+        _test_logger_close_figure(tmpdir, monkeypatch, logger_class, close)
+    except (ImportError, ModuleNotFoundError):
+        pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
 
-    logger = _instantiate_logger(logger_class, save_idr=tmpdir)
+
+def _test_logger_close_figure(tmpdir, monkeypatch, logger_class, close):
+    _patch_comet_atexit(monkeypatch)
+
+    logger_args = _get_logger_args(logger_class, tmpdir)
+    logger = logger_class(**logger_args)
+
+    f = plotting.dummy_figure()
 
     with mock.patch('matplotlib.pyplot.close') as plt_close:
         logger.log_figure('dummy', f, 0, close=close)

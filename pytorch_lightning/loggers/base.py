@@ -21,7 +21,6 @@ from argparse import Namespace
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
@@ -174,7 +173,7 @@ class LightningLoggerBase(ABC):
         """
         pass
 
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
         """
         Logs a matplotlib figure.
 
@@ -184,6 +183,8 @@ class LightningLoggerBase(ABC):
             step: step number at which the figure should be recorded
             close: close figure after logging
         """
+        import matplotlib.pyplot as plt
+
         # Default is silent and not NotImplementedError because we want to support LoggerCollection
         # where some loggers might others might not have implemented this method.
         if close:
@@ -393,7 +394,9 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_metrics(metrics, step)
 
-    def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
+    def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
+        import matplotlib.pyplot as plt
+
         for logger in self._logger_iterable:
             # don't close in the individual loggers, but once at the end
             logger.log_figure(name, figure, step=step, close=False)

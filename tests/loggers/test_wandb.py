@@ -21,6 +21,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, plotting
 
@@ -189,10 +190,14 @@ def test_wandb_logger_offline_log_model(wandb, tmpdir):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
 
 
+@pytest.mark.skipif(
+    not _module_available("matplotlib"),
+    reason="close figure test requires matplotlib to be installed.")
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_wandb_logger_log_figure(wandb, step_idx):
-    logger = WandbLogger(anonymous=True, offline=True)
+def test_wandb_logger_log_figure(wandb, tmpdir, step_idx):
+
+    logger = WandbLogger(save_dir=str(tmpdir), offline=True)
     logger.log_figure('dummy', plotting.dummy_figure(), step_idx, close=True)  # functional test
 
     with mock.patch.object(logger.experiment, 'log') as mock_log:
@@ -200,3 +205,22 @@ def test_wandb_logger_log_figure(wandb, step_idx):
         logger.log_figure('dummy', f, step_idx, close=True)
 
     mock_log.assert_called_once_with({'dummy': wandb.Image(f)}, step=step_idx)
+
+
+@pytest.mark.skipif(
+    not _module_available("matplotlib"),
+    reason="close figure test requires matplotlib to be installed.")
+@pytest.mark.parametrize("close", [True, False])
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_close_figure(wandb, tmpdir, close):
+    f = plotting.dummy_figure()
+
+    logger = WandbLogger(save_dir=str(tmpdir), offline=True)
+
+    with mock.patch('matplotlib.pyplot.close') as plt_close:
+        logger.log_figure('dummy', f, 0, close=close)
+
+    if close:
+        plt_close.assert_called_once_with(f)
+    else:
+        plt_close.assert_not_called()
