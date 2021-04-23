@@ -184,6 +184,8 @@ To define a DataModule define 5 methods:
 - val_dataloader(s)
 - test_dataloader(s)
 
+and optionally one or multiple predict_dataloader(s).
+
 
 prepare_data
 ^^^^^^^^^^^^
@@ -294,6 +296,21 @@ Use this method to generate the test dataloader. Usually you just wrap the datas
 
     class MNISTDataModule(pl.LightningDataModule):
         def test_dataloader(self):
+            return DataLoader(self.mnist_test, batch_size=64)
+
+
+predict_dataloader
+^^^^^^^^^^^^^^^^^^
+Returns a special dataloader for inference. This is the dataloader that the Trainer
+:meth:`~pytorch_lightning.trainer.trainer.Trainer.predict` method uses.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+
+    class MNISTDataModule(pl.LightningDataModule):
+        def predict_dataloader(self):
             return DataLoader(self.mnist_test, batch_size=64)
 
 

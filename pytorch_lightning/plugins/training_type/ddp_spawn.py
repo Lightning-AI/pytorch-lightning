@@ -14,7 +14,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -57,7 +57,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
-        **kwargs: Union[Any, Dict[str, Any]],
+        **kwargs: Any,
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes
@@ -237,9 +237,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
-
-    def on_save(self, checkpoint: dict) -> dict:
-        return checkpoint
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback

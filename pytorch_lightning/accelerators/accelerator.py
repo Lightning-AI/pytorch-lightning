@@ -237,7 +237,7 @@ class Accelerator:
         """
         kwargs = self.to_device(kwargs)
 
-        with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
+        with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*kwargs.values())
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:

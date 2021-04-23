@@ -473,6 +473,7 @@ class TrainLoop:
         for batch_idx, (batch, is_last_batch) in train_dataloader:
 
             self.trainer.batch_idx = batch_idx
+            self.trainer.is_last_batch = is_last_batch
 
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
@@ -521,7 +522,7 @@ class TrainLoop:
 
             # max steps reached, end training
             if (
-                self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1
+                self.trainer.max_steps is not None and self.trainer.max_steps <= self.trainer.global_step + 1
                 and self._accumulated_batches_reached()
             ):
                 break

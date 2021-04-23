@@ -16,10 +16,10 @@ import importlib
 import operator
 import platform
 import sys
-from distutils.version import LooseVersion
 from importlib.util import find_spec
 
 import torch
+from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
 
@@ -54,13 +54,11 @@ def _compare_version(package: str, op, version) -> bool:
     except (ModuleNotFoundError, DistributionNotFound):
         return False
     try:
-        pkg_version = LooseVersion(pkg.__version__)
-    except AttributeError:
-        return False
-    if not (hasattr(pkg_version, "vstring") and hasattr(pkg_version, "version")):
+        pkg_version = Version(pkg.__version__)
+    except TypeError:
         # this is mock by sphinx, so it shall return True ro generate all summaries
         return True
-    return op(pkg_version, LooseVersion(version))
+    return op(pkg_version, Version(version))
 
 
 _IS_WINDOWS = platform.system() == "Windows"
@@ -75,8 +73,8 @@ _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BOLTS_AVAILABLE = _module_available('pl_bolts')
 _DEEPSPEED_AVAILABLE = not _IS_WINDOWS and _module_available('deepspeed')
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available('fairscale.nn.data_parallel')
-_FAIRSCALE_PIPE_AVAILABLE = _TORCH_GREATER_EQUAL_1_6 and _compare_version("fairscale", operator.le, "0.1.3")
+_FAIRSCALE_AVAILABLE = _TORCH_GREATER_EQUAL_1_6 and not _IS_WINDOWS and _module_available('fairscale.nn')
+_FAIRSCALE_PIPE_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.le, "0.1.3")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.group')
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _module_available("hydra")
@@ -88,6 +86,8 @@ _RPC_AVAILABLE = not _IS_WINDOWS and _module_available('torch.distributed.rpc')
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != 'none'])
 _TORCHTEXT_AVAILABLE = _module_available("torchtext")
 _TORCHVISION_AVAILABLE = _module_available('torchvision')
+_TORCHMETRICS_LOWER_THAN_0_3 = _compare_version("torchmetrics", operator.lt, "0.3.0")
+_TORCHMETRICS_GREATER_EQUAL_0_3 = _compare_version("torchmetrics", operator.ge, "0.3.0")
 _XLA_AVAILABLE = _module_available("torch_xla")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402

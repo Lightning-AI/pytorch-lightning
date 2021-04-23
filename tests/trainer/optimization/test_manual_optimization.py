@@ -1170,3 +1170,41 @@ def test_lr_schedulers(tmpdir):
     )
 
     trainer.fit(model)
+
+
+def test_lr_scheduler_step_not_called(tmpdir):
+    """
+    Test `lr_scheduler.step()` is not called in manual optimization.
+    """
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
+
+            output = self(batch)
+            loss = self.loss(batch, output)
+
+            opt.zero_grad()
+            self.manual_backward(loss)
+            opt.step()
+
+    model = TestModel()
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+    )
+
+    with patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:
+        trainer.fit(model)
+
+    # If a lr scheduler inherits `torch.optim.lr_scheduler._LRScheduler`,
+    # `.step()` is called once during its instantiation.
+    # Thus, the call count should be 1, not 0.
+    assert lr_step.call_count == 1
