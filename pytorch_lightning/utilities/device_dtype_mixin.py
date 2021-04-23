@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from typing import Optional, Union
-
 import torch
 from torch.nn import Module
 
