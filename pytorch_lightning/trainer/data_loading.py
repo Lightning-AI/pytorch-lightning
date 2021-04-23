@@ -167,7 +167,7 @@ class TrainerDataLoadingMixin(ABC):
 
         return dl_args
 
-    def replace_sampler(self, dataloader, sampler, mode: Optional[RunningStage] = None):
+    def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
         skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
         skip_signature_keys = ('args', 'kwargs', 'self')
 
