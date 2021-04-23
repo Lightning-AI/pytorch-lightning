@@ -33,7 +33,7 @@ def test_lambda_call(tmpdir):
     def call(hook, *_, **__):
         checker.add(hook)
 
-    hooks = {m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)}
+    hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction) if not m.startswith("_")]
     hooks_args = {h: partial(call, h) for h in hooks}
     hooks_args["on_save_checkpoint"] = lambda *_: [checker.add('on_save_checkpoint')]
 
