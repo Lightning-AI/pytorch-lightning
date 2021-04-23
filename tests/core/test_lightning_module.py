@@ -377,8 +377,6 @@ def test_device_placement(tmpdir):
     assert_device(torch.device("cpu"))
     model.to(torch.device("cuda:0"))
     assert_device(torch.device("cuda:0"))
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
     trainer.test(model)
     assert_device(torch.device("cpu"))
     trainer.predict(model, dataloaders=model.train_dataloader())
