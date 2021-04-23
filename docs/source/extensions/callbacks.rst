@@ -96,7 +96,6 @@ Lightning has a few built-in callbacks.
 
     BackboneFinetuning
     BaseFinetuning
-    BasePredictionWriter
     Callback
     EarlyStopping
     GPUStatsMonitor
