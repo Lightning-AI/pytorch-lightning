@@ -341,6 +341,9 @@ class DeepSpeedPlugin(DDPPlugin):
 
     def _initialize_deepspeed_train(self, model):
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
+
+        deepspeed.zero.Init(module=model, remote_device=self.remote_device, pin_memory=True, param_dict=self.config)
+
         if "optimizer" not in self.config:
             rank_zero_info(
                 "You have not specified an optimizer or scheduler within the DeepSpeed config."
