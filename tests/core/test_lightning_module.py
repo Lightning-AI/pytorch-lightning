@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest.mock import Mock
-
+import torch
 import pytest
 from torch import nn
 from torch.optim import Adam, SGD
@@ -21,6 +21,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_property_current_epoch():
@@ -358,3 +359,23 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     )
 
     trainer.fit(model)
+
+
+@RunIf(gpus=1)
+def test_device_placement(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        gpus=1
+    )
+    trainer.fit(model)
+    def run(device):
+        assert model.device == device
+        for p in model.parameters():
+            assert p.device == device
+    run(torch.device("cpu"))
+    model.device = torch.device("cuda:0")
+    run(torch.device("cuda:0"))
+
+    with pytest.raises(MisconfigurationException, match="xla should be set using device"):
+        model.device = torch.device("xla")

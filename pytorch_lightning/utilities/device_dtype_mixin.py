@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Optional, Union
-
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 import torch
 from torch.nn import Module
 
@@ -48,9 +48,11 @@ class DeviceDtypeModuleMixin(Module):
         return device
 
     @device.setter
-    def device(self, new_device: Union[str, torch.device]):
-        # Necessary to avoid infinite recursion
-        raise RuntimeError('Cannot set the device explicitly. Please use module.to(new_device).')
+    def device(self, device: Union[str, torch.device]):
+        if device.type == "xla":
+            raise MisconfigurationException("xla should be set using device")
+        self._device = device
+        self.to(device)
 
     @parameter_validation
     def to(self, *args, **kwargs) -> Module:
