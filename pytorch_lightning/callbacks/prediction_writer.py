@@ -33,7 +33,7 @@ class WriteInterval(LightningEnum):
 
     @property
     def on_batch(self) -> bool:
-        return self in (self.STEP, self.STEP_AND_EPOCH)
+        return self in (self.BATCH, self.BATCH_AND_EPOCH)
 
     @property
     def on_epoch(self) -> bool:
@@ -71,7 +71,7 @@ class BasePredictionWriter(Callback):
 
     def __init__(self, write_interval: str = "batch") -> None:
         if write_interval not in list(WriteInterval):
-            raise MisconfigurationException(f"`write_interval` should one of {list(WriteInterval)}.")
+            raise MisconfigurationException(f"`write_interval` should be one of {[i.value for i in WriteInterval]}.")
         self.interval = WriteInterval(write_interval)
 
     @abstractmethod

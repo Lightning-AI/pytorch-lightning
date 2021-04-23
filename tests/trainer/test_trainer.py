@@ -19,7 +19,6 @@ import sys
 from argparse import Namespace
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, List, Union
 from unittest.mock import ANY, call, patch
 
 import cloudpickle
@@ -1518,14 +1517,11 @@ class CustomPredictionWriter(BasePredictionWriter):
     write_on_batch_end_called = False
     write_on_epoch_end_called = False
 
-    def __init__(self, output_dir: str, write_interval: Union[str, int, float] = "batch"):
-        super().__init__(write_interval)
+    def __init__(self, output_dir: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.output_dir = output_dir
 
-    def write_on_batch_end(
-        self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any,
-        batch_idx: int, dataloader_idx: int
-    ):
+    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
         assert prediction.shape == torch.Size([1, 2])
         if trainer.accelerator_connector.is_distributed:
             assert len(batch_indices) == 1
@@ -1533,9 +1529,7 @@ class CustomPredictionWriter(BasePredictionWriter):
             assert batch_indices is None
         self.write_on_batch_end_called = True
 
-    def write_on_epoch_end(
-        self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
-    ):
+    def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
         expected = 1 if trainer.accelerator_connector.is_distributed else 2
         assert len(predictions) == 2
         assert len(predictions[0]) == expected
@@ -1546,7 +1540,7 @@ class CustomPredictionWriter(BasePredictionWriter):
             assert batch_indices is None
         self.write_on_epoch_end_called = True
 
-    def on_predict_epoch_end(self, trainer, pl_module: LightningModule, outputs: List[Any]):
+    def on_predict_epoch_end(self, trainer, pl_module, outputs):
         if trainer.accelerator_connector.is_distributed:
             for idx in range(2):
                 assert isinstance(trainer.predict_dataloaders[idx].batch_sampler.sampler, UnrepeatedDistributedSampler)

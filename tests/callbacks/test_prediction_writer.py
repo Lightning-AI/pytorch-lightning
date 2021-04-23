@@ -31,18 +31,13 @@ def test_prediction_writer(tmpdir):
             self.write_on_batch_end_called = False
             self.write_on_epoch_end_called = False
 
-        def write_on_batch_end(
-            self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any,
-            batch_idx: int, dataloader_idx: int
-        ) -> None:
+        def write_on_batch_end(self, *args, **kwargs):
             self.write_on_batch_end_called = True
 
-        def write_on_epoch_end(
-            self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
-        ) -> None:
+        def write_on_epoch_end(self, *args, **kwargs):
             self.write_on_epoch_end_called = True
 
-    with pytest.raises(MisconfigurationException, match='`write_interval` should be within'):
+    with pytest.raises(MisconfigurationException, match=r"`write_interval` should be one of \['batch"):
         CustomPredictionWriter("something")
 
     model = BoringModel()

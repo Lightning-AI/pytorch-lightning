@@ -18,9 +18,7 @@ from pytorch_lightning.overrides.distributed import IndexBatchSampler, Unrepeate
 
 
 def test_unrepeated_distributed_sampler(tmpdir):
-    """
-    test each rank will receive a different number of elements.
-    """
+    """Test each rank will receive a different number of elements."""
 
     world_size = 4
     samplers = []
@@ -41,14 +39,11 @@ def test_unrepeated_distributed_sampler(tmpdir):
 
 
 def test_index_batch_sampler(tmpdir):
-    """
-    test `IndexBatchSampler` properly extract indices.
-    """
-
+    """Test `IndexBatchSampler` properly extracts indices."""
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
-    index_batch_sampler = IndexBatchSampler(batch_sampler)
+    index_batch_sampler = IndexBatchSampler(batch_sampler, 3, False)
 
     for batch in index_batch_sampler:
         assert index_batch_sampler.batch_indices == batch
