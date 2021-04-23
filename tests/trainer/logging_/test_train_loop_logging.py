@@ -759,12 +759,8 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         gpus=2,
         profiler="pytorch"
     )
+    trainer.fit(model)
 
-    if os.getenv("LOCAL_RANK") == '0':
-        with pytest.warns(UserWarning, match="The value associated to the key cho:"):
-            trainer.fit(model)
-    else:
-        trainer.fit(model)
     assert trainer.logged_metrics['foo'] == 2
     assert trainer.logged_metrics['bar'] == 2
 

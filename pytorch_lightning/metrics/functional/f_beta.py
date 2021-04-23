@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional
+
 import torch
 from torchmetrics.functional import f1 as _f1
 from torchmetrics.functional import fbeta as _fbeta
@@ -26,7 +28,7 @@ def fbeta(
     beta: float = 1.0,
     threshold: float = 0.5,
     average: str = "micro",
-    multilabel: bool = False
+    multilabel: Optional[bool] = None
 ) -> torch.Tensor:
     """
     .. deprecated::
@@ -41,7 +43,7 @@ def f1(
     num_classes: int,
     threshold: float = 0.5,
     average: str = "micro",
-    multilabel: bool = False
+    multilabel: Optional[bool] = None
 ) -> torch.Tensor:
     """
     .. deprecated::
