@@ -189,8 +189,4 @@ class DeviceDtypeModuleMixin(Module):
             if dtype is not None:
                 module._dtype = dtype
 
-        # update LightningModule device
-        self._device = device
-        
-        # apply function
         self.apply(apply_fn)
