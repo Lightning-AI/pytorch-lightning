@@ -18,7 +18,13 @@ from functools import partial, wraps
 from http.server import SimpleHTTPRequestHandler
 
 import pytest
-import torch.multiprocessing as mp
+
+from pytorch_lightning.utilities.imports import _TORCH_AVAILABLE
+
+if _TORCH_AVAILABLE:
+    import torch.multiprocessing as mp
+else:
+    import multiprocessing as mp
 
 
 @pytest.fixture(scope="function", autouse=True)

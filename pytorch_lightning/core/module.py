@@ -21,27 +21,17 @@ import os
 import tempfile
 import types
 import uuid
-from abc import ABC
+from abc import ABC, abstractclassmethod
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
-import torch
-from torch import ScriptModule, Tensor
-from torch.nn import Module
-from torch.optim.optimizer import Optimizer
-
-from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
-from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.module import RootLightningModule
-from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -49,73 +39,19 @@ from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 log = logging.getLogger(__name__)
 
 
-class LightningModule(
-    RootLightningModule,
-    DeviceDtypeModuleMixin,
-    GradInformation,
-    Module,
+class RootLightningModule(
+    ABC,
+    ModelHooks,
+    DataHooks,
+    CheckpointHooks,
 ):
-    # Below is for property support of JIT in PyTorch 1.7
-    # since none of them is important when using JIT, we are going to ignore them.
-    __jit_unused_properties__ = [
-        "datamodule",
-        "example_input_array",
-        "hparams",
-        "hparams_initial",
-        "on_gpu",
-        "current_epoch",
-        "global_step",
-        "global_rank",
-        "local_rank",
-        "logger",
-        "model_size",
-    ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
-        # torch/nn/modules/module.py#L227)
-        torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
-
-        self.exp_save_path = None
-
-        self.loaded_optimizer_states_dict = {}
-
-        #: Pointer to the trainer object
-        self.trainer = None
-
-        self._distrib_type = None
-        self._device_type = None
-
-        #: True if using amp
-        self.use_amp = False
-
-        #: The precision used
-        self.precision = 32
-
-        # optionally can be set by user
-        self._example_input_array = None
-        self._datamodule = None
-        self._results: Optional[Result] = None
-        self._current_fx_name = ''
-        self._running_manual_backward = False
-        self._current_hook_fx_name = None
-        self._current_dataloader_idx = None
-        self._automatic_optimization: bool = True
-        self._param_requires_grad_state = dict()
-
-    def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
-        if use_pl_optimizer:
-            opts = list(self.trainer.lightning_optimizers.values())
-        else:
-            opts = self.trainer.optimizers
-
-        # single optimizer
-        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], Optimizer):
-            return opts[0]
-        # multiple opts
-        return opts
+    @abstractclassmethod
+    def optimizers(self, use_pl_optimizer: bool = True):
+        pass
 
     def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
         if not self.trainer.lr_schedulers:

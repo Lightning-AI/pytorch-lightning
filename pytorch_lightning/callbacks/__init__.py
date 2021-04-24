@@ -11,9 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+__all__ = []
+
+import pdb
+
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
+from pytorch_lightning.utilities.imports import _TORCH_AVAILABLE
+
+pdb.set_trace()
+if _TORCH_AVAILABLE:
+    from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
+    __all__ += ["BackboneFinetuning", "BaseFinetuning"]
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.callbacks.lambda_function import LambdaCallback
@@ -24,21 +34,3 @@ from pytorch_lightning.callbacks.pruning import ModelPruning
 from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining
 from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
 from pytorch_lightning.callbacks.timer import Timer
-
-__all__ = [
-    'BackboneFinetuning',
-    'BaseFinetuning',
-    'Callback',
-    'EarlyStopping',
-    'GPUStatsMonitor',
-    'GradientAccumulationScheduler',
-    'LambdaCallback',
-    'LearningRateMonitor',
-    'ModelCheckpoint',
-    'ModelPruning',
-    'ProgressBar',
-    'ProgressBarBase',
-    'QuantizationAwareTraining',
-    'StochasticWeightAveraging',
-    'Timer',
-]
