@@ -32,7 +32,7 @@ else:
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning"""
 
-    def __init__(self, *args, parse_as_dict: bool = True, **kwargs) -> None:
+    def __init__(self, *args: Any, parse_as_dict: bool = True, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input
 
         For full details of accepted arguments see `ArgumentParser.__init__
@@ -93,15 +93,15 @@ class LightningCLI:
     def __init__(
         self,
         model_class: Type[LightningModule],
-        datamodule_class: Type[LightningDataModule] = None,
+        datamodule_class: Optional[Type[LightningDataModule]] = None,
         save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
-        trainer_defaults: Dict[str, Any] = None,
-        seed_everything_default: int = None,
+        trainer_defaults: Optional[Dict[str, Any]] = None,
+        seed_everything_default: Optional[int] = None,
         description: str = 'pytorch-lightning trainer command line tool',
         env_prefix: str = 'PL',
         env_parse: bool = False,
-        parser_kwargs: Dict[str, Any] = None,
+        parser_kwargs: Optional[Dict[str, Any]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False
     ) -> None:

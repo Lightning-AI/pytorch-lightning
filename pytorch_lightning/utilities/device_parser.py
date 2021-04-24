@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, MutableSequence, Optional, Tuple, Union
+from typing import Any, List, MutableSequence, Optional, Set, Tuple, Union
 
 import torch
 
@@ -171,7 +171,7 @@ def _check_data_type(device_ids: Any) -> None:
         raise MisconfigurationException("Device ID's (GPU/TPU) must be int, string or sequence of ints or None.")
 
 
-def _tpu_cores_valid(tpu_cores):
+def _tpu_cores_valid(tpu_cores: Optional[Union[int, List[int], Tuple[int], Set[int]]]) -> bool:
     # allow 1 or 8 cores
     if tpu_cores in (1, 8, None):
         return True
@@ -187,7 +187,7 @@ def _tpu_cores_valid(tpu_cores):
     return False
 
 
-def _parse_tpu_cores_str(tpu_cores):
+def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
     if tpu_cores in ('1', '8'):
         tpu_cores = int(tpu_cores)
     else:

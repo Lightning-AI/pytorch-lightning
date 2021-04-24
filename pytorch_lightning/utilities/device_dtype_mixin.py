@@ -23,7 +23,7 @@ from pytorch_lightning.core.decorators import parameter_validation
 class DeviceDtypeModuleMixin(Module):
     __jit_unused_properties__ = ['device', 'dtype']
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._dtype = torch.get_default_dtype()
         self._device = torch.device('cpu')
@@ -33,7 +33,7 @@ class DeviceDtypeModuleMixin(Module):
         return self._dtype
 
     @dtype.setter
-    def dtype(self, new_dtype: Union[str, torch.dtype]):
+    def dtype(self, new_dtype: Union[str, torch.dtype]) -> None:
         # necessary to avoid infinite recursion
         raise RuntimeError('Cannot set the dtype explicitly. Please use module.to(new_dtype).')
 
@@ -48,12 +48,12 @@ class DeviceDtypeModuleMixin(Module):
         return device
 
     @device.setter
-    def device(self, new_device: Union[str, torch.device]):
+    def device(self, new_device: Union[str, torch.device]) -> None:
         # Necessary to avoid infinite recursion
         raise RuntimeError('Cannot set the device explicitly. Please use module.to(new_device).')
 
     @parameter_validation
-    def to(self, *args, **kwargs) -> Module:
+    def to(self, *args: Any, **kwargs: Any) -> Module:
         """Moves and/or casts the parameters and buffers.
 
         This can be called as
@@ -184,7 +184,7 @@ class DeviceDtypeModuleMixin(Module):
         self.__update_properties(dtype=torch.half)
         return super().half()
 
-    def __update_properties(self, device: Optional[torch.device] = None, dtype: Optional[torch.dtype] = None):
+    def __update_properties(self, device: Optional[torch.device] = None, dtype: Optional[torch.dtype] = None) -> None:
 
         def apply_fn(module):
             if not isinstance(module, DeviceDtypeModuleMixin):

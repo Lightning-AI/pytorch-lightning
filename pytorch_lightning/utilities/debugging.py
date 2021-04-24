@@ -16,10 +16,16 @@ import os
 import time
 from collections import Counter
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
+
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks import Callback
+
+from torch import Tensor
+from torch.utils.data import DataLoader
 
 
-def enabled_only(fn: Callable):
+def enabled_only(fn: Callable) -> Callable:
     """Decorate a logger method to run it only on the process with rank 0.
 
     Args:
@@ -27,16 +33,16 @@ def enabled_only(fn: Callable):
     """
 
     @wraps(fn)
-    def wrapped_fn(self, *args, **kwargs):
+    def wrapped_fn(self, *args: Any, **kwargs: Any):
         if self.enabled:
             fn(self, *args, **kwargs)
 
     return wrapped_fn
 
 
-class InternalDebugger(object):
+class InternalDebugger:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer') -> None:
         self.enabled = os.environ.get('PL_DEV_DEBUG', '0') == '1'
         self.trainer = trainer
         self.logged_metrics = []
@@ -56,7 +62,7 @@ class InternalDebugger(object):
     def track_event(
         self,
         evt_type: str,
-        evt_value: Any = None,
+        evt_value: Optional[Any] = None,
         global_rank: Optional[int] = None,
         local_rank: Optional[int] = None,
         comment: str = ''
@@ -70,7 +76,7 @@ class InternalDebugger(object):
             "comment": comment,
         })
 
-    def count_events(self, evt_type: str, strict=False) -> int:
+    def count_events(self, evt_type: str, strict: bool = False) -> int:
         count = 0
         for evt in self.events:
             if strict and evt["event"] == evt_type:
@@ -80,7 +86,7 @@ class InternalDebugger(object):
         return count
 
     @enabled_only
-    def track_load_dataloader_call(self, name, dataloaders):
+    def track_load_dataloader_call(self, name: str, dataloaders: Union[DataLoader, List[DataLoader]]) -> None:
         loader_counts = len(dataloaders)
 
         lengths = []
@@ -111,19 +117,26 @@ class InternalDebugger(object):
             self.test_dataloader_calls.append(values)
 
     @enabled_only
-    def track_logged_metrics_history(self, scalar_metrics):
+    def track_logged_metrics_history(self, scalar_metrics: Dict[str, Any]) -> None:
         scalar_metrics['global_step'] = self.trainer.global_step
         self.logged_metrics.append(scalar_metrics)
 
     @enabled_only
-    def track_train_loss_history(self, batch_idx, loss):
+    def track_train_loss_history(self, batch_idx: int, loss: Tensor) -> None:
         loss_dict = {'batch_idx': batch_idx, 'epoch': self.trainer.current_epoch, 'loss': loss.detach()}
         self.saved_train_losses.append(loss_dict)
 
     @enabled_only
     def track_lr_schedulers_update(
-        self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None, monitor_val=None
-    ):
+        self,
+        batch_idx: int,
+        interval,
+        scheduler_idx: int,
+        old_lr: float,
+        new_lr: float,
+        monitor_key: Optional[str] = None,
+        monitor_val: Optional[float] = None
+    ) -> None:
         loss_dict = {
             'batch_idx': batch_idx,
             'interval': interval,
@@ -137,7 +150,7 @@ class InternalDebugger(object):
         self.saved_lr_scheduler_updates.append(loss_dict)
 
     @enabled_only
-    def track_eval_loss_history(self, batch_idx, dataloader_idx, output):
+    def track_eval_loss_history(self, batch_idx: int, dataloader_idx: int, output: Tensor) -> None:
         loss_dict = {
             'sanity_check': self.trainer.sanity_checking,
             'dataloader_idx': dataloader_idx,
@@ -152,12 +165,12 @@ class InternalDebugger(object):
             self.saved_val_losses.append(loss_dict)
 
     @enabled_only
-    def track_pbar_metrics_history(self, metrics):
+    def track_pbar_metrics_history(self, metrics: Dict[str, Any]) -> None:
         metrics['debug_epoch'] = self.trainer.current_epoch
         self.pbar_added_metrics.append(metrics)
 
     @enabled_only
-    def track_early_stopping_history(self, callback, current):
+    def track_early_stopping_history(self, callback: Callback, current) -> None:
         debug_dict = {
             'epoch': self.trainer.current_epoch,
             'global_step': self.trainer.global_step,
@@ -169,7 +182,7 @@ class InternalDebugger(object):
         self.early_stopping_history.append(debug_dict)
 
     @enabled_only
-    def track_checkpointing_history(self, filepath):
+    def track_checkpointing_history(self, filepath: str) -> None:
         cb = self.trainer.checkpoint_callback
         debug_dict = {
             'epoch': self.trainer.current_epoch,
@@ -181,12 +194,12 @@ class InternalDebugger(object):
         self.checkpoint_callback_history.append(debug_dict)
 
     @property
-    def num_seen_sanity_check_batches(self):
+    def num_seen_sanity_check_batches(self) -> int:
         count = len([x for x in self.saved_val_losses if x['sanity_check']])
         return count
 
     @property
-    def num_seen_val_check_batches(self):
+    def num_seen_val_check_batches(self) -> Counter:
         counts = Counter()
         for x in self.saved_val_losses:
             if not x['sanity_check']:
@@ -194,7 +207,7 @@ class InternalDebugger(object):
         return counts
 
     @property
-    def num_seen_test_check_batches(self):
+    def num_seen_test_check_batches(self) -> Counter:
         counts = Counter()
         for x in self.saved_test_losses:
             if not x['sanity_check']:

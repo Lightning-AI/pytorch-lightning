@@ -16,9 +16,10 @@ import logging
 import os
 import warnings
 from functools import partial, wraps
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
+from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
@@ -65,15 +66,15 @@ def _get_rank() -> int:
 rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_rank())
 
 
-def _warn(*args, **kwargs):
+def _warn(*args: Any, **kwargs: Any) -> None:
     warnings.warn(*args, **kwargs)
 
 
-def _info(*args, **kwargs):
+def _info(*args: Any, **kwargs: Any) -> None:
     log.info(*args, **kwargs)
 
 
-def _debug(*args, **kwargs):
+def _debug(*args: Any, **kwargs: Any) -> None:
     log.debug(*args, **kwargs)
 
 
@@ -83,7 +84,7 @@ rank_zero_warn = rank_zero_only(_warn)
 rank_zero_deprecation = partial(rank_zero_warn, category=DeprecationWarning)
 
 
-def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):
+def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
     """
     Function to gather all tensors from several ddp processes onto a list that
     is broadcasted to all processes
@@ -114,10 +115,10 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
 
 
 def sync_ddp_if_available(
-    result: Union[torch.Tensor],
+    result: Tensor,
     group: Optional[Any] = None,
     reduce_op: Optional[Union[ReduceOp, str]] = None
-) -> torch.Tensor:
+) -> Tensor:
     """
     Function to reduce a tensor across worker processes during distributed training
     Args:
@@ -135,10 +136,10 @@ def sync_ddp_if_available(
 
 
 def sync_ddp(
-    result: Union[torch.Tensor],
+    result: Tensor,
     group: Optional[Any] = None,
     reduce_op: Optional[Union[ReduceOp, str]] = None
-) -> torch.Tensor:
+) -> Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
 
@@ -174,7 +175,7 @@ def sync_ddp(
 class AllGatherGrad(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, tensor, group=group.WORLD):
+    def forward(ctx, tensor: Tensor, group=group.WORLD) -> Tensor:
         ctx.group = group
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
@@ -185,7 +186,7 @@ class AllGatherGrad(torch.autograd.Function):
         return gathered_tensor
 
     @staticmethod
-    def backward(ctx, *grad_output):
+    def backward(ctx, *grad_output) -> Tuple[Tensor, None]:
         grad_output = torch.cat(grad_output)
 
         torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
@@ -194,8 +195,8 @@ class AllGatherGrad(torch.autograd.Function):
 
 
 def all_gather_ddp_if_available(
-    tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
-) -> torch.Tensor:
+    tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False
+) -> Tensor:
     """
     Function to gather a tensor from several distributed processes
 
