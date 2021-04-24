@@ -31,9 +31,10 @@ from tests.helpers.utils import no_warning_call
 
 def test_v1_5_0_model_checkpoint_save_checkpoint():
     model_ckpt = ModelCheckpoint()
-    model_ckpt.save_function = lambda *_, **__: None
+    trainer = Trainer()
+    trainer.save_checkpoint = lambda *_, **__: None
     with pytest.deprecated_call(match="ModelCheckpoint.save_checkpoint` signature has changed"):
-        model_ckpt.save_checkpoint(Trainer(), object())
+        model_ckpt.save_checkpoint(trainer, object())
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
