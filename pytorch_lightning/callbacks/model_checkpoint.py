@@ -201,7 +201,6 @@ class ModelCheckpoint(Callback):
         self.best_model_score = None
         self.best_model_path = ""
         self.last_model_path = ""
-        self.save_function = None
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
@@ -213,7 +212,6 @@ class ModelCheckpoint(Callback):
         When pretrain routine starts we build the ckpt dir on the fly
         """
         self.__resolve_ckpt_dir(trainer)
-        self.save_function = trainer.save_checkpoint
 
     def on_train_batch_end(
         self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
@@ -255,8 +253,7 @@ class ModelCheckpoint(Callback):
     def save_checkpoint(self, trainer, unused: Optional = None):
         """
         Performs the main logic around saving a checkpoint.
-        This method runs on all ranks, it is the responsibility of `self.save_function`
-        to handle correct behaviour in distributed training, i.e., saving only on rank 0.
+        This method runs on all ranks.
         """
         if unused is not None:
             rank_zero_deprecation(
@@ -420,10 +417,7 @@ class ModelCheckpoint(Callback):
             self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the trainer
-        if self.save_function is not None:
-            self.save_function(filepath, self.save_weights_only)
-        else:
-            raise ValueError(".save_function() not set")
+        trainer.save_checkpoint(filepath, self.save_weights_only)
 
     def check_monitor_top_k(self, trainer, current: Optional[torch.Tensor] = None) -> bool:
         if current is None:
