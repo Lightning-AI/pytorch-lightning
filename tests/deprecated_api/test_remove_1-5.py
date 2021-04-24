@@ -242,3 +242,9 @@ def test_v1_5_0_auto_move_data():
             @auto_move_data
             def bar(self):
                 pass
+
+
+def test_v1_5_0_trainer_logging_mixin(tmpdir):
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.metrics_to_scalars({})
