@@ -1476,7 +1476,7 @@ def test_trainer_profiler_correct_args(profiler, expected):
 
 
 def test_trainer_profiler_incorrect_str_arg():
-    with pytest.raises(ValueError, match=r".*can only be 'simple' or 'advanced'"):
+    with pytest.raises(ValueError, match=r".*can only be 'simple', 'advanced' or 'pytorch'"):
         Trainer(profiler="unknown_profiler")
 
 
