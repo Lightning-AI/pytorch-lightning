@@ -67,7 +67,6 @@ class DataConnector(object):
                 self.trainer.datamodule.prepare_data()
             model.prepare_data()
             self.trainer._is_data_prepared = True
-        self.trainer.accelerator.barrier("prepare_data")
 
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
