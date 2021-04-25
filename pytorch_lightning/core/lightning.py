@@ -406,7 +406,14 @@ class LightningModule(
             when running in distributed mode, calling ``write_prediction`` will create a file for
             each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
 
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
         """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction` was deprecated in v1.3'
+            ' and will be removed in v1.5.'
+        )
+
         self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
 
     def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
@@ -426,7 +433,14 @@ class LightningModule(
             when running in distributed mode, calling ``write_prediction_dict`` will create a file for
             each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
 
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
         """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction_dict` was deprecated in v1.3 and'
+            ' will be removed in v1.5.'
+        )
+
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 

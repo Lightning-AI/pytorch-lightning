@@ -47,11 +47,6 @@ class DeviceDtypeModuleMixin(Module):
 
         return device
 
-    @device.setter
-    def device(self, new_device: Union[str, torch.device]) -> None:
-        # Necessary to avoid infinite recursion
-        raise RuntimeError('Cannot set the device explicitly. Please use module.to(new_device).')
-
     @parameter_validation
     def to(self, *args: Any, **kwargs: Any) -> Module:
         """Moves and/or casts the parameters and buffers.
