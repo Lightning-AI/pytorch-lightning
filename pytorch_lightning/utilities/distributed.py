@@ -16,7 +16,7 @@ import logging
 import os
 import warnings
 from functools import partial, wraps
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -42,10 +42,10 @@ else:
 log = logging.getLogger(__name__)
 
 
-def rank_zero_only(fn):
+def rank_zero_only(fn: Callable) -> Callable:
 
     @wraps(fn)
-    def wrapped_fn(*args, **kwargs):
+    def wrapped_fn(*args: Any, **kwargs: Any):
         if rank_zero_only.rank == 0:
             return fn(*args, **kwargs)
 

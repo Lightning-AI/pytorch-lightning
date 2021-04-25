@@ -42,7 +42,7 @@ def _module_available(module_path: str) -> bool:
         return False
 
 
-def _compare_version(package: str, op, version) -> bool:
+def _compare_version(package: str, op, version: str) -> bool:
     """
     Compare package version with some requirements
 

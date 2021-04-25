@@ -1,13 +1,14 @@
 from typing import Any, Dict, Iterator, List, Union
 
-import torch
+from torch import Tensor
+from torch.nn import Parameter
 from torchmetrics import Metric
 """
 Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no trailing `_`)
 """
-_METRIC = Union[Metric, torch.Tensor, int, float]
-STEP_OUTPUT = Union[torch.Tensor, Dict[str, Any]]
+_METRIC = Union[Metric, Tensor, int, float]
+STEP_OUTPUT = Union[Tensor, Dict[str, Any]]
 EPOCH_OUTPUT = List[STEP_OUTPUT]
-_PARAMETERS = Iterator[torch.nn.Parameter]
+_PARAMETERS = Iterator[Parameter]
