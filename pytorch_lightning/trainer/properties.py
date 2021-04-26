@@ -166,7 +166,7 @@ class TrainerProperties(ABC):
 
     @property
     def interrupted(self) -> bool:
-        return self._state.status == TrainerStatus.INTERRUPTED
+        return self.state.status == TrainerStatus.INTERRUPTED
 
     @property
     def is_global_zero(self) -> bool:

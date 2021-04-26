@@ -69,7 +69,7 @@ class Tuner:
                 datamodule=datamodule,
             )
 
-        self.trainer.status = TrainerStatus.FINISHED
+        self.trainer.state.status = TrainerStatus.FINISHED
 
     def scale_batch_size(
         self,
