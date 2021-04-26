@@ -477,7 +477,6 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     trainer.fit(model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.state.finished
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
     # define less train epochs than steps
@@ -514,7 +513,6 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     trainer.fit(model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.state.finished
     assert trainer.current_epoch > 0
     assert trainer.global_step >= num_train_samples, "Model did not train for at least min_epochs"
 
@@ -580,7 +578,6 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     trainer.fit(model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.state.finished
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
@@ -1650,7 +1647,7 @@ def test_disabled_training_for_insufficient_limit_train_batches(
         error_string = f"should not run with {params_string}"
 
     assert result == 1, "training failed to complete"
-    assert trainer.state.finished
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == global_step
     assert trainer.num_training_batches == num_training_batches
     assert trainer.current_epoch == current_epoch
