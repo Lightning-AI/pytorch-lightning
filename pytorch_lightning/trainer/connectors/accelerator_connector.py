@@ -314,7 +314,7 @@ class AcceleratorConnector(object):
     @property
     def is_training_type_in_plugins(self) -> bool:
         for plug in self.plugins:
-            if isinstance(plug, TrainingTypePlugin) or (isinstance(plug, str) and plug in TrainingTypePluginsRegistry):
+            if isinstance(plug, str) and plug in TrainingTypePluginsRegistry:
                 return True
         return False
 
