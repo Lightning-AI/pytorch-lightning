@@ -527,7 +527,8 @@ class Trainer(
 
         # restore training and model before hpc is called
         # doing it here allows the logger to be restored
-        self.checkpoint_connector.restore_weights()
+        if self.training:
+            self.checkpoint_connector.restore_weights()
 
         # log hyper-parameters
         if self.logger is not None:
