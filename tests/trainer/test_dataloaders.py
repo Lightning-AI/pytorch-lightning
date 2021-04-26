@@ -1226,7 +1226,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
 
     trainer.test()
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 3
+    assert len(trainer.dev_debugger.val_dataloader_calls) == 4
     assert len(trainer.dev_debugger.train_dataloader_calls) == 3
     assert len(trainer.dev_debugger.test_dataloader_calls) == 1
 
@@ -1234,13 +1234,14 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
     calls = trainer.dev_debugger.dataloader_sequence_calls
 
     expected_sequence = [
-        "train_dataloader",
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "train_dataloader",
-        "val_dataloader",
-        "test_dataloader",
+        'train_dataloader',
+        'val_dataloader',
+        'val_dataloader',
+        'train_dataloader',
+        'val_dataloader',
+        'train_dataloader',
+        'val_dataloader',
+        'test_dataloader',
     ]
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
