@@ -124,22 +124,22 @@ class IndexBatchSamplerWrapper:
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
     def __init__(self, sampler: BatchSampler) -> None:
-        self.batch_sampler = sampler
+        self._sampler = sampler
         self.batch_indices: Optional[List[int]] = None
 
     def __iter__(self) -> Iterator[List[int]]:
-        for batch in self.batch_sampler:
+        for batch in self._sampler:
             self.batch_indices = batch
             yield batch
 
     @property
     def drop_last(self) -> bool:
-        return self.batch_sampler.drop_last
+        return self._sampler.drop_last
 
     @property
     def batch_size(self) -> int:
-        return self.batch_sampler.batch_size
+        return self._sampler.batch_size
 
     @property
     def sampler(self) -> Sampler:
-        return self.batch_sampler.sampler
+        return self._sampler.sampler

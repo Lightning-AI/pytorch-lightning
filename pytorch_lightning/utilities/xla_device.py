@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
+import os
 import queue as q
 import traceback
 from multiprocessing import Process, Queue
@@ -86,6 +87,13 @@ class XLADeviceUtils:
         Return:
             A boolean value indicating if a TPU device exists on the system
         """
+        if os.getenv("PL_TPU_AVAILABLE", '0') == "1":
+            XLADeviceUtils._TPU_AVAILABLE = True
+
         if XLADeviceUtils.xla_available() and not XLADeviceUtils._TPU_AVAILABLE:
+
             XLADeviceUtils._TPU_AVAILABLE = XLADeviceUtils._is_device_tpu()
+
+            if XLADeviceUtils._TPU_AVAILABLE:
+                os.environ["PL_TPU_AVAILABLE"] = '1'
         return XLADeviceUtils._TPU_AVAILABLE

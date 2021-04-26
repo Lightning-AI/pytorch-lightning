@@ -1042,8 +1042,7 @@ class Trainer(
             datamodule: A instance of :class:`LightningDataModule`.
 
             return_predictions: Whether to return predictions.
-                By default, it will be set to ``True``
-                except when an accelerator that spawns processes is used (not supported).
+                By default, it except when an accelerator that spawns processes is used (not supported).
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.

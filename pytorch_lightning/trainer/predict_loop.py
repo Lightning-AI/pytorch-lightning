@@ -46,10 +46,6 @@ class PredictLoop(object):
         if return_predictions is not None:
             self._return_predictions = return_predictions
 
-    @property
-    def should_store_predictions(self) -> bool:
-        return self.return_predictions
-
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []
 
@@ -111,14 +107,14 @@ class PredictLoop(object):
 
         self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
-        if self.should_store_predictions:
+        if self.return_predictions:
             self.predictions[dataloader_idx].append(predictions)
 
     def _store_batch_indices(self, dataloader_idx: int) -> None:
         batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
         if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             self.batch_indices = batch_sampler.batch_indices
-            if self.should_store_predictions:
+            if self.return_predictions:
                 self.epoch_batch_indices[dataloader_idx].append(batch_sampler.batch_indices)
 
     def on_predict_start(self):
@@ -143,7 +139,7 @@ class PredictLoop(object):
             return results[0] if self.num_dataloaders == 1 else results
 
     def on_predict_end(self):
-        # clean memory
+        # clean memory. the predictions are extracted in `on_predict_epoch_end`.
         self.predictions = None
         self.batch_indices = None
 
