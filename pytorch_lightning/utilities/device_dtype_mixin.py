@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Any, Optional, Union
 import torch
 from torch.nn import Module
 
@@ -22,7 +22,7 @@ from pytorch_lightning.core.decorators import parameter_validation
 class DeviceDtypeModuleMixin(Module):
     __jit_unused_properties__ = ['device', 'dtype']
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._dtype = torch.get_default_dtype()
         self._device = torch.device('cpu')
@@ -47,7 +47,7 @@ class DeviceDtypeModuleMixin(Module):
         return device
 
     @parameter_validation
-    def to(self, *args, **kwargs) -> Module:
+    def to(self, *args: Any, **kwargs: Any) -> Module:
         """Moves and/or casts the parameters and buffers.
 
         This can be called as
@@ -178,7 +178,7 @@ class DeviceDtypeModuleMixin(Module):
         self.__update_properties(dtype=torch.half)
         return super().half()
 
-    def __update_properties(self, device: Optional[torch.device] = None, dtype: Optional[torch.dtype] = None):
+    def __update_properties(self, device: Optional[torch.device] = None, dtype: Optional[torch.dtype] = None) -> None:
 
         def apply_fn(module):
             if not isinstance(module, DeviceDtypeModuleMixin):
