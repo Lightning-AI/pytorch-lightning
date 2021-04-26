@@ -77,7 +77,6 @@ PyTorch Lightning Documentation
    :name: Examples
    :caption: Examples
 
-   ecosystem/pytorch_ecoystem
    ecosystem/community_examples
    Autoencoder <https://lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
    BYOL <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>
@@ -94,14 +93,15 @@ PyTorch Lightning Documentation
    :caption: Common Use Cases
 
    clouds/cloud_training
+   clouds/cluster
    advanced/amp
-   clouds/slurm
    common/child_modules
    common/debugging
    common/loggers
    common/early_stopping
    common/fast_training
    common/hyperparameters
+   common/lightning_cli
    advanced/lr_finder
    advanced/multi_gpu
    advanced/multiple_loaders
@@ -114,7 +114,6 @@ PyTorch Lightning Documentation
    advanced/pruning_quantization
    advanced/transfer_learning
    advanced/tpu
-   advanced/cluster
    common/test_set
    common/production_inference
 

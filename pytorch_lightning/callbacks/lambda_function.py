@@ -79,82 +79,15 @@ class LambdaCallback(Callback):
         on_load_checkpoint: Optional[Callable] = None,
         on_after_backward: Optional[Callable] = None,
         on_before_zero_grad: Optional[Callable] = None,
+        on_predict_start: Optional[Callable] = None,
+        on_predict_end: Optional[Callable] = None,
+        on_predict_batch_start: Optional[Callable] = None,
+        on_predict_batch_end: Optional[Callable] = None,
+        on_predict_epoch_start: Optional[Callable] = None,
+        on_predict_epoch_end: Optional[Callable] = None,
     ):
-        if on_before_accelerator_backend_setup is not None:
-            self.on_before_accelerator_backend_setup = on_before_accelerator_backend_setup
-        if setup is not None:
-            self.setup = setup
-        if on_configure_sharded_model is not None:
-            self.on_configure_sharded_model = on_configure_sharded_model
-        if teardown is not None:
-            self.teardown = teardown
-        if on_init_start is not None:
-            self.on_init_start = on_init_start
-        if on_init_end is not None:
-            self.on_init_end = on_init_end
-        if on_fit_start is not None:
-            self.on_fit_start = on_fit_start
-        if on_fit_end is not None:
-            self.on_fit_end = on_fit_end
-        if on_sanity_check_start is not None:
-            self.on_sanity_check_start = on_sanity_check_start
-        if on_sanity_check_end is not None:
-            self.on_sanity_check_end = on_sanity_check_end
-        if on_train_batch_start is not None:
-            self.on_train_batch_start = on_train_batch_start
-        if on_train_batch_end is not None:
-            self.on_train_batch_end = on_train_batch_end
-        if on_train_epoch_start is not None:
-            self.on_train_epoch_start = on_train_epoch_start
-        if on_train_epoch_end is not None:
-            self.on_train_epoch_end = on_train_epoch_end
-        if on_validation_epoch_start is not None:
-            self.on_validation_epoch_start = on_validation_epoch_start
-        if on_validation_epoch_end is not None:
-            self.on_validation_epoch_end = on_validation_epoch_end
-        if on_test_epoch_start is not None:
-            self.on_test_epoch_start = on_test_epoch_start
-        if on_test_epoch_end is not None:
-            self.on_test_epoch_end = on_test_epoch_end
-        if on_epoch_start is not None:
-            self.on_epoch_start = on_epoch_start
-        if on_epoch_end is not None:
-            self.on_epoch_end = on_epoch_end
-        if on_batch_start is not None:
-            self.on_batch_start = on_batch_start
-        if on_validation_batch_start is not None:
-            self.on_validation_batch_start = on_validation_batch_start
-        if on_validation_batch_end is not None:
-            self.on_validation_batch_end = on_validation_batch_end
-        if on_test_batch_start is not None:
-            self.on_test_batch_start = on_test_batch_start
-        if on_test_batch_end is not None:
-            self.on_test_batch_end = on_test_batch_end
-        if on_batch_end is not None:
-            self.on_batch_end = on_batch_end
-        if on_train_start is not None:
-            self.on_train_start = on_train_start
-        if on_train_end is not None:
-            self.on_train_end = on_train_end
-        if on_pretrain_routine_start is not None:
-            self.on_pretrain_routine_start = on_pretrain_routine_start
-        if on_pretrain_routine_end is not None:
-            self.on_pretrain_routine_end = on_pretrain_routine_end
-        if on_validation_start is not None:
-            self.on_validation_start = on_validation_start
-        if on_validation_end is not None:
-            self.on_validation_end = on_validation_end
-        if on_test_start is not None:
-            self.on_test_start = on_test_start
-        if on_test_end is not None:
-            self.on_test_end = on_test_end
-        if on_keyboard_interrupt is not None:
-            self.on_keyboard_interrupt = on_keyboard_interrupt
-        if on_save_checkpoint is not None:
-            self.on_save_checkpoint = on_save_checkpoint
-        if on_load_checkpoint is not None:
-            self.on_load_checkpoint = on_load_checkpoint
-        if on_after_backward is not None:
-            self.on_after_backward = on_after_backward
-        if on_before_zero_grad is not None:
-            self.on_before_zero_grad = on_before_zero_grad
+        for k, v in locals().items():
+            if k == "self":
+                continue
+            if v is not None:
+                setattr(self, k, v)

@@ -23,7 +23,13 @@ from pytorch_lightning.utilities.distributed import (  # noqa: F401
     rank_zero_only,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.enums import AMPType, DeviceType, DistributedType, LightningEnum  # noqa: F401
+from pytorch_lightning.utilities.enums import (  # noqa: F401
+    AMPType,
+    DeviceType,
+    DistributedType,
+    GradClipAlgorithmType,
+    LightningEnum,
+)
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
     _BOLTS_AVAILABLE,
@@ -41,16 +47,16 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _RPC_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_6,
     _TORCH_GREATER_EQUAL_1_7,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TORCH_GREATER_EQUAL_1_9,
     _TORCH_LOWER_EQUAL_1_4,
     _TORCH_QUANTIZE_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
+    _TPU_AVAILABLE,
     _XLA_AVAILABLE,
 )
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: F401
-
-_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps

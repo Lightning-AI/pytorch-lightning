@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import math
 import os
 import pickle
@@ -528,6 +529,40 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     assert trainer.global_step >= math.floor(num_train_samples * 1.5), "Model did not train for at least min_steps"
 
 
+def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
+    """ Test that min_epochs/min_steps in Trainer are enforced even if EarlyStopping is triggered. """
+
+    class TestModel(BoringModel):
+        training_step_invoked = 0
+
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            output["loss"] = output["loss"] * 0.0  # force minimal loss to trigger early stopping
+            self.log("loss", output["loss"])
+            self.training_step_invoked += 1
+            assert not self.trainer.should_stop
+            return output
+
+    model = TestModel()
+    early_stop = EarlyStopping(monitor="loss", patience=0)
+    min_epochs = 5
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        min_epochs=min_epochs,
+        limit_val_batches=0,
+        limit_train_batches=2,
+        callbacks=[early_stop]
+    )
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.trainer.trainer"):
+        trainer.fit(model)
+
+    message = f"minimum epochs ({min_epochs}) or minimum steps (None) has not been met. Training will continue"
+    num_messages = len([record.message for record in caplog.records if message in record.message])
+    assert num_messages == min_epochs - 2
+    assert model.training_step_invoked == min_epochs * 2
+
+
 def test_trainer_max_steps_accumulate_batches(tmpdir):
     """Verify model trains according to specified max steps with grad accumulated batches"""
     model = BoringModel()
@@ -764,7 +799,7 @@ def test_nan_loss_detection(tmpdir):
         terminate_on_nan=True,
     )
 
-    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is nan or inf.*"):
+    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_step_inf_loss
 
@@ -875,6 +910,46 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
+def test_gradient_clipping_by_value(tmpdir):
+    """
+    Test gradient clipping by value
+    """
+    tutils.reset_seed()
+
+    model = BoringModel()
+
+    grad_clip_val = 1e-10
+    trainer = Trainer(
+        max_steps=1,
+        max_epochs=1,
+        gradient_clip_val=grad_clip_val,
+        gradient_clip_algorithm='value',
+        default_root_dir=tmpdir
+    )
+
+    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+
+    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
+        """
+        wrap the forward step in a closure so second order methods work
+        """
+        # test that gradient is clipped correctly
+        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        parameters = model.parameters()
+        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+        grad_max = torch.max(torch.stack(grad_max_list))
+        assert abs(grad_max.item() - grad_clip_val) < 1e-11, \
+            f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
+
+        return ret_val
+
+    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    # for the test
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
 @RunIf(min_gpus=1, amp_native=True)
 def test_gradient_clipping_fp16(tmpdir):
     """
@@ -904,6 +979,47 @@ def test_gradient_clipping_fp16(tmpdir):
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
+
+        return ret_val
+
+    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
+@RunIf(min_gpus=1, amp_native=True)
+def test_gradient_clipping_by_value_fp16(tmpdir):
+    """
+    Test gradient clipping by value with fp16
+    """
+    tutils.reset_seed()
+
+    model = BoringModel()
+    grad_clip_val = 1e-10
+    trainer = Trainer(
+        max_steps=1,
+        max_epochs=1,
+        precision=16,
+        gpus=1,
+        gradient_clip_val=grad_clip_val,
+        gradient_clip_algorithm='value',
+        default_root_dir=tmpdir,
+    )
+
+    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+
+    def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
+        """
+        wrap the forward step in a closure so second order methods work
+        """
+        # test that gradient is clipped correctly
+        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        parameters = model.parameters()
+        grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
+        grad_max = torch.max(torch.stack(grad_max_list))
+        assert abs(grad_max.item() - grad_clip_val) < 1e-11, \
+            f"Gradient max value {grad_max} != grad_clip_val {grad_clip_val} ."
 
         return ret_val
 
@@ -1323,7 +1439,9 @@ def test_trainer_setup_call(tmpdir, stage):
 )
 @patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, log_interval):
+
     class TestModel(BoringModel):
+
         def training_step(self, *args, **kwargs):
             self.log("foo", -1)
             return super().training_step(*args, **kwargs)
@@ -1358,7 +1476,7 @@ def test_trainer_profiler_correct_args(profiler, expected):
 
 
 def test_trainer_profiler_incorrect_str_arg():
-    with pytest.raises(ValueError, match=r".*can only be 'simple' or 'advanced'"):
+    with pytest.raises(ValueError, match=r".*can only be 'simple', 'advanced' or 'pytorch'"):
         Trainer(profiler="unknown_profiler")
 
 
@@ -1391,7 +1509,7 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True):
+def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None):
 
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
@@ -1407,6 +1525,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
         gpus=gpus,
         num_processes=num_processes,
         plugins=plugins,
+        progress_bar_refresh_rate=pbrr
     )
     if datamodule:
         results = trainer.predict(model, datamodule=dm)
@@ -1451,9 +1570,10 @@ def test_trainer_predict_grad(tmpdir):
     assert x.expand_as(x).grad_fn is not None
 
 
+@pytest.mark.parametrize('progress_bar_refresh_rate', [0, 5, None])
 @pytest.mark.parametrize('datamodule', [False, True])
-def test_trainer_predict_cpu(tmpdir, datamodule):
-    predict(tmpdir, None, None, 1, datamodule=datamodule)
+def test_trainer_predict_cpu(tmpdir, datamodule, progress_bar_refresh_rate):
+    predict(tmpdir, None, None, 1, datamodule=datamodule, pbrr=progress_bar_refresh_rate)
 
 
 @RunIf(min_gpus=2, special=True)
@@ -1773,3 +1893,62 @@ def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
         trainer.validate()
     with pytest.raises(MisconfigurationException, match=r"\.test\(\)` with `fast_dev_run=True"):
         trainer.test()
+
+
+class TrainerStagesModel(BoringModel):
+
+    def on_train_start(self) -> None:
+        assert self.trainer.model.training
+        assert self.training
+
+    def on_validation_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+    def on_test_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+    def on_predict_start(self) -> None:
+        assert not self.trainer.model.training
+        assert not self.training
+
+
+@pytest.mark.parametrize(['accelerator', 'num_processes'],
+                         [(None, 1), pytest.param('ddp', 2, marks=RunIf(skip_windows=True))])
+def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
+    model = TrainerStagesModel()
+    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model, model.val_dataloader())
+
+
+class TestDummyModelForCheckpoint(BoringModel):
+
+    def validation_step(self, batch, batch_idx):
+        output = self.layer(batch)
+        loss = self.loss(batch, output)
+        self.log('x', loss)
+
+    def validation_epoch_end(self, outputs) -> None:
+        pass
+
+
+@RunIf(skip_windows=True)
+def test_fit_test_synchronization(tmpdir):
+    """Test that the trainer synchronizes processes before returning control back to the caller. """
+    tutils.set_random_master_port()
+    model = TestDummyModelForCheckpoint()
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor='x', mode='min', save_top_k=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        accelerator='ddp_cpu',
+        num_processes=2,
+        callbacks=[checkpoint],
+    )
+    trainer.fit(model)
+    assert os.path.exists(checkpoint.best_model_path), f'Could not find checkpoint at rank {trainer.global_rank}'
+    trainer.test()

@@ -14,9 +14,9 @@
 """Trainer to automate the training."""
 import logging
 import warnings
+from datetime import timedelta
 from itertools import count
 from pathlib import Path
-from traceback import print_exc
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 import torch
@@ -91,6 +91,7 @@ class Trainer(
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
+        gradient_clip_algorithm: str = 'norm',
         process_position: int = 0,
         num_nodes: int = 1,
         num_processes: int = 1,
@@ -108,6 +109,7 @@ class Trainer(
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
+        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         limit_train_batches: Union[int, float] = 1.0,
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
@@ -197,6 +199,8 @@ class Trainer(
 
             gradient_clip_val: 0 means don't clip.
 
+            gradient_clip_algorithm: 'value' means clip_by_value, 'norm' means clip_by_norm. Default: 'norm'
+
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches)
 
             limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches)
@@ -238,6 +242,11 @@ class Trainer(
             max_steps: Stop training after this number of steps. Disabled by default (None).
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
+
+            max_time: Stop training after this amount of time has passed. Disabled by default (None).
+                The time duration can be specified in the format DD:HH:MM:SS (days, hours, minutes seconds), as a
+                :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
+                :class:`datetime.timedelta`.
 
             num_nodes: number of GPU nodes for distributed training.
 
@@ -293,7 +302,7 @@ class Trainer(
 
         """
         super().__init__()
-
+        Trainer._log_api_event("init")
         distributed_backend = distributed_backend or accelerator
 
         # init connectors
@@ -330,8 +339,15 @@ class Trainer(
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
-            callbacks, checkpoint_callback, progress_bar_refresh_rate, process_position, default_root_dir,
-            weights_save_path, resume_from_checkpoint, stochastic_weight_avg
+            callbacks,
+            checkpoint_callback,
+            progress_bar_refresh_rate,
+            process_position,
+            default_root_dir,
+            weights_save_path,
+            resume_from_checkpoint,
+            stochastic_weight_avg,
+            max_time,
         )
 
         # hook
@@ -347,7 +363,12 @@ class Trainer(
 
         # init training tricks
         self.training_tricks_connector.on_trainer_init(
-            gradient_clip_val, track_grad_norm, accumulate_grad_batches, truncated_bptt_steps, terminate_on_nan
+            gradient_clip_val,
+            gradient_clip_algorithm,
+            track_grad_norm,
+            accumulate_grad_batches,
+            truncated_bptt_steps,
+            terminate_on_nan,
         )
         self.train_loop.on_trainer_init(
             max_epochs,
@@ -409,10 +430,11 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        Trainer._log_api_event("fit")
         # we reuse fit for other functions. When already set, it shouldn't be modified.
         if not self.state.running:
             self.state = TrainerState.FITTING
-        if self._running_stage is None:
+        if self._running_stage is None or self.tuning:
             self.training = True
 
         # set local properties on the model
@@ -574,11 +596,11 @@ class Trainer(
         self.checkpoint_connector.has_trained = False
 
         # enable train mode
-        model = self.lightning_module
-        model.train()
+        self.model.train()
         torch.set_grad_enabled(True)
 
         # reload data when needed
+        model = self.lightning_module
         self.train_loop.reset_train_val_dataloaders(model)
 
         # hook
@@ -599,6 +621,7 @@ class Trainer(
                     self.train_loop.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
+                    self.train_loop.on_train_end()
                     return
 
                 # early stopping
@@ -607,6 +630,7 @@ class Trainer(
 
                 if self.should_stop:
                     if met_min_epochs and met_min_steps:
+                        self.train_loop.on_train_end()
                         return
                     else:
                         log.info(
@@ -614,6 +638,7 @@ class Trainer(
                             f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
                             ' not been met. Training will continue...'
                         )
+                        self.should_stop = False
 
             # hook
             self.train_loop.on_train_end()
@@ -624,14 +649,15 @@ class Trainer(
             if not self.interrupted:
                 self.state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
-        except (RuntimeError, AssertionError):
-            # if an exception is raised, the finally block is executed and can hide the actual exception
-            # that was initially raised if `on_train_end` also raises an exception. we want to avoid that
-            # for assertions and other runtime errors so we aren't misled while debugging
-            print_exc()
-        finally:
-            # hook
-            self.train_loop.on_train_end()
+                # same treatment as below
+                self.accelerator.on_train_end()
+                self._running_stage = None
+        except BaseException:
+            # give accelerators a chance to finish
+            self.accelerator.on_train_end()
+            # reset bookkeeping
+            self._running_stage = None
+            raise
 
     def run_evaluation(self, on_epoch=False):
         if not (self.evaluating or self.sanity_checking):
@@ -640,9 +666,6 @@ class Trainer(
                 " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
             )
             self.validating = True
-
-        # reset cached results
-        self.logger_connector.reset()
 
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
@@ -662,7 +685,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_start()
 
         # set up the eval loop
-        self.evaluation_loop.setup(model, max_batches, dataloaders)
+        self.evaluation_loop.setup(max_batches, dataloaders)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_start()
@@ -694,7 +717,7 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # log batch metrics
-                self.evaluation_loop.log_evaluation_step_metrics(output, batch_idx)
+                self.evaluation_loop.log_evaluation_step_metrics(batch_idx)
 
                 # track epoch level outputs
                 dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
@@ -702,11 +725,20 @@ class Trainer(
             # store batch level output per dataloader
             self.evaluation_loop.outputs.append(dl_outputs)
 
+        outputs = self.evaluation_loop.outputs
+
+        # reset outputs
+        self.evaluation_loop.outputs = []
+
+        # with a single dataloader don't pass a 2D list
+        if self.evaluation_loop.num_dataloaders == 1:
+            outputs = outputs[0]
+
         # lightning module method
-        deprecated_eval_results = self.evaluation_loop.evaluation_epoch_end()
+        self.evaluation_loop.evaluation_epoch_end(outputs)
 
         # hook
-        self.evaluation_loop.on_evaluation_epoch_end()
+        self.evaluation_loop.on_evaluation_epoch_end(outputs)
 
         # update epoch-level lr_schedulers
         if on_epoch:
@@ -716,7 +748,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_end()
 
         # log epoch metrics
-        eval_loop_results = self.evaluation_loop.log_epoch_metrics_on_evaluation_end()
+        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -724,9 +756,12 @@ class Trainer(
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
 
+        # reset cached results
+        self.logger_connector.reset()
+
         torch.set_grad_enabled(True)
 
-        return eval_loop_results, deprecated_eval_results
+        return eval_loop_results
 
     def track_output_for_epoch_end(self, outputs, output):
         if output is not None:
@@ -748,7 +783,7 @@ class Trainer(
         assert self.evaluating
 
         with self.profiler.profile(f"run_{self._running_stage}_evaluation"):
-            eval_loop_results, _ = self.run_evaluation()
+            eval_loop_results = self.run_evaluation()
 
         if len(eval_loop_results) == 0:
             return 1
@@ -763,8 +798,6 @@ class Trainer(
         return eval_loop_results
 
     def run_predict(self):
-        self.predict_loop.on_predict_start()
-
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -783,6 +816,10 @@ class Trainer(
         # set up the eval loop
         self.predict_loop.setup(model, max_batches, dataloaders)
 
+        # call hook
+        self.call_hook("on_predict_start")
+        self.call_hook("on_predict_epoch_start")
+
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dataloader = self.accelerator.process_dataloader(dataloader)
@@ -800,7 +837,7 @@ class Trainer(
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
-        self.predict_loop.on_predict_end()
+        self.call_hook("on_predict_end")
 
         # re-enable grads
         torch.set_grad_enabled(True)
@@ -821,7 +858,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            _, eval_results = self.run_evaluation()
+            self.run_evaluation()
 
             self.on_sanity_check_end()
 
@@ -860,13 +897,14 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        Trainer._log_api_event("validate")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.VALIDATING
         self.validating = True
 
         # If you supply a datamodule you can't supply val_dataloaders
-        if val_dataloaders and datamodule:
+        if val_dataloaders is not None and datamodule:
             raise MisconfigurationException(
                 'You cannot pass both `trainer.validate(val_dataloaders=..., datamodule=...)`'
             )
@@ -922,13 +960,14 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        Trainer._log_api_event("test")
         self.verbose_evaluate = verbose
 
         self.state = TrainerState.TESTING
         self.testing = True
 
         # If you supply a datamodule you can't supply test_dataloaders
-        if test_dataloaders and datamodule:
+        if test_dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.test(test_dataloaders=..., datamodule=...)`')
 
         model_provided = model is not None
@@ -999,16 +1038,12 @@ class Trainer(
         r"""
 
         Separates from fit to make sure you never run on your predictions set until you want to.
-
         This will call the model forward function to compute predictions.
 
         Args:
-            model: The model to predict on.
-
-            dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying inference samples.
-
-            datamodule: A instance of :class:`LightningDataModule`.
+            model: The model to predict with.
+            dataloaders: Either a single PyTorch DataLoader or a list of them, specifying inference samples.
+            datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -1018,13 +1053,14 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         # If you supply a datamodule you can't supply dataloaders
+        Trainer._log_api_event("predict")
 
         model = model or self.lightning_module
 
         self.state = TrainerState.PREDICTING
         self.predicting = True
 
-        if dataloaders and datamodule:
+        if dataloaders is not None and datamodule:
             raise MisconfigurationException(
                 'You cannot pass dataloaders to trainer.predict if you supply a datamodule.'
             )
@@ -1063,6 +1099,7 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
         """
+        Trainer._log_api_event("tune")
         self.state = TrainerState.TUNING
         self.tuning = True
 
@@ -1153,3 +1190,7 @@ class Trainer(
         if not skip:
             self._cache_logged_metrics()
         return output
+
+    @staticmethod
+    def _log_api_event(event: str) -> None:
+        torch._C._log_api_usage_once("lightning.trainer." + event)

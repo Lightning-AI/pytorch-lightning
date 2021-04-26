@@ -12,24 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, TYPE_CHECKING
+from typing import Any, Callable, Generator
 
 import torch
-from torch.optim import LBFGS
+from torch.optim import LBFGS, Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TYPE_CHECKING:
-    from torch.optim import Optimizer
-
-    from pytorch_lightning.core import LightningModule
-
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
+    """ Plugin for native mixed precision training with :mod:`torch.cuda.amp`."""
 
     def __init__(self) -> None:
+        super().__init__()
         if not _NATIVE_AMP_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for native AMP but your PyTorch version does not support it."
@@ -41,9 +39,9 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def backward(
         self,
-        model: 'LightningModule',
+        model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
@@ -71,8 +69,8 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def pre_optimizer_step(
         self,
-        pl_module: 'LightningModule',
-        optimizer: 'Optimizer',
+        pl_module: 'pl.LightningModule',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
@@ -93,7 +91,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
         return False
 
-    def post_optimizer_step(self, optimizer: 'Optimizer', optimizer_idx: int) -> None:
+    def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Updates the GradScaler"""
         self.scaler.step(optimizer)
         self.scaler.update()
@@ -117,7 +115,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             yield
 
     @contextmanager
-    def predict_context(self) -> Generator[None, None, None]:
+    def predict_step_context(self) -> Generator[None, None, None]:
         """Enable autocast context"""
         with torch.cuda.amp.autocast():
             yield
