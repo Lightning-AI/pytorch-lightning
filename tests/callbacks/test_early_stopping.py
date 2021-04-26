@@ -24,7 +24,6 @@ import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -209,15 +208,17 @@ def test_early_stopping_no_val_step(tmpdir):
     )
     trainer.fit(model, datamodule=dm)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch < trainer.max_epochs - 1
 
 
-@pytest.mark.parametrize("stopping_threshold,divergence_theshold,losses,expected_epoch", [
-    (None, None, [8, 4, 2, 3, 4, 5, 8, 10], 5),
-    (2.9, None, [9, 8, 7, 6, 5, 6, 4, 3, 2, 1], 8),
-    (None, 15.9, [9, 4, 2, 16, 32, 64], 3),
-])
+@pytest.mark.parametrize(
+    "stopping_threshold,divergence_theshold,losses,expected_epoch", [
+        (None, None, [8, 4, 2, 3, 4, 5, 8, 10], 5),
+        (2.9, None, [9, 8, 7, 6, 5, 6, 4, 3, 2, 1], 8),
+        (None, 15.9, [9, 4, 2, 16, 32, 64], 3),
+    ]
+)
 def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_theshold, losses, expected_epoch):
 
     class CurrentModel(BoringModel):

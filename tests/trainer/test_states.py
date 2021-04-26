@@ -57,15 +57,15 @@ def test_trainer_state_while_running(tmpdir, extra_params):
 
     model = TestModel(TrainerState.TUNING)
     trainer.tune(model)
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state.finished
 
     model = TestModel(TrainerState.FITTING)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state.finished
 
     model = TestModel(TrainerState.TESTING)
     trainer.test(model)
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state.finished
 
 
 @pytest.mark.parametrize(

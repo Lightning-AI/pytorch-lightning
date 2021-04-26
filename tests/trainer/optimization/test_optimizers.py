@@ -15,7 +15,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel
@@ -37,7 +36,7 @@ def test_optimizer_with_scheduling(tmpdir):
         val_check_interval=0.5,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     init_lr = hparams.get('learning_rate')
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
@@ -67,7 +66,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
         limit_train_batches=0.2,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     init_lr = hparams.get('learning_rate')
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
@@ -130,7 +129,7 @@ def test_reducelronplateau_scheduling(tmpdir):
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     lr_scheduler = trainer.lr_schedulers[0]
     assert lr_scheduler == dict(
         scheduler=lr_scheduler['scheduler'],
@@ -251,7 +250,7 @@ def test_none_optimizer(tmpdir):
     trainer.fit(model)
 
     # verify training completed
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_configure_optimizer_from_dict(tmpdir):
@@ -272,7 +271,7 @@ def test_configure_optimizer_from_dict(tmpdir):
         max_epochs=1,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_configure_optimizers_with_frequency(tmpdir):
@@ -284,7 +283,7 @@ def test_configure_optimizers_with_frequency(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize("fn", ("validate", "test"))
