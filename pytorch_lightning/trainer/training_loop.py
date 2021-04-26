@@ -437,10 +437,7 @@ class TrainLoop:
 
         # clip gradients
         self.trainer.accelerator.clip_gradients(
-            self.trainer.model,
-            optimizer,
-            self.trainer.gradient_clip_val,
-            gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
+            optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
         )
         self._cur_grad_norm_dict = grad_norm_dic
 
