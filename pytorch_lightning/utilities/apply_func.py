@@ -16,7 +16,7 @@ from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -33,13 +33,17 @@ else:
     Batch = type(None)
 
 
-def to_dtype_tensor(value, dtype: torch.dtype = None, device: torch.device = None):
+def to_dtype_tensor(
+    value: Union[int, float, List[Union[int, float]]],
+    dtype: Optional[torch.dtype] = None,
+    device: Union[str, torch.device] = None
+) -> torch.Tensor:
     if device is None:
         raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.tensor(value, dtype=dtype, device=device)
 
 
-def from_numpy(value, device: torch.device = None):
+def from_numpy(value: np.ndarray, device: Union[str, torch.device] = None) -> torch.Tensor:
     if device is None:
         raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.from_numpy(value).to(device)
@@ -56,11 +60,11 @@ CONVERSION_DTYPES = [
 
 def apply_to_collection(
     data: Any,
-    dtype: Union[type, tuple],
+    dtype: Union[torch.dtype, Tuple[torch.dtype]],
     function: Callable,
-    *args,
-    wrong_dtype: Optional[Union[type, tuple]] = None,
-    **kwargs
+    *args: Any,
+    wrong_dtype: Optional[Union[torch.dtype, Tuple[torch.dtype]]] = None,
+    **kwargs: Any
 ) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.
@@ -87,7 +91,7 @@ def apply_to_collection(
     if isinstance(data, Mapping):
         return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs) for k, v in data.items()})
 
-    if isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
+    if isinstance(data, Tuple) and hasattr(data, '_fields'):  # named tuple
         return elem_type(*(apply_to_collection(d, dtype, function, *args, **kwargs) for d in data))
 
     if isinstance(data, Sequence) and not isinstance(data, str):
@@ -116,14 +120,14 @@ class TransferableDataType(ABC):
     """
 
     @classmethod
-    def __subclasshook__(cls, subclass):
+    def __subclasshook__(cls, subclass: Any) -> Union[bool, type(NotImplemented)]:
         if cls is TransferableDataType:
             to = getattr(subclass, "to", None)
             return callable(to)
         return NotImplemented
 
 
-def move_data_to_device(batch: Any, device: torch.device):
+def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
     """
     Transfers a collection of data to the given device. Any object that defines a method
     ``to(device)`` will be moved and all other objects in the collection will be left untouched.
@@ -141,7 +145,7 @@ def move_data_to_device(batch: Any, device: torch.device):
         - :class:`torch.device`
     """
 
-    def batch_to(data):
+    def batch_to(data: Any) -> Any:
         # try to move torchtext data first
         if _TORCHTEXT_AVAILABLE and isinstance(data, Batch):
 
@@ -161,14 +165,14 @@ def move_data_to_device(batch: Any, device: torch.device):
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
-def convert_to_tensors(data, device: torch.device = None):
+def convert_to_tensors(data: Any, device: Union[str, torch.device] = None) -> Any:
     if device is None:
         raise MisconfigurationException("device (torch.device) should be provided.")
 
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
 
-    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device):
+    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: Union[str, torch.device]) -> torch.Tensor:
         return t.to(device).contiguous()
 
     data = apply_to_collection(data, torch.Tensor, partial(_move_to_device_and_make_contiguous, device=device))
