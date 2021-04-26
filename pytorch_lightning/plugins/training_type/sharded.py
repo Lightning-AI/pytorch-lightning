@@ -20,7 +20,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -33,10 +33,15 @@ if _FAIRSCALE_AVAILABLE:
 class DDPShardedPlugin(DDPPlugin):
     """ Optimizer and gradient sharded training provided by FairScale. """
 
+    _REDUCE_BUFFER_SIZE_DEFAULT = 2**23  # 8M
+
     def configure_ddp(self):
         self._wrap_optimizers()
         self._model = ShardedDataParallel(
-            LightningShardedDataParallel(self.model), sharded_optimizer=self.lightning_module.trainer.optimizers
+            LightningShardedDataParallel(self.model),
+            sharded_optimizer=self.lightning_module.trainer.optimizers,
+            # For multi-node training, enabling bucketing will improve performance.
+            reduce_buffer_size=self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0,
         )
         setattr(self._model, "require_backward_grad_sync", False)
 
@@ -48,6 +53,12 @@ class DDPShardedPlugin(DDPPlugin):
             if not isinstance(optimizer, OSS):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
+                if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
+                    is_fp16 = self.lightning_module.trainer.precision == 16
+                    # For multi-node training, compressing the model shards in fp16 before broadcasting
+                    # improves performance. When using PyTorch AMP, it will not degrade
+                    # the model performance.
+                    zero_optimizer.broadcast_fp16 = is_fp16 and self.num_nodes > 1
                 optimizers[x] = zero_optimizer
                 del optimizer
         trainer = self.lightning_module.trainer
@@ -59,7 +70,7 @@ class DDPShardedPlugin(DDPPlugin):
             return
         self._reinit_optimizers_with_oss()
 
-    def optimizer_state(self, optimizer: 'OSS') -> Optional[dict]:
+    def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
         if is_lightning_optimizer(optimizer):
             optimizer = optimizer._optimizer
         optimizer.consolidate_state_dict()
