@@ -16,7 +16,7 @@ import logging
 import os
 import warnings
 from functools import partial, wraps
-from typing import Any, Optional, Union
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -41,10 +41,10 @@ else:
 log = logging.getLogger(__name__)
 
 
-def rank_zero_only(fn):
+def rank_zero_only(fn: Callable) -> Optional[Callable]:
 
     @wraps(fn)
-    def wrapped_fn(*args, **kwargs):
+    def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
         if rank_zero_only.rank == 0:
             return fn(*args, **kwargs)
 
@@ -65,15 +65,15 @@ def _get_rank() -> int:
 rank_zero_only.rank = getattr(rank_zero_only, 'rank', _get_rank())
 
 
-def _warn(*args, **kwargs):
+def _warn(*args: Any, **kwargs: Any) -> None:
     warnings.warn(*args, **kwargs)
 
 
-def _info(*args, **kwargs):
+def _info(*args: Any, **kwargs: Any) -> None:
     log.info(*args, **kwargs)
 
 
-def _debug(*args, **kwargs):
+def _debug(*args: Any, **kwargs: Any) -> None:
     log.debug(*args, **kwargs)
 
 
@@ -83,7 +83,7 @@ rank_zero_warn = rank_zero_only(_warn)
 rank_zero_deprecation = partial(rank_zero_warn, category=DeprecationWarning)
 
 
-def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None):
+def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None) -> List[torch.Tensor]:
     """
     Function to gather all tensors from several ddp processes onto a list that
     is broadcasted to all processes
@@ -114,7 +114,7 @@ def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None)
 
 
 def sync_ddp_if_available(
-    result: Union[torch.Tensor],
+    result: torch.Tensor,
     group: Optional[Any] = None,
     reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
@@ -135,7 +135,7 @@ def sync_ddp_if_available(
 
 
 def sync_ddp(
-    result: Union[torch.Tensor],
+    result: torch.Tensor,
     group: Optional[Any] = None,
     reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
@@ -174,7 +174,7 @@ def sync_ddp(
 class AllGatherGrad(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, tensor, group=group.WORLD):
+    def forward(ctx: object, tensor: torch.Tensor, group=group.WORLD) -> torch.Tensor:
         ctx.group = group
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
@@ -185,7 +185,7 @@ class AllGatherGrad(torch.autograd.Function):
         return gathered_tensor
 
     @staticmethod
-    def backward(ctx, *grad_output):
+    def backward(ctx: object, *grad_output: Sequence[torch.Tensor]) -> Tuple[torch.Tensor, None]:
         grad_output = torch.cat(grad_output)
 
         torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
@@ -194,7 +194,7 @@ class AllGatherGrad(torch.autograd.Function):
 
 
 def all_gather_ddp_if_available(
-    tensor: Union[torch.Tensor], group: Optional[Any] = None, sync_grads: bool = False
+    tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
 ) -> torch.Tensor:
     """
     Function to gather a tensor from several distributed processes
@@ -220,8 +220,8 @@ def all_gather_ddp_if_available(
 def register_ddp_comm_hook(
     model: DistributedDataParallel,
     ddp_comm_state: Optional[object] = None,
-    ddp_comm_hook: Optional[callable] = None,
-    ddp_comm_wrapper: Optional[callable] = None,
+    ddp_comm_hook: Optional[Callable] = None,
+    ddp_comm_wrapper: Optional[Callable] = None,
 ) -> None:
     """
     Function to register communication hook for DDP model
