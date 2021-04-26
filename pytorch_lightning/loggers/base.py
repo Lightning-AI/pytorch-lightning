@@ -319,7 +319,7 @@ class LightningLoggerBase(ABC):
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> dict:
         """
         Save logger state to a checkpoint
-        
+
         Args:
             checkpoint: the checkpoint dictionary that will be saved
 

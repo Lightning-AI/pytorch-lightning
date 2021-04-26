@@ -284,6 +284,13 @@ class CometLogger(LightningLoggerBase):
 
         return "comet-default"
 
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> dict:
+        return self.__getstate__()
+
+    def on_load_checkpoint(self, logger_state: Dict[str, Any]) -> None:
+        for k, v in logger_state.items():
+            self.__dict__[k] = v
+
     @property
     def version(self) -> str:
         # Don't create an experiment if we don't have one
