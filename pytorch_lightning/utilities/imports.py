@@ -17,6 +17,7 @@ import operator
 import platform
 import sys
 from importlib.util import find_spec
+from typing import Callable
 
 import torch
 from packaging.version import Version
@@ -42,7 +43,7 @@ def _module_available(module_path: str) -> bool:
         return False
 
 
-def _compare_version(package: str, op, version) -> bool:
+def _compare_version(package: str, op: Callable, version: str) -> bool:
     """
     Compare package version with some requirements
 
