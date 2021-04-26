@@ -78,7 +78,7 @@ class ConfigValidator(object):
 
         trainer.overriden_optimizer_step = is_overridden('optimizer_step', model)
         trainer.overriden_optimizer_zero_grad = is_overridden('optimizer_zero_grad', model)
-        automatic_optimization = trainer.train_loop.automatic_optimization
+        automatic_optimization = model.automatic_optimization
         going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
 
         has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
