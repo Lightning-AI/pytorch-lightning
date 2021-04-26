@@ -316,6 +316,27 @@ class LightningLoggerBase(ABC):
         """Do any cleanup that is necessary to close an experiment."""
         self.save()
 
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> dict:
+        """
+        Save logger state to a checkpoint
+        
+        Args:
+            checkpoint: the checkpoint dictionary that will be saved
+
+        Returns:
+            The logger state
+        """
+        pass
+
+    def on_load_checkpoint(self, logger_state: Dict[str, Any]) -> None:
+        """
+        Restore logger state from a checkpoint
+
+        Args:
+            logger_state: The logger state that was returned from ``on_save_checkpoint``
+        """
+        pass
+
     @property
     def save_dir(self) -> Optional[str]:
         """

@@ -195,8 +195,8 @@ class CheckpointConnector:
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
 
-        if 'logger' in checkpoint:
-            self.trainer.logger = checkpoint['logger']
+        if 'logger_state' in checkpoint:
+            self.trainer.logger.on_load_checkpoint(checkpoint['logger_state'])
 
     # ----------------------------------
     # PRIVATE OPS
@@ -308,7 +308,12 @@ class CheckpointConnector:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
 
             # dump logger
-            checkpoint['logger'] = self.trainer.logger
+            if self.trainer.logger is not None:
+                logger_state = self.trainer.logger.on_save_checkpoint(checkpoint)
+
+                if logger_state is not None:
+                    checkpoint['logger_state'] = logger_state
+
 
         # dump hyper-parameters
         if model.hparams:
