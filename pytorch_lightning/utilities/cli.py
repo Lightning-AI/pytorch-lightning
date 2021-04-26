@@ -13,8 +13,9 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, Optional, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -32,7 +33,7 @@ else:
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning"""
 
-    def __init__(self, *args, parse_as_dict: bool = True, **kwargs) -> None:
+    def __init__(self, *args: Any, parse_as_dict: bool = True, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input
 
         For full details of accepted arguments see `ArgumentParser.__init__
@@ -50,7 +51,7 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_lightning_class_args(
         self,
-        lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule]],
+        lightning_class: Union['pl.Trainer', 'pl.LightningModule', 'pl.LightningDataModule'],
         nested_key: str,
         subclass_mode: bool = False
     ) -> None:
@@ -92,16 +93,16 @@ class LightningCLI:
 
     def __init__(
         self,
-        model_class: Type[LightningModule],
-        datamodule_class: Type[LightningDataModule] = None,
-        save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
-        trainer_class: Type[Trainer] = Trainer,
+        model_class: 'pl.LightningModule',
+        datamodule_class: Optional['pl.LightningDataModule'] = None,
+        save_config_callback: SaveConfigCallback = SaveConfigCallback,
+        trainer_class: 'pl.Trainer' = Trainer,
         trainer_defaults: Dict[str, Any] = None,
         seed_everything_default: int = None,
         description: str = 'pytorch-lightning trainer command line tool',
         env_prefix: str = 'PL',
         env_parse: bool = False,
-        parser_kwargs: Dict[str, Any] = None,
+        parser_kwargs: Optional[Dict[str, Any]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False
     ) -> None:
