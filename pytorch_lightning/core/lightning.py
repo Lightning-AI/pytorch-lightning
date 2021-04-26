@@ -74,7 +74,7 @@ class LightningModule(
         "model_size",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
