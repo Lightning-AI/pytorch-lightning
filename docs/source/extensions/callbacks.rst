@@ -104,7 +104,6 @@ Lightning has a few built-in callbacks.
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
-    BasePredictionWriter
     ProgressBar
     ProgressBarBase
     QuantizationAwareTraining

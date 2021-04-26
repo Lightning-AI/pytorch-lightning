@@ -48,7 +48,7 @@ class PredictLoop(object):
 
     @property
     def should_store_predictions(self) -> bool:
-        return self.return_predictions or any(c.interval.on_epoch for c in self.trainer.prediction_writer_callbacks)
+        return self.return_predictions
 
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []
