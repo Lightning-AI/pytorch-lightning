@@ -28,6 +28,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class TrainerOptimizersMixin(ABC):
 
     _lightning_optimizers: Optional[List[LightningOptimizer]]
+    # todo: Remove this once the RPCPlugin is removed
+    lightning_module: LightningModule
 
     def init_optimizers(self, model: LightningModule) -> Tuple[List, List, List]:
         self._lightning_optimizers = None
@@ -80,7 +82,8 @@ class TrainerOptimizersMixin(ABC):
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
 
-        is_manual_optimization = not model.automatic_optimization
+        # todo: change this to directly reference model.automatic_optimization once pipe is removed
+        is_manual_optimization = not self.lightning_module.automatic_optimization
         lr_schedulers = self.configure_schedulers(lr_schedulers, monitor, is_manual_optimization)
         _validate_scheduler_optimizer(optimizers, lr_schedulers)
 
