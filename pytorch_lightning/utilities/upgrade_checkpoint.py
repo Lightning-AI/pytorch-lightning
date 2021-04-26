@@ -30,7 +30,7 @@ KEYS_MAPPING = {
 log = logging.getLogger(__name__)
 
 
-def upgrade_checkpoint(filepath):
+def upgrade_checkpoint(filepath: str) -> None:
     checkpoint = torch.load(filepath)
     checkpoint["callbacks"] = checkpoint.get("callbacks") or {}
 

@@ -150,7 +150,7 @@ def collect_init_args(frame:object, path_args: List[Dict[str, Any]], inside: boo
         return path_args
 
 
-def flatten_dict(source: Dict[str, Any], result: Optioanl[Dict[str, Any]] = None) -> Dict[str, Any]:
+def flatten_dict(source: Dict[str, Any], result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     if result is None:
         result = {}
 

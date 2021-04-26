@@ -78,7 +78,7 @@ def _select_seed_randomly(min_seed_value: int = 0, max_seed_value: int = 255) ->
     return random.randint(min_seed_value, max_seed_value)
 
 
-def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # pragma: no cover
+def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover
     """
     The worker_init_fn that Lightning automatically adds to your dataloader if you previously set
     set the seed with ``seed_everything(seed, workers=True)``.
