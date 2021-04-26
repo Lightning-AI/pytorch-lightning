@@ -338,7 +338,7 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         min_steps=min_steps,
-        min_epochs=min_epochs
+        min_epochs=min_epochs,
     )
     trainer.fit(model)
 
@@ -359,8 +359,13 @@ def test_min_steps_override_early_stopping_functionality(tmpdir, step_freeze: in
     by_min_epochs = min_epochs * limit_train_batches
 
     # Make sure the trainer stops for the max of all minimum requirements
-    assert trainer.global_step == max(min_steps, by_early_stopping, by_min_epochs), \
-        (trainer.global_step, max(min_steps, by_early_stopping, by_min_epochs), step_freeze, min_steps, min_epochs)
+    assert trainer.global_step == max(min_steps, by_early_stopping, by_min_epochs), (
+        trainer.global_step,
+        max(min_steps, by_early_stopping, by_min_epochs),
+        step_freeze,
+        min_steps,
+        min_epochs,
+    )
 
     _logger.disabled = False
 
@@ -401,53 +406,82 @@ class EarlyStoppingModel(BoringModel):
     "callbacks, expected_stop_epoch, check_on_train_epoch_end, accelerator, num_processes",
     [
         ([EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)], 3, False, None, 1),
-        ([EarlyStopping(monitor='cba', patience=3),
-          EarlyStopping(monitor='abc')], 3, False, None, 1),
-        pytest.param([EarlyStopping(monitor='abc'),
-                      EarlyStopping(monitor='cba', patience=3)],
-                     3,
-                     False,
-                     'ddp_cpu',
-                     2,
-                     marks=RunIf(skip_windows=True)),
-        pytest.param([EarlyStopping(monitor='cba', patience=3),
-                      EarlyStopping(monitor='abc')],
-                     3,
-                     False,
-                     'ddp_cpu',
-                     2,
-                     marks=RunIf(skip_windows=True)),
-        ([
-            EarlyStopping(monitor='abc', check_on_train_epoch_end=True),
-            EarlyStopping(monitor='cba', patience=3, check_on_train_epoch_end=True)
-        ], 3, True, None, 1),
-        ([
-            EarlyStopping(monitor='cba', patience=3, check_on_train_epoch_end=True),
-            EarlyStopping(monitor='abc', check_on_train_epoch_end=True)
-        ], 3, True, None, 1),
-        pytest.param([
-            EarlyStopping(monitor='abc', check_on_train_epoch_end=True),
-            EarlyStopping(monitor='cba', patience=3, check_on_train_epoch_end=True)
-        ],
-                     3,
-                     True,
-                     'ddp_cpu',
-                     2,
-                     marks=RunIf(skip_windows=True)),
-        pytest.param([
-            EarlyStopping(monitor='cba', patience=3, check_on_train_epoch_end=True),
-            EarlyStopping(monitor='abc', check_on_train_epoch_end=True)
-        ],
-                     3,
-                     True,
-                     'ddp_cpu',
-                     2,
-                     marks=RunIf(skip_windows=True)),
+        (
+            [EarlyStopping(monitor='cba', patience=3),
+             EarlyStopping(monitor='abc')],
+            3,
+            False,
+            None,
+            1,
+        ),
+        pytest.param(
+            [EarlyStopping(monitor='abc'), EarlyStopping(monitor='cba', patience=3)],
+            3,
+            False,
+            'ddp_cpu',
+            2,
+            marks=RunIf(skip_windows=True),
+        ),
+        pytest.param(
+            [EarlyStopping(monitor='cba', patience=3),
+             EarlyStopping(monitor='abc')],
+            3,
+            False,
+            'ddp_cpu',
+            2,
+            marks=RunIf(skip_windows=True),
+        ),
+        (
+            [
+                EarlyStopping(monitor='abc', check_on_train_epoch_end=True),
+                EarlyStopping(monitor='cba', patience=3, check_on_train_epoch_end=True),
+            ],
+            3,
+            True,
+            None,
+            1,
+        ),
+        (
+            [
+                EarlyStopping(monitor='cba', patience=3, check_on_train_epoch_end=True),
+                EarlyStopping(monitor='abc', check_on_train_epoch_end=True),
+            ],
+            3,
+            True,
+            None,
+            1,
+        ),
+        pytest.param(
+            [
+                EarlyStopping(monitor='abc', check_on_train_epoch_end=True),
+                EarlyStopping(monitor='cba', patience=3, check_on_train_epoch_end=True),
+            ],
+            3,
+            True,
+            'ddp_cpu',
+            2,
+            marks=RunIf(skip_windows=True),
+        ),
+        pytest.param(
+            [
+                EarlyStopping(monitor='cba', patience=3, check_on_train_epoch_end=True),
+                EarlyStopping(monitor='abc', check_on_train_epoch_end=True),
+            ],
+            3,
+            True,
+            'ddp_cpu',
+            2,
+            marks=RunIf(skip_windows=True),
+        ),
     ],
 )
 def test_multiple_early_stopping_callbacks(
-    tmpdir, callbacks: List[EarlyStopping], expected_stop_epoch: int, check_on_train_epoch_end: bool,
-    accelerator: Optional[str], num_processes: int
+    tmpdir,
+    callbacks: List[EarlyStopping],
+    expected_stop_epoch: int,
+    check_on_train_epoch_end: bool,
+    accelerator: Optional[str],
+    num_processes: int,
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
@@ -459,6 +493,6 @@ def test_multiple_early_stopping_callbacks(
         overfit_batches=0.20,
         max_epochs=20,
         accelerator=accelerator,
-        num_processes=num_processes
+        num_processes=num_processes,
     )
     trainer.fit(model)
