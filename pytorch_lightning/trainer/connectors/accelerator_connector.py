@@ -173,7 +173,7 @@ class AcceleratorConnector(object):
                         ' Found more than 1 training type plugin:'
                         f' {TrainingTypePluginsRegistry[plug]["plugin"]} registered to {plug}'
                     )
-            elif isinstance(plug, str):
+            if isinstance(plug, str):
                 # Reset the distributed type as the user has overridden training type
                 # via the plugins argument
                 self._distrib_type = None
@@ -492,7 +492,9 @@ class AcceleratorConnector(object):
 
     def set_distributed_mode(self, distributed_backend: Optional[str] = None):
 
-        if distributed_backend is not None:
+        if distributed_backend is not None and distributed_backend in TrainingTypePluginsRegistry:
+            self.distributed_backend = TrainingTypePluginsRegistry[distributed_backend]["distributed_backend"]
+        elif distributed_backend is not None:
             self.distributed_backend = distributed_backend
 
         if isinstance(self.distributed_backend, Accelerator):

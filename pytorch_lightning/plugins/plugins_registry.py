@@ -82,6 +82,7 @@ class _TrainingTypePluginsRegistry(UserDict):
 
         def do_register(plugin: Callable) -> Callable:
             data["plugin"] = plugin
+            data["distributed_backend"] = plugin.distributed_backend
             self[name] = data
             return plugin
 
