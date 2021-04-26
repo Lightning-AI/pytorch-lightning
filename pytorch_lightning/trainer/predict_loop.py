@@ -27,7 +27,8 @@ class PredictLoop(object):
         self.max_batches = None
         self.num_dataloaders = None
         self.warning_cache = WarningCache()
-        self.batch_indices: Optional[List[int]] = []
+        self.batch_indices: Optional[List[int]] = None
+        self.epoch_batch_indices: Optional[List[List[int]]] = None
         self._return_predictions = not trainer.training_type_plugin.use_spawn
         self._previous_grad_status: Optional[bool] = None
 
@@ -78,8 +79,8 @@ class PredictLoop(object):
 
         self.max_batches = max_batches
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
-        self._predictions = [[] for _ in range(self.num_dataloaders)]
-        self._batches_indices = [[] for _ in range(self.num_dataloaders)]
+        self.predictions = [[] for _ in range(self.num_dataloaders)]
+        self.epoch_batch_indices = [[] for _ in range(self.num_dataloaders)]
 
     def _get_num_dataloaders(self, dataloaders):
         # case where user does:
@@ -111,14 +112,14 @@ class PredictLoop(object):
         self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
         if self.should_store_predictions:
-            self._predictions[dataloader_idx].append(predictions)
+            self.predictions[dataloader_idx].append(predictions)
 
     def _store_batch_indices(self, dataloader_idx: int) -> None:
         batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
         if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             self.batch_indices = batch_sampler.batch_indices
             if self.should_store_predictions:
-                self._batches_indices[dataloader_idx].append(batch_sampler.batch_indices)
+                self.epoch_batch_indices[dataloader_idx].append(batch_sampler.batch_indices)
 
     def on_predict_start(self):
         # enable eval mode + no grads
@@ -133,16 +134,16 @@ class PredictLoop(object):
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
 
-        results: List[List[Any]] = self._predictions
+        results: List[List[Any]] = self.predictions
 
         self.trainer.call_hook("on_predict_epoch_end", results)
 
         if self.return_predictions:
-            return results[0] if len(results) == 1 else results
+            return results[0] if self.num_dataloaders == 1 else results
 
     def on_predict_end(self):
         # clean memory
-        self._predictions = None
+        self.predictions = None
         self._batches_indices = None
 
         # enable eval mode + no grads
