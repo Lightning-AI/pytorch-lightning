@@ -212,7 +212,7 @@ class EarlyStopping(Callback):
             )
         elif self.monitor_op(current - self.min_delta, self.best_score):
             should_stop = False
-            self._log_info(self._improvement_message(current), rank=trainer.global_rank)
+            reason = self._improvement_message(current)
             self.best_score = current
             self.wait_count = 0
         else:
@@ -230,16 +230,9 @@ class EarlyStopping(Callback):
         """ Formats a log message that informs the user about an improvement in the monitored score. """
         if torch.isfinite(self.best_score):
             msg = (
-                f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} and is exceeding"
+                f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} >="
                 f" min_delta = {abs(self.min_delta)}. New best score: {current:.3f}"
             )
         else:
             msg = f"Metric {self.monitor} improved. New best score: {current:.3f}"
         return msg
-
-    def _log_info(self, msg: str, rank: int) -> None:
-        if self.verbose:
-            log.info(msg)
-
-    def _log_debug(self, msg: str, rank: int) -> None:
-        log.debug(f"[{rank}] {msg}")
