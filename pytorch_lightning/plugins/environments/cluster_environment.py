@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class ClusterEnvironment(ABC):
@@ -31,8 +30,20 @@ class ClusterEnvironment(ABC):
         """ An open and configured port in the master node through which all processes communicate. """
 
     @abstractmethod
-    def world_size(self) -> Optional[int]:
+    def world_size(self) -> int:
         """ The number of processes across all devices and nodes. """
+
+    @abstractmethod
+    def set_world_size(self, size: int) -> None:
+        pass
+
+    @abstractmethod
+    def global_rank(self) -> int:
+        """ The rank (index) of the currently running process across all nodes and devices. """
+
+    @abstractmethod
+    def set_global_rank(self, rank: int) -> None:
+        pass
 
     @abstractmethod
     def local_rank(self) -> int:
@@ -41,3 +52,7 @@ class ClusterEnvironment(ABC):
     @abstractmethod
     def node_rank(self) -> int:
         """ The rank (index) of the node on which the current process runs. """
+
+    def teardown(self) -> None:
+        """ Clean up any state set after execution finishes. """
+        pass
