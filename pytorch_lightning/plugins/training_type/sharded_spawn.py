@@ -21,6 +21,7 @@ from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNative
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -71,6 +72,11 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
 
     @property
     def lightning_module(self) -> LightningModule:
+        if not _FAIRSCALE_AVAILABLE:
+            raise MisconfigurationException(
+                "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
+                " Install it by running `pip install fairscale`."
+            )
         return unwrap_lightning_module_sharded(self._model)
 
     def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
