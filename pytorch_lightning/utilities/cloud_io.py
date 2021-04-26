@@ -23,17 +23,6 @@ from fsspec.implementations.local import LocalFileSystem
 from packaging.version import Version
 
 
-class _LightningLocalFileSystem(LocalFileSystem):
-    """Extension of ``fsspec.implementations.local.LocalFileSystem`` where ``LightningLocalFileSystem.isdir`` behaves
-    the same as ``os.isdir``.
-
-    To be removed when https://github.com/intake/filesystem_spec/issues/591 is fixed.
-    """
-
-    def isdir(self, path: str) -> bool:
-        return os.path.isdir(path)  # follows symlinks
-
-
 def load(path_or_url: Union[str, IO, Path], map_location=None):
     if not isinstance(path_or_url, (str, Path)):
         # any sort of BytesIO or similiar
@@ -52,7 +41,7 @@ def get_filesystem(path: Union[str, Path]):
         return fsspec.filesystem(path.split(":", 1)[0])
     else:
         # use local filesystem
-        return _LightningLocalFileSystem()
+        return LocalFileSystem()
 
 
 def atomic_save(checkpoint, filepath: str):
