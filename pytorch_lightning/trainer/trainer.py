@@ -456,9 +456,7 @@ class Trainer(
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
-        self.accelerator.barrier("pre-setup")
         self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
-        self.accelerator.barrier("post-setup")
         self.call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
@@ -1121,6 +1119,7 @@ class Trainer(
 
         self.setup(model, stage=state)
         model.setup(stage=state)
+        self.accelerator.barrier("setup")
 
     def call_configure_sharded_model(self, model: LightningModule) -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
