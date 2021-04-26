@@ -83,10 +83,6 @@ jobs:
             req = open(fname).read().replace('>=', '==')
             open(fname, 'w').write(req)
 
-        # remove Fairscale from requirements
-        fname = 'requirements/extra.txt'
-        lines = [line for line in open(fname).readlines() if 'fairscale' not in line]
-        open(fname, 'w').writelines(lines)
       shell: python
 
     # Note: This uses an internal pip API and may not always work
@@ -131,8 +127,6 @@ jobs:
         pip --version
         # python -m pip install --upgrade --user pip
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        # todo: drop fairscale til it is takem fro mainstream pip, the building take ages...
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not 'fairscale' in line] ; open(fname, 'w').writelines(lines)"
         # adjust versions according installed Torch version
         python ./requirements/adjust_versions.py requirements/extra.txt
         python ./requirements/adjust_versions.py requirements/examples.txt

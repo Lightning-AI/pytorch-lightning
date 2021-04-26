@@ -14,28 +14,21 @@
 
 from abc import ABC
 
-import torch
-
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation
+from pytorch_lightning.utilities.metrics import metrics_to_scalars as new_metrics_to_scalars
 
 
 class TrainerLoggingMixin(ABC):
+    """
+    TODO: Remove this class in v1.5.
 
-    def metrics_to_scalars(self, metrics):
-        new_metrics = {}
-        # TODO: this is duplicated in MetricsHolder. should be unified
-        for k, v in metrics.items():
-            if isinstance(v, torch.Tensor):
-                if v.numel() != 1:
-                    raise MisconfigurationException(
-                        f"The metric `{k}` does not contain a single element"
-                        f" thus it cannot be converted to float. Found `{v}`"
-                    )
-                v = v.item()
+    Use the utilities from ``pytorch_lightning.utilities.metrics`` instead.
+    """
 
-            if isinstance(v, dict):
-                v = self.metrics_to_scalars(v)
-
-            new_metrics[k] = v
-
-        return new_metrics
+    def metrics_to_scalars(self, metrics: dict) -> dict:
+        rank_zero_deprecation(
+            "Internal: TrainerLoggingMixin.metrics_to_scalars is deprecated in v1.3"
+            " and will be removed in v1.5."
+            " Use `pytorch_lightning.utilities.metrics.metrics_to_scalars` instead."
+        )
+        return new_metrics_to_scalars(metrics)
