@@ -805,14 +805,11 @@ class Trainer(
         if self.predict_loop.should_skip_predict(max_batches):
             return []
 
-        # call hook
-        self.predict_loop.on_predict_start()
-
         # set up the eval loop
         self.predict_loop.setup(self.lightning_module, max_batches, dataloaders)
 
         # call hook
-        self.call_hook("on_predict_epoch_start")
+        self.predict_loop.on_predict_start()
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -1044,7 +1041,7 @@ class Trainer(
 
             datamodule: A instance of :class:`LightningDataModule`.
 
-            return_predictions: Wheter to return predictions.
+            return_predictions: Whether to return predictions.
                 By default, it will be set to ``True``
                 except when an accelerator that spawns processes is used (not supported).
 

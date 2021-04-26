@@ -37,7 +37,7 @@ class PredictLoop(object):
         return self._return_predictions
 
     @return_predictions.setter
-    def return_predictions(self, return_predictions: Optional[bool]) -> None:
+    def return_predictions(self, return_predictions: Optional[bool] = None) -> None:
         if return_predictions and self.trainer.training_type_plugin.use_spawn:
             raise MisconfigurationException(
                 "`return_predictions` should be set to `False` when using spawn accelerators. "
@@ -130,6 +130,7 @@ class PredictLoop(object):
 
         # hook
         self.trainer.call_hook("on_predict_start")
+        self.trainer.call_hook("on_predict_epoch_start")
 
     def on_predict_epoch_end(self):
         self.trainer.profiler.describe()
@@ -144,7 +145,7 @@ class PredictLoop(object):
     def on_predict_end(self):
         # clean memory
         self.predictions = None
-        self._batches_indices = None
+        self.batch_indices = None
 
         # enable eval mode + no grads
         torch.set_grad_enabled(self._previous_grad_status)

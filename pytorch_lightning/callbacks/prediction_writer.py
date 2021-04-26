@@ -108,11 +108,13 @@ class BasePredictionWriter(Callback):
     ) -> None:
         if not self.interval.on_batch:
             return
-        batch_indices = trainer.predict_loop.batch_indices if trainer.accelerator_connector.is_distributed else None
+        is_distributed = trainer.accelerator_connector.is_distributed
+        batch_indices = trainer.predict_loop.batch_indices if is_distributed else None
         self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
 
     def on_predict_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: List[Any]) -> None:
         if not self.interval.on_epoch:
             return
-        epoch_batch_indices = trainer.predict_loop.epoch_batch_indices if trainer.accelerator_connector.is_distributed else None
+        is_distributed = trainer.accelerator_connector.is_distributed
+        epoch_batch_indices = trainer.predict_loop.epoch_batch_indices if is_distributed else None
         self.write_on_epoch_end(trainer, pl_module, trainer.predict_loop.predictions, epoch_batch_indices)
