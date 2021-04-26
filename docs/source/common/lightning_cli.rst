@@ -262,18 +262,22 @@ A possible config file could be as follows:
         ...
 
 Only model classes that are a subclass of :code:`MyModelBaseClass` would be allowed, and similarly only subclasses of
-:code:`MyDataModuleBaseClass`.
+:code:`MyDataModuleBaseClass`. If as base classes :class:`~pytorch_lightning.core.lightning.LightningModule` and
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` are given, then the tool would allow any lightning
+module and data module.
 
-Note that with the subclass modes the :code:`--help` option does not show information for a specific subclass. To get
-help for a subclass the options :code:`--model.help` and :code:`--data.help` can be used, followed by the desired class
-path. Similarly the single :code:`--print_config` option does not include the settings for a particular subclass. To
-include them the class path should be given before :code:`--print_config` option. Examples for both help and print
-config are:
+.. tip::
 
-.. code-block:: bash
+    Note that with the subclass modes the :code:`--help` option does not show information for a specific subclass. To
+    get help for a subclass the options :code:`--model.help` and :code:`--data.help` can be used, followed by the
+    desired class path. Similarly :code:`--print_config` does not include the settings for a particular subclass. To
+    include them the class path should be given before the :code:`--print_config` option. Examples for both help and
+    print config are:
 
-    $ python trainer.py --model.help mycode.mymodels.MyModel
-    $ python trainer.py --model mycode.mymodels.MyModel --print_config
+    .. code-block:: bash
+
+        $ python trainer.py --model.help mycode.mymodels.MyModel
+        $ python trainer.py --model mycode.mymodels.MyModel --print_config
 
 
 Models with multiple submodules
@@ -303,7 +307,7 @@ parameters have as type a class, then in the configuration these would be specif
             self.encoder = encoder
             self.decoder = decoder
 
-If the cli is implemented as :code:`LightningCLI(MyMainModel)` the configuration would be as follows:
+If the CLI is implemented as :code:`LightningCLI(MyMainModel)` the configuration would be as follows:
 
 .. code-block:: yaml
 
