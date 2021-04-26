@@ -313,10 +313,7 @@ class AcceleratorConnector(object):
 
     @property
     def is_training_type_in_plugins(self) -> bool:
-        for plug in self.plugins:
-            if isinstance(plug, str) and plug in TrainingTypePluginsRegistry:
-                return True
-        return False
+        return any(isinstance(plug, str) and plug in TrainingTypePluginsRegistry for plug in self.plugins)
 
     @property
     def is_using_torchelastic(self) -> bool:
