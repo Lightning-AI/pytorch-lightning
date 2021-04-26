@@ -13,12 +13,14 @@
 # limitations under the License.
 """Helper functions to operate on metric values. """
 
+from typing import Dict, Union
+
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def metrics_to_scalars(metrics: dict) -> dict:
+def metrics_to_scalars(metrics: Dict[str, Union[torch.Tensor, dict]]) -> Dict[str, float]:
     """ Recursively walk through a dictionary of metrics and convert single-item tensors to scalar values. """
 
     # TODO: this is duplicated in MetricsHolder. should be unified
