@@ -27,9 +27,6 @@ class ModelConnector:
     def copy_trainer_model_properties(self, model):
         ref_model = self.trainer.lightning_module or model
 
-        automatic_optimization = ref_model.automatic_optimization and self.trainer.train_loop.automatic_optimization
-        self.trainer.train_loop.automatic_optimization = automatic_optimization
-
         for m in [model, ref_model]:
             m.trainer = proxy(self.trainer)
             m._device_type = str(self.trainer._device_type)
