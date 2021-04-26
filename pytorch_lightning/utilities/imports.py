@@ -93,4 +93,4 @@ _XLA_AVAILABLE = _module_available("torch_xla")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
-_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists() or int(os.getenv("PL_TPU_AVAILABLE", 0))

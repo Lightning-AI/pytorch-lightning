@@ -102,7 +102,7 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
     # PL_TPU_AVAILABLE is used to mock TPU env.
-    if tpu_cores is not None and (not _TPU_AVAILABLE and os.getenv("PL_TPU_AVAILABLE", "0") != '1'):
+    if tpu_cores is not None and not _TPU_AVAILABLE:
         raise MisconfigurationException('No TPU devices were found.')
 
     return tpu_cores
