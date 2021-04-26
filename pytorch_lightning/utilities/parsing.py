@@ -108,7 +108,7 @@ def parse_class_init_keys(cls) -> Tuple[str, str, str]:
     return n_self, n_args, n_kwargs
 
 
-def get_init_args(frame) -> Dict[str, Any]:
+def get_init_args(frame: object) -> Dict[str, Any]:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if '__class__' not in local_vars:
         return {}
@@ -124,7 +124,7 @@ def get_init_args(frame) -> Dict[str, Any]:
     return local_args
 
 
-def collect_init_args(frame, path_args: List[Dict[str, Any]], inside: bool = False) -> List[Dict[str, Any]]:
+def collect_init_args(frame:object, path_args: List[Dict[str, Any]], inside: bool = False) -> List[Dict[str, Any]]:
     """
     Recursively collects the arguments passed to the child constructors in the inheritance tree.
 
@@ -150,7 +150,7 @@ def collect_init_args(frame, path_args: List[Dict[str, Any]], inside: bool = Fal
         return path_args
 
 
-def flatten_dict(source: Dict[str, Any], result=None) -> Dict[str, Any]:
+def flatten_dict(source: Dict[str, Any], result: Optioanl[Dict[str, Any]] = None) -> Dict[str, Any]:
     if result is None:
         result = {}
 
