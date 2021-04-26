@@ -418,6 +418,17 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.close()
 
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> dict:
+        state = {}
+        for i, logger in enumerate(self._logger_iterable):
+            state[i] = logger.on_save_checkpoint(checkpoint)
+
+        return state
+
+    def on_load_checkpoint(self, logger_state: Dict[str, Any]) -> None:
+        for i, logger in enumerate(self._logger_iterable):
+            logger.on_load_checkpoint(logger_state[i])
+
     @property
     def save_dir(self) -> Optional[str]:
         # Checkpoints should be saved to default / chosen location when using multiple loggers
