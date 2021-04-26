@@ -14,6 +14,7 @@
 """General utilities"""
 import importlib
 import operator
+import os
 import platform
 import sys
 from distutils.version import LooseVersion
@@ -92,4 +93,4 @@ _XLA_AVAILABLE = _module_available("torch_xla")
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
-_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists() or os.getenv("PL_TPU_AVAILABLE", "0") != '1'
