@@ -751,7 +751,7 @@ Once you define and train your first Lightning model, you might want to try othe
 - :ref:`Automatically scale your batch size <advanced/training_tricks:Auto scaling of batch size>`
 - :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
 - :ref:`Load checkpoints directly from S3 <common/weights_loading:Checkpoint Loading>`
-- :doc:`Scale to massive compute clusters <../clouds/slurm>`
+- :doc:`Scale to massive compute clusters <../clouds/cluster>`
 - :doc:`Use multiple dataloaders per train/val/test loop <../advanced/multiple_loaders>`
 - :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
 

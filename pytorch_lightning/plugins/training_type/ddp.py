@@ -110,7 +110,7 @@ class DDPPlugin(ParallelPlugin):
     def _call_children_scripts(self):
 
         # bookkeeping of spawned processes
-        assert self.global_rank == 0
+        assert self.local_rank == 0
         self._check_can_spawn_children()
         self._has_spawned_children = True
 
@@ -146,9 +146,6 @@ class DDPPlugin(ParallelPlugin):
         os.environ["PL_TRAINER_GPUS"] = ",".join([str(device.index) for device in self.parallel_devices])
         os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
-        if self.lightning_module.logger is not None:
-            os.environ["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
-
         num_gpus = len(self.parallel_devices)
         os.environ["WORLD_SIZE"] = f"{num_gpus * self.num_nodes}"
 
@@ -157,6 +154,10 @@ class DDPPlugin(ParallelPlugin):
         for local_rank in range(1, self.num_processes):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
+
+            if self.lightning_module.logger is not None:
+                # spawned processes must reference the same log dir, prevent auto-increment version
+                env_copy["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
 
             # remove env var if global seed not set
             if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:

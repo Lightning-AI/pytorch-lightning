@@ -476,3 +476,25 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match="attatched with an optimizer that wasn't returned"):
         trainer.fit(model)
+
+
+def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
+    """
+    Test warning when invalid scheduler keys are provided in manual optimization.
+    """
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def configure_optimizers(self):
+            opt = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            sch = torch.optim.lr_scheduler.StepLR(opt, step_size=1)
+            return [opt], [{"scheduler": sch, "interval": "epoch"}]
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.warns(RuntimeWarning, match='the keys will be ignored'):
+        trainer.fit(model)

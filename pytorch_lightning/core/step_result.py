@@ -287,16 +287,12 @@ class Result(Dict):
             if options['logger'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
-                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # reset metric anyway so state does not accumulate
-                # NOTE: we must compute before reseting just in case the computed value is needed
-                # later (i.e. if the step metric gets visited first, and then the epoch metric)
+                # compute for reuse later
                 self[k].compute()
-                self[k].reset()
 
         return result
 
@@ -319,16 +315,12 @@ class Result(Dict):
             if options['prog_bar'] and options['on_epoch']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
-                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
             if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # reset metric anyway so state does not accumulate
-                # NOTE: we must compute before reseting just in case the computed value is needed
-                # later (i.e. if the step metric gets visited first, and then the epoch metric)
+                # compute for reuse later
                 self[k].compute()
-                self[k].reset()
 
         return result
 
@@ -348,7 +340,6 @@ class Result(Dict):
             if options['forked']:
                 if isinstance(self[k], Metric):
                     result[dl_key] = self[k].compute().detach()
-                    self[k].reset()
                 else:
                     result[dl_key] = self[k]
 
@@ -581,11 +572,13 @@ class Result(Dict):
             meta[dest] = meta[source]
             del meta[source]
 
-    def get_non_metrics_keys(self):
+    def reset(self) -> None:
         """
-        This function is used to filter metric keys for which the value isn't a Metric
+        Call at the end of epoch to reset all metric objects
         """
-        return [k for k, v in self.items() if not isinstance(v, Metric)]
+        for k, value in self.items():
+            if isinstance(value, Metric):
+                value.reset()
 
 
 def choose_last(x):

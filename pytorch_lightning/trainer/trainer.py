@@ -14,6 +14,7 @@
 """Trainer to automate the training."""
 import logging
 import warnings
+from datetime import timedelta
 from itertools import count
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -108,6 +109,7 @@ class Trainer(
         min_epochs: Optional[int] = None,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
+        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         limit_train_batches: Union[int, float] = 1.0,
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
@@ -241,6 +243,11 @@ class Trainer(
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
+            max_time: Stop training after this amount of time has passed. Disabled by default (None).
+                The time duration can be specified in the format DD:HH:MM:SS (days, hours, minutes seconds), as a
+                :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
+                :class:`datetime.timedelta`.
+
             num_nodes: number of GPU nodes for distributed training.
 
             num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
@@ -332,8 +339,15 @@ class Trainer(
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
         self.callback_connector.on_trainer_init(
-            callbacks, checkpoint_callback, progress_bar_refresh_rate, process_position, default_root_dir,
-            weights_save_path, resume_from_checkpoint, stochastic_weight_avg
+            callbacks,
+            checkpoint_callback,
+            progress_bar_refresh_rate,
+            process_position,
+            default_root_dir,
+            weights_save_path,
+            resume_from_checkpoint,
+            stochastic_weight_avg,
+            max_time,
         )
 
         # hook
@@ -653,9 +667,6 @@ class Trainer(
             )
             self.validating = True
 
-        # reset cached results
-        self.logger_connector.reset()
-
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
@@ -745,6 +756,9 @@ class Trainer(
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
 
+        # reset cached results
+        self.logger_connector.reset()
+
         torch.set_grad_enabled(True)
 
         return eval_loop_results
@@ -799,11 +813,12 @@ class Trainer(
         model.zero_grad()
         torch.set_grad_enabled(False)
 
-        # call hook
-        self.predict_loop.on_predict_start()
-
         # set up the eval loop
         self.predict_loop.setup(model, max_batches, dataloaders)
+
+        # call hook
+        self.call_hook("on_predict_start")
+        self.call_hook("on_predict_epoch_start")
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -822,7 +837,7 @@ class Trainer(
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
-        self.predict_loop.on_predict_end()
+        self.call_hook("on_predict_end")
 
         # re-enable grads
         torch.set_grad_enabled(True)
@@ -1023,16 +1038,12 @@ class Trainer(
         r"""
 
         Separates from fit to make sure you never run on your predictions set until you want to.
-
         This will call the model forward function to compute predictions.
 
         Args:
-            model: The model to predict on.
-
-            dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying inference samples.
-
-            datamodule: A instance of :class:`LightningDataModule`.
+            model: The model to predict with.
+            dataloaders: Either a single PyTorch DataLoader or a list of them, specifying inference samples.
+            datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.

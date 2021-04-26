@@ -13,8 +13,10 @@
 # limitations under the License.
 import inspect
 import multiprocessing
+import os
 from abc import ABC
 from copy import deepcopy
+from functools import partial
 from typing import Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
@@ -24,12 +26,13 @@ from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.seed import pl_worker_init_function
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -100,12 +103,19 @@ class TrainerDataLoadingMixin(ABC):
                 f' in the `DataLoader` init to improve performance.'
             )
 
-    def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
+    def auto_add_worker_init_fn(self, dataloader: DataLoader) -> None:
+        if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
+            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
+    def auto_add_sampler(self, dataloader: DataLoader, shuffle: bool) -> DataLoader:
         # don't do anything if it's not a dataloader
         is_dataloader = isinstance(dataloader, DataLoader)
         # don't manipulate iterable datasets
         is_iterable_ds = has_iterable_dataset(dataloader)
+
+        if isinstance(dataloader, CombinedLoader):
+            dataloader.loaders = apply_to_collection(dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle)
+            return dataloader
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
@@ -197,7 +207,9 @@ class TrainerDataLoadingMixin(ABC):
 
     def _get_distributed_sampler(self, dataloader, shuffle):
         kwargs = self.distributed_sampler_kwargs
-        kwargs['shuffle'] = shuffle and not self.overfit_batches
+        kwargs["shuffle"] = shuffle and not self.overfit_batches
+        if _TORCH_GREATER_EQUAL_1_6:
+            kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
@@ -230,6 +242,9 @@ class TrainerDataLoadingMixin(ABC):
 
         # check the workers recursively
         apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, 'train dataloader')
+
+        # add worker_init_fn for correct seeding in worker processes
+        apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)
@@ -328,6 +343,9 @@ class TrainerDataLoadingMixin(ABC):
 
         # add samplers
         dataloaders = [self.auto_add_sampler(dl, shuffle=False) for dl in dataloaders if dl is not None]
+
+        # add worker_init_fn for correct seeding in worker processes
+        apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
 
         loader_num_batches = []
 
