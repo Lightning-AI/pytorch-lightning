@@ -23,7 +23,7 @@ import os
 import re
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import numpy as np
 import torch
@@ -206,12 +206,14 @@ class ModelCheckpoint(Callback):
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
         self.__init_triggers(every_n_train_steps, every_n_val_epochs, period)
         self.__validate_init_configuration()
+        self._save_function = None
 
     def on_pretrain_routine_start(self, trainer, pl_module):
         """
         When pretrain routine starts we build the ckpt dir on the fly
         """
         self.__resolve_ckpt_dir(trainer)
+        self._save_function = trainer.save_checkpoint
 
     def on_train_batch_end(
         self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
@@ -392,6 +394,22 @@ class ModelCheckpoint(Callback):
             ' Please use `every_n_val_epochs` instead.'
         )
         self._period = value
+
+    @property
+    def save_function(self) -> Optional[Callable]:
+        rank_zero_deprecation(
+            'Property `save_function` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
+            ' Please use `trainer.save_checkpoint` instead.'
+        )
+        return self._save_function
+
+    @save_function.setter
+    def save_function(self, value: Optional[Callable]) -> None:
+        rank_zero_deprecation(
+            'Property `save_function` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
+            ' Please use `trainer.save_checkpoint` instead.'
+        )
+        self._save_function = value
 
     @rank_zero_only
     def _del_model(self, filepath: str):
