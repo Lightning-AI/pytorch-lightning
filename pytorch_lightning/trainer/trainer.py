@@ -375,7 +375,7 @@ class Trainer(
             truncated_bptt_steps,
             terminate_on_nan,
         )
-        self.train_loop.on_trainer_init(
+        self._setup_fit_on_init(
             max_epochs,
             min_epochs,
             max_steps,
@@ -411,6 +411,50 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    def _setup_on_init(
+        self,
+        max_epochs: Optional[int],
+        min_epochs: Optional[int],
+        max_steps: Optional[int],
+        min_steps: Optional[int],
+        num_sanity_val_steps: int,
+    ):
+        self.global_step = 0
+        self.current_epoch = 0
+        self.should_stop = False
+        self._state = TrainerState.INITIALIZING
+
+        self.total_batch_idx = 0
+        self.batch_idx = 0
+        self.num_training_batches = 0
+        self.train_dataloader = None
+
+        # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
+        self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
+        # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
+        self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
+        self.max_steps = max_steps
+        self.min_steps = min_steps
+
+        if num_sanity_val_steps == -1:
+            self.num_sanity_val_steps = float("inf")
+        else:
+            self.num_sanity_val_steps = num_sanity_val_steps
+
+    def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
+        # clean hparams
+        if hasattr(model, "hparams"):
+            parsing.clean_namespace(model.hparams)
+
+        # links data to the trainer
+        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
+
+        # check that model is configured correctly
+        self.config_validator.verify_loop_configurations(model)
+
+        # attach model log function to callback
+        self.callback_connector.attach_model_logging_functions(model)
 
     def fit(
         self,
@@ -834,6 +878,60 @@ class Trainer(
         ref_model.on_pretrain_routine_end()
 
     def run_train(self) -> None:
+
+        new_loop = False
+
+        if new_loop:
+            self._run_train_new_loop()
+        else:
+            self._run_train_old_loop()
+
+    def _should_skip_training(self) -> bool:
+        should_by_max_steps = self.max_steps is not None and self.global_step >= self.max_steps
+        should_by_epoch = self.max_epochs is not None and self.current_epoch >= self.max_epochs
+        return should_by_max_steps or should_by_epoch or self.num_training_batches == 0
+
+    def _run_train_new_loop(self) -> None:
+        self._pre_training_routine()
+        if not self.is_global_zero and self.progress_bar_callback is not None:
+            self.progress_bar_callback.disable()
+
+        self.run_sanity_check(self.lightning_module)
+
+        self.checkpoint_connector.has_trained = False
+
+        # enable train mode
+        self.model.train()
+        torch.set_grad_enabled(True)
+
+        # reload data when needed
+        model = self.lightning_module
+
+        # This might move somewhere else
+        self.train_loop.reset_train_val_dataloaders(model)
+
+        try:
+            if self._should_skip_training():
+                return
+            self.train_loop.run()
+        except KeyboardInterrupt:
+            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
+            # user could press Ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.state = TrainerState.INTERRUPTED
+                self.on_keyboard_interrupt()
+                # same treatment as below
+                self.accelerator.on_train_end()
+                self._running_stage = None
+        except BaseException:
+            # give accelerators a chance to finish
+            self.accelerator.on_train_end()
+            # reset bookkeeping
+            self._running_stage = None
+            raise
+
+    def _run_train_old_loop(self) -> None:
+
         self._pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
@@ -855,7 +953,7 @@ class Trainer(
         self.train_loop.on_train_start()
 
         try:
-            if self.train_loop.should_skip_training():
+            if self._should_skip_training():
                 return
             # run all epochs
             epochs = range(self.current_epoch, self.max_epochs) if self.max_epochs else count(self.current_epoch)
