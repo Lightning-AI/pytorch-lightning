@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import io
-import os
 from pathlib import Path
 from typing import IO, Union
 
