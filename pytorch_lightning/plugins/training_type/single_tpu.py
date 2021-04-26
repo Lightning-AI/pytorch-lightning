@@ -24,11 +24,12 @@ if _TPU_AVAILABLE:
 class SingleTPUPlugin(SingleDevicePlugin):
     """ Plugin for training on a single TPU device. """
 
-    def __init__(self, device: int):
+    def __init__(self, device: int, debug: bool = False):
 
         device = xm.xla_device(device)
         super().__init__(device)
 
+        self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
 

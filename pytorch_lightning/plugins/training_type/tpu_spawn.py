@@ -49,8 +49,9 @@ if _OMEGACONF_AVAILABLE:
 class TPUSpawnPlugin(DDPSpawnPlugin):
     """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
-    def __init__(self, parallel_devices: Optional[List[int]] = None, **_: Any) -> None:
+    def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
+        self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
         self.start_method = None
@@ -103,6 +104,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         TPUSpawnPlugin._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
+
+    def pre_dispatch(self):
+        if self.debug:
+            os.environ["PT_XLA_DEBUG"] = str(1)
 
     def setup(self, model: Module) -> Module:
         self.create_mp_queue()
