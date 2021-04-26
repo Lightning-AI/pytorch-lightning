@@ -124,7 +124,7 @@ def get_init_args(frame: object) -> Dict[str, Any]:
     return local_args
 
 
-def collect_init_args(frame:object, path_args: List[Dict[str, Any]], inside: bool = False) -> List[Dict[str, Any]]:
+def collect_init_args(frame: object, path_args: List[Dict[str, Any]], inside: bool = False) -> List[Dict[str, Any]]:
     """
     Recursively collects the arguments passed to the child constructors in the inheritance tree.
 
