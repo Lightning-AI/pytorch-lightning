@@ -17,10 +17,11 @@ from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
 from typing import Any, Dict, List, Tuple, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str
 
 
-def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
+def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> 'pl.Trainer':
     """Create an instance from CLI arguments.
     Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
@@ -134,7 +135,7 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-def _get_abbrev_qualified_cls_name(cls):
+def _get_abbrev_qualified_cls_name(cls) -> str:
     assert isinstance(cls, type), repr(cls)
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
@@ -148,7 +149,7 @@ def add_argparse_args(
     cls,
     parent_parser: ArgumentParser,
     *,
-    use_argument_group=True,
+    use_argument_group: bool = True,
 ) -> ArgumentParser:
     r"""Extends existing argparse by default attributes for ``cls``.
 
@@ -279,21 +280,21 @@ def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
     return parsed
 
 
-def _gpus_allowed_type(x) -> Union[int, str]:
+def _gpus_allowed_type(x: str) -> Union[int, str]:
     if ',' in x:
         return str(x)
     else:
         return int(x)
 
 
-def _gpus_arg_default(x) -> Union[int, str]:  # pragma: no-cover
+def _gpus_arg_default(x: str) -> None:  # pragma: no-cover
     # unused, but here for backward compatibility with old checkpoints that need to be able to
     # unpickle the function from the checkpoint, as it was not filtered out in versions < 1.2.8
     # see: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
     pass
 
 
-def _int_or_float_type(x) -> Union[int, float]:
+def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:
     if '.' in str(x):
         return float(x)
     else:
