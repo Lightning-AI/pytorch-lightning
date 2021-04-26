@@ -358,7 +358,7 @@ class LoggerConnector:
         return epoch_log_metrics, epoch_progress_bar_metrics
 
     def log_train_step_metrics(self, batch_output):
-        if self.trainer.train_loop.should_accumulate() and self.trainer.train_loop.automatic_optimization:
+        if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
         _, batch_log_metrics = self.cached_results.update_logger_connector()
         # when metrics should be logged
