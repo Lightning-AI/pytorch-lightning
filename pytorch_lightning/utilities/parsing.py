@@ -16,8 +16,9 @@ import inspect
 import pickle
 import types
 from argparse import Namespace
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 
 
@@ -66,7 +67,7 @@ def is_picklable(obj: object) -> bool:
         return False
 
 
-def clean_namespace(hparams):
+def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
     """Removes all unpicklable entries from hparams"""
 
     hparams_dict = hparams
@@ -96,7 +97,7 @@ def parse_class_init_keys(cls) -> Tuple[str, str, str]:
     # self is always first
     n_self = init_params[0].name
 
-    def _get_first_if_any(params, param_type):
+    def _get_first_if_any(params: Sequence[Namespace], param_type: Type) -> str:
         for p in params:
             if p.kind == param_type:
                 return p.name
@@ -107,7 +108,7 @@ def parse_class_init_keys(cls) -> Tuple[str, str, str]:
     return n_self, n_args, n_kwargs
 
 
-def get_init_args(frame) -> dict:
+def get_init_args(frame) -> Dict[str, Any]:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if '__class__' not in local_vars:
         return {}
@@ -123,7 +124,7 @@ def get_init_args(frame) -> dict:
     return local_args
 
 
-def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
+def collect_init_args(frame, path_args: List[Dict[str, Any]], inside: bool = False) -> List[Dict[str, Any]]:
     """
     Recursively collects the arguments passed to the child constructors in the inheritance tree.
 
@@ -149,7 +150,7 @@ def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
         return path_args
 
 
-def flatten_dict(source, result=None):
+def flatten_dict(source: Dict[str, Any], result=None) -> Dict[str, Any]:
     if result is None:
         result = {}
 
@@ -164,7 +165,7 @@ def flatten_dict(source, result=None):
 
 def save_hyperparameters(
     obj: Any,
-    *args,
+    *args: Any,
     ignore: Optional[Union[Sequence[str], str]] = None,
     frame: Optional[types.FrameType] = None
 ) -> None:
@@ -219,16 +220,16 @@ class AttributeDict(Dict):
     "my-key":  3.14
     """
 
-    def __getattr__(self, key):
+    def __getattr__(self, key: str) -> Optional[Any]:
         try:
             return self[key]
         except KeyError as exp:
             raise AttributeError(f'Missing attribute "{key}"') from exp
 
-    def __setattr__(self, key, val):
+    def __setattr__(self, key: str, val: Any) -> None:
         self[key] = val
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if not len(self):
             return ""
         max_key_length = max([len(str(k)) for k in self])
@@ -238,7 +239,7 @@ class AttributeDict(Dict):
         return out
 
 
-def _lightning_get_all_attr_holders(model, attribute):
+def _lightning_get_all_attr_holders(model: 'pl.LightningModule', attribute: str) -> Any:
     """
     Special attribute finding for Lightning. Gets all of the objects or dicts that holds attribute.
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
@@ -263,7 +264,7 @@ def _lightning_get_all_attr_holders(model, attribute):
     return holders
 
 
-def _lightning_get_first_attr_holder(model, attribute):
+def _lightning_get_first_attr_holder(model: 'pl.LightningModule', attribute: str) -> Optional[Any]:
     """
     Special attribute finding for Lightning.  Gets the object or dict that holds attribute, or None.
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule,
@@ -276,7 +277,7 @@ def _lightning_get_first_attr_holder(model, attribute):
     return holders[-1]
 
 
-def lightning_hasattr(model, attribute):
+def lightning_hasattr(model: 'pl.LightningModule', attribute: str) -> bool:
     """
     Special hasattr for Lightning. Checks for attribute in model namespace,
     the old hparams namespace/dict, and the datamodule.
@@ -284,7 +285,7 @@ def lightning_hasattr(model, attribute):
     return _lightning_get_first_attr_holder(model, attribute) is not None
 
 
-def lightning_getattr(model, attribute):
+def lightning_getattr(model: 'pl.LightningModule', attribute: str) -> Any:
     """
     Special getattr for Lightning. Checks for attribute in model namespace,
     the old hparams namespace/dict, and the datamodule.
@@ -306,7 +307,7 @@ def lightning_getattr(model, attribute):
     return getattr(holder, attribute)
 
 
-def lightning_setattr(model, attribute, value):
+def lightning_setattr(model: 'pl.LightningModule', attribute: str, value: Any) -> None:
     """
     Special setattr for Lightning. Checks for attribute in model namespace
     and the old hparams namespace/dict.
