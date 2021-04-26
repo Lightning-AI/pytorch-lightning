@@ -1230,7 +1230,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
     assert len(trainer.dev_debugger.train_dataloader_calls) == 3
     assert len(trainer.dev_debugger.test_dataloader_calls) == 1
 
-    # # verify the sequence
+    # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
 
     expected_sequence = [
