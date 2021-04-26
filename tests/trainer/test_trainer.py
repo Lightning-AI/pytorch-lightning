@@ -1571,7 +1571,7 @@ def test_trainer_predict_no_return(tmpdir):
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
     with pytest.warns(UserWarning, match='predict returned None'):
-        predict(tmpdir, None, None, 1, model=CustomBoringModel(), use_callbacks=False)
+        predict(tmpdir, None, None, 1, model=CustomBoringModel())
 
 
 def test_trainer_predict_grad(tmpdir):
@@ -1582,7 +1582,7 @@ def test_trainer_predict_grad(tmpdir):
             assert batch.expand_as(batch).grad_fn is None
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
-    predict(tmpdir, None, None, 1, model=CustomBoringModel(), use_callbacks=False)
+    predict(tmpdir, None, None, 1, model=CustomBoringModel())
 
     x = torch.zeros(1, requires_grad=True)
     assert x.expand_as(x).grad_fn is not None
@@ -1622,12 +1622,10 @@ def test_trainer_predict_ddp_cpu(tmpdir):
 
 @patch('torch.cuda.device_count', return_value=2)
 @patch('torch.cuda.is_available', return_value=True)
-@patch.dict(os.environ, {"PL_TPU_AVAILABLE": "1"})
 def test_spawn_predict_return_predictions(*_):
     """
     Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins.
     """
-
     model = BoringModel()
 
     def run(expected_plugin, **trainer_kwargs):
@@ -1641,7 +1639,6 @@ def test_spawn_predict_return_predictions(*_):
 
     run(DDPSpawnPlugin, accelerator="ddp_spawn", gpus=2)
     run(DDPSpawnPlugin, accelerator="ddp_cpu", num_processes=2)
-    run(TPUSpawnPlugin, tpu_cores=8, gpus=2)
 
 
 @pytest.mark.parametrize(
