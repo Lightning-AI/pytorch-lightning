@@ -254,8 +254,9 @@ class ModelCheckpoint(Callback):
 
     def save_checkpoint(self, trainer, unused: Optional = None):
         """
-        Performs the main logic around saving a checkpoint.
-        This method runs on all ranks.
+        Performs the main logic around saving a checkpoint. This method runs on all ranks.
+        It is the responsibility of `trainer.save_checkpoint` to correctly handle the behaviour in distributed training,
+        i.e., saving only on rank 0 for data parallel use cases.
         """
         if unused is not None:
             rank_zero_deprecation(
