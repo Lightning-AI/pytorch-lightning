@@ -454,6 +454,9 @@ def test_tpu_debug_mode(tmpdir):
         def on_train_start(self):
             assert os.environ.get("PT_XLA_DEBUG") == str(1), "PT_XLA_DEBUG was not set in environment variables"
 
+        def teardown(self, stage):
+            assert "PT_XLA_DEBUG" not in os.environ
+
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
