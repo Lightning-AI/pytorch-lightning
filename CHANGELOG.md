@@ -134,6 +134,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 )
 - Add `ignore` param to `save_hyperparameters` ([#6056](https://github.com/PyTorchLightning/pytorch-lightning/pull/6056))
 
+- Added `tpu_distributed` check for TPU Spawn barrier ([#7241](https://github.com/PyTorchLightning/pytorch-lightning/pull/7241))
+
+
 ### Changed
 
 - Changed `LightningModule.truncated_bptt_steps` to be property ([#7323](https://github.com/PyTorchLightning/pytorch-lightning/pull/7323))
