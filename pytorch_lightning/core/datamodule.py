@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.argparse import add_argparse_args, from_argpars
 
 class _DataModuleWrapper(type):
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.__has_added_checks = False
 

@@ -62,6 +62,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.seed import reset_seed
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -855,6 +856,10 @@ class Trainer(
 
             self._running_stage = stage
 
+            # reset the seed to what it was before sanity check
+            # prevents sanity check to affect random sampling in training
+            reset_seed()
+
     def validate(
         self,
         model: Optional[LightningModule] = None,
@@ -1030,16 +1035,15 @@ class Trainer(
         r"""
 
         Separates from fit to make sure you never run on your predictions set until you want to.
-
         This will call the model forward function to compute predictions.
 
         Args:
-            model: The model to predict on.
+            model: The model to predict with.
+            dataloaders: Either a single PyTorch DataLoader or a list of them, specifying inference samples.
+            datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
 
-            dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying inference samples.
-
-            datamodule: A instance of :class:`LightningDataModule`.
+            return_predictions: Whether to return predictions.
+                ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
             return_predictions: Whether to return predictions.
                 By default, it will be set to ``True``

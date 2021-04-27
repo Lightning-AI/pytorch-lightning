@@ -675,7 +675,7 @@ To use Sharded Training, you need to first install FairScale using the command b
 .. code-block:: python
 
     # train using Sharded DDP
-    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
+    trainer = Trainer(plugins='ddp_sharded')
 
 Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 

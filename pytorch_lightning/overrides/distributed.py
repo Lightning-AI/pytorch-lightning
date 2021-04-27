@@ -82,11 +82,11 @@ class UnrepeatedDistributedSampler(DistributedSampler):
     """
     A fork of the pytorch DistributedSampler that doesn't repeat data, instead
     allowing the number of batches per process to be off-by-one from each other.
-    This makes this sampler usable for validation (it's deterministic and
+    This makes this sampler usable for predictions (it's deterministic and
     doesn't require shuffling). It is potentially unsafe to use this sampler for
     training, because during training the DistributedDataParallel syncs buffers
     on each forward pass, so it could freeze if one of the processes runs one
-    fewer batch. During validation, buffers are only synced on the first batch,
+    fewer batch. During prediction, buffers are only synced on the first batch,
     so this is safe to use as long as each process runs at least one batch. We
     verify this in an assert.
 
@@ -94,7 +94,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
     and https://github.com/pytorch/pytorch/issues/25162#issuecomment-634146002
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.num_samples = len(range(self.rank, len(self.dataset), self.num_replicas))
         self.total_size = len(self.dataset)
@@ -124,22 +124,22 @@ class IndexBatchSamplerWrapper:
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
     def __init__(self, sampler: BatchSampler) -> None:
-        self.batch_sampler = sampler
+        self._sampler = sampler
         self.batch_indices: Optional[List[int]] = None
 
     def __iter__(self) -> Iterator[List[int]]:
-        for batch in self.batch_sampler:
+        for batch in self._sampler:
             self.batch_indices = batch
             yield batch
 
     @property
     def drop_last(self) -> bool:
-        return self.batch_sampler.drop_last
+        return self._sampler.drop_last
 
     @property
     def batch_size(self) -> int:
-        return self.batch_sampler.batch_size
+        return self._sampler.batch_size
 
     @property
     def sampler(self) -> Sampler:
-        return self.batch_sampler.sampler
+        return self._sampler.sampler

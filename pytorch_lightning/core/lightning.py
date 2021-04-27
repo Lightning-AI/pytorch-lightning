@@ -74,7 +74,7 @@ class LightningModule(
         "model_size",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
@@ -406,7 +406,14 @@ class LightningModule(
             when running in distributed mode, calling ``write_prediction`` will create a file for
             each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
 
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
         """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction` was deprecated in v1.3'
+            ' and will be removed in v1.5.'
+        )
+
         self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
 
     def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
@@ -426,7 +433,14 @@ class LightningModule(
             when running in distributed mode, calling ``write_prediction_dict`` will create a file for
             each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
 
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
         """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction_dict` was deprecated in v1.3 and'
+            ' will be removed in v1.5.'
+        )
+
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 
@@ -1035,7 +1049,7 @@ class LightningModule(
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
         """
-        Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
+        Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
         By default, it calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`.
         Override to add any processing logic.
 
@@ -1236,7 +1250,7 @@ class LightningModule(
                 loss.backward()
 
         """
-        if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
+        if self.automatic_optimization or self._running_manual_backward:
             loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
@@ -1525,7 +1539,7 @@ class LightningModule(
         avg_training_loss = None
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
-        elif self.trainer.train_loop.automatic_optimization:
+        elif self.automatic_optimization:
             avg_training_loss = float('NaN')
 
         tqdm_dict = {}
@@ -1544,7 +1558,7 @@ class LightningModule(
         return tqdm_dict
 
     def _verify_is_manual_optimization(self, fn_name):
-        if self.trainer.train_loop.automatic_optimization:
+        if self.automatic_optimization:
             raise MisconfigurationException(
                 f'to use {fn_name}, please disable automatic optimization:'
                 ' set model property `automatic_optimization` as False'

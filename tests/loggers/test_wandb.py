@@ -42,6 +42,14 @@ def test_wandb_logger_init(wandb, recwarn):
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0})
 
+    # test wandb.init and setting logger experiment externally
+    wandb.run = None
+    run = wandb.init()
+    logger = WandbLogger(experiment=run)
+    assert logger.experiment
+    assert run.dir is not None
+    assert logger.save_dir == run.dir
+
     # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
     wandb.init.reset_mock()

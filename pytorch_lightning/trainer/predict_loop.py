@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import torch
+from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
+from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -29,7 +31,8 @@ class PredictLoop(object):
         self.warning_cache = WarningCache()
         self.batch_indices: Optional[List[int]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
-        self._return_predictions = not trainer.training_type_plugin.use_spawn
+        # `DDPSpawnPlugin` plugins and derivate don't support return predictions.
+        self._return_predictions: Optional[bool] = None
         self._previous_grad_status: Optional[bool] = None
 
     @property
@@ -38,13 +41,15 @@ class PredictLoop(object):
 
     @return_predictions.setter
     def return_predictions(self, return_predictions: Optional[bool] = None) -> None:
-        if return_predictions and self.trainer.training_type_plugin.use_spawn:
+        # ``DDPSpawnPlugin`` plugins and derivate don't support return predictions.
+        is_ddp_spawn = isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin)
+        if return_predictions and is_ddp_spawn:
             raise MisconfigurationException(
-                "`return_predictions` should be set to `False` when using spawn accelerators. "
-                f"Found {return_predictions}"
+                "`return_predictions` should be set to `False` when using the `DDPSpawnPlugin` or children class. "
+                f"Found {return_predictions} with training_type_plugin {type(self.trainer.training_type_plugin)}."
             )
-        if return_predictions is not None:
-            self._return_predictions = return_predictions
+        # For non ``DDPSpawnPlugin`` plugin, the `return_predictions` is True by default unless user decide otherwise.
+        self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
 
     @property
     def should_store_predictions(self) -> bool:
@@ -82,7 +87,7 @@ class PredictLoop(object):
         self.predictions = [[] for _ in range(self.num_dataloaders)]
         self.epoch_batch_indices = [[] for _ in range(self.num_dataloaders)]
 
-    def _get_num_dataloaders(self, dataloaders):
+    def _get_num_dataloaders(self, dataloaders: List[DataLoader]) -> int:
         # case where user does:
         # return dl1, dl2
         length = len(dataloaders)
@@ -90,7 +95,7 @@ class PredictLoop(object):
             length = len(dataloaders[0])
         return length
 
-    def predict_step(self, batch, batch_idx, dataloader_idx):
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         # configure args
         args = [batch, batch_idx]
         if self.num_dataloaders:
@@ -132,7 +137,18 @@ class PredictLoop(object):
         self.trainer.call_hook("on_predict_start")
         self.trainer.call_hook("on_predict_epoch_start")
 
-    def on_predict_epoch_end(self):
+    def on_predict_start(self) -> None:
+        # enable eval mode + no grads
+        self.on_predict_model_eval()
+        self.trainer.lightning_module.zero_grad()
+        self._previous_grad_status = torch.is_grad_enabled()
+        torch.set_grad_enabled(False)
+
+        # hook
+        self.trainer.call_hook("on_predict_start")
+        self.trainer.call_hook("on_predict_epoch_start")
+
+    def on_predict_epoch_end(self) -> Optional[Union[List[Any], List[List[Any]]]]:
         self.trainer.profiler.describe()
 
         results: List[List[Any]] = self.predictions
@@ -143,11 +159,12 @@ class PredictLoop(object):
             return results[0] if self.num_dataloaders == 1 else results
 
     def on_predict_end(self):
-        # clean memory
+        # clear memory. the predictions are extracted in `on_predict_epoch_end`.
         self.predictions = None
         self.batch_indices = None
 
-        # enable eval mode + no grads
+        # reset grad to its previous status.
         torch.set_grad_enabled(self._previous_grad_status)
+
         # hook
         self.trainer.call_hook("on_predict_end")

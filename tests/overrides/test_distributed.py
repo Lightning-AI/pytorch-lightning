@@ -11,20 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import pytest
 from torch.utils.data import BatchSampler, SequentialSampler
 
+from pytorch_lightning import seed_everything
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 
 
-def test_unrepeated_distributed_sampler(tmpdir):
+@pytest.mark.parametrize("shuffle", [False, True])
+def test_unrepeated_distributed_sampler(shuffle, tmpdir):
     """Test each rank will receive a different number of elements."""
 
+    seed_everything(42)
     world_size = 4
     samplers = []
     dataset = range(103)
     for rank in range(world_size):
-        samplers.append(UnrepeatedDistributedSampler(dataset, rank=rank, num_replicas=world_size, shuffle=False))
+        samplers.append(UnrepeatedDistributedSampler(dataset, rank=rank, num_replicas=world_size, shuffle=shuffle))
 
     indices = [[v for v in s] for s in samplers]
     assert len(indices[0]) == 26
@@ -32,10 +35,10 @@ def test_unrepeated_distributed_sampler(tmpdir):
     assert len(indices[2]) == 26
     assert len(indices[3]) == 25
 
-    assert indices[0][-1] == 100
-    assert indices[1][-1] == 101
-    assert indices[2][-1] == 102
-    assert indices[3][-1] == 99
+    assert indices[0][-1] == 18 if shuffle else 100
+    assert indices[1][-1] == 30 if shuffle else 101
+    assert indices[2][-1] == 29 if shuffle else 102
+    assert indices[3][-1] == 35 if shuffle else 99
 
 
 def test_index_batch_sampler(tmpdir):
@@ -44,6 +47,10 @@ def test_index_batch_sampler(tmpdir):
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
     index_batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+
+    assert batch_sampler.batch_size == index_batch_sampler.batch_size
+    assert batch_sampler.drop_last == index_batch_sampler.drop_last
+    assert batch_sampler.sampler is sampler
 
     for batch in index_batch_sampler:
         assert index_batch_sampler.batch_indices == batch
