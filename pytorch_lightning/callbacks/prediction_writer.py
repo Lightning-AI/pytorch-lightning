@@ -17,7 +17,6 @@ BasePredictionWriter
 
 Aids in saving predictions
 """
-from abc import abstractmethod
 from typing import Any, List, Optional
 
 import pytorch_lightning as pl
