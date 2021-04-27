@@ -109,6 +109,10 @@ In Python scripts, it's recommended you use a main function to call the Trainer.
 
         main(args)
 
+.. warning::
+
+    When using argparse, note that integers are passed as strings, so passing ``--gpus 3`` is equivalent to ``--gpus [0, 1, 2]``. To select a GPU by it's index, pass it as a list (``--gpus [3]``).
+
 So you can run it like so:
 
 .. code-block:: bash
