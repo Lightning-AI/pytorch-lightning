@@ -152,6 +152,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `pl.seed_everything` will now also set the seed on the `DistributedSampler` ([#7024](https://github.com/PyTorchLightning/pytorch-lightning/pull/7024))
 
 
+- `DataModules` now avoid duplicate {setup,teardown,prepare_data} calls for the same stage ([#7238](https://github.com/PyTorchLightning/pytorch-lightning/pull/7238))
+
+
 - Changed default setting for communication of multi-node training using `DDPShardedPlugin` ([#6937](https://github.com/PyTorchLightning/pytorch-lightning/pull/6937))
 
 
