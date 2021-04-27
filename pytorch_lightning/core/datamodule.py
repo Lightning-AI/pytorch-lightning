@@ -86,11 +86,13 @@ def track_data_hook_calls(fn):
             if stage is None:
                 has_run = True
                 for s in ("fit", "validate", "test"):
-                    has_run &= getattr(obj, f"_has_{name}_{s}")
-                    setattr(obj, f"_has_{name}_{s}", True)
+                    attr = f"_has_{name}_{s}"
+                    has_run &= getattr(obj, attr)
+                    setattr(obj, attr, True)
             else:
-                has_run = getattr(obj, f"_has_{name}_{stage}")
-                setattr(obj, f"_has_{name}_{stage}", True)
+                attr = f"_has_{name}_{stage}"
+                has_run = getattr(obj, attr)
+                setattr(obj, attr, True)
 
         elif name == "prepare_data":
             has_run = obj._has_prepared_data
