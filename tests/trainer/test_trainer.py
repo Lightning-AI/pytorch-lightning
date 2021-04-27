@@ -1581,7 +1581,7 @@ def predict(
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
-    if not trainer.training_type_plugin.use_spawn:
+    if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
         if use_callbacks:
             assert cb.write_on_batch_end_called
             assert not cb.write_on_epoch_end_called
