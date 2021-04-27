@@ -373,7 +373,9 @@ class DeepSpeedPlugin(DDPPlugin):
     def _initialize_deepspeed_train(self, model):
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
 
-        deepspeed.zero.Init(module=model, remote_device=self.remote_device, pin_memory=True, param_dict=self.config)
+        deepspeed.zero.Init(
+            module=model, remote_device=self.remote_device, pin_memory=True, deepspeed_config=self.config
+        )
 
         if "optimizer" not in self.config:
             rank_zero_info(
@@ -383,12 +385,11 @@ class DeepSpeedPlugin(DDPPlugin):
             optimizer, lightning_scheduler, optimizer_frequencies = self._init_scheduler_optimizer()
         model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         model, optimizer, _, lr_scheduler = deepspeed.initialize(
-            args=SimpleNamespace(local_rank=self.local_rank),
+            deepspeed_config=self.config,
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
             lr_scheduler=lightning_scheduler,
-            config_params=self.config,
             dist_init_required=False
         )
         self._set_deepspeed_activation_checkpointing()
@@ -403,7 +404,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if self.zero_stage_3:
             assert self._config_initialized
             model_parallel_context = deepspeed.zero.Init(
-                remote_device=self.remote_device, pin_memory=True, param_dict=self.config
+                remote_device=self.remote_device, pin_memory=True, deepspeed_config=self.config
             )
         else:
             model_parallel_context = super().model_sharded_context()
@@ -445,11 +446,10 @@ class DeepSpeedPlugin(DDPPlugin):
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
-            args=SimpleNamespace(local_rank=self.local_rank),
+            deepspeed_config=inference_config,
             model=model,
             optimizer=optimizer,
             lr_scheduler=lightning_scheduler,
-            config_params=inference_config,
             model_parameters=[],
             dist_init_required=False
         )
