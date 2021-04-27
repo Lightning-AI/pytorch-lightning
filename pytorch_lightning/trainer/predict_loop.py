@@ -126,17 +126,6 @@ class PredictLoop(object):
             if self.should_store_predictions:
                 self.epoch_batch_indices[dataloader_idx].append(batch_sampler.batch_indices)
 
-    def on_predict_start(self):
-        # enable eval mode + no grads
-        self.on_predict_model_eval()
-        self.trainer.lightning_module.zero_grad()
-        self._previous_grad_status = torch.is_grad_enabled()
-        torch.set_grad_enabled(False)
-
-        # hook
-        self.trainer.call_hook("on_predict_start")
-        self.trainer.call_hook("on_predict_epoch_start")
-
     def on_predict_start(self) -> None:
         # enable eval mode + no grads
         self.on_predict_model_eval()
