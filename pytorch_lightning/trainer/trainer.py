@@ -1147,9 +1147,9 @@ class Trainer(
         self.teardown(stage=state)
         model.teardown(stage=state)
 
-    def _reset_result_and_set_hook_fx_name(self, hook_name):
+    def _reset_result_and_set_hook_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step
-        if "batch_start" in hook_name or "on_before_zero_grad" in hook_name:
+        if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
             return True
         model_ref = self.lightning_module
         if model_ref is not None:
@@ -1164,7 +1164,7 @@ class Trainer(
             # capture logging for this hook
             self.logger_connector.cache_logged_metrics()
 
-    def call_hook(self, hook_name, *args, **kwargs):
+    def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         # set hook_name to model + reset Result obj
         skip = self._reset_result_and_set_hook_fx_name(hook_name)
 
