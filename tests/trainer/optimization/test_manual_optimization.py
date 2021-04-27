@@ -1176,7 +1176,9 @@ def test_lr_scheduler_step_not_called(tmpdir):
     """
     Test `lr_scheduler.step()` is not called in manual optimization.
     """
+
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.automatic_optimization = False
