@@ -35,6 +35,12 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         """
         super().__init__()
         self.module = pl_module
+        
+        # skipped elements should be applied
+        _ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", None)
+        if _ddp_params_and_buffers_to_ignore:
+            self._ddp_params_and_buffers_to_ignore = _ddp_params_and_buffers_to_ignore
+
 
     def forward(self, *inputs, **kwargs):
         trainer = self.module.trainer
