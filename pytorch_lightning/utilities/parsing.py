@@ -65,6 +65,8 @@ def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
     True
     >>> str_to_bool_or_int("2")
     2
+    >>> str_to_bool_or_int("abc")
+    'abc'
     """
     val = str_to_bool_or_str(val)
     if isinstance(val, bool):
