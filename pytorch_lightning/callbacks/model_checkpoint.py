@@ -218,7 +218,9 @@ class ModelCheckpoint(Callback):
         self.__resolve_ckpt_dir(trainer)
         self.save_function = trainer.save_checkpoint
 
-    def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
+    def on_train_batch_end(
+        self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         """ Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps` """
         if self._should_skip_saving_checkpoint(trainer):
             return
@@ -228,7 +230,7 @@ class ModelCheckpoint(Callback):
             return
         self.save_checkpoint(trainer)
 
-    def on_validation_end(self, trainer, *args, **kwargs) -> None:
+    def on_validation_end(self, trainer, pl_module) -> None:
         """
         checkpoints can be saved at the end of the val loop
         """
@@ -553,12 +555,11 @@ class ModelCheckpoint(Callback):
                 trainer.logger.version
                 if isinstance(trainer.logger.version, str) else f"version_{trainer.logger.version}"
             )
-
-            version, name = trainer.training_type_plugin.broadcast((version, trainer.logger.name))
-
-            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
+            ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
+
+        ckpt_path = trainer.training_type_plugin.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerState
@@ -20,13 +21,11 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 if torch.distributed.is_available() and _TORCH_GREATER_EQUAL_1_8:
-    from torch.distributed.algorithms.ddp_comm_hooks import (
-        default_hooks as default,
-        powerSGD_hook as powerSGD,
-    )
+    from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
+    from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
 
 
-@RunIf(skip_windows=True, min_torch="1.8.0", min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
@@ -43,17 +42,13 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = (
-        trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
-    )
+    trainer_comm_hook = (trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook)
     expected_comm_hook = default.fp16_compress_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
-    assert (
-        trainer.state == TrainerState.FINISHED
-    ), f"Training failed with {trainer.state}"
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@RunIf(skip_windows=True, min_torch="1.8.0", min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
 def test_ddp_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
@@ -71,14 +66,10 @@ def test_ddp_sgd_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = (
-        trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
-    )
+    trainer_comm_hook = (trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook)
     expected_comm_hook = powerSGD.powerSGD_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
-    assert (
-        trainer.state == TrainerState.FINISHED
-    ), f"Training failed with {trainer.state}"
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
 @RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
@@ -100,19 +91,13 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    trainer_comm_hook = (
-        trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook
-    )
-    expected_comm_hook = default.fp16_compress_wrapper(
-        powerSGD.powerSGD_hook
-    ).__qualname__
+    trainer_comm_hook = (trainer.accelerator.training_type_plugin._model.get_ddp_logging_data().comm_hook)
+    expected_comm_hook = default.fp16_compress_wrapper(powerSGD.powerSGD_hook).__qualname__
     assert trainer_comm_hook == expected_comm_hook
-    assert (
-        trainer.state == TrainerState.FINISHED
-    ), f"Training failed with {trainer.state}"
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
 
-@RunIf(skip_windows=True, min_torch="1.8.0", min_gpus=2, special=True)
+@RunIf(skip_windows=True, min_torch="1.9.0", min_gpus=2, special=True)
 def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
@@ -129,6 +114,4 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    assert (
-        trainer.state == TrainerState.FINISHED
-    ), f"Training failed with {trainer.state}"
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
