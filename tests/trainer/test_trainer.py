@@ -1549,7 +1549,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
     else:
         results = trainer.predict(model, dataloaders=dataloaders)
 
-    if not trainer.training_type_plugin.use_spawn:
+    if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
         num_samples = 1 if accelerator == "ddp" else 2
         assert len(results) == 2
         assert len(results[0]) == num_samples
