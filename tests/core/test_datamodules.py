@@ -271,9 +271,8 @@ def test_train_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert result
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -294,9 +293,8 @@ def test_train_val_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert result
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -353,10 +351,9 @@ def test_full_loop(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    trainer.fit(model, dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert dm.trainer is not None
-    assert result
 
     # validate
     result = trainer.validate(datamodule=dm)

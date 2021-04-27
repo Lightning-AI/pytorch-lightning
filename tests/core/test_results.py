@@ -171,9 +171,8 @@ def test_result_obj_predictions(tmpdir, test_option: int, do_train: bool, gpus: 
     assert not prediction_file.exists()
 
     if do_train:
-        result = trainer.fit(model, dm)
+        trainer.fit(model, dm)
         assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-        assert result
         result = trainer.test(datamodule=dm)
         # TODO: add end-to-end test
         # assert result[0]['test_loss'] < 0.6

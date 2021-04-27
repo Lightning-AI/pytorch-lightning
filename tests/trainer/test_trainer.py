@@ -758,10 +758,9 @@ def test_disabled_validation(tmpdir):
     )
 
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # check that limit_val_batches=0 turns off validation
-    assert result == 1, "training failed to complete"
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
@@ -1696,7 +1695,7 @@ def test_disabled_training_for_insufficient_limit_train_batches(
         max_epochs=5,
         limit_train_batches=limit_train_batches,
     )
-    result = trainer.fit(model, train_loader)
+    trainer.fit(model, train_loader)
 
     params_string = f"""`limit_train_batches={limit_train_batches}`, `dataset_len={dataset_len}`
                         & `batch_size={batch_size}` as
@@ -1706,7 +1705,6 @@ def test_disabled_training_for_insufficient_limit_train_batches(
     else:
         error_string = f"should not run with {params_string}"
 
-    assert result == 1, "training failed to complete"
     assert trainer.state == TrainerState.FINISHED
     assert trainer.global_step == global_step
     assert trainer.num_training_batches == num_training_batches
