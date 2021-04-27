@@ -85,7 +85,7 @@ class BasePredictionWriter(Callback):
         batch_idx: int,
         dataloader_idx: int,
     ) -> None:
-        """Override with logic to write a single batch."""
+        """Override with the logic to write a single batch."""
 
     @abstractmethod
     def write_on_epoch_end(
@@ -95,7 +95,7 @@ class BasePredictionWriter(Callback):
         predictions: List[Any],
         batch_indices: Optional[List[Any]],
     ) -> None:
-        """Override with logic to write all batches."""
+        """Override with the logic to write all batches."""
 
     def on_predict_batch_end(
         self,

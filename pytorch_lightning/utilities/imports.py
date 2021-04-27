@@ -14,7 +14,6 @@
 """General utilities"""
 import importlib
 import operator
-import os
 import platform
 import sys
 from importlib.util import find_spec
