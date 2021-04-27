@@ -46,7 +46,7 @@ class BasePredictionWriter(Callback):
     Args:
         write_interval: When to write.
 
-    .. testcode::
+    Example::
 
         import torch
         from pytorch_lightning.callbacks import BasePredictionWriter
