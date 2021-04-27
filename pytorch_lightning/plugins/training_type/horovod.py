@@ -104,14 +104,14 @@ class HorovodPlugin(ParallelPlugin):
                 stack.enter_context(optimizer.skip_synchronize())
 
             # set up training routine
-            self._results = trainer.run_stage()
+            self.results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user
         self.join()
 
     def start_evaluating(self, trainer):
         with ExitStack():
-            self._results = trainer.run_stage()
+            self.results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user
         self.join()
@@ -119,7 +119,7 @@ class HorovodPlugin(ParallelPlugin):
     def start_predicting(self, trainer):
         with ExitStack():
             # set up training routine
-            self._results = trainer.run_stage()
+            self.results = trainer.run_stage()
 
         # Make sure all workers have finished training before returning to the user
         self.join()
