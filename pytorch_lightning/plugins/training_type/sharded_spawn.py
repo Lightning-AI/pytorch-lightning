@@ -72,7 +72,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
 
     @property
     def lightning_module(self) -> LightningModule:
-        if not _FAIRSCALE_AVAILABLE:
+        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."

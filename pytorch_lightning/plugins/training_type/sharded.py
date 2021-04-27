@@ -86,7 +86,7 @@ class DDPShardedPlugin(DDPPlugin):
 
     @property
     def lightning_module(self) -> LightningModule:
-        if not _FAIRSCALE_AVAILABLE:
+        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPShardedPlugin` requires `fairscale` to be installed."
                 " Install it by running `pip install fairscale`."
