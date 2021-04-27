@@ -128,7 +128,7 @@ def test_ddp_wrapper(tmpdir):
     Test parameters to ignore are carried over for DDP.
     """
 
-    class WierdModule(torch.nn.Module):
+    class WeirdModule(torch.nn.Module):
 
         def _save_to_state_dict(self, destination, prefix, keep_vars):
             return {"something": "something"}
@@ -137,7 +137,7 @@ def test_ddp_wrapper(tmpdir):
 
         def __init__(self):
             super().__init__()
-            self.wierd_module = WierdModule()
+            self.weird_module = WeirdModule()
 
             # should be skip.
             self._ddp_params_and_buffers_to_ignore = ('something')
@@ -150,5 +150,5 @@ def test_ddp_wrapper(tmpdir):
             assert trainer.training_type_plugin.model.module._ddp_params_and_buffers_to_ignore == ('something')
 
     model = CustomModel()
-    trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=CustomCallback())
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ddp", gpus=2, callbacks=CustomCallback())
     trainer.fit(model)
