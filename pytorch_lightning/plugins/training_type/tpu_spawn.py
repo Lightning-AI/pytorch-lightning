@@ -170,7 +170,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.model = self.wrapped_model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if tpu_distributed:
+        if tpu_distributed():
             rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
