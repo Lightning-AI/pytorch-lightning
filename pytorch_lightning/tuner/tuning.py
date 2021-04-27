@@ -71,12 +71,11 @@ class Tuner:
 
         self.trainer.state = TrainerState.FINISHED
 
-    def _fit(self, *args: Any, **kwargs: Any) -> Optional[int]:
+    def _fit(self, *args: Any, **kwargs: Any) -> None:
         """`_fit_impl` wrapper to set the proper `RunningStage`"""
         self.trainer.training = True
-        results = self.trainer._fit_impl(*args, **kwargs)
+        self.trainer._fit_impl(*args, **kwargs)
         self.trainer.tuning = True
-        return results
 
     def scale_batch_size(
         self,
