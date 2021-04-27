@@ -600,8 +600,8 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # load new model
     hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
-    hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
-    ckpt_path = hparams_url if url_ckpt else new_weights_path
+    ckpt_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
+    ckpt_path = ckpt_url if url_ckpt else new_weights_path
 
     class CurrentModel(BoringModel):
 

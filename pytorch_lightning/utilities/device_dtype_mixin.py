@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from typing import Optional, Union
-
 import torch
 from torch.nn import Module
 
@@ -46,11 +45,6 @@ class DeviceDtypeModuleMixin(Module):
             return torch.device(f'cuda:{torch.cuda.current_device()}')
 
         return device
-
-    @device.setter
-    def device(self, new_device: Union[str, torch.device]):
-        # Necessary to avoid infinite recursion
-        raise RuntimeError('Cannot set the device explicitly. Please use module.to(new_device).')
 
     @parameter_validation
     def to(self, *args, **kwargs) -> Module:

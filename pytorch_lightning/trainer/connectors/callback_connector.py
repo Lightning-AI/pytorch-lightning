@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from datetime import timedelta
-from typing import List, Union, Optional, Dict
+from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
 from pytorch_lightning.callbacks.timer import Timer
@@ -115,9 +115,7 @@ class CallbackConnector:
         if max_time is None:
             return
         if any(isinstance(cb, Timer) for cb in self.trainer.callbacks):
-            rank_zero_info(
-                "Ignoring `Trainer(max_time=...)`, callbacks list already contains a Timer."
-            )
+            rank_zero_info("Ignoring `Trainer(max_time=...)`, callbacks list already contains a Timer.")
             return
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)

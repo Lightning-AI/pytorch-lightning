@@ -26,6 +26,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store im
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities.metrics import metrics_to_scalars
 
 
 class LoggerConnector:
@@ -210,7 +211,7 @@ class LoggerConnector:
         metrics.update(grad_norm_dic)
 
         # turn all tensors to scalars
-        scalar_metrics = self.trainer.metrics_to_scalars(metrics)
+        scalar_metrics = metrics_to_scalars(metrics)
 
         if "step" in scalar_metrics and step is None:
             step = scalar_metrics.pop("step")
@@ -357,7 +358,7 @@ class LoggerConnector:
         return epoch_log_metrics, epoch_progress_bar_metrics
 
     def log_train_step_metrics(self, batch_output):
-        if self.trainer.train_loop.should_accumulate() and self.trainer.train_loop.automatic_optimization:
+        if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
         _, batch_log_metrics = self.cached_results.update_logger_connector()
         # when metrics should be logged

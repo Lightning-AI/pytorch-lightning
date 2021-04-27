@@ -295,3 +295,45 @@ def test_lr_find_with_bs_scale(tmpdir):
 
     assert lr != before_lr
     assert isinstance(bs, int)
+
+
+def test_lr_candidates_between_min_and_max(tmpdir):
+    """Test that learning rate candidates are between min_lr and max_lr."""
+    class TestModel(BoringModel):
+        def __init__(self, learning_rate=0.1):
+            super().__init__()
+            self.save_hyperparameters()
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+
+    lr_min = 1e-8
+    lr_max = 1.0
+    lr_finder = trainer.tuner.lr_find(
+        model,
+        max_lr=lr_min,
+        min_lr=lr_max,
+        num_training=3,
+    )
+    lr_candidates = lr_finder.results["lr"]
+    assert all([lr_min <= lr <= lr_max for lr in lr_candidates])
+
+
+def test_lr_finder_ends_before_num_training(tmpdir):
+    """Tests learning rate finder ends before `num_training` steps."""
+    class TestModel(BoringModel):
+        def __init__(self, learning_rate=0.1):
+            super().__init__()
+            self.save_hyperparameters()
+
+        def training_step_end(self, outputs):
+            assert self.global_step < num_training
+            return outputs
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+    num_training = 3
+    _ = trainer.tuner.lr_find(
+        model=model,
+        num_training=num_training,
+    )

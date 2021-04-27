@@ -140,8 +140,11 @@ class Accelerator:
         """
         This method is called to teardown the training process.
         It is the right place to release memory and free other ressources.
+
+        By default we add a barrier here to synchronize processes before returning
+        control back to the caller.
         """
-        pass
+        self.barrier("teardown")
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """Moves the batch to the correct device.
