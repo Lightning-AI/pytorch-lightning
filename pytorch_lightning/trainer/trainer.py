@@ -62,6 +62,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.seed import reset_seed
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -805,20 +806,11 @@ class Trainer(
         if self.predict_loop.should_skip_predict(max_batches):
             return []
 
-        # ref model
-        model = self.lightning_module
-
-        # enable eval mode + no grads
-        self.predict_loop.on_predict_model_eval()
-        model.zero_grad()
-        torch.set_grad_enabled(False)
-
         # set up the eval loop
-        self.predict_loop.setup(model, max_batches, dataloaders)
+        self.predict_loop.setup(self.lightning_module, max_batches, dataloaders)
 
         # call hook
-        self.call_hook("on_predict_start")
-        self.call_hook("on_predict_epoch_start")
+        self.predict_loop.on_predict_start()
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -836,11 +828,11 @@ class Trainer(
                 with self.profiler.profile("predict_step"):
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
+        # call hook
         results = self.predict_loop.on_predict_epoch_end()
-        self.call_hook("on_predict_end")
 
-        # re-enable grads
-        torch.set_grad_enabled(True)
+        # call hook
+        self.predict_loop.on_predict_end()
 
         return results
 
@@ -863,6 +855,10 @@ class Trainer(
             self.on_sanity_check_end()
 
             self._running_stage = stage
+
+            # reset the seed to what it was before sanity check
+            # prevents sanity check to affect random sampling in training
+            reset_seed()
 
     def validate(
         self,
@@ -1034,6 +1030,7 @@ class Trainer(
         model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
+        return_predictions: Optional[bool] = None,
     ):
         r"""
 
@@ -1044,6 +1041,9 @@ class Trainer(
             model: The model to predict with.
             dataloaders: Either a single PyTorch DataLoader or a list of them, specifying inference samples.
             datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
+
+            return_predictions: Whether to return predictions.
+                ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -1056,6 +1056,8 @@ class Trainer(
         Trainer._log_api_event("predict")
 
         model = model or self.lightning_module
+
+        self.predict_loop.return_predictions = return_predictions
 
         self.state = TrainerState.PREDICTING
         self.predicting = True
@@ -1112,6 +1114,8 @@ class Trainer(
         assert self.state.running, f"TrainerState: {self.state}"
         state = self._setup_state
 
+        self.accelerator.barrier("pre_setup")
+
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
             if not called:
@@ -1119,6 +1123,8 @@ class Trainer(
 
         self.setup(model, stage=state)
         model.setup(stage=state)
+
+        self.accelerator.barrier("post_setup")
 
     def call_configure_sharded_model(self, model: LightningModule) -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
@@ -1145,9 +1151,9 @@ class Trainer(
         self.teardown(stage=state)
         model.teardown(stage=state)
 
-    def _reset_result_and_set_hook_fx_name(self, hook_name):
+    def _reset_result_and_set_hook_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step
-        if "batch_start" in hook_name or "on_before_zero_grad" in hook_name:
+        if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
             return True
         model_ref = self.lightning_module
         if model_ref is not None:
@@ -1162,7 +1168,7 @@ class Trainer(
             # capture logging for this hook
             self.logger_connector.cache_logged_metrics()
 
-    def call_hook(self, hook_name, *args, **kwargs):
+    def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         # set hook_name to model + reset Result obj
         skip = self._reset_result_and_set_hook_fx_name(hook_name)
 

@@ -43,7 +43,6 @@ class TrainLoop:
         self.warning_cache = WarningCache()
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
-        self.automatic_optimization = True
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
         self._multiple_trainloader_mode = multiple_trainloader_mode
@@ -256,7 +255,7 @@ class TrainLoop:
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
     def _check_training_step_output(self, training_step_output):
-        if isinstance(training_step_output, torch.Tensor) and not self.automatic_optimization:
+        if isinstance(training_step_output, torch.Tensor) and not self.trainer.lightning_module.automatic_optimization:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
@@ -291,7 +290,7 @@ class TrainLoop:
         closure_loss = None
         untouched_loss = None
 
-        if self.automatic_optimization:
+        if self.trainer.lightning_module.automatic_optimization:
             # accumulate loss. if accumulate_grad_batches==1, no effect
             closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
 
@@ -661,7 +660,7 @@ class TrainLoop:
                 # gradient update with accumulated gradients
 
                 else:
-                    if self.automatic_optimization:
+                    if self.trainer.lightning_module.automatic_optimization:
 
                         def train_step_and_backward_closure():
                             result = self.training_step_and_backward(
@@ -718,7 +717,7 @@ class TrainLoop:
         """
         if (
             isinstance(self.trainer.training_type_plugin, ParallelPlugin)
-            and (self.automatic_optimization or should_block_sync)
+            and (self.trainer.lightning_module.automatic_optimization or should_block_sync)
         ):
             with self.trainer.training_type_plugin.block_backward_sync():
                 yield None
@@ -741,7 +740,7 @@ class TrainLoop:
             batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
             batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
 
-            if self.automatic_optimization:
+            if self.trainer.lightning_module.automatic_optimization:
                 # track total loss for logging (avoid mem leaks)
                 self.accumulated_loss.append(opt_closure_result.loss)
 
@@ -756,7 +755,7 @@ class TrainLoop:
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
             self._curr_step_result = result
 
-            if not self._skip_backward and self.automatic_optimization:
+            if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
                 is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
 
                 if is_first_batch_to_accumulate:
@@ -859,15 +858,16 @@ class TrainLoop:
 
         if len(self.trainer.optimizers) > 1:
             if self.trainer.has_arg("training_step", "optimizer_idx"):
-                if not self.automatic_optimization:
+                if not self.trainer.lightning_module.automatic_optimization:
                     self.warning_cache.warn(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5", DeprecationWarning
                     )
-
                 kwargs['optimizer_idx'] = opt_idx
-            elif not self.trainer.has_arg("training_step", "optimizer_idx") and self.automatic_optimization:
+            elif not self.trainer.has_arg(
+                "training_step", "optimizer_idx"
+            ) and self.trainer.lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
                     ' `training_step` is missing the `optimizer_idx` argument.'
@@ -888,7 +888,7 @@ class TrainLoop:
     def prepare_optimizers(self):
         # in manual optimization we loop over all optimizers at once
         optimizers = self.get_optimizers_iterable()
-        if not self.automatic_optimization:
+        if not self.trainer.lightning_module.automatic_optimization:
             optimizers = [optimizers[0]]
         return optimizers
 
@@ -898,7 +898,7 @@ class TrainLoop:
 
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
-        if self.automatic_optimization and len(self.trainer.optimizers) > 1:
+        if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
             model.toggle_optimizer(optimizer, opt_idx)
 

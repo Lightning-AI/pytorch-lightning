@@ -894,7 +894,7 @@ def test_metric_are_properly_reduced(tmpdir):
 
     class TestingModel(BoringModel):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__()
             self.val_acc = pl.metrics.Accuracy()
 

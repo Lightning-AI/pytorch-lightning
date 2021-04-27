@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
+import os
 from unittest import mock
 
 import pytest
@@ -31,9 +32,18 @@ from tests.helpers.utils import no_warning_call
 
 def test_v1_5_0_model_checkpoint_save_checkpoint():
     model_ckpt = ModelCheckpoint()
-    model_ckpt.save_function = lambda *_, **__: None
+    trainer = Trainer()
+    trainer.save_checkpoint = lambda *_, **__: None
     with pytest.deprecated_call(match="ModelCheckpoint.save_checkpoint` signature has changed"):
-        model_ckpt.save_checkpoint(Trainer(), object())
+        model_ckpt.save_checkpoint(trainer, object())
+
+
+def test_v1_5_0_model_checkpoint_save_function():
+    model_ckpt = ModelCheckpoint()
+    with pytest.deprecated_call(match="Property `save_function` in `ModelCheckpoint` is deprecated in v1.3"):
+        model_ckpt.save_function = lambda *_, **__: None
+    with pytest.deprecated_call(match="Property `save_function` in `ModelCheckpoint` is deprecated in v1.3"):
+        _ = model_ckpt.save_function
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
@@ -254,3 +264,45 @@ def test_v1_5_0_auto_move_data():
             @auto_move_data
             def bar(self):
                 pass
+
+
+def test_v1_5_0_lightning_module_write_prediction(tmpdir):
+
+    class DeprecatedWritePredictionsModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self._predictions_file = os.path.join(tmpdir, "predictions.pt")
+
+        def test_step(self, batch, batch_idx):
+            super().test_step(batch, batch_idx)
+            self.write_prediction("a", torch.Tensor(0), self._predictions_file)
+
+        def test_epoch_end(self, outputs):
+            self.write_prediction_dict({"a": "b"}, self._predictions_file)
+
+    with pytest.deprecated_call(match="`write_prediction` was deprecated in v1.3 and will be removed in v1.5"):
+        model = DeprecatedWritePredictionsModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            checkpoint_callback=False,
+            logger=False,
+        )
+        trainer.test(model)
+
+    with pytest.deprecated_call(match="`write_prediction_dict` was deprecated in v1.3 and will be removed in v1.5"):
+        model = DeprecatedWritePredictionsModel()
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            checkpoint_callback=False,
+            logger=False,
+        )
+        trainer.test(model)
+
+
+def test_v1_5_0_trainer_logging_mixin(tmpdir):
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.metrics_to_scalars({})

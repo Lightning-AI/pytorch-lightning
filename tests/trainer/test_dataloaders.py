@@ -922,7 +922,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
 
     class CurrentTestModel(EvalModelTemplate):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             # batch norm doesn't work with batch size 1, we replace it
             self.c_d1_bn = torch.nn.ReLU()

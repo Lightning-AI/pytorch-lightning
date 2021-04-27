@@ -140,8 +140,11 @@ class Accelerator:
         """
         This method is called to teardown the training process.
         It is the right place to release memory and free other ressources.
+
+        By default we add a barrier here to synchronize processes before returning
+        control back to the caller.
         """
-        pass
+        self.barrier("teardown")
 
     def batch_to_device(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
@@ -323,7 +326,12 @@ class Accelerator:
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """clips all the optimizer parameters to the given value"""
-        self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
+        self.precision_plugin.clip_gradients(
+            optimizer,
+            clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            model=self.model,
+        )
 
     def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """Hook to do something on the end of an training epoch
