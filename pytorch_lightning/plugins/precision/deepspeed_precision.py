@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch import Tensor
+from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -81,8 +82,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+        model: Optional[Module] = None,
     ) -> None:
         """
-        DeepSpeed handles clipping gradients via the training type plugin.
+        DeepSpeed handles clipping gradients internally via the training type plugin.
         """
         pass
