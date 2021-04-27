@@ -42,7 +42,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -406,7 +406,14 @@ class LightningModule(
             when running in distributed mode, calling ``write_prediction`` will create a file for
             each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
 
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
         """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction` was deprecated in v1.3'
+            ' and will be removed in v1.5.'
+        )
+
         self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
 
     def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
@@ -426,7 +433,14 @@ class LightningModule(
             when running in distributed mode, calling ``write_prediction_dict`` will create a file for
             each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
 
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
         """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction_dict` was deprecated in v1.3 and'
+            ' will be removed in v1.5.'
+        )
+
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 
@@ -1035,7 +1049,7 @@ class LightningModule(
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
         """
-        Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
+        Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
         By default, it calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`.
         Override to add any processing logic.
 
@@ -1236,7 +1250,7 @@ class LightningModule(
                 loss.backward()
 
         """
-        if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
+        if self.automatic_optimization or self._running_manual_backward:
             loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
@@ -1525,7 +1539,7 @@ class LightningModule(
         avg_training_loss = None
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
-        elif self.trainer.train_loop.automatic_optimization:
+        elif self.automatic_optimization:
             avg_training_loss = float('NaN')
 
         tqdm_dict = {}
@@ -1544,7 +1558,7 @@ class LightningModule(
         return tqdm_dict
 
     def _verify_is_manual_optimization(self, fn_name):
-        if self.trainer.train_loop.automatic_optimization:
+        if self.automatic_optimization:
             raise MisconfigurationException(
                 f'to use {fn_name}, please disable automatic optimization:'
                 ' set model property `automatic_optimization` as False'
@@ -1645,38 +1659,10 @@ class LightningModule(
             "arg1": 1
             "arg3": 3.14
         """
+        # the frame needs to be created in this file.
         if not frame:
             frame = inspect.currentframe().f_back
-        init_args = get_init_args(frame)
-        assert init_args, "failed to inspect the self init"
-
-        if ignore is not None:
-            if isinstance(ignore, str):
-                ignore = [ignore]
-            if isinstance(ignore, (list, tuple)):
-                ignore = [arg for arg in ignore if isinstance(arg, str)]
-            init_args = {k: v for k, v in init_args.items() if k not in ignore}
-
-        if not args:
-            # take all arguments
-            hp = init_args
-            self._hparams_name = "kwargs" if hp else None
-        else:
-            # take only listed arguments in `save_hparams`
-            isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
-            if len(isx_non_str) == 1:
-                hp = args[isx_non_str[0]]
-                cand_names = [k for k, v in init_args.items() if v == hp]
-                self._hparams_name = cand_names[0] if cand_names else None
-            else:
-                hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
-                self._hparams_name = "kwargs"
-
-        # `hparams` are expected here
-        if hp:
-            self._set_hparams(hp)
-        # make deep copy so  there is not other runtime changes reflected
-        self._hparams_initial = copy.deepcopy(self._hparams)
+        save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         if isinstance(hp, Namespace):

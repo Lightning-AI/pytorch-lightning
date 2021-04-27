@@ -140,8 +140,11 @@ class Accelerator:
         """
         This method is called to teardown the training process.
         It is the right place to release memory and free other ressources.
+
+        By default we add a barrier here to synchronize processes before returning
+        control back to the caller.
         """
-        pass
+        self.barrier("teardown")
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """Moves the batch to the correct device.
@@ -242,7 +245,7 @@ class Accelerator:
 
         args[0] = batch
 
-        with self.precision_plugin.predict_context(), self.training_type_plugin.predict_context():
+        with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*args)
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:

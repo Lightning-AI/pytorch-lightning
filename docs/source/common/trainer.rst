@@ -184,11 +184,15 @@ Example::
 
     from pytorch_lightning import Trainer, seed_everything
 
-    seed_everything(42)
+    seed_everything(42, workers=True)
     # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
     model = Model()
     trainer = Trainer(deterministic=True)
 
+
+By setting ``workers=True`` in :func:`~pytorch_lightning.utilities.seed.seed_everything`, Lightning derives
+unique seeds across all dataloader workers and processes for :mod:`torch`, :mod:`numpy` and stdlib
+:mod:`random` number generators. When turned on, it ensures that e.g. data augmentations are not repeated across workers.
 
 -------
 
@@ -1594,10 +1598,22 @@ fit
 .. automethod:: pytorch_lightning.trainer.Trainer.fit
    :noindex:
 
+validate
+********
+
+.. automethod:: pytorch_lightning.trainer.Trainer.validate
+   :noindex:
+
 test
 ****
 
 .. automethod:: pytorch_lightning.trainer.Trainer.test
+   :noindex:
+
+predict
+*******
+
+.. automethod:: pytorch_lightning.trainer.Trainer.predict
    :noindex:
 
 tune

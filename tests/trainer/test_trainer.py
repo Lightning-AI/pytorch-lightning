@@ -330,9 +330,9 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
         save_last=save_last,
         verbose=True
     )
-    checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
     trainer.state = TrainerState.FITTING
+    trainer.save_checkpoint = mock_save_function
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
@@ -1476,7 +1476,7 @@ def test_trainer_profiler_correct_args(profiler, expected):
 
 
 def test_trainer_profiler_incorrect_str_arg():
-    with pytest.raises(ValueError, match=r".*can only be 'simple' or 'advanced'"):
+    with pytest.raises(ValueError, match=r".*can only be 'simple', 'advanced' or 'pytorch'"):
         Trainer(profiler="unknown_profiler")
 
 
@@ -1923,3 +1923,32 @@ def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes)
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model, model.val_dataloader())
+
+
+class TestDummyModelForCheckpoint(BoringModel):
+
+    def validation_step(self, batch, batch_idx):
+        output = self.layer(batch)
+        loss = self.loss(batch, output)
+        self.log('x', loss)
+
+    def validation_epoch_end(self, outputs) -> None:
+        pass
+
+
+@RunIf(skip_windows=True)
+def test_fit_test_synchronization(tmpdir):
+    """Test that the trainer synchronizes processes before returning control back to the caller. """
+    tutils.set_random_master_port()
+    model = TestDummyModelForCheckpoint()
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor='x', mode='min', save_top_k=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        accelerator='ddp_cpu',
+        num_processes=2,
+        callbacks=[checkpoint],
+    )
+    trainer.fit(model)
+    assert os.path.exists(checkpoint.best_model_path), f'Could not find checkpoint at rank {trainer.global_rank}'
+    trainer.test()

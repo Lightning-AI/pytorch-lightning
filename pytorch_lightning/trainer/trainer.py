@@ -813,11 +813,12 @@ class Trainer(
         model.zero_grad()
         torch.set_grad_enabled(False)
 
-        # call hook
-        self.predict_loop.on_predict_start()
-
         # set up the eval loop
         self.predict_loop.setup(model, max_batches, dataloaders)
+
+        # call hook
+        self.call_hook("on_predict_start")
+        self.call_hook("on_predict_epoch_start")
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -836,7 +837,7 @@ class Trainer(
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
         results = self.predict_loop.on_predict_epoch_end()
-        self.predict_loop.on_predict_end()
+        self.call_hook("on_predict_end")
 
         # re-enable grads
         torch.set_grad_enabled(True)
@@ -1037,16 +1038,12 @@ class Trainer(
         r"""
 
         Separates from fit to make sure you never run on your predictions set until you want to.
-
         This will call the model forward function to compute predictions.
 
         Args:
-            model: The model to predict on.
-
-            dataloaders: Either a single
-                Pytorch Dataloader or a list of them, specifying inference samples.
-
-            datamodule: A instance of :class:`LightningDataModule`.
+            model: The model to predict with.
+            dataloaders: Either a single PyTorch DataLoader or a list of them, specifying inference samples.
+            datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.

@@ -22,6 +22,8 @@ import torch.multiprocessing as mp
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
+from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerState
@@ -47,7 +49,7 @@ if _OMEGACONF_AVAILABLE:
 class TPUSpawnPlugin(DDPSpawnPlugin):
     """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
-    def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, parallel_devices: Optional[List[int]] = None, **_: Any) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
@@ -70,7 +72,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return self.device
 
     @staticmethod
-    def _validate_dataloader(dataloaders: Union[List['DataLoader'], 'DataLoader']):
+    def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
@@ -82,7 +84,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 )
 
     @staticmethod
-    def _validate_patched_dataloaders(model: 'Module') -> None:
+    def _validate_patched_dataloaders(model: Module) -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit.
         """
         if hasattr(model, 'train_dataloader') and isinstance(model.train_dataloader, _PatchDataLoader):
@@ -97,11 +99,12 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if hasattr(model, 'predict_dataloader') and isinstance(model.predict_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
 
-    def connect(self, model: 'Module') -> None:
+    def connect(self, model: 'pl.LightningModule') -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
+        self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def setup(self, model: 'Module') -> 'Module':
+    def setup(self, model: Module) -> Module:
         self.create_mp_queue()
         return self.model
 
@@ -111,14 +114,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.mp_queue = smp.SimpleQueue()
 
     @property
-    def distributed_sampler_kwargs(self) -> dict:
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
     @property
-    def is_distributed(self):
+    def is_distributed(self) -> bool:
         return self.world_size != 1
 
-    def process_dataloader(self, dataloader: 'DataLoader') -> MpDeviceLoader:
+    def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
         return MpDeviceLoader(dataloader, self.device)
 
@@ -166,7 +169,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def model_to_device(self) -> None:
         self.device = xm.xla_device()
-        self.model.to(self.device)
+        self.model = self.wrapped_model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
         rendezvous(name)
@@ -200,7 +203,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data).to(xm.xla_device(), dtype=torch.float)
+        data_tensor = torch.tensor(data, device=self.device, dtype=torch.float)
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
@@ -257,16 +260,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def training_step(self, *args, **kwargs):
-        return self.lightning_module.training_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        return self.lightning_module.validation_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.lightning_module.test_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        return self.lightning_module.predict_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
