@@ -83,6 +83,7 @@ class XLADeviceUtils:
     def tpu_device_exists() -> bool:
         """
         Runs XLA device check within a separate process
+
         Return:
             A boolean value indicating if a TPU device exists on the system
         """
