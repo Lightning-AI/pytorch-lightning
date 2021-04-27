@@ -62,6 +62,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.seed import reset_seed
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -863,6 +864,10 @@ class Trainer(
             self.on_sanity_check_end()
 
             self._running_stage = stage
+
+            # reset the seed to what it was before sanity check
+            # prevents sanity check to affect random sampling in training
+            reset_seed()
 
     def validate(
         self,

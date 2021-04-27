@@ -347,6 +347,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed parsing for pre-release package versions ([#6999](https://github.com/PyTorchLightning/pytorch-lightning/pull/6999))
 
 
+- Fixed `num_sanity_val_steps` affecting reproducibility of training data shuffling ([#7014](https://github.com/PyTorchLightning/pytorch-lightning/pull/7014))
+
+
 - Fixed resetting device after `fitting/evaluating/predicting` ([#7188](https://github.com/PyTorchLightning/pytorch-lightning/pull/7188))
 
 
