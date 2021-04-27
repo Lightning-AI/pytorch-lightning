@@ -78,7 +78,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def clip_gradients(
         self,
-        model: Union[torch.nn.Module, 'pl.LightningModule'],
         optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
