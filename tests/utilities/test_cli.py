@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import json
 import os
 import pickle
@@ -354,6 +355,11 @@ def test_lightning_cli_help():
     assert '--seed_everything' in out.getvalue()
     assert '--model.help' in out.getvalue()
     assert '--data.help' in out.getvalue()
+
+    skip_params = {'self'}
+    for param in inspect.signature(Trainer.__init__).parameters.keys():
+        if param not in skip_params:
+            assert f'--trainer.{param}' in out.getvalue()
 
     cli_args = ['any.py', '--data.help=tests.helpers.BoringDataModule']
     out = StringIO()
