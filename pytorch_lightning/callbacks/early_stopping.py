@@ -24,6 +24,7 @@ from typing import Any, Dict, Optional, Tuple
 import numpy as np
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -159,7 +160,7 @@ class EarlyStopping(Callback):
 
         self._run_early_stopping_check(trainer)
 
-    def _run_early_stopping_check(self, trainer):
+    def _run_early_stopping_check(self, trainer: "pl.Trainer"):
         """
         Checks whether the early stopping condition is met
         and if so tells the trainer to stop the training.
