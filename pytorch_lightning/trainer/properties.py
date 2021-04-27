@@ -316,7 +316,7 @@ class TrainerProperties(ABC):
         A list of all instances of :class:`~pytorch_lightning.callbacks.prediction_writer.BasePredictionWriter`
         found in the Trainer.callbacks list.
         """
-        return [c for c in self.callbacks if isinstance(c, BasePredictionWriter)]
+        return [cb for cb in self.callbacks if isinstance(c, BasePredictionWriter)]
 
     @property
     def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
