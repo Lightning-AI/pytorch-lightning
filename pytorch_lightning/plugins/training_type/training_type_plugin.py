@@ -73,11 +73,6 @@ class TrainingTypePlugin(Plugin, ABC):
     def is_global_zero(self) -> bool:
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
-    @property
-    @abstractmethod
-    def use_spawn(self) -> bool:
-        """Whether the current processes are being spawned"""
-
     @abstractmethod
     def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
         """

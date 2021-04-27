@@ -95,10 +95,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         return distributed_sampler_kwargs
 
     @property
-    def use_spawn(self) -> bool:
-        return True
-
-    @property
     def _is_single_process_single_device(self):
         return True
 
