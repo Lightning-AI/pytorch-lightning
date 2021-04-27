@@ -18,12 +18,13 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from torch.nn.parallel.distributed import DistributedDataParallel
+
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
-from torch.nn.parallel.distributed import DistributedDataParallel
+from pytorch_lightning.callbacks import Callback
 from tests.accelerators import ddp_model
 from tests.helpers.boring_model import BoringModel
-from pytorch_lightning.callbacks import Callback
 from tests.helpers.runif import RunIf
 from tests.utilities.distributed import call_training_script
 
