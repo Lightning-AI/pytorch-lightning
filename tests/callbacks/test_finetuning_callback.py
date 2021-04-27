@@ -20,7 +20,7 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning
+from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
 from tests.helpers import BoringModel, RandomDataset
 
@@ -123,6 +123,8 @@ def test_finetuning_callback_warning(tmpdir):
                     pl_module.backbone, optimizer, 0.1, train_bn=self.train_bn, initial_denom_lr=self.initial_denom_lr
                 )
 
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+
     model = FinetuningBoringModel()
     model.validation_step = None
     callback = TestCallback(unfreeze_backbone_at_epoch=3, verbose=False)
@@ -131,12 +133,14 @@ def test_finetuning_callback_warning(tmpdir):
         trainer = Trainer(
             limit_train_batches=1,
             default_root_dir=tmpdir,
-            callbacks=[callback],
+            callbacks=[callback, chk],
             max_epochs=2,
         )
         trainer.fit(model)
 
     assert model.backbone.has_been_used
+    trainer = Trainer(max_epochs=3, resume_from_checkpoint=chk.last_model_path)
+    trainer.fit(model)
 
 
 def test_freeze_unfreeze_function(tmpdir):
@@ -283,3 +287,48 @@ def test_deep_nested_model():
     # conv0.weight, conv0.bias, bn0.weight, bn0.bias
     # conv1.weight, conv1.bias, bn1.weight, bn1.bias
     assert len(encoder_params) == 8
+
+
+def test_bolts(tmpdir):
+
+    from pl_bolts.datamodules import SklearnDataModule
+    from pl_bolts.models.regression import LinearRegression
+    from sklearn.datasets import load_boston
+
+    import pytorch_lightning as pl
+    from pytorch_lightning.callbacks import ModelCheckpoint
+    from pytorch_lightning.callbacks.finetuning import BaseFinetuning
+
+    X, y = load_boston(return_X_y=True)
+    dm = SklearnDataModule(X, y)
+
+    class TmpLinearRegression(LinearRegression):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.to_freeze = nn.Linear(1, 1)
+
+        def configure_optimizers(self):
+            trainable_parameters = list(filter(lambda p: p.requires_grad, self.parameters()))
+            return self.optimizer(trainable_parameters, lr=self.hparams.learning_rate)
+
+    class LRFinetuner(BaseFinetuning):
+
+        def freeze_before_training(self, pl_module):
+            self.freeze(modules=pl_module.to_freeze)
+
+        def finetune_function(self, pl_module, current_epoch, optimizer, optimizer_idx):
+            if current_epoch == 1:
+                self.unfreeze_and_add_param_group(
+                    modules=pl_module.to_freeze,
+                    optimizer=optimizer,
+                    initial_denom_lr=10,
+                )
+
+    model = TmpLinearRegression(input_dim=13)
+    trainer = pl.Trainer(max_epochs=2, callbacks=[ModelCheckpoint(dirpath="./tmp", save_last=True), LRFinetuner()])
+    trainer.fit(model, train_dataloader=dm.train_dataloader(), val_dataloaders=dm.val_dataloader())
+
+    model = TmpLinearRegression(input_dim=13)
+    trainer = pl.Trainer(max_epochs=3, resume_from_checkpoint="tmp/last.ckpt")
+    trainer.fit(model, train_dataloader=dm.train_dataloader(), val_dataloaders=dm.val_dataloader())

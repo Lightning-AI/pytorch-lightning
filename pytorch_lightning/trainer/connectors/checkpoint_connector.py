@@ -179,6 +179,8 @@ class CheckpointConnector:
 
         # restore the optimizers
         optimizer_states = checkpoint['optimizer_states']
+        import pdb
+        pdb.set_trace()
         for optimizer, opt_state in zip(self.trainer.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
