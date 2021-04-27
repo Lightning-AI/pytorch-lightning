@@ -1379,9 +1379,6 @@ class LightningModule(
                 optimizer.step(closure=optimizer_closure)
 
         """
-        if not isinstance(optimizer, LightningOptimizer):
-            # wraps into LightingOptimizer only for running step
-            optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, optimizer_idx)
         optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
