@@ -331,7 +331,12 @@ class Accelerator:
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """clips all the optimizer parameters to the given value"""
-        self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
+        self.precision_plugin.clip_gradients(
+            optimizer,
+            clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            model=self.model,
+        )
 
     def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """Hook to do something on the end of an training epoch
