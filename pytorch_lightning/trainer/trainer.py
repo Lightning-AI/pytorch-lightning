@@ -1115,9 +1115,7 @@ class Trainer(
         state = self._setup_state
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_setup_{state}')
-            if not called:
-                self.datamodule.setup(stage=state)
+            self.datamodule.setup(stage=state)
 
         self.setup(model, stage=state)
         model.setup(stage=state)
@@ -1139,9 +1137,7 @@ class Trainer(
         state = self._teardown_state
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_teardown_{state}')
-            if not called:
-                self.datamodule.teardown(stage=state)
+            self.datamodule.teardown(stage=state)
 
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)

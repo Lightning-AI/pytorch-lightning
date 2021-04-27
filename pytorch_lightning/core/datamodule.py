@@ -84,15 +84,23 @@ def track_data_hook_calls(fn):
             stage = args[1] if len(args) > 1 else kwargs.get("stage", None)
 
             if stage is None:
+                has_run = True
                 for s in ("fit", "validate", "test"):
+                    has_run &= getattr(obj, f"_has_{name}_{s}")
                     setattr(obj, f"_has_{name}_{s}", True)
             else:
+                has_run = getattr(obj, f"_has_{name}_{stage}")
                 setattr(obj, f"_has_{name}_{stage}", True)
 
         elif name == "prepare_data":
+            has_run = obj._has_prepared_data
             obj._has_prepared_data = True
 
-        return fn(*args, **kwargs)
+        else:
+            raise ValueError(name)
+
+        if not has_run:
+            return fn(*args, **kwargs)
 
     return wrapped_fn
 
