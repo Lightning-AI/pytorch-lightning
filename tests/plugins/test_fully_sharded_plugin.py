@@ -159,7 +159,7 @@ def test_fully_sharded_plugin_checkpoint_manual_autowrap(automatic_module_wrap, 
     _assert_save_equality(tmpdir, trainer)
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=False)
 def test_fully_sharded_plugin_multi_gpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
