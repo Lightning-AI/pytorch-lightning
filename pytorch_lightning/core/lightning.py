@@ -74,7 +74,7 @@ class LightningModule(
         "model_size",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
@@ -1379,9 +1379,6 @@ class LightningModule(
                 optimizer.step(closure=optimizer_closure)
 
         """
-        if not isinstance(optimizer, LightningOptimizer):
-            # wraps into LightingOptimizer only for running step
-            optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, optimizer_idx)
         optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):

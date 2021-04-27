@@ -17,7 +17,7 @@ from copy import deepcopy
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
@@ -179,6 +179,7 @@ def test_call_to_trainer_method(tmpdir, optimizer):
 
 def test_datamodule_parameter(tmpdir):
     """ Test that the datamodule parameter works """
+    seed_everything(1)
 
     dm = ClassifDataModule()
     model = ClassificationModel()

@@ -37,7 +37,7 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
@@ -180,10 +180,7 @@ class DDPPlugin(ParallelPlugin):
             sleep(delay)
 
     def setup_distributed(self):
-        # TODO: check if needed
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
+        reset_seed()
 
         # determine which process we are and world size
         self.set_world_ranks()
@@ -285,7 +282,7 @@ class DDPPlugin(ParallelPlugin):
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs):
-        if torch_distrib.is_initialized():
+        if torch_distrib.is_available() and torch_distrib.is_initialized():
             torch_distrib.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
