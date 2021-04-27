@@ -185,8 +185,8 @@ class EarlyStopping(Callback):
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop:
             self.stopped_epoch = trainer.current_epoch
-        if reason:
-            log.info(f"[{trainer.global_rank}] {reason}")
+        if reason and self.verbose:
+            self._log_info(trainer, reason)
 
     def _evalute_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
         should_stop = False
@@ -237,3 +237,10 @@ class EarlyStopping(Callback):
         else:
             msg = f"Metric {self.monitor} improved. New best score: {current:.3f}"
         return msg
+
+    @staticmethod
+    def _log_info(trainer: Optional["pl.Trainer"], message: str) -> None:
+        if trainer is not None and trainer.world_size > 1:
+            log.info(f"[{trainer.global_rank}] {message}")
+        else:
+            log.info(message)
