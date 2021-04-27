@@ -66,7 +66,8 @@ class XLADeviceUtils:
         Return:
             A boolean value indicating if TPU devices are available
         """
-
+        if os.getenv("XRT_SHARD_WORLD_SIZE") is not None:
+            return True
         return len(xm.get_xla_supported_devices("TPU")) > 0
 
     @staticmethod
