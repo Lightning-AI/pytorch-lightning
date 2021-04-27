@@ -62,6 +62,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.seed import reset_seed
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -805,20 +806,11 @@ class Trainer(
         if self.predict_loop.should_skip_predict(max_batches):
             return []
 
-        # ref model
-        model = self.lightning_module
-
-        # enable eval mode + no grads
-        self.predict_loop.on_predict_model_eval()
-        model.zero_grad()
-        torch.set_grad_enabled(False)
-
         # set up the eval loop
-        self.predict_loop.setup(model, max_batches, dataloaders)
+        self.predict_loop.setup(self.lightning_module, max_batches, dataloaders)
 
         # call hook
-        self.call_hook("on_predict_start")
-        self.call_hook("on_predict_epoch_start")
+        self.predict_loop.on_predict_start()
 
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -836,11 +828,11 @@ class Trainer(
                 with self.profiler.profile("predict_step"):
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
 
+        # call hook
         results = self.predict_loop.on_predict_epoch_end()
-        self.call_hook("on_predict_end")
 
-        # re-enable grads
-        torch.set_grad_enabled(True)
+        # call hook
+        self.predict_loop.on_predict_end()
 
         return results
 
@@ -863,6 +855,10 @@ class Trainer(
             self.on_sanity_check_end()
 
             self._running_stage = stage
+
+            # reset the seed to what it was before sanity check
+            # prevents sanity check to affect random sampling in training
+            reset_seed()
 
     def validate(
         self,
@@ -1034,6 +1030,7 @@ class Trainer(
         model: Optional[LightningModule] = None,
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
+        return_predictions: Optional[bool] = None,
     ):
         r"""
 
@@ -1044,6 +1041,9 @@ class Trainer(
             model: The model to predict with.
             dataloaders: Either a single PyTorch DataLoader or a list of them, specifying inference samples.
             datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
+
+            return_predictions: Whether to return predictions.
+                ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
@@ -1056,6 +1056,8 @@ class Trainer(
         Trainer._log_api_event("predict")
 
         model = model or self.lightning_module
+
+        self.predict_loop.return_predictions = return_predictions
 
         self.state = TrainerState.PREDICTING
         self.predicting = True
