@@ -1632,10 +1632,7 @@ def test_spawn_predict_return_predictions(*_):
     def run(expected_plugin, **trainer_kwargs):
         trainer = Trainer(**trainer_kwargs, fast_dev_run=True)
         assert isinstance(trainer.training_type_plugin, expected_plugin)
-        with pytest.raises(
-            MisconfigurationException,
-            match="`return_predictions` should be set to `False` when using spawn accelerators. Found True"
-        ):
+        with pytest.raises(MisconfigurationException, match="`return_predictions` should be set to `False`"):
             trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
 
     run(DDPSpawnPlugin, accelerator="ddp_spawn", gpus=2)

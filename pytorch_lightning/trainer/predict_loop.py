@@ -45,8 +45,8 @@ class PredictLoop(object):
         is_ddp_spawn = isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin)
         if return_predictions and is_ddp_spawn:
             raise MisconfigurationException(
-                "`return_predictions` should be set to `False` when using the `DDPSpawnPlugin` or subclassed one."
-                f"Found {return_predictions}"
+                "`return_predictions` should be set to `False` when using the `DDPSpawnPlugin` or children class. "
+                f"Found {return_predictions} with training_type_plugin {type(self.trainer.training_type_plugin)}."
             )
         # For non ``DDPSpawnPlugin`` plugin, the `return_predictions` is True by default unless user decide otherwise.
         self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
