@@ -1114,6 +1114,8 @@ class Trainer(
         assert self.state.running, f"TrainerState: {self.state}"
         state = self._setup_state
 
+        self.accelerator.barrier("pre_setup")
+
         if self.datamodule is not None:
             called = getattr(self.datamodule, f'has_setup_{state}')
             if not called:
@@ -1121,6 +1123,8 @@ class Trainer(
 
         self.setup(model, stage=state)
         model.setup(stage=state)
+
+        self.accelerator.barrier("post_setup")
 
     def call_configure_sharded_model(self, model: LightningModule) -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
