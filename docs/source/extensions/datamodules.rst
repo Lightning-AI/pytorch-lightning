@@ -323,7 +323,7 @@ so that you can add different logic as per your requirement.
 .. testcode::
 
     class MNISTDataModule(LightningDataModule):
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
             x = batch['x']
             x = CustomDataWrapper(x)
             batch['x'] = x.to(device)
@@ -347,9 +347,6 @@ so that you can add different logic as per your requirement.
             return batch
 
 
-.. warning::
-    Currently dataloader_idx always returns 0 and will be updated to support the true idx in the future.
-
 .. note:: This hook only runs on single GPU training and DDP (no data-parallel).
 
 
@@ -366,10 +363,6 @@ so that you can add different logic as per your requirement.
             batch['x'] = gpu_transforms(batch['x'])
             return batch
 
-
-.. warning::
-
-    Currently ``dataloader_idx`` always returns 0 and will be updated to support the true ``idx`` in the future.
 
 .. note::
     This hook only runs on single GPU training and DDP (no data-parallel). This hook
