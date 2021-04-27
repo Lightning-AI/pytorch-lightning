@@ -1111,6 +1111,7 @@ class Trainer(
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
         state = self._setup_state
+
         self.accelerator.barrier("pre_setup")
 
         if self.datamodule is not None:
@@ -1120,6 +1121,7 @@ class Trainer(
 
         self.setup(model, stage=state)
         model.setup(stage=state)
+
         self.accelerator.barrier("post_setup")
 
     def call_configure_sharded_model(self, model: LightningModule) -> None:
