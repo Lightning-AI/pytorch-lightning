@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import torch
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -84,7 +86,7 @@ class PredictLoop(object):
 
         self._predictions[dataloader_idx].append(predictions)
 
-    def on_predict_epoch_end(self):
+    def on_predict_epoch_end(self) -> _PREDICT_OUTPUT:
         self.trainer.profiler.describe()
 
         results = self._predictions

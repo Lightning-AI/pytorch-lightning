@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from torch.utils.data import DataLoader
 
@@ -70,6 +70,13 @@ class Tuner:
             )
 
         self.trainer.state = TrainerState.FINISHED
+
+    def _fit(self, *args: Any, **kwargs: Any) -> Optional[int]:
+        """`_fit_impl` wrapper to set the proper `RunningStage`"""
+        self.trainer.training = True
+        results = self.trainer._fit_impl(*args, **kwargs)
+        self.trainer.tuning = True
+        return results
 
     def scale_batch_size(
         self,

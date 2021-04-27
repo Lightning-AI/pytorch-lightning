@@ -26,6 +26,7 @@ from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")
 
@@ -37,7 +38,7 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def __init__(self) -> None:
         self._model = None
-        self._results = None
+        self.results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         self._call_configure_sharded_model_hook = True
 
     def connect(self, model: Module) -> None:
@@ -124,29 +125,20 @@ class TrainingTypePlugin(Plugin, ABC):
         return unwrap_lightning_module(self._model)
 
     @property
-    def results(self) -> Any:
-        """
-        The results of the last training/testing run will be cached here.
-        In distributed training, we make sure to transfer the results to the appropriate master process.
-        """
-        # TODO: improve these docs
-        return self._results
-
-    @property
     def rpc_enabled(self) -> bool:
         return False
 
     def start_training(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the training loop
-        self._results = trainer.run_stage()
+        self.results = trainer.run_stage()
 
     def start_evaluating(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the test loop
-        self._results = trainer.run_stage()
+        self.results = trainer.run_stage()
 
     def start_predicting(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the predicting loop
-        self._results = trainer.run_stage()
+        self.results = trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
         return self.lightning_module.training_step(*args, **kwargs)
