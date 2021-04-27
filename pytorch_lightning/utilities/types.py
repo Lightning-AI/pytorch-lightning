@@ -11,5 +11,5 @@ _METRIC = Union[Metric, torch.Tensor, int, float]
 STEP_OUTPUT = Union[torch.Tensor, Dict[str, Any]]
 EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
-_PREDICT_OUTPUT = Union[Any, List[Any]]
+_PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 _PARAMETERS = Iterator[torch.nn.Parameter]
