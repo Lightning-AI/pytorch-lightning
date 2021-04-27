@@ -17,7 +17,7 @@ BasePredictionWriter
 
 Aids in saving predictions
 """
-from typing import Any, List, Optional
+from typing import Any, Optional, Sequence
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -46,8 +46,9 @@ class BasePredictionWriter(Callback):
     Args:
         write_interval: When to write.
 
-    Example::
+    .. testcode::
 
+        import torch
         from pytorch_lightning.callbacks import BasePredictionWriter
 
         class CustomWriter(BasePredictionWriter):
@@ -78,7 +79,7 @@ class BasePredictionWriter(Callback):
         trainer: 'pl.Trainer',
         pl_module: 'pl.LightningModule',
         prediction: Any,
-        batch_indices: Optional[List[int]],
+        batch_indices: Optional[Sequence[int]],
         batch: Any,
         batch_idx: int,
         dataloader_idx: int,
@@ -90,8 +91,8 @@ class BasePredictionWriter(Callback):
         self,
         trainer: 'pl.Trainer',
         pl_module: 'pl.LightningModule',
-        predictions: List[Any],
-        batch_indices: Optional[List[Any]],
+        predictions: Sequence[Any],
+        batch_indices: Optional[Sequence[Any]],
     ) -> None:
         """Override with the logic to write all batches."""
         raise NotImplementedError()
@@ -111,7 +112,9 @@ class BasePredictionWriter(Callback):
         batch_indices = trainer.predict_loop.batch_indices if is_distributed else None
         self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
 
-    def on_predict_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: List[Any]) -> None:
+    def on_predict_epoch_end(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Sequence[Any]
+    ) -> None:
         if not self.interval.on_epoch:
             return
         is_distributed = trainer.accelerator_connector.is_distributed
