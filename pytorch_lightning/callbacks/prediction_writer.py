@@ -74,7 +74,6 @@ class BasePredictionWriter(Callback):
             raise MisconfigurationException(f"`write_interval` should be one of {[i.value for i in WriteInterval]}.")
         self.interval = WriteInterval(write_interval)
 
-    @abstractmethod
     def write_on_batch_end(
         self,
         trainer: 'pl.Trainer',
@@ -86,8 +85,8 @@ class BasePredictionWriter(Callback):
         dataloader_idx: int,
     ) -> None:
         """Override with the logic to write a single batch."""
+        raise NotImplementedError()
 
-    @abstractmethod
     def write_on_epoch_end(
         self,
         trainer: 'pl.Trainer',
@@ -96,6 +95,7 @@ class BasePredictionWriter(Callback):
         batch_indices: Optional[List[Any]],
     ) -> None:
         """Override with the logic to write all batches."""
+        raise NotImplementedError()
 
     def on_predict_batch_end(
         self,
