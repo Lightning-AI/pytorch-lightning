@@ -17,6 +17,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
+from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -30,7 +31,8 @@ class PredictLoop(object):
         self.warning_cache = WarningCache()
         self.batch_indices: Optional[List[int]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
-        self._return_predictions = not trainer.training_type_plugin.use_spawn
+        # `DDPSpawnPlugin` plugins and derivate don't support return predictions.
+        self._return_predictions: Optional[bool] = None
         self._previous_grad_status: Optional[bool] = None
 
     @property
@@ -39,13 +41,15 @@ class PredictLoop(object):
 
     @return_predictions.setter
     def return_predictions(self, return_predictions: Optional[bool] = None) -> None:
-        if return_predictions and self.trainer.training_type_plugin.use_spawn:
+        # ``DDPSpawnPlugin`` plugins and derivate don't support return predictions.
+        is_ddp_spawn = isinstance(self.trainer.training_type_plugin, DDPSpawnPlugin)
+        if return_predictions and is_ddp_spawn:
             raise MisconfigurationException(
-                "`return_predictions` should be set to `False` when using spawn accelerators. "
+                "`return_predictions` should be set to `False` when using the `DDPSpawnPlugin` or subclassed one."
                 f"Found {return_predictions}"
             )
-        if return_predictions is not None:
-            self._return_predictions = return_predictions
+        # For non ``DDPSpawnPlugin`` plugin, the `return_predictions` is True by default unless user decide otherwise.
+        self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
 
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []
@@ -140,11 +144,12 @@ class PredictLoop(object):
             return results[0] if self.num_dataloaders == 1 else results
 
     def on_predict_end(self):
-        # clean memory. the predictions are extracted in `on_predict_epoch_end`.
+        # clear memory. the predictions are extracted in `on_predict_epoch_end`.
         self.predictions = None
         self.batch_indices = None
 
-        # enable eval mode + no grads
+        # reset grad to its previous status.
         torch.set_grad_enabled(self._previous_grad_status)
+
         # hook
         self.trainer.call_hook("on_predict_end")

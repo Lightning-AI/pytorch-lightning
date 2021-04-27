@@ -39,6 +39,7 @@ from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, Py
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.seed import seed_everything
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -1639,6 +1640,25 @@ def test_spawn_predict_return_predictions(*_):
 
     run(DDPSpawnPlugin, accelerator="ddp_spawn", gpus=2)
     run(DDPSpawnPlugin, accelerator="ddp_cpu", num_processes=2)
+
+
+@pytest.mark.parametrize("return_predictions", [False, True])
+@pytest.mark.parametrize("precision", [32, 64])
+def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
+    """
+    Test that `return_predictions=True`.
+    """
+    seed_everything(42)
+    model = BoringModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, precision=precision)
+    preds = trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=return_predictions)
+    if return_predictions:
+        assert len(preds) == 1
+        assert preds[0].shape == torch.Size([1, 2])
+        assert preds[0].dtype == (torch.float64 if precision == 64 else torch.float32)
+    else:
+        assert preds == 1
 
 
 @pytest.mark.parametrize(

@@ -48,10 +48,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return self.root_device.type == "cuda" and torch.cuda.is_available()
 
     @property
-    def use_spawn(self) -> bool:
-        return False
-
-    @property
     def lightning_module(self):
         return unwrap_lightning_module(self._model)
 

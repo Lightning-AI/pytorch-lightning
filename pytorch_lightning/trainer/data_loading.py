@@ -151,7 +151,7 @@ class TrainerDataLoadingMixin(ABC):
             batch_sampler = type(batch_sampler)(
                 sampler,
                 batch_size=batch_sampler.batch_size,
-                drop_last=False if is_predicting else batch_sampler.drop_last,
+                drop_last=(False if is_predicting else batch_sampler.drop_last),
             )
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
