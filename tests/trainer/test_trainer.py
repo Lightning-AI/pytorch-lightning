@@ -1642,7 +1642,7 @@ def test_spawn_predict_return_predictions(*_):
     run(DDPSpawnPlugin, accelerator="ddp_cpu", num_processes=2)
 
 
-@pytest.mark.parametrize("return_predictions", [False, True])
+@pytest.mark.parametrize("return_predictions", [None, False, True])
 @pytest.mark.parametrize("precision", [32, 64])
 def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
     """
@@ -1653,7 +1653,7 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, precision=precision)
     preds = trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=return_predictions)
-    if return_predictions:
+    if return_predictions or return_predictions is None:
         assert len(preds) == 1
         assert preds[0].shape == torch.Size([1, 2])
         assert preds[0].dtype == (torch.float64 if precision == 64 else torch.float32)
