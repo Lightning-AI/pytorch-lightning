@@ -1261,10 +1261,9 @@ def test_multiple_optimizers_logging(precision, tmpdir):
     model.training_epoch_end = None
     model.val_dataloader = None
 
-    limit_train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
+        limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
