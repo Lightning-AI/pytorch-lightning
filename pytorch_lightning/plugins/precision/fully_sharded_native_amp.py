@@ -11,13 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Union
+from typing import cast, Optional, Union
 
 from torch.nn import Module
 from torch.optim import Optimizer
 
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE, GradClipAlgorithmType
+
+if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
+    from fairscale.nn.data_parallel import FullyShardedDataParallel
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
@@ -28,8 +31,9 @@ class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
         optimizer: 'Optimizer',
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
-        norm_type: float = 2.0,
         model: Optional[Module] = None
     ) -> None:
         # Model manages clipping of gradients
-        model.clip_grad_norm_(clip_val, norm_type)
+        model = cast(FullyShardedDataParallel, model)
+        # todo: expose norm type once precision plugin supports this.
+        model.clip_grad_norm_(clip_val, norm_type=2.0)
