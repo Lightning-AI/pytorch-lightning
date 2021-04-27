@@ -66,7 +66,7 @@ class BasePredictionWriter(Callback):
             def write_on_epoch_end(
                 self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
             ):
-                torch.save(predictions, os.path.join(self.output_dir, "predictions.pt")
+                torch.save(predictions, os.path.join(self.output_dir, "predictions.pt"))
     """
 
     def __init__(self, write_interval: str = "batch") -> None:
