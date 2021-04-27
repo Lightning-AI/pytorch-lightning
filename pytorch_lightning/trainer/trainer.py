@@ -860,9 +860,6 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
             datamodule: A instance of :class:`LightningDataModule`.
-
-        Returns:
-            Whether the run was successful (1) or not (0)
         """
         Trainer._log_api_event("fit")
 
