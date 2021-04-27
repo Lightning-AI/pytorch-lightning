@@ -13,7 +13,7 @@
 # limitations under the License.
 r"""
 PredictionWriter
-====================
+================
 
 Aids in saving predictions
 """
@@ -61,12 +61,12 @@ class BasePredictionWriter(Callback):
                 self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any,
                 batch_idx: int, dataloader_idx: int
             ):
-                torch.save(prediction, os.path.join(self.output_dir, dataloader_idx, f"{batch_idx}.pt")
+                torch.save(prediction, os.path.join(self.output_dir, dataloader_idx, f"{batch_idx}.pt"))
 
             def write_on_epoch_end(
                 self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
             ):
-                torch.save(predictions, os.path.join(self.output_dir, "predictions.pt")
+                torch.save(predictions, os.path.join(self.output_dir, "predictions.pt"))
     """
 
     def __init__(self, write_interval: str = "batch") -> None:
