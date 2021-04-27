@@ -92,7 +92,13 @@ class DeepSpeedPlugin(DDPPlugin):
         max_in_cpu: int = 1e9,
         offload_optimizer_device: str = 'cpu',
         optimizer_buffer_count: int = 4,
+        block_size: int = 1048576,
+        queue_depth: int = 8,
+        single_submit: bool = False,
+        overlap_events: bool = True,
+        thread_count: int = 1,
         pin_memory: bool = False,
+        sub_group_size: int = 1e12,
         contiguous_gradients: bool = True,
         overlap_comm: bool = True,
         allgather_partitions: bool = True,
@@ -169,8 +175,27 @@ class DeepSpeedPlugin(DDPPlugin):
                 This should be at least the number of states maintained per parameter by the optimizer.
                 For example, Adam optimizer has 4 states (parameter, gradient, momentum, and variance) (default: 4)
 
+            block_size: When using NVMe Offloading, the I/O block size in bytes (default: 1048576)
+
+            queue_depth: When using NVMe Offloading, the I/O queue depth (default: 8)
+
+            single_submit: When using NVMe Offloading,
+                submit requests to storage device as multiple individual requests,
+                as opposed to one block of requests. (default: False)
+
+            overlap_events: When using NVMe Offloading,
+                submit requests to storage device in an overlapped fashion
+                without waiting for completion of earlier requests.	 (default: True)
+
+            thread_count: When using NVMe Offloading,
+                Intra-request parallelism for each read/write submitted by a user thread. (default: 1)
+
             pin_memory: When using ZeRO stage 3, pin optimizer state memory on CPU.
                 This could boost throughput at the cost of extra memory overhead. (Default: False)
+
+            sub_group_size: When using ZeRO stage 3, defines the number of parameters
+                within a sub group to offload at a time.
+                Smaller numbers require more communication, but improve memory efficiency (default: 1e12).
 
             contiguous_gradients: Copies gradients to a continuous buffer as they are produced.
                 Avoids memory fragmentation during backwards. Useful when training large models. (default: True)
@@ -262,6 +287,11 @@ class DeepSpeedPlugin(DDPPlugin):
                 pin_memory=pin_memory,
                 offload_optimizer_device=offload_optimizer_device,
                 optimizer_buffer_count=optimizer_buffer_count,
+                block_size=block_size,
+                queue_depth=queue_depth,
+                single_submit=single_submit,
+                overlap_events=overlap_events,
+                thread_count=thread_count,
                 partition_activations=partition_activations,
                 cpu_checkpointing=cpu_checkpointing,
                 contiguous_memory_optimization=contiguous_memory_optimization,
@@ -273,6 +303,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 reduce_scatter=reduce_scatter,
                 allgather_bucket_size=allgather_bucket_size,
                 reduce_bucket_size=reduce_bucket_size,
+                sub_group_size=sub_group_size,
             )
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
@@ -532,6 +563,11 @@ class DeepSpeedPlugin(DDPPlugin):
         offload_optimizer_device: str,
         optimizer_buffer_count: int,
         pin_memory: bool,
+        block_size: int,
+        queue_depth: int,
+        single_submit: bool,
+        overlap_events: bool,
+        thread_count: int,
         **zero_kwargs,
     ) -> Dict:
         cfg = {
@@ -540,7 +576,14 @@ class DeepSpeedPlugin(DDPPlugin):
                 "cpu_checkpointing": cpu_checkpointing,
                 "contiguous_memory_optimization": contiguous_memory_optimization,
                 "synchronize_checkpoint_boundary": synchronize_checkpoint_boundary
-            }
+            },
+            "aio": {
+                "block_size": block_size,
+                "queue_depth": queue_depth,
+                "single_submit": single_submit,
+                "overlap_events": overlap_events,
+                "thread_count": thread_count
+            },
         }
         if zero_optimization:
             zero_config = zero_kwargs
