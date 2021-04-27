@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import torch
+from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -78,7 +79,7 @@ class PredictLoop(object):
         self.predictions = [[] for _ in range(self.num_dataloaders)]
         self.epoch_batch_indices = [[] for _ in range(self.num_dataloaders)]
 
-    def _get_num_dataloaders(self, dataloaders):
+    def _get_num_dataloaders(self, dataloaders: List[DataLoader]) -> int:
         # case where user does:
         # return dl1, dl2
         length = len(dataloaders)
@@ -86,7 +87,7 @@ class PredictLoop(object):
             length = len(dataloaders[0])
         return length
 
-    def predict_step(self, batch, batch_idx, dataloader_idx):
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         # configure args
         args = [batch, batch_idx]
         if self.num_dataloaders:
@@ -117,7 +118,7 @@ class PredictLoop(object):
             if self.return_predictions:
                 self.epoch_batch_indices[dataloader_idx].append(batch_sampler.batch_indices)
 
-    def on_predict_start(self):
+    def on_predict_start(self) -> None:
         # enable eval mode + no grads
         self.on_predict_model_eval()
         self.trainer.lightning_module.zero_grad()
@@ -128,7 +129,7 @@ class PredictLoop(object):
         self.trainer.call_hook("on_predict_start")
         self.trainer.call_hook("on_predict_epoch_start")
 
-    def on_predict_epoch_end(self):
+    def on_predict_epoch_end(self) -> Optional[Union[List[Any], List[List[Any]]]]:
         self.trainer.profiler.describe()
 
         results: List[List[Any]] = self.predictions
