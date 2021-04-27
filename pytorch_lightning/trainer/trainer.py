@@ -1116,7 +1116,6 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.setup(stage=state)
-
         self.setup(model, stage=state)
         model.setup(stage=state)
 
@@ -1138,7 +1137,6 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.teardown(stage=state)
-
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
