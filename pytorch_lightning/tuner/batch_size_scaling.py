@@ -198,7 +198,7 @@ def _run_power_scaling(
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc='failed')
                 break
             else:
-                raise exception  # some other error not memory related
+                raise  # some other error not memory related
 
         if not changed:
             break

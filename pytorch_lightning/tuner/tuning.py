@@ -48,7 +48,7 @@ class Tuner:
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
             lr_find_kwargs.setdefault('update_attr', True)
-            lr_find(self.trainer, model, **lr_find_kwargs)
+            result = lr_find(self.trainer, model, **lr_find_kwargs)
 
         self.trainer.state = TrainerState.FINISHED
 
@@ -70,13 +70,13 @@ class Tuner:
         max_trials: int = 25,
         batch_arg_name: str = 'batch_size',
         **fit_kwargs
-    ):
+    ) -> Optional[int]:
         rank_zero_deprecation(
             "`Tuner.scale_batch_size()` is deprecated in v1.3 and will be removed in v1.5."
             " Please use `trainer.tune(scale_batch_size_kwargs={...})` instead."
         )
-        self.trainer.auto_lr_find = True
-        return self.trainer.tune(
+        self.trainer.auto_scale_batch_size = True
+        result = self.trainer.tune(
             model,
             **fit_kwargs,
             scale_batch_size_kwargs={
@@ -87,6 +87,8 @@ class Tuner:
                 'batch_arg_name': batch_arg_name,
             }
         )
+        self.trainer.auto_scale_batch_size = False
+        return result
 
     def lr_find(
         self,
@@ -100,13 +102,13 @@ class Tuner:
         early_stop_threshold: float = 4.0,
         datamodule: Optional['pl.LightningDataModule'] = None,
         update_attr: bool = False,
-    ):
+    ) -> Optional[_LRFinder]:
         rank_zero_deprecation(
             "`Tuner.lr_find()` is deprecated in v1.3 and will be removed in v1.5."
             " Please use `trainer.tune(lr_finder_kwargs={...})` instead."
         )
-        self.trainer.auto_scale_batch_size = True
-        return self.trainer.tune(
+        self.trainer.auto_lr_find = True
+        result = self.trainer.tune(
             model,
             train_dataloader=train_dataloader,
             val_dataloaders=val_dataloaders,
@@ -120,3 +122,5 @@ class Tuner:
                 'update_attr': update_attr
             }
         )
+        self.trainer.auto_lr_find = False
+        return result

@@ -212,20 +212,11 @@ def test_trainer_reset_correctly(tmpdir):
         'limit_train_batches',
         'current_epoch',
     ]
-
-    attributes_before = {}
-    for ca in changed_attributes:
-        attributes_before[ca] = getattr(trainer, ca)
-
+    expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
     trainer.tuner.scale_batch_size(model, max_trials=5)
+    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
-    attributes_after = {}
-    for ca in changed_attributes:
-        attributes_after[ca] = getattr(trainer, ca)
-
-    for key in changed_attributes:
-        assert attributes_before[key] == attributes_after[key], \
-            f'Attribute {key} was not reset correctly after learning rate finder'
+    assert actual == expected
 
 
 @RunIf(min_gpus=1)
