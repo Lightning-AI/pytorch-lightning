@@ -66,8 +66,8 @@ for ex in ('cpu', 'cpu-extra'):
 
 long_description = setup_tools._load_readme_description(
     _PATH_ROOT,
-    homepage=info.__homepage__,
-    version=info.__version__,
+    homepage=about.__homepage__,
+    version=about.__version__,
 )
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
@@ -77,13 +77,13 @@ long_description = setup_tools._load_readme_description(
 # engineer specific practices
 setup(
     name="pytorch-lightning",
-    version=info.__version__,
-    description=info.__docs__,
-    author=info.__author__,
-    author_email=info.__author_email__,
-    url=info.__homepage__,
+    version=about.__version__,
+    description=about.__docs__,
+    author=about.__author__,
+    author_email=about.__author_email__,
+    url=about.__homepage__,
     download_url='https://github.com/PyTorchLightning/pytorch-lightning',
-    license=info.__license__,
+    license=about.__license__,
     packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks', 'legacy', 'legacy/*']),
     long_description=long_description,
     long_description_content_type='text/markdown',
