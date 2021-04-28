@@ -27,6 +27,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
+from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 
 class LoggerConnector:
@@ -267,7 +268,7 @@ class LoggerConnector:
         for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
-    def get_evaluate_epoch_results(self):
+    def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
         if not self.trainer.sanity_checking:
             # log all the metrics as a single dict
             metrics_to_log = self.cached_results.get_epoch_log_metrics()
