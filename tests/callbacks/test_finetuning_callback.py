@@ -25,6 +25,20 @@ from pytorch_lightning.callbacks.base import Callback
 from tests.helpers import BoringModel, RandomDataset
 
 
+class TestTestBackboneFinetuningCallbackCallback(BackboneFinetuning):
+
+    def on_train_epoch_end(self, trainer, pl_module, outputs):
+        epoch = trainer.current_epoch
+        if self.unfreeze_backbone_at_epoch <= epoch:
+            optimizer = trainer.optimizers[0]
+            current_lr = optimizer.param_groups[0]['lr']
+            backbone_lr = self.previous_backbone_lr
+            if epoch < 6:
+                assert backbone_lr <= current_lr
+            else:
+                assert backbone_lr == current_lr
+
+
 def test_finetuning_callback(tmpdir):
     """Test finetuning callbacks works as expected"""
 
@@ -56,21 +70,8 @@ def test_finetuning_callback(tmpdir):
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
-    class TestCallback(BackboneFinetuning):
-
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
-            epoch = trainer.current_epoch
-            if self.unfreeze_backbone_at_epoch <= epoch:
-                optimizer = trainer.optimizers[0]
-                current_lr = optimizer.param_groups[0]['lr']
-                backbone_lr = self.previous_backbone_lr
-                if epoch < 6:
-                    assert backbone_lr <= current_lr
-                else:
-                    assert backbone_lr == current_lr
-
     model = FinetuningBoringModel()
-    callback = TestCallback(unfreeze_backbone_at_epoch=3, verbose=False)
+    callback = TestTestBackboneFinetuningCallbackCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     trainer = Trainer(
         limit_train_batches=4,
@@ -81,6 +82,17 @@ def test_finetuning_callback(tmpdir):
     trainer.fit(model)
 
     assert model.backbone.has_been_used
+
+
+class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
+
+    def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+        """Called when the epoch begins."""
+
+        if epoch == 0:
+            self.unfreeze_and_add_param_group(
+                pl_module.backbone, optimizer, 0.1, train_bn=self.train_bn, initial_denom_lr=self.initial_denom_lr
+            )
 
 
 def test_finetuning_callback_warning(tmpdir):
@@ -113,21 +125,11 @@ def test_finetuning_callback_warning(tmpdir):
             optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
             return optimizer
 
-    class TestCallback(BackboneFinetuning):
-
-        def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
-            """Called when the epoch begins."""
-
-            if epoch == 0:
-                self.unfreeze_and_add_param_group(
-                    pl_module.backbone, optimizer, 0.1, train_bn=self.train_bn, initial_denom_lr=self.initial_denom_lr
-                )
-
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     model = FinetuningBoringModel()
     model.validation_step = None
-    callback = TestCallback(unfreeze_backbone_at_epoch=3, verbose=False)
+    callback = TestBackboneFinetuningWarningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     with pytest.warns(UserWarning, match="Did you init your optimizer in"):
         trainer = Trainer(
