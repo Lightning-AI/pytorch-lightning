@@ -300,7 +300,9 @@ def test_lr_find_with_bs_scale(tmpdir):
 
 def test_lr_candidates_between_min_and_max(tmpdir):
     """Test that learning rate candidates are between min_lr and max_lr."""
+
     class TestModel(BoringModel):
+
         def __init__(self, learning_rate=0.1):
             super().__init__()
             self.save_hyperparameters()
@@ -322,7 +324,9 @@ def test_lr_candidates_between_min_and_max(tmpdir):
 
 def test_lr_finder_ends_before_num_training(tmpdir):
     """Tests learning rate finder ends before `num_training` steps."""
+
     class TestModel(BoringModel):
+
         def __init__(self, learning_rate=0.1):
             super().__init__()
             self.save_hyperparameters()
