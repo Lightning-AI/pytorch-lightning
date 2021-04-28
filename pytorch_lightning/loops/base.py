@@ -1,3 +1,4 @@
+from _weakref import proxy
 from abc import ABCMeta, abstractmethod
 from typing import Any, Counter, List
 
@@ -8,11 +9,12 @@ class Loop(metaclass=ABCMeta):
 
     def __init__(self):
         self.iteration_count: int = 0
-        self.trainer: 'pl.Trainer'
+        self.trainer: 'pl.Trainer' = None
 
     @abstractmethod
-    def connect(self, *args, **kwargs):
+    def connect(self, trainer, *args, **kwargs):
         """Connects Loop with all the necessary things like connectors and accelerators"""
+        self.trainer = proxy(trainer)
 
     @property
     @abstractmethod
