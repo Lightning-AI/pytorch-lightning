@@ -1690,8 +1690,6 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
         assert len(preds) == 1
         assert preds[0].shape == torch.Size([1, 2])
         assert preds[0].dtype == (torch.float64 if precision == 64 else torch.float32)
-    else:
-        assert preds == 1
 
 
 @pytest.mark.parametrize(
