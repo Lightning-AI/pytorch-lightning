@@ -59,11 +59,6 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     If no GPUs are available but the value of gpus variable indicates request for GPUs
     then a MisconfigurationException is raised.
     """
-
-    # nothing was passed into the GPUs argument
-    if callable(gpus):
-        return None
-
     # Check that gpus param is None, Int, String or List
     _check_data_type(gpus)
 
@@ -97,10 +92,6 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
     Returns:
         a list of tpu_cores to be used or ``None`` if no TPU cores were requested
     """
-
-    if callable(tpu_cores):
-        return None
-
     _check_data_type(tpu_cores)
 
     if isinstance(tpu_cores, str):

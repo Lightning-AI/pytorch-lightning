@@ -14,7 +14,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -32,7 +32,7 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
@@ -41,6 +41,10 @@ log = logging.getLogger(__name__)
 
 
 class DDPSpawnPlugin(ParallelPlugin):
+    """
+    Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after
+    training finishes.
+    """
 
     distributed_backend = "ddp_spawn"
 
@@ -53,7 +57,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
-        **kwargs: Union[Any, Dict[str, Any]],
+        **kwargs: Any,
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes
@@ -61,11 +65,16 @@ class DDPSpawnPlugin(ParallelPlugin):
         self._ddp_kwargs = kwargs
         self.dist = LightningDistributed()
         self.num_processes = len(parallel_devices) if parallel_devices is not None else 0
-        self.node_rank = 0
         self.mp_queue = None
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
+        self._local_rank = 0
+        self.set_world_ranks()
+
+    @property
+    def local_rank(self) -> int:
+        return self._local_rank
 
     def __getstate__(self):
         """ Makes this plugin pickleable without destroying the queue in the current process. """
@@ -95,12 +104,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()
 
-    def set_world_ranks(self, process_idx):
-        self.local_rank = process_idx
-        self.node_rank = self.cluster_environment.node_rank()
-        self.task_idx = self.cluster_environment.local_rank()
-        self.global_rank = self.node_rank * self.num_processes + self.local_rank
-        self.world_size = self.num_nodes * self.num_processes
+    def set_world_ranks(self, process_idx: int = 0) -> None:
+        self._local_rank = process_idx
+        if self.cluster_environment is not None:
+            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+            rank_zero_only.rank = self.cluster_environment.global_rank()
 
     @property
     def mp_spawn_kwargs(self):
@@ -123,10 +132,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue
 
-        # TODO: check if needed
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
+        reset_seed()
 
         self.set_world_ranks(process_idx)
 
@@ -213,11 +219,12 @@ class DDPSpawnPlugin(ParallelPlugin):
         )
         self._register_ddp_hooks()
 
-    def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
+    def init_ddp_connection(self, global_rank: Optional[int], world_size: Optional[int]) -> None:
         # TODO: this code is duplicated in DDP and DDPSpawn, make this a function
-        os.environ["MASTER_ADDR"] = str(self.cluster_environment.master_address())
+        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
+        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
+        os.environ["MASTER_ADDR"] = self.cluster_environment.master_address()
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["WORLD_SIZE"] = str(self.cluster_environment.world_size())
 
         if not torch.distributed.is_initialized():
             log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
@@ -227,9 +234,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
-
-    def on_save(self, checkpoint: dict) -> dict:
-        return checkpoint
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback

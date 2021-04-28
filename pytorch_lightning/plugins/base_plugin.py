@@ -17,7 +17,7 @@ from typing import Generator
 
 
 class Plugin(ABC):
-    """Basic Plugin class to derive precision and training type plugins from."""
+    """Basic class for all precision- and training type plugins."""
 
     def pre_dispatch(self) -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
@@ -41,6 +41,6 @@ class Plugin(ABC):
         yield
 
     @contextlib.contextmanager
-    def predict_context(self) -> Generator:
+    def predict_step_context(self) -> Generator:
         """A contextmanager for the predict step"""
         yield

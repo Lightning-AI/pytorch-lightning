@@ -177,7 +177,7 @@ class LitAutoEncoder(pl.LightningModule):
         return embedding
 
     def training_step(self, batch, batch_idx):
-        # training_step defined the train loop. It is independent of forward
+        # training_step defines the train loop. It is independent of forward
         x, y = batch
         x = x.view(x.size(0), -1)
         z = self.encoder(x)
@@ -385,9 +385,9 @@ If you have any questions please:
 ---
 
 ## Grid AI
-Grid AI is our native platform for training models at scale on the cloud!
+Grid AI is our platform for training models at scale on the cloud!
 
-**Sign up for [early access here](https://www.grid.ai/)**
+**Sign up [here](https://www.grid.ai/)**
 
 To use grid, take your regular command:
 

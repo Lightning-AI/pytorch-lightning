@@ -11,19 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Generator, List, Sequence, Tuple, Type, TYPE_CHECKING
+from typing import Any, Callable, ContextManager, List, Sequence, Tuple, Type
 
 import torch
+from torch import Tensor
+from torch.nn import Module
+from torch.optim import Optimizer
 
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType, rank_zero_warn
+from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
     from apex import amp
-
-if TYPE_CHECKING:
-    from torch.optim import Optimizer
 
 
 class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
@@ -34,11 +35,15 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.backend = AMPType.APEX
         self.amp_level = amp_level
 
-    def master_params(self, optimizer: 'Optimizer') -> Generator[torch.Tensor, None, None]:
+    def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
-    def connect(self, model: torch.nn.Module, optimizers: Sequence['Optimizer'],
-                lr_schedulers: Sequence[Any]) -> Tuple[torch.nn.Module, Sequence['Optimizer'], Sequence[Any]]:
+    def connect(
+        self,
+        model: Module,
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects the precision plugin to the training process,
         configures apex and reinits the schedulers
         """
@@ -51,28 +56,28 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def backward(
         self,
         model: LightningModule,
-        closure_loss: torch.Tensor,
-        optimizer: 'Optimizer',
+        closure_loss: Tensor,
+        optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         """performs the actual backpropagation
 
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
             optimizer: the optimizer to perform the step lateron
-            opt_idx: the optimizer's index
+            opt_idx: the optimizer index
             should_accumulate: whether to accumulate gradients or not
 
         """
-        closure_loss = amp.scale_loss(closure_loss, model.trainer.optimizers if optimizer is None else optimizer)
+        opt = model.trainer.optimizers if optimizer is None else optimizer
+        scaled_loss: ContextManager[Tensor] = amp.scale_loss(closure_loss, opt)
 
         # enter apex context
-        context = closure_loss
-        closure_loss = closure_loss.__enter__()
+        closure_loss = scaled_loss.__enter__()
 
         # do backward pass
         # TODO: not entirely sure, why we need this
@@ -86,10 +91,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             closure_loss.backward(*args, **kwargs)
 
         # exit amp context
-        a, b, c = None, None, None
-        error = context.__exit__(a, b, c)
+        error = scaled_loss.__exit__(None, None, None)
         if error:
-            rank_zero_warn(a, b, c)
             raise Exception("apex unscale error")
 
         # once backward has been applied, release graph
@@ -99,17 +102,17 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def configure_apex(
         self,
         amp: Type,
-        model: LightningModule,
-        optimizers: List['Optimizer'],
+        model: Module,
+        optimizers: List[Optimizer],
         amp_level: str,
-    ) -> Tuple[LightningModule, List['Optimizer']]:
+    ) -> Tuple[Module, List[Optimizer]]:
         r"""
         Override to init AMP your own way.
         Must return a model and list of optimizers.
 
         Args:
             amp: pointer to amp library object.
-            model: pointer to current :class:`LightningModule`.
+            model: pointer to current :class:`torch.nn.Module`.
             optimizers: list of optimizers passed in :meth:`configure_optimizers`.
             amp_level: AMP mode chosen ('O1', 'O2', etc...)
 
@@ -131,7 +134,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         return model, optimizers
 
     @staticmethod
-    def reinit_scheduler_properties(optimizers: Sequence['Optimizer'], schedulers: Sequence[Any]) -> None:
+    def reinit_scheduler_properties(optimizers: Sequence[Optimizer], schedulers: Sequence[Any]) -> None:
         """Reinitializes schedulers with correct properties"""
         # Reinitialize optimizer.step properties added by schedulers
         for scheduler in schedulers:
@@ -155,7 +158,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def pre_optimizer_step(
         self,
         pl_module: LightningModule,
-        optimizer: 'Optimizer',
+        optimizer: Optimizer,
         optimizer_idx: int,
         lambda_closure: Callable,
         **kwargs: Any,
