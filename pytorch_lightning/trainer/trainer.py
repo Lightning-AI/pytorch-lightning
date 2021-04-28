@@ -57,7 +57,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -409,21 +409,18 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def _launch(
-        self,
-        model: LightningModule,
-        train_dataloader: Any = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        datamodule: Optional[LightningDataModule] = None,
-    ) -> Union[int, _EVALUATE_OUTPUT, _PREDICT_OUTPUT]:
+    def _launch(self, model: LightningModule) -> Union[int, _EVALUATE_OUTPUT, _PREDICT_OUTPUT]:
         # set local properties on the model
         self.model_connector.copy_trainer_model_properties(model)
 
-        # ----------------------------
-        # LINK DATA
-        # ----------------------------
-        # setup data, etc...
-        self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
+        # clean hparams
+        if hasattr(model, "hparams"):
+            parsing.clean_namespace(model.hparams)
+
+        self.config_validator.verify_loop_configurations(model)
+
+        # attach model log function to callback
+        self.callback_connector.attach_model_logging_functions(model)
 
         # hook
         self.data_connector.prepare_data(model)
@@ -857,9 +854,22 @@ class Trainer(
         self.state = TrainerState.FITTING
         self.training = True
 
-        results = self._launch(
+        # if a datamodule comes in as the second arg, then fix it for the user
+        if isinstance(train_dataloader, LightningDataModule):
+            datamodule = train_dataloader
+            train_dataloader = None
+        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
+        if (train_dataloader is not None or val_dataloaders is not None) and datamodule is not None:
+            raise MisconfigurationException(
+                'You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.fit(datamodule=...)`'
+            )
+
+        # links data to the trainer
+        self.data_connector.attach_data(
             model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
+
+        results = self._launch(model)
 
         assert self.state.stopped
         self.training = False
@@ -914,10 +924,8 @@ class Trainer(
         model_provided = model is not None
         model = model or self.lightning_module
 
-        # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model, datamodule)
-        #  Attach dataloaders (if given)
-        self.data_connector.attach_dataloaders(model, val_dataloaders=val_dataloaders)
+        # links data to the trainer
+        self.data_connector.attach_data(model, val_dataloaders=val_dataloaders, datamodule=datamodule)
 
         if not model_provided:
             self.validated_ckpt_path = self.__load_ckpt_weights(ckpt_path)
@@ -975,10 +983,8 @@ class Trainer(
         model_provided = model is not None
         model = model or self.lightning_module
 
-        # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model, datamodule)
-        #  Attach dataloaders (if given)
-        self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
+        # links data to the trainer
+        self.data_connector.attach_data(model, test_dataloaders=test_dataloaders, datamodule=datamodule)
 
         if not model_provided:
             self.tested_ckpt_path = self.__load_ckpt_weights(ckpt_path)
@@ -1069,10 +1075,8 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`')
 
-        # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.data_connector.attach_datamodule(model, datamodule)
-        #  Attach dataloaders (if given)
-        self.data_connector.attach_dataloaders(model, predict_dataloaders=dataloaders)
+        # links data to the trainer
+        self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
         results = self._launch(model)
 
@@ -1092,8 +1096,6 @@ class Trainer(
         Runs routines to tune hyperparameters before training.
 
         Args:
-            datamodule: A instance of :class:`LightningDataModule`.
-
             model: Model to tune.
 
             train_dataloader: A Pytorch DataLoader with training samples. If the model has
@@ -1102,10 +1104,16 @@ class Trainer(
             val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
 
+            datamodule: A instance of :class:`LightningDataModule`.
         """
         Trainer._log_api_event("tune")
         self.state = TrainerState.TUNING
         self.tuning = True
+
+        # links data to the trainer
+        self.data_connector.attach_data(
+            model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
+        )
 
         self.tuner.tune(model, train_dataloader, val_dataloaders, datamodule)
 

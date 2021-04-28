@@ -124,7 +124,7 @@ class Tuner:
                 or datamodule.
 
         """
-        self.setup_trainer(model, **fit_kwargs)
+        #self.setup_trainer(model, **fit_kwargs)
         return scale_batch_size(
             self.trainer,
             model,
@@ -133,7 +133,6 @@ class Tuner:
             init_val,
             max_trials,
             batch_arg_name,
-            **fit_kwargs,
         )
 
     def lr_find(
@@ -149,18 +148,15 @@ class Tuner:
         datamodule: Optional[LightningDataModule] = None,
         update_attr: bool = False,
     ):
-        self.setup_trainer(model, train_dataloader, val_dataloaders, datamodule)
+        #self.setup_trainer(model, train_dataloader, val_dataloaders, datamodule)
         return lr_find(
             self.trainer,
             model,
-            train_dataloader,
-            val_dataloaders,
             min_lr,
             max_lr,
             num_training,
             mode,
             early_stop_threshold,
-            datamodule,
             update_attr,
         )
 

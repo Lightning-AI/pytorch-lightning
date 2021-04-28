@@ -35,7 +35,6 @@ def scale_batch_size(
     init_val: int = 2,
     max_trials: int = 25,
     batch_arg_name: str = 'batch_size',
-    **fit_kwargs
 ):
     r"""
     Will iteratively try to find the largest batch size for a given model
@@ -115,9 +114,9 @@ def scale_batch_size(
     # Initially we just double in size until an OOM is encountered
     new_size = _adjust_batch_size(trainer, batch_arg_name, value=init_val)  # initially set to init_val
     if mode == 'power':
-        new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs)
+        new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials)
     elif mode == 'binsearch':
-        new_size = _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs)
+        new_size = _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
     else:
         raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch')
 
@@ -181,7 +180,7 @@ def __scale_batch_restore_params(trainer):
     del trainer.__dumped_params
 
 
-def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs):
+def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials):
     """ Batch scaling mode where the size is doubled at each iteration until an
         OOM error is encountered. """
     for _ in range(max_trials):
@@ -189,7 +188,7 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **f
         trainer.global_step = 0  # reset after each try
         try:
             # Try fit
-            trainer.tuner._launch(model, **fit_kwargs)
+            trainer.tuner._launch(model)
             # Double in size
             new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
         except RuntimeError as exception:
@@ -207,7 +206,7 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **f
     return new_size
 
 
-def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs):
+def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials):
     """ Batch scaling mode where the size is initially is doubled at each iteration
         until an OOM error is encountered. Hereafter, the batch size is further
         refined using a binary search """
@@ -218,7 +217,7 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
         trainer.global_step = 0  # reset after each try
         try:
             # Try fit
-            trainer.tuner._launch(model, **fit_kwargs)
+            trainer.tuner._launch(model)
             count += 1
             if count > max_trials:
                 break

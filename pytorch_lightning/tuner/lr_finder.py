@@ -15,16 +15,14 @@ import importlib
 import logging
 import os
 from functools import wraps
-from typing import Callable, List, Optional, Sequence, Union
+from typing import Callable, Sequence
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
-from torch.utils.data import DataLoader
 
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
@@ -65,14 +63,11 @@ def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
 def lr_find(
     trainer,
     model: LightningModule,
-    train_dataloader: Optional[DataLoader] = None,
-    val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
     min_lr: float = 1e-8,
     max_lr: float = 1,
     num_training: int = 100,
     mode: str = 'exponential',
     early_stop_threshold: float = 4.0,
-    datamodule: Optional[LightningDataModule] = None,
     update_attr: bool = False,
 ):
     r"""
@@ -176,7 +171,7 @@ def lr_find(
     model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
 
     # Fit, lr & loss logged in callback
-    trainer.tuner._launch(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule)
+    trainer.tuner._launch(model)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
