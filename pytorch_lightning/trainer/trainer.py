@@ -770,7 +770,7 @@ class Trainer(
             return []
 
         # set up the eval loop
-        self.predict_loop.setup(self.lightning_module, max_batches, dataloaders)
+        self.predict_loop.setup(max_batches, dataloaders)
 
         # call hook
         self.predict_loop.on_predict_start()
@@ -1164,6 +1164,10 @@ class Trainer(
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
+
+        model._current_fx_name = ""
+        model._current_hook_fx_name = None
+        model._current_dataloader_idx = None
 
     def _reset_result_and_set_hook_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step

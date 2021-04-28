@@ -2042,3 +2042,33 @@ def test_fit_test_synchronization(tmpdir):
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f'Could not find checkpoint at rank {trainer.global_rank}'
     trainer.test()
+
+
+def test_module_current_fx_attributes_reset(tmpdir):
+    """ Ensure that lightning module's attributes related to current hook fx are reset at the end of execution. """
+    model = BoringModel()
+    model.validation_step = None
+    model.training_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=False,
+        logger=False,
+        limit_val_batches=0,
+    )
+    trainer.fit(model)
+    assert model._current_fx_name == "", f"_current_fx_name not reset after fit: {model._current_fx_name}"
+    assert (
+        model._current_hook_fx_name is None
+    ), f"_current_hook_fx_name not reset after fit: {model._current_hook_fx_name}"
+    assert (
+        model._current_dataloader_idx is None
+    ), f"_current_dataloader_idx not reset after fit: {model._current_dataloader_idx}"
+    trainer.test(model)
+    assert model._current_fx_name == "", f"_current_fx_name not reset after test: {model._current_fx_name}"
+    assert (
+        model._current_hook_fx_name is None
+    ), f"_current_hook_fx_name not reset after test: {model._current_hook_fx_name}"
+    assert (
+        model._current_dataloader_idx is None
+    ), f"_current_dataloader_idx not reset after test: {model._current_dataloader_idx}"

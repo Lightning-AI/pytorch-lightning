@@ -76,7 +76,7 @@ class PredictLoop(object):
         model_ref = self.trainer.lightning_module
         model_ref.on_predict_model_eval()
 
-    def setup(self, model, max_batches, dataloaders):
+    def setup(self, max_batches, dataloaders):
         # convert max_batches to list
         if isinstance(max_batches, int):
             max_batches = [max_batches] * len(dataloaders)
