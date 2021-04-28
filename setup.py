@@ -20,14 +20,10 @@ import sys
 
 from setuptools import find_packages, setup
 
-try:
-    from pytorch_lightning import __about__ as info
-    from pytorch_lightning import setup_tools
-except ImportError:
-    # alternative https://stackoverflow.com/a/67692/4521646
-    sys.path.append("pytorch_lightning")
-    import __about__ as info
-    import setup_tools
+# see https://stackoverflow.com/a/129374
+sys.path.append("pytorch_lightning")
+import __about__ as info  # noqa: E402
+import setup_tools  # noqa: E402
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
