@@ -127,9 +127,10 @@ class TrainingTypePlugin(Plugin, ABC):
     @property
     def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         """
-        The results of the last training/evaluation/prediction run will be cached here. Some plugins
-        require such caching to transmit the results from one multiprocessing context to another. For example,
-        the plugins that use the "spawn" start-method send the result to the master process through a
+        Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run. The result is
+        cached instead of returned directly, because some plugins require transmitting the results from one
+        multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
+        start-method send the result to the master process through a
         `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
         """
         return self._results
