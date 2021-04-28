@@ -1553,8 +1553,6 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
         assert len(results) == 2
         assert len(results[0]) == num_samples
         assert results[0][0].shape == torch.Size([1, 2])
-    else:
-        assert results == 1
 
 
 def test_trainer_predict_no_return(tmpdir):
