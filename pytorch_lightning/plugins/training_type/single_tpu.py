@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+
 import torch
 
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
@@ -24,11 +26,12 @@ if _TPU_AVAILABLE:
 class SingleTPUPlugin(SingleDevicePlugin):
     """ Plugin for training on a single TPU device. """
 
-    def __init__(self, device: int):
+    def __init__(self, device: int, debug: bool = False):
 
         device = xm.xla_device(device)
         super().__init__(device)
 
+        self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
 
@@ -46,6 +49,9 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def pre_dispatch(self) -> None:
         if isinstance(self.device, int):
             self.device = xm.xla_device(self.device)
+
+        if self.debug:
+            os.environ["PT_XLA_DEBUG"] = str(1)
 
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
