@@ -1150,6 +1150,7 @@ class Trainer(
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
+        model._current_fx_name = ""
 
     def _reset_result_and_set_hook_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step
