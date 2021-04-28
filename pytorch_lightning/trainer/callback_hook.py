@@ -277,7 +277,7 @@ class TrainerCallbackHookMixin(ABC):
     @staticmethod
     def __is_old_signature_on_load_checkpoint(fn: Callable) -> bool:
         parameters = list(signature(fn).parameters)
-        if len(parameters) == 1:
+        if len(parameters) == 1 and parameters[0] == "callback_state":
             return True
         return False
 
@@ -306,18 +306,16 @@ class TrainerCallbackHookMixin(ABC):
         # https://github.com/pytorch/xla/issues/2773
         if callback_states is not None:
             for callback in self.callbacks:
-                state = callback_states.get(type(callback))
-                if state:
-                    state = deepcopy(state)
-                    if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
-                        rank_zero_deprecation(
-                            "`Callback.on_load_checkpoint` signature has changed in v1.3."
-                            " `Trainer` and `LightningModule` parameter are been added."
-                            " Support for the old signature will be removed in v1.5"
-                        )
-                        state = callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
-                    else:
-                        state = callback.on_load_checkpoint(self, self.lightning_module, state)
+                state = deepcopy(callback_states.get(type(callback)))
+                if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
+                    rank_zero_deprecation(
+                        "`Callback.on_load_checkpoint` signature has changed in v1.3."
+                        " `Trainer` and `LightningModule` parameter are been added."
+                        " Support for the old signature will be removed in v1.5"
+                    )
+                    state = callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
+                else:
+                    state = callback.on_load_checkpoint(self, self.lightning_module, state)
 
     def on_after_backward(self):
         """
