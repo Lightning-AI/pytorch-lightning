@@ -271,8 +271,10 @@ def test_base_finetuning_internal_state(tmpdir):
     assert cb._internal_state[0][5]["params"] == ['layer.5.weight', 'layer.5.bias']
 
     model = FreezeModel()
-    trainer = Trainer(max_epochs=10, resume_from_checkpoint=chk.last_model_path)
-    trainer.fit(model)
+    cb = OnEpochLayerFinetuning()
+    trainer = Trainer(max_epochs=10, resume_from_checkpoint=chk.last_model_path, callbacks=[cb])
+    with pytest.raises(IndexError, match="index 6 is out of range"):
+        trainer.fit(model)
 
 
 def test_on_before_accelerator_backend_setup(tmpdir):

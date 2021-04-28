@@ -17,6 +17,7 @@ Finetuning Callback
 Freeze and unfreeze models for finetuning purposes
 """
 import logging
+from copy import deepcopy
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
@@ -90,10 +91,23 @@ class BaseFinetuning(Callback):
                            checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return self._internal_state
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+    def on_load_checkpoint(
+        self, trainer: 'pl.Trainer', pl_module: LightningModule, callback_state: Dict[str, Any]
+    ) -> None:
         self._internal_state = callback_state
-        import pdb
-        pdb.set_trace()
+        # restore the param_groups created during training.
+        map_name_to_p = {n: p for n, p in pl_module.named_parameters()}
+        for opt_idx, optimizer in enumerate(trainer.optimizers):
+            param_groups = self._param_groups_state_to_param_groups(
+                deepcopy(self._internal_state[opt_idx]), map_name_to_p
+            )
+            optimizer.param_groups = param_groups
+
+    def _param_groups_state_to_param_groups(self, param_groups_state: Dict[str, Any],
+                                            map_name_to_p: Dict[str, ]) -> Dict[str, Any]:
+        for group in param_groups_state:
+            group["params"] = [map_name_to_p[name] for name in group["params"]]
+        return param_groups_state
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
