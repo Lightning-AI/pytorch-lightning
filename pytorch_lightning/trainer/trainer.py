@@ -409,7 +409,7 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def _fit_impl(
+    def _launch(
         self,
         model: LightningModule,
         train_dataloader: Any = None,
@@ -857,7 +857,7 @@ class Trainer(
         self.state = TrainerState.FITTING
         self.training = True
 
-        results = self._fit_impl(
+        results = self._launch(
             model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
@@ -923,7 +923,7 @@ class Trainer(
             self.validated_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run validate
-        results = self._fit_impl(model)
+        results = self._launch(model)
 
         assert self.state.stopped
         self.validating = False
@@ -984,7 +984,7 @@ class Trainer(
             self.tested_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run test
-        results = self._fit_impl(model)
+        results = self._launch(model)
 
         assert self.state.stopped
         self.testing = False
@@ -1041,7 +1041,9 @@ class Trainer(
 
         Args:
             model: The model to predict with.
+
             dataloaders: Either a single PyTorch DataLoader or a list of them, specifying inference samples.
+
             datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
 
             return_predictions: Whether to return predictions.
@@ -1065,16 +1067,14 @@ class Trainer(
         self.predicting = True
 
         if dataloaders is not None and datamodule:
-            raise MisconfigurationException(
-                'You cannot pass dataloaders to trainer.predict if you supply a datamodule.'
-            )
+            raise MisconfigurationException('You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`')
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.data_connector.attach_datamodule(model, datamodule)
         #  Attach dataloaders (if given)
         self.data_connector.attach_dataloaders(model, predict_dataloaders=dataloaders)
 
-        results = self._fit_impl(model)
+        results = self._launch(model)
 
         assert self.state.stopped
         self.predicting = False
