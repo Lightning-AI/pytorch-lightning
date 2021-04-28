@@ -2063,9 +2063,17 @@ def test_module_current_fx_attributes_reset(tmpdir):
     )
     trainer.fit(model)
     assert model._current_fx_name == "", f"_current_fx_name not reset after fit: {model._current_fx_name}"
-    assert model._current_hook_fx_name is None, f"_current_hook_fx_name not reset after fit: {model._current_hook_fx_name}"
-    assert model._current_dataloader_idx is None, f"_current_dataloader_idx not reset after fit: {model._current_dataloader_idx}"
+    assert (
+        model._current_hook_fx_name is None
+    ), f"_current_hook_fx_name not reset after fit: {model._current_hook_fx_name}"
+    assert (
+        model._current_dataloader_idx is None
+    ), f"_current_dataloader_idx not reset after fit: {model._current_dataloader_idx}"
     trainer.test(model)
     assert model._current_fx_name == "", f"_current_fx_name not reset after test: {model._current_fx_name}"
-    assert model._current_hook_fx_name is None, f"_current_hook_fx_name not reset after test: {model._current_hook_fx_name}"
-    assert model._current_dataloader_idx is None, f"_current_dataloader_idx not reset after test: {model._current_dataloader_idx}"
+    assert (
+        model._current_hook_fx_name is None
+    ), f"_current_hook_fx_name not reset after test: {model._current_hook_fx_name}"
+    assert (
+        model._current_dataloader_idx is None
+    ), f"_current_dataloader_idx not reset after test: {model._current_dataloader_idx}"
