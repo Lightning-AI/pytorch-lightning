@@ -148,15 +148,6 @@ class TrainLoop:
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
 
-    def check_early_stopping_callback(self, should_update):
-        # TODO bake this logic into the EarlyStopping callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
-            callbacks = [c for c in self.trainer.callbacks if isinstance(c, EarlyStopping)]
-            model = self.trainer.lightning_module
-
-            for cb in callbacks:
-                cb.on_validation_end(self.trainer, model)
-
     def on_train_epoch_start(self, epoch):
 
         # update training progress in trainer
@@ -556,7 +547,6 @@ class TrainLoop:
 
         if should_train_only:
             self.check_checkpoint_callback(True)
-            self.check_early_stopping_callback(True)
 
         if should_check_val:
             self.trainer.validating = True

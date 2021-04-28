@@ -169,7 +169,9 @@ def test_early_stopping_patience_train(
     if validation_step_none:
         model.validation_step = None
 
-    early_stop_callback = EarlyStopping(monitor="train_loss", patience=patience, verbose=True)
+    early_stop_callback = EarlyStopping(
+        monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=validation_step_none
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
@@ -200,7 +202,7 @@ def test_early_stopping_no_val_step(tmpdir):
     model.validation_step = None
     model.val_dataloader = None
 
-    stopping = EarlyStopping(monitor='train_loss', min_delta=0.1, patience=0)
+    stopping = EarlyStopping(monitor='train_loss', min_delta=0.1, patience=0, check_on_train_epoch_end=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[stopping],
