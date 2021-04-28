@@ -29,7 +29,7 @@ class OptimizerLoop(Loop):
         self.running_loss = TensorRunningAccum(window_length=20)
         self.automatic_optimization = True
         self._curr_step_result = None
-        # self._cur_grad_norm_dict = None
+        self._cur_grad_norm_dict = None
         # self._multiple_trainloader_mode = multiple_trainloader_mode
         self._skip_backward = False
         # self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
@@ -97,6 +97,10 @@ class OptimizerLoop(Loop):
             self.update_running_loss()
 
         return batch_outputs
+
+# ------------------------------------------------------------------------------------------------------------
+# HELPER
+# ------------------------------------------------------------------------------------------------------------
 
     def prepare_optimizers(self):
         # in manual optimization we loop over all optimizers at once

@@ -137,6 +137,11 @@ class TrainingLoop(Loop):
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
+# ------------------------------------------------------------------------------------------------------------
+# HELPER
+# ------------------------------------------------------------------------------------------------------------
+
+    # TODO move to on_advance_end()
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_end_outputs if len(opt_idx_out)]
 

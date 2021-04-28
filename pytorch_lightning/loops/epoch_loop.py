@@ -1,6 +1,6 @@
+import logging
 from contextlib import suppress
 from copy import deepcopy
-from logging import log
 from typing import Any, List, Optional
 
 import pytorch_lightning as pl
@@ -12,6 +12,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
+
+log = logging.getLogger(__name__)
 
 
 class EpochLoop(Loop):

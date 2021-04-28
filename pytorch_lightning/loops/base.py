@@ -1,6 +1,6 @@
 from _weakref import proxy
 from abc import ABCMeta, abstractmethod
-from typing import Any, Counter, List
+from typing import Any, Counter, List, Optional
 
 import pytorch_lightning as pl
 
@@ -9,7 +9,7 @@ class Loop(metaclass=ABCMeta):
 
     def __init__(self):
         self.iteration_count: int = 0
-        self.trainer: 'pl.Trainer' = None
+        self.trainer: Optional['pl.Trainer'] = None
 
     @abstractmethod
     def connect(self, trainer, *args, **kwargs):
