@@ -223,9 +223,7 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
         accumulate_grad_batches=1,
         limit_val_batches=0,
     )
-
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
 
 
 def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):

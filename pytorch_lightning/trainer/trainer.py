@@ -415,7 +415,7 @@ class Trainer(
         train_dataloader: Any = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
-    ) -> Union[int, _EVALUATE_OUTPUT, _PREDICT_OUTPUT]:
+    ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # set local properties on the model
         self.model_connector.copy_trainer_model_properties(model)
 
@@ -497,9 +497,7 @@ class Trainer(
             self.state = TrainerState.FINISHED
         self._running_stage = None
 
-        # return 1 when finished
-        # used for testing or when we need to know that training succeeded
-        return self.accelerator.results or 1
+        return self.accelerator.results
 
     def pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
@@ -836,7 +834,7 @@ class Trainer(
         train_dataloader: Any = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
-    ) -> Optional[int]:
+    ) -> None:
         r"""
         Runs the full optimization routine.
 
@@ -857,14 +855,10 @@ class Trainer(
         self.state = TrainerState.FITTING
         self.training = True
 
-        results = self._launch(
-            model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
-        )
+        self._launch(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule)
 
         assert self.state.stopped
         self.training = False
-
-        return results
 
     def validate(
         self,

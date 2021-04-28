@@ -394,7 +394,7 @@ def test_lr_scheduler_strict(tmpdir):
     with pytest.warns(
         RuntimeWarning, match=r'ReduceLROnPlateau conditioned on metric .* which is not available but strict'
     ):
-        assert trainer.fit(model)
+        trainer.fit(model)
 
 
 def test_unknown_configure_optimizers_raises(tmpdir):
