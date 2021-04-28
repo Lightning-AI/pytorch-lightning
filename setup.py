@@ -25,10 +25,7 @@ _PATH_REQUIRE = os.path.join(_PATH_ROOT, 'requirements')
 
 
 def _load_py_module(fname, pkg="pytorch_lightning"):
-    spec = spec_from_file_location(
-        os.path.join(pkg, fname),
-        os.path.join(_PATH_ROOT, pkg, fname),
-    )
+    spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_ROOT, pkg, fname))
     py = module_from_spec(spec)
     spec.loader.exec_module(py)
     return py
