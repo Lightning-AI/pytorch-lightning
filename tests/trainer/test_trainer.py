@@ -2062,10 +2062,10 @@ def test_module_current_fx_attributes_reset(tmpdir):
         limit_val_batches=0,
     )
     trainer.fit(model)
-    assert model._current_fx_name == "", f"module._current_fx_name not cleaned up after fit: {model._current_fx_name}"
-    assert model._current_hook_fx_name is None, f"{model._current_hook_fx_name}"
-    assert model._current_dataloader_idx is None, f"{model._current_dataloader_idx}"
+    assert model._current_fx_name == "", f"_current_fx_name not reset after fit: {model._current_fx_name}"
+    assert model._current_hook_fx_name is None, f"_current_hook_fx_name not reset after fit: {model._current_hook_fx_name}"
+    assert model._current_dataloader_idx is None, f"_current_dataloader_idx not reset after fit: {model._current_dataloader_idx}"
     trainer.test(model)
-    assert model._current_fx_name == "", f"module._current_fx_name not cleaned up after test: {model._current_fx_name}"
-    assert model._current_hook_fx_name is None, f"module._current_hook_fx_name not cleaned up after test: {model._current_hook_fx_name}"
-    assert model._current_dataloader_idx is None, f"module._current_dataloader_idx not cleaned up after test: {model._current_dataloader_idx}"
+    assert model._current_fx_name == "", f"_current_fx_name not reset after test: {model._current_fx_name}"
+    assert model._current_hook_fx_name is None, f"_current_hook_fx_name not reset after test: {model._current_hook_fx_name}"
+    assert model._current_dataloader_idx is None, f"_current_dataloader_idx not reset after test: {model._current_dataloader_idx}"
