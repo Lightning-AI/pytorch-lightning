@@ -1150,6 +1150,7 @@ class Trainer(
         self.profiler.teardown(stage=state)
         self.teardown(stage=state)
         model.teardown(stage=state)
+
         model._current_fx_name = ""
         model._current_hook_fx_name = None
         model._current_dataloader_idx = None
