@@ -130,7 +130,7 @@ class TrainingTypePlugin(Plugin, ABC):
         The results of the last training/evaluation/prediction run will be cached here. Some plugins
         require such caching to transmit the results from one multiprocessing context to another. For example,
         the plugins that use the "spawn" start-method send the result to the master process through a
-        `multiprocessing queue (shared memory)<https://pytorch.org/docs/stable/multiprocessing.html>`_.
+        `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
         """
         return self._results
 
