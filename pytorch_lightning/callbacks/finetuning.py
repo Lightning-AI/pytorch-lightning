@@ -96,15 +96,16 @@ class BaseFinetuning(Callback):
     ) -> None:
         self._internal_state = callback_state
         # restore the param_groups created during training.
-        map_name_to_p = {n: p for n, p in pl_module.named_parameters()}
+        _map_name_to_p = {n: p for n, p in pl_module.named_parameters()}
         for opt_idx, optimizer in enumerate(trainer.optimizers):
             param_groups = self._param_groups_state_to_param_groups(
-                deepcopy(self._internal_state[opt_idx]), map_name_to_p
+                deepcopy(self._internal_state[opt_idx]), _map_name_to_p
             )
             optimizer.param_groups = param_groups
 
-    def _param_groups_state_to_param_groups(self, param_groups_state: Dict[str, Any],
-                                            map_name_to_p: Dict[str, ]) -> Dict[str, Any]:
+    def _param_groups_state_to_param_groups(
+        self, param_groups_state: Dict[str, Any], map_name_to_p: Dict[str, torch.Tensor]
+    ) -> Dict[str, Any]:
         for group in param_groups_state:
             group["params"] = [map_name_to_p[name] for name in group["params"]]
         return param_groups_state
