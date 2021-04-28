@@ -83,7 +83,7 @@ rank_zero_warn = rank_zero_only(_warn)
 rank_zero_deprecation = partial(rank_zero_warn, category=DeprecationWarning)
 
 
-def gather_all_tensors(result: Union[torch.Tensor], group: Optional[Any] = None) -> List[torch.Tensor]:
+def gather_all_tensors(result: torch.Tensor, group: Optional[Any] = None) -> List[torch.Tensor]:
     """
     Function to gather all tensors from several ddp processes onto a list that
     is broadcasted to all processes

@@ -16,19 +16,19 @@
 import logging
 
 import torch
-import torch.nn as nn
+from torch.nn import Module
 
 log = logging.getLogger(__name__)
 
 
-def print_nan_gradients(model: nn.Module) -> None:
+def print_nan_gradients(model: Module) -> None:
     """ Iterates over model parameters and prints out parameter + gradient information if NaN. """
     for param in model.parameters():
         if (param.grad is not None) and torch.isnan(param.grad.float()).any():
             log.info(param, param.grad)
 
 
-def detect_nan_parameters(model: nn.Module) -> None:
+def detect_nan_parameters(model: Module) -> None:
     """ Iterates over model parameters and prints gradients if any parameter is not finite. """
     for name, param in model.named_parameters():
         if not torch.isfinite(param).all():

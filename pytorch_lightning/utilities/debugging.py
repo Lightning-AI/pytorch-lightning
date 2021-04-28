@@ -85,7 +85,7 @@ class InternalDebugger(object):
         return count
 
     @enabled_only
-    def track_load_dataloader_call(self, name: str, dataloaders: List[DataLoader]):
+    def track_load_dataloader_call(self, name: str, dataloaders: List[DataLoader]) -> None:
         loader_counts = len(dataloaders)
 
         lengths = []
@@ -135,7 +135,7 @@ class InternalDebugger(object):
         new_lr: float,
         monitor_key: Optional[str] = None,
         monitor_val: Optional[torch.Tensor] = None
-    ):
+    ) -> None:
         loss_dict = {
             'batch_idx': batch_idx,
             'interval': interval,
@@ -149,7 +149,7 @@ class InternalDebugger(object):
         self.saved_lr_scheduler_updates.append(loss_dict)
 
     @enabled_only
-    def track_eval_loss_history(self, batch_idx: int, dataloader_idx: int, output: torch.Tensor):
+    def track_eval_loss_history(self, batch_idx: int, dataloader_idx: int, output: torch.Tensor) -> None:
         loss_dict = {
             'sanity_check': self.trainer.sanity_checking,
             'dataloader_idx': dataloader_idx,

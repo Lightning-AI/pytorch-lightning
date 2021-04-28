@@ -32,7 +32,7 @@ class DeviceDtypeModuleMixin(Module):
         return self._dtype
 
     @dtype.setter
-    def dtype(self, new_dtype: Union[str, torch.dtype]):
+    def dtype(self, new_dtype: Union[str, torch.dtype]) -> None:
         # necessary to avoid infinite recursion
         raise RuntimeError('Cannot set the dtype explicitly. Please use module.to(new_dtype).')
 
