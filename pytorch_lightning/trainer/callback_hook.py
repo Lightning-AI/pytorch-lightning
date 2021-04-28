@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Type
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -297,6 +297,17 @@ class TrainerCallbackHookMixin(ABC):
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
+        current_callbacks_type = {type(cb) for cb in self.callbacks}
+        saved_callbacks_type = set(callback_states)
+        difference = saved_callbacks_type.difference(current_callbacks_type)
+        import pdb
+        pdb.set_trace()
+        if difference:
+            rank_zero_warn(
+                "Be aware that when using ``resume_from_checkpoint``, callbacks used to create the checkpoint need to be provided. "
+                f"Please, add the following callbacks: {list(difference)}. ", UserWarning
+            )
+
         if callback_states is not None:
             for callback in self.callbacks:
                 state = callback_states.get(type(callback))

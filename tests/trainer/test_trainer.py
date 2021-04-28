@@ -29,7 +29,7 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import Callback, callbacks, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
@@ -2047,3 +2047,24 @@ def test_fit_test_synchronization(tmpdir):
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f'Could not find checkpoint at rank {trainer.global_rank}'
     trainer.test()
+
+
+class CustomCallbackOnLoadCheckpoint(Callback):
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+        return {"a": None}
+
+
+def test_on_load_checkpoint_missing_callbacks(tmpdir):
+
+    model = BoringModel()
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=[chk, CustomCallbackOnLoadCheckpoint()])
+    trainer.fit(model)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=5, resume_from_checkpoint=chk.last_model_path, progress_bar_refresh_rate=1
+    )
+    with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
+        trainer.fit(model)
