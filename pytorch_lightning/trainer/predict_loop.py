@@ -77,10 +77,6 @@ class PredictLoop(object):
         model_ref.on_predict_model_eval()
 
     def setup(self, model, max_batches, dataloaders):
-
-        # copy properties for forward overrides
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-
         # convert max_batches to list
         if isinstance(max_batches, int):
             max_batches = [max_batches] * len(dataloaders)

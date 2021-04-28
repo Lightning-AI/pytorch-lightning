@@ -96,6 +96,8 @@ class DataConnector(object):
             predict_dataloaders=predict_dataloaders,
         )
         self.attach_datamodule(model, datamodule=datamodule)
+        # set local properties on the model
+        self.trainer.model_connector.copy_trainer_model_properties(model)
 
     def attach_dataloaders(
         self,

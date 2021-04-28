@@ -411,9 +411,6 @@ class Trainer(
         self.on_init_end()
 
     def _launch(self, model: LightningModule) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        # set local properties on the model
-        self.model_connector.copy_trainer_model_properties(model)
-
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
