@@ -983,8 +983,7 @@ def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_train
         default_root_dir=tmpdir,
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
-
-    assert 1 == trainer.fit(model)
+    trainer.fit(model)
     # verify the num_training_batches according to the multiple_trainloader_mode
     assert num_training_batches == trainer.num_training_batches
 
