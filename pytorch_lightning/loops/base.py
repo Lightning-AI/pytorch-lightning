@@ -11,7 +11,7 @@ class Loop(metaclass=ABCMeta):
         self.trainer: 'pl.Trainer'
 
     @abstractmethod
-    def connect(self):
+    def connect(self, *args, **kwargs):
         """Connects Loop with all the necessary things like connectors and accelerators"""
 
     @property
@@ -36,7 +36,7 @@ class Loop(metaclass=ABCMeta):
         return curr_output
 
     def run(self, *args: Any, **kwargs: Any):
-        self.on_start(*args, **kwargs)
+        self.on_run_start(*args, **kwargs)
 
         outputs = []
 
@@ -50,6 +50,5 @@ class Loop(metaclass=ABCMeta):
 
             self.iteration_count += 1
 
-        outputs = self.on_end(outputs)
-
+        outputs = self.on_run_end(outputs)
         return outputs

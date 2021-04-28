@@ -8,6 +8,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -25,6 +26,7 @@ class EpochLoop(Loop):
         self.num_epochs = num_epochs
         self.max_steps = max_steps
         self.trainer = trainer
+        self.loops_to_run = []
         for loop in loops_to_run:
             if isinstance(loop, Loop) or hasattr(loop, 'run'):
                 self.loops_to_run.append(loop)
@@ -114,6 +116,7 @@ class EpochLoop(Loop):
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
+    # why is this not the same as the old on_train_epoch_end?
     def on_advance_end(self, outputs):
         # handle epoch_output on epoch end
         self.on_train_epoch_end(outputs)
@@ -153,10 +156,11 @@ class EpochLoop(Loop):
 
 
 class TrainingLoop(Loop):
+    """ Runs over all batches in a dataloader (one epoch). """
 
     def connect(self, trainer: 'pl.Trainer'):
         self.trainer = trainer
-        self.batch_loop = BatchLoop
+        self.batch_loop = BatchLoop()
 
     def on_run_start(self):
         # modify dataloader if needed (ddp, etc...)
@@ -166,6 +170,7 @@ class TrainingLoop(Loop):
         self._dataloader_idx = 0
 
     def advance(self):
+        # TODO: profiling is gone
         batch_idx, (batch, is_last) = next(self._train_dataloader)
 
         self.trainer.batch_idx = batch_idx
@@ -175,7 +180,8 @@ class TrainingLoop(Loop):
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
         with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.run_training_batch(batch, batch_idx, self._dataloader_idx)
+            # batch_output = self.run_training_batch(batch, batch_idx, self._dataloader_idx)
+            batch_output = self.batch_loop.run(batch, batch_idx, self._dataloader_idx)
 
         # when returning -1 from train_step, we end epoch early
         if batch_output.signal == -1:
@@ -241,6 +247,7 @@ class TrainingLoop(Loop):
         if self._num_training_batches_reached(self.trainer.is_last_batch):
             return True
 
+    # this is the old on train_epoch_end?
     def on_run_end(self, outputs):
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
@@ -278,21 +285,32 @@ class TrainingLoop(Loop):
 
 
 class BatchLoop(Loop):
+    """ Runs over a single batch of data. """
 
     def on_run_start(self, batch, batch_idx, dataloader_idx):
         self._grad_norm_dic = {}
         self.trainer.hiddens = None
         self._optimizers = self.prepare_optimizers()
         # lightning module hook
-        self._splits = self.tbptt_split_batch(batch)
+        self._splits = enumerate(self.tbptt_split_batch(batch))
+        self.tbptt_loop = BatchSplitLoop(self._optimizers)
 
     def on_advance_start(self):
         return super().on_advance_start()
 
-    def advance(self, *args: Any, **kwargs: Any):
-        return super().advance(*args, **kwargs)
+    def advance(self, batch, batch_idx):
+        split_idx, split_batch = next(self._splits)
+        batch_outputs = self.tbptt_loop.run(split_batch, split_idx, batch_idx)
+
+        result = AttributeDict(
+            signal=0,
+            grad_norm_dic=grad_norm_dic,
+            training_step_output_for_epoch_end=batch_outputs,
+        )
+        return result
 
     def run(self, batch, batch_idx, dataloader_idx):
+        # TODO why is this not in on_run_start?
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic={})
 
@@ -309,73 +327,71 @@ class BatchLoop(Loop):
         return super().run(batch, batch_idx, dataloader_idx)
 
 
-def run_training_batch(self, batch, batch_idx, dataloader_idx):
+class BatchSplitLoop(Loop):
+    """ Runs over a single split of a batch of data (TBPTT). """
 
-    for split_idx, split_batch in enumerate(splits):
+    def __init__(self, optimizers):
+        super().__init__()
+        self._optimizers = enumerate(optimizers)
 
-        # create an iterable for optimizers and loop over them
-        for opt_idx, optimizer in optimizers:
+    def advance(self, split_batch, split_idx, batch_idx):
+        opt_idx, optimizer = next(self._optimizers)
 
-            # toggle model params + set info to logger_connector
-            self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
+        # toggle model params + set info to logger_connector
+        self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
-            if self.should_accumulate():
-                # For gradient accumulation
+        if self.should_accumulate():
+            # For gradient accumulation
 
-                # -------------------
-                # calculate loss (train step + train step end)
-                # -------------------
+            # -------------------
+            # calculate loss (train step + train step end)
+            # -------------------
 
-                # automatic_optimization=True: perform dpp sync only when performing optimizer_step
-                # automatic_optimization=False: don't block synchronization here
-                with self.block_ddp_sync_behaviour():
-                    self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
+            # automatic_optimization=True: perform dpp sync only when performing optimizer_step
+            # automatic_optimization=False: don't block synchronization here
+            with self.block_ddp_sync_behaviour():
+                self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
 
-                batch_outputs = self._process_closure_result(
-                    batch_outputs=batch_outputs,
-                    opt_idx=opt_idx,
-                )
+            batch_outputs = self._process_closure_result(
+                batch_outputs=batch_outputs,
+                opt_idx=opt_idx,
+            )
 
-            # ------------------------------
-            # BACKWARD PASS
-            # ------------------------------
-            # gradient update with accumulated gradients
+        # ------------------------------
+        # BACKWARD PASS
+        # ------------------------------
+        # gradient update with accumulated gradients
+
+        else:
+            if self.automatic_optimization:
+
+                def train_step_and_backward_closure():
+                    result = self.training_step_and_backward(
+                        split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                    )
+                    return None if result is None else result.loss
+
+                # optimizer step
+                self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
             else:
-                if self.automatic_optimization:
+                self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
 
-                    def train_step_and_backward_closure():
-                        result = self.training_step_and_backward(
-                            split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                        )
-                        return None if result is None else result.loss
+            if self._curr_step_result is None:
+                # user decided to skip optimization
+                # make sure to zero grad.
+                # TODO add logic to skip in the outer loop
+                return
+                # continue
 
-                    # optimizer step
-                    self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
+            batch_outputs = self._process_closure_result(
+                batch_outputs=batch_outputs,
+                opt_idx=opt_idx,
+            )
 
-                else:
-                    self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
+            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
+            grad_norm_dic = self._cur_grad_norm_dict
+            self._cur_grad_norm_dict = None
 
-                if self._curr_step_result is None:
-                    # user decided to skip optimization
-                    # make sure to zero grad.
-                    continue
-
-                batch_outputs = self._process_closure_result(
-                    batch_outputs=batch_outputs,
-                    opt_idx=opt_idx,
-                )
-
-                # todo: Properly aggregate grad_norm accros opt_idx and split_idx
-                grad_norm_dic = self._cur_grad_norm_dict
-                self._cur_grad_norm_dict = None
-
-                # update running loss + reset accumulated loss
-                self.update_running_loss()
-
-    result = AttributeDict(
-        signal=0,
-        grad_norm_dic=grad_norm_dic,
-        training_step_output_for_epoch_end=batch_outputs,
-    )
-    return result
+            # update running loss + reset accumulated loss
+            self.update_running_loss()
