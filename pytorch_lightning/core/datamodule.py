@@ -17,7 +17,7 @@ import functools
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import rank_zero_only
@@ -363,7 +363,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         """
 
-        def dataloader(ds, shuffle=False):
+        def dataloader(ds: Dataset, shuffle: bool = False) -> DataLoader:
+            shuffle &= not isinstance(ds, IterableDataset)
             return DataLoader(
                 ds,
                 batch_size=batch_size,

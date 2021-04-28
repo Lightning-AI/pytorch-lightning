@@ -30,7 +30,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
@@ -49,8 +49,9 @@ if _OMEGACONF_AVAILABLE:
 class TPUSpawnPlugin(DDPSpawnPlugin):
     """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
-    def __init__(self, parallel_devices: Optional[List[int]] = None, **_: Any) -> None:
+    def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
+        self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
         self.start_method = None
@@ -103,6 +104,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         TPUSpawnPlugin._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
+
+    def pre_dispatch(self):
+        if self.debug:
+            os.environ["PT_XLA_DEBUG"] = str(1)
 
     def setup(self, model: Module) -> Module:
         self.create_mp_queue()
@@ -170,7 +175,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.model = self.wrapped_model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        rendezvous(name)
+        if tpu_distributed():
+            rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback

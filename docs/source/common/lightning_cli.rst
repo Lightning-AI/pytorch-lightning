@@ -33,6 +33,9 @@
     MyModelBaseClass = MyModel
     MyDataModuleBaseClass = MyDataModule
 
+    EncoderBaseClass = MyModel
+    DecoderBaseClass = MyModel
+
     mock_argv = mock.patch("sys.argv", ["any.py"])
     mock_argv.start()
 
@@ -116,7 +119,7 @@ The start of a possible implementation of :class:`MyModel` including the recomme
 docstring could be the one below. Note that by using type hints and docstrings there is no need to duplicate this
 information to define its configurable arguments.
 
-.. code-block:: python
+.. testcode::
 
     class MyModel(LightningModule):
 
@@ -131,7 +134,8 @@ information to define its configurable arguments.
                 encoder_layers: Number of layers for the encoder
                 decoder_layers: Number of layers for each decoder block
             """
-            ...
+            super().__init__()
+            self.save_hyperparameters()
 
 With this model class, the help of the trainer tool would look as follows:
 
@@ -258,7 +262,67 @@ A possible config file could be as follows:
         ...
 
 Only model classes that are a subclass of :code:`MyModelBaseClass` would be allowed, and similarly only subclasses of
-:code:`MyDataModuleBaseClass`.
+:code:`MyDataModuleBaseClass`. If as base classes :class:`~pytorch_lightning.core.lightning.LightningModule` and
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` are given, then the tool would allow any lightning
+module and data module.
+
+.. tip::
+
+    Note that with the subclass modes the :code:`--help` option does not show information for a specific subclass. To
+    get help for a subclass the options :code:`--model.help` and :code:`--data.help` can be used, followed by the
+    desired class path. Similarly :code:`--print_config` does not include the settings for a particular subclass. To
+    include them the class path should be given before the :code:`--print_config` option. Examples for both help and
+    print config are:
+
+    .. code-block:: bash
+
+        $ python trainer.py --model.help mycode.mymodels.MyModel
+        $ python trainer.py --model mycode.mymodels.MyModel --print_config
+
+
+Models with multiple submodules
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Many use cases require to have several modules each with its own configurable options. One possible way to handle this
+with LightningCLI is to implement a single module having as init parameters each of the submodules. Since the init
+parameters have as type a class, then in the configuration these would be specified with :code:`class_path` and
+:code:`init_args` entries. For instance a model could be implemented as:
+
+.. testcode::
+
+    class MyMainModel(LightningModule):
+
+        def __init__(
+            self,
+            encoder: EncoderBaseClass,
+            decoder: DecoderBaseClass
+        ):
+            """Example encoder-decoder submodules model
+
+            Args:
+                encoder: Instance of a module for encoding
+                decoder: Instance of a module for decoding
+            """
+            super().__init__()
+            self.encoder = encoder
+            self.decoder = decoder
+
+If the CLI is implemented as :code:`LightningCLI(MyMainModel)` the configuration would be as follows:
+
+.. code-block:: yaml
+
+    model:
+      encoder:
+        class_path: mycode.myencoders.MyEncoder
+        init_args:
+          ...
+      decoder:
+        class_path: mycode.mydecoders.MyDecoder
+        init_args:
+          ...
+
+It is also possible to combine :code:`subclass_mode_model=True` and submodules, thereby having two levels of
+:code:`class_path`.
 
 
 Customizing LightningCLI
@@ -275,7 +339,7 @@ extended to customize different parts of the command line tool. The argument par
 adding arguments can be done using the :func:`add_argument` method. In contrast to argparse it has additional methods to
 add arguments, for example :func:`add_class_arguments` adds all arguments from the init of a class, though requiring
 parameters to have type hints. For more details about this please refer to the `respective documentation
-<https://omni-us.github.io/jsonargparse/#classes-methods-and-functions>`_.
+<https://jsonargparse.readthedocs.io/en/stable/#classes-methods-and-functions>`_.
 
 The :class:`~pytorch_lightning.utilities.cli.LightningCLI` class has the
 :meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser` method which can be implemented to include
