@@ -1,8 +1,10 @@
 from copy import deepcopy
+from typing import List, Dict, Union
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.epoch_loop import BatchLoop
+from pytorch_lightning.loops.batch_loop import BatchLoop
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
@@ -134,3 +136,131 @@ class TrainingLoop(Loop):
         # increment the global step once
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
+
+    def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
+        batch_end_outputs = [opt_idx_out for opt_idx_out in batch_end_outputs if len(opt_idx_out)]
+
+        processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
+
+        # hook
+        self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, batch_idx, dataloader_idx)
+        self.trainer.call_hook('on_batch_end')
+
+        # figure out what to track for epoch end
+        self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)
+
+        # reset batch logger internals
+        self.trainer.logger_connector.on_train_batch_end()
+
+    def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
+
+        # track the outputs to reduce at the end of the epoch
+        for opt_idx, opt_outputs in enumerate(batch_end_outputs):
+            sample_output = opt_outputs[-1]
+
+            # decide if we need to reduce at the end of the epoch automatically
+            auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
+            hook_overridden = (
+                is_overridden("training_epoch_end", model=self.trainer.lightning_module)
+                or is_overridden("on_train_epoch_end", model=self.trainer.lightning_module)
+            )
+
+            # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
+            if not (hook_overridden or auto_reduce_tng_result):
+                continue
+
+            # with 1 step (no tbptt) don't use a sequence at epoch end
+            if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
+                opt_outputs = opt_outputs[0]
+
+            epoch_output[opt_idx].append(opt_outputs)
+
+    @staticmethod
+    def _prepare_outputs(
+            outputs: List[List[List[Result]]],
+            batch_mode: bool,
+    ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
+        """
+        Extract required information from batch or epoch end results.
+
+        Args:
+            outputs: A 3-dimensional list of ``Result`` objects with dimensions:
+                [optimizer outs][batch outs][tbptt steps].
+
+            batch_mode: If True, ignore the batch output dimension.
+
+        Returns:
+            The cleaned outputs with ``Result`` objects converted to dictionaries. All list dimensions of size one will
+            be collapsed.
+        """
+        processed_outputs = []
+        for opt_outputs in outputs:
+            # handle an edge case where an optimizer output is the empty list
+            if len(opt_outputs) == 0:
+                continue
+
+            processed_batch_outputs = []
+
+            if batch_mode:
+                opt_outputs = [opt_outputs]
+
+            for batch_outputs in opt_outputs:
+                processed_tbptt_outputs = []
+
+                for tbptt_output in batch_outputs:
+                    out = tbptt_output.extra
+                    out['loss'] = tbptt_output.minimize
+                    processed_tbptt_outputs.append(out)
+
+                # if there was only one tbptt step then we can collapse that dimension
+                if len(processed_tbptt_outputs) == 1:
+                    processed_tbptt_outputs = processed_tbptt_outputs[0]
+                processed_batch_outputs.append(processed_tbptt_outputs)
+
+            # batch_outputs should be just one dict (or a list of dicts if using tbptt) per optimizer
+            if batch_mode:
+                processed_batch_outputs = processed_batch_outputs[0]
+            processed_outputs.append(processed_batch_outputs)
+
+        # if there is only one optimiser then we collapse that dimension
+        if len(processed_outputs) == 1:
+            processed_outputs = processed_outputs[0]
+        return processed_outputs
+
+    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
+        num_accumulated_batches_reached = self._accumulated_batches_reached()
+        num_training_batches_reached = self._num_training_batches_reached()
+
+        if num_accumulated_batches_reached or num_training_batches_reached:
+            # update lr
+            self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
+
+    def increment_accumulated_grad_global_step(self):
+        num_accumulated_batches_reached = self._accumulated_batches_reached()
+        num_training_batches_reached = self._num_training_batches_reached()
+
+        # progress global step according to grads progress
+        if num_accumulated_batches_reached or num_training_batches_reached:
+            self.trainer.global_step = self.trainer.accelerator.update_global_step(
+                self.trainer.total_batch_idx, self.trainer.global_step
+            )
+
+    def should_check_val_fx(self, batch_idx, is_last_batch, on_epoch=False):
+        # decide if we should run validation
+        is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        can_check_val = self.trainer.enable_validation and is_val_check_epoch
+        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
+        epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
+
+        should_check_val = ((is_val_check_batch and epoch_end_val_check) or self.trainer.should_stop
+                            or is_last_batch_for_infinite_dataset
+                            ) if on_epoch else (is_val_check_batch and not epoch_end_val_check)
+
+        return should_check_val and can_check_val
+
+    def save_loggers_on_train_batch_end(self):
+        # when loggers should save to disk
+        should_flush_logs = self.trainer.logger_connector.should_flush_logs
+        if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
+            self.trainer.logger.save()
