@@ -66,7 +66,7 @@ class LitClassifier(pl.LightningModule):
 
     def __init__(
         self,
-        backbone: Backbone = None,
+        backbone: Optional[Backbone] = None,
         learning_rate: float = 0.0001,
     ):
         super().__init__()
