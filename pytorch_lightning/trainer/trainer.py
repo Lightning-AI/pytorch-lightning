@@ -56,6 +56,7 @@ from pytorch_lightning.trainer.properties import TrainerProperties
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
+from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
@@ -1091,7 +1092,9 @@ class Trainer(
         train_dataloader: Optional[DataLoader] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
-    ) -> None:
+        scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
+        lr_find_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Union[int, _LRFinder]]:
         r"""
         Runs routines to tune hyperparameters before training.
 
@@ -1105,6 +1108,10 @@ class Trainer(
                 If the model has a predefined val_dataloaders method this will be skipped
 
             datamodule: A instance of :class:`LightningDataModule`.
+
+            scale_batch_size_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
+
+            lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.batch_size_scaling.scale_batch_size`
         """
         Trainer._log_api_event("tune")
         self.state = TrainerState.TUNING
@@ -1115,10 +1122,14 @@ class Trainer(
             model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        self.tuner.tune(model, train_dataloader, val_dataloaders, datamodule)
+        result = self.tuner.tune(
+            model, scale_batch_size_kwargs=scale_batch_size_kwargs or {}, lr_find_kwargs=lr_find_kwargs or {}
+        )
 
         assert self.state.stopped
         self.tuning = False
+
+        return result
 
     def call_setup_hook(self, model: LightningModule) -> None:
         assert self.state.running, f"TrainerState: {self.state}"
