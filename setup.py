@@ -21,8 +21,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 
 from setuptools import find_packages, setup
 
-_PATH_HERE = os.path.abspath(os.path.dirname(__file__))
-_PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
+_PATH_ROOT = os.path.abspath(os.path.dirname(__file__))
 
 # see https://stackoverflow.com/a/67692
 spec = spec_from_file_location(
