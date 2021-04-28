@@ -1183,6 +1183,10 @@ class Trainer(
         model._current_hook_fx_name = None
         model._current_dataloader_idx = None
 
+        model._current_fx_name = ""
+        model._current_hook_fx_name = None
+        model._current_dataloader_idx = None
+
     def _reset_result_and_set_hook_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step
         if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
