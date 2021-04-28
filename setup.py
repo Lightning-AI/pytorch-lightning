@@ -17,13 +17,25 @@ import os
 
 # Always prefer setuptools over distutils
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
 
 from setuptools import find_packages, setup
 
-# see https://stackoverflow.com/a/129374
-sys.path.append("pytorch_lightning")
-import __about__ as info  # noqa: E402
-import setup_tools  # noqa: E402
+_PATH_HERE = os.path.abspath(os.path.dirname(__file__))
+_PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
+
+# see https://stackoverflow.com/a/67692
+spec = spec_from_file_location(
+    "pytorch_lightning/__about__.py", os.path.join(_PATH_ROOT, "pytorch_lightning", "__about__.py")
+)
+about = module_from_spec(spec)
+spec.loader.exec_module(about)
+
+spec = spec_from_file_location(
+    "pytorch_lightning/setup_tools.py", os.path.join(_PATH_ROOT, "pytorch_lightning", "setup_tools.py")
+)
+setup_tools = module_from_spec(spec)
+spec.loader.exec_module(setup_tools)
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
