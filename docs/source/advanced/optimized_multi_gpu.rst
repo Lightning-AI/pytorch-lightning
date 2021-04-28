@@ -1,10 +1,7 @@
-Memory Optimized Multi-GPU Training
-===================================
+Advanced GPU Optimized Training
+===============================
 
-When training large models or fitting larger batch sizes on multi-gpu compute, Lightning provides advanced optimized multi-gpu plugins to support these cases.
-
-For example if you'd like to train a large billion parameter transformer model, or to scale your batch size when training a semi-supervised learning model, using a Lightning optimized distributed training plugin will offer substantial improvements
-in memory usage.
+When training large models or fitting larger batch sizes on multi-gpu compute, Lightning provides advanced optimized multi-gpu plugins to support these cases. For example if you'd like to train a large billion parameter transformer model, or to scale your batch size when training a semi-supervised learning model, using a Lightning optimized distributed training plugin will offer substantial improvements in GPU memory usage.
 
 Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
 
@@ -13,14 +10,12 @@ Some of these memory efficient plugins rely on offloading onto other forms of me
 Choosing an Optimized Multi-GPU Plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Currently all Memory Optimized Multi-GPU plugins shard the model states across your GPUs; just in different ways.
-
-This means as you scale up the number of GPUs, you can reach the number of model parameters you'd like to train.
+Unlike PyTorch Distributed Data Parallel (DDP) where the maximum trainable model size and batch size do not change with respect to the number of GPUs, memory optimized plugins can accommodate bigger model and larger batch as more GPUs are used. This means as you scale up the number of GPUs, you can reach the number of model parameters you'd like to train.
 
 Pre-training vs Fine-tuning
 """""""""""""""""""""""""""
 
-When fine-tuning, we often use a magnitude less data compared to pre-training a model. This is important when choosing a distributed plugin as usually for pre-training, **we are compute bound**.
+When fine-tuning, we often use a magnitude less data compared to pre-training a model. This is important when choosing a distributed plugin as usually for pre-training, **where we are compute bound**.
 This means we cannot sacrifice throughput as much as if we were fine-tuning, because in fine-tuning the data requirement is smaller.
 
 Overall:
@@ -36,7 +31,7 @@ But for **fine-tuning** a model, you can reach 10 to 20 Billion parameter models
 When Shouldn't I use an Optimized Multi-GPU Plugin?
 """""""""""""""""""""""""""""""""""""""""""""""""""
 
-Sharding techniques help when model sizes are large (500M+ parameters). We've seen benefits from 500M+, however in cases where your model is small (say ResNet50 of around 80M Parameters) it may be best to stick to normal distributed training.
+Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in cases where your model is small (ResNet50 of around 80M Parameters) it may be best to stick to normal distributed training, unless you are using unusually large batch sizes.
 
 ----------
 
@@ -48,12 +43,12 @@ Lightning integration of optimizer sharded training provided by `FairScale <http
 The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
 `ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_,
 however the implementation is built from the ground up to be pytorch compatible and standalone.
-Sharded Training allows you to maintain GPU scaling efficiency, whilst reducing memory overhead drastically. In short, expect normal linear scaling, and significantly reduced memory usage when training large models.
+Sharded Training allows you to maintain GPU scaling efficiency, whilst reducing memory overhead drastically. In short, expect near-normal linear scaling (if your network allows), and significantly reduced memory usage when training large models.
 
 Sharded Training still utilizes Data Parallel Training under the hood, except optimizer states and gradients are sharded across GPUs.
 This means the memory overhead per GPU is lower, as each GPU only has to maintain a partition of your optimizer state and gradients.
 
-The benefits vary by model and parameter sizes, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of extremely efficient communication,
+The benefits vary by model and parameter sizes, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of efficient communication,
 these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
 
 It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500M+ parameter models).
@@ -191,8 +186,9 @@ This is a requirement for really large models and also saves on instantiation ti
 FairScale Activation Checkpointing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass.
-They are then re-computed for the backwards pass as needed.
+Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass. They are then re-computed for the backwards pass as needed.
+
+FairScales' checkpointing wrapper also handles batch norm layers correctly unlike the PyTorch implementation, ensuring stats are tracked correctly due to the multiple forward passes.
 
 This saves memory when training larger models however requires wrapping modules you'd like to use activation checkpointing on. See `here <https://fairscale.readthedocs.io/en/latest/api/nn/misc/checkpoint_activations.html>`__ for more information.
 
