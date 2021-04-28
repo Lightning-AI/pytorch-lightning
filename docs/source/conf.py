@@ -17,6 +17,7 @@ import glob
 import os
 import shutil
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
 
@@ -27,12 +28,12 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
 
-try:
-    from pytorch_lightning import __about__ as info
-except ImportError:
-    # alternative https://stackoverflow.com/a/67692/4521646
-    sys.path.append(os.path.join(PATH_ROOT, "pytorch_lightning"))
-    import __about__ as info
+spec = spec_from_file_location(
+    "pytorch_lightning/__about__.py",
+    os.path.join(PATH_ROOT, "pytorch_lightning", "__about__.py"),
+)
+about = module_from_spec(spec)
+spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 
