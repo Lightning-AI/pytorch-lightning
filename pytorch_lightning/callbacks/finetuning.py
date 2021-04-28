@@ -17,13 +17,14 @@ Finetuning Callback
 Freeze and unfreeze models for finetuning purposes
 """
 import logging
-from typing import Callable, Generator, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
 from torch.nn import Module
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.optim.optimizer import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
@@ -68,7 +69,7 @@ class BaseFinetuning(Callback):
                 self._unfreeze_at_epoch = unfreeze_at_epoch
 
             def freeze_before_training(self, pl_module):
-                # freeze any module you want
+                # freeze any module you want
                 # Here, we are freezing ``feature_extractor``
                 self.freeze(pl_module.feature_extractor)
 
@@ -81,6 +82,18 @@ class BaseFinetuning(Callback):
                         train_bn=True,
                     )
     """
+
+    def __init__(self):
+        self._internal_state = {}
+
+    def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: LightningModule,
+                           checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+        return self._internal_state
+
+    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+        self._internal_state = callback_state
+        import pdb
+        pdb.set_trace()
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
@@ -234,10 +247,33 @@ class BaseFinetuning(Callback):
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         self.freeze_before_training(pl_module)
 
+    def _add_to_internal_state(
+        self, pl_module: LightningModule, opt_idx: int, current_param_groups: List[Dict[str, Any]]
+    ) -> None:
+        map_p_to_name = {p: n for n, p in pl_module.named_parameters()}
+        for g in current_param_groups:
+            group_state = {k: v for k, v in g.items() if k != 'params'}
+            group_state['params'] = [map_p_to_name[p] for p in g['params']]
+            self._internal_state[opt_idx].append(group_state)
+
+    def _store(
+        self, pl_module: LightningModule, opt_idx: int, len_previous_param_groups: List[Dict[str, Any]],
+        current_param_groups: List[Dict[str, Any]]
+    ) -> None:
+        if opt_idx not in self._internal_state:
+            self._internal_state[opt_idx] = []
+            self._add_to_internal_state(pl_module, opt_idx, current_param_groups)
+
+        elif len_previous_param_groups != len(current_param_groups):
+            self._add_to_internal_state(pl_module, opt_idx, current_param_groups[len_previous_param_groups:])
+
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
         for opt_idx, optimizer in trainer.train_loop.prepare_optimizers():
+            len_previous_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
+            current_param_groups = optimizer.param_groups
+            self._store(pl_module, opt_idx, len_previous_param_groups, current_param_groups)
 
     def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         """
@@ -305,6 +341,7 @@ class BackboneFinetuning(BaseFinetuning):
         verbose: bool = False,
         round: int = 12,
     ):
+        super().__init__()
         self.unfreeze_backbone_at_epoch = unfreeze_backbone_at_epoch
         self.backbone_initial_lr = backbone_initial_lr
         self.lambda_func = lambda_func
@@ -330,7 +367,6 @@ class BackboneFinetuning(BaseFinetuning):
 
     def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
         """Called when the epoch begins."""
-
         if epoch == self.unfreeze_backbone_at_epoch:
             current_lr = optimizer.param_groups[0]['lr']
             initial_backbone_lr = self.backbone_initial_lr if self.backbone_initial_lr is not None \
