@@ -15,10 +15,9 @@
 
 import os
 
-# Always prefer setuptools over distutils
-import sys
 from importlib.util import module_from_spec, spec_from_file_location
 
+# Always prefer setuptools over distutils
 from setuptools import find_packages, setup
 
 _PATH_ROOT = os.path.abspath(os.path.dirname(__file__))
