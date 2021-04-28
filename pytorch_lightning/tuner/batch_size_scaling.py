@@ -178,7 +178,6 @@ def __scale_batch_restore_params(trainer: 'pl.Trainer') -> None:
     del trainer.__dumped_params
 
 
-# TODO: new_size argument
 def _run_power_scaling(
     trainer: 'pl.Trainer', model: 'pl.LightningModule', new_size: int, batch_arg_name: str, max_trials: int
 ) -> int:

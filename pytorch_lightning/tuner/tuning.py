@@ -19,6 +19,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class Tuner:
@@ -70,7 +71,10 @@ class Tuner:
         batch_arg_name: str = 'batch_size',
         **fit_kwargs
     ):
-        # TODO: deprecate
+        rank_zero_deprecation(
+            "`Tuner.scale_batch_size()` is deprecated in v1.3 and will be removed in v1.5."
+            " Please use `trainer.tune(scale_batch_size_kwargs={...})` instead."
+        )
         self.trainer.auto_lr_find = True
         return self.trainer.tune(
             model,
@@ -97,7 +101,10 @@ class Tuner:
         datamodule: Optional['pl.LightningDataModule'] = None,
         update_attr: bool = False,
     ):
-        # TODO: deprecate
+        rank_zero_deprecation(
+            "`Tuner.lr_find()` is deprecated in v1.3 and will be removed in v1.5."
+            " Please use `trainer.tune(lr_finder_kwargs={...})` instead."
+        )
         self.trainer.auto_scale_batch_size = True
         return self.trainer.tune(
             model,
