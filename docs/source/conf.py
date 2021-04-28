@@ -82,13 +82,13 @@ _transform_changelog(
 # -- Project information -----------------------------------------------------
 
 project = 'PyTorch Lightning'
-copyright = info.__copyright__
-author = info.__author__
+copyright = about.__copyright__
+author = about.__author__
 
 # The short X.Y version
-version = info.__version__
+version = about.__version__
 # The full version, including alpha/beta/rc tags
-release = info.__version__
+release = about.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -180,7 +180,7 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 
 html_theme_options = {
     'pytorch_project': 'https://pytorchlightning.ai',
-    'canonical_url': info.__docs_url__,
+    'canonical_url': about.__docs_url__,
     'collapse_navigation': False,
     'display_version': True,
     'logo_only': False,
