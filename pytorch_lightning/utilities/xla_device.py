@@ -96,5 +96,4 @@ class XLADeviceUtils:
 
             if XLADeviceUtils._TPU_AVAILABLE:
                 os.environ["PL_TPU_AVAILABLE"] = '1'
-
         return XLADeviceUtils._TPU_AVAILABLE

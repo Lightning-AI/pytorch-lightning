@@ -44,8 +44,7 @@ def test_evaluate(tmpdir, trainer_kwargs):
         **trainer_kwargs
     )
 
-    result = trainer.fit(model, datamodule=dm)
-    assert result
+    trainer.fit(model, datamodule=dm)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
 
     old_weights = model.layer_0.weight.clone().detach().cpu()

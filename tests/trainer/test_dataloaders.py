@@ -922,7 +922,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
 
     class CurrentTestModel(EvalModelTemplate):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             # batch norm doesn't work with batch size 1, we replace it
             self.c_d1_bn = torch.nn.ReLU()
@@ -983,8 +983,7 @@ def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_train
         default_root_dir=tmpdir,
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
-
-    assert 1 == trainer.fit(model)
+    trainer.fit(model)
     # verify the num_training_batches according to the multiple_trainloader_mode
     assert num_training_batches == trainer.num_training_batches
 
