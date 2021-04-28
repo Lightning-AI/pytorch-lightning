@@ -1,25 +1,44 @@
 Memory Optimized Multi-GPU Training
 ===================================
 
-When you want to train larger parameter models or fit larger batch sizes on your multi-gpu compute, Lightning provides advanced optimized distributed training to support these cases.
+When training large models or fitting larger batch sizes on multi-gpu compute, Lightning provides advanced optimized multi-gpu plugins to support these cases.
 
 For example if you'd like to train a large billion parameter transformer model, or to scale your batch size when training a semi-supervised learning model, using a Lightning optimized distributed training plugin will offer substantial improvements
-in memory usage. Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
+in memory usage.
 
-Choosing an Optimized Distributed Plugin
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
 
-These optimized Multi-GPU plugins shard the model states across your GPUs; just in different ways. This means as you scale up the number of GPUs,
-you may be able to reach the number of model parameters you'd like to train using plugins that have less of a speed degradation.
+Some of these memory efficient plugins rely on offloading onto other forms of memory, such as CPU RAM or NVMe. This means you can even see memory benefits on a **single GPU**, using a plugin such as :ref:`deepspeed-zero-stage-3-offload`.
 
-For example when using 128 GPUs, you can scale to large 10 to 20 Billion parameter models using just DeepSpeed ZeRO Stage 2.
+Choosing an Optimized Multi-GPU Plugin
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- I want to reach the largest **batch size**, with *minimal* speed degradation - Use :ref:`sharded` or :ref:`deepspeed-zero-stage-2`
-- I want to reach the largest **model size**, with *minimal* speed degradation - Use :ref:`deepspeed-zero-stage-2`
-- I want to reach the largest **batch size**, and I don't mind a *small* speed hit - Use :ref:`deepspeed-zero-stage-3`
-- I want to reach the largest **model size**, and I don't mind a *small* speed hit - Use :ref:`deepspeed-zero-stage-3`
-- I want to reach the largest **batch size**, and I don't mind a speed hit - Use :ref:`deepspeed-zero-stage-3-offload` and :ref:`deepspeed-activation-checkpointing`
-- I want to reach the largest **model size**, and I don't mind a speed hit - Use :ref:`deepspeed-zero-stage-3-offload` and :ref:`deepspeed-activation-checkpointing`
+Currently all Memory Optimized Multi-GPU plugins shard the model states across your GPUs; just in different ways.
+
+This means as you scale up the number of GPUs, you can reach the number of model parameters you'd like to train.
+
+Pre-training vs Fine-tuning
+"""""""""""""""""""""""""""
+
+When fine-tuning, we often use a magnitude less data compared to pre-training a model. This is important when choosing a distributed plugin as usually for pre-training, **we are compute bound**.
+This means we cannot sacrifice throughput as much as if we were fine-tuning, because in fine-tuning the data requirement is smaller.
+
+Overall:
+
+* When **fine-tuning** a model, use advanced memory efficient plugins such as :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
+* When **pre-training** a model, use simpler optimizations such :ref:`sharded`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded`, scaling the number of GPUs to reach larger parameter sizes
+* For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` or :ref:`fairscale-activation-checkpointing` as the throughput degradation is not significant
+
+For example when using 128 GPUs, you can **pre-train** large 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-2` without having to take a performance hit with more advanced optimized multi-gpu plugins.
+
+But for **fine-tuning** a model, you can reach 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-3-offload` on a **single GPU**. This does come with a significant throughput hit, which needs to be weighed accordingly.
+
+When Shouldn't I use an Optimized Multi-GPU Plugin?
+"""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Sharding techniques help when model sizes are large (500M+ parameters). We've seen benefits from 500M+, however in cases where your model is small (say ResNet50 of around 80M Parameters) it may be best to stick to normal distributed training.
+
+----------
 
 .. _sharded:
 
@@ -37,40 +56,9 @@ This means the memory overhead per GPU is lower, as each GPU only has to maintai
 The benefits vary by model and parameter sizes, but we've recorded up to a 63% memory reduction per GPU allowing us to double our model sizes. Because of extremely efficient communication,
 these benefits in multi-GPU setups are almost free and throughput scales well with multi-node setups.
 
-Below we use the `NeMo Transformer Lightning Language Modeling example <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/language_modeling>`_ to benchmark the maximum batch size and model size that can be fit on 8 A100 GPUs for DDP vs Sharded Training.
-Note that the benefits can still be obtained using 2 or more GPUs, and for even larger batch sizes you can scale to multiple nodes.
-
-**Increase Your Batch Size**
-
-Use Sharded Training to scale your batch size further using the same compute. This will reduce your overall epoch time.
-
-+----------------------+-----------------------+----------------+---------------------+
-| Distributed Training | Model Size (Millions) | Max Batch Size | Percentage Gain (%) |
-+======================+=======================+================+=====================+
-| Native DDP           | 930                   | 32             | -                   |
-+----------------------+-----------------------+----------------+---------------------+
-| Sharded DDP          | 930                   | **52**         | **48%**             |
-+----------------------+-----------------------+----------------+---------------------+
-
-**Increase Your Model Size**
-
-Use Sharded Training to scale your model size further using the same compute.
-
-+----------------------+------------+---------------------------+---------------------+
-| Distributed Training | Batch Size | Max Model Size (Millions) | Percentage Gain (%) |
-+======================+============+===========================+=====================+
-| Native DDP           | 32         | 930                       | -                   |
-+----------------------+------------+---------------------------+---------------------+
-| Sharded DDP          | 32         | **1404**                  | **41%**             |
-+----------------------+------------+---------------------------+---------------------+
-| Native DDP           | 8          | 1572                      | -                   |
-+----------------------+------------+---------------------------+---------------------+
-| Sharded DDP          | 8          | **2872**                  | **59%**             |
-+----------------------+------------+---------------------------+---------------------+
-
 It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500M+ parameter models).
 A technical note: as batch size scales, storing activations for the backwards pass becomes the bottleneck in training. As a result, sharding optimizer state and gradients becomes less impactful.
-Work within the future will bring optional sharding to activations and model parameters to reduce memory further, but come with a speed cost.
+Use :ref:`fairscale-activation-checkpointing` or :ref:`fully-sharded` to see even more benefit at the cost of some throughput.
 
 To use Sharded Training, you need to first install FairScale using the command below.
 
@@ -82,7 +70,7 @@ To use Sharded Training, you need to first install FairScale using the command b
 .. code-block:: python
 
     # train using Sharded DDP
-    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
+    trainer = Trainer(plugins='ddp_sharded')
 
 Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
@@ -90,7 +78,150 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 ----------
 
-.. _deep_speed:
+.. _fully-sharded:
+
+Fully Sharded Training
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+    Fully Sharded Training is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
+
+`Fully Sharded <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ shards optimizer state, gradients and parameters across data parallel workers. This allows you to fit much larger models onto multiple GPUs into memory.
+
+By default, Fully Sharded acts similar to :ref:`sharded` which shards optimizer states and gradients. If you can train with default Fully Sharded, it is recommended to just use :ref:`sharded`.
+
+Shard Parameters to Reach 10+ Billion Parameters
+""""""""""""""""""""""""""""""""""""""""""""""""
+
+To reach larger parameter sizes and be memory efficient, we have to shard parameters. There are various ways to enable this.
+
+Auto Wrap
+"""""""""
+
+``auto_wrap`` will recursively wrap modules within the ``LightningModule`` with nested Fully Sharded Wrappers,
+signalling that we'd like to partition these modules across data parallel devices, discarding the full weights when not required (information `here <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp_tips.html>`__).
+
+Enabling `auto_wrap` doesn't require code changes, however can have varying level of success based on the complexity of your model. **Auto Wrap does not support models with shared parameters**, use :ref:`manual-wrap` instead.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+
+    class MyModel(pl.LightningModule):
+        ...
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins='ddp_fully_sharded_auto_wrap', precision=16)
+    trainer.fit(model)
+
+    trainer.test()
+    trainer.predict()
+
+
+.. _manual-wrap:
+
+Manual Wrap
+"""""""""""
+
+To activate parameter sharding, you can also wrap layers using provided ``wrap`` or ``auto_wrap`` functions as described below.
+
+When not using Fully Sharded these wrap functions are a no-op. This means once the changes have been made, there is no need to remove the changes for other plugins.
+
+This is a requirement for really large models and also saves on instantiation time as modules are sharded instantly, rather than after the entire model is created in memory.
+
+.. code-block:: python
+
+    import torch
+    import torch.nn as nn
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    from fairscale.nn import checkpoint_wrapper, auto_wrap, wrap
+
+    class MyModel(pl.LightningModule):
+        ...
+        def configure_sharded_model(self):
+            # Created within sharded model context, modules are instantly sharded across processes
+            # as soon as they are wrapped with ``wrap`` or ``auto_wrap``
+
+             # Wraps the layer in a Fully Sharded Wrapper automatically
+            linear_layer = wrap(nn.Linear(32, 32))
+
+            # Wraps the module recursively
+            # based on a minimum number of parameters (default 100M parameters)
+            block = auto_wrap(
+                nn.Sequential(
+                    nn.Linear(32, 32),
+                    nn.ReLU()
+                )
+            )
+
+            # For best memory efficiency,
+            # add fairscale activation checkpointing
+            final_block = auto_wrap(
+                checkpoint_wrapper(
+                    nn.Sequential(
+                        nn.Linear(32, 32),
+                        nn.ReLU()
+                    )
+                )
+            )
+            self.block = nn.Sequential(
+                linear_layer,
+                nn.ReLU(),
+                block,
+                final_block
+            )
+
+        def configure_optimizers(self):
+            return torch.optim.AdamW(self.parameters())
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins='ddp_fully_sharded', precision=16)
+    trainer.fit(model)
+
+    trainer.test()
+    trainer.predict()
+
+
+----------
+
+.. _fairscale-activation-checkpointing:
+
+FairScale Activation Checkpointing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Activation checkpointing frees activations from memory as soon as they are not needed during the forward pass.
+They are then re-computed for the backwards pass as needed.
+
+This saves memory when training larger models however requires wrapping modules you'd like to use activation checkpointing on. See `here <https://fairscale.readthedocs.io/en/latest/api/nn/misc/checkpoint_activations.html>`__ for more information.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DeepSpeedPlugin
+    from fairscale.nn import checkpoint_wrapper
+
+
+    class MyModel(pl.LightningModule):
+        def __init__(self):
+            # Wrap layer using checkpoint_wrapper
+            linear_layer = checkpoint_wrapper(nn.Linear(32, 32))
+            self.block = nn.Sequential(linear_layer, nn.ReLU())
+
+        def configure_sharded_model(self):
+            # Can be defined within this function as well
+            # for when using Fully Sharded.
+            linear_layer = checkpoint_wrapper(nn.Linear(32, 32))
+            self.block = nn.Sequential(linear_layer, nn.ReLU())
+
+        def forward(self, x):
+            # Use the DeepSpeed checkpointing function instead of calling the module directly
+            output = deepspeed.checkpointing.checkpoint(self.block, x)
+            return output
+
+
+.. _deepspeed:
 
 DeepSpeed
 ^^^^^^^^^
@@ -98,9 +229,21 @@ DeepSpeed
 .. note::
     The DeepSpeed plugin is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
 
-`DeepSpeed <https://github.com/microsoft/DeepSpeed>`_ is a deep learning training optimization library, providing the means to train massive billion parameter models at scale.
-Using the DeepSpeed plugin, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the DeepSpeed `docs <https://www.deepspeed.ai/tutorials/megatron/>`_.
+`DeepSpeed <https://github.com/microsoft/DeepSpeed>`__ is a deep learning training optimization library, providing the means to train massive billion parameter models at scale.
+Using the DeepSpeed plugin, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the `DeepSpeed docs <https://www.deepspeed.ai/tutorials/megatron/>`__.
 DeepSpeed also offers lower level training optimizations, and efficient optimizers such as `1-bit Adam <https://www.deepspeed.ai/tutorials/onebit-adam/>`_. We recommend using DeepSpeed in environments where speed and memory optimizations are important (such as training large billion parameter models).
+
+Below is a summary of all the configurations of DeepSpeed.
+
+* :ref:`deepspeed-zero-stage-2` - **Shard optimizer states and gradients**, remains at parity with DDP with memory improvement
+
+* :ref:`deepspeed-zero-stage-2-offload` - **Offload optimizer states and gradients to CPU**. Increases communication, but significant memory improvement
+
+* :ref:`deepspeed-zero-stage-3` - **Shard optimizer states, gradients, (Optional) activations and parameters**. Increases communication volume, but even more memory improvement
+
+* :ref:`deepspeed-zero-stage-3-offload` - **Offload optimizer states, gradients, (Optional) activations and parameters to CPU**. Increases communication, but even more signficant memory improvement.
+
+* :ref:`deepspeed-activation-checkpointing` - **Free activations after forward pass**. Increases computation, but provides memory improvement for all stages.
 
 To use DeepSpeed, you first need to install DeepSpeed using the commands below.
 
@@ -111,7 +254,6 @@ To use DeepSpeed, you first need to install DeepSpeed using the commands below.
 If you run into an issue with the install or later in training, ensure that the CUDA version of the pytorch you've installed matches your locally installed CUDA (you can see which one has been recognized by running ``nvcc --version``).
 
 .. note::
-    Currently ``resume_from_checkpoint`` and manual optimization are not supported.
 
     DeepSpeed currently only supports single optimizer, single scheduler within the training loop.
 
@@ -131,8 +273,13 @@ As a result, benefits can also be seen on a single GPU. Do note that the default
     from pytorch_lightning import Trainer
 
     model = MyModel()
-    trainer = Trainer(gpus=4, plugins='deepspeed', precision=16)
+    trainer = Trainer(gpus=4, plugins='deepspeed_stage_2', precision=16)
     trainer.fit(model)
+
+.. code-block:: bash
+
+    python train.py --plugins deepspeed_stage_2 --precision 16 --gpus 4
+
 
 .. _deepspeed-zero-stage-2-offload:
 
@@ -150,7 +297,7 @@ Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tuto
     from pytorch_lightning.plugins import DeepSpeedPlugin
 
     model = MyModel()
-    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True), precision=16)
+    trainer = Trainer(gpus=4, plugins='deepspeed_stage_2_offload', precision=16)
     trainer.fit(model)
 
 
@@ -158,7 +305,7 @@ This can also be done via the command line using a Pytorch Lightning script:
 
 .. code-block:: bash
 
-    python train.py --plugins deepspeed --precision 16 --gpus 4
+    python train.py --plugins deepspeed_stage_2_offload --precision 16 --gpus 4
 
 
 You can also modify the ZeRO-Offload parameters via the plugin as below.
@@ -197,8 +344,9 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
             return DeepSpeedCPUAdam(self.parameters())
 
     model = MyModel()
-    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(cpu_offload=True), precision=16)
+    trainer = Trainer(gpus=4, plugins='deepspeed_stage_2_offload' precision=16)
     trainer.fit(model)
+
 
 .. _deepspeed-zero-stage-3:
 
@@ -227,12 +375,6 @@ Below we describe how to enable all of these to see benefit. **With all these im
 
 Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains a lot of helpful information when configuring your own models.
 
-.. note::
-    Currently we only support non-elastic checkpointing. This means saving the model across GPUs will save shards of the model on all processes, which will then require the same amount of GPUS to load.
-    This additionally means for inference you must use the ``Trainer.test`` or ``Trainer.predict`` functionality as described below, to ensure we set up the distributed environment correctly.
-
-    This limitation is actively being worked on and will be resolved in the near future.
-
 .. code-block:: python
 
     from pytorch_lightning import Trainer
@@ -245,7 +387,7 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
             return FusedAdam(self.parameters())
 
     model = MyModel()
-    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(stage=3), precision=16)
+    trainer = Trainer(gpus=4, plugins='deepspeed_stage_3', precision=16)
     trainer.fit(model)
 
     trainer.test()
@@ -262,14 +404,9 @@ We expose a hook that layers initialized within the hook will be sharded instant
 
 This reduces the time taken to initialize very large models, as well as ensure we do not run out of memory when instantiating larger models. For more information you can refer to the DeepSpeed docs for `Constructing Massive Models <https://deepspeed.readthedocs.io/en/latest/zero3.html>`_.
 
-.. note::
-    When using the ``configure_sharded_model`` hook to shard models, note that ``LightningModule.load_from_checkpoint`` may not work for loading saved checkpoints. If you've trained on one GPU, you can manually instantiate the model and call the hook,
-    however when using multiple GPUs, this will not work as ``LightningModule.load_from_checkpoint`` doesn't support sharded checkpoints.
-
-    We recommend using ``Trainer.test`` or ``Trainer.predict`` for inference.
-
 .. code-block:: python
 
+    import torch.nn as nn
     from pytorch_lightning import Trainer
     from pytorch_lightning.plugins import DeepSpeedPlugin
     from deepspeed.ops.adam import FusedAdam
@@ -285,7 +422,7 @@ This reduces the time taken to initialize very large models, as well as ensure w
             return FusedAdam(self.parameters())
 
     model = MyModel()
-    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(stage=3), precision=16)
+    trainer = Trainer(gpus=4, plugins='deepspeed_stage_3', precision=16)
     trainer.fit(model)
 
     trainer.test()
@@ -306,12 +443,16 @@ DeepSpeed ZeRO Stage 3 Offloads optimizer state, gradients to the host CPU to re
 
     # Enable CPU Offloading
     model = MyModel()
-    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(stage=3, cpu_offload=True), precision=16)
+    trainer = Trainer(gpus=4, plugins='deepspeed_stage_3_offload', precision=16)
     trainer.fit(model)
 
-    # Enable CPU Offloading, and offload parameters as well to CPU when possible
+    # Enable CPU Offloading, and offload parameters to CPU
     model = MyModel()
-    trainer = Trainer(gpus=4, plugins=DeepSpeedPlugin(stage=3, cpu_offload=True, cpu_offload_params=True), precision=16)
+    trainer = Trainer(
+        gpus=4,
+        plugins=DeepSpeedPlugin(stage=3, cpu_offload=True, cpu_offload_params=True),
+        precision=16
+    )
     trainer.fit(model)
 
 
@@ -345,13 +486,21 @@ This saves memory when training larger models however requires using a checkpoin
 
 
     model = MyModel()
+
+
+    trainer = Trainer(
+        gpus=4,
+        plugins='deepspeed_stage_3_offload',
+        precision=16
+    )
+
+    # Enable CPU Activation Checkpointing
     trainer = Trainer(
         gpus=4,
         plugins=DeepSpeedPlugin(
             stage=3,
             cpu_offload=True,  # Enable CPU Offloading
-            partition_activations=True,  # Optionally move activations to CPU if you have enough memory
-            cpu_checkpointing=True  # Optionally Partition activations across machines
+            cpu_checkpointing=True  # (Optional) offload activations to CPU
         ),
         precision=16
     )
@@ -368,7 +517,7 @@ Here is some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lig
 * If you're using Adam or AdamW, ensure to use FusedAdam or DeepSpeedCPUAdam (for CPU Offloading) rather than the default torch optimizers as they come with large speed benefits
 * Treat your GPU/CPU memory as one large pool. In some cases, you may not want to offload certain things (like activations) to provide even more space to offload model parameters
 * When offloading to the CPU, make sure to bump up the batch size as GPU memory will be freed
-
+* We also support sharded checkpointing. By passing ``save_full_weights=False`` to the ``DeepSpeedPlugin``, we'll save shards of the model which allows you to save extremely large models. However to load the model and run test/validation/predict you must use the Trainer object.
 
 Custom DeepSpeed Config
 """""""""""""""""""""""
