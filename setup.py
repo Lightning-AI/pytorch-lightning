@@ -16,28 +16,27 @@
 import os
 from importlib.util import module_from_spec, spec_from_file_location
 
-# Always prefer setuptools over distutils
 from setuptools import find_packages, setup
-
-_PATH_ROOT = os.path.abspath(os.path.dirname(__file__))
-
-# see https://stackoverflow.com/a/67692
-spec = spec_from_file_location(
-    "pytorch_lightning/__about__.py", os.path.join(_PATH_ROOT, "pytorch_lightning", "__about__.py")
-)
-about = module_from_spec(spec)
-spec.loader.exec_module(about)
-
-spec = spec_from_file_location(
-    "pytorch_lightning/setup_tools.py", os.path.join(_PATH_ROOT, "pytorch_lightning", "setup_tools.py")
-)
-setup_tools = module_from_spec(spec)
-spec.loader.exec_module(setup_tools)
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, 'requirements')
+
+
+def _load_py_module(fname):
+    spec = spec_from_file_location(
+        os.path.join("pytorch_lightning", fname),
+        os.path.join(_PATH_ROOT, "pytorch_lightning", fname),
+    )
+    py = module_from_spec(spec)
+    spec.loader.exec_module(py)
+    return py
+
+
+about = _load_py_module('__about__.py')
+setup_tools = _load_py_module('setup_tools.py')
+
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
