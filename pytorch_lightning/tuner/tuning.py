@@ -31,7 +31,7 @@ class Tuner:
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
-    def tune(
+    def _tune(
         self,
         model: 'pl.LightningModule',
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,

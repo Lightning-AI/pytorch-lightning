@@ -1115,7 +1115,7 @@ class Trainer(
             model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        result = self.tuner.tune(
+        result = self.tuner._tune(
             model, scale_batch_size_kwargs=scale_batch_size_kwargs or {}, lr_find_kwargs=lr_find_kwargs or {}
         )
 

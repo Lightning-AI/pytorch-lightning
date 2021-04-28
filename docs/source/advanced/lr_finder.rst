@@ -73,17 +73,16 @@ If your model is using an arbitrary value instead of ``self.lr`` or ``self.learn
     trainer.tune(model)
 
 
-If you want to inspect the results of the learning rate finder or just play around
-with the parameters of the algorithm, this can be done by invoking the ``lr_find``
-method of the trainer. A typical example of this would look like
+You can also inspect the results of the learning rate finder or just play around
+with the parameters of the algorithm. A typical example of this would look like:
 
 .. code-block:: python
 
     model = MyModelClass(hparams)
-    trainer = Trainer()
+    trainer = Trainer(auto_lr_find=True)
 
     # Run learning rate finder
-    lr_finder = trainer.tuner.lr_find(model)
+    lr_finder = trainer.tune(model, lr_find_kwargs={...})
 
     # Results can be found in
     lr_finder.results
