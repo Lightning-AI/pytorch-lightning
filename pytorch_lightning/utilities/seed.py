@@ -78,7 +78,17 @@ def _select_seed_randomly(min_seed_value: int = 0, max_seed_value: int = 255) ->
     return random.randint(min_seed_value, max_seed_value)
 
 
-def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover
+def reset_seed() -> None:
+    """
+    Reset the seed to the value that :func:`pytorch_lightning.utilities.seed.seed_everything` previously set.
+    If :func:`pytorch_lightning.utilities.seed.seed_everything` is unused, this function will do nothing.
+    """
+    seed = os.environ.get("PL_GLOBAL_SEED", None)
+    if seed is not None:
+        seed_everything(int(seed))
+
+
+def pl_worker_init_function(worker_id: int, rank: Optional = None) -> None:  # pragma: no cover
     """
     The worker_init_fn that Lightning automatically adds to your dataloader if you previously set
     set the seed with ``seed_everything(seed, workers=True)``.

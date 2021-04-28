@@ -58,6 +58,8 @@ class CallbackConnector:
         # configure swa callback
         self._configure_swa_callbacks()
 
+        # configure the timer callback.
+        # responsible to stop the training when max_time is reached.
         self._configure_timer_callback(max_time)
 
         # init progress bar
