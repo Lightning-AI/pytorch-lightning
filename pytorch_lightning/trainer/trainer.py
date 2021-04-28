@@ -775,7 +775,7 @@ class Trainer(
             return []
 
         # set up the eval loop
-        self.predict_loop.setup(self.lightning_module, max_batches, dataloaders)
+        self.predict_loop.setup(max_batches, dataloaders)
 
         # call hook
         self.predict_loop.on_predict_start()
@@ -1086,8 +1086,6 @@ class Trainer(
         Runs routines to tune hyperparameters before training.
 
         Args:
-            datamodule: A instance of :class:`LightningDataModule`.
-
             model: Model to tune.
 
             train_dataloader: A Pytorch DataLoader with training samples. If the model has
@@ -1096,6 +1094,7 @@ class Trainer(
             val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
 
+            datamodule: A instance of :class:`LightningDataModule`.
         """
         Trainer._log_api_event("tune")
         self.state = TrainerState.TUNING
