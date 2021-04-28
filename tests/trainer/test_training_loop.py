@@ -172,9 +172,7 @@ def test_outputs_format(tmpdir):
         progress_bar_refresh_rate=0,
         weights_summary=None,
     )
-
-    result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
+    trainer.fit(model)
 
 
 def test_training_starts_with_seed(tmpdir):
