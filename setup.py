@@ -24,10 +24,10 @@ _PATH_ROOT = os.path.dirname(__file__)
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, 'requirements')
 
 
-def _load_py_module(fname):
+def _load_py_module(fname, pkg="pytorch_lightning"):
     spec = spec_from_file_location(
-        os.path.join("pytorch_lightning", fname),
-        os.path.join(_PATH_ROOT, "pytorch_lightning", fname),
+        os.path.join(pkg, fname),
+        os.path.join(_PATH_ROOT, pkg, fname),
     )
     py = module_from_spec(spec)
     spec.loader.exec_module(py)
@@ -36,7 +36,6 @@ def _load_py_module(fname):
 
 about = _load_py_module('__about__.py')
 setup_tools = _load_py_module('setup_tools.py')
-
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
