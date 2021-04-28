@@ -364,6 +364,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed metrics not being properly logged with `precision=16` and `manual_optimization` ([#7228](https://github.com/PyTorchLightning/pytorch-lightning/pull/7228))
 
 
+- Fixed `BaseFinetuning` properly reloading `optimizer_states` when using `resume_from_checkpoint` ([#6891](https://github.com/PyTorchLightning/pytorch-lightning/pull/6891))
+
+
 ## [1.2.7] - 2021-04-06
 
 ### Fixed
