@@ -290,7 +290,6 @@ def test_lightning_cli_args(tmpdir):
     with mock.patch('sys.argv', ['any.py'] + cli_args):
         cli = LightningCLI(BoringModel, BoringDataModule, trainer_defaults={'callbacks': [LearningRateMonitor()]})
 
-    assert cli.fit_result == 1
     assert cli.config['seed_everything'] == 1234
     config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml'
     assert os.path.isfile(config_path)
@@ -321,7 +320,6 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
             trainer_defaults={'callbacks': LearningRateMonitor()}
         )
 
-    assert cli.fit_result == 1
     config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml'
     assert os.path.isfile(config_path)
     with open(config_path) as f:
