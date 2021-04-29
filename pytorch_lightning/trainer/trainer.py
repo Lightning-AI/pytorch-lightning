@@ -1002,11 +1002,11 @@ class Trainer(
                 ],
             )
 
-        # hook
-        self.evaluation_loop.on_evaluation_end()
-
         # log epoch metrics
         eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
+
+        # hook
+        self.evaluation_loop.on_evaluation_end()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
