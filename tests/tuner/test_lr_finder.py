@@ -17,7 +17,7 @@ from copy import deepcopy
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
@@ -79,20 +79,11 @@ def test_trainer_reset_correctly(tmpdir):
     changed_attributes = [
         'callbacks', 'logger', 'max_steps', 'auto_lr_find', 'accumulate_grad_batches', 'checkpoint_callback'
     ]
-    attributes_before = {}
-    for ca in changed_attributes:
-        attributes_before[ca] = getattr(trainer, ca)
-
+    expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
     _ = trainer.tuner.lr_find(model, num_training=5)
+    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
-    attributes_after = {}
-    for ca in changed_attributes:
-        attributes_after[ca] = getattr(trainer, ca)
-
-    for key in changed_attributes:
-        assert attributes_before[key] == attributes_after[key], \
-            f'Attribute {key} was not reset correctly after learning rate finder'
-
+    assert actual == expected
     assert model.trainer == trainer
 
 

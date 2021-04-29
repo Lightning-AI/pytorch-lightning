@@ -23,9 +23,8 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -42,7 +41,7 @@ else:
 log = logging.getLogger(__name__)
 
 
-def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
+def _determine_lr_attr_name(trainer: 'pl.Trainer', model: 'pl.LightningModule') -> str:
     if isinstance(trainer.auto_lr_find, str):
         if not lightning_hasattr(model, trainer.auto_lr_find):
             raise MisconfigurationException(
@@ -62,9 +61,143 @@ def _determine_lr_attr_name(trainer, model: LightningModule) -> str:
     )
 
 
+class _LRFinder(object):
+    """ LR finder object. This object stores the results of Trainer.lr_find().
+
+    Args:
+        mode: either `linear` or `exponential`, how to increase lr after each step
+
+        lr_min: lr to start search from
+
+        lr_max: lr to stop search
+
+        num_training: number of steps to take between lr_min and lr_max
+
+    Example::
+        # Run lr finder
+        lr_finder = trainer.lr_find(model)
+
+        # Results stored in
+        lr_finder.results
+
+        # Plot using
+        lr_finder.plot()
+
+        # Get suggestion
+        lr = lr_finder.suggestion()
+    """
+
+    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
+        assert mode in ('linear', 'exponential'), \
+            'mode should be either `linear` or `exponential`'
+
+        self.mode = mode
+        self.lr_min = lr_min
+        self.lr_max = lr_max
+        self.num_training = num_training
+
+        self.results = {}
+        self._total_batch_idx = 0  # for debug purpose
+
+    def _exchange_scheduler(self, configure_optimizers: Callable):
+        """ Decorate configure_optimizers methods such that it returns the users
+            originally specified optimizer together with a new scheduler that
+            that takes care of the learning rate search.
+        """
+
+        @wraps(configure_optimizers)
+        def func():
+            # Decide the structure of the output from configure_optimizers
+            # Same logic as method `init_optimizers` in trainer/optimizers.py
+            optim_conf = configure_optimizers()
+            if isinstance(optim_conf, Optimizer):
+                optimizers = [optim_conf]
+            elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 \
+                    and isinstance(optim_conf[0], list):
+                optimizers, _ = optim_conf
+            elif isinstance(optim_conf, dict):
+                optimizers = [optim_conf["optimizer"]]
+            elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
+                optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
+            elif isinstance(optim_conf, (list, tuple)):
+                optimizers = [optim_conf]
+
+            if len(optimizers) != 1:
+                raise MisconfigurationException(
+                    f'`model.configure_optimizers()` returned {len(optimizers)}, but'
+                    ' learning rate finder only works with single optimizer'
+                )
+
+            optimizer = optimizers[0]
+
+            new_lrs = [self.lr_min] * len(optimizer.param_groups)
+            for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
+                param_group["lr"] = new_lr
+                param_group["initial_lr"] = new_lr
+
+            args = (optimizer, self.lr_max, self.num_training)
+            scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
+
+            return [optimizer], [{'scheduler': scheduler, 'interval': 'step'}]
+
+        return func
+
+    def plot(self, suggest: bool = False, show: bool = False):
+        """ Plot results from lr_find run
+        Args:
+            suggest: if True, will mark suggested lr to use with a red point
+
+            show: if True, will show figure
+        """
+        import matplotlib.pyplot as plt
+
+        lrs = self.results["lr"]
+        losses = self.results["loss"]
+
+        fig, ax = plt.subplots()
+
+        # Plot loss as a function of the learning rate
+        ax.plot(lrs, losses)
+        if self.mode == 'exponential':
+            ax.set_xscale("log")
+        ax.set_xlabel("Learning rate")
+        ax.set_ylabel("Loss")
+
+        if suggest:
+            _ = self.suggestion()
+            if self._optimal_idx:
+                ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx], markersize=10, marker='o', color='red')
+
+        if show:
+            plt.show()
+
+        return fig
+
+    def suggestion(self, skip_begin: int = 10, skip_end: int = 1):
+        """ This will propose a suggestion for choice of initial learning rate
+        as the point with the steepest negative gradient.
+
+        Returns:
+            lr: suggested initial learning rate to use
+            skip_begin: how many samples to skip in the beginning. Prevent too naive estimates
+            skip_end: how many samples to skip in the end. Prevent too optimistic estimates
+
+        """
+        try:
+            loss = np.array(self.results["loss"][skip_begin:-skip_end])
+            loss = loss[np.isfinite(loss)]
+            min_grad = np.gradient(loss).argmin()
+            self._optimal_idx = min_grad + skip_begin
+            return self.results["lr"][self._optimal_idx]
+        # todo: specify the possible exception
+        except Exception:
+            log.exception('Failed to compute suggesting for `lr`. There might not be enough points.')
+            self._optimal_idx = None
+
+
 def lr_find(
-    trainer,
-    model: LightningModule,
+    trainer: 'pl.Trainer',
+    model: 'pl.LightningModule',
     train_dataloader: Optional[DataLoader] = None,
     val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
     min_lr: float = 1e-8,
@@ -72,14 +205,16 @@ def lr_find(
     num_training: int = 100,
     mode: str = 'exponential',
     early_stop_threshold: float = 4.0,
-    datamodule: Optional[LightningDataModule] = None,
+    datamodule: Optional['pl.LightningDataModule'] = None,
     update_attr: bool = False,
-):
+) -> Optional[_LRFinder]:
     r"""
     ``lr_find`` enables the user to do a range test of good initial learning rates,
     to reduce the amount of guesswork in picking a good starting learning rate.
 
     Args:
+        trainer: The Trainer
+
         model: Model to do range testing for
 
         train_dataloader: A PyTorch
@@ -232,140 +367,6 @@ def __lr_finder_restore_params(trainer, model):
     del trainer.__dumped_params
 
 
-class _LRFinder(object):
-    """ LR finder object. This object stores the results of Trainer.lr_find().
-
-    Args:
-        mode: either `linear` or `exponential`, how to increase lr after each step
-
-        lr_min: lr to start search from
-
-        lr_max: lr to stop search
-
-        num_training: number of steps to take between lr_min and lr_max
-
-    Example::
-        # Run lr finder
-        lr_finder = trainer.lr_find(model)
-
-        # Results stored in
-        lr_finder.results
-
-        # Plot using
-        lr_finder.plot()
-
-        # Get suggestion
-        lr = lr_finder.suggestion()
-    """
-
-    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
-        assert mode in ('linear', 'exponential'), \
-            'mode should be either `linear` or `exponential`'
-
-        self.mode = mode
-        self.lr_min = lr_min
-        self.lr_max = lr_max
-        self.num_training = num_training
-
-        self.results = {}
-        self._total_batch_idx = 0  # for debug purpose
-
-    def _exchange_scheduler(self, configure_optimizers: Callable):
-        """ Decorate configure_optimizers methods such that it returns the users
-            originally specified optimizer together with a new scheduler that
-            that takes care of the learning rate search.
-        """
-
-        @wraps(configure_optimizers)
-        def func():
-            # Decide the structure of the output from configure_optimizers
-            # Same logic as method `init_optimizers` in trainer/optimizers.py
-            optim_conf = configure_optimizers()
-            if isinstance(optim_conf, Optimizer):
-                optimizers = [optim_conf]
-            elif isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 \
-                    and isinstance(optim_conf[0], list):
-                optimizers, _ = optim_conf
-            elif isinstance(optim_conf, dict):
-                optimizers = [optim_conf["optimizer"]]
-            elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
-                optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
-            elif isinstance(optim_conf, (list, tuple)):
-                optimizers = [optim_conf]
-
-            if len(optimizers) != 1:
-                raise MisconfigurationException(
-                    f'`model.configure_optimizers()` returned {len(optimizers)}, but'
-                    ' learning rate finder only works with single optimizer'
-                )
-
-            optimizer = optimizers[0]
-
-            new_lrs = [self.lr_min] * len(optimizer.param_groups)
-            for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
-                param_group["lr"] = new_lr
-                param_group["initial_lr"] = new_lr
-
-            args = (optimizer, self.lr_max, self.num_training)
-            scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
-
-            return [optimizer], [{'scheduler': scheduler, 'interval': 'step'}]
-
-        return func
-
-    def plot(self, suggest: bool = False, show: bool = False):
-        """ Plot results from lr_find run
-        Args:
-            suggest: if True, will mark suggested lr to use with a red point
-
-            show: if True, will show figure
-        """
-        import matplotlib.pyplot as plt
-
-        lrs = self.results["lr"]
-        losses = self.results["loss"]
-
-        fig, ax = plt.subplots()
-
-        # Plot loss as a function of the learning rate
-        ax.plot(lrs, losses)
-        if self.mode == 'exponential':
-            ax.set_xscale("log")
-        ax.set_xlabel("Learning rate")
-        ax.set_ylabel("Loss")
-
-        if suggest:
-            _ = self.suggestion()
-            if self._optimal_idx:
-                ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx], markersize=10, marker='o', color='red')
-
-        if show:
-            plt.show()
-
-        return fig
-
-    def suggestion(self, skip_begin: int = 10, skip_end: int = 1):
-        """ This will propose a suggestion for choice of initial learning rate
-        as the point with the steepest negative gradient.
-
-        Returns:
-            lr: suggested initial learning rate to use
-            skip_begin: how many samples to skip in the beginning. Prevent too naive estimates
-            skip_end: how many samples to skip in the end. Prevent too optimistic estimates
-
-        """
-        try:
-            loss = np.array(self.results["loss"][skip_begin:-skip_end])
-            loss = loss[np.isfinite(loss)]
-            min_grad = np.gradient(loss).argmin()
-            self._optimal_idx = min_grad + skip_begin
-            return self.results["lr"][self._optimal_idx]
-        # todo: specify the possible exception
-        except Exception:
-            log.exception('Failed to compute suggesting for `lr`. There might not be enough points.')
-            self._optimal_idx = None
-
-
 class _LRCallback(Callback):
     """ Special callback used by the learning rate finder. This callbacks log
     the learning rate before each batch and log the corresponding loss after
@@ -441,9 +442,10 @@ class _LRCallback(Callback):
 
 
 class _LinearLR(_LRScheduler):
-    """Linearly increases the learning rate between two boundaries
-    over a number of iterations.
-    Arguments:
+    """
+    Linearly increases the learning rate between two boundaries over a number of iterations.
+
+    Args:
 
         optimizer: wrapped optimizer.
 
