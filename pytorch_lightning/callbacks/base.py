@@ -287,8 +287,7 @@ class Callback(abc.ABC):
 
             The ``on_load_checkpoint`` won't be called with an undefined state.
             If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
-            you will still need to override ``on_save_checkpoint`` with a ``dummy state``
-            for the ``on_load_checkpoint`` to be executed.
+            you will still need to override ``on_save_checkpoint`` to return a ``dummy state``.
         """
         pass
 
