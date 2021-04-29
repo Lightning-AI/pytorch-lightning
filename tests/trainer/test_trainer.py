@@ -2043,6 +2043,28 @@ def test_fit_test_synchronization(tmpdir):
     trainer.test()
 
 
+class CustomCallbackOnLoadCheckpoint(Callback):
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+        return {"a": None}
+
+
+def test_on_load_checkpoint_missing_callbacks(tmpdir):
+    """ Test a warning appears when callbacks in the checkpoint don't match callbacks provided when resuming. """
+
+    model = BoringModel()
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=[chk, CustomCallbackOnLoadCheckpoint()])
+    trainer.fit(model)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=5, resume_from_checkpoint=chk.last_model_path, progress_bar_refresh_rate=1
+    )
+    with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
+        trainer.fit(model)
+
+
 def test_module_current_fx_attributes_reset(tmpdir):
     """ Ensure that lightning module's attributes related to current hook fx are reset at the end of execution. """
     model = BoringModel()
