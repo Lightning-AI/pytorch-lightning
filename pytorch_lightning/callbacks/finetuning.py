@@ -87,8 +87,12 @@ class BaseFinetuning(Callback):
     def __init__(self):
         self._internal_state = {}
 
-    def on_save_checkpoint(self, trainer: 'pl.Trainer', pl_module: LightningModule,
-                           checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+    def on_save_checkpoint(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: LightningModule,
+        checkpoint: Dict[str, Any],
+    ) -> Dict[str, Any]:
         return self._internal_state
 
     def on_load_checkpoint(
