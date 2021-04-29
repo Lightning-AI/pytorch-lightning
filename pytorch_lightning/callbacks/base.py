@@ -278,15 +278,17 @@ class Callback(abc.ABC):
     ) -> None:
         """Called when loading a model checkpoint, use to reload state.
 
-        .. note::
-
-            The ``on_load_checkpoint`` will be called only if a state is provided.
-            Therefore, ``on_save_checkpoint`` hook need to be overridden to return a state.
-
         Args:
             trainer: the current Trainer instance.
             pl_module: the current 'pl.LightningModule' instance.
             callback_state: the callback state returned by ``on_save_checkpoint``.
+
+        .. note::
+
+            The ``on_load_checkpoint`` won't be called with an undefined state.
+            If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
+            you will still need to override ``on_save_checkpoint`` with a ``dummy state``
+            for the ``on_load_checkpoint`` to be executed.
         """
         pass
 
