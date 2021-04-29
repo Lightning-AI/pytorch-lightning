@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, ContextManager, List, Sequence, Tuple, Type
+from typing import Any, Callable, ContextManager, List, Sequence, Tuple
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+
 import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
@@ -45,7 +46,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def dispatch(self, trainer: "pl.Trainer") -> None:
         if not self._connected:
             accelerator = trainer.accelerator
-            model, optimizers = self.configure_apex(accelerator.lightning_module, accelerator.optimizers, self.amp_level)
+            model, optimizers = self.configure_apex(accelerator.lightning_module, accelerator.optimizers)
             self.reinit_scheduler_properties(optimizers, accelerator.lr_schedulers)
             self.model = model
             self.optimizers = optimizers
@@ -102,7 +103,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self,
         model: Module,
         optimizers: List[Optimizer],
-        amp_level: str,
     ) -> Tuple[Module, List[Optimizer]]:
         r"""
         Override to init AMP your own way.
@@ -112,7 +112,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             amp: pointer to amp library object.
             model: pointer to current :class:`torch.nn.Module`.
             optimizers: list of optimizers passed in :meth:`configure_optimizers`.
-            amp_level: AMP mode chosen ('O1', 'O2', etc...)
 
         Return:
             Apex wrapped model and optimizers
@@ -128,7 +127,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
                     return model, optimizers
         """
-        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
+        model, optimizers = amp.initialize(model, optimizers, opt_level=self.amp_level)
         return model, optimizers
 
     @staticmethod

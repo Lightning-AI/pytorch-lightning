@@ -22,7 +22,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from tests.helpers import BoringModel
-from tests.helpers import runif
 from tests.helpers.runif import RunIf
 
 
