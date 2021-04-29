@@ -301,13 +301,13 @@ def test_lr_candidates_between_min_and_max(tmpdir):
 
     lr_min = 1e-8
     lr_max = 1.0
-    lrfinder = trainer.tuner.lr_find(
+    lr_finder = trainer.tuner.lr_find(
         model,
         max_lr=lr_min,
         min_lr=lr_max,
         num_training=3,
     )
-    lr_candidates = lrfinder.results["lr"]
+    lr_candidates = lr_finder.results["lr"]
     assert all([lr_min <= lr <= lr_max for lr in lr_candidates])
 
 
