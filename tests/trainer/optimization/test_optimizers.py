@@ -498,3 +498,18 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.warns(RuntimeWarning, match='the keys will be ignored'):
         trainer.fit(model)
+
+
+def test_optimizer_state_on_device(tmpdir):
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            return torch.optim.Adagrad(self.parameters())
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        fast_dev_run=True,
+    )
+    trainer.fit(model)
