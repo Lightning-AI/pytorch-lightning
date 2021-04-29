@@ -275,7 +275,7 @@ class TrainerCallbackHookMixin(ABC):
     @staticmethod
     def __is_old_signature_on_load_checkpoint(fn: Callable) -> bool:
         parameters = list(signature(fn).parameters)
-        return len(parameters) == 1
+        return len(parameters) == 1 and parameters[0] != "args"
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[Type, dict]:
         """Called when saving a model checkpoint."""

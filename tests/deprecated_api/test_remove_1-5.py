@@ -165,15 +165,12 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
             chk,
         ]
     )
-    trainer.fit(model)
+    with no_deprecated_call(match="old signature will be removed in v1.5"):
+        trainer.fit(model)
 
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        cb, cb_1, cb_2 = NewSignatureOnLoadCheckpoint(), ValidSignature1(), ValidSignature2OnLoadCheckpoint()
-        trainer = Trainer(**trainer_kwargs, callbacks=[cb, cb_1, cb_2], resume_from_checkpoint=chk.last_model_path)
+        trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=chk.last_model_path)
         trainer.fit(model)
-        assert cb.on_load_checkpoint_called
-        assert not cb_1.on_load_checkpoint_called
-        assert cb_2.on_load_checkpoint_called
 
 
 def test_v1_5_0_legacy_profiler_argument():
