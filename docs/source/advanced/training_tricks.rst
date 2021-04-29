@@ -112,7 +112,7 @@ search for batch sizes larger than the size of the training dataset.
     to `.fit()`.
 
 The scaling algorithm has a number of parameters that the user can control by
-invoking passing the ``scale_batch_size`` argument:
+passing the ``scale_batch_size_kwargs`` argument to ``trainer.tune``:
 
 .. code-block:: python
 
