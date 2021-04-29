@@ -759,10 +759,9 @@ def test_disabled_validation(tmpdir):
     )
 
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # check that limit_val_batches=0 turns off validation
-    assert result == 1, "training failed to complete"
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
@@ -1593,8 +1592,6 @@ def predict(
         assert len(results) == 2
         assert len(results[0]) == num_samples
         assert results[0][0].shape == torch.Size([1, 2])
-    else:
-        assert results == 1
 
 
 def test_trainer_predict_no_return(tmpdir):
@@ -1693,8 +1690,6 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
         assert len(preds) == 1
         assert preds[0].shape == torch.Size([1, 2])
         assert preds[0].dtype == (torch.float64 if precision == 64 else torch.float32)
-    else:
-        assert preds == 1
 
 
 @pytest.mark.parametrize(
@@ -1735,7 +1730,7 @@ def test_disabled_training_for_insufficient_limit_train_batches(
         max_epochs=5,
         limit_train_batches=limit_train_batches,
     )
-    result = trainer.fit(model, train_loader)
+    trainer.fit(model, train_loader)
 
     params_string = f"""`limit_train_batches={limit_train_batches}`, `dataset_len={dataset_len}`
                         & `batch_size={batch_size}` as
@@ -1745,7 +1740,6 @@ def test_disabled_training_for_insufficient_limit_train_batches(
     else:
         error_string = f"should not run with {params_string}"
 
-    assert result == 1, "training failed to complete"
     assert trainer.state == TrainerState.FINISHED
     assert trainer.global_step == global_step
     assert trainer.num_training_batches == num_training_batches
@@ -2056,6 +2050,7 @@ class CustomCallbackOnLoadCheckpoint(Callback):
 
 
 def test_on_load_checkpoint_missing_callbacks(tmpdir):
+    """ Test a warning appears when callbacks in the checkpoint don't match callbacks provided when resuming. """
 
     model = BoringModel()
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
@@ -2068,3 +2063,33 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
     )
     with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
         trainer.fit(model)
+
+
+def test_module_current_fx_attributes_reset(tmpdir):
+    """ Ensure that lightning module's attributes related to current hook fx are reset at the end of execution. """
+    model = BoringModel()
+    model.validation_step = None
+    model.training_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=False,
+        logger=False,
+        limit_val_batches=0,
+    )
+    trainer.fit(model)
+    assert model._current_fx_name == "", f"_current_fx_name not reset after fit: {model._current_fx_name}"
+    assert (
+        model._current_hook_fx_name is None
+    ), f"_current_hook_fx_name not reset after fit: {model._current_hook_fx_name}"
+    assert (
+        model._current_dataloader_idx is None
+    ), f"_current_dataloader_idx not reset after fit: {model._current_dataloader_idx}"
+    trainer.test(model)
+    assert model._current_fx_name == "", f"_current_fx_name not reset after test: {model._current_fx_name}"
+    assert (
+        model._current_hook_fx_name is None
+    ), f"_current_hook_fx_name not reset after test: {model._current_hook_fx_name}"
+    assert (
+        model._current_dataloader_idx is None
+    ), f"_current_dataloader_idx not reset after test: {model._current_dataloader_idx}"

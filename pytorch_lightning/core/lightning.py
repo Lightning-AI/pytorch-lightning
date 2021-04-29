@@ -92,19 +92,19 @@ class LightningModule(
         self._device_type = None
 
         #: True if using amp
-        self.use_amp = False
+        self.use_amp: bool = False
 
         #: The precision used
-        self.precision = 32
+        self.precision: int = 32
 
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
         self._results: Optional[Result] = None
-        self._current_fx_name = ''
-        self._running_manual_backward = False
-        self._current_hook_fx_name = None
-        self._current_dataloader_idx = None
+        self._current_fx_name: str = ''
+        self._running_manual_backward: bool = False
+        self._current_hook_fx_name: Optional[str] = None
+        self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._param_requires_grad_state = dict()
 
