@@ -72,8 +72,8 @@ class Tuner:
         self.trainer.state = TrainerState.FINISHED
 
     def _run(self, *args: Any, **kwargs: Any) -> None:
-        """`_launch` wrapper to set the proper state during tuning, as this can be called multiple times"""
-        self.trainer.state = TrainerState.TUNING  # last `_launch` call might have set it to `FINISHED`
+        """`_run` wrapper to set the proper state during tuning, as this can be called multiple times"""
+        self.trainer.state = TrainerState.TUNING  # last `_run` call might have set it to `FINISHED`
         self.trainer.training = True
         self.trainer._run(*args, **kwargs)
         self.trainer.tuning = True
