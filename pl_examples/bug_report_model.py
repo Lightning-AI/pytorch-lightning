@@ -2,6 +2,7 @@ import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.utilities import move_data_to_device
 
 
 class RandomDataset(Dataset):
@@ -29,7 +30,7 @@ class BoringModel(LightningModule):
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
         x = opt.state_dict()
-        print(x)
+        move_data_to_device(x, device=self.device)
         loss = self(batch).sum()
         self.log("train_loss", loss)
         return {"loss": loss}
