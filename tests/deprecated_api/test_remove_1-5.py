@@ -162,9 +162,12 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
     chk = ModelCheckpoint(save_last=True)
     trainer = Trainer(
         **trainer_kwargs,
-        callbacks=[NewSignatureOnLoadCheckpoint(),
-                   ValidSignature1(),
-                   ValidSignature2OnLoadCheckpoint(), chk]
+        callbacks=[
+            NewSignatureOnLoadCheckpoint(),
+            ValidSignature1(),
+            ValidSignature2OnLoadCheckpoint(),
+            chk,
+        ]
     )
     trainer.fit(model)
 
