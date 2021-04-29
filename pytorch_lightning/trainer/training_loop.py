@@ -886,9 +886,6 @@ class TrainLoop:
 
     def prepare_optimizers(self):
         # in manual optimization we loop over all optimizers at once
-        for opt in self.trainer.optimizers:
-            opt.load_state_dict(move_data_to_device(opt.state_dict(), device=self.trainer.lightning_module.device))
-
         optimizers = self.get_optimizers_iterable()
         if not self.trainer.lightning_module.automatic_optimization:
             optimizers = [optimizers[0]]
