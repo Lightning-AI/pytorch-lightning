@@ -201,7 +201,7 @@ def test_str_to_bool_or_int():
     assert str_to_bool_or_int("0") is False
     assert str_to_bool_or_int("1") is True
     assert str_to_bool_or_int("true") is True
-    assert str_to_bool_or_int("2") is 2
+    assert str_to_bool_or_int("2") == 2
     assert str_to_bool_or_int("abc") == "abc"
 
 
