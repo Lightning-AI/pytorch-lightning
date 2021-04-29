@@ -1242,7 +1242,7 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         # We cannot yet rely on trainer.current_epoch=0 to skip reloading
         # the val dataloader on the first epoch because this only tracks the training epoch
         # meaning multiple passes through the validation data within a single training epoch
-        # would not have the datalodaer reloaded.
+        # would not have the dataloader reloaded.
         # This breaks the assumption behind reload_dataloaders_every_epoch=True
         'val_dataloader',
         'train_dataloader',
