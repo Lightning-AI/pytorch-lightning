@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+
+from pytorch_lightning.plugins.base_plugin import Plugin
 
 
-class ClusterEnvironment(ABC):
+class ClusterEnvironment(Plugin):
     """ Specification of a cluster environment. """
 
     @abstractmethod
