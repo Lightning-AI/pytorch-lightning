@@ -203,6 +203,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `@auto_move_data` in favor of `trainer.predict` ([#6993](https://github.com/PyTorchLightning/pytorch-lightning/pull/6993))
 
 
+- Deprecated `Callback.on_load_checkpoint(checkpoint)` in favor of `Callback.on_load_checkpoint(trainer, pl_module, checkpoint)` ([#7253](https://github.com/PyTorchLightning/pytorch-lightning/pull/7253))
+
+
 - Deprecated metrics in favor of `torchmetrics` ([#6505](https://github.com/PyTorchLightning/pytorch-lightning/pull/6505),
     [#6530](https://github.com/PyTorchLightning/pytorch-lightning/pull/6530),
     [#6540](https://github.com/PyTorchLightning/pytorch-lightning/pull/6540),
