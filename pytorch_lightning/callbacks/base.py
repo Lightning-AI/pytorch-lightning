@@ -264,8 +264,8 @@ class Callback(abc.ABC):
         Called when saving a model checkpoint, use to persist state.
 
         Args:
-            trainer: the current Trainer instance.
-            pl_module: the current 'pl.LightningModule' instance.
+            trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
@@ -279,8 +279,8 @@ class Callback(abc.ABC):
         """Called when loading a model checkpoint, use to reload state.
 
         Args:
-            trainer: the current Trainer instance.
-            pl_module: the current 'pl.LightningModule' instance.
+            trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
             callback_state: the callback state returned by ``on_save_checkpoint``.
 
         Note:
