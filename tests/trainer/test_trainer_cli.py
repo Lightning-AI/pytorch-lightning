@@ -175,6 +175,7 @@ def test_argparse_args_parsing(cli_args, expected):
     assert Trainer.from_argparse_args(args)
 
 
+@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize('cli_args,expected', [
     ('', False),
     ('--fast_dev_run=0', False),
