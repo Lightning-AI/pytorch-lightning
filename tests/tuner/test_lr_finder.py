@@ -159,8 +159,7 @@ def test_call_to_trainer_method(tmpdir, optimizer):
         max_epochs=2,
     )
 
-    result = trainer.tuner.lr_find(model, mode='linear')
-    lrfinder = result['lr_find']
+    lrfinder = trainer.tuner.lr_find(model, mode='linear')
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
     trainer.tune(model)
@@ -183,8 +182,7 @@ def test_datamodule_parameter(tmpdir):
         max_epochs=2,
     )
 
-    result = trainer.tuner.lr_find(model, datamodule=dm)
-    lrfinder = result['lr_find']
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
     after_lr = lrfinder.suggestion()
     model.lr = after_lr
 
@@ -206,8 +204,7 @@ def test_accumulation_and_early_stopping(tmpdir):
         accumulate_grad_batches=2,
     )
 
-    result = trainer.tuner.lr_find(model, early_stop_threshold=None)
-    lrfinder = result['lr_find']
+    lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
     expected_num_lrs = 100
