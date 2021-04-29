@@ -300,7 +300,7 @@ class TrainerCallbackHookMixin(ABC):
         callback_states = checkpoint.get('callbacks')
 
         current_callbacks_type = {type(cb) for cb in self.callbacks}
-        saved_callbacks_type = set(callback_states)
+        saved_callbacks_type = set(callback_states.keys())
         difference = saved_callbacks_type.difference(current_callbacks_type)
         if difference:
             rank_zero_warn(
