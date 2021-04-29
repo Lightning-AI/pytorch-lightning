@@ -283,8 +283,7 @@ class Callback(abc.ABC):
             pl_module: the current 'pl.LightningModule' instance.
             callback_state: the callback state returned by ``on_save_checkpoint``.
 
-        .. note::
-
+        Note:
             The ``on_load_checkpoint`` won't be called with an undefined state.
             If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
             you will still need to override ``on_save_checkpoint`` to return a ``dummy state``.
