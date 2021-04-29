@@ -1112,14 +1112,6 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
     expected_sequence = [
         'val_dataloader',
         'train_dataloader',
-        # This has subsequent calls to val_dataloader
-        # because the training loop runs the evaluation loop,
-        # which reloads the val dataloader again.
-        # We cannot yet rely on trainer.current_epoch=0 to skip reloading
-        # the val dataloader on the first epoch because this only tracks the training epoch
-        # meaning multiple passes through the validation data within a single training epoch
-        # would not have the datalodaer reloaded.
-        # This breaks the assumption behind reload_dataloaders_every_epoch=True
         'val_dataloader',
         'val_dataloader',
         'val_dataloader',
@@ -1244,6 +1236,14 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
     expected_sequence = [
         'train_dataloader',
         'val_dataloader',
+        # This has subsequent calls to val_dataloader
+        # because the training loop runs the evaluation loop,
+        # which reloads the val dataloader again.
+        # We cannot yet rely on trainer.current_epoch=0 to skip reloading
+        # the val dataloader on the first epoch because this only tracks the training epoch
+        # meaning multiple passes through the validation data within a single training epoch
+        # would not have the datalodaer reloaded.
+        # This breaks the assumption behind reload_dataloaders_every_epoch=True
         'val_dataloader',
         'train_dataloader',
         'val_dataloader',
