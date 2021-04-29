@@ -104,13 +104,6 @@ class BaseFinetuning(Callback):
             optimizer.param_groups = param_groups
 
     @staticmethod
-    def __apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
-        param_groups_ = deepcopy(param_groups)
-        for group in param_groups_:
-            group["params"] = [mapping[p] for p in group["params"]]
-        return param_groups_
-
-    @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
         """
         This function is used to flatten a module or an iterable of modules into a list of its modules.
@@ -262,18 +255,11 @@ class BaseFinetuning(Callback):
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         self.freeze_before_training(pl_module)
 
-    def _add_to_internal_state(
-        self, pl_module: 'pl.LightningModule', opt_idx: int, current_param_groups: List[Dict[str, Any]]
-    ) -> None:
-        """
-        This function save the new param_group metadata inside `BaseFinetuning` Callback `internal_state`.
-        The tensors are being mapped to their names for memory optimization.
-        """
-        param_to_name_mapping = {p: n for n, p in pl_module.named_parameters()}
-        for g in current_param_groups:
-            group_state = {k: v for k, v in g.items() if k != 'params'}
-            group_state['params'] = [param_to_name_mapping[p] for p in g['params']]
-            self._internal_state[opt_idx].append(group_state)
+    @staticmethod
+    def __apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
+        for group in param_groups:
+            group["params"] = [mapping[p] for p in group["params"]]
+        return param_groups
 
     def _store(
         self,
@@ -282,21 +268,20 @@ class BaseFinetuning(Callback):
         num_param_groups: int,
         current_param_groups: List[Dict[str, Any]],
     ) -> None:
-        # save the param_groups on first call.
-        if opt_idx not in self._internal_state:
-            self._internal_state[opt_idx] = []
-            self._add_to_internal_state(pl_module, opt_idx, current_param_groups)
-
-        # save new param_groups possibly created by the users.
-        elif num_param_groups != len(current_param_groups):
-            self._add_to_internal_state(pl_module, opt_idx, current_param_groups[num_param_groups:])
+        mapping = {p: n for n, p in pl_module.named_parameters()}
+        self._internal_state.setdefault(opt_idx, self.__apply_mapping_to_param_groups(current_param_groups, mapping))
+        if num_param_groups != len(current_param_groups):
+            # save new param_groups possibly created by the users.
+            self._internal_state[opt_idx].extend(
+                self.__apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
+            )
 
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
         for opt_idx, optimizer in trainer.train_loop.prepare_optimizers():
             num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
-            current_param_groups = optimizer.param_groups
+            current_param_groups = deepcopy(optimizer.param_groups)
             self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
 
     def finetune_function(self, pl_module: 'pl.LightningModule', epoch: int, optimizer: Optimizer, opt_idx: int):
