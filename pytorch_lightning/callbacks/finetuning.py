@@ -99,7 +99,7 @@ class BaseFinetuning(Callback):
         self, trainer: 'pl.Trainer', pl_module: LightningModule, callback_state: Dict[str, Any]
     ) -> None:
         self._internal_state = callback_state
-        # restore the param_groups created during training.
+        # restore the param_groups created during the previous training.
         _map_name_to_p = {n: p for n, p in pl_module.named_parameters()}
         for opt_idx, optimizer in enumerate(trainer.optimizers):
             param_groups = self._param_groups_state_to_param_groups(
@@ -269,6 +269,10 @@ class BaseFinetuning(Callback):
     def _add_to_internal_state(
         self, pl_module: LightningModule, opt_idx: int, current_param_groups: List[Dict[str, Any]]
     ) -> None:
+        """
+        This function save the new param_group metadata inside `BaseFinetuning` Callback `internal_state`.
+        The tensors are being mapped to their names for memory optimization.
+        """
         map_p_to_name = {p: n for n, p in pl_module.named_parameters()}
         for g in current_param_groups:
             group_state = {k: v for k, v in g.items() if k != 'params'}
@@ -279,10 +283,12 @@ class BaseFinetuning(Callback):
         self, pl_module: LightningModule, opt_idx: int, len_previous_param_groups: List[Dict[str, Any]],
         current_param_groups: List[Dict[str, Any]]
     ) -> None:
+        # save the param_groups on first call.
         if opt_idx not in self._internal_state:
             self._internal_state[opt_idx] = []
             self._add_to_internal_state(pl_module, opt_idx, current_param_groups)
 
+        # save new param_groups possibly created by the users.
         elif len_previous_param_groups != len(current_param_groups):
             self._add_to_internal_state(pl_module, opt_idx, current_param_groups[len_previous_param_groups:])
 
