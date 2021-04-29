@@ -307,15 +307,16 @@ class TrainerCallbackHookMixin(ABC):
         if callback_states is not None:
             for callback in self.callbacks:
                 state = deepcopy(callback_states.get(type(callback)))
-                if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
-                    rank_zero_deprecation(
-                        "`Callback.on_load_checkpoint` signature has changed in v1.3."
-                        " `Trainer` and `LightningModule` parameter are been added."
-                        " Support for the old signature will be removed in v1.5"
-                    )
-                    state = callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
-                else:
-                    state = callback.on_load_checkpoint(self, self.lightning_module, state)
+                if state is not None:
+                    if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
+                        rank_zero_deprecation(
+                            "`Callback.on_load_checkpoint` signature has changed in v1.3."
+                            " `Trainer` and `LightningModule` parameter have been added."
+                            " Support for the old signature will be removed in v1.5"
+                        )
+                        state = callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
+                    else:
+                        state = callback.on_load_checkpoint(self, self.lightning_module, state)
 
     def on_after_backward(self):
         """

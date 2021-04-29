@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
 import os
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
@@ -99,6 +100,16 @@ class BaseSignatureOnLoadCheckpoint(Callback):
         self.on_load_checkpoint_called = False
 
 
+class OldSignatureOnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
+
+    def on_save_checkpoint(self, *args) -> Dict[str, Any]:
+        return {"a": 0}
+
+    def on_load_checkpoint(self, callback_state) -> None:
+        assert callback_state == {"a": 0}
+        self.on_load_checkpoint_called = True
+
+
 class NewSignatureOnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
@@ -109,13 +120,17 @@ class NewSignatureOnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
         self.on_load_checkpoint_called = True
 
 
+class ValidSignature2OnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+        return {"something": "something"}
+
+    def on_load_checkpoint(self, *args):
+        assert len(args) == 3
+        self.on_load_checkpoint_called = True
+
+
 def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
-
-    class OldSignature(BaseSignatureOnLoadCheckpoint):
-
-        def on_load_checkpoint(self, callback_state) -> None:
-            assert callback_state is None
-            self.on_load_checkpoint_called = True
 
     model = BoringModel()
     trainer_kwargs = {
@@ -123,12 +138,12 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
         "max_epochs": 3,
     }
     chk = ModelCheckpoint(save_last=True)
-    trainer = Trainer(**trainer_kwargs, callbacks=[OldSignature(), chk])
+    trainer = Trainer(**trainer_kwargs, callbacks=[OldSignatureOnLoadCheckpoint(), chk])
     trainer.fit(model)
 
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer_kwargs["max_epochs"] = 5
-        cb = OldSignature()
+        cb = OldSignatureOnLoadCheckpoint()
         trainer = Trainer(**trainer_kwargs, callbacks=cb, resume_from_checkpoint=chk.last_model_path)
         trainer.fit(model)
         assert cb.on_load_checkpoint_called
@@ -139,12 +154,6 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
             assert len(args) == 2
             self.on_load_checkpoint_called = True
 
-    class ValidSignature2(BaseSignatureOnLoadCheckpoint):
-
-        def on_load_checkpoint(self, *args):
-            assert len(args) == 3
-            self.on_load_checkpoint_called = True
-
     model = BoringModel()
     trainer_kwargs = {
         "default_root_dir": tmpdir,
@@ -152,19 +161,20 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
     }
     chk = ModelCheckpoint(save_last=True)
     trainer = Trainer(
-        **trainer_kwargs, callbacks=[NewSignatureOnLoadCheckpoint(),
-                                     ValidSignature1(),
-                                     ValidSignature2(), chk]
+        **trainer_kwargs,
+        callbacks=[NewSignatureOnLoadCheckpoint(),
+                   ValidSignature1(),
+                   ValidSignature2OnLoadCheckpoint(), chk]
     )
     trainer.fit(model)
 
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer_kwargs["max_epochs"] = 5
-        cb, cb_1, cb_2 = NewSignatureOnLoadCheckpoint(), ValidSignature1(), ValidSignature2()
+        cb, cb_1, cb_2 = NewSignatureOnLoadCheckpoint(), ValidSignature1(), ValidSignature2OnLoadCheckpoint()
         trainer = Trainer(**trainer_kwargs, callbacks=[cb, cb_1, cb_2], resume_from_checkpoint=chk.last_model_path)
         trainer.fit(model)
         assert cb.on_load_checkpoint_called
-        assert cb_1.on_load_checkpoint_called
+        assert not cb_1.on_load_checkpoint_called
         assert cb_2.on_load_checkpoint_called
 
 
