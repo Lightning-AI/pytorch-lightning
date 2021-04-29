@@ -85,6 +85,20 @@ Fully Sharded Training
 
 By default, Fully Sharded acts similar to :ref:`sharded` which shards optimizer states and gradients. If you can train with default Fully Sharded, it is recommended to just use :ref:`sharded`.
 
+.. warning::
+    Due to the behaviour of Fully Sharded, when defining optimizers in ``configure_optimizers`` you must use ``self.trainer.model`` as described below, which is the sharded model.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    class MyModel(pl.LightningModule):
+        ...
+        def configure_optimizers(self):
+            # Replace torch.optim.AdamW(self.parameters())
+            return torch.optim.AdamW(self.trainer.model.parameters())
+
+
 Shard Parameters to Reach 10+ Billion Parameters
 """"""""""""""""""""""""""""""""""""""""""""""""
 
@@ -101,10 +115,11 @@ Enabling `auto_wrap` doesn't require code changes, however can have varying leve
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedPlugin
 
     class MyModel(pl.LightningModule):
         ...
+        def configure_optimizers(self):
+            return torch.optim.AdamW(self.trainer.model.parameters())
 
     model = MyModel()
     trainer = Trainer(gpus=4, plugins='ddp_fully_sharded_auto_wrap', precision=16)
@@ -130,7 +145,6 @@ This is a requirement for really large models and also saves on instantiation ti
     import torch
     import torch.nn as nn
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedPlugin
     from fairscale.nn import checkpoint_wrapper, auto_wrap, wrap
 
     class MyModel(pl.LightningModule):
@@ -195,7 +209,6 @@ This saves memory when training larger models however requires wrapping modules 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.plugins import DeepSpeedPlugin
     from fairscale.nn import checkpoint_wrapper
 
 
@@ -210,11 +223,6 @@ This saves memory when training larger models however requires wrapping modules 
             # for when using Fully Sharded.
             linear_layer = checkpoint_wrapper(nn.Linear(32, 32))
             self.block = nn.Sequential(linear_layer, nn.ReLU())
-
-        def forward(self, x):
-            # Use the DeepSpeed checkpointing function instead of calling the module directly
-            output = deepspeed.checkpointing.checkpoint(self.block, x)
-            return output
 
 
 .. _deepspeed:
