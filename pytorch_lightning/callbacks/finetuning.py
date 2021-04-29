@@ -27,7 +27,6 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -40,7 +39,6 @@ def multiplicative(epoch):
 
 class BaseFinetuning(Callback):
     r"""
-
     This class implements the base logic for writing your own Finetuning Callback.
 
     Override ``freeze_before_training`` and ``finetune_function`` methods with your own logic.
@@ -85,18 +83,18 @@ class BaseFinetuning(Callback):
     """
 
     def __init__(self):
-        self._internal_state: Dict[int, Dict[str, Any]] = {}
+        self._internal_state: Dict[int, List[Dict[str, Any]]] = {}
 
     def on_save_checkpoint(
         self,
         trainer: 'pl.Trainer',
-        pl_module: LightningModule,
+        pl_module: 'pl.LightningModule',
         checkpoint: Dict[str, Any],
-    ) -> Dict[int, Dict[str, Any]]:
+    ) -> Dict[int, List[Dict[str, Any]]]:
         return self._internal_state
 
     def on_load_checkpoint(
-        self, trainer: 'pl.Trainer', pl_module: LightningModule, callback_state: Dict[int, Dict[str, Any]]
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
     ) -> None:
         self._internal_state = callback_state
         # restore the param_groups created during the previous training.
@@ -281,7 +279,7 @@ class BaseFinetuning(Callback):
 
     def _store(
         self,
-        pl_module: LightningModule,
+        pl_module: 'pl.LightningModule',
         opt_idx: int,
         num_param_groups: int,
         current_param_groups: List[Dict[str, Any]],
@@ -303,13 +301,13 @@ class BaseFinetuning(Callback):
             current_param_groups = optimizer.param_groups
             self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
 
-    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: 'pl.LightningModule', epoch: int, optimizer: Optimizer, opt_idx: int):
         """
         Override to add your unfreeze logic
         """
         raise NotImplementedError
 
-    def freeze_before_training(self, pl_module: LightningModule):
+    def freeze_before_training(self, pl_module: 'pl.LightningModule'):
         """
         Override to add your freeze logic
         """
@@ -391,10 +389,10 @@ class BackboneFinetuning(BaseFinetuning):
             return
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 
-    def freeze_before_training(self, pl_module: LightningModule):
+    def freeze_before_training(self, pl_module: 'pl.LightningModule'):
         self.freeze(pl_module.backbone)
 
-    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: 'pl.LightningModule', epoch: int, optimizer: Optimizer, opt_idx: int):
         """Called when the epoch begins."""
         if epoch == self.unfreeze_backbone_at_epoch:
             current_lr = optimizer.param_groups[0]['lr']
