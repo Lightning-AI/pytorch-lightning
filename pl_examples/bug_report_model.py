@@ -40,7 +40,7 @@ class BoringModel(LightningModule):
         self.log("test_loss", loss)
 
     def configure_optimizers(self):
-        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        return torch.optim.Adagrad(self.layer.parameters(), lr=0.1)
 
 
 def run():
@@ -56,6 +56,8 @@ def run():
         num_sanity_val_steps=0,
         max_epochs=1,
         weights_summary=None,
+        gpus=2,
+        accelerator="ddp",
     )
     trainer.fit(model, train_dataloader=train_data, val_dataloaders=val_data)
     trainer.test(model, test_dataloaders=test_data)
