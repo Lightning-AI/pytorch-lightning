@@ -98,19 +98,17 @@ class BaseFinetuning(Callback):
     ) -> None:
         self._internal_state = callback_state
         # restore the param_groups created during the previous training.
-        name_to_param_mapping = dict(pl_module.named_parameters())
+        named_parameters = dict(pl_module.named_parameters())
         for opt_idx, optimizer in enumerate(trainer.optimizers):
-            param_groups = self._restore_named_parameters(
-                deepcopy(self._internal_state[opt_idx]), name_to_param_mapping
-            )
+            param_groups = self.__apply_mapping_to_param_groups(self._internal_state[opt_idx], named_parameters)
             optimizer.param_groups = param_groups
 
-    def _restore_named_parameters(
-        self, param_groups_state: Dict[str, Any], name_to_param_mapping: Dict[str, torch.Tensor]
-    ) -> Dict[str, Any]:
-        for group in param_groups_state:
-            group["params"] = [name_to_param_mapping[name] for name in group["params"]]
-        return param_groups_state
+    @staticmethod
+    def __apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
+        param_groups_ = deepcopy(param_groups)
+        for group in param_groups_:
+            group["params"] = [mapping[p] for p in group["params"]]
+        return param_groups_
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
@@ -265,7 +263,7 @@ class BaseFinetuning(Callback):
         self.freeze_before_training(pl_module)
 
     def _add_to_internal_state(
-        self, pl_module: LightningModule, opt_idx: int, current_param_groups: List[Dict[str, Any]]
+        self, pl_module: 'pl.LightningModule', opt_idx: int, current_param_groups: List[Dict[str, Any]]
     ) -> None:
         """
         This function save the new param_group metadata inside `BaseFinetuning` Callback `internal_state`.
