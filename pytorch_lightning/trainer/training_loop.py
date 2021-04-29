@@ -188,7 +188,7 @@ class TrainLoop:
         # reset batch logger internals
         self.trainer.logger_connector.on_train_batch_end()
 
-    def reset_train_val_dataloaders(self, model):
+    def reset_train_val_dataloaders(self, model) -> None:
         """
         Resets train and val dataloaders if none are attached to the trainer.
 
