@@ -120,7 +120,8 @@ invoking passing the ``scale_batch_size`` argument:
     trainer = Trainer(auto_scale_batch_size=True)
 
     # Invoke method
-    new_batch_size = trainer.tune(model, scale_batch_size_kwargs={...})
+    result = trainer.tune(model, scale_batch_size_kwargs={...})
+    new_batch_size = result['new_batch_size']
 
     # Override old batch size (this is done automatically)
     model.hparams.batch_size = new_batch_size

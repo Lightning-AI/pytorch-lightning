@@ -54,7 +54,7 @@ def test_model_reset_correctly(tmpdir):
 
     before_state_dict = deepcopy(model.state_dict())
 
-    _ = trainer.tuner.lr_find(model, num_training=5)
+    trainer.tuner.lr_find(model, num_training=5)
 
     after_state_dict = model.state_dict()
 
@@ -80,7 +80,7 @@ def test_trainer_reset_correctly(tmpdir):
         'callbacks', 'logger', 'max_steps', 'auto_lr_find', 'accumulate_grad_batches', 'checkpoint_callback'
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
-    _ = trainer.tuner.lr_find(model, num_training=5)
+    trainer.tuner.lr_find(model, num_training=5)
     actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
     assert actual == expected
@@ -159,7 +159,8 @@ def test_call_to_trainer_method(tmpdir, optimizer):
         max_epochs=2,
     )
 
-    lrfinder = trainer.tuner.lr_find(model, mode='linear')
+    result = trainer.tuner.lr_find(model, mode='linear')
+    lrfinder = result['lr_find']
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
     trainer.tune(model)
@@ -182,7 +183,8 @@ def test_datamodule_parameter(tmpdir):
         max_epochs=2,
     )
 
-    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
+    result = trainer.tuner.lr_find(model, datamodule=dm)
+    lrfinder = result['lr_find']
     after_lr = lrfinder.suggestion()
     model.lr = after_lr
 
@@ -204,7 +206,8 @@ def test_accumulation_and_early_stopping(tmpdir):
         accumulate_grad_batches=2,
     )
 
-    lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
+    result = trainer.tuner.lr_find(model, early_stop_threshold=None)
+    lrfinder = result['lr_find']
     after_lr = lrfinder.suggestion()
 
     expected_num_lrs = 100
@@ -230,7 +233,8 @@ def test_suggestion_parameters_work(tmpdir):
         max_epochs=3,
     )
 
-    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
+    result = trainer.tuner.lr_find(model, datamodule=dm)
+    lrfinder = result['lr_find']
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
     lr2 = lrfinder.suggestion(skip_begin=150)  # way too high, should have an impact
 
@@ -249,7 +253,8 @@ def test_suggestion_with_non_finite_values(tmpdir):
         max_epochs=3,
     )
 
-    lrfinder = trainer.tuner.lr_find(model)
+    result = trainer.tuner.lr_find(model)
+    lrfinder = result['lr_find']
     before_lr = lrfinder.suggestion()
     lrfinder.results['loss'][-1] = float('nan')
     after_lr = lrfinder.suggestion()
@@ -278,12 +283,10 @@ def test_lr_find_with_bs_scale(tmpdir):
     before_lr = model.hparams.learning_rate
 
     # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-    )
-    bs = trainer.tuner.scale_batch_size(model)
-    lr = trainer.tuner.lr_find(model).suggestion()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, auto_lr_find=True, auto_scale_batch_size=True)
+    result = trainer.tune(model)
+    bs = result['scale_batch_size']
+    lr = result['lr_find'].suggestion()
 
     assert lr != before_lr
     assert isinstance(bs, int)
@@ -303,13 +306,13 @@ def test_lr_candidates_between_min_and_max(tmpdir):
 
     lr_min = 1e-8
     lr_max = 1.0
-    lr_finder = trainer.tuner.lr_find(
+    result = trainer.tuner.lr_find(
         model,
         max_lr=lr_min,
         min_lr=lr_max,
         num_training=3,
     )
-    lr_candidates = lr_finder.results["lr"]
+    lr_candidates = result['lr_find'].results["lr"]
     assert all([lr_min <= lr <= lr_max for lr in lr_candidates])
 
 
@@ -329,7 +332,7 @@ def test_lr_finder_ends_before_num_training(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir)
     num_training = 3
-    _ = trainer.tuner.lr_find(
+    trainer.tuner.lr_find(
         model=model,
         num_training=num_training,
     )

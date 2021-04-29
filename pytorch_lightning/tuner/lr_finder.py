@@ -76,7 +76,8 @@ class _LRFinder(object):
         trainer = Trainer(auto_lr_find=True)
 
         # Run lr finder
-        lr_finder = trainer.tune(model)
+        result = trainer.tune(model)
+        lr_finder = result['lr_find']
 
         # Results stored in
         lr_finder.results

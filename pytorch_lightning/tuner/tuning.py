@@ -36,19 +36,20 @@ class Tuner:
         model: 'pl.LightningModule',
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Union[int, _LRFinder]]:
+    ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         scale_batch_size_kwargs = scale_batch_size_kwargs or {}
         lr_find_kwargs = lr_find_kwargs or {}
-        result = None
+        # return a dict instead of a tuple so BC is not broken if a new tuning procedure is added
+        result = {}
 
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
-            result = scale_batch_size(self.trainer, model, **scale_batch_size_kwargs)
+            result['scale_batch_size'] = scale_batch_size(self.trainer, model, **scale_batch_size_kwargs)
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
             lr_find_kwargs.setdefault('update_attr', True)
-            result = lr_find(self.trainer, model, **lr_find_kwargs)
+            result['lr_find'] = lr_find(self.trainer, model, **lr_find_kwargs)
 
         self.trainer.state = TrainerState.FINISHED
 
@@ -88,7 +89,7 @@ class Tuner:
             }
         )
         self.trainer.auto_scale_batch_size = False
-        return result
+        return result['scale_batch_size']
 
     def lr_find(
         self,
@@ -123,4 +124,4 @@ class Tuner:
             }
         )
         self.trainer.auto_lr_find = False
-        return result
+        return result['lr_find']

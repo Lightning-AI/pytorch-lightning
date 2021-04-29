@@ -82,7 +82,8 @@ with the parameters of the algorithm. A typical example of this would look like:
     trainer = Trainer(auto_lr_find=True)
 
     # Run learning rate finder
-    lr_finder = trainer.tune(model, lr_find_kwargs={...})
+    result = trainer.tune(model, lr_find_kwargs={...})
+    lr_finder = result['lr_find']
 
     # Results can be found in
     lr_finder.results
