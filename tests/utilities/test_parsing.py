@@ -28,7 +28,8 @@ from pytorch_lightning.utilities.parsing import (
     lightning_setattr,
     parse_class_init_keys,
     str_to_bool,
-    str_to_bool_or_str, str_to_bool_or_int,
+    str_to_bool_or_int,
+    str_to_bool_or_str,
 )
 
 unpicklable_function = lambda: None
