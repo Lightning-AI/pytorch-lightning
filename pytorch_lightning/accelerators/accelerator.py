@@ -106,8 +106,8 @@ class Accelerator:
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
 
-        for opt in self.optimizers:
-            opt.load_state_dict(move_data_to_device(opt.state_dict(), device=self.root_device))
+        # for opt in self.optimizers:
+        #     opt.load_state_dict(move_data_to_device(opt.state_dict(), device=self.root_device))
 
         self.precision_plugin.pre_dispatch()
 

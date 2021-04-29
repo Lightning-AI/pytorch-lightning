@@ -57,8 +57,8 @@ def run():
         num_sanity_val_steps=0,
         max_epochs=1,
         weights_summary=None,
-        gpus=2,
-        accelerator="ddp",
+        gpus=1,
+        # accelerator="ddp",
     )
     trainer.fit(model, train_dataloader=train_data, val_dataloaders=val_data)
     trainer.test(model, test_dataloaders=test_data)
