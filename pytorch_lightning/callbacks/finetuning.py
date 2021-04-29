@@ -17,7 +17,6 @@ Finetuning Callback
 Freeze and unfreeze models for finetuning purposes
 """
 import logging
-from copy import deepcopy
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
