@@ -30,7 +30,7 @@ class BoringModel(LightningModule):
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
         x = opt.state_dict()
-        move_data_to_device(x, device=self.device)
+        opt.load_state_dict(move_data_to_device(x, device=self.device))
         loss = self(batch).sum()
         self.log("train_loss", loss)
         return {"loss": loss}
