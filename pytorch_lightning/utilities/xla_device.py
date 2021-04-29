@@ -66,7 +66,12 @@ class XLADeviceUtils:
         Return:
             A boolean value indicating if TPU devices are available
         """
-        if os.getenv("XRT_SHARD_WORLD_SIZE") is not None:
+        # For the TPU Pod training process, for example, if we have
+        # TPU v3-32 with 4 VMs, the world size would be 4 and as
+        # we would have to use `torch_xla.distributed.xla_dist` for
+        # multiple VMs and TPU_CONFIG won't be available, running
+        # `xm.get_xla_supported_devices("TPU")` won't be possible.
+        if xm.xrt_world_size() > 1:
             return True
         return len(xm.get_xla_supported_devices("TPU")) > 0
 
