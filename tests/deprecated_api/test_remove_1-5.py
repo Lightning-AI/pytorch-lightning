@@ -135,14 +135,14 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
     model = BoringModel()
     trainer_kwargs = {
         "default_root_dir": tmpdir,
-        "max_epochs": 3,
+        "max_steps": 1,
     }
     chk = ModelCheckpoint(save_last=True)
     trainer = Trainer(**trainer_kwargs, callbacks=[OldSignatureOnLoadCheckpoint(), chk])
     trainer.fit(model)
 
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer_kwargs["max_epochs"] = 5
+        trainer_kwargs["max_steps"] = 2
         cb = OldSignatureOnLoadCheckpoint()
         trainer = Trainer(**trainer_kwargs, callbacks=cb, resume_from_checkpoint=chk.last_model_path)
         trainer.fit(model)
@@ -155,10 +155,6 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
             self.on_load_checkpoint_called = True
 
     model = BoringModel()
-    trainer_kwargs = {
-        "default_root_dir": tmpdir,
-        "max_epochs": 3,
-    }
     chk = ModelCheckpoint(save_last=True)
     trainer = Trainer(
         **trainer_kwargs,
@@ -172,7 +168,6 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
     trainer.fit(model)
 
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer_kwargs["max_epochs"] = 5
         cb, cb_1, cb_2 = NewSignatureOnLoadCheckpoint(), ValidSignature1(), ValidSignature2OnLoadCheckpoint()
         trainer = Trainer(**trainer_kwargs, callbacks=[cb, cb_1, cb_2], resume_from_checkpoint=chk.last_model_path)
         trainer.fit(model)
