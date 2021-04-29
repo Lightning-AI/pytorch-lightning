@@ -61,7 +61,7 @@ def _determine_lr_attr_name(trainer: 'pl.Trainer', model: 'pl.LightningModule') 
 
 
 class _LRFinder(object):
-    """ LR finder object. This object stores the results of Trainer.lr_find().
+    """ LR finder object. This object stores the results of lr_find().
 
     Args:
         mode: either `linear` or `exponential`, how to increase lr after each step
@@ -73,8 +73,10 @@ class _LRFinder(object):
         num_training: number of steps to take between lr_min and lr_max
 
     Example::
+        trainer = Trainer(auto_lr_find=True)
+
         # Run lr finder
-        lr_finder = trainer.lr_find(model)
+        lr_finder = trainer.tune(model)
 
         # Results stored in
         lr_finder.results
