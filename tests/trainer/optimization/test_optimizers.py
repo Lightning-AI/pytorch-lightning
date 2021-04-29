@@ -500,11 +500,14 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
         trainer.fit(model)
 
 
-def test_optimizer_state_on_device(tmpdir):
-    class TestModel(BoringModel):
+class TestModel(BoringModel):
 
-        def configure_optimizers(self):
-            return torch.optim.Adagrad(self.parameters())
+    def configure_optimizers(self):
+        return torch.optim.Adagrad(self.parameters())
+
+
+def test_optimizer_state_on_device(tmpdir):
+
 
     model = TestModel()
     trainer = Trainer(
