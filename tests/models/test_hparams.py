@@ -717,5 +717,5 @@ def test_empty_hparams_container(tmpdir):
     """ Test that save_hyperparameters() is a no-op when saving an empty hparams container. """
     model = HparamsKwargsContainerModel()
     assert not model.hparams
-    model = HparamsNamespaceContainerModel(Namespace)
+    model = HparamsNamespaceContainerModel(Namespace())
     assert not model.hparams
