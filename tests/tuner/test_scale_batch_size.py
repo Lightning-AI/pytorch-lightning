@@ -223,8 +223,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
         max_epochs=1,
     )
 
-    result = trainer.tuner.scale_batch_size(model, mode=scale_method, max_trials=5)
-    after_batch_size = result['scale_batch_size']
+    after_batch_size = trainer.tuner.scale_batch_size(model, mode=scale_method, max_trials=5)
     model.batch_size = after_batch_size
     trainer.fit(model)
 

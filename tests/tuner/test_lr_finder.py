@@ -230,8 +230,7 @@ def test_suggestion_parameters_work(tmpdir):
         max_epochs=3,
     )
 
-    result = trainer.tuner.lr_find(model, datamodule=dm)
-    lrfinder = result['lr_find']
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
     lr2 = lrfinder.suggestion(skip_begin=150)  # way too high, should have an impact
 
@@ -250,8 +249,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
         max_epochs=3,
     )
 
-    result = trainer.tuner.lr_find(model)
-    lrfinder = result['lr_find']
+    lrfinder = trainer.tuner.lr_find(model)
     before_lr = lrfinder.suggestion()
     lrfinder.results['loss'][-1] = float('nan')
     after_lr = lrfinder.suggestion()
@@ -303,13 +301,13 @@ def test_lr_candidates_between_min_and_max(tmpdir):
 
     lr_min = 1e-8
     lr_max = 1.0
-    result = trainer.tuner.lr_find(
+    lrfinder = trainer.tuner.lr_find(
         model,
         max_lr=lr_min,
         min_lr=lr_max,
         num_training=3,
     )
-    lr_candidates = result['lr_find'].results["lr"]
+    lr_candidates = lrfinder.results["lr"]
     assert all([lr_min <= lr <= lr_max for lr in lr_candidates])
 
 
