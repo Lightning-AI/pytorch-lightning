@@ -17,7 +17,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-
+import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
@@ -34,24 +34,23 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         super().__init__()
         self.backend = AMPType.APEX
         self.amp_level = amp_level
+        self._connected = False
 
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
-    def connect(
-        self,
-        model: Module,
-        optimizers: List[Optimizer],
-        lr_schedulers: List[Any],
-    ) -> Tuple[Module, List[Optimizer], List[Any]]:
-        """Connects the precision plugin to the training process,
-        configures apex and reinits the schedulers
-        """
-        if model.device.type != "cuda":
-            return model, optimizers, lr_schedulers
-        model, optimizers = self.configure_apex(amp, model, list(optimizers), self.amp_level)
-        self.reinit_scheduler_properties(optimizers, lr_schedulers)
-        return model, optimizers, lr_schedulers
+    def pre_dispatch(self) -> None:
+        return super().pre_dispatch()
+
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        if not self._connected:
+            accelerator = trainer.accelerator
+            model, optimizers = self.configure_apex(accelerator.lightning_module, accelerator.optimizers, self.amp_level)
+            self.reinit_scheduler_properties(optimizers, accelerator.lr_schedulers)
+            self.model = model
+            self.optimizers = optimizers
+            self._connected = True
+        return super().dispatch(trainer)
 
     def backward(
         self,
@@ -101,7 +100,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def configure_apex(
         self,
-        amp: Type,
         model: Module,
         optimizers: List[Optimizer],
         amp_level: str,

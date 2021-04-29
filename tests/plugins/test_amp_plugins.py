@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 from unittest import mock
 
@@ -8,6 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from tests.helpers import BoringModel
+from tests.helpers import runif
 from tests.helpers.runif import RunIf
 
 
@@ -37,7 +52,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         pytest.param('native', False, NativeMixedPrecisionPlugin, marks=RunIf(amp_native=True)),
         pytest.param('native', True, MyNativeAMP, marks=RunIf(amp_native=True)),
         pytest.param('apex', False, ApexMixedPrecisionPlugin, marks=RunIf(amp_apex=True)),
-        pytest.param('apex', True, MyApexPlugin, marks=RunIf(amp_apex=True))
+        pytest.param('apex', True, MyApexPlugin, marks=RunIf(amp_apex=True)),
     ]
 )
 def test_amp_apex_ddp(
@@ -83,3 +98,37 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         accumulate_grad_batches=accum,
     )
     trainer.fit(model)
+
+
+@RunIf(min_gpus=2, amp_apex=True, special=True)
+@pytest.mark.parametrize("amp_level", ['O2'])
+def test_amp_apex_ddp_fit(amp_level, tmpdir):
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        precision=16,
+        amp_backend="apex",
+        gpus=2,
+        accelerator='ddp',
+        plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
+    )
+    assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
+    trainer.fit(BoringModel())
+
+
+@RunIf(min_gpus=2, amp_apex=True)
+@pytest.mark.parametrize("amp_level", ['O2'])
+def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        precision=16,
+        amp_backend="apex",
+        gpus=2,
+        accelerator='ddp_spawn',
+        plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
+    )
+    assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
+    trainer.fit(BoringModel())
