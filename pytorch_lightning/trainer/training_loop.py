@@ -189,6 +189,12 @@ class TrainLoop:
         self.trainer.logger_connector.on_train_batch_end()
 
     def reset_train_val_dataloaders(self, model):
+        """
+        Resets train and val dataloaders if none are attached to the trainer.
+
+        The val dataloader must be initialized before training loop starts, as the training loop
+        inspects the val dataloader to determine whether to run the evaluation loop.
+        """
         if self.trainer.train_dataloader is None:
             self.trainer.reset_train_dataloader(model)
 
