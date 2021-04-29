@@ -257,9 +257,13 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def __apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
-        for group in param_groups:
-            group["params"] = [mapping[p] for p in group["params"]]
-        return param_groups
+        output = []
+        for g in param_groups:
+            # skip params to save memory
+            group_state = {k: v for k, v in g.items() if k != 'params'}
+            group_state['params'] = [mapping[p] for p in g['params']]
+            output.append(group_state)
+        return output
 
     def _store(
         self,
@@ -269,8 +273,9 @@ class BaseFinetuning(Callback):
         current_param_groups: List[Dict[str, Any]],
     ) -> None:
         mapping = {p: n for n, p in pl_module.named_parameters()}
-        self._internal_state.setdefault(opt_idx, self.__apply_mapping_to_param_groups(current_param_groups, mapping))
-        if num_param_groups != len(current_param_groups):
+        if opt_idx not in self._internal_state:
+            self._internal_state[opt_idx] = self.__apply_mapping_to_param_groups(current_param_groups, mapping)
+        elif num_param_groups != len(current_param_groups):
             # save new param_groups possibly created by the users.
             self._internal_state[opt_idx].extend(
                 self.__apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
@@ -281,7 +286,7 @@ class BaseFinetuning(Callback):
         for opt_idx, optimizer in trainer.train_loop.prepare_optimizers():
             num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
-            current_param_groups = deepcopy(optimizer.param_groups)
+            current_param_groups = optimizer.param_groups
             self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
 
     def finetune_function(self, pl_module: 'pl.LightningModule', epoch: int, optimizer: Optimizer, opt_idx: int):
