@@ -19,6 +19,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_optimizer_with_scheduling(tmpdir):
@@ -506,13 +507,13 @@ class TestModel(BoringModel):
         return torch.optim.Adagrad(self.parameters())
 
 
+@RunIf(min_gpus=2, special=True)
 def test_optimizer_state_on_device(tmpdir):
-
-
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         gpus=2,
+        accelerator="ddp",
         fast_dev_run=True,
     )
     trainer.fit(model)
