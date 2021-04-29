@@ -85,18 +85,18 @@ class BaseFinetuning(Callback):
     """
 
     def __init__(self):
-        self._internal_state: Dict[int, Dict[str, torch.Tensor]] = {}
+        self._internal_state: Dict[int, Dict[str, Any]] = {}
 
     def on_save_checkpoint(
         self,
         trainer: 'pl.Trainer',
         pl_module: LightningModule,
         checkpoint: Dict[str, Any],
-    ) -> Dict[str, Any]:
+    ) -> Dict[int, Dict[str, Any]]:
         return self._internal_state
 
     def on_load_checkpoint(
-        self, trainer: 'pl.Trainer', pl_module: LightningModule, callback_state: Dict[str, Any]
+        self, trainer: 'pl.Trainer', pl_module: LightningModule, callback_state: Dict[int, Dict[str, Any]]
     ) -> None:
         self._internal_state = callback_state
         # restore the param_groups created during the previous training.
