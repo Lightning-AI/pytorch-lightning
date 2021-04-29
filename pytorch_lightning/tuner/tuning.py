@@ -16,20 +16,20 @@ from typing import Any, List, Optional, Union
 
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
-from pytorch_lightning.tuner.lr_finder import lr_find
+from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 
 
 class Tuner:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
 
-    def on_trainer_init(self, auto_lr_find, auto_scale_batch_size):
+    def on_trainer_init(self, auto_lr_find: Union[str, bool], auto_scale_batch_size: Union[str, bool]) -> None:
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
@@ -80,14 +80,14 @@ class Tuner:
 
     def scale_batch_size(
         self,
-        model,
+        model: 'pl.LightningModule',
         mode: str = 'power',
         steps_per_trial: int = 3,
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = 'batch_size',
         **fit_kwargs
-    ):
+    ) -> Optional[int]:
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -138,7 +138,7 @@ class Tuner:
 
     def lr_find(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         train_dataloader: Optional[DataLoader] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         min_lr: float = 1e-8,
@@ -146,9 +146,9 @@ class Tuner:
         num_training: int = 100,
         mode: str = 'exponential',
         early_stop_threshold: float = 4.0,
-        datamodule: Optional[LightningDataModule] = None,
+        datamodule: Optional['pl.LightningDataModule'] = None,
         update_attr: bool = False,
-    ):
+    ) -> Optional[_LRFinder]:
         self.setup_trainer(model, train_dataloader, val_dataloaders, datamodule)
         return lr_find(
             self.trainer,
@@ -163,6 +163,3 @@ class Tuner:
             datamodule,
             update_attr,
         )
-
-    def pick_multiple_gpus(self, num_gpus: int):
-        return pick_multiple_gpus(num_gpus)
