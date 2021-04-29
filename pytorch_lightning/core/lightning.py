@@ -81,7 +81,7 @@ class LightningModule(
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
-        self.exp_save_path = None
+        self._exp_save_path = None
 
         self.loaded_optimizer_states_dict = {}
 
@@ -1826,3 +1826,13 @@ class LightningModule(
         size_mb = os.path.getsize(tmp_name) / 1e6
         os.remove(tmp_name)
         return size_mb
+
+    @property
+    def exp_save_path(self) -> Optional[str]:
+        rank_zero_deprecation("exp_save_path is deprecated in v1.3 and will be removed in v1.5")
+        return self._exp_save_path
+
+    @exp_save_path.setter
+    def exp_save_path(self, exp_save_path: Optional[str]) -> None:
+        rank_zero_deprecation("exp_save_path is deprecated in v1.3 and will be removed in v1.5")
+        self._exp_save_path = exp_save_path
