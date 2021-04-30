@@ -25,7 +25,7 @@ from pytorch_lightning.callbacks.base import Callback
 from tests.helpers import BoringModel, RandomDataset
 
 
-class TestTestBackboneFinetuningCallbackCallback(BackboneFinetuning):
+class TestBackboneFinetuningCallback(BackboneFinetuning):
 
     def on_train_epoch_end(self, trainer, pl_module, outputs):
         epoch = trainer.current_epoch
@@ -71,7 +71,7 @@ def test_finetuning_callback(tmpdir):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
     model = FinetuningBoringModel()
-    callback = TestTestBackboneFinetuningCallbackCallback(unfreeze_backbone_at_epoch=3, verbose=False)
+    callback = TestBackboneFinetuningCallback(unfreeze_backbone_at_epoch=3, verbose=False)
 
     trainer = Trainer(
         limit_train_batches=4,
