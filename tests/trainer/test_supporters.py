@@ -29,7 +29,8 @@ from pytorch_lightning.trainer.supporters import (
     CombinedLoader,
     CombinedLoaderIterator,
     CycleIterator,
-    TensorRunningAccum, prefetch_iterator,
+    prefetch_iterator,
+    TensorRunningAccum,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

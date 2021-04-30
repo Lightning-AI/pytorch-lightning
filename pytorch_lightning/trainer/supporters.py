@@ -14,7 +14,7 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Callable, Optional, Union, Generator, Tuple
+from typing import Any, Callable, Generator, Optional, Tuple, Union
 
 import torch
 from torch import Tensor

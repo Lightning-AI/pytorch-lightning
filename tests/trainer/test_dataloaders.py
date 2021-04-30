@@ -783,6 +783,7 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning():
     """ Test that the training loops skips execution if iterator is empty from the start. """
 
     class RandomDataset(IterableDataset):
+
         def __init__(self, gen):
             self.gen = gen
 
@@ -790,6 +791,7 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning():
             return iter(self.gen())
 
     class TestModel(BoringModel):
+
         def train_dataloader(self):
             return DataLoader(RandomDataset(self.gen), batch_size=2)
 
