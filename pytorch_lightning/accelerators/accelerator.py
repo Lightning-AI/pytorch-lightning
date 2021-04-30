@@ -103,7 +103,7 @@ class Accelerator:
 
     def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
-        self.move_optimizer_state()
+        self._move_optimizer_state()
 
         self.training_type_plugin.pre_dispatch()
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
@@ -111,7 +111,7 @@ class Accelerator:
 
         self.precision_plugin.pre_dispatch()
 
-    def move_optimizer_state(self) -> None:
+    def _move_optimizer_state(self) -> None:
         """ Moves the state of the optimizers to the GPU if needed. """
         for opt in self.optimizers:
             state = defaultdict(dict)
