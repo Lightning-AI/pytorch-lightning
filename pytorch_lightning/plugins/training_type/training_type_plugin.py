@@ -220,14 +220,16 @@ class TrainingTypePlugin(Plugin, ABC):
 
         """
         ckpt = pl_load(ckpt_path, map_location=map_location)
+        self._call_load_checkpoint_hooks(ckpt)
+        self.lightning_module.load_state_dict(ckpt['state_dict'])
+        return ckpt, True
+
+    def _call_load_checkpoint_hooks(self, ckpt: str) -> None:
         # restore datamodule states
         if self.lightning_module.trainer.datamodule is not None:
             self.lightning_module.trainer.datamodule.on_load_checkpoint(ckpt)
-
         # hook: give user access to checkpoint if needed.
         self.lightning_module.on_load_checkpoint(ckpt)
-        self.lightning_module.load_state_dict(ckpt['state_dict'])
-        return ckpt, True
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         """

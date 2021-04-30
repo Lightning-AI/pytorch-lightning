@@ -30,6 +30,7 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
@@ -508,32 +509,83 @@ class DeepSpeedPlugin(DDPPlugin):
         ckpt_path: str,
         map_location: Callable = lambda storage, loc: storage,
     ) -> Tuple[Dict, bool]:
-        if not self.save_full_weights and self.world_size > 1:
-            # Rely on deepspeed to load the checkpoint and necessary information
-            from pytorch_lightning.trainer.states import TrainerState
-            stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
-            save_dir = self._filepath_to_dir(ckpt_path)
-
-            if self.zero_stage_3:
-                # TODO: Currently required as this call is missing within the deepspeed engine.
-                self.deepspeed_engine.optimizer._partition_all_parameters()
-
-            _, client_state = self.deepspeed_engine.load_checkpoint(
-                save_dir, load_optimizer_states=stage_is_fit, load_lr_scheduler_states=stage_is_fit
-            )
-
-            # restore datamodule states
-            if self.lightning_module.trainer.datamodule is not None:
-                self.lightning_module.trainer.datamodule.on_load_checkpoint(client_state)
-
-            # hook: give user access to checkpoint if needed.
-            self.lightning_module.on_load_checkpoint(client_state)
-            return client_state, False
+        if self.zero_stage_3 and not self.save_full_weights:
+            return self._restore_zero_sharded_state(ckpt_path)
 
         # Broadcast to ensure we load from the rank 0 checkpoint
         # This doesn't have to be the case when using deepspeed sharded checkpointing
         ckpt_path = self.broadcast(ckpt_path)
+        if self.save_full_weights and self.zero_stage_3:
+            return self._restore_zero_state(ckpt_path, map_location)
         return super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
+
+    def _restore_zero_sharded_state(self, ckpt_path: str) -> Tuple[Dict, bool]:
+        # Rely on deepspeed to load the sharded checkpoint
+        from pytorch_lightning.trainer.states import TrainerState
+        stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
+        save_dir = self._filepath_to_dir(ckpt_path)
+
+        # TODO: Currently required as this call is missing within the deepspeed engine.
+        self.deepspeed_engine.optimizer._partition_all_parameters()
+
+        _, ckpt = self.deepspeed_engine.load_checkpoint(
+            save_dir, load_optimizer_states=stage_is_fit, load_lr_scheduler_states=stage_is_fit
+        )
+        self._call_load_checkpoint_hooks(ckpt)
+        return ckpt, False
+
+    def _restore_zero_state(self, ckpt_path: str, map_location=None) -> Tuple[Dict, bool]:
+        """
+        Overrides the normal load_state_dict behaviour in PyTorch to ensure
+        we gather parameters that may be sharded across processes before loading
+        the state dictionary. This is then automatically synced across processes.
+        Args:
+            ckpt_path: Path to the ckpt file.
+            map_location: a function, :class:`torch.device`,
+                string or a dict specifying how to remap storage locations
+
+        Returns: Loaded state dict, boolean False to not load optimizer states.
+
+        """
+        ckpt = pl_load(ckpt_path, map_location=map_location)
+
+        def load(module: torch.nn.Module, prefix=""):
+
+            missing_keys = []
+            unexpected_keys = []
+            error_msgs = []
+            state_dict = ckpt['state_dict']
+
+            # copy state_dict so _load_from_state_dict can modify it
+            metadata = getattr(state_dict, '_metadata', None)
+            state_dict = state_dict.copy()
+            if metadata is not None:
+                state_dict._metadata = metadata
+
+            local_metadata = {} if metadata is None else metadata.get(prefix[:-1], {})
+            # because zero3 puts placeholders in model params, this context
+            # manager gathers (unpartitions) the params of the current layer, then loads from
+            # the state dict and then re-partitions them again
+            with deepspeed.zero.GatheredParameters(list(module.parameters(recurse=False)), modifier_rank=0):
+                if self.is_global_zero:
+                    module._load_from_state_dict(
+                        state_dict=state_dict,
+                        prefix=prefix,
+                        local_metadata=local_metadata,
+                        strict=True,
+                        missing_keys=missing_keys,
+                        unexpected_keys=unexpected_keys,
+                        error_msgs=error_msgs
+                    )
+
+            for name, child in module._modules.items():
+                if child is not None:
+                    load(child, prefix + name + ".")
+
+        self._call_load_checkpoint_hooks(ckpt)
+        load(self.lightning_module, prefix="")
+
+        return ckpt, False
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
         if self._original_accumulate_grad_batches is None:
