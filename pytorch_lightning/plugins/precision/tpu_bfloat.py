@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Sequence, Tuple
+from typing import Any, List, Tuple
 
 import torch.nn as nn
 from torch.optim import Optimizer
@@ -28,8 +28,8 @@ class TPUHalfPrecisionPlugin(PrecisionPlugin):
     def connect(
         self,
         model: nn.Module,
-        optimizers: Sequence[Optimizer],
-        lr_schedulers: Sequence[Any],
-    ) -> Tuple[nn.Module, Sequence[Optimizer], Sequence[Any]]:
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
         os.environ["XLA_USE_BF16"] = str(1)
         return super().connect(model=model, optimizers=optimizers, lr_schedulers=lr_schedulers)

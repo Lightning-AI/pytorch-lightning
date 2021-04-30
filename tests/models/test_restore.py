@@ -148,7 +148,8 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
     trainer.fit(model, datamodule=dm)
     # `True` if resume/restore successfully else `False`
     assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
-    assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
+    with pytest.raises(FileNotFoundError, match="Aborting training"):
+        trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
 
 
 class CaptureCallbacksBeforeTraining(Callback):
@@ -600,8 +601,8 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # load new model
     hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
-    hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
-    ckpt_path = hparams_url if url_ckpt else new_weights_path
+    ckpt_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
+    ckpt_path = ckpt_url if url_ckpt else new_weights_path
 
     class CurrentModel(BoringModel):
 

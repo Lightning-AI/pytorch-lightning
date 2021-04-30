@@ -16,7 +16,7 @@
 from functools import wraps
 from typing import Callable
 
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 
 
 def auto_move_data(fn: Callable) -> Callable:
@@ -60,6 +60,11 @@ def auto_move_data(fn: Callable) -> Callable:
 
         args, kwargs = self.transfer_batch_to_device((args, kwargs))
         return fn(self, *args, **kwargs)
+
+    rank_zero_deprecation(
+        "The `@auto_move_data` decorator is deprecated in v1.3 and will be removed in v1.5."
+        f" Please use `trainer.predict` instead for inference. The decorator was applied to `{fn.__name__}`"
+    )
 
     return auto_transfer_args
 
