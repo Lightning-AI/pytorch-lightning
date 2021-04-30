@@ -504,6 +504,7 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
 class TestModel(BoringModel):
 
     def configure_optimizers(self):
+        # Adagrad creates state tensors immeditaly, model is not yet on CPU.
         return torch.optim.Adagrad(self.parameters())
 
     def on_train_start(self, *args, **kwargs):
@@ -514,6 +515,7 @@ class TestModel(BoringModel):
 
 @RunIf(min_gpus=2, special=True)
 def test_optimizer_state_on_device(tmpdir):
+    """ Test that optimizers that create state initially at instantiation still end up with the state on the GPU. """
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
