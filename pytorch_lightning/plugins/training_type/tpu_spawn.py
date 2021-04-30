@@ -29,6 +29,7 @@ from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -67,7 +68,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def world_size(self) -> int:
-        return self.num_processes
+        return xm.xrt_world_size()
 
     @property
     def root_device(self) -> torch.device:
@@ -202,8 +203,18 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
 
+    def __recover_child_process_weights(self, best_path, last_path):
+        # transfer back the best path to the trainer
+        if self.lightning_module.trainer.checkpoint_callback:
+            self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
+
+        # load last weights
+        if last_path is not None and self.global_rank == 0 and self.lightning_module.trainer.state == TrainerState.FITTING:
+            ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
+            self.lightning_module.load_state_dict(ckpt)
+
     def save(self, state_dict: Dict, path: str) -> None:
-        xm.save(state_dict, path)
+        xm.save(state_dict, path, global_master=True)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
