@@ -41,15 +41,8 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         # set the parameters_to_ignore from LightningModule.
         self._ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
 
-    @property
-    def lightning_module(self) -> LightningModule:
-        if isinstance(self.module, _LightningPrecisionModuleWrapperBase):
-            return self.module.module
-        return self.module
-
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        lightning_module = self.lightning_module
-        trainer = lightning_module.trainer
+        trainer = self.module.trainer
 
         if trainer and trainer.training:
             output = self.module.training_step(*inputs, **kwargs)
@@ -58,7 +51,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             # it is done manually in ``LightningModule.manual_backward``
             # `require_backward_grad_sync` will be reset in the
             # ddp_plugin ``post_training_step`` hook
-            if not lightning_module.automatic_optimization:
+            if not self.module.automatic_optimization:
                 trainer.model.require_backward_grad_sync = False
         elif trainer and trainer.testing:
             output = self.module.test_step(*inputs, **kwargs)
@@ -113,9 +106,7 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
 def unwrap_lightning_module(wrapped_model) -> LightningModule:
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
-        model = model.module
-    if isinstance(model, _LightningPrecisionModuleWrapperBase):
-        model = model.module
-    if isinstance(model, _LightningModuleWrapperBase):
-        model = model.module
+        model = unwrap_lightning_module(model.module)
+    if isinstance(model, (_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase)):
+        model = unwrap_lightning_module(model.module)
     return model
