@@ -506,6 +506,11 @@ class TestModel(BoringModel):
     def configure_optimizers(self):
         return torch.optim.Adagrad(self.parameters())
 
+    def on_train_start(self, *args, **kwargs):
+        opt = self.optimizers()
+        _, state = next(iter(opt.state.items()))
+        assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
+
 
 @RunIf(min_gpus=2, special=True)
 def test_optimizer_state_on_device(tmpdir):
