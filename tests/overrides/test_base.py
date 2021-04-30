@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
+from torch.nn import DataParallel
 
 from pytorch_lightning.overrides.base import (
     _LightningModuleWrapperBase,
@@ -37,6 +38,7 @@ def test_wrapper_device_dtype(wrapper_class):
 def test_unwrap_lightning_module():
     model = BoringModel()
     wrapped_model = _LightningModuleWrapperBase(model)
+    wrapped_model = DataParallel(wrapped_model)
     wrapped_model = _LightningPrecisionModuleWrapperBase(wrapped_model)
 
     assert unwrap_lightning_module(wrapped_model) == model

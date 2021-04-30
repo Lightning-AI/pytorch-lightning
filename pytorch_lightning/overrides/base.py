@@ -71,13 +71,13 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
     """
     Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can safely
-    wrap both a ``LightningModule`` and a ``_LightningModuleWrapperBase``.
+    wrap both a ``LightningModule`` and a ``*DataParallel``.
 
     Args:
         pl_module: the model to wrap
     """
 
-    def __init__(self, pl_module: Union[LightningModule, _LightningModuleWrapperBase]):
+    def __init__(self, pl_module: Union[LightningModule, DistributedDataParallel, DataParallel]):
         super().__init__()
         self.module = pl_module
 
