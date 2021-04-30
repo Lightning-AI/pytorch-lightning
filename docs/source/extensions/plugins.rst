@@ -43,6 +43,10 @@ PrecisionPlugin
 - Gradient clipping
 
 
+Futhermore, for multi-node training Lightning provides cluster environment plugins that allow the advanced user
+to configure Lighting to integrate with a :ref:`custom-cluster`.
+
+
 .. image:: ../_static/images/accelerator/overview.svg
 
 

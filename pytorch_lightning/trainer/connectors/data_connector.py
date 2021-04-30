@@ -16,6 +16,7 @@ from typing import Iterable, List, Optional, Union
 
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.supporters import prefetch_iterator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -78,7 +79,6 @@ class DataConnector(object):
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(model, train_dataloader, val_dataloaders)
         self.attach_datamodule(model, datamodule)
-        self._validate_data_hooks(model)
 
     def __enforce_datamodule_dataloader_override(self, train_dataloader, val_dataloaders, datamodule):
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
@@ -87,22 +87,14 @@ class DataConnector(object):
                 'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
             )
 
-    def _validate_data_hooks(self, model):
-        # Raise Misconfiguration exception since these hooks are not supported in DP mode
-        # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
-        batch_transfer_hooks = ('on_before_batch_transfer', 'transfer_batch_to_device', 'on_after_batch_transfer')
-        for hook in batch_transfer_hooks:
-            if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
-                raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
-
     def attach_dataloaders(
         self,
-        model,
+        model: 'pl.LightningModule',
         train_dataloader: Optional[Union[DataLoader, List[DataLoader]]] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         predict_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-    ):
+    ) -> None:
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
@@ -117,7 +109,9 @@ class DataConnector(object):
         if predict_dataloaders is not None:
             model.predict_dataloader = _PatchDataLoader(predict_dataloaders)
 
-    def attach_datamodule(self, model, datamodule: Optional[LightningDataModule] = None) -> None:
+    def attach_datamodule(
+        self, model: 'pl.LightningModule', datamodule: Optional['pl.LightningDataModule'] = None
+    ) -> None:
         # We use datamodule if it's been provided, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
 

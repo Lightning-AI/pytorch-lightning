@@ -65,8 +65,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
 
     assert any(isinstance(c, CB) for c in trainer.callbacks)
 
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
 
 
 def test_on_val_epoch_end_outputs(tmpdir):
