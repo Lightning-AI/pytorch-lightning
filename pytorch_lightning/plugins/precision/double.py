@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from functools import wraps
-from typing import Any, Generator, List, Sequence, Tuple
+from typing import Any, Generator, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -92,7 +91,7 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         model: nn.Module,
         optimizers: List[Optimizer],
         lr_schedulers: List[Any],
-    ) -> Tuple['Module', List['Optimizer'], List[Any]]:
+    ) -> Tuple[nn.Module, List['Optimizer'], List[Any]]:
         """Converts the model to double precision and wraps it in a ``LightningDoublePrecisionModule`` to convert
         incoming floating point data to double (``torch.float64``) precision. Does not alter `optimizers` or
         `lr_schedulers`.
