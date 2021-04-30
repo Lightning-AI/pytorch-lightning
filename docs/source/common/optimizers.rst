@@ -15,6 +15,8 @@ For advanced/expert users who want to do esoteric optimization schedules or tech
 
 -----
 
+.. _manual_optimization:
+
 Manual optimization
 ===================
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable to

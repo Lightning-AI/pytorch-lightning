@@ -127,8 +127,7 @@ def test_model_checkpoint_score_and_ckpt(
         max_epochs=max_epochs,
         progress_bar_refresh_rate=0,
     )
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
@@ -232,8 +231,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         progress_bar_refresh_rate=0,
         num_sanity_val_steps=0,
     )
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
