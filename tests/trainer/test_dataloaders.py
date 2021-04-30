@@ -779,6 +779,39 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     trainer.predict(model, dataloaders=dataloader)
 
 
+def test_iterable_dataset_stop_iteration_at_epoch_beginning():
+    """ Test that the training loops skips execution if iterator is empty from the start. """
+
+    class RandomDataset(IterableDataset):
+        def __init__(self, gen):
+            self.gen = gen
+
+        def __iter__(self):
+            return iter(self.gen())
+
+    class TestModel(BoringModel):
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(self.gen), batch_size=2)
+
+        def gen(self):
+            # produce data in epoch 0
+            # no data otherwise
+            if self.current_epoch == 0:
+                yield torch.rand(32)
+                yield torch.rand(32)
+                yield torch.rand(32)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        max_epochs=2,  # we expect the second epoch to be skipped
+        weights_summary=None,
+    )
+    trainer.fit(model)
+    assert trainer.global_step == 2
+    assert trainer.current_epoch == 1
+
+
 @RunIf(min_gpus=2)
 def test_dataloader_reinit_for_subclass(tmpdir):
 
