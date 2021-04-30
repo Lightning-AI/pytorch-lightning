@@ -740,7 +740,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
 ---------------
 
-********************
+*******************
 Other cool features
 *******************
 
