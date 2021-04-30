@@ -444,8 +444,10 @@ class TrainLoop:
         dataloader_idx = 0
         val_loop_called = False
 
-        for batch_idx, (batch, is_last_batch) in train_dataloader:
+        batch_idx = None
+        is_last_batch = None
 
+        for batch_idx, (batch, is_last_batch) in train_dataloader:
             self.trainer.batch_idx = batch_idx
             self.trainer.is_last_batch = is_last_batch
 
@@ -515,6 +517,10 @@ class TrainLoop:
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
+
+        if batch_idx is None:
+            # dataloader/iterator did not produce a batch
+            return
 
         # handle epoch_output on epoch end
         self.on_train_epoch_end(epoch_output)
