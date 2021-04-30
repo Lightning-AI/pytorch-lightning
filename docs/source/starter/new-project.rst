@@ -763,7 +763,7 @@ Grid AI
 =======
 Grid AI is our native solution for large scale training and tuning on the cloud.
 
-`Get started for free with you Github or Google Account here <https://www.grid.ai/>`_.
+`Get started for free with your GitHub or Google Account here <https://www.grid.ai/>`_.
 
 ------------
 
