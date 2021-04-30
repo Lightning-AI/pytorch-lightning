@@ -843,7 +843,7 @@ class Trainer(
             val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
 
-            datamodule: A instance of :class:`LightningDataModule`.
+            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
         Trainer._log_api_event("fit")
 
@@ -893,7 +893,7 @@ class Trainer(
 
             verbose: If True, prints the validation results.
 
-            datamodule: A instance of :class:`LightningDataModule`.
+            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
         Returns:
             The dictionary with final validation results returned by validation_epoch_end.
@@ -956,7 +956,7 @@ class Trainer(
 
             verbose: If True, prints the test results.
 
-            datamodule: A instance of :class:`LightningDataModule`.
+            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
         Returns:
             Returns a list of dictionaries, one for each test dataloader containing their respective metrics.
@@ -1100,7 +1100,7 @@ class Trainer(
             val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
                 If the model has a predefined val_dataloaders method this will be skipped
 
-            datamodule: A instance of :class:`LightningDataModule`.
+            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
             scale_batch_size_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
 
@@ -1125,9 +1125,7 @@ class Trainer(
             model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        result = self.tuner._tune(
-            model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs
-        )
+        result = self.tuner._tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs)
 
         assert self.state.stopped
         self.tuning = False
