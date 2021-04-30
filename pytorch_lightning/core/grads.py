@@ -39,11 +39,11 @@ class GradInformation(Module):
                 a special entry for the total p-norm of the gradients viewed
                 as a single vector.
 
-        .. deprecated::v1.3
-            Will be removed in v1.5.0. Use ``pytorch_lightning.utilities.grads.grad_norm`` instead.
+        .. deprecated:: v1.3
+            Will be removed in v1.5.0. Use :func:`pytorch_lightning.utilities.grads.grad_norm` instead.
         """
         rank_zero_deprecation(
             "LightningModule.grad_norm is deprecated in v1.3 and will be removed in v1.5."
-            "Use grad_norm from pytorch_lightning.utilities.grads instead."
+            " Use grad_norm from pytorch_lightning.utilities.grads instead."
         )
         return new_grad_norm(self, norm_type)
