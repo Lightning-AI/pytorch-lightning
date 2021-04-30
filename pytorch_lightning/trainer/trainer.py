@@ -1102,9 +1102,9 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
-            scale_batch_size_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
+            scale_batch_size_kwargs: Arguments for :func:`~pytorch_lightning.tuner.batch_size_scaling.scale_batch_size`
 
-            lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.batch_size_scaling.scale_batch_size`
+            lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
         """
         Trainer._log_api_event("tune")
         self.state = TrainerState.TUNING

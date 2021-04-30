@@ -1977,7 +1977,8 @@ def test_trainer_attach_data_pipeline_to_model(tmpdir):
 
 def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    trainer.fit(BoringModel())
+    model = BoringModel()
+    trainer.fit(model)
 
     with pytest.raises(MisconfigurationException, match=r"\.validate\(\)` with `fast_dev_run=True"):
         trainer.validate()
