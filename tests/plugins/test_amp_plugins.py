@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from pytorch_lightning.callbacks.base import Callback
 from unittest import mock
 
 import pytest
@@ -104,6 +105,13 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
 @pytest.mark.parametrize("amp_level", ['O2'])
 def test_amp_apex_ddp_fit(amp_level, tmpdir):
 
+    class CustomBoringModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            assert self.layer.weight.dtype == torch.float16
+            assert self.trainer.precision_plugin._connected
+            return super().training_step(batch, batch_idx)
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -114,7 +122,9 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
-    trainer.fit(BoringModel())
+    model = CustomBoringModel()
+    trainer.fit(model)
+    trainer.test(model)
 
 
 @RunIf(min_gpus=2, amp_apex=True)
@@ -131,4 +141,5 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
-    trainer.fit(BoringModel())
+    model = BoringModel()
+    trainer.fit(model)

@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, ContextManager, List, Sequence, Tuple, Type
+from typing import Any, Callable, ContextManager, List, Sequence, Tuple
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 import pytorch_lightning as pl
-from pytorch_lightning.core import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.types import _PARAMETERS
@@ -45,10 +45,14 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def dispatch(self, trainer: "pl.Trainer") -> None:
         if not self._connected:
             accelerator = trainer.accelerator
-            model, optimizers = self.configure_apex(accelerator.lightning_module, accelerator.optimizers, self.amp_level)
+            training_type_plugin = accelerator.training_type_plugin
+            lightning_module, optimizers = self.configure_apex(trainer.lightning_module, accelerator.optimizers, self.amp_level)
             self.reinit_scheduler_properties(optimizers, accelerator.lr_schedulers)
-            self.model = model
-            self.optimizers = optimizers
+            if not isinstance(training_type_plugin.model, LightningModule):
+                training_type_plugin.model.module.module = lightning_module
+            else:
+                training_type_plugin.model = lightning_module
+            accelerator.optimizers = optimizers
             self._connected = True
         return super().dispatch(trainer)
 
