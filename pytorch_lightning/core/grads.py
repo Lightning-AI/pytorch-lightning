@@ -27,23 +27,11 @@ class GradInformation(Module):
     def grad_norm(self, norm_type: Union[float, int, str]) -> Dict[str, float]:
         """Compute each parameter's gradient's norm and their overall norm.
 
-        The overall norm is computed over all gradients together, as if they
-        were concatenated into a single vector.
-
-        Args:
-            norm_type: The type of the used p-norm, cast to float if necessary.
-                Can be ``'inf'`` for infinity norm.
-
-        Return:
-            norms: The dictionary of p-norms of each parameter's gradient and
-                a special entry for the total p-norm of the gradients viewed
-                as a single vector.
-
-        .. deprecated::v1.3
-            Will be removed in v1.5.0. Use ``pytorch_lightning.utilities.grads.grad_norm`` instead.
+        .. deprecated:: v1.3
+            Will be removed in v1.5.0. Use :func:`pytorch_lightning.utilities.grads.grad_norm` instead.
         """
         rank_zero_deprecation(
             "LightningModule.grad_norm is deprecated in v1.3 and will be removed in v1.5."
-            "Use grad_norm from pytorch_lightning.utilities.grads instead."
+            " Use grad_norm from pytorch_lightning.utilities.grads instead."
         )
         return new_grad_norm(self, norm_type)
