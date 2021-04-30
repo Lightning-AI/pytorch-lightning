@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterable, List, Optional, Union
+from typing import List, Optional, Union
 
 from torch.utils.data import DataLoader
 
