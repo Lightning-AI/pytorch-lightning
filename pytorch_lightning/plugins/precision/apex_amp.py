@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, ContextManager, List, Sequence, Tuple
+from typing import Any, Callable, ContextManager, Sequence
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -47,7 +46,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         if not self._connected:
             accelerator = trainer.accelerator
             _, accelerator.optimizers = amp.initialize(
-                trainer.lightning_module, accelerator.optimizers, opt_level=self.amp_level)
+                trainer.lightning_module, accelerator.optimizers, opt_level=self.amp_level
+            )
             self._connected = True
         return super().dispatch(trainer)
 

@@ -102,14 +102,9 @@ class Accelerator:
 
     def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
-        for opt in self.optimizers:
-            opt.load_state_dict(move_data_to_device(opt.state_dict(), device=self.root_device))
-
         self.training_type_plugin.pre_dispatch()
-        
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
-
         self.precision_plugin.pre_dispatch()
 
     def dispatch(self, trainer: 'pl.Trainer') -> None:
