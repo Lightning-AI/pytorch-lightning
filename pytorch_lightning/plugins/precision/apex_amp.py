@@ -17,6 +17,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+
 import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
@@ -46,7 +47,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         if not self._connected:
             accelerator = trainer.accelerator
             training_type_plugin = accelerator.training_type_plugin
-            lightning_module, optimizers = self.configure_apex(trainer.lightning_module, accelerator.optimizers, self.amp_level)
+            lightning_module, optimizers = self.configure_apex(trainer.lightning_module, accelerator.optimizers)
             self.reinit_scheduler_properties(optimizers, accelerator.lr_schedulers)
             if not isinstance(training_type_plugin.model, LightningModule):
                 training_type_plugin.model.module.module = lightning_module
@@ -106,7 +107,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self,
         model: Module,
         optimizers: List[Optimizer],
-        amp_level: str,
     ) -> Tuple[Module, List[Optimizer]]:
         r"""
         Override to init AMP your own way.
@@ -116,7 +116,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             amp: pointer to amp library object.
             model: pointer to current :class:`torch.nn.Module`.
             optimizers: list of optimizers passed in :meth:`configure_optimizers`.
-            amp_level: AMP mode chosen ('O1', 'O2', etc...)
 
         Return:
             Apex wrapped model and optimizers
@@ -132,7 +131,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
                     return model, optimizers
         """
-        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
+        model, optimizers = amp.initialize(model, optimizers, opt_level=self.amp_level)
         return model, optimizers
 
     @staticmethod
