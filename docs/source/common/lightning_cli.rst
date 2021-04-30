@@ -14,7 +14,8 @@
         def __init__(
             self,
             encoder_layers: int = 12,
-            decoder_layers: List[int] = [2, 4]
+            decoder_layers: List[int] = [2, 4],
+            batch_size: int = 8,
         ):
             """Example encoder-decoder model
 
@@ -25,7 +26,8 @@
             pass
 
     class MyDataModule(LightningDataModule):
-        pass
+        def __init__(self, batch_size: int = 8):
+            pass
 
     def send_email(address, message):
         pass
@@ -375,6 +377,40 @@ before and after the execution of fit. The code would be something like:
 Note that the config object :code:`self.config` is a dictionary whose keys are global options or groups of options. It
 has the same structure as the yaml format as described previously. This means for instance that the parameters used for
 instantiating the trainer class can be found in :code:`self.config['trainer']`.
+
+Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` could be that
+the model and data module depend on a common parameter. For example in some cases both classes require to know the
+:code:`batch_size`. It is a burden to be required to give the same value twice in a config file. Thus the parser can be
+configured so that a value is only given once and then propagated to both classes.
+
+.. testcode::
+
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+    class MyLightningCLI(LightningCLI):
+
+        def before_parse_arguments(self, parser):
+            parser.link_arguments('data.batch_size', 'model.batch_size')
+
+    cli = MyLightningCLI(MyModel, MyDataModule)
+
+With a tool implemented like this, the :code:`batch_size` would only be provided in the :code:`data` section of the
+config. In the help of the tool it can be observed the arguments that are linked.
+
+.. code-block:: bash
+
+    $ python trainer.py --help
+      ...
+        --data.batch_size BATCH_SIZE
+                              Number of samples in a batch (type: int, default: 8)
+
+      Linked arguments:
+        model.batch_size <= data.batch_size
+                              (type: int)
+
+The linking of arguments can be used for more complex cases. For example derive a value via a function that takes
+multiple settings as input. For more details have a look at the API of `link_arguments
+<https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
 
 For more advanced use cases, other methods of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class could be
 extended. For further information have a look at the corresponding API reference.
