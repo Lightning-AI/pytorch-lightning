@@ -190,6 +190,11 @@ def save_hyperparameters(
     frame: Optional[types.FrameType] = None
 ) -> None:
     """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
+
+    if len(args) == 1 and not isinstance(args, str) and not args[0]:
+        # args[0] is an empty container
+        return
+
     if not frame:
         frame = inspect.currentframe().f_back
     init_args = get_init_args(frame)
