@@ -409,7 +409,7 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def _launch(
+    def _run(
         self,
         model: LightningModule,
         train_dataloader: Any = None,
@@ -855,7 +855,7 @@ class Trainer(
         self.state = TrainerState.FITTING
         self.training = True
 
-        self._launch(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule)
+        self._run(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule)
 
         assert self.state.stopped
         self.training = False
@@ -917,7 +917,7 @@ class Trainer(
             self.validated_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run validate
-        results = self._launch(model)
+        results = self._run(model)
 
         assert self.state.stopped
         self.validating = False
@@ -978,7 +978,7 @@ class Trainer(
             self.tested_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run test
-        results = self._launch(model)
+        results = self._run(model)
 
         assert self.state.stopped
         self.testing = False
@@ -1068,7 +1068,7 @@ class Trainer(
         #  Attach dataloaders (if given)
         self.data_connector.attach_dataloaders(model, predict_dataloaders=dataloaders)
 
-        results = self._launch(model)
+        results = self._run(model)
 
         assert self.state.stopped
         self.predicting = False
