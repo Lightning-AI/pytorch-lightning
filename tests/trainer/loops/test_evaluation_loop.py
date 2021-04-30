@@ -40,3 +40,37 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     trainer.test()
     # sanity + 2 epochs + called once for test
     assert eval_epoch_end_mock.call_count == 4
+
+
+@mock.patch(
+    "pytorch_lightning.trainer.connectors.logger_connector.logger_connector.LoggerConnector.get_evaluate_epoch_results"
+)
+def test_log_epoch_metrics_before_on_evaluation_end(get_evaluate_epoch_results_mock, tmpdir):
+    """Test that the epoch metrics are logged before the `on_evalutaion_end` hook is fired"""
+    order = []
+    expected_order = ["log_epoch_metrics", "on_validation_end"]
+
+    get_evaluate_epoch_results_mock.side_effect = lambda: order.append("log_epoch_metrics")
+
+    class LessBoringModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.called = []
+
+        def on_validation_end(self):
+            order.append("on_validation_end")
+            super().on_validation_end()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        weights_summary=None,
+        num_sanity_val_steps=0,
+    )
+
+    trainer.fit(LessBoringModel())
+
+    assert order == expected_order
