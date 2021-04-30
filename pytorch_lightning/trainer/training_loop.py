@@ -24,7 +24,7 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, parsing
+from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
@@ -90,20 +90,6 @@ class TrainLoop:
     def on_train_start(self):
         # hook
         self.trainer.call_hook("on_train_start")
-
-    def setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
-        # clean hparams
-        if hasattr(model, "hparams"):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.trainer.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.trainer.config_validator.verify_loop_configurations(model)
-
-        # attach model log function to callback
-        self.trainer.callback_connector.attach_model_logging_functions(model)
 
     def on_train_end(self):
         if self._teardown_already_run:
