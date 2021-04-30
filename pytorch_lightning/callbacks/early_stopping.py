@@ -233,7 +233,7 @@ class EarlyStopping(Callback):
             if self.wait_count >= self.patience:
                 should_stop = True
                 reason = (
-                    f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} epochs."
+                    f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} records."
                     f" Best score: {self.best_score:.3f}. Signaling Trainer to stop."
                 )
 
