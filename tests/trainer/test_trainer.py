@@ -548,7 +548,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
             return output
 
     model = TestModel()
-    early_stop = EarlyStopping(monitor="loss", patience=0)
+    early_stop = EarlyStopping(monitor="loss", patience=0, check_on_train_epoch_end=True)
     min_epochs = 5
     trainer = Trainer(
         default_root_dir=tmpdir,
