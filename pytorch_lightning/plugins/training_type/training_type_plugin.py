@@ -127,10 +127,12 @@ class TrainingTypePlugin(Plugin, ABC):
     @property
     def results(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         """
-        The results of the last training/testing run will be cached here.
-        In distributed training, we make sure to transfer the results to the appropriate master process.
+        Enables plugin-agnostic access to the result returned by the training/evaluation/prediction run. The result is
+        cached instead of returned directly, because some plugins require transmitting the results from one
+        multiprocessing context to another in a separate step. For example, the plugins that use the "spawn"
+        start-method send the result to the master process through a
+        `multiprocessing queue (shared memory) <https://pytorch.org/docs/stable/multiprocessing.html>`_.
         """
-        # TODO(@awaelchli): improve these docs
         return self._results
 
     @property
