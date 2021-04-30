@@ -36,47 +36,7 @@ def scale_batch_size(
     max_trials: int = 25,
     batch_arg_name: str = 'batch_size',
 ) -> Optional[int]:
-    r"""
-    Will iteratively try to find the largest batch size for a given model
-    that does not give an out of memory (OOM) error.
-
-    Args:
-        trainer: The Trainer
-
-        model: Model to fit.
-
-        mode: string setting the search mode. Either `power` or `binsearch`.
-            If mode is `power` we keep multiplying the batch size by 2, until
-            we get an OOM error. If mode is 'binsearch', we will initially
-            also keep multiplying by 2 and after encountering an OOM error
-            do a binary search between the last successful batch size and the
-            batch size that failed.
-
-        steps_per_trial: number of steps to run with a given batch size.
-            Ideally 1 should be enough to test if a OOM error occurs,
-            however in practise a few are needed
-
-        init_val: initial batch size to start the search with
-
-        max_trials: max number of increase in batch size done before
-           algorithm is terminated
-
-        batch_arg_name: name of the attribute that stores the batch size.
-            It is expected that the user has provided a model or datamodule that has a hyperparameter
-            with that name. We will look for this attribute name in the following places
-
-            - ``model``
-            - ``model.hparams``
-            - ``model.datamodule``
-            - ``trainer.datamodule`` (the datamodule passed to the tune method)
-
-    Raises:
-        MisconfigurationException:
-            If field ``batch_arg_name`` is not found in ``model`` and ``model.hparams``, or
-            if batch scaling feature is used with dataloaders passed directly to ``.fit()``.
-        ValueError:
-            If mode in method ``scale_batch_size`` is neither ``power`` nor ``binsearch``.
-    """
+    """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size`"""
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping batch size scaler since fast_dev_run is enabled.', UserWarning)
         return

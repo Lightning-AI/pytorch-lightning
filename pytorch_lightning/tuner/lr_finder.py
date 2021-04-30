@@ -73,11 +73,8 @@ class _LRFinder(object):
         num_training: number of steps to take between lr_min and lr_max
 
     Example::
-        trainer = Trainer(auto_lr_find=True)
-
         # Run lr finder
-        result = trainer.tune(model)
-        lr_finder = result['lr_find']
+        lr_finder = trainer.lr_find(model)
 
         # Results stored in
         lr_finder.results
@@ -207,37 +204,7 @@ def lr_find(
     early_stop_threshold: float = 4.0,
     update_attr: bool = False,
 ) -> Optional[_LRFinder]:
-    r"""
-    ``lr_find`` enables the user to do a range test of good initial learning rates,
-    to reduce the amount of guesswork in picking a good starting learning rate.
-
-    Args:
-        trainer: The Trainer
-
-        model: Model to do range testing for
-
-        min_lr: minimum learning rate to investigate
-
-        max_lr: maximum learning rate to investigate
-
-        num_training: number of learning rates to test
-
-        mode: Search strategy to update learning rate after each batch:
-
-            - ``'exponential'`` (default): Will increase the learning rate exponentially.
-            - ``'linear'``: Will increase the learning rate linearly.
-
-        early_stop_threshold: threshold for stopping the search. If the
-            loss at any point is larger than early_stop_threshold*best_loss
-            then the search is stopped. To disable, set to None.
-
-        update_attr: Whether to update the learning rate attribute or not.
-
-    Raises:
-        MisconfigurationException:
-            If learning rate/lr in ``model`` or ``model.hparams`` isn't overriden when ``auto_lr_find=True``, or
-            if you are using `more than one optimizer` with learning rate finder.
-    """
+    """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping learning rate finder since fast_dev_run is enabled.', UserWarning)
         return

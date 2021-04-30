@@ -212,9 +212,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `@auto_move_data` in favor of `trainer.predict` ([#6993](https://github.com/PyTorchLightning/pytorch-lightning/pull/6993))
 
 
-- Deprecated `trainer.tuner.{lr_find,scale_batch_size}` in favor of `trainer.tune()` ([#7258](https://github.com/PyTorchLightning/pytorch-lightning/pull/7258))
-
-
 - Deprecated metrics in favor of `torchmetrics` ([#6505](https://github.com/PyTorchLightning/pytorch-lightning/pull/6505),
     [#6530](https://github.com/PyTorchLightning/pytorch-lightning/pull/6530),
     [#6540](https://github.com/PyTorchLightning/pytorch-lightning/pull/6540),

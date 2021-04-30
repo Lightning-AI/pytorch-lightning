@@ -294,17 +294,3 @@ def test_v1_5_0_trainer_logging_mixin(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         trainer.metrics_to_scalars({})
-
-
-def test_v1_5_0_tuner_scale_batch_size():
-    trainer = Trainer(fast_dev_run=True)
-    model = BoringModel()
-    with pytest.deprecated_call(match=r"scale_batch_size\(\)` is deprecated in v1.3 and will be removed in v1.5"):
-        trainer.tuner.scale_batch_size(model)
-
-
-def test_v1_5_0_tuner_lr_find():
-    trainer = Trainer(fast_dev_run=True)
-    model = BoringModel()
-    with pytest.deprecated_call(match=r"lr_find\(\)` is deprecated in v1.3 and will be removed in v1.5"):
-        trainer.tuner.lr_find(model)

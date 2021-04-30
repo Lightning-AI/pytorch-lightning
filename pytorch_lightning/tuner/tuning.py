@@ -19,10 +19,10 @@ import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
-from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class Tuner:
+    """Tuner class to tune your model"""
 
     def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
@@ -65,21 +65,61 @@ class Tuner:
     def scale_batch_size(
         self,
         model: 'pl.LightningModule',
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional['pl.LightningDataModule'] = None,
         mode: str = 'power',
         steps_per_trial: int = 3,
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = 'batch_size',
-        **fit_kwargs
     ) -> Optional[int]:
-        rank_zero_deprecation(
-            "`Tuner.scale_batch_size()` is deprecated in v1.3 and will be removed in v1.5."
-            " Please use `trainer.tune(scale_batch_size_kwargs={...})` instead."
-        )
+        """
+        Iteratively try to find the largest batch size for a given model
+        that does not give an out of memory (OOM) error.
+
+        Args:
+            model: Model to tune.
+
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
+
+            mode: string setting the search mode. Either ``power`` or ``binsearch``.
+                If mode is ``power`` we keep multiplying the batch size by 2, until
+                we get an OOM error. If mode is ``binsearch``, we will initially
+                also keep multiplying by 2 and after encountering an OOM error
+                do a binary search between the last successful batch size and the
+                batch size that failed.
+
+            steps_per_trial: number of steps to run with a given batch size.
+                Ideally 1 should be enough to test if a OOM error occurs,
+                however in practise a few are needed
+
+            init_val: initial batch size to start the search with
+
+            max_trials: max number of increase in batch size done before
+               algorithm is terminated
+
+            batch_arg_name: name of the attribute that stores the batch size.
+                It is expected that the user has provided a model or datamodule that has a hyperparameter
+                with that name. We will look for this attribute name in the following places
+
+                - ``model``
+                - ``model.hparams``
+                - ``model.datamodule``
+                - ``trainer.datamodule`` (the datamodule passed to the tune method)
+        """
         self.trainer.auto_scale_batch_size = True
         result = self.trainer.tune(
             model,
-            **fit_kwargs,
+            train_dataloader=train_dataloader,
+            val_dataloaders=val_dataloaders,
+            datamodule=datamodule,
             scale_batch_size_kwargs={
                 'mode': mode,
                 'steps_per_trial': steps_per_trial,
@@ -96,18 +136,51 @@ class Tuner:
         model: 'pl.LightningModule',
         train_dataloader: Optional[DataLoader] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional['pl.LightningDataModule'] = None,
         min_lr: float = 1e-8,
         max_lr: float = 1,
         num_training: int = 100,
         mode: str = 'exponential',
         early_stop_threshold: float = 4.0,
-        datamodule: Optional['pl.LightningDataModule'] = None,
         update_attr: bool = False,
     ) -> Optional[_LRFinder]:
-        rank_zero_deprecation(
-            "`Tuner.lr_find()` is deprecated in v1.3 and will be removed in v1.5."
-            " Please use `trainer.tune(lr_finder_kwargs={...})` instead."
-        )
+        """
+        Enables the user to do a range test of good initial learning rates,
+        to reduce the amount of guesswork in picking a good starting learning rate.
+
+        Args:
+            model: Model to tune.
+
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
+
+            min_lr: minimum learning rate to investigate
+
+            max_lr: maximum learning rate to investigate
+
+            num_training: number of learning rates to test
+
+            mode: Search strategy to update learning rate after each batch:
+
+                - ``'exponential'`` (default): Will increase the learning rate exponentially.
+                - ``'linear'``: Will increase the learning rate linearly.
+
+            early_stop_threshold: threshold for stopping the search. If the
+                loss at any point is larger than early_stop_threshold*best_loss
+                then the search is stopped. To disable, set to None.
+
+            update_attr: Whether to update the learning rate attribute or not.
+
+        Raises:
+            MisconfigurationException:
+                If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden when ``auto_lr_find=True``,
+                or if you are using more than one optimizer.
+        """
         self.trainer.auto_lr_find = True
         result = self.trainer.tune(
             model,

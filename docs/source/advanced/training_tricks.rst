@@ -112,16 +112,16 @@ search for batch sizes larger than the size of the training dataset.
     to `.fit()`.
 
 The scaling algorithm has a number of parameters that the user can control by
-passing the ``scale_batch_size_kwargs`` argument to ``trainer.tune``:
+invoking the :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size` method:
 
 .. code-block:: python
 
     # Use default in trainer construction
-    trainer = Trainer(auto_scale_batch_size=True)
+    trainer = Trainer()
+    tuner = Tuner(trainer)
 
     # Invoke method
-    result = trainer.tune(model, scale_batch_size_kwargs={...})
-    new_batch_size = result['new_batch_size']
+    new_batch_size = tuner.scale_batch_size(model, *extra_parameters_here)
 
     # Override old batch size (this is done automatically)
     model.hparams.batch_size = new_batch_size

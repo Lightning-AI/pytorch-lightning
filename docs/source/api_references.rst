@@ -150,6 +150,18 @@ Trainer API
 
     trainer
 
+Tuner API
+---------
+
+.. currentmodule:: pytorch_lightning.tuner.tuning
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    Tuner
+
 Utilities API
 -------------
 
