@@ -174,11 +174,17 @@ class TrainLoop:
         # reset batch logger internals
         self.trainer.logger_connector.on_train_batch_end()
 
-    def reset_train_val_dataloaders(self, model):
-        if self.trainer.train_dataloader is None or not self.trainer.reload_dataloaders_every_epoch:
+    def reset_train_val_dataloaders(self, model) -> None:
+        """
+        Resets train and val dataloaders if none are attached to the trainer.
+
+        The val dataloader must be initialized before training loop starts, as the training loop
+        inspects the val dataloader to determine whether to run the evaluation loop.
+        """
+        if self.trainer.train_dataloader is None:
             self.trainer.reset_train_dataloader(model)
 
-        if self.trainer.val_dataloaders is None and not self.trainer.reload_dataloaders_every_epoch:
+        if self.trainer.val_dataloaders is None:
             self.trainer.reset_val_dataloader(model)
 
     def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
