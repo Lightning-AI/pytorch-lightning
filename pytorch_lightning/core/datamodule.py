@@ -356,7 +356,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         """
 
         @functools.wraps(fn)
-        def wrapped_fn(*args: str, **kwargs: Optional[str]) -> callable:
+        def wrapped_fn(*args: str, **kwargs: Optional[str]) -> Any:
             name = fn.__name__
 
             # If calling setup, we check the stage and assign stage-specific bool args
