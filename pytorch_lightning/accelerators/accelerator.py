@@ -111,7 +111,8 @@ class Accelerator:
 
         self.precision_plugin.pre_dispatch()
 
-    def move_optimizer_state(self):
+    def move_optimizer_state(self) -> None:
+        """ Moves the state of the optimizers to the GPU if needed. """
         for opt in self.optimizers:
             state = defaultdict(dict)
             for p, v in opt.state.items():
