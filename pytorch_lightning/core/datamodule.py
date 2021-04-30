@@ -319,7 +319,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         Args:
             args: The parser or namespace to take arguments from. Only known arguments will be
-                parsed and passed to the :class:`LightningDataModule`.
+                parsed and passed to the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
             **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
                 These must be valid DataModule arguments.
 
