@@ -41,7 +41,10 @@ warning_cache = WarningCache()
 
 class ModelCheckpoint(Callback):
     r"""
-    Save the model after every epoch by monitoring a quantity.
+    Save the model periodically by monitoring a quantity. Every metric logged with
+    :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in
+    LightningModule is a candidate for the monitor key. For more information, see
+    :ref:`weights_loading`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -659,7 +662,7 @@ class ModelCheckpoint(Callback):
         if self.check_monitor_top_k(trainer, current):
             self._update_best_and_save(current, epoch, step, trainer, monitor_candidates)
         elif self.verbose:
-            rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
+            rank_zero_info(f"Epoch {epoch:d}, global step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
     def _save_none_monitor_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
         if self.monitor is not None or self.save_top_k == 0:
