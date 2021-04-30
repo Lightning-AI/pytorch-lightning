@@ -24,6 +24,9 @@ class BoringModel(LightningModule):
     def training_step(self, batch, batch_idx):
         return self.layer(batch)
 
+    def training_epoch_end(self, outputs):
+        pass
+
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
@@ -33,6 +36,8 @@ class BoringModel(LightningModule):
     def gen(self):
         if self.current_epoch == 0:
             # produce data in epoch 0
+            yield torch.rand(2)
+            yield torch.rand(2)
             yield torch.rand(2)
         # no data otherwise
 
