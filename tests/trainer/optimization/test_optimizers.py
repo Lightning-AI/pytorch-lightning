@@ -504,7 +504,7 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
 class TestModel(BoringModel):
 
     def configure_optimizers(self):
-        # Adagrad creates state tensors immeditaly, model is not yet on CPU.
+        # Adagrad creates state tensors immediately, model is not yet on GPU.
         return torch.optim.Adagrad(self.parameters())
 
     def on_train_start(self, *args, **kwargs):
