@@ -16,16 +16,18 @@ Utilities to describe gradients
 """
 from typing import Dict, Union
 
-import torch.nn
+import torch
+from torch.nn import Module
 
 
-def grad_norm(module: torch.nn.Module, norm_type: Union[float, int, str]) -> Dict[str, float]:
+def grad_norm(module: Module, norm_type: Union[float, int, str]) -> Dict[str, float]:
     """Compute each parameter's gradient's norm and their overall norm.
 
     The overall norm is computed over all gradients together, as if they
     were concatenated into a single vector.
 
     Args:
+        module: :class:`torch.nn.Module` to inspect.
         norm_type: The type of the used p-norm, cast to float if necessary.
             Can be ``'inf'`` for infinity norm.
 
@@ -33,9 +35,6 @@ def grad_norm(module: torch.nn.Module, norm_type: Union[float, int, str]) -> Dic
         norms: The dictionary of p-norms of each parameter's gradient and
             a special entry for the total p-norm of the gradients viewed
             as a single vector.
-
-    .. deprecated::v1.3
-        Will be removed in v1.5.0.
     """
     norm_type = float(norm_type)
 
