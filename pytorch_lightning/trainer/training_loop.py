@@ -20,7 +20,6 @@ import numpy as np
 import torch
 
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
@@ -148,20 +147,7 @@ class TrainLoop:
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
 
-<<<<<<< HEAD
-    def on_train_epoch_start(self, epoch):
-=======
-    def check_early_stopping_callback(self, should_update):
-        # TODO bake this logic into the EarlyStopping callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
-            callbacks = [c for c in self.trainer.callbacks if isinstance(c, EarlyStopping)]
-            model = self.trainer.lightning_module
-
-            for cb in callbacks:
-                cb.on_validation_end(self.trainer, model)
-
     def on_train_epoch_start(self, epoch: int) -> None:
->>>>>>> Update training_loop.py
 
         # update training progress in trainer
         self.trainer.current_epoch = epoch
@@ -234,7 +220,7 @@ class TrainLoop:
 
             epoch_output[opt_idx].append(opt_outputs)
 
-    def get_optimizers_iterable(self):
+    def get_optimizers_iterable(self) -> List[List[int, Optimizer]]:
         """
         Generates an iterable with (idx, optimizer) for each optimizer.
         """
@@ -259,13 +245,8 @@ class TrainLoop:
         # when in dev debugging track the losses
         self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
-<<<<<<< HEAD
-    def _check_training_step_output(self, training_step_output):
-        if isinstance(training_step_output, torch.Tensor) and not self.trainer.lightning_module.automatic_optimization:
-=======
     def _check_training_step_output(self, training_step_output) -> None:
-        if isinstance(training_step_output, torch.Tensor) and not self.automatic_optimization:
->>>>>>> Update training_loop.py
+        if isinstance(training_step_output, torch.Tensor) and not self.trainer.lightning_module.automatic_optimization:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
@@ -408,7 +389,7 @@ class TrainLoop:
             processed_outputs = processed_outputs[0]
         return processed_outputs
 
-    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
+    def optimizer_step(self, optimizer, opt_idx: int, batch_idx: int, train_step_and_backward_closure) -> None:
         model_ref = self.trainer.lightning_module
 
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
@@ -436,13 +417,13 @@ class TrainLoop:
             using_lbfgs=is_lbfgs,
         )
 
-    def on_before_zero_grad(self, optimizer):
+    def on_before_zero_grad(self, optimizer: torch.Optimizer) -> None:
         self.trainer.call_hook('on_before_zero_grad', optimizer)
 
-    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
+    def optimizer_zero_grad(self, batch_idx: int, optimizer: torch.Optimizer, opt_idx: int) -> None:
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def track_and_norm_grad(self, optimizer):
+    def track_and_norm_grad(self, optimizer: torch.Optimizer) -> None:
         # track gradient norms
         grad_norm_dic = self._track_gradient_norm()
 
@@ -452,7 +433,7 @@ class TrainLoop:
         )
         self._cur_grad_norm_dict = grad_norm_dic
 
-    def _track_gradient_norm(self):
+    def _track_gradient_norm(self) -> Dict[str, float]:
         grad_norm_dict = {}
         if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
             if float(self.trainer.track_grad_norm) > 0:
@@ -460,7 +441,7 @@ class TrainLoop:
                 grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
         return grad_norm_dict
 
-    def tbptt_split_batch(self, batch):
+    def tbptt_split_batch(self, batch: Any) -> list:
         splits = [batch]
         if self.trainer.truncated_bptt_steps is not None:
             model_ref = self.trainer.lightning_module
@@ -468,7 +449,7 @@ class TrainLoop:
                 splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
         return splits
 
-    def run_training_epoch(self):
+    def run_training_epoch(self) -> None:
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
 
@@ -608,7 +589,7 @@ class TrainLoop:
         self.trainer.call_hook('on_train_epoch_end', processed_epoch_output)
         self.trainer.call_hook('on_epoch_end')
 
-    def run_training_batch(self, batch, batch_idx, dataloader_idx):
+    def run_training_batch(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         # track grad norms
         grad_norm_dic = {}
 
@@ -757,7 +738,9 @@ class TrainLoop:
 
         return batch_outputs
 
-    def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
+    def training_step_and_backward(
+        self, split_batch, batch_idx: int, opt_idx: int, optimizer: torch.Optimizer, hiddens
+    ):
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
@@ -800,7 +783,7 @@ class TrainLoop:
         model = self.trainer.lightning_module
         detect_nan_parameters(model)
 
-    def backward(self, result, optimizer, opt_idx, *args, **kwargs):
+    def backward(self, result, optimizer: torch.Optimizer, opt_idx: int, *args, **kwargs) -> None:
         self.trainer.dev_debugger.track_event("backward_call")
 
         should_accumulate = self.should_accumulate()
@@ -817,7 +800,7 @@ class TrainLoop:
             # track gradients
             self.track_and_norm_grad(optimizer=optimizer)
 
-    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
+    def update_train_loop_lr_schedulers(self, monitor_metrics=None) -> None:
         num_accumulated_batches_reached = self._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
 
@@ -825,7 +808,7 @@ class TrainLoop:
             # update lr
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
-    def increment_accumulated_grad_global_step(self):
+    def increment_accumulated_grad_global_step(self) -> None:
         num_accumulated_batches_reached = self._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
 
@@ -835,19 +818,19 @@ class TrainLoop:
                 self.trainer.total_batch_idx, self.trainer.global_step
             )
 
-    def _accumulated_batches_reached(self):
+    def _accumulated_batches_reached(self) -> bool:
         return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
-    def _num_training_batches_reached(self, is_last_batch=False):
+    def _num_training_batches_reached(self, is_last_batch: bool = False) -> bool:
         return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
 
-    def should_accumulate(self):
+    def should_accumulate(self) -> bool:
         # checks if backward or backward + optimizer step (via closure)
         accumulation_done = self._accumulated_batches_reached()
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def should_check_val_fx(self, batch_idx, is_last_batch, on_epoch=False):
+    def should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
         # decide if we should run validation
         is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
         is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
@@ -861,7 +844,7 @@ class TrainLoop:
 
         return should_check_val and can_check_val
 
-    def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
+    def build_train_args(self, batch: Any, batch_idx: int, opt_idx: int, hiddens) -> list:
         # enable not needing to add opt_idx to training_step
         args = [batch, batch_idx]
 
@@ -888,20 +871,20 @@ class TrainLoop:
 
         return args
 
-    def save_loggers_on_train_batch_end(self):
+    def save_loggers_on_train_batch_end(self) -> None:
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def prepare_optimizers(self):
+    def prepare_optimizers(self) -> List[torch.Optimizer]:
         # in manual optimization we loop over all optimizers at once
         optimizers = self.get_optimizers_iterable()
         if not self.trainer.lightning_module.automatic_optimization:
             optimizers = [optimizers[0]]
         return optimizers
 
-    def run_train_split_start(self, split_idx, split_batch, opt_idx, optimizer):
+    def run_train_split_start(self, split_idx: int, split_batch, opt_idx: int, optimizer: torch.Optimizer) -> None:
         # set split_idx to trainer for tracking
         self.trainer.split_idx = split_idx
 
@@ -914,7 +897,7 @@ class TrainLoop:
         # use to track metrics internally
         self.trainer.logger_connector.on_train_split_start(split_idx, opt_idx, split_batch)
 
-    def update_running_loss(self):
+    def update_running_loss(self) -> None:
         accumulated_loss = self.accumulated_loss.mean()
 
         if accumulated_loss is not None:
