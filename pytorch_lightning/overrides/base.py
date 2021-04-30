@@ -21,41 +21,6 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
 
-class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-    """
-    Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can safely
-    be wrapped by a ``_LightningModuleWrapperBase``.
-
-    Args:
-        pl_module: the model to wrap
-    """
-
-    def __init__(self, pl_module: LightningModule):
-        super().__init__()
-        self.module = pl_module
-
-        # set the parameters_to_ignore from LightningModule.
-        self._ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
-
-    def training_step(self, *args: Any, **kwargs: Any) -> Any:
-        raise NotImplementedError
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Any:
-        raise NotImplementedError
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Any:
-        raise NotImplementedError
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> Any:
-        raise NotImplementedError
-
-    def forward(self, *args: Any, **kwargs: Any) -> Any:
-        raise NotImplementedError
-
-    def on_post_move_to_device(self) -> None:
-        pass
-
-
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
     """
     Wraps the user's LightningModule and redirects the forward call to the appropriate
@@ -69,7 +34,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         pl_module: the model to wrap
     """
 
-    def __init__(self, pl_module: Union[LightningModule, _LightningPrecisionModuleWrapperBase]):
+    def __init__(self, pl_module: LightningModule):
         super().__init__()
         self.module = pl_module
 
@@ -110,6 +75,41 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         pass
 
 
+class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
+    """
+    Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can safely
+    wrap both a ``LightningModule`` and a ``_LightningModuleWrapperBase``.
+
+    Args:
+        pl_module: the model to wrap
+    """
+
+    def __init__(self, pl_module: Union[LightningModule, _LightningModuleWrapperBase]):
+        super().__init__()
+        self.module = pl_module
+
+        # set the parameters_to_ignore from LightningModule.
+        self._ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
+
+    def training_step(self, *args: Any, **kwargs: Any) -> Any:
+        raise NotImplementedError
+
+    def validation_step(self, *args: Any, **kwargs: Any) -> Any:
+        raise NotImplementedError
+
+    def test_step(self, *args: Any, **kwargs: Any) -> Any:
+        raise NotImplementedError
+
+    def predict_step(self, *args: Any, **kwargs: Any) -> Any:
+        raise NotImplementedError
+
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
+        raise NotImplementedError
+
+    def on_post_move_to_device(self) -> None:
+        pass
+
+
 def unwrap_lightning_module(wrapped_model) -> LightningModule:
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
@@ -117,5 +117,5 @@ def unwrap_lightning_module(wrapped_model) -> LightningModule:
     if isinstance(model, _LightningPrecisionModuleWrapperBase):
         model = model.module
     if isinstance(model, _LightningModuleWrapperBase):
-        model = model.lightning_module
+        model = model.module
     return model
