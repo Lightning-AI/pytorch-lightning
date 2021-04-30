@@ -742,7 +742,7 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
 ********************
 Other cool features
-********************
+*******************
 
 Once you define and train your first Lightning model, you might want to try other cool features like
 
