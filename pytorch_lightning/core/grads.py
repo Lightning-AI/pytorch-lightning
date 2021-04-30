@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Module to describe gradients
+Module to describe gradients. This class is deprecated in v1.3 and will be removed in v1.5
 """
 from typing import Dict, Union
 
 import torch
 from torch.nn import Module
+
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation
+from pytorch_lightning.utilities.grads import grad_norm as new_grad_norm
 
 
 class GradInformation(Module):
@@ -36,20 +39,12 @@ class GradInformation(Module):
             norms: The dictionary of p-norms of each parameter's gradient and
                 a special entry for the total p-norm of the gradients viewed
                 as a single vector.
+
+        .. deprecated::v1.3
+            Will be removed in v1.5.0. Use ``pytorch_lightning.utilities.grads.grad_norm`` instead.
         """
-        norm_type = float(norm_type)
-
-        norms, all_norms = {}, []
-        for name, p in self.named_parameters():
-            if p.grad is None:
-                continue
-
-            param_norm = float(p.grad.data.norm(norm_type))
-            norms[f'grad_{norm_type}_norm_{name}'] = round(param_norm, 4)
-
-            all_norms.append(param_norm)
-
-        total_norm = float(torch.tensor(all_norms).norm(norm_type))
-        norms[f'grad_{norm_type}_norm_total'] = round(total_norm, 4)
-
-        return norms
+        rank_zero_deprecation(
+            "LightningModule.grad_norm is deprecated in v1.3 and will be removed in v1.5."
+            "Use grad_norm from pytorch_lightning.utilities.grads instead."
+        )
+        return new_grad_norm(self, norm_type)

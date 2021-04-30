@@ -28,6 +28,7 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType, par
 from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
+from pytorch_lightning.utilities.grads import grad_norm
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -436,7 +437,7 @@ class TrainLoop:
         if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.lightning_module
-                grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
+                grad_norm_dict = grad_norm(model, self.trainer.track_grad_norm)
         return grad_norm_dict
 
     def tbptt_split_batch(self, batch):
