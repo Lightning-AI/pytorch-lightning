@@ -89,12 +89,11 @@ class Tuner:
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
-            mode: string setting the search mode. Either ``power`` or ``binsearch``.
-                If mode is ``power`` we keep multiplying the batch size by 2, until
-                we get an OOM error. If mode is ``binsearch``, we will initially
-                also keep multiplying by 2 and after encountering an OOM error
-                do a binary search between the last successful batch size and the
-                batch size that failed.
+            mode: Search strategy to update the batch size:
+
+                - ``'power'`` (default): Keep multiplying the batch size by 2, until we get an OOM error.
+                - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
+                    do a binary search between the last successful batch size and the batch size that failed.
 
             steps_per_trial: number of steps to run with a given batch size.
                 Ideally 1 should be enough to test if a OOM error occurs,
