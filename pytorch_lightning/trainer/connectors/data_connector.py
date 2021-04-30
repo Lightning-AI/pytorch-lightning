@@ -51,7 +51,13 @@ class DataConnector(object):
         """Pass through values from the given iterable with an added boolean indicating if this is the last item.
         See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_"""
         it = iter(iterable)
-        last = next(it)
+
+        try:
+            # the iterator may be empty from the beginning
+            last = next(it)
+        except StopIteration:
+            return
+
         for val in it:
             # yield last and has next
             yield last, False
