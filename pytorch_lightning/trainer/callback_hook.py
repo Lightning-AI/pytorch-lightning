@@ -299,6 +299,9 @@ class TrainerCallbackHookMixin(ABC):
         # https://github.com/pytorch/xla/issues/2773
         callback_states = checkpoint.get('callbacks')
 
+        if callback_states is None:
+            return
+
         current_callbacks_type = {type(cb) for cb in self.callbacks}
         saved_callbacks_type = set(callback_states.keys())
         difference = saved_callbacks_type.difference(current_callbacks_type)
