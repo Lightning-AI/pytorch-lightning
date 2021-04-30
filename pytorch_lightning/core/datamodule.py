@@ -327,7 +327,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         return datamodule
 
     def __new__(cls, *args: Any, **kwargs: Any) -> 'LightningDataModule':
-        obj = super(LightningDataModule, cls).__new__(cls)
+        obj = super().__new__(cls)
         # save `args` and `kwargs` for `__reduce__`
         obj.__args = args
         obj.__kwargs = kwargs
