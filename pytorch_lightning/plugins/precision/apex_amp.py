@@ -46,14 +46,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def dispatch(self, trainer: "pl.Trainer") -> None:
         if not self._connected:
             accelerator = trainer.accelerator
-            training_type_plugin = accelerator.training_type_plugin
-            lightning_module, optimizers = self.configure_apex(trainer.lightning_module, accelerator.optimizers)
-            self.reinit_scheduler_properties(optimizers, accelerator.lr_schedulers)
-            if not isinstance(training_type_plugin.model, LightningModule):
-                training_type_plugin.model.module.module = lightning_module
-            else:
-                training_type_plugin.model = lightning_module
-            accelerator.optimizers = optimizers
+            _, accelerator.optimizers = amp.initialize(
+                trainer.lightning_module, accelerator.optimizers, opt_level=self.amp_level)
             self._connected = True
         return super().dispatch(trainer)
 
@@ -102,37 +96,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
         return closure_loss
-
-    def configure_apex(
-        self,
-        model: Module,
-        optimizers: List[Optimizer],
-    ) -> Tuple[Module, List[Optimizer]]:
-        r"""
-        Override to init AMP your own way.
-        Must return a model and list of optimizers.
-
-        Args:
-            amp: pointer to amp library object.
-            model: pointer to current :class:`torch.nn.Module`.
-            optimizers: list of optimizers passed in :meth:`configure_optimizers`.
-
-        Return:
-            Apex wrapped model and optimizers
-
-        Examples:
-            .. code-block:: python
-
-                # Default implementation used by Trainer.
-                def configure_apex(self, amp, model, optimizers, amp_level):
-                    model, optimizers = amp.initialize(
-                        model, optimizers, opt_level=amp_level,
-                    )
-
-                    return model, optimizers
-        """
-        model, optimizers = amp.initialize(model, optimizers, opt_level=self.amp_level)
-        return model, optimizers
 
     @staticmethod
     def reinit_scheduler_properties(optimizers: Sequence[Optimizer], schedulers: Sequence[Any]) -> None:
