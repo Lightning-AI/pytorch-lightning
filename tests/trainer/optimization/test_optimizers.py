@@ -19,6 +19,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_optimizer_with_scheduling(tmpdir):
@@ -498,3 +499,22 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.warns(RuntimeWarning, match='the keys will be ignored'):
         trainer.fit(model)
+
+
+class TestModel(BoringModel):
+
+     def configure_optimizers(self):
+         return torch.optim.Adagrad(self.parameters())
+
+@RunIf(min_gpus=2, special=True, amp_apex=True)
+def test_optimizer_state_on_device(tmpdir):
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=2,
+        accelerator="ddp",
+        fast_dev_run=True,
+        #precision=16,
+        #amp_backend="apex"
+    )
+    trainer.fit(model)
