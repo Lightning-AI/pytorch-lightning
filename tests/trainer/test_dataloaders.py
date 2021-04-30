@@ -780,7 +780,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
 
 
 def test_iterable_dataset_stop_iteration_at_epoch_beginning():
-    """ Test that the training loops skips execution if iterator is empty from the start. """
+    """ Test that the training loop skips execution if the iterator is empty from the start. """
 
     class RandomDataset(IterableDataset):
 
