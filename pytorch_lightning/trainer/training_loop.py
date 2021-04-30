@@ -19,7 +19,6 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import torch
 
-from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
@@ -92,20 +91,6 @@ class TrainLoop:
         # hook
         self.trainer.call_hook("on_train_start")
 
-    def setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
-        # clean hparams
-        if hasattr(model, "hparams"):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.trainer.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.trainer.config_validator.verify_loop_configurations(model)
-
-        # attach model log function to callback
-        self.trainer.callback_connector.attach_model_logging_functions(model)
-
     def on_train_end(self):
         if self._teardown_already_run:
             return
@@ -143,15 +128,6 @@ class TrainLoop:
             if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
                 rank_zero_info("Saving latest checkpoint...")
 
-            model = self.trainer.lightning_module
-
-            for cb in callbacks:
-                cb.on_validation_end(self.trainer, model)
-
-    def check_early_stopping_callback(self, should_update):
-        # TODO bake this logic into the EarlyStopping callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
-            callbacks = [c for c in self.trainer.callbacks if isinstance(c, EarlyStopping)]
             model = self.trainer.lightning_module
 
             for cb in callbacks:
@@ -468,8 +444,10 @@ class TrainLoop:
         dataloader_idx = 0
         val_loop_called = False
 
-        for batch_idx, (batch, is_last_batch) in train_dataloader:
+        batch_idx = None
+        is_last_batch = None
 
+        for batch_idx, (batch, is_last_batch) in train_dataloader:
             self.trainer.batch_idx = batch_idx
             self.trainer.is_last_batch = is_last_batch
 
@@ -540,6 +518,10 @@ class TrainLoop:
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 
+        if batch_idx is None:
+            # dataloader/iterator did not produce a batch
+            return
+
         # handle epoch_output on epoch end
         self.on_train_epoch_end(epoch_output)
 
@@ -556,7 +538,6 @@ class TrainLoop:
 
         if should_train_only:
             self.check_checkpoint_callback(True)
-            self.check_early_stopping_callback(True)
 
         if should_check_val:
             self.trainer.validating = True
