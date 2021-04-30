@@ -18,7 +18,6 @@ import os
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
@@ -373,7 +372,9 @@ class DeepSpeedPlugin(DDPPlugin):
     def _initialize_deepspeed_train(self, model):
         optimizer, lightning_scheduler, optimizer_frequencies = None, None, None
 
-        deepspeed.zero.Init(module=model, remote_device=self.remote_device, pin_memory=True, config=self.config)
+        if self.zero_stage_3:
+            # Ensure the entire model has been moved to the appropriate device
+            deepspeed.zero.Init(module=model, remote_device=self.remote_device, pin_memory=True, config=self.config)
 
         if "optimizer" not in self.config:
             rank_zero_info(
