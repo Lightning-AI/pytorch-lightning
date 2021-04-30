@@ -514,7 +514,8 @@ def prefetch_iterator(iterable: Iterable) -> Generator[Tuple[Any, bool], None, N
     """
     Returns an iterator that pre-fetches and caches the next item.
     The values are passed through from the given iterable with an added boolean indicating if this is the last item.
-    See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_"""
+    See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
+    """
     it = iter(iterable)
 
     try:
