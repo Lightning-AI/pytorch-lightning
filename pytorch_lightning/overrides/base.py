@@ -52,6 +52,9 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
+    def on_post_move_to_device(self) -> None:
+        pass
+
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
     """
