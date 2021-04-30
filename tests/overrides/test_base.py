@@ -37,8 +37,8 @@ def test_wrapper_device_dtype(wrapper_class):
 
 def test_unwrap_lightning_module():
     model = BoringModel()
-    wrapped_model = _LightningModuleWrapperBase(model)
+    wrapped_model = _LightningPrecisionModuleWrapperBase(model)
+    wrapped_model = _LightningModuleWrapperBase(wrapped_model)
     wrapped_model = DataParallel(wrapped_model)
-    wrapped_model = _LightningPrecisionModuleWrapperBase(wrapped_model)
 
     assert unwrap_lightning_module(wrapped_model) == model
