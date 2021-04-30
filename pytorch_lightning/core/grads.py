@@ -16,7 +16,6 @@ Module to describe gradients. This class is deprecated in v1.3 and will be remov
 """
 from typing import Dict, Union
 
-import torch
 from torch.nn import Module
 
 from pytorch_lightning.utilities.distributed import rank_zero_deprecation
