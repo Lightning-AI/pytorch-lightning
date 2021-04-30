@@ -312,12 +312,11 @@ class TrainerCallbackHookMixin(ABC):
                 f"Please, add the following callbacks: {list(difference)}. ", UserWarning
             )
 
-        if callback_states is not None:
-            for callback in self.callbacks:
-                state = callback_states.get(type(callback))
-                if state:
-                    state = deepcopy(state)
-                    callback.on_load_checkpoint(state)
+        for callback in self.callbacks:
+            state = callback_states.get(type(callback))
+            if state:
+                state = deepcopy(state)
+                callback.on_load_checkpoint(state)
 
     def on_after_backward(self):
         """
