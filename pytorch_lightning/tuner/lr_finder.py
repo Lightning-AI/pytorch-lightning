@@ -247,7 +247,7 @@ def lr_find(
     model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
 
     # Fit, lr & loss logged in callback
-    trainer.tuner._launch(model)
+    trainer.tuner._run(model)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:

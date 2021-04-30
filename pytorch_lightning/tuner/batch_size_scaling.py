@@ -147,7 +147,7 @@ def _run_power_scaling(
         trainer.global_step = 0  # reset after each try
         try:
             # Try fit
-            trainer.tuner._launch(model)
+            trainer.tuner._run(model)
             # Double in size
             new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
         except RuntimeError as exception:
@@ -178,7 +178,7 @@ def _run_binsearch_scaling(
         trainer.global_step = 0  # reset after each try
         try:
             # Try fit
-            trainer.tuner._launch(model)
+            trainer.tuner._run(model)
             count += 1
             if count > max_trials:
                 break

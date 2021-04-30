@@ -410,7 +410,7 @@ class Trainer(
         # Callback system
         self.on_init_end()
 
-    def _launch(self, model: LightningModule) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def _run(self, model: LightningModule) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         # clean hparams
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
@@ -865,7 +865,7 @@ class Trainer(
             model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        self._launch(model)
+        self._run(model)
 
         assert self.state.stopped
         self.training = False
@@ -925,7 +925,7 @@ class Trainer(
             self.validated_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run validate
-        results = self._launch(model)
+        results = self._run(model)
 
         assert self.state.stopped
         self.validating = False
@@ -984,7 +984,7 @@ class Trainer(
             self.tested_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         # run test
-        results = self._launch(model)
+        results = self._run(model)
 
         assert self.state.stopped
         self.testing = False
@@ -1072,7 +1072,7 @@ class Trainer(
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        results = self._launch(model)
+        results = self._run(model)
 
         assert self.state.stopped
         self.predicting = False
