@@ -19,7 +19,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-
+from collections import defaultdict
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
@@ -28,6 +28,7 @@ from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 if _NATIVE_AMP_AVAILABLE:
     from torch.cuda.amp import GradScaler
@@ -102,14 +103,20 @@ class Accelerator:
 
     def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
-        for opt in self.optimizers:
-            opt.load_state_dict(move_data_to_device(opt.state_dict(), device=self.root_device))
+        self.move_optimizer_state()
 
         self.training_type_plugin.pre_dispatch()
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
 
         self.precision_plugin.pre_dispatch()
+
+    def move_optimizer_state(self):
+        for opt in self.optimizers:
+            state = defaultdict(dict)
+            for p, v in opt.state.items():
+                state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
+            opt.state = state
 
     def post_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
