@@ -17,7 +17,7 @@ import functools
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import rank_zero_only
@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.argparse import add_argparse_args, from_argpars
 
 class _DataModuleWrapper(type):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.__has_added_checks = False
 
@@ -58,7 +58,7 @@ def track_data_hook_calls(fn):
     - When ``dm.prepare_data()`` is called, ``dm.has_prepared_data`` gets set to True
     - When ``dm.setup()``, ``dm.has_setup_{fit,validate,test}`` get set to True
     - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
-        Its corresponding `dm_has_setup_{stage}` attribute gets set to True
+      Its corresponding `dm_has_setup_{stage}` attribute gets set to True
     - ``dm.teardown()`` and ``dm.teardown(stage)`` act exactly like ``dm.setup``
 
     Args:
@@ -319,11 +319,12 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         Args:
             args: The parser or namespace to take arguments from. Only known arguments will be
-             parsed and passed to the :class:`LightningDataModule`.
+                parsed and passed to the :class:`LightningDataModule`.
             **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
-             These must be valid DataModule arguments.
+                These must be valid DataModule arguments.
 
         Example::
+
             parser = ArgumentParser(add_help=False)
             parser = LightningDataModule.add_argparse_args(parser)
             module = LightningDataModule.from_argparse_args(args)
@@ -362,7 +363,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         """
 
-        def dataloader(ds, shuffle=False):
+        def dataloader(ds: Dataset, shuffle: bool = False) -> DataLoader:
+            shuffle &= not isinstance(ds, IterableDataset)
             return DataLoader(
                 ds,
                 batch_size=batch_size,

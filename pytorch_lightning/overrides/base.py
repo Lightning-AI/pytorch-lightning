@@ -21,7 +21,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
 
-class _LightningPrecisionModuleWrapperBase(torch.nn.Module):
+class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
     """
     Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can safely
     be wrapped by a ``_LightningModuleWrapperBase``.
@@ -33,6 +33,9 @@ class _LightningPrecisionModuleWrapperBase(torch.nn.Module):
     def __init__(self, pl_module: LightningModule):
         super().__init__()
         self.module = pl_module
+
+        # set the parameters_to_ignore from LightningModule.
+        self._ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
 
     def training_step(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
@@ -66,6 +69,9 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
     def __init__(self, pl_module: Union[LightningModule, _LightningPrecisionModuleWrapperBase]):
         super().__init__()
         self.module = pl_module
+
+        # set the parameters_to_ignore from LightningModule.
+        self._ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
 
     @property
     def lightning_module(self) -> LightningModule:

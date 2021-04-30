@@ -14,7 +14,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -32,7 +32,7 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
@@ -57,7 +57,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
-        **kwargs: Union[Any, Dict[str, Any]],
+        **kwargs: Any,
     ):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.num_nodes = num_nodes
@@ -132,10 +132,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue
 
-        # TODO: check if needed
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
+        reset_seed()
 
         self.set_world_ranks(process_idx)
 
@@ -237,9 +234,6 @@ class DDPSpawnPlugin(ParallelPlugin):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
-
-    def on_save(self, checkpoint: dict) -> dict:
-        return checkpoint
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback

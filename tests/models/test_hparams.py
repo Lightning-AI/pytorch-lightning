@@ -562,7 +562,7 @@ class SuperClassPositionalArgs(BoringModel):
 class SubClassVarArgs(SuperClassPositionalArgs):
     """ Loading this model should accept hparams and init in the super class """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
 

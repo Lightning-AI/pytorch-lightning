@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Sequence, Tuple
+from contextlib import contextmanager
+from functools import wraps
+from typing import Any, Generator, List, Sequence, Tuple
 
 import torch
 import torch.nn as nn
@@ -88,9 +90,9 @@ class DoublePrecisionPlugin(PrecisionPlugin):
     def connect(
         self,
         model: nn.Module,
-        optimizers: Sequence[Optimizer],
-        lr_schedulers: Sequence[Any],
-    ) -> Tuple['Module', Sequence['Optimizer'], Sequence[Any]]:
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple['Module', List['Optimizer'], List[Any]]:
         """Converts the model to double precision and wraps it in a ``LightningDoublePrecisionModule`` to convert
         incoming floating point data to double (``torch.float64``) precision. Does not alter `optimizers` or
         `lr_schedulers`.
@@ -99,3 +101,43 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         model = LightningDoublePrecisionModule(model)
 
         return super().connect(model, optimizers, lr_schedulers)
+
+    @contextmanager
+    def train_step_context(self) -> Generator[None, None, None]:
+        """
+        A context manager to change the default tensor type.
+        See: :meth:`torch.set_default_tensor_type`
+        """
+        torch.set_default_tensor_type(torch.DoubleTensor)
+        yield
+        torch.set_default_tensor_type(torch.FloatTensor)
+
+    @contextmanager
+    def val_step_context(self) -> Generator[None, None, None]:
+        """
+        A context manager to change the default tensor type.
+        See: :meth:`torch.set_default_tensor_type`
+        """
+        torch.set_default_tensor_type(torch.DoubleTensor)
+        yield
+        torch.set_default_tensor_type(torch.FloatTensor)
+
+    @contextmanager
+    def test_step_context(self) -> Generator[None, None, None]:
+        """
+        A context manager to change the default tensor type.
+        See: :meth:`torch.set_default_tensor_type`
+        """
+        torch.set_default_tensor_type(torch.DoubleTensor)
+        yield
+        torch.set_default_tensor_type(torch.FloatTensor)
+
+    @contextmanager
+    def predict_step_context(self) -> Generator[None, None, None]:
+        """
+        A context manager to change the default tensor type.
+        See: :meth:`torch.set_default_tensor_type`
+        """
+        torch.set_default_tensor_type(torch.DoubleTensor)
+        yield
+        torch.set_default_tensor_type(torch.FloatTensor)

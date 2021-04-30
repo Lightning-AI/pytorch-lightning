@@ -102,6 +102,8 @@ Lightning adds the correct samplers when needed, so no need to explicitly add sa
 .. note::
     By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
     ``drop_last`` in :class:`~torch.utils.data.distributed.DistributedSampler` will be set to its default value in PyTorch.
+    If you called :func:`~pytorch_lightning.utilities.seed.seed_everyting`, Lightning will set the same seed for the
+    sampler.
 
 .. note:: You can disable this behavior with ``Trainer(replace_sampler_ddp=False)``
 
@@ -280,7 +282,10 @@ Data Parallel
 That is, if you have a batch of 32 and use DP with 2 gpus, each GPU will process 16 samples,
 after which the root node will aggregate the results.
 
-.. warning:: DP use is discouraged by PyTorch and Lightning. Use DDP which is more stable and at least 3x faster
+.. warning:: DP use is discouraged by PyTorch and Lightning. State is not maintained on the replicas created by the
+    :class:`~torch.nn.DataParallel` wrapper and you may see errors or misbehavior if you assign state to the module
+    in the ``forward()`` or ``*_step()`` methods. For the same reason we do cannot fully support
+    :ref:`manual_optimization` with DP. Use DDP which is more stable and at least 3x faster.
 
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
@@ -673,7 +678,7 @@ To use Sharded Training, you need to first install FairScale using the command b
 .. code-block:: python
 
     # train using Sharded DDP
-    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
+    trainer = Trainer(plugins='ddp_sharded')
 
 Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 

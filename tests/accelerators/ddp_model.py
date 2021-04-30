@@ -25,7 +25,7 @@ from tests.helpers.simple_models import ClassificationModel
 
 
 def main():
-    seed_everything(1234)
+    seed_everything(4321)
 
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parser)
