@@ -1,6 +1,7 @@
 .. testsetup:: *
 
     from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.core.lightning import LightningModule
 
 .. _training_tricks:
 
@@ -141,10 +142,6 @@ The algorithm in short works by:
           strategy.
     3. The found batch size is saved to either `model.batch_size` or `model.hparams.batch_size`
     4. Restore the initial state of model and trainer
-
-.. autoclass:: pytorch_lightning.tuner.tuning.Tuner
-   :noindex:
-   :members: scale_batch_size
 
 .. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
 
