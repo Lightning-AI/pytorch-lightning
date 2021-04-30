@@ -17,12 +17,6 @@
             decoder_layers: List[int] = [2, 4],
             batch_size: int = 8,
         ):
-            """Example encoder-decoder model
-
-            Args:
-                encoder_layers: Number of layers for the encoder
-                decoder_layers: Number of layers for each decoder block
-            """
             pass
 
     class MyDataModule(LightningDataModule):
@@ -375,13 +369,17 @@ before and after the execution of fit. The code would be something like:
     cli = MyLightningCLI(MyModel)
 
 Note that the config object :code:`self.config` is a dictionary whose keys are global options or groups of options. It
-has the same structure as the yaml format as described previously. This means for instance that the parameters used for
+has the same structure as the yaml format described previously. This means for instance that the parameters used for
 instantiating the trainer class can be found in :code:`self.config['trainer']`.
 
 Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` could be that
 the model and data module depend on a common parameter. For example in some cases both classes require to know the
 :code:`batch_size`. It is a burden to be required to give the same value twice in a config file. Thus the parser can be
 configured so that a value is only given once and then propagated to both classes.
+
+.. testsetup::
+
+    MyModel = MyModelBaseClass
 
 .. testcode::
 
@@ -408,9 +406,13 @@ config. In the help of the tool it can be observed the arguments that are linked
         model.batch_size <= data.batch_size
                               (type: int)
 
-The linking of arguments can be used for more complex cases. For example derive a value via a function that takes
-multiple settings as input. For more details have a look at the API of `link_arguments
-<https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
+.. tip::
 
-For more advanced use cases, other methods of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class could be
-extended. For further information have a look at the corresponding API reference.
+    The linking of arguments can be used for more complex cases. For example derive a value via a function that takes
+    multiple settings as input. For more details have a look at the API of `link_arguments
+    <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
+
+.. tip::
+
+    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to see other
+    methods that could be extended to customize a CLI.

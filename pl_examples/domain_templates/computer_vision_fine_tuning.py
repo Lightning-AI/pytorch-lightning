@@ -39,7 +39,6 @@ Note:
 """
 
 import logging
-import os
 from pathlib import Path
 from typing import Union
 
@@ -293,7 +292,7 @@ class MyLightningCLI(LightningCLI):
 
 
 def cli_main():
-    cli = MyLightningCLI(TransferLearningModel, CatDogImageDataModule, seed_everything_default=1234)
+    MyLightningCLI(TransferLearningModel, CatDogImageDataModule, seed_everything_default=1234)
 
 
 if __name__ == "__main__":
