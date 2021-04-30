@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-from pytorch_lightning.callbacks.base import Callback
 from unittest import mock
 
 import pytest
