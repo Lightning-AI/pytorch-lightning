@@ -119,7 +119,7 @@ class Accelerator:
                 state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
             opt.state = state
 
-   def dispatch(self, trainer: 'pl.Trainer') -> None:
+    def dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
         self.training_type_plugin.dispatch(trainer)
         self.precision_plugin.dispatch(trainer)
