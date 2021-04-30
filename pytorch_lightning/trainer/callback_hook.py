@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Type
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -296,23 +296,38 @@ class TrainerCallbackHookMixin(ABC):
 
     def on_load_checkpoint(self, checkpoint):
         """Called when loading a model checkpoint."""
-        callback_states = checkpoint.get('callbacks')
+
         # Todo: the `callback_states` are dropped with TPUSpawn as they
         # can't be saved using `xm.save`
         # https://github.com/pytorch/xla/issues/2773
-        if callback_states is not None:
-            for callback in self.callbacks:
-                state = deepcopy(callback_states.get(type(callback)))
-                if state:
-                    if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
-                        rank_zero_deprecation(
-                            "`Callback.on_load_checkpoint` signature has changed in v1.3."
-                            " `trainer` and `pl_module` parameters have been added."
-                            " Support for the old signature will be removed in v1.5"
-                        )
-                        callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
-                    else:
-                        callback.on_load_checkpoint(self, self.lightning_module, state)
+        callback_states = checkpoint.get('callbacks')
+
+        if callback_states is None:
+            return
+
+        current_callbacks_type = {type(cb) for cb in self.callbacks}
+        saved_callbacks_type = set(callback_states.keys())
+        difference = saved_callbacks_type.difference(current_callbacks_type)
+        if difference:
+            rank_zero_warn(
+                "Be aware that when using ``resume_from_checkpoint``, "
+                "callbacks used to create the checkpoint need to be provided. "
+                f"Please, add the following callbacks: {list(difference)}. ", UserWarning
+            )
+
+        for callback in self.callbacks:
+            state = callback_states.get(type(callback))
+            if state:
+                state = deepcopy(state)
+                if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
+                    rank_zero_deprecation(
+                        "`Callback.on_load_checkpoint` signature has changed in v1.3."
+                        " `trainer` and `pl_module` parameters have been added."
+                        " Support for the old signature will be removed in v1.5"
+                    )
+                    callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
+                else:
+                    callback.on_load_checkpoint(self, self.lightning_module, state)
 
     def on_after_backward(self):
         """
