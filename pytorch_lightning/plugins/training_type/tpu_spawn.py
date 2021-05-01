@@ -209,7 +209,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
 
         # load last weights
-        if last_path is not None and self.global_rank == 0 and self.lightning_module.trainer.state == TrainerState.FITTING:
+        if last_path is not None and self.global_rank == 0 and \
+            self.lightning_module.trainer.state == TrainerState.FITTING:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 
