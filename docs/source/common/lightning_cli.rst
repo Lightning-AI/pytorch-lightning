@@ -115,7 +115,7 @@ The start of a possible implementation of :class:`MyModel` including the recomme
 docstring could be the one below. Note that by using type hints and docstrings there is no need to duplicate this
 information to define its configurable arguments.
 
-.. testcode::
+.. testcode:: mymodel
 
     class MyModel(LightningModule):
 
@@ -372,14 +372,11 @@ Note that the config object :code:`self.config` is a dictionary whose keys are g
 has the same structure as the yaml format described previously. This means for instance that the parameters used for
 instantiating the trainer class can be found in :code:`self.config['trainer']`.
 
-Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` could be that
-the model and data module depend on a common parameter. For example in some cases both classes require to know the
-:code:`batch_size`. It is a burden to be required to give the same value twice in a config file. Thus the parser can be
-configured so that a value is only given once and then propagated to both classes.
-
-.. testsetup::
-
-    MyModel = MyModelBaseClass
+Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
+model and data module depend on a common parameter. For example in some cases both classes require to know the
+:code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
+parser can be configured so that a value is only given once and then propagated accordingly. With a tool implemented
+like shown below, the :code:`batch_size` would only has to be provided in the :code:`data` section of the config.
 
 .. testcode::
 
@@ -392,8 +389,7 @@ configured so that a value is only given once and then propagated to both classe
 
     cli = MyLightningCLI(MyModel, MyDataModule)
 
-With a tool implemented like this, the :code:`batch_size` would only be provided in the :code:`data` section of the
-config. In the help of the tool it can be observed the arguments that are linked.
+The linking of arguments is observed in the help of the tool, which for this example would be like:
 
 .. code-block:: bash
 
@@ -404,15 +400,15 @@ config. In the help of the tool it can be observed the arguments that are linked
 
       Linked arguments:
         model.batch_size <= data.batch_size
-                              (type: int)
+                              Number of samples in a batch (type: int)
 
 .. tip::
 
-    The linking of arguments can be used for more complex cases. For example derive a value via a function that takes
+    The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
     multiple settings as input. For more details have a look at the API of `link_arguments
     <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
 
 .. tip::
 
-    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to see other
-    methods that could be extended to customize a CLI.
+    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
+    methods that can be extended to customize a CLI.
