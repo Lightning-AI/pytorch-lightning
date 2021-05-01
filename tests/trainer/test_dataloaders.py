@@ -31,7 +31,7 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.runif import RunIf
 
 
@@ -234,59 +234,160 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
 
 
 @pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
-    (0.0, 0.0, 0.0),
+    (0., 0., 0.),
     (1.0, 1.0, 1.0),
 ])
 def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
-    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit in percent"""
-    model = EvalModelTemplate()
-    model.train_dataloader = model.train_dataloader__infinite
-    model.val_dataloader = model.val_dataloader__infinite
-    model.test_dataloader = model.test_dataloader__infinite
 
+    class DummyModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log("loss", self.global_step)
+            return super().training_step(batch, batch_idx)
+
+        def validation_epoch_end(self, outputs):
+            self.log("val_log", self.current_epoch)
+
+    import logging
+
+    class EpochCounter(Callback):
+
+        def __init__(self):
+            super().__init__()
+            self.train_epoch_count = 0
+            self.val_epoch_count = 0
+            self.test_epoch_count = 0
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            logging.error("on train epoch start")
+            if not trainer.sanity_checking:
+                self.train_epoch_count += 1
+
+        def on_validation_epoch_start(self, trainer, pl_module):
+            logging.error("on val epoch start")
+            if not trainer.sanity_checking:
+                self.val_epoch_count += 1
+
+        def on_test_epoch_start(self, trainer, pl_module):
+            logging.error("on test epoch start")
+            if not trainer.sanity_checking:
+                self.test_epoch_count += 1
+
+    ckpt_callback = ModelCheckpoint(monitor=f"val_log", save_top_k=1, mode="max", verbose=False)
+    epoch_cb = EpochCounter()
     trainer = Trainer(
-        default_root_dir=tmpdir,
         max_epochs=1,
+        callbacks=[epoch_cb, ckpt_callback],
         limit_train_batches=limit_train_batches,
         limit_val_batches=limit_val_batches,
         limit_test_batches=limit_test_batches,
     )
+    model = DummyModel()
 
-    trainer.fit(model)
+    batch_size = 8
+    train_dl = DataLoader(dataset=RandomIterableDataset(32, 128), batch_size=batch_size)
+    val_dl = DataLoader(dataset=RandomIterableDataset(32, 128), batch_size=batch_size)
+    test_dl = DataLoader(dataset=RandomIterableDataset(32, 128), batch_size=batch_size)
+
+    num_batches = 128 / batch_size
+    for dl in (train_dl, val_dl, test_dl):
+        if has_len(dl):
+            assert len(dl) == num_batches
+        else:
+            assert sum(1 for _ in dl) == num_batches
+
+    trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.num_training_batches == (0 if limit_train_batches == 0.0 else float('inf'))
+    assert epoch_cb.train_epoch_count == int(limit_train_batches > 0)
     assert trainer.num_val_batches[0] == (0 if limit_val_batches == 0.0 else float('inf'))
+    assert epoch_cb.val_epoch_count == int(limit_val_batches > 0)
 
-    trainer.test(ckpt_path=None)
+    trainer.test(model, test_dataloaders=test_dl)
     assert trainer.num_test_batches[0] == (0 if limit_test_batches == 0.0 else float('inf'))
+    assert epoch_cb.test_epoch_count == int(limit_test_batches > 0)
 
 
-@pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
-    (0, 0, 0),
-    (10, 10, 10),
+@pytest.mark.parametrize(['dataset', 'limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
+    (RandomDataset(32, 128), 0, 0, 0),
+    (RandomDataset(32, 128), 10, 10, 10),
+    (RandomIterableDataset(32, 128), 0, 0, 0),
+    (RandomIterableDataset(32, 128), 10, 10, 10),
+    (RandomIterableDatasetWithLen(32, 128), 0, 0, 0),
+    (RandomIterableDatasetWithLen(32, 128), 10, 10, 10),
 ])
-def test_inf_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
+def test_datasets_dataloaders_with_limit_num_batches(
+    tmpdir, dataset, limit_train_batches, limit_val_batches, limit_test_batches
+):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
-    model = EvalModelTemplate()
-    model.train_dataloader = model.train_dataloader__infinite
-    model.val_dataloader = model.val_dataloader__infinite
-    model.test_dataloader = model.test_dataloader__infinite
 
+    class BasicModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log("loss", self.global_step)
+            return super().training_step(batch, batch_idx)
+
+        def validation_epoch_end(self, outputs):
+            self.log("val_log", self.current_epoch)
+
+    import logging
+
+    class EpochCounter(Callback):
+
+        def __init__(self):
+            super().__init__()
+            self.train_epoch_count = 0
+            self.val_epoch_count = 0
+            self.test_epoch_count = 0
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            logging.error("on train epoch start")
+            if not trainer.sanity_checking:
+                self.train_epoch_count += 1
+
+        def on_validation_epoch_start(self, trainer, pl_module):
+            logging.error("on val epoch start")
+            if not trainer.sanity_checking:
+                self.val_epoch_count += 1
+
+        def on_test_epoch_start(self, trainer, pl_module):
+            logging.error("on test epoch start")
+            if not trainer.sanity_checking:
+                self.test_epoch_count += 1
+
+    ckpt_callback = ModelCheckpoint(monitor=f"val_log", save_top_k=1, mode="max", verbose=False)
+    epoch_cb = EpochCounter()
     trainer = Trainer(
-        default_root_dir=tmpdir,
         max_epochs=1,
+        callbacks=[epoch_cb, ckpt_callback],
         limit_train_batches=limit_train_batches,
-        limit_val_batches=limit_val_batches,
+        limit_val_batches=limit_val_batches,  # If added changes error - Checkpoint `MisconfigurationError` if provided.
         limit_test_batches=limit_test_batches,
     )
+    model = BasicModel()
 
-    trainer.fit(model)
+    batch_size = 8
+    train_dl = DataLoader(dataset=dataset, batch_size=batch_size)
+    val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
+    test_dl = DataLoader(dataset=dataset, batch_size=batch_size)
+
+    num_batches = 128 / batch_size
+    for dl in (train_dl, val_dl, test_dl):
+        if has_len(dl):
+            assert len(dl) == num_batches
+        else:
+            assert sum(1 for _ in dl) == num_batches
+
+    trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.num_training_batches == limit_train_batches
     assert trainer.num_val_batches[0] == limit_val_batches
+    assert epoch_cb.train_epoch_count == int(limit_train_batches > 0)
+    assert epoch_cb.val_epoch_count == int(limit_val_batches > 0)
 
-    trainer.test(ckpt_path=None)
+    trainer.test(model, test_dataloaders=test_dl)
     assert trainer.num_test_batches[0] == limit_test_batches
+    assert epoch_cb.test_epoch_count == int(limit_test_batches > 0)
 
 
 @pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
