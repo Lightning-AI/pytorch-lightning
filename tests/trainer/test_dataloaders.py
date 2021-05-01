@@ -270,7 +270,7 @@ class EpochCounter(Callback):
 ])
 def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
 
-    ckpt_callback = ModelCheckpoint(monitor=f"val_log", save_top_k=1, mode="max", verbose=False)
+    ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = EpochCounter()
     trainer = Trainer(
         max_epochs=1,
@@ -318,7 +318,7 @@ def test_datasets_dataloaders_with_limit_num_batches(
 ):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
 
-    ckpt_callback = ModelCheckpoint(monitor=f"val_log", save_top_k=1, mode="max", verbose=False)
+    ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = EpochCounter()
     trainer = Trainer(
         max_epochs=1,
@@ -327,7 +327,7 @@ def test_datasets_dataloaders_with_limit_num_batches(
         limit_val_batches=limit_val_batches,
         limit_test_batches=limit_test_batches,
     )
-    model = BasicModel()
+    model = DummyModel()
 
     batch_size = 8
     train_dl = DataLoader(dataset=dataset, batch_size=batch_size)
