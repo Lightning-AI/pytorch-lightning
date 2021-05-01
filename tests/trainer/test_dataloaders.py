@@ -243,17 +243,32 @@ class DummyModel(BoringModel):
         self.log("val_log", self.current_epoch)
 
 
-class EpochCounter(Callback):
+class Counter(Callback):
 
     def __init__(self):
         super().__init__()
         self.train_epoch_count = 0
         self.val_epoch_count = 0
         self.test_epoch_count = 0
+        self.train_batches_seen = 0
+        self.val_batches_seen = 0
+        self.test_batches_seen = 0
+
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        if not trainer.sanity_checking:
+            self.train_batches_seen += 1
 
     def on_train_epoch_start(self, trainer, pl_module):
         if not trainer.sanity_checking:
             self.train_epoch_count += 1
+
+    def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        if not trainer.sanity_checking:
+            self.val_batches_seen += 1
+
+    def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        if not trainer.sanity_checking:
+            self.test_batches_seen += 1
 
     def on_validation_epoch_start(self, trainer, pl_module):
         if not trainer.sanity_checking:
@@ -271,7 +286,7 @@ class EpochCounter(Callback):
 def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
 
     ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
-    epoch_cb = EpochCounter()
+    epoch_cb = Counter()
     trainer = Trainer(
         max_epochs=1,
         callbacks=[epoch_cb, ckpt_callback],
@@ -319,7 +334,7 @@ def test_datasets_dataloaders_with_limit_num_batches(
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
 
     ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
-    epoch_cb = EpochCounter()
+    epoch_cb = Counter()
     epochs = 2
     trainer = Trainer(
         max_epochs=epochs,
@@ -340,7 +355,9 @@ def test_datasets_dataloaders_with_limit_num_batches(
     assert trainer.num_training_batches == limit_train_batches
     assert trainer.num_val_batches[0] == limit_val_batches
     assert epoch_cb.train_epoch_count == (epochs if limit_train_batches > 0 else 0)
+    assert epoch_cb.train_batches_seen == limit_train_batches * epochs
     assert epoch_cb.val_epoch_count == (epochs if limit_val_batches > 0 else 0)
+    assert epoch_cb.val_batches_seen == limit_val_batches * epochs
 
     trainer.test(model, test_dataloaders=test_dl)
     assert trainer.num_test_batches[0] == limit_test_batches
