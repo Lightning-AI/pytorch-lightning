@@ -320,8 +320,9 @@ def test_datasets_dataloaders_with_limit_num_batches(
 
     ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = EpochCounter()
+    epochs = 2
     trainer = Trainer(
-        max_epochs=1,
+        max_epochs=epochs,
         callbacks=[epoch_cb, ckpt_callback],
         limit_train_batches=limit_train_batches,
         limit_val_batches=limit_val_batches,
@@ -338,8 +339,8 @@ def test_datasets_dataloaders_with_limit_num_batches(
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.num_training_batches == limit_train_batches
     assert trainer.num_val_batches[0] == limit_val_batches
-    assert epoch_cb.train_epoch_count == int(limit_train_batches > 0)
-    assert epoch_cb.val_epoch_count == int(limit_val_batches > 0)
+    assert epoch_cb.train_epoch_count == (epochs if limit_train_batches > 0 else 0)
+    assert epoch_cb.val_epoch_count == (epochs if limit_val_batches > 0 else 0)
 
     trainer.test(model, test_dataloaders=test_dl)
     assert trainer.num_test_batches[0] == limit_test_batches
