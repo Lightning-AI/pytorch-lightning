@@ -455,11 +455,6 @@ class TrainLoop:
         is_last_batch = None
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
-
-            if isinstance(self.trainer.limit_train_batches, int):
-                limit_reached = (batch_idx + 1) % self.trainer.limit_train_batches == 0
-                is_last_batch = is_last_batch or limit_reached
-
             self.trainer.batch_idx = batch_idx
             self.trainer.is_last_batch = is_last_batch
 
@@ -845,7 +840,7 @@ class TrainLoop:
         # around limit_train_batches and val_check_interval
         # not the dataloading mixin
         is_val_check_batch = False
-        if isinstance(self.trainer.limit_train_batches, int):
+        if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float('inf'):
             is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
