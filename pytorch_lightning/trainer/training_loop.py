@@ -455,6 +455,11 @@ class TrainLoop:
         is_last_batch = None
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
+
+            if isinstance(self.trainer.limit_train_batches, int):
+                limit_reached = (batch_idx + 1) % self.trainer.limit_train_batches == 0
+                is_last_batch = is_last_batch or limit_reached
+
             self.trainer.batch_idx = batch_idx
             self.trainer.is_last_batch = is_last_batch
 
@@ -484,7 +489,7 @@ class TrainLoop:
             self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
             # -----------------------------------------
-            # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
+            # VALIDATE IF NEEDED
             # -----------------------------------------
             should_check_val = self._should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
@@ -831,7 +836,7 @@ class TrainLoop:
         if not self.trainer.enable_validation:
             return False
 
-        # check if this epoch eligible to run validation
+        # check if this epoch is eligible to run validation
         if (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
             return False
 
@@ -839,10 +844,11 @@ class TrainLoop:
         # TODO: the training loop should maintain this logic
         # around limit_train_batches and val_check_interval
         # not the dataloading mixin
-        if self.trainer.val_check_batch != float('inf'):
+        is_val_check_batch = False
+        if isinstance(self.trainer.limit_train_batches, int):
+            is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
+        elif self.trainer.val_check_batch != float('inf'):
             is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
-        else:
-            is_val_check_batch = (batch_idx + 1) % self.trainer.num_training_batches == 0
 
         epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
