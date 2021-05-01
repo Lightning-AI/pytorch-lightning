@@ -827,8 +827,11 @@ class TrainLoop:
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
         """ Decide if we should run validation. """
+
         if not self.trainer.enable_validation:
             return False
+
+        # check if this epoch eligible to run validation
         if (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
             return False
 
