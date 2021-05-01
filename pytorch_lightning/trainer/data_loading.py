@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-import logging
 import multiprocessing
 import os
 from abc import ABC
@@ -263,16 +262,10 @@ class TrainerDataLoadingMixin(ABC):
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
 
-        logging.error(
-            f"1: self.num_training_batches={self.num_training_batches}, limit_train_batches={self.limit_train_batches}"
-        )
-
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
-            logging.error(f"2: self.num_training_batches={self.num_training_batches}")
         elif self.num_training_batches != float('inf'):
             self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
-            logging.error(f"3: self.num_training_batches={self.num_training_batches}")
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
                 'When using an IterableDataset for `limit_train_batches`,'
@@ -284,9 +277,7 @@ class TrainerDataLoadingMixin(ABC):
         # if int passed in, val checks that often
         # otherwise, it checks in [0, 1.0] % range of a training epoch
         if isinstance(self.val_check_interval, int):
-            logging.error(f"4: self.val_check_interval={self.val_check_interval}")
             self.val_check_batch = self.val_check_interval
-            logging.error(f"5: self.val_check_batch={self.val_check_batch}")
             if self.val_check_batch > self.num_training_batches:
                 raise ValueError(
                     f'`val_check_interval` ({self.val_check_interval}) must be less than or equal '
@@ -297,7 +288,6 @@ class TrainerDataLoadingMixin(ABC):
             if not has_len(self.train_dataloader):
                 if self.val_check_interval == 1.0:
                     self.val_check_batch = float('inf')
-                    logging.error(f"6: self.val_check_batch={self.val_check_batch}")
                 else:
                     raise MisconfigurationException(
                         'When using an IterableDataset for `train_dataloader`,'
@@ -307,7 +297,6 @@ class TrainerDataLoadingMixin(ABC):
             else:
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
-                logging.error(f"7: self.val_check_batch={self.val_check_batch}")
 
     def _reset_eval_dataloader(
         self,

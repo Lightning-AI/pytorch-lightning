@@ -233,45 +233,42 @@ def test_dataloaders_passed_to_fn(tmpdir, ckpt_path, n):
     assert len(trainer.test_dataloaders) == n
 
 
+class DummyModel(BoringModel):
+
+    def training_step(self, batch, batch_idx):
+        self.log("loss", self.global_step)
+        return super().training_step(batch, batch_idx)
+
+    def validation_epoch_end(self, outputs):
+        self.log("val_log", self.current_epoch)
+
+
+class EpochCounter(Callback):
+
+    def __init__(self):
+        super().__init__()
+        self.train_epoch_count = 0
+        self.val_epoch_count = 0
+        self.test_epoch_count = 0
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        if not trainer.sanity_checking:
+            self.train_epoch_count += 1
+
+    def on_validation_epoch_start(self, trainer, pl_module):
+        if not trainer.sanity_checking:
+            self.val_epoch_count += 1
+
+    def on_test_epoch_start(self, trainer, pl_module):
+        if not trainer.sanity_checking:
+            self.test_epoch_count += 1
+
+
 @pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
     (0., 0., 0.),
     (1.0, 1.0, 1.0),
 ])
 def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
-
-    class DummyModel(BoringModel):
-
-        def training_step(self, batch, batch_idx):
-            self.log("loss", self.global_step)
-            return super().training_step(batch, batch_idx)
-
-        def validation_epoch_end(self, outputs):
-            self.log("val_log", self.current_epoch)
-
-    import logging
-
-    class EpochCounter(Callback):
-
-        def __init__(self):
-            super().__init__()
-            self.train_epoch_count = 0
-            self.val_epoch_count = 0
-            self.test_epoch_count = 0
-
-        def on_train_epoch_start(self, trainer, pl_module):
-            logging.error("on train epoch start")
-            if not trainer.sanity_checking:
-                self.train_epoch_count += 1
-
-        def on_validation_epoch_start(self, trainer, pl_module):
-            logging.error("on val epoch start")
-            if not trainer.sanity_checking:
-                self.val_epoch_count += 1
-
-        def on_test_epoch_start(self, trainer, pl_module):
-            logging.error("on test epoch start")
-            if not trainer.sanity_checking:
-                self.test_epoch_count += 1
 
     ckpt_callback = ModelCheckpoint(monitor=f"val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = EpochCounter()
@@ -321,47 +318,13 @@ def test_datasets_dataloaders_with_limit_num_batches(
 ):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
 
-    class BasicModel(BoringModel):
-
-        def training_step(self, batch, batch_idx):
-            self.log("loss", self.global_step)
-            return super().training_step(batch, batch_idx)
-
-        def validation_epoch_end(self, outputs):
-            self.log("val_log", self.current_epoch)
-
-    import logging
-
-    class EpochCounter(Callback):
-
-        def __init__(self):
-            super().__init__()
-            self.train_epoch_count = 0
-            self.val_epoch_count = 0
-            self.test_epoch_count = 0
-
-        def on_train_epoch_start(self, trainer, pl_module):
-            logging.error("on train epoch start")
-            if not trainer.sanity_checking:
-                self.train_epoch_count += 1
-
-        def on_validation_epoch_start(self, trainer, pl_module):
-            logging.error("on val epoch start")
-            if not trainer.sanity_checking:
-                self.val_epoch_count += 1
-
-        def on_test_epoch_start(self, trainer, pl_module):
-            logging.error("on test epoch start")
-            if not trainer.sanity_checking:
-                self.test_epoch_count += 1
-
     ckpt_callback = ModelCheckpoint(monitor=f"val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = EpochCounter()
     trainer = Trainer(
         max_epochs=1,
         callbacks=[epoch_cb, ckpt_callback],
         limit_train_batches=limit_train_batches,
-        limit_val_batches=limit_val_batches,  # If added changes error - Checkpoint `MisconfigurationError` if provided.
+        limit_val_batches=limit_val_batches,
         limit_test_batches=limit_test_batches,
     )
     model = BasicModel()
