@@ -334,13 +334,6 @@ def test_datasets_dataloaders_with_limit_num_batches(
     val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
     test_dl = DataLoader(dataset=dataset, batch_size=batch_size)
 
-    num_batches = 128 / batch_size
-    for dl in (train_dl, val_dl, test_dl):
-        if has_len(dl):
-            assert len(dl) == num_batches
-        else:
-            assert sum(1 for _ in dl) == num_batches
-
     trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert trainer.num_training_batches == limit_train_batches
