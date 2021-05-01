@@ -1,7 +1,7 @@
 import time
 
 _this_year = time.strftime("%Y")
-__version__ = '1.3.0rc1'
+__version__ = '1.3.0rc2'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -34,3 +34,13 @@ Documentation
 - https://pytorch-lightning.readthedocs.io/en/latest
 - https://pytorch-lightning.readthedocs.io/en/stable
 """
+
+__all__ = [
+    "__author__",
+    "__author_email__",
+    "__copyright__",
+    "__docs__",
+    "__homepage__",
+    "__license__",
+    "__version__",
+]

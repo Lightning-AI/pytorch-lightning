@@ -147,7 +147,8 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
-        "SLURM_LOCALID": "0"
+        "SLURM_LOCALID": "0",
+        "SLURM_PROCID": "0",
     }
 )
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
@@ -173,7 +174,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
     )
-    _ = trainer.fit(model)
+    trainer.fit(model)
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'

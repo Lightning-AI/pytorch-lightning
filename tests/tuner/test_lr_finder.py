@@ -17,7 +17,7 @@ from copy import deepcopy
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers import BoringModel
@@ -54,7 +54,7 @@ def test_model_reset_correctly(tmpdir):
 
     before_state_dict = deepcopy(model.state_dict())
 
-    _ = trainer.tuner.lr_find(model, num_training=5)
+    trainer.tuner.lr_find(model, num_training=5)
 
     after_state_dict = model.state_dict()
 
@@ -79,20 +79,11 @@ def test_trainer_reset_correctly(tmpdir):
     changed_attributes = [
         'callbacks', 'logger', 'max_steps', 'auto_lr_find', 'accumulate_grad_batches', 'checkpoint_callback'
     ]
-    attributes_before = {}
-    for ca in changed_attributes:
-        attributes_before[ca] = getattr(trainer, ca)
+    expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
+    trainer.tuner.lr_find(model, num_training=5)
+    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
-    _ = trainer.tuner.lr_find(model, num_training=5)
-
-    attributes_after = {}
-    for ca in changed_attributes:
-        attributes_after[ca] = getattr(trainer, ca)
-
-    for key in changed_attributes:
-        assert attributes_before[key] == attributes_after[key], \
-            f'Attribute {key} was not reset correctly after learning rate finder'
-
+    assert actual == expected
     assert model.trainer == trainer
 
 
@@ -179,6 +170,7 @@ def test_call_to_trainer_method(tmpdir, optimizer):
 
 def test_datamodule_parameter(tmpdir):
     """ Test that the datamodule parameter works """
+    seed_everything(1)
 
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -286,12 +278,56 @@ def test_lr_find_with_bs_scale(tmpdir):
     before_lr = model.hparams.learning_rate
 
     # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-    )
-    bs = trainer.tuner.scale_batch_size(model)
-    lr = trainer.tuner.lr_find(model).suggestion()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, auto_lr_find=True, auto_scale_batch_size=True)
+    result = trainer.tune(model)
+    bs = result['scale_batch_size']
+    lr = result['lr_find'].suggestion()
 
     assert lr != before_lr
     assert isinstance(bs, int)
+
+
+def test_lr_candidates_between_min_and_max(tmpdir):
+    """Test that learning rate candidates are between min_lr and max_lr."""
+
+    class TestModel(BoringModel):
+
+        def __init__(self, learning_rate=0.1):
+            super().__init__()
+            self.save_hyperparameters()
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+
+    lr_min = 1e-8
+    lr_max = 1.0
+    lr_finder = trainer.tuner.lr_find(
+        model,
+        max_lr=lr_min,
+        min_lr=lr_max,
+        num_training=3,
+    )
+    lr_candidates = lr_finder.results["lr"]
+    assert all([lr_min <= lr <= lr_max for lr in lr_candidates])
+
+
+def test_lr_finder_ends_before_num_training(tmpdir):
+    """Tests learning rate finder ends before `num_training` steps."""
+
+    class TestModel(BoringModel):
+
+        def __init__(self, learning_rate=0.1):
+            super().__init__()
+            self.save_hyperparameters()
+
+        def training_step_end(self, outputs):
+            assert self.global_step < num_training
+            return outputs
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+    num_training = 3
+    trainer.tuner.lr_find(
+        model=model,
+        num_training=num_training,
+    )

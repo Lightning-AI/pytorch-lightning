@@ -377,7 +377,7 @@ def test_accuracy_metric_horovod():
 
 
 # todo: need to be fixed :]
-@pytest.mark.skip(reason="TODO Breaking CI: Aborted (core dumped)")
+@pytest.mark.skip('TODO: flaky test - Fatal Python error: Aborted')
 @RunIf(skip_windows=True, horovod=True)
 def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 
@@ -409,8 +409,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
             limit_train_batches=0.2,
             accelerator='horovod'
         )
-        results = trainer.fit(model)
-        assert results == 1
+        trainer.fit(model)
 
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups][0]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups][0]
