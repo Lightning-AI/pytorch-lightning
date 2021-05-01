@@ -297,6 +297,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 
+- Fixed dataloading for iterable datasets used with `limit_train_batches` ([#7306](https://github.com/PyTorchLightning/pytorch-lightning/pull/7306))
+
+
 - Fixed attaching train and validation dataloaders when `reload_dataloaders_every_epoch=True` and `num_sanity_val_steps=0` ([#7207](https://github.com/PyTorchLightning/pytorch-lightning/pull/7207))
 
 
