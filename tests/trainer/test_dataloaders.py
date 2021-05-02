@@ -274,7 +274,7 @@ class Counter(Callback):
 
 
 @pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
-    (0., 0., 0.),
+    (0.0, 0.0, 0.0),
     (1.0, 1.0, 1.0),
 ])
 def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
