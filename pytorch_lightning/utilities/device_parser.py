@@ -121,7 +121,6 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
     else:
         num_gpus = int(s.strip())
         if _compare_version("pytorch_lightning", operator.lt, "1.5"):
-            # TODO: remove warning in v1.5 and update docs in docs/advanced/multi-gpu.rst regarding GPU selection
             rank_zero_warn(
                 f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
                 f" In the current version of Lightning, this will select"
