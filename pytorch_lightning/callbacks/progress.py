@@ -20,7 +20,6 @@ Use or override one of the progress bar callbacks.
 """
 import importlib
 import io
-import logging
 import math
 import os
 import sys
