@@ -17,7 +17,7 @@ import functools
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import rank_zero_only
@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.argparse import add_argparse_args, from_argpars
 
 class _DataModuleWrapper(type):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.__has_added_checks = False
 
@@ -319,7 +319,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         Args:
             args: The parser or namespace to take arguments from. Only known arguments will be
-                parsed and passed to the :class:`LightningDataModule`.
+                parsed and passed to the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
             **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
                 These must be valid DataModule arguments.
 
@@ -363,7 +363,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         """
 
-        def dataloader(ds, shuffle=False):
+        def dataloader(ds: Dataset, shuffle: bool = False) -> DataLoader:
+            shuffle &= not isinstance(ds, IterableDataset)
             return DataLoader(
                 ds,
                 batch_size=batch_size,

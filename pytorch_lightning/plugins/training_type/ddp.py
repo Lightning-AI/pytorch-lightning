@@ -282,7 +282,7 @@ class DDPPlugin(ParallelPlugin):
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs):
-        if torch_distrib.is_initialized():
+        if torch_distrib.is_available() and torch_distrib.is_initialized():
             torch_distrib.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:

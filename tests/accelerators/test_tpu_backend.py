@@ -94,8 +94,7 @@ def test_weight_tying_warning(tmpdir, capsys=None):
     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
 
     with pytest.warns(UserWarning, match=r'The model layers do not match after moving to the target device.'):
-        result = trainer.fit(model)
-        assert result
+        trainer.fit(model)
 
 
 # @RunIf(tpu=True)
@@ -106,8 +105,7 @@ def test_weight_tying_warning(tmpdir, capsys=None):
 #     Ensure no warning for parameter mismatch is thrown.
 #     """
 
-#     # TODO (kaushikb11): Add `paramter_validation` specific to
-#     # TPU Accelerators
+#     # TODO (kaushikb11): Add `parameter_validation` specific to TPU Accelerators
 #     class Model(WeightSharingModule):
 
 #         def on_post_move_to_device(self):
@@ -117,8 +115,7 @@ def test_weight_tying_warning(tmpdir, capsys=None):
 #     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
 
 #     with pytest.warns(UserWarning) as warnings:
-#         result = trainer.fit(model)
-#         assert result
+#         trainer.fit(model)
 
 #     assert not list(filter(lambda x: 'The model layers do not match' in str(x), warnings.list))
 #     assert len(trainer.test(model)) == 1

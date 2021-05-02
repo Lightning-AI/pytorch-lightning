@@ -442,3 +442,58 @@ def test_tpu_sync_dist():
         assert res["test_tensor"].item() == 8, "Result-Log does not work properly with TPU Spawn and Tensors"
 
     xmp.spawn(test_sync_dist, nprocs=8, start_method='fork')
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_debug_mode(tmpdir):
+    """Test if debug mode works on TPU."""
+
+    class DebugModel(BoringModel):
+
+        def on_train_start(self):
+            assert os.environ.get("PT_XLA_DEBUG") == str(1), "PT_XLA_DEBUG was not set in environment variables"
+
+        def teardown(self, stage):
+            assert "PT_XLA_DEBUG" not in os.environ
+
+    tutils.reset_seed()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=4,
+        tpu_cores=8,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
+        plugins=TPUSpawnPlugin(debug=True),
+    )
+
+    model = DebugModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_host_world_size(tmpdir):
+    """Test Host World size env setup on TPU."""
+
+    class DebugModel(BoringModel):
+
+        def on_train_start(self):
+            assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
+
+        def teardown(self, stage):
+            assert "XRT_HOST_WORLD_SIZE" not in os.environ
+
+    tutils.reset_seed()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=4,
+        tpu_cores=8,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
+    )
+
+    model = DebugModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
