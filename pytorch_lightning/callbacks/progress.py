@@ -20,6 +20,7 @@ Use or override one of the progress bar callbacks.
 """
 import importlib
 import io
+import logging
 import math
 import os
 import sys
@@ -398,7 +399,7 @@ class ProgressBar(ProgressBarBase):
         super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
-        if total_train_batches != float('inf'):
+        if total_train_batches != float('inf') and total_val_batches != float('inf'):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch

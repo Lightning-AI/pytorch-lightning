@@ -317,6 +317,76 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
     assert epoch_cb.test_epoch_count == int(limit_test_batches > 0)
 
 
+@pytest.mark.parametrize(['dataset', 'limit_train_batches'], [
+    (RandomDataset(32, 128), 0),
+    (RandomDataset(32, 128), 10),
+    (RandomIterableDataset(32, 128), 0),
+    (RandomIterableDataset(32, 128), 10),
+    (RandomIterableDatasetWithLen(32, 128), 0),
+    (RandomIterableDatasetWithLen(32, 128), 10),
+])
+def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batches):
+    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
+
+    ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
+    epoch_cb = Counter()
+    epochs = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        max_epochs=epochs,
+        callbacks=[epoch_cb, ckpt_callback],
+        limit_train_batches=limit_train_batches,
+    )
+    model = DummyModel()
+
+    batch_size = 8
+    train_dl = DataLoader(dataset=dataset, batch_size=batch_size)
+    val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
+
+    trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.num_training_batches == limit_train_batches
+    assert epoch_cb.train_epoch_count == (epochs if limit_train_batches > 0 else 0)
+    assert epoch_cb.train_batches_seen == limit_train_batches * epochs
+
+
+@pytest.mark.parametrize(['dataset', 'limit_val_batches'], [
+    (RandomDataset(32, 128), 0),
+    (RandomDataset(32, 128), 10),
+    (RandomIterableDataset(32, 128), 0),
+    (RandomIterableDataset(32, 128), 10),
+    (RandomIterableDatasetWithLen(32, 128), 0),
+    (RandomIterableDatasetWithLen(32, 128), 10),
+])
+def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
+    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
+
+    epoch_cb = Counter()
+    callbacks = [epoch_cb]
+    if limit_val_batches > 0:
+        callbacks.append(ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False))
+    epochs = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        max_epochs=epochs,
+        callbacks=callbacks,
+        limit_val_batches=limit_val_batches,
+    )
+    model = DummyModel()
+
+    batch_size = 8
+    train_dl = DataLoader(dataset=dataset, batch_size=batch_size)
+    val_dl = DataLoader(dataset=dataset, batch_size=batch_size)
+
+    trainer.fit(model, train_dataloader=train_dl, val_dataloaders=val_dl)
+    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.num_val_batches[0] == limit_val_batches
+    assert epoch_cb.val_epoch_count == (epochs if limit_val_batches > 0 else 0)
+    assert epoch_cb.val_batches_seen == limit_val_batches * epochs
+
+
 @pytest.mark.parametrize(['dataset', 'limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
     (RandomDataset(32, 128), 0, 0, 0),
     (RandomDataset(32, 128), 10, 10, 10),
