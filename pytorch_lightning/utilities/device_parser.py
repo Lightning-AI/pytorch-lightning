@@ -123,7 +123,7 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
         if _compare_version("pytorch_lightning", operator.lt, "1.5"):
             rank_zero_warn(
                 f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
-                f" In the current version of Lightning, this will select"
+                " In the current version of Lightning, this will select"
                 f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
                 f" {list(range(num_gpus))}.",
                 DeprecationWarning,
