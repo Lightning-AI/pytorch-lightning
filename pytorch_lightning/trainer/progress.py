@@ -28,16 +28,13 @@ class LoopProgress:
     total_batches_processed: int = 0
     batches_processed_this_epoch: int = 0
 
-    def bump_batch(self, increment: int = 1) -> None:
-        if increment < 0:
-            raise ValueError(f"Increment must be a non-negative value but received {increment}")
-        self.total_batches_processed += increment
-        self.batches_processed_this_epoch += increment
+    def increment_batch(self) -> None:
+        self.total_batches_processed += 1
+        self.batches_processed_this_epoch += 1
 
-    def bump_epoch(self, increment: int = 1) -> None:
-        if increment < 0:
-            raise ValueError(f"Increment must be a non-negative value but received {increment}")
-        self.total_epochs_processed += increment
+    def increment_epoch(self) -> None:
+        self.total_epochs_processed += 1
+        self.reset_batch_in_epoch()
 
     def reset_batch_in_epoch(self) -> None:
         self.batches_processed_this_epoch = 0
@@ -53,14 +50,16 @@ class TrainLoopProgress(LoopProgress):
     total_optimizer_steps_processed: int = 0
     optimizer_steps_processed_this_epoch: int = 0
 
-    def bump_step(self, increment: int = 1) -> None:
-        if increment < 0:
-            raise ValueError(f"Increment must be a non-negative value but received {increment}")
-        self.total_optimizer_steps_processed += increment
-        self.optimizer_steps_processed_this_epoch += increment
+    def increment_step(self) -> None:
+        self.total_optimizer_steps_processed += 1
+        self.optimizer_steps_processed_this_epoch += 1
 
     def reset_step_in_epoch(self) -> None:
         self.optimizer_steps_processed_this_epoch = 0
+
+    def increment_epoch(self) -> None:
+        super().increment_epoch()
+        self.reset_step_in_epoch()
 
 
 @dataclass

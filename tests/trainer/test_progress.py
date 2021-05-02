@@ -17,68 +17,102 @@ import pytest
 from pytorch_lightning.trainer.progress import LoopProgress, TrainLoopProgress
 
 
-def test_invalid_progress_increment(tmpdir):
-    """ Make sure that a ValueError is raised for a negative increment. """
-    prog = TrainLoopProgress()
-    with pytest.raises(ValueError, match=r'.*Increment must be a non-negative'):
-        prog.bump_batch(-4)
-    with pytest.raises(ValueError, match=r'.*Increment must be a non-negative'):
-        prog.bump_epoch(-1)
-    with pytest.raises(ValueError, match=r'.*Increment must be a non-negative'):
-        prog.bump_step(-100)
-
-
-def test_bump_batch(tmpdir):
-    """ Test sequences for bumping batches. """
+def test_increment_batch(tmpdir):
+    """ Test sequences for incrementing batches. """
     prog = LoopProgress()
-    prog.bump_batch(100)
-    prog.bump_batch()
-    prog.bump_batch(0)
-    assert prog.total_batches_processed == 101
-    assert prog.batches_processed_this_epoch == 101
+    prog.increment_batch()
+    prog.increment_batch()
+    assert prog.total_batches_processed == 2
+    assert prog.batches_processed_this_epoch == 2
 
 
-def test_bump_epoch(tmpdir):
-    """ Test sequences for bumping epochs. """
-    prog = LoopProgress()
-    prog.bump_epoch(0)
-    prog.bump_epoch(4)
-    prog.bump_epoch()
-    assert prog.total_epochs_processed == 5
-
-
-def test_train_bump_step(tmpdir):
+def test_train_increment_step(tmpdir):
     """ Test sequences for bumping steps. """
     prog = TrainLoopProgress()
-    prog.bump_step(0)
-    prog.bump_step(4)
-    prog.bump_step()
-    assert prog.total_optimizer_steps_processed == 5
+    prog.increment_step()
+    assert prog.total_optimizer_steps_processed == 1
+
+
+def test_increment_epoch(tmpdir):
+    """ Test sequences for incrementing epochs. """
+    prog = LoopProgress()
+    prog.increment_epoch()
+    prog.increment_epoch()
+    assert prog.total_epochs_processed == 2
+
+
+def test_increment_batch_epoch(tmpdir):
+    """ Test sequences for incrementing epochs. """
+    prog = LoopProgress()
+    prog.increment_epoch()
+    prog.increment_epoch()
+    assert prog.total_epochs_processed == 2
+
+
+def test_increment_batch_epoch(tmpdir):
+    """ Test sequences for incrementing batches and epochs. """
+    prog = LoopProgress()
+    prog.increment_batch()
+    assert prog.total_batches_processed == 1
+    assert prog.batches_processed_this_epoch == 1
+    prog.increment_epoch()
+    assert prog.total_batches_processed == 1
+    assert prog.batches_processed_this_epoch == 0
+    assert prog.total_epochs_processed == 1
+    prog.increment_batch()
+    assert prog.total_batches_processed == 2
+    assert prog.batches_processed_this_epoch == 1
+    assert prog.total_epochs_processed == 1
+
+
+def test_increment_batch_step_epoch(tmpdir):
+    """ Test sequences for incrementing batches, steps, and epochs. """
+    prog = TrainLoopProgress()
+    prog.increment_batch()
+    assert prog.total_batches_processed == 1
+    assert prog.batches_processed_this_epoch == 1
+    prog.increment_step()
+    assert prog.total_optimizer_steps_processed == 1
+    assert prog.optimizer_steps_processed_this_epoch == 1
+    prog.increment_epoch()
+    assert prog.total_batches_processed == 1
+    assert prog.batches_processed_this_epoch == 0
+    assert prog.total_epochs_processed == 1
+    assert prog.total_optimizer_steps_processed == 1
+    assert prog.optimizer_steps_processed_this_epoch == 0
+    prog.increment_batch()
+    assert prog.total_batches_processed == 2
+    assert prog.batches_processed_this_epoch == 1
+    assert prog.total_epochs_processed == 1
+    prog.increment_step()
+    assert prog.total_optimizer_steps_processed == 2
+    assert prog.optimizer_steps_processed_this_epoch == 1
+    assert prog.total_epochs_processed == 1
 
 
 def test_reset_batch(tmpdir):
-    """ Test sequences for resetting batches. """
+    """ Test sequences for resetting batch counts. """
     prog = TrainLoopProgress()
-    prog.bump_batch(4)
-    assert prog.total_batches_processed == 4
-    assert prog.batches_processed_this_epoch == 4
+    prog.increment_batch()
+    assert prog.total_batches_processed == 1
+    assert prog.batches_processed_this_epoch == 1
     prog.reset_batch_in_epoch()
-    assert prog.total_batches_processed == 4
+    assert prog.total_batches_processed == 1
     assert prog.batches_processed_this_epoch == 0
-    prog.bump_batch()
-    assert prog.total_batches_processed == 5
+    prog.increment_batch()
+    assert prog.total_batches_processed == 2
     assert prog.batches_processed_this_epoch == 1
 
 
 def test_reset_steps(tmpdir):
     """ Test sequences for resetting steps. """
     prog = TrainLoopProgress()
-    prog.bump_step(4)
-    assert prog.total_optimizer_steps_processed == 4
-    assert prog.optimizer_steps_processed_this_epoch == 4
+    prog.increment_step()
+    assert prog.total_optimizer_steps_processed == 1
+    assert prog.optimizer_steps_processed_this_epoch == 1
     prog.reset_step_in_epoch()
-    assert prog.total_optimizer_steps_processed == 4
+    assert prog.total_optimizer_steps_processed == 1
     assert prog.optimizer_steps_processed_this_epoch == 0
-    prog.bump_step()
-    assert prog.total_optimizer_steps_processed == 5
+    prog.increment_step()
+    assert prog.total_optimizer_steps_processed == 2
     assert prog.optimizer_steps_processed_this_epoch == 1
