@@ -836,9 +836,7 @@ class TrainLoop:
             return False
 
         # val_check_batch is inf for iterable datasets with no length defined
-        # TODO: the training loop should maintain this logic
-        # around limit_train_batches and val_check_batch
-        # not the trainer dataloading mixin
+        # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = False
         if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0

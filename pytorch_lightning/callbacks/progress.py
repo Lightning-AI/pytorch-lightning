@@ -403,7 +403,7 @@ class ProgressBar(ProgressBarBase):
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
-        reset(self.main_progress_bar, convert_inf(total_batches))
+        reset(self.main_progress_bar, total_batches)
         self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -421,7 +421,7 @@ class ProgressBar(ProgressBarBase):
         else:
             self._update_bar(self.main_progress_bar)  # fill up remaining
             self.val_progress_bar = self.init_validation_tqdm()
-            reset(self.val_progress_bar, convert_inf(self.total_val_batches))
+            reset(self.val_progress_bar, self.total_val_batches)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)

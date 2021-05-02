@@ -255,28 +255,22 @@ class Counter(Callback):
         self.test_batches_seen = 0
 
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        if not trainer.sanity_checking:
-            self.train_batches_seen += 1
+        self.train_batches_seen += 1
 
     def on_train_epoch_start(self, trainer, pl_module):
-        if not trainer.sanity_checking:
-            self.train_epoch_count += 1
+        self.train_epoch_count += 1
 
     def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        if not trainer.sanity_checking:
-            self.val_batches_seen += 1
+        self.val_batches_seen += 1
 
     def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        if not trainer.sanity_checking:
-            self.test_batches_seen += 1
+        self.test_batches_seen += 1
 
     def on_validation_epoch_start(self, trainer, pl_module):
-        if not trainer.sanity_checking:
-            self.val_epoch_count += 1
+        self.val_epoch_count += 1
 
     def on_test_epoch_start(self, trainer, pl_module):
-        if not trainer.sanity_checking:
-            self.test_epoch_count += 1
+        self.test_epoch_count += 1
 
 
 @pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
@@ -284,10 +278,13 @@ class Counter(Callback):
     (1.0, 1.0, 1.0),
 ])
 def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
+    """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit in percent"""
 
     ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = Counter()
     trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
         max_epochs=1,
         callbacks=[epoch_cb, ckpt_callback],
         limit_train_batches=limit_train_batches,
@@ -337,6 +334,8 @@ def test_datasets_dataloaders_with_limit_num_batches(
     epoch_cb = Counter()
     epochs = 2
     trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
         max_epochs=epochs,
         callbacks=[epoch_cb, ckpt_callback],
         limit_train_batches=limit_train_batches,
