@@ -15,7 +15,7 @@ import pickle
 from argparse import ArgumentParser
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import PropertyMock
+from unittest.mock import call, PropertyMock
 
 import pytest
 import torch
@@ -128,6 +128,10 @@ def test_data_hooks_called(tmpdir):
     assert not dm.has_setup_test
     assert not dm.has_setup_validate
     assert not dm.has_setup_predict
+    assert not dm.has_teardown_fit
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_predict
 
     dm.prepare_data()
     assert dm.has_prepared_data
@@ -135,6 +139,10 @@ def test_data_hooks_called(tmpdir):
     assert not dm.has_setup_test
     assert not dm.has_setup_validate
     assert not dm.has_setup_predict
+    assert not dm.has_teardown_fit
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_predict
 
     dm.setup()
     assert dm.has_prepared_data
@@ -142,48 +150,83 @@ def test_data_hooks_called(tmpdir):
     assert dm.has_setup_test
     assert dm.has_setup_validate
     assert not dm.has_setup_predict
+    assert not dm.has_teardown_fit
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_predict
+
+    dm.teardown()
+    assert dm.has_prepared_data
+    assert dm.has_setup_fit
+    assert dm.has_setup_test
+    assert dm.has_setup_validate
+    assert not dm.has_setup_predict
+    assert dm.has_teardown_fit
+    assert dm.has_teardown_test
+    assert dm.has_teardown_validate
+    assert not dm.has_teardown_predict
 
 
 @pytest.mark.parametrize("use_kwarg", (False, True))
 def test_data_hooks_called_verbose(tmpdir, use_kwarg):
     dm = BoringDataModule()
-    assert not dm.has_prepared_data
-    assert not dm.has_setup_fit
-    assert not dm.has_setup_test
-
     dm.prepare_data()
-    assert dm.has_prepared_data
     assert not dm.has_setup_fit
     assert not dm.has_setup_test
+    assert not dm.has_setup_validate
     assert not dm.has_setup_predict
+    assert not dm.has_teardown_fit
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_predict
 
     dm.setup(stage='fit') if use_kwarg else dm.setup('fit')
-    assert dm.has_prepared_data
     assert dm.has_setup_fit
     assert not dm.has_setup_validate
     assert not dm.has_setup_test
     assert not dm.has_setup_predict
 
     dm.setup(stage='validate') if use_kwarg else dm.setup('validate')
-    assert dm.has_prepared_data
     assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert not dm.has_setup_test
     assert not dm.has_setup_predict
 
     dm.setup(stage='test') if use_kwarg else dm.setup('test')
-    assert dm.has_prepared_data
     assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert dm.has_setup_test
     assert not dm.has_setup_predict
 
     dm.setup(stage='predict') if use_kwarg else dm.setup('predict')
-    assert dm.has_prepared_data
     assert dm.has_setup_fit
     assert dm.has_setup_validate
     assert dm.has_setup_test
     assert dm.has_setup_predict
+
+    dm.teardown(stage='fit') if use_kwarg else dm.teardown('fit')
+    assert dm.has_teardown_fit
+    assert not dm.has_teardown_validate
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_predict
+
+    dm.teardown(stage='validate') if use_kwarg else dm.teardown('validate')
+    assert dm.has_teardown_fit
+    assert dm.has_teardown_validate
+    assert not dm.has_teardown_test
+    assert not dm.has_teardown_predict
+
+    dm.teardown(stage='test') if use_kwarg else dm.teardown('test')
+    assert dm.has_teardown_fit
+    assert dm.has_teardown_validate
+    assert dm.has_teardown_test
+    assert not dm.has_teardown_predict
+
+    dm.teardown(stage='predict') if use_kwarg else dm.teardown('predict')
+    assert dm.has_teardown_fit
+    assert dm.has_teardown_validate
+    assert dm.has_teardown_test
+    assert dm.has_teardown_predict
 
 
 def test_dm_add_argparse_args(tmpdir):
@@ -228,9 +271,8 @@ def test_train_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert result
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -251,9 +293,8 @@ def test_train_val_loop_only(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, datamodule=dm)
+    trainer.fit(model, datamodule=dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert result
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -310,10 +351,9 @@ def test_full_loop(tmpdir):
     )
 
     # fit model
-    result = trainer.fit(model, dm)
+    trainer.fit(model, dm)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     assert dm.trainer is not None
-    assert result
 
     # validate
     result = trainer.validate(datamodule=dm)
@@ -431,26 +471,54 @@ class DummyDS(torch.utils.data.Dataset):
         return 100
 
 
-def test_dm_init_from_datasets(tmpdir):
+class DummyIDS(torch.utils.data.IterableDataset):
 
-    train_ds = DummyDS()
-    valid_ds = DummyDS()
-    test_ds = DummyDS()
+    def __iter__(self):
+        yield 1
 
-    valid_dss = [DummyDS(), DummyDS()]
-    test_dss = [DummyDS(), DummyDS()]
 
+@pytest.mark.parametrize("iterable", (False, True))
+def test_dm_init_from_datasets_dataloaders(iterable):
+    ds = DummyIDS if iterable else DummyDS
+
+    train_ds = ds()
     dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.train_dataloader())) == torch.ones(4))
+    with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
+        dm.train_dataloader()
+        dl_mock.assert_called_once_with(train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
-    dm = LightningDataModule.from_datasets(train_ds, valid_ds, test_ds, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.val_dataloader())) == torch.ones(4))
-    assert torch.all(next(iter(dm.test_dataloader())) == torch.ones(4))
+    train_ds_sequence = [ds(), ds()]
+    dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0)
+    with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
+        dm.train_dataloader()
+        dl_mock.assert_has_calls([
+            call(train_ds_sequence[0], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
+            call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
+        ])
+    assert dm.val_dataloader() is None
+    assert dm.test_dataloader() is None
 
+    valid_ds = ds()
+    test_ds = ds()
+    dm = LightningDataModule.from_datasets(val_dataset=valid_ds, test_dataset=test_ds, batch_size=2, num_workers=0)
+    with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
+        dm.val_dataloader()
+        dl_mock.assert_called_with(valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
+        dm.test_dataloader()
+        dl_mock.assert_called_with(test_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
+    assert dm.train_dataloader() is None
+
+    valid_dss = [ds(), ds()]
+    test_dss = [ds(), ds()]
     dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
-    assert torch.all(next(iter(dm.val_dataloader()[0])) == torch.ones(4))
-    assert torch.all(next(iter(dm.val_dataloader()[1])) == torch.ones(4))
-    assert torch.all(next(iter(dm.test_dataloader()[0])) == torch.ones(4))
-    assert torch.all(next(iter(dm.test_dataloader()[1])) == torch.ones(4))
+    with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
+        dm.val_dataloader()
+        dm.test_dataloader()
+        dl_mock.assert_has_calls([
+            call(valid_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(valid_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True)
+        ])

@@ -259,10 +259,12 @@ def test_ddp_sharded_plugin_resume_from_checkpoint_gpu_to_cpu(tmpdir):
 
 
 @RunIf(skip_windows=True, special=True, fairscale=True)
-@pytest.mark.parametrize("trainer_kwargs", (
-    {'num_processes': 2},
-    pytest.param({'gpus': 2}, marks=RunIf(min_gpus=2))
-))
+@pytest.mark.parametrize(
+    "trainer_kwargs", (
+        dict(num_processes=2),
+        pytest.param(dict(gpus=2), marks=RunIf(min_gpus=2)),
+    )
+)
 def test_ddp_sharded_plugin_test_multigpu(tmpdir, trainer_kwargs):
     """
         Test to ensure we can use validate and test without fit
@@ -276,3 +278,32 @@ def test_ddp_sharded_plugin_test_multigpu(tmpdir, trainer_kwargs):
 
     trainer.validate(model)
     trainer.test(model)
+
+
+class ManualBoringModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+        opt.zero_grad()
+        output = self(batch)
+        loss = self.loss(batch, output)
+        self.manual_backward(loss)
+        opt.step()
+        return {"loss": loss}
+
+
+@RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
+@pytest.mark.parametrize("accelerator", ["ddp_sharded", "ddp_sharded_spawn"])
+def test_ddp_sharded_plugin_manual_optimization(tmpdir, accelerator):
+    model = ManualBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator=accelerator,
+        fast_dev_run=2,
+        gpus=2,
+    )
+    trainer.fit(model)

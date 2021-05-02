@@ -109,6 +109,7 @@ class HookResultStore:
 
         func = getattr(opt_metric, func_name)
         metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
+
         results.append(metrics_to_log)
 
     def get_epoch_from_func_name(self, func_name, *args, **kwargs) -> List[Dict]:
@@ -203,6 +204,18 @@ class HookResultStore:
 
         self.has_reduced = True
 
+    def reset(self) -> None:
+        """
+        Call at the end of epoch to reset Result objects
+        """
+        for dl_idx in range(self.num_dataloaders):
+            epoch_metrics = self._internals[dl_idx] if not self.has_reduced else self._internals_reduced[dl_idx]
+            if self._internal_type == ResultStoreType.INSIDE_BATCH_TRAIN_LOOP:
+                for opt_idx in list(epoch_metrics):
+                    epoch_metrics[opt_idx].reset()
+            else:
+                epoch_metrics.reset()
+
     def __getitem__(self, key: str) -> Any:
         return self._internals.get(key, None)
 
@@ -227,6 +240,7 @@ class EpochResultStore:
 
     def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = proxy(trainer)
+        self._internals = {}
         self.reset()
 
     def __getitem__(self, key: str) -> Any:
@@ -346,7 +360,6 @@ class EpochResultStore:
 
         # update callback_metrics
         logger_connector._callback_metrics.update(callback_metrics)
-        logger_connector._callback_metrics.pop("epoch", None)
 
         batch_pbar_metrics.pop("debug_epoch", None)
         return batch_pbar_metrics, batch_log_metrics
@@ -358,12 +371,10 @@ class EpochResultStore:
 
     def get_latest_batch_log_metrics(self) -> Dict:
         batch_log_metrics = self.run_batch_from_func_name("get_batch_log_metrics")
-        batch_log_metrics.update(self.legacy_batch_log_metrics)
         return batch_log_metrics
 
     def get_latest_batch_pbar_metrics(self) -> Dict:
         batch_pbar_metrics = self.run_batch_from_func_name("get_batch_pbar_metrics")
-        batch_pbar_metrics.update(self.legacy_batch_pbar_metrics)
         return batch_pbar_metrics
 
     @property
@@ -408,15 +419,15 @@ class EpochResultStore:
     def get_forked_metrics(self) -> Dict:
         return self.run_epoch_by_func_name("get_forked_metrics")
 
-    def reset(self):
+    def reset(self) -> None:
+        for k, value in self._internals.items():
+            value.reset()
         self._internals = {}
         self._dataloader_idx: Optional[int] = None
         self._split_idx: Optional[int] = None
         self._opt_idx: Optional[int] = None
         self._batch_size: Optional[int] = None
         self._has_batch_loop_finished = False
-        self.legacy_batch_log_metrics = {}
-        self.legacy_batch_pbar_metrics = {}
 
     def __call__(
         self,

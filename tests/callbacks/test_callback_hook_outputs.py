@@ -26,8 +26,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
     class CB(Callback):
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            d = outputs[0][0]
-            assert 'minimize' in d
+            assert 'loss' in outputs
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             assert 'x' in outputs
@@ -36,14 +35,12 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
             assert 'x' in outputs
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
-            d = outputs[0]
-            assert len(d) == trainer.num_training_batches
+            assert len(outputs) == trainer.num_training_batches
 
     class TestModel(BoringModel):
 
         def on_train_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
-            d = outputs[0][0]
-            assert 'minimize' in d
+            assert 'loss' in outputs
 
         def on_validation_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
             assert 'x' in outputs
@@ -52,8 +49,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
             assert 'x' in outputs
 
         def on_train_epoch_end(self, outputs) -> None:
-            d = outputs[0]
-            assert len(d) == self.trainer.num_training_batches
+            assert len(outputs) == self.trainer.num_training_batches
 
     model = TestModel()
 
@@ -69,5 +65,67 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
 
     assert any(isinstance(c, CB) for c in trainer.callbacks)
 
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
+
+
+def test_on_val_epoch_end_outputs(tmpdir):
+
+    class CB(Callback):
+
+        def on_validation_epoch_end(self, trainer, pl_module, outputs):
+            if trainer.running_sanity_check:
+                assert len(outputs) == trainer.num_sanity_val_batches[0]
+            else:
+                assert len(outputs) == trainer.num_val_batches[0]
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=CB(),
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        weights_summary=None,
+    )
+
+    trainer.fit(model)
+
+
+def test_on_test_epoch_end_outputs(tmpdir):
+
+    class CB(Callback):
+
+        def on_test_epoch_end(self, trainer, pl_module, outputs):
+            assert len(outputs) == trainer.num_test_batches[0]
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=CB(),
+        default_root_dir=tmpdir,
+        weights_summary=None,
+    )
+
+    trainer.test(model)
+
+
+def test_free_memory_on_eval_outputs(tmpdir):
+
+    class CB(Callback):
+
+        def on_epoch_end(self, trainer, pl_module):
+            assert len(trainer.evaluation_loop.outputs) == 0
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=CB(),
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        weights_summary=None,
+    )
+
+    trainer.fit(model)

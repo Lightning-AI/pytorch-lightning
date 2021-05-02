@@ -1,26 +1,41 @@
-from typing import Any, Callable, Optional, TYPE_CHECKING
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import os
+from typing import Any, Callable, Union
 
-import torch
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities import _XLA_AVAILABLE, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
+    from torch_xla._patched_functions import clip_grad_norm_
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
+    # rename to mock in a test
+    xla_clip_grad_norm_ = clip_grad_norm_
 
 
 class TPUAccelerator(Accelerator):
+    """ Accelerator for TPU devices. """
 
-    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
@@ -36,22 +51,29 @@ class TPUAccelerator(Accelerator):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
         return super().setup(trainer, model)
 
+    def teardown(self) -> None:
+        if "PT_XLA_DEBUG" in os.environ:
+            del os.environ["PT_XLA_DEBUG"]
+
     def run_optimizer_step(
         self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any
     ) -> None:
-        xm.optimizer_step(optimizer, barrier=False, optimizer_args={'closure': lambda_closure, **kwargs})
+        xm.optimizer_step(optimizer, optimizer_args={'closure': lambda_closure, **kwargs})
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        """
-        Function to gather a tensor from several distributed processes
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: the process group to gather results from. Defaults to all processes (world)
-            sync_grads: flag that allows users to synchronize gradients for all_gather op
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        # todo: Add support for backward with all_gather
-        if torch.distributed.is_initialized():
-            return xm.all_gather(tensor, group=group, sync_grads=sync_grads)
-        return tensor
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[float, int],
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+        assert gradient_clip_algorithm == GradClipAlgorithmType.NORM, \
+            "Only NORM gradient clipping is supported on TPU for now"
+
+        grad_clip_val = float(clip_val)
+        if grad_clip_val <= 0:
+            return
+
+        parameters = self.model.parameters()
+        norm_type = 2.0
+
+        xla_clip_grad_norm_(parameters, grad_clip_val, norm_type)

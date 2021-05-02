@@ -16,7 +16,7 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
-        python-version: [3.7]
+        python-version: [3.8]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
@@ -51,9 +51,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade --user pip
-        pip install --requirement ./requirements.txt --quiet  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        pip install --requirement ./requirements/test.txt --quiet --upgrade-strategy only-if-needed
-        # pip install tox coverage
+        pip install --requirement ./requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install "pytest>6.0" "pytest-cov>2.10" --upgrade-strategy only-if-needed
         python --version
         pip --version
         pip list

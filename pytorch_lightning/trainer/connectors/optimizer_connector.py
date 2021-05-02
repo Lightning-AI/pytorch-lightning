@@ -32,7 +32,7 @@ class OptimizerConnector:
             interval: either 'epoch' or 'step'.
             monitor_metrics: dict of possible values to monitor
         """
-        if not self.trainer.lr_schedulers:
+        if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
             return
 
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):

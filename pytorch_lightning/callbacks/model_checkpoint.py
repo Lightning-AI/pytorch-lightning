@@ -23,14 +23,14 @@ import os
 import re
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import numpy as np
 import torch
 import yaml
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -41,7 +41,10 @@ warning_cache = WarningCache()
 
 class ModelCheckpoint(Callback):
     r"""
-    Save the model after every epoch by monitoring a quantity.
+    Save the model periodically by monitoring a quantity. Every metric logged with
+    :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in
+    LightningModule is a candidate for the monitor key. For more information, see
+    :ref:`weights_loading`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -201,22 +204,23 @@ class ModelCheckpoint(Callback):
         self.best_model_score = None
         self.best_model_path = ""
         self.last_model_path = ""
-        self.save_function = None
-        self.warned_result_obj = False
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
         self.__init_triggers(every_n_train_steps, every_n_val_epochs, period)
         self.__validate_init_configuration()
+        self._save_function = None
 
     def on_pretrain_routine_start(self, trainer, pl_module):
         """
         When pretrain routine starts we build the ckpt dir on the fly
         """
         self.__resolve_ckpt_dir(trainer)
-        self.save_function = trainer.save_checkpoint
+        self._save_function = trainer.save_checkpoint
 
-    def on_train_batch_end(self, trainer, *args, **kwargs) -> None:
+    def on_train_batch_end(
+        self, trainer, pl_module, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int
+    ) -> None:
         """ Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps` """
         if self._should_skip_saving_checkpoint(trainer):
             return
@@ -226,7 +230,7 @@ class ModelCheckpoint(Callback):
             return
         self.save_checkpoint(trainer)
 
-    def on_validation_end(self, trainer, *args, **kwargs) -> None:
+    def on_validation_end(self, trainer, pl_module) -> None:
         """
         checkpoints can be saved at the end of the val loop
         """
@@ -253,14 +257,14 @@ class ModelCheckpoint(Callback):
 
     def save_checkpoint(self, trainer, unused: Optional = None):
         """
-        Performs the main logic around saving a checkpoint.
-        This method runs on all ranks, it is the responsibility of `self.save_function`
-        to handle correct behaviour in distributed training, i.e., saving only on rank 0.
+        Performs the main logic around saving a checkpoint. This method runs on all ranks.
+        It is the responsibility of `trainer.save_checkpoint` to correctly handle the behaviour in distributed training,
+        i.e., saving only on rank 0 for data parallel use cases.
         """
         if unused is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "`ModelCheckpoint.save_checkpoint` signature has changed in v1.3. The `pl_module` parameter"
-                " has been removed. Support for the old signature will be removed in v1.5", DeprecationWarning
+                " has been removed. Support for the old signature will be removed in v1.5"
             )
 
         global_step = trainer.global_step
@@ -371,9 +375,9 @@ class ModelCheckpoint(Callback):
 
         # period takes precedence over every_n_val_epochs for backwards compatibility
         if period is not None:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 'Argument `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
-                ' Please use `every_n_val_epochs` instead.', DeprecationWarning
+                ' Please use `every_n_val_epochs` instead.'
             )
             self._every_n_val_epochs = period
 
@@ -381,19 +385,35 @@ class ModelCheckpoint(Callback):
 
     @property
     def period(self) -> Optional[int]:
-        rank_zero_warn(
+        rank_zero_deprecation(
             'Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
-            ' Please use `every_n_val_epochs` instead.', DeprecationWarning
+            ' Please use `every_n_val_epochs` instead.'
         )
         return self._period
 
     @period.setter
     def period(self, value: Optional[int]) -> None:
-        rank_zero_warn(
+        rank_zero_deprecation(
             'Property `period` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
-            ' Please use `every_n_val_epochs` instead.', DeprecationWarning
+            ' Please use `every_n_val_epochs` instead.'
         )
         self._period = value
+
+    @property
+    def save_function(self) -> Optional[Callable]:
+        rank_zero_deprecation(
+            'Property `save_function` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
+            ' Please use `trainer.save_checkpoint` instead.'
+        )
+        return self._save_function
+
+    @save_function.setter
+    def save_function(self, value: Optional[Callable]) -> None:
+        rank_zero_deprecation(
+            'Property `save_function` in `ModelCheckpoint` is deprecated in v1.3 and will be removed in v1.5.'
+            ' Please use `trainer.save_checkpoint` instead.'
+        )
+        self._save_function = value
 
     @rank_zero_only
     def _del_model(self, filepath: str):
@@ -419,10 +439,7 @@ class ModelCheckpoint(Callback):
             self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the trainer
-        if self.save_function is not None:
-            self.save_function(filepath, self.save_weights_only)
-        else:
-            raise ValueError(".save_function() not set")
+        trainer.save_checkpoint(filepath, self.save_weights_only)
 
     def check_monitor_top_k(self, trainer, current: Optional[torch.Tensor] = None) -> bool:
         if current is None:
@@ -551,12 +568,11 @@ class ModelCheckpoint(Callback):
                 trainer.logger.version
                 if isinstance(trainer.logger.version, str) else f"version_{trainer.logger.version}"
             )
-
-            version, name = trainer.training_type_plugin.broadcast((version, trainer.logger.name))
-
-            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
+            ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
+
+        ckpt_path = trainer.training_type_plugin.broadcast(ckpt_path)
 
         self.dirpath = ckpt_path
 
@@ -590,7 +606,7 @@ class ModelCheckpoint(Callback):
             m = (
                 f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
                 f" {list(metrics.keys())}. "
-                f"HINT: Did you call self.log('{self.monitor}', tensor) in the LightningModule?"
+                f"HINT: Did you call self.log('{self.monitor}', value) in the LightningModule?"
             )
             raise MisconfigurationException(m)
 
@@ -646,7 +662,7 @@ class ModelCheckpoint(Callback):
         if self.check_monitor_top_k(trainer, current):
             self._update_best_and_save(current, epoch, step, trainer, monitor_candidates)
         elif self.verbose:
-            rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
+            rank_zero_info(f"Epoch {epoch:d}, global step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
     def _save_none_monitor_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
         if self.monitor is not None or self.save_top_k == 0:

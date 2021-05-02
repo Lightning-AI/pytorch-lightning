@@ -13,11 +13,11 @@
 # limitations under the License.
 import os
 import sys
-from distutils.version import LooseVersion
 from typing import Optional
 
 import pytest
 import torch
+from packaging.version import Version
 from pkg_resources import get_distribution
 
 from pytorch_lightning.utilities import (
@@ -56,6 +56,7 @@ class RunIf:
         *args,
         min_gpus: int = 0,
         min_torch: Optional[str] = None,
+        max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
         quantization: bool = False,
         amp_apex: bool = False,
@@ -76,6 +77,7 @@ class RunIf:
             args: native pytest.mark.skipif arguments
             min_gpus: min number of gpus required to run test
             min_torch: minimum pytorch version to run test
+            max_torch: maximum pytorch version to run test
             min_python: minimum python version required to run test
             quantization: if `torch.quantization` package is required to run test
             amp_apex: NVIDIA Apex is installed
@@ -98,13 +100,18 @@ class RunIf:
             reasons.append(f"GPUs>={min_gpus}")
 
         if min_torch:
-            torch_version = LooseVersion(get_distribution("torch").version)
-            conditions.append(torch_version < LooseVersion(min_torch))
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) < Version(min_torch))
             reasons.append(f"torch>={min_torch}")
+
+        if max_torch:
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) >= Version(max_torch))
+            reasons.append(f"torch<{max_torch}")
 
         if min_python:
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-            conditions.append(py_version < LooseVersion(min_python))
+            conditions.append(Version(py_version) < Version(min_python))
             reasons.append(f"python>={min_python}")
 
         if quantization:

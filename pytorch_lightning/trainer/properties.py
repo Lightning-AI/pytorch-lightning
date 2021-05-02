@@ -23,6 +23,7 @@ from torch.optim import Optimizer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -199,13 +200,7 @@ class TrainerProperties(ABC):
     @classmethod
     def default_attributes(cls) -> dict:
         init_signature = inspect.signature(cls)
-
-        args = {}
-        for param_name in init_signature.parameters:
-            value = init_signature.parameters[param_name].default
-            args[param_name] = value
-
-        return args
+        return {k: v.default for k, v in init_signature.parameters.items()}
 
     @classmethod
     def get_deprecated_arg_names(cls) -> List:
@@ -314,6 +309,14 @@ class TrainerProperties(ABC):
         found in the Trainer.callbacks list.
         """
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+
+    @property
+    def prediction_writer_callbacks(self) -> List[BasePredictionWriter]:
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.prediction_writer.BasePredictionWriter`
+        found in the Trainer.callbacks list.
+        """
+        return [cb for cb in self.callbacks if isinstance(cb, BasePredictionWriter)]
 
     @property
     def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
@@ -490,6 +493,16 @@ class TrainerProperties(ABC):
             self._running_stage = RunningStage.SANITY_CHECKING
         elif self.sanity_checking:
             self._running_stage = None
+
+    @property
+    def _setup_state(self) -> TrainerState:
+        # 'fit' is passed for `trainer.tune()` as there aren't "tune_dataloaders"
+        return TrainerState.FITTING if self.state == TrainerState.TUNING else self.state
+
+    @property
+    def _teardown_state(self) -> Optional[TrainerState]:
+        if self.state.running:
+            return self._setup_state
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

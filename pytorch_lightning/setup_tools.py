@@ -16,7 +16,7 @@ import os
 import re
 from typing import List
 
-from pytorch_lightning import __homepage__, __version__, _PROJECT_ROOT
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
 def _load_requirements(path_dir: str, file_name: str = 'requirements.txt', comment_char: str = '#') -> List[str]:
@@ -33,17 +33,17 @@ def _load_requirements(path_dir: str, file_name: str = 'requirements.txt', comme
         if comment_char in ln:
             ln = ln[:ln.index(comment_char)].strip()
         # skip directly installed dependencies
-        if ln.startswith('http'):
+        if ln.startswith('http') or '@http' in ln:
             continue
         if ln:  # if requirement is not empty
             reqs.append(ln)
     return reqs
 
 
-def _load_readme_description(path_dir: str, homepage: str = __homepage__, version: str = __version__) -> str:
+def _load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     """Load readme as decribtion
 
-    >>> _load_readme_description(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> _load_readme_description(_PROJECT_ROOT, "", "")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '<div align="center">...'
     """
     path_readme = os.path.join(path_dir, "README.md")

@@ -23,9 +23,29 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class DataParallelPlugin(ParallelPlugin):
+    """
+    Implements data-parallel training in a single process, i.e., the model gets replicated to each
+    device and each gets a split of the data.
+    """
 
     def __init__(self, parallel_devices: Optional[List[torch.device]]):
         super().__init__(parallel_devices=parallel_devices, cluster_environment=None)
+
+    @property
+    def global_rank(self) -> int:
+        return 0
+
+    @property
+    def local_rank(self) -> int:
+        return 0
+
+    @property
+    def node_rank(self) -> int:
+        return 0
+
+    @property
+    def world_size(self) -> int:
+        return 1
 
     def setup(self, model):
         # model needs to be moved to the device before it is wrapped
@@ -83,7 +103,7 @@ class DataParallelPlugin(ParallelPlugin):
     def test_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
-    def predict(self, *args, **kwargs):
+    def predict_step(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
     def training_step_end(self, output):

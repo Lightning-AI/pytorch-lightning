@@ -19,4 +19,3 @@ __all__ = [
     'LightningDataModule',
     'LightningModule',
 ]
-# __call__ = __all__

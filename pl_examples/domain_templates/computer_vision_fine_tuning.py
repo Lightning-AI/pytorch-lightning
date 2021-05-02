@@ -49,6 +49,7 @@ from torch import nn, optim
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
 from torchvision import models, transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
@@ -188,8 +189,8 @@ class TransferLearningModel(pl.LightningModule):
 
         self.__build_model()
 
-        self.train_acc = pl.metrics.Accuracy()
-        self.valid_acc = pl.metrics.Accuracy()
+        self.train_acc = Accuracy()
+        self.valid_acc = Accuracy()
         self.save_hyperparameters()
 
     def __build_model(self):
@@ -224,7 +225,7 @@ class TransferLearningModel(pl.LightningModule):
         # 2. Classifier (returns logits):
         x = self.fc(x)
 
-        return torch.sigmoid(x)
+        return x
 
     def loss(self, logits, labels):
         return self.loss_func(input=logits, target=labels)
@@ -233,13 +234,14 @@ class TransferLearningModel(pl.LightningModule):
         # 1. Forward pass:
         x, y = batch
         y_logits = self.forward(x)
+        y_scores = torch.sigmoid(y_logits)
         y_true = y.view((-1, 1)).type_as(x)
 
         # 2. Compute loss
         train_loss = self.loss(y_logits, y_true)
 
         # 3. Compute accuracy:
-        self.log("train_acc", self.train_acc(y_logits, y_true.int()), prog_bar=True)
+        self.log("train_acc", self.train_acc(y_scores, y_true.int()), prog_bar=True)
 
         return train_loss
 
@@ -247,13 +249,14 @@ class TransferLearningModel(pl.LightningModule):
         # 1. Forward pass:
         x, y = batch
         y_logits = self.forward(x)
+        y_scores = torch.sigmoid(y_logits)
         y_true = y.view((-1, 1)).type_as(x)
 
         # 2. Compute loss
         self.log("val_loss", self.loss(y_logits, y_true), prog_bar=True)
 
         # 3. Compute accuracy:
-        self.log("val_acc", self.valid_acc(y_logits, y_true.int()), prog_bar=True)
+        self.log("val_acc", self.valid_acc(y_scores, y_true.int()), prog_bar=True)
 
     def configure_optimizers(self):
         parameters = list(self.parameters())
