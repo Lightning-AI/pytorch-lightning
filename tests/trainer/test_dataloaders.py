@@ -351,14 +351,18 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
     assert epoch_cb.train_batches_seen == limit_train_batches * epochs
 
 
-@pytest.mark.parametrize(['dataset', 'limit_val_batches'], [
-    (RandomDataset(32, 128), 0),
-    (RandomDataset(32, 128), 10),
-    (RandomIterableDataset(32, 128), 0),
-    (RandomIterableDataset(32, 128), 10),
-    (RandomIterableDatasetWithLen(32, 128), 0),
-    (RandomIterableDatasetWithLen(32, 128), 10),
-])
+@pytest.mark.parametrize(
+    ['dataset', 'limit_val_batches'],
+    [
+        (RandomDataset(32, 128), 0),
+        (RandomDataset(32, 128), 10),
+        (RandomIterableDataset(32, 128), 0),
+        (RandomIterableDataset(32, 128), 10),
+        (RandomIterableDatasetWithLen(32, 128), 0),
+        # TODO: enable this after #6671 is merged
+        # (RandomIterableDatasetWithLen(32, 128), 10),
+    ]
+)
 def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
 

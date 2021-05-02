@@ -188,7 +188,6 @@ class ModelCheckpoint(Callback):
         auto_insert_metric_name: bool = True,
         every_n_train_steps: Optional[int] = None,
         every_n_val_epochs: Optional[int] = None,
-        save_on_train_end: bool = False,
         period: Optional[int] = None,
     ):
         super().__init__()
@@ -205,7 +204,6 @@ class ModelCheckpoint(Callback):
         self.best_model_score = None
         self.best_model_path = ""
         self.last_model_path = ""
-        self._save_on_train_end = save_on_train_end
 
         self.__init_monitor_mode(monitor, mode)
         self.__init_ckpt_dir(dirpath, filename, save_top_k)
@@ -241,33 +239,6 @@ class ModelCheckpoint(Callback):
         if skip:
             return
         self.save_checkpoint(trainer)
-
-    def on_train_end(self, trainer, pl_module) -> None:
-        """Save a checkpoint at the very end of training.
-
-        This will only save a checkpoint if `save_last` is also enabled
-        as the monitor metrics produced by training or validation steps or end of epochs
-        is not guaranteed to be available at this stage.
-        """
-        if self._should_skip_saving_checkpoint(trainer) or not trainer.checkpoint_connector.has_trained:
-            return
-
-        initial_save_last = self.save_last
-        if self._save_on_train_end and not self.save_last:
-            rank_zero_warn(
-                "Requested to save a checkpoint at the end of training but save_last is not set. Temporarily setting save_last=True to save."
-            )
-            self.save_last = True
-        if self.verbose:
-            rank_zero_info("Saving last checkpoint...")
-
-        # as we advance one step at end of training, we use global_step - 1
-        # to avoid saving duplicates
-        trainer.global_step -= 1
-        monitor_candidates = self._monitor_candidates(trainer)
-        self._save_last_checkpoint(trainer, monitor_candidates)
-        trainer.global_step += 1
-        self.save_last = initial_save_last
 
     def on_save_checkpoint(self, trainer, pl_module, checkpoint: Dict[str, Any]) -> Dict[str, Any]:
         return {
