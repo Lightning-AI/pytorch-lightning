@@ -56,6 +56,7 @@ class TrainerDataLoadingMixin(ABC):
     accelerator: Accelerator
     accelerator_connector: AcceleratorConnector
     dev_debugger: InternalDebugger
+    call_hook: Callable
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
@@ -437,8 +438,7 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        if model.trainer is not None:
-            model.trainer.call_hook(f"on_{stage}_dataloader")
+        self.call_hook(f"on_{stage}_dataloader")
         dataloader: DataLoader = getattr(model, f'{stage}_dataloader')()
         dataloader = self._flatten_dl_only(dataloader)
         self.accelerator.barrier('get_dataloaders')
