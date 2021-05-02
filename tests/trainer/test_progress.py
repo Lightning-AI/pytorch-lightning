@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-
-from pytorch_lightning.trainer.progress import LoopProgress, TrainLoopProgress
+from pytorch_lightning.trainer._progress import LoopProgress, TrainLoopProgress
 
 
 def test_increment_batch(tmpdir):
@@ -34,14 +32,6 @@ def test_train_increment_step(tmpdir):
 
 
 def test_increment_epoch(tmpdir):
-    """ Test sequences for incrementing epochs. """
-    prog = LoopProgress()
-    prog.increment_epoch()
-    prog.increment_epoch()
-    assert prog.total_epochs_processed == 2
-
-
-def test_increment_batch_epoch(tmpdir):
     """ Test sequences for incrementing epochs. """
     prog = LoopProgress()
     prog.increment_epoch()
