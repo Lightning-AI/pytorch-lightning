@@ -268,17 +268,20 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
     @staticmethod
-    def __is_old_signature(fn: Callable) -> bool:
+    def __is_old_signature_on_save_checkpoint(fn: Callable) -> bool:
         parameters = list(signature(fn).parameters)
-        if len(parameters) == 2 and parameters[1] != "args":
-            return True
-        return False
+        return len(parameters) == 2 and parameters[1] != "args"
+
+    @staticmethod
+    def __is_old_signature_on_load_checkpoint(fn: Callable) -> bool:
+        parameters = list(signature(fn).parameters)
+        return len(parameters) == 1 and parameters[0] != "args"
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[Type, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}
         for callback in self.callbacks:
-            if self.__is_old_signature(callback.on_save_checkpoint):
+            if self.__is_old_signature_on_save_checkpoint(callback.on_save_checkpoint):
                 rank_zero_deprecation(
                     "`Callback.on_save_checkpoint` signature has changed in v1.3."
                     " A `checkpoint` parameter has been added."
@@ -316,7 +319,15 @@ class TrainerCallbackHookMixin(ABC):
             state = callback_states.get(type(callback))
             if state:
                 state = deepcopy(state)
-                callback.on_load_checkpoint(state)
+                if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
+                    rank_zero_deprecation(
+                        "`Callback.on_load_checkpoint` signature has changed in v1.3."
+                        " `trainer` and `pl_module` parameters have been added."
+                        " Support for the old signature will be removed in v1.5"
+                    )
+                    callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
+                else:
+                    callback.on_load_checkpoint(self, self.lightning_module, state)
 
     def on_after_backward(self):
         """
