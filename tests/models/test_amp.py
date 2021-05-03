@@ -174,7 +174,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         callbacks=[checkpoint],
         logger=logger,
     )
-    _ = trainer.fit(model)
+    trainer.fit(model)
 
     # correct result and ok accuracy
     assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'

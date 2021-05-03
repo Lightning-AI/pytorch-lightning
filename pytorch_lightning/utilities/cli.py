@@ -262,7 +262,7 @@ class LightningCLI:
 
     def fit(self) -> None:
         """Runs fit of the instantiated trainer class and prepared fit keyword arguments"""
-        self.fit_result = self.trainer.fit(**self.fit_kwargs)
+        self.trainer.fit(**self.fit_kwargs)
 
     def after_fit(self) -> None:
         """Implement to run some code after fit has finished"""
