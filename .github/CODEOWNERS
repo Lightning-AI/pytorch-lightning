@@ -39,11 +39,11 @@
 /docs/source/metrics.rst                @SkafteNicki @ananyahjha93 @justusschock
 
 # API
-/pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @carmocca @ananthsub @borda
-/pytorch_lightning/core/datamodule.py   @williamFalcon @awaelchli @carmocca @ananthsub @borda
-/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton @awaelchli @carmocca @ananthsub
-/pytorch_lightning/core/hooks.py        @williamfalcon @tchaton @awaelchli @carmocca @ananthsub
-/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton @awaelchli @carmocca @ananthsub
+/pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @ananthsub @carmocca
+/pytorch_lightning/core/datamodule.py   @williamFalcon @awaelchli @ananthsub @carmocca
+/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton @awaelchli
+/pytorch_lightning/core/hooks.py        @williamfalcon @tchaton @awaelchli @ananthsub @carmocca
+/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton @awaelchli
 
 # Testing
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
