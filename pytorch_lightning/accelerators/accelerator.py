@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from collections import defaultdict
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
@@ -25,7 +26,7 @@ from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, Native
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
@@ -102,10 +103,26 @@ class Accelerator:
 
     def pre_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
+        self._move_optimizer_state()
+
         self.training_type_plugin.pre_dispatch()
         if self.training_type_plugin.setup_optimizers_in_pre_dispatch:
             self.setup_optimizers(trainer)
+
         self.precision_plugin.pre_dispatch()
+
+    def _move_optimizer_state(self) -> None:
+        """ Moves the state of the optimizers to the GPU if needed. """
+        for opt in self.optimizers:
+            state = defaultdict(dict)
+            for p, v in opt.state.items():
+                state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
+            opt.state = state
+
+    def dispatch(self, trainer: 'pl.Trainer') -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
+        self.training_type_plugin.dispatch(trainer)
+        self.precision_plugin.dispatch(trainer)
 
     def post_dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something after the training/evaluation/prediction starts."""
@@ -140,8 +157,11 @@ class Accelerator:
         """
         This method is called to teardown the training process.
         It is the right place to release memory and free other ressources.
+
+        By default we add a barrier here to synchronize processes before returning
+        control back to the caller.
         """
-        pass
+        self.barrier("teardown")
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
         """Moves the batch to the correct device.
@@ -328,7 +348,12 @@ class Accelerator:
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
     ) -> None:
         """clips all the optimizer parameters to the given value"""
-        self.precision_plugin.clip_gradients(optimizer, clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
+        self.precision_plugin.clip_gradients(
+            optimizer,
+            clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            model=self.model,
+        )
 
     def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         """Hook to do something on the end of an training epoch

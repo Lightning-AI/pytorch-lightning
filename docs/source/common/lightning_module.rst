@@ -710,6 +710,12 @@ print
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.print
     :noindex:
 
+predict_step
+~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.predict_step
+    :noindex:
+
 save_hyperparameters
 ~~~~~~~~~~~~~~~~~~~~
 

@@ -25,6 +25,7 @@ from torch.utils.data.sampler import SequentialSampler
 
 import tests.helpers.pipelines as tpipes
 from pytorch_lightning import Callback, seed_everything, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_6
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
@@ -779,6 +780,41 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     trainer.predict(model, dataloaders=dataloader)
 
 
+def test_iterable_dataset_stop_iteration_at_epoch_beginning():
+    """ Test that the training loop skips execution if the iterator is empty from the start. """
+
+    class RandomDataset(IterableDataset):
+
+        def __init__(self, gen):
+            self.gen = gen
+
+        def __iter__(self):
+            return iter(self.gen())
+
+    class TestModel(BoringModel):
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(self.gen), batch_size=2)
+
+        def gen(self):
+            # produce data in epoch 0
+            # no data otherwise
+            if self.current_epoch == 0:
+                yield torch.rand(32)
+                yield torch.rand(32)
+                yield torch.rand(32)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        max_epochs=2,  # we expect the second epoch to be skipped
+        weights_summary=None,
+    )
+    trainer.fit(model)
+    assert trainer.global_step == 2
+    assert trainer.current_epoch == 1
+
+
 @RunIf(min_gpus=2)
 def test_dataloader_reinit_for_subclass(tmpdir):
 
@@ -922,7 +958,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
 
     class CurrentTestModel(EvalModelTemplate):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             # batch norm doesn't work with batch size 1, we replace it
             self.c_d1_bn = torch.nn.ReLU()
@@ -983,8 +1019,7 @@ def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_train
         default_root_dir=tmpdir,
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
-
-    assert 1 == trainer.fit(model)
+    trainer.fit(model)
     # verify the num_training_batches according to the multiple_trainloader_mode
     assert num_training_batches == trainer.num_training_batches
 
@@ -1200,7 +1235,16 @@ def test_dataloaders_load_every_epoch(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
 
-    model = EvalModelTemplate()
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, batch_idx):
+            self.log("dummy_val", 5.0)
+            return super().validation_step(batch, batch_idx)
+
+    model = TestModel()
+
+    # This callback tests that the evaluation metrics are available by the time we run checkpointing
+    checkpoint_callback = ModelCheckpoint(monitor="dummy_val", save_top_k=1)
 
     # logger file to get meta
     trainer = Trainer(
@@ -1210,20 +1254,31 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
         num_sanity_val_steps=0,
         reload_dataloaders_every_epoch=True,
         max_epochs=3,
+        callbacks=[checkpoint_callback],
     )
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
 
     trainer.test()
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 3
+    assert len(trainer.dev_debugger.val_dataloader_calls) == 4
     assert len(trainer.dev_debugger.train_dataloader_calls) == 3
     assert len(trainer.dev_debugger.test_dataloader_calls) == 1
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
+
     expected_sequence = [
         'train_dataloader',
+        'val_dataloader',
+        # This has subsequent calls to val_dataloader
+        # because the training loop runs the evaluation loop,
+        # which reloads the val dataloader again.
+        # We cannot yet rely on trainer.current_epoch=0 to skip reloading
+        # the val dataloader on the first epoch because this only tracks the training epoch
+        # meaning multiple passes through the validation data within a single training epoch
+        # would not have the dataloader reloaded.
+        # This breaks the assumption behind reload_dataloaders_every_epoch=True
         'val_dataloader',
         'train_dataloader',
         'val_dataloader',
