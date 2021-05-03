@@ -280,3 +280,18 @@ def test_scale_batch_size_no_trials(tmpdir):
     model = BatchSizeModel(batch_size=2)
     result = trainer.tuner.scale_batch_size(model, max_trials=0)
     assert result == 2
+
+
+def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
+    """Check the tuning raises error when called with mode that does not exist."""
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        auto_scale_batch_size='thismodedoesnotexist',
+    )
+
+    with pytest.raises(ValueError):
+        trainer.tune(model)
