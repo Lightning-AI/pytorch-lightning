@@ -384,7 +384,7 @@ like shown below, the :code:`batch_size` would only has to be provided in the :c
 
     class MyLightningCLI(LightningCLI):
 
-        def before_parse_arguments(self, parser):
+        def add_arguments_to_parser(self, parser):
             parser.link_arguments('data.batch_size', 'model.batch_size')
 
     cli = MyLightningCLI(MyModel, MyDataModule)

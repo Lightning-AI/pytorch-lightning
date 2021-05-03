@@ -273,7 +273,7 @@ class TransferLearningModel(pl.LightningModule):
 
 class MyLightningCLI(LightningCLI):
 
-    def before_parse_arguments(self, parser):
+    def add_arguments_to_parser(self, parser):
         parser.add_class_arguments(MilestonesFinetuning, 'finetuning')
         parser.link_arguments('data.batch_size', 'model.batch_size')
         parser.link_arguments('finetuning.milestones', 'model.milestones')
