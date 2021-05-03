@@ -432,7 +432,7 @@ class TrainLoop:
                 grad_norm_dict = grad_norm(model, self.trainer.track_grad_norm)
         return grad_norm_dict
 
-    def _tbptt_split_batch(self, batch) -> List[Any]:
+    def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         splits = [batch]
         truncated_bptt_enabled = self._truncated_bptt_enabled()
         if truncated_bptt_enabled:
@@ -884,9 +884,11 @@ class TrainLoop:
 
     def _truncated_bptt_enabled(self) -> bool:
         """ Temporary tbptt utilities until this flag is fully migrated to the lightning module. """
-        lightning_module = self.trainer.lightning_module
-        return (lightning_module.truncated_bptt_steps is not None and lightning_module.truncated_bptt_steps > 0
-                ) or (self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0)
+        lm = self.trainer.lightning_module
+        trainer = self.trainer
+        module_tbptt_enabled = lm.truncated_bptt_steps is not None and module.truncated_bptt_steps > 0
+        trainer_tbptt_enabled = trainer.truncated_bptt_steps is not None and trainer.truncated_bptt_steps > 0
+        return module_tbptt_enabled or trainer_tbptt_enabled
 
     def _truncated_bptt_steps(self) -> Optional[int]:
         lightning_module = self.trainer.lightning_module
