@@ -27,7 +27,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
 from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringModel
+from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.utils import no_warning_call
 
 
@@ -380,3 +380,18 @@ def test_v1_5_0_lighting_module_grad_norm(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         model.grad_norm(2)
+
+
+def test_v1_5_0_datamodule_named_argument(tmpdir):
+    model = BoringModel()
+    dm = BoringDataModule()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=False,
+        logger=False,
+    )
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.fit(model, dm)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.tune(model, dm)

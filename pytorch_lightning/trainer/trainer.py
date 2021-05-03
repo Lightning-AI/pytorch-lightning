@@ -58,8 +58,9 @@ from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_warn
+from pytorch_lightning.utilities import DeviceType, parsing
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -438,7 +439,12 @@ class Trainer(
         self.training = True
 
         # if a datamodule comes in as the second arg, then fix it for the user
+        # deprecated in v1.3 and will be removed in v1.5
         if isinstance(train_dataloader, LightningDataModule):
+            rank_zero_deprecation(
+                "Passing the datamodule without using named arguments is deprecated in v1.3 and will be removed in v1.5."
+                " Pass the datamodule explicitly to trainer.fit(..., datamodule=dm)"
+            )
             datamodule = train_dataloader
             train_dataloader = None
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
@@ -662,9 +668,15 @@ class Trainer(
         self.tuning = True
 
         # if a datamodule comes in as the second arg, then fix it for the user
+        # deprecated in v1.3 and will be removed in v1.5
         if isinstance(train_dataloader, LightningDataModule):
+            rank_zero_deprecation(
+                "Passing the datamodule without using named arguments is deprecated in v1.3 and will be removed in v1.5."
+                " Pass the datamodule explicitly to trainer.fit(..., datamodule=dm)"
+            )
             datamodule = train_dataloader
             train_dataloader = None
+
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if (train_dataloader is not None or val_dataloaders is not None) and datamodule is not None:
             raise MisconfigurationException(
