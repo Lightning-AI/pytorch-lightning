@@ -8,15 +8,15 @@
 * @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
 
 # CI/CD and configs
-/.github/       @borda @tchaton
-/dockers/       @borda @tchaton
-*.yml           @borda @tchaton
+/.github/       @borda @tchaton @carmocca
+/dockers/       @borda @tchaton @carmocca
+*.yml           @borda @tchaton @carmocca
 
 # Docs
 /docs/                      @edenlightning @tchaton @borda @awaelchli
 /.github/*.md               @edenlightning @williamfalcon @borda
 /.github/ISSUE_TEMPLATE/    @edenlightning @borda @tchaton
-/docs/source/conf.py        @borda @awaelchli
+/docs/source/conf.py        @borda @awaelchli @carmocca
 
 # Packages
 /pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
