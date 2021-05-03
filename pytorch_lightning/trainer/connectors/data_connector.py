@@ -17,7 +17,7 @@ from typing import List, Optional, Union
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.trainer.supporters import prefetch_iterator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
@@ -44,21 +44,9 @@ class DataConnector(object):
 
     def get_profiled_train_dataloader(self, train_dataloader):
         profiled_dl = self.trainer.profiler.profile_iterable(
-            enumerate(self._with_is_last(train_dataloader)), "get_train_batch"
+            enumerate(prefetch_iterator(train_dataloader)), "get_train_batch"
         )
         return profiled_dl
-
-    def _with_is_last(self, iterable):
-        """Pass through values from the given iterable with an added boolean indicating if this is the last item.
-        See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_"""
-        it = iter(iterable)
-        last = next(it)
-        for val in it:
-            # yield last and has next
-            yield last, False
-            last = val
-        # yield last, no longer has next
-        yield last, True
 
     def prepare_data(self, model):
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
@@ -79,24 +67,26 @@ class DataConnector(object):
         else:
             return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
 
-    def attach_data(self, model, train_dataloader, val_dataloaders, datamodule):
-        # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloader, LightningDataModule):
-            datamodule = train_dataloader
-            train_dataloader = None
-
-        self.__enforce_datamodule_dataloader_override(train_dataloader, val_dataloaders, datamodule)
-
+    def attach_data(
+        self,
+        model: 'pl.LightningModule',
+        train_dataloader: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        predict_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional['pl.LightningDataModule'] = None
+    ) -> None:
         # set up the passed in dataloaders (if needed)
-        self.attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.attach_datamodule(model, datamodule)
-
-    def __enforce_datamodule_dataloader_override(self, train_dataloader, val_dataloaders, datamodule):
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloader is not None or val_dataloaders is not None) and datamodule is not None:
-            raise MisconfigurationException(
-                'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
-            )
+        self.attach_dataloaders(
+            model,
+            train_dataloader=train_dataloader,
+            val_dataloaders=val_dataloaders,
+            test_dataloaders=test_dataloaders,
+            predict_dataloaders=predict_dataloaders,
+        )
+        self.attach_datamodule(model, datamodule=datamodule)
+        # set local properties on the model
+        self.trainer.model_connector.copy_trainer_model_properties(model)
 
     def attach_dataloaders(
         self,

@@ -18,7 +18,7 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 
@@ -29,6 +29,7 @@ from pytorch_lightning.trainer.supporters import (
     CombinedLoader,
     CombinedLoaderIterator,
     CycleIterator,
+    prefetch_iterator,
     TensorRunningAccum,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -76,6 +77,30 @@ def test_none_length_cycle_iterator():
         if idx == 1000:
             break
     assert item == 0
+
+
+def test_prefetch_iterator():
+    """ Test the prefetch_iterator with PyTorch IterableDataset. """
+
+    class IterDataset(IterableDataset):
+
+        def __iter__(self):
+            yield 1
+            yield 2
+            yield 3
+
+    dataset = IterDataset()
+    iterator = prefetch_iterator(dataset)
+    assert [item for item in iterator] == [(1, False), (2, False), (3, True)]
+
+    class EmptyIterDataset(IterableDataset):
+
+        def __iter__(self):
+            return iter([])
+
+    dataset = EmptyIterDataset()
+    iterator = prefetch_iterator(dataset)
+    assert [item for item in iterator] == []
 
 
 @pytest.mark.parametrize(

@@ -470,3 +470,30 @@ def test_tpu_debug_mode(tmpdir):
 
     model = DebugModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_host_world_size(tmpdir):
+    """Test Host World size env setup on TPU."""
+
+    class DebugModel(BoringModel):
+
+        def on_train_start(self):
+            assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
+
+        def teardown(self, stage):
+            assert "XRT_HOST_WORLD_SIZE" not in os.environ
+
+    tutils.reset_seed()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=4,
+        tpu_cores=8,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
+    )
+
+    model = DebugModel()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)

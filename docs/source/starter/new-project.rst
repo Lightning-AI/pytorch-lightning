@@ -740,9 +740,9 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
 ---------------
 
-********************
-Other coool features
-********************
+*******************
+Other cool features
+*******************
 
 Once you define and train your first Lightning model, you might want to try other cool features like
 
@@ -761,9 +761,9 @@ Or read our :doc:`Guide <../starter/introduction_guide>` to learn more!
 
 Grid AI
 =======
-Grid AI is our native solution for large scale training and tuning on the cloud provider of your choice.
+Grid AI is our native solution for large scale training and tuning on the cloud.
 
-`Click here to request early-access <https://www.grid.ai/>`_.
+`Get started for free with your GitHub or Google Account here <https://www.grid.ai/>`_.
 
 ------------
 
