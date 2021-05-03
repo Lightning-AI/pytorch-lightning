@@ -264,8 +264,8 @@ class Callback(abc.ABC):
         Called when saving a model checkpoint, use to persist state.
 
         Args:
-            trainer: the current Trainer instance.
-            pl_module: the current 'pl.LightningModule' instance.
+            trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
@@ -273,11 +273,20 @@ class Callback(abc.ABC):
         """
         pass
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+    def on_load_checkpoint(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[str, Any]
+    ) -> None:
         """Called when loading a model checkpoint, use to reload state.
 
         Args:
+            trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
             callback_state: the callback state returned by ``on_save_checkpoint``.
+
+        Note:
+            The ``on_load_checkpoint`` won't be called with an undefined state.
+            If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
+            you will still need to override ``on_save_checkpoint`` to return a ``dummy state``.
         """
         pass
 

@@ -101,7 +101,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
     class StoreHistoryLogger(logger_class):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             self.history = []
 

@@ -1598,10 +1598,22 @@ fit
 .. automethod:: pytorch_lightning.trainer.Trainer.fit
    :noindex:
 
+validate
+********
+
+.. automethod:: pytorch_lightning.trainer.Trainer.validate
+   :noindex:
+
 test
 ****
 
 .. automethod:: pytorch_lightning.trainer.Trainer.test
+   :noindex:
+
+predict
+*******
+
+.. automethod:: pytorch_lightning.trainer.Trainer.predict
    :noindex:
 
 tune

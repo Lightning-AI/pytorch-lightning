@@ -50,7 +50,7 @@ class ProfilerConnector:
             else:
                 raise ValueError(
                     "When passing string value for the `profiler` parameter of"
-                    " `Trainer`, it can only be 'simple' or 'advanced'"
+                    " `Trainer`, it can only be 'simple', 'advanced' or 'pytorch'"
                 )
         self.trainer.profiler = profiler or PassThroughProfiler()
 

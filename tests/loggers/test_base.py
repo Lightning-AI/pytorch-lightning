@@ -169,7 +169,7 @@ def test_adding_step_key(tmpdir):
 
     class CustomTensorBoardLogger(TensorBoardLogger):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             self.logged_step = 0
 

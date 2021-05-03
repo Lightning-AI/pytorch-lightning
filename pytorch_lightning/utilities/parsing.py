@@ -56,6 +56,27 @@ def str_to_bool(val: str) -> bool:
     raise ValueError(f'invalid truth value {val}')
 
 
+def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
+    """Convert a string representation to truth of bool if possible, or otherwise try to convert it to an int.
+
+    >>> str_to_bool_or_int("FALSE")
+    False
+    >>> str_to_bool_or_int("1")
+    True
+    >>> str_to_bool_or_int("2")
+    2
+    >>> str_to_bool_or_int("abc")
+    'abc'
+    """
+    val = str_to_bool_or_str(val)
+    if isinstance(val, bool):
+        return val
+    try:
+        return int(val)
+    except ValueError:
+        return val
+
+
 def is_picklable(obj: object) -> bool:
     """Tests if an object can be pickled"""
 
@@ -169,6 +190,11 @@ def save_hyperparameters(
     frame: Optional[types.FrameType] = None
 ) -> None:
     """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
+
+    if len(args) == 1 and not isinstance(args, str) and not args[0]:
+        # args[0] is an empty container
+        return
+
     if not frame:
         frame = inspect.currentframe().f_back
     init_args = get_init_args(frame)

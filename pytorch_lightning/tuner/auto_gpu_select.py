@@ -17,11 +17,11 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def pick_multiple_gpus(nb):
-    '''
+    """
     Raises:
         MisconfigurationException:
             If ``gpus`` is set to 0, when ``auto_select_gpus=True``.
-    '''
+    """
     if nb == 0:
         raise MisconfigurationException(
             r"auto_select_gpus=True, gpus=0 is not a valid configuration.\
@@ -38,11 +38,11 @@ def pick_multiple_gpus(nb):
 
 
 def pick_single_gpu(exclude_gpus: list):
-    '''
+    """
     Raises:
         RuntimeError:
             If you try to allocate a GPU, when no GPUs are available.
-    '''
+    """
     for i in range(torch.cuda.device_count()):
         if i in exclude_gpus:
             continue
