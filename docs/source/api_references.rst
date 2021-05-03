@@ -153,14 +153,14 @@ Trainer API
 Tuner API
 ---------
 
-.. currentmodule:: pytorch_lightning.tuner
+.. currentmodule:: pytorch_lightning.tuner.tuning
 
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    batch_size_scaling
-    lr_finder
+    Tuner
 
 Utilities API
 -------------

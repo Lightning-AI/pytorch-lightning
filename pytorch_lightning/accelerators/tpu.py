@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from typing import Any, Callable, Union
 
 from torch.optim import Optimizer
@@ -49,6 +50,10 @@ class TPUAccelerator(Accelerator):
         if not isinstance(self.training_type_plugin, (SingleTPUPlugin, TPUSpawnPlugin)):
             raise MisconfigurationException("TPUs only support a single tpu core or tpu spawn training.")
         return super().setup(trainer, model)
+
+    def teardown(self) -> None:
+        if "PT_XLA_DEBUG" in os.environ:
+            del os.environ["PT_XLA_DEBUG"]
 
     def run_optimizer_step(
         self, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs: Any

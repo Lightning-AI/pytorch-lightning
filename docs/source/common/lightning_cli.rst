@@ -14,24 +14,23 @@
         def __init__(
             self,
             encoder_layers: int = 12,
-            decoder_layers: List[int] = [2, 4]
+            decoder_layers: List[int] = [2, 4],
+            batch_size: int = 8,
         ):
-            """Example encoder-decoder model
-
-            Args:
-                encoder_layers: Number of layers for the encoder
-                decoder_layers: Number of layers for each decoder block
-            """
             pass
 
     class MyDataModule(LightningDataModule):
-        pass
+        def __init__(self, batch_size: int = 8):
+            pass
 
     def send_email(address, message):
         pass
 
     MyModelBaseClass = MyModel
     MyDataModuleBaseClass = MyDataModule
+
+    EncoderBaseClass = MyModel
+    DecoderBaseClass = MyModel
 
     mock_argv = mock.patch("sys.argv", ["any.py"])
     mock_argv.start()
@@ -116,7 +115,7 @@ The start of a possible implementation of :class:`MyModel` including the recomme
 docstring could be the one below. Note that by using type hints and docstrings there is no need to duplicate this
 information to define its configurable arguments.
 
-.. code-block:: python
+.. testcode:: mymodel
 
     class MyModel(LightningModule):
 
@@ -131,7 +130,8 @@ information to define its configurable arguments.
                 encoder_layers: Number of layers for the encoder
                 decoder_layers: Number of layers for each decoder block
             """
-            ...
+            super().__init__()
+            self.save_hyperparameters()
 
 With this model class, the help of the trainer tool would look as follows:
 
@@ -258,7 +258,67 @@ A possible config file could be as follows:
         ...
 
 Only model classes that are a subclass of :code:`MyModelBaseClass` would be allowed, and similarly only subclasses of
-:code:`MyDataModuleBaseClass`.
+:code:`MyDataModuleBaseClass`. If as base classes :class:`~pytorch_lightning.core.lightning.LightningModule` and
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` are given, then the tool would allow any lightning
+module and data module.
+
+.. tip::
+
+    Note that with the subclass modes the :code:`--help` option does not show information for a specific subclass. To
+    get help for a subclass the options :code:`--model.help` and :code:`--data.help` can be used, followed by the
+    desired class path. Similarly :code:`--print_config` does not include the settings for a particular subclass. To
+    include them the class path should be given before the :code:`--print_config` option. Examples for both help and
+    print config are:
+
+    .. code-block:: bash
+
+        $ python trainer.py --model.help mycode.mymodels.MyModel
+        $ python trainer.py --model mycode.mymodels.MyModel --print_config
+
+
+Models with multiple submodules
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Many use cases require to have several modules each with its own configurable options. One possible way to handle this
+with LightningCLI is to implement a single module having as init parameters each of the submodules. Since the init
+parameters have as type a class, then in the configuration these would be specified with :code:`class_path` and
+:code:`init_args` entries. For instance a model could be implemented as:
+
+.. testcode::
+
+    class MyMainModel(LightningModule):
+
+        def __init__(
+            self,
+            encoder: EncoderBaseClass,
+            decoder: DecoderBaseClass
+        ):
+            """Example encoder-decoder submodules model
+
+            Args:
+                encoder: Instance of a module for encoding
+                decoder: Instance of a module for decoding
+            """
+            super().__init__()
+            self.encoder = encoder
+            self.decoder = decoder
+
+If the CLI is implemented as :code:`LightningCLI(MyMainModel)` the configuration would be as follows:
+
+.. code-block:: yaml
+
+    model:
+      encoder:
+        class_path: mycode.myencoders.MyEncoder
+        init_args:
+          ...
+      decoder:
+        class_path: mycode.mydecoders.MyDecoder
+        init_args:
+          ...
+
+It is also possible to combine :code:`subclass_mode_model=True` and submodules, thereby having two levels of
+:code:`class_path`.
 
 
 Customizing LightningCLI
@@ -275,7 +335,7 @@ extended to customize different parts of the command line tool. The argument par
 adding arguments can be done using the :func:`add_argument` method. In contrast to argparse it has additional methods to
 add arguments, for example :func:`add_class_arguments` adds all arguments from the init of a class, though requiring
 parameters to have type hints. For more details about this please refer to the `respective documentation
-<https://omni-us.github.io/jsonargparse/#classes-methods-and-functions>`_.
+<https://jsonargparse.readthedocs.io/en/stable/#classes-methods-and-functions>`_.
 
 The :class:`~pytorch_lightning.utilities.cli.LightningCLI` class has the
 :meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser` method which can be implemented to include
@@ -309,8 +369,46 @@ before and after the execution of fit. The code would be something like:
     cli = MyLightningCLI(MyModel)
 
 Note that the config object :code:`self.config` is a dictionary whose keys are global options or groups of options. It
-has the same structure as the yaml format as described previously. This means for instance that the parameters used for
+has the same structure as the yaml format described previously. This means for instance that the parameters used for
 instantiating the trainer class can be found in :code:`self.config['trainer']`.
 
-For more advanced use cases, other methods of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class could be
-extended. For further information have a look at the corresponding API reference.
+Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
+model and data module depend on a common parameter. For example in some cases both classes require to know the
+:code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
+parser can be configured so that a value is only given once and then propagated accordingly. With a tool implemented
+like shown below, the :code:`batch_size` only has to be provided in the :code:`data` section of the config.
+
+.. testcode::
+
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments('data.batch_size', 'model.batch_size')
+
+    cli = MyLightningCLI(MyModel, MyDataModule)
+
+The linking of arguments is observed in the help of the tool, which for this example would look like:
+
+.. code-block:: bash
+
+    $ python trainer.py --help
+      ...
+        --data.batch_size BATCH_SIZE
+                              Number of samples in a batch (type: int, default: 8)
+
+      Linked arguments:
+        model.batch_size <-- data.batch_size
+                              Number of samples in a batch (type: int)
+
+.. tip::
+
+    The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
+    multiple settings as input. For more details have a look at the API of `link_arguments
+    <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
+
+.. tip::
+
+    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
+    methods that can be extended to customize a CLI.
