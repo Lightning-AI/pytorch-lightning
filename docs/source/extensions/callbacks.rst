@@ -71,10 +71,10 @@ Examples
 --------
 You can do pretty much anything with callbacks.
 
-- `Add a MLP to fine-tune self-supervised networks <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_callbacks.html#sslonlineevaluator>`_.
-- `Find how to modify an image input to trick the classification result <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#confused-logit>`_.
-- `Interpolate the latent space of any variational model <https://pytorch-lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
-- `Log images to Tensorboard for any model <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
+- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_callbacks.html#sslonlineevaluator>`_.
+- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#confused-logit>`_.
+- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
+- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
 
 
 --------------
@@ -85,7 +85,7 @@ Lightning has a few built-in callbacks.
 
 .. note::
     For a richer collection of callbacks, check out our
-    `bolts library <https://pytorch-lightning-bolts.readthedocs.io/en/latest/callbacks.html>`_.
+    `bolts library <https://lightning-bolts.readthedocs.io/en/latest/callbacks.html>`_.
 
 .. currentmodule:: pytorch_lightning.callbacks
 
@@ -104,6 +104,7 @@ Lightning has a few built-in callbacks.
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
+    BasePredictionWriter
     ProgressBar
     ProgressBarBase
     QuantizationAwareTraining
@@ -167,7 +168,7 @@ on_init_end
 on_fit_start
 ^^^^^^^^^^^^
 
-.. automethod:: pytorch_lightning.callbacks.Callback.on_save_checkpoint
+.. automethod:: pytorch_lightning.callbacks.Callback.on_fit_start
     :noindex:
 
 on_fit_end
@@ -348,4 +349,16 @@ on_load_checkpoint
 ^^^^^^^^^^^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_load_checkpoint
+    :noindex:
+
+on_after_backward
+^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_after_backward
+    :noindex:
+
+on_before_zero_grad
+^^^^^^^^^^^^^^^^^^^
+
+.. automethod:: pytorch_lightning.callbacks.Callback.on_before_zero_grad
     :noindex:

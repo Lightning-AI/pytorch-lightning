@@ -36,6 +36,9 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         super().__init__()
         self.module = pl_module
 
+        # set the parameters_to_ignore from LightningModule.
+        self._ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
+
     def forward(self, *inputs, **kwargs):
         trainer = self.module.trainer
 
@@ -53,7 +56,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         elif trainer and (trainer.sanity_checking or trainer.validating):
             output = self.module.validation_step(*inputs, **kwargs)
         elif trainer and trainer.predicting:
-            output = self.module.predict(*inputs, **kwargs)
+            output = self.module.predict_step(*inputs, **kwargs)
         else:
             output = self.module(*inputs, **kwargs)
 

@@ -19,6 +19,7 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_optimizer_with_scheduling(tmpdir):
@@ -41,9 +42,9 @@ def test_optimizer_with_scheduling(tmpdir):
     init_lr = hparams.get('learning_rate')
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
 
-    assert (
-        len(trainer.lr_schedulers) == 1
-    ), 'lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
+    assert (len(
+        trainer.lr_schedulers
+    ) == 1), 'lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
 
     assert all(a == adjusted_lr[0] for a in adjusted_lr), 'Lr not equally adjusted for all param groups'
     adjusted_lr = adjusted_lr[0]
@@ -127,7 +128,7 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     adjusted_lr2 = adjusted_lr2[0]
 
     # Called ones after end of epoch
-    assert init_lr * 0.1 ** 1 == adjusted_lr1, 'lr for optimizer 1 not adjusted correctly'
+    assert init_lr * 0.1**1 == adjusted_lr1, 'lr for optimizer 1 not adjusted correctly'
     # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
     assert init_lr * 0.1 == adjusted_lr2, 'lr for optimizer 2 not adjusted correctly'
 
@@ -267,8 +268,16 @@ def test_optimizer_return_options(tmpdir):
 
     # opt multiple dictionaries with frequencies
     model.configure_optimizers = lambda: (
-        {"optimizer": opt_a, "lr_scheduler": scheduler_a, "frequency": 1},
-        {"optimizer": opt_b, "lr_scheduler": scheduler_b, "frequency": 5},
+        {
+            "optimizer": opt_a,
+            "lr_scheduler": scheduler_a,
+            "frequency": 1
+        },
+        {
+            "optimizer": opt_b,
+            "lr_scheduler": scheduler_b,
+            "frequency": 5
+        },
     )
     optim, lr_sched, freq = trainer.init_optimizers(model)
     assert len(optim) == len(lr_sched) == len(freq) == 2
@@ -330,6 +339,7 @@ def test_configure_optimizer_from_dict(tmpdir):
     """Tests if `configure_optimizer` method could return a dictionary with `optimizer` field only."""
 
     class CurrentModel(EvalModelTemplate):
+
         def configure_optimizers(self):
             config = {'optimizer': torch.optim.SGD(params=self.parameters(), lr=1e-03)}
             return config
@@ -363,7 +373,13 @@ def test_configure_optimizers_with_frequency(tmpdir):
     [
         (
             (optim.lr_scheduler.OneCycleLR, optim.lr_scheduler.OneCycleLR),
-            ({'max_lr': 0.01, 'total_steps': 3}, {'max_lr': 0.01, 'total_steps': 2}),
+            ({
+                'max_lr': 0.01,
+                'total_steps': 3
+            }, {
+                'max_lr': 0.01,
+                'total_steps': 2
+            }),
             ('step', 'step'),
             (3, 2),
             (4, 3),
@@ -371,7 +387,13 @@ def test_configure_optimizers_with_frequency(tmpdir):
         ),
         (
             (optim.lr_scheduler.OneCycleLR, optim.lr_scheduler.OneCycleLR),
-            ({'max_lr': 0.01, 'total_steps': 5}, {'max_lr': 0.01, 'total_steps': 5}),
+            ({
+                'max_lr': 0.01,
+                'total_steps': 5
+            }, {
+                'max_lr': 0.01,
+                'total_steps': 5
+            }),
             ('step', 'step'),
             (None, None),
             (6, 6),
@@ -379,7 +401,11 @@ def test_configure_optimizers_with_frequency(tmpdir):
         ),
         (
             (optim.lr_scheduler.StepLR, optim.lr_scheduler.CosineAnnealingLR),
-            ({'step_size': 5}, {'T_max': 2}),
+            ({
+                'step_size': 5
+            }, {
+                'T_max': 2
+            }),
             ('epoch', 'epoch'),
             (5, 10),
             (2, 3),
@@ -396,6 +422,7 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
     """
 
     class DummyModel(BoringModel):
+
         def training_step(self, batch, batch_idx, optimizer_idx):
             return super().training_step(batch, batch_idx)
 
@@ -416,8 +443,16 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
             }
 
             return [
-                {'optimizer': optimizer1, 'frequency': frequencies[0], 'lr_scheduler': lr_dict_1},
-                {'optimizer': optimizer2, 'frequency': frequencies[1], 'lr_scheduler': lr_dict_2},
+                {
+                    'optimizer': optimizer1,
+                    'frequency': frequencies[0],
+                    'lr_scheduler': lr_dict_1
+                },
+                {
+                    'optimizer': optimizer2,
+                    'frequency': frequencies[1],
+                    'lr_scheduler': lr_dict_2
+                },
             ]
 
     model = DummyModel()
@@ -432,15 +467,24 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
     assert result
 
 
-def test_init_optimizers_during_testing(tmpdir):
+@pytest.mark.parametrize("fn", ("validate", "test"))
+def test_init_optimizers_during_evaluation(tmpdir, fn):
     """
-    Test that optimizers is an empty list during testing.
+    Test that optimizers is an empty list during evaluation
     """
-    model = EvalModelTemplate()
-    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=10)
-    trainer.test(model, ckpt_path=None)
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            optimizer1 = torch.optim.Adam(self.parameters(), lr=0.1)
+            optimizer2 = torch.optim.Adam(self.parameters(), lr=0.1)
+            lr_scheduler1 = torch.optim.lr_scheduler.StepLR(optimizer1, step_size=1)
+            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer2, step_size=1)
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=10, limit_test_batches=10)
+    validate_or_test = getattr(trainer, fn)
+    validate_or_test(TestModel(), ckpt_path=None)
 
     assert len(trainer.lr_schedulers) == 0
     assert len(trainer.optimizers) == 0
@@ -453,6 +497,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
     """
 
     class CB(Callback):
+
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             pass
 
@@ -460,6 +505,7 @@ def test_multiple_optimizers_callbacks(tmpdir):
             pass
 
     class TestModel(BoringModel):
+
         def __init__(self):
             super().__init__()
             self.layer_1 = torch.nn.Linear(32, 2)
@@ -505,7 +551,11 @@ def test_lr_scheduler_strict(tmpdir):
 
     model.configure_optimizers = lambda: {
         'optimizer': optimizer,
-        'lr_scheduler': {'scheduler': scheduler, 'monitor': 'giraffe', 'strict': True},
+        'lr_scheduler': {
+            'scheduler': scheduler,
+            'monitor': 'giraffe',
+            'strict': True
+        },
     }
     with pytest.raises(
         MisconfigurationException,
@@ -524,7 +574,7 @@ def test_lr_scheduler_strict(tmpdir):
     with pytest.warns(
         RuntimeWarning, match=r'ReduceLROnPlateau conditioned on metric .* which is not available but strict'
     ):
-        assert trainer.fit(model)
+        trainer.fit(model)
 
 
 def test_unknown_configure_optimizers_raises(tmpdir):
@@ -577,6 +627,7 @@ def test_invalid_optimizer_dict_raises(tmpdir):
     """
 
     class DummyModel(BoringModel):
+
         def configure_optimizers(self):
             return [{'optimizer': optim.Adam(self.parameters())}, optim.Adam(self.parameters())]
 
@@ -584,3 +635,50 @@ def test_invalid_optimizer_dict_raises(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match='Unknown configuration for model optimizers'):
         trainer.fit(model)
+
+
+def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
+    """
+    Test warning when invalid scheduler keys are provided in manual optimization.
+    """
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def configure_optimizers(self):
+            opt = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            sch = torch.optim.lr_scheduler.StepLR(opt, step_size=1)
+            return [opt], [{"scheduler": sch, "interval": "epoch"}]
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.warns(RuntimeWarning, match='the keys will be ignored'):
+        trainer.fit(model)
+
+
+class TestModel(BoringModel):
+
+    def configure_optimizers(self):
+        # Adagrad creates state tensors immediately, model is not yet on GPU.
+        return torch.optim.Adagrad(self.parameters())
+
+    def on_train_start(self, *args, **kwargs):
+        opt = self.optimizers()
+        _, state = next(iter(opt.state.items()))
+        assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
+
+
+@RunIf(min_gpus=2, special=True)
+def test_optimizer_state_on_device(tmpdir):
+    """ Test that optimizers that create state initially at instantiation still end up with the state on the GPU. """
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=2,
+        accelerator="ddp",
+        fast_dev_run=True,
+    )
+    trainer.fit(model)

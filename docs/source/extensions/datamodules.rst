@@ -94,6 +94,10 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
         def test_dataloader(self):
             return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
+        def teardown(self, stage: Optional[str] = None):
+            # Used to clean-up when the run is finished
+            ...
+
 But now, as the complexity of your processing grows (transforms, multiple-GPU training), you can
 let Lightning handle those details for you while making this dataset reusable so you can share with
 colleagues or use in different projects.
@@ -180,6 +184,8 @@ To define a DataModule define 5 methods:
 - val_dataloader(s)
 - test_dataloader(s)
 
+and optionally one or multiple predict_dataloader(s).
+
 
 prepare_data
 ^^^^^^^^^^^^
@@ -243,7 +249,10 @@ There are also data operations you might want to perform on every GPU. Use setup
                 self.dims = getattr(self, 'dims', self.mnist_test[0][0].shape)
 
 
-.. warning:: `setup` is called from every process. Setting state here is okay.
+.. warning:: ``setup`` is called from every process. Setting state here is okay.
+
+
+.. note:: ``teardown`` can be used to clean up the state. It is also called from every process
 
 
 train_dataloader
@@ -287,6 +296,21 @@ Use this method to generate the test dataloader. Usually you just wrap the datas
 
     class MNISTDataModule(pl.LightningDataModule):
         def test_dataloader(self):
+            return DataLoader(self.mnist_test, batch_size=64)
+
+
+predict_dataloader
+^^^^^^^^^^^^^^^^^^
+Returns a special dataloader for inference. This is the dataloader that the Trainer
+:meth:`~pytorch_lightning.trainer.trainer.Trainer.predict` method uses.
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+
+    class MNISTDataModule(pl.LightningDataModule):
+        def predict_dataloader(self):
             return DataLoader(self.mnist_test, batch_size=64)
 
 
@@ -411,10 +435,14 @@ You can of course use DataModules in plain PyTorch code as well.
     for batch in dm.val_dataloader():
         ...
 
+    dm.teardown(stage='fit')
+
     # lazy load test data
     dm.setup(stage='test')
     for batch in dm.test_dataloader():
         ...
+
+    dm.teardown(stage='test')
 
 But overall, DataModules encourage reproducibility by allowing all details of a dataset to be specified in a unified
 structure.

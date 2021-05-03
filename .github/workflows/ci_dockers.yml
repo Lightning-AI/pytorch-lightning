@@ -10,7 +10,7 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     paths:
       - "dockers/**"
       - "!dockers/README.md"
-      - "requirements/*.txt"
+      - "requirements/*"
       - "environment.yml"
       - "requirements.txt"
       - ".github/workflows/*docker*.yml"
@@ -29,9 +29,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # https://github.com/docker/setup-buildx-action
-      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
-      - uses: docker/setup-buildx-action@v1
       - name: Build PL Docker
         # publish master/release
         uses: docker/build-push-action@v2
@@ -54,9 +51,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # https://github.com/docker/setup-buildx-action
-      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
-      - uses: docker/setup-buildx-action@v1
       - name: Build XLA Docker
         # publish master/release
         uses: docker/build-push-action@v2
@@ -81,8 +75,8 @@ jobs:
             pytorch_version: 1.6
           - python_version: 3.8
             pytorch_version: 1.7
-          #- python_version: 3.9
-          #  pytorch_version: 1.8
+          #  - python_version: 3.9
+          #    pytorch_version: 1.7
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -93,9 +87,6 @@ jobs:
           echo "::set-output name=CUDA::$cuda"
         id: extend
 
-      # https://github.com/docker/setup-buildx-action
-      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
-      - uses: docker/setup-buildx-action@v1
       - name: Build CUDA Docker
         # publish master/release
         uses: docker/build-push-action@v2
@@ -118,8 +109,10 @@ jobs:
             pytorch_version: 1.4
           - python_version: 3.7
             pytorch_version: 1.7
-          - python_version: 3.7
+          - python_version: 3.8
             pytorch_version: 1.8
+          #  - python_version: 3.9
+          #    pytorch_version: 1.8
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -130,9 +123,6 @@ jobs:
           echo "::set-output name=CUDA::$cuda"
         id: extend
 
-      # https://github.com/docker/setup-buildx-action
-      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
-      - uses: docker/setup-buildx-action@v1
       - name: Build CUDA Docker
         # publish master/release
         uses: docker/build-push-action@v2
@@ -150,10 +140,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      # https://github.com/docker/setup-buildx-action
-      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
-      - uses: docker/setup-buildx-action@v1
-      - name: Build CUDA Docker
+
+      - name: Build NVIDIA Docker
         uses: docker/build-push-action@v2
         with:
           file: dockers/nvidia/Dockerfile

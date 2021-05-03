@@ -13,6 +13,7 @@
 # limitations under the License.
 from collections import OrderedDict
 from logging import INFO
+from typing import Union
 
 import pytest
 import torch
@@ -35,7 +36,7 @@ class TestModel(BoringModel):
         self.layer = Sequential(
             OrderedDict([
                 ("mlp_1", nn.Linear(32, 32)),
-                ("mlp_2", nn.Linear(32, 32)),
+                ("mlp_2", nn.Linear(32, 32, bias=False)),
                 ("mlp_3", nn.Linear(32, 2)),
             ])
         )
@@ -84,7 +85,10 @@ def train_with_pruning_callback(
     if parameters_to_prune:
         pruning_kwargs["parameters_to_prune"] = [(model.layer.mlp_1, "weight"), (model.layer.mlp_2, "weight")]
     else:
-        pruning_kwargs["parameter_names"] = ["weight"]
+        if isinstance(pruning_fn, str) and pruning_fn.endswith("_structured"):
+            pruning_kwargs["parameter_names"] = ["weight"]
+        else:
+            pruning_kwargs["parameter_names"] = ["weight", "bias"]
     if isinstance(pruning_fn, str) and pruning_fn.endswith("_structured"):
         pruning_kwargs["pruning_dim"] = 0
     if pruning_fn == "ln_structured":
@@ -144,7 +148,8 @@ def test_pruning_misconfiguration():
 )
 @pytest.mark.parametrize("use_lottery_ticket_hypothesis", [False, True])
 def test_pruning_callback(
-    tmpdir, use_global_unstructured, parameters_to_prune, pruning_fn, use_lottery_ticket_hypothesis
+    tmpdir, use_global_unstructured: bool, parameters_to_prune: bool,
+    pruning_fn: Union[str, pytorch_prune.BasePruningMethod], use_lottery_ticket_hypothesis: bool
 ):
     train_with_pruning_callback(
         tmpdir,
@@ -158,7 +163,7 @@ def test_pruning_callback(
 @RunIf(special=True)
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
-def test_pruning_callback_ddp(tmpdir, use_global_unstructured, parameters_to_prune):
+def test_pruning_callback_ddp(tmpdir, use_global_unstructured: bool, parameters_to_prune: bool):
     train_with_pruning_callback(
         tmpdir,
         parameters_to_prune=parameters_to_prune,
@@ -179,7 +184,7 @@ def test_pruning_callback_ddp_cpu(tmpdir):
 
 
 @pytest.mark.parametrize("resample_parameters", (False, True))
-def test_pruning_lth_callable(tmpdir, resample_parameters):
+def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
     model = TestModel()
 
     class ModelPruningTestCallback(ModelPruning):
@@ -218,7 +223,7 @@ def test_pruning_lth_callable(tmpdir, resample_parameters):
 
 
 @pytest.mark.parametrize("make_pruning_permanent", (False, True))
-def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
+def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool):
     seed_everything(0)
     model = TestModel()
     pruning_kwargs = {
@@ -228,6 +233,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     }
     p1 = ModelPruning("l1_unstructured", amount=0.5, apply_pruning=lambda e: not e % 2, **pruning_kwargs)
     p2 = ModelPruning("random_unstructured", amount=0.25, apply_pruning=lambda e: e % 2, **pruning_kwargs)
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
@@ -246,14 +252,14 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent):
     actual = [m for m in actual if m.startswith("Applied")]
     assert actual == [
         "Applied `L1Unstructured`. Pruned: 0/1122 (0.00%) -> 544/1122 (48.48%)",
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 506 (49.41%)",  # noqa: E501
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 38 (59.38%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 503 (49.12%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 41 (64.06%)",  # noqa: E501
         "Applied `RandomUnstructured`. Pruned: 544/1122 (48.48%) -> 680/1122 (60.61%)",
-        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.25. Pruned: 506 (49.41%) -> 633 (61.82%)",  # noqa: E501
-        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.25. Pruned: 38 (59.38%) -> 47 (73.44%)",  # noqa: E501
+        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.25. Pruned: 503 (49.12%) -> 629 (61.43%)",  # noqa: E501
+        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.25. Pruned: 41 (64.06%) -> 51 (79.69%)",  # noqa: E501
         "Applied `L1Unstructured`. Pruned: 680/1122 (60.61%) -> 884/1122 (78.79%)",
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 633 (61.82%) -> 828 (80.86%)",  # noqa: E501
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 47 (73.44%) -> 56 (87.50%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 629 (61.43%) -> 827 (80.76%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 51 (79.69%) -> 57 (89.06%)",  # noqa: E501
     ]
 
     filepath = str(tmpdir / "foo.ckpt")

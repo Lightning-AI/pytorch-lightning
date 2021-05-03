@@ -47,9 +47,7 @@ class TrainerOptimizersMixin(ABC):
             optimizers = [optim_conf]
         # two lists, optimizer + lr schedulers
         elif (
-            isinstance(optim_conf, (list, tuple))
-            and len(optim_conf) == 2
-            and isinstance(optim_conf[0], list)
+            isinstance(optim_conf, (list, tuple)) and len(optim_conf) == 2 and isinstance(optim_conf[0], list)
             and all(isinstance(opt, Optimizer) for opt in optim_conf[0])
         ):
             opt, sch = optim_conf
@@ -64,14 +62,14 @@ class TrainerOptimizersMixin(ABC):
         elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
             optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
             scheduler_dict = (
-                lambda scheduler, opt_idx: dict(scheduler, opt_idx=opt_idx)
-                if isinstance(scheduler, dict)
-                else {'scheduler': scheduler, 'opt_idx': opt_idx}
+                lambda scheduler, opt_idx: dict(scheduler, opt_idx=opt_idx) if isinstance(scheduler, dict) else {
+                    'scheduler': scheduler,
+                    'opt_idx': opt_idx
+                }
             )
 
             lr_schedulers = [
-                scheduler_dict(opt_dict["lr_scheduler"], opt_idx)
-                for opt_idx, opt_dict in enumerate(optim_conf)
+                scheduler_dict(opt_dict["lr_scheduler"], opt_idx) for opt_idx, opt_dict in enumerate(optim_conf)
                 if "lr_scheduler" in opt_dict
             ]
             optimizer_frequencies = [
@@ -95,7 +93,8 @@ class TrainerOptimizersMixin(ABC):
                 ' * A list of the previously described dict format, with an optional "frequency" key (int)'
             )
 
-        lr_schedulers = self.configure_schedulers(lr_schedulers, monitor=monitor)
+        is_manual_optimization = not model.automatic_optimization
+        lr_schedulers = self.configure_schedulers(lr_schedulers, monitor, is_manual_optimization)
         _validate_scheduler_optimizer(optimizers, lr_schedulers)
 
         return optimizers, lr_schedulers, optimizer_frequencies
@@ -113,8 +112,13 @@ class TrainerOptimizersMixin(ABC):
             for opt_idx, opt in enumerate(self.optimizers)
         }
 
-    def configure_schedulers(self, schedulers: list, monitor: Optional[str] = None):
-        # Convert each scheduler into dict structure with relevant information
+    def configure_schedulers(
+        self,
+        schedulers: list,
+        monitor: Optional[str],
+        is_manual_optimization: bool,
+    ) -> List[Dict[str, Any]]:
+        """Convert each scheduler into dict structure with relevant information"""
         lr_schedulers = []
         default_config = _get_default_scheduler_config()
 
@@ -133,6 +137,16 @@ class TrainerOptimizersMixin(ABC):
                         f'The "interval" key in lr scheduler dict must be "step" or "epoch"'
                         f' but is "{scheduler["interval"]}"'
                     )
+                if is_manual_optimization:
+                    invalid_keys = {'interval', 'frequency', 'reduce_on_plateau', 'monitor', 'strict'}
+                    keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
+
+                    if keys_to_warn:
+                        rank_zero_warn(
+                            f'The lr scheduler dict contains the key(s) {keys_to_warn}, but the keys will be ignored.'
+                            ' You need to call `lr_scheduler.step()` manually in manual optimization.',
+                            RuntimeWarning,
+                        )
 
                 scheduler['reduce_on_plateau'] = isinstance(
                     scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau

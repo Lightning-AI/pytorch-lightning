@@ -18,9 +18,9 @@ import sys
 import pytest
 
 from pytorch_lightning import Trainer
-from tests import LEGACY_PATH
+from tests import PATH_LEGACY
 
-LEGACY_CHECKPOINTS_PATH = os.path.join(LEGACY_PATH, 'checkpoints')
+LEGACY_CHECKPOINTS_PATH = os.path.join(PATH_LEGACY, 'checkpoints')
 CHECKPOINT_EXTENSION = ".ckpt"
 
 
@@ -55,9 +55,14 @@ CHECKPOINT_EXTENSION = ".ckpt"
         "1.2.0",
         "1.2.1",
         "1.2.2",
+        "1.2.3",
+        "1.2.4",
+        "1.2.5",
+        "1.2.6",
+        "1.2.7",
     ]
 )
-def test_resume_legacy_checkpoints(tmpdir, pl_version):
+def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     path_dir = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
 
     # todo: make this as mock, so it is cleaner...
@@ -71,13 +76,11 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version):
 
     model = DummyModel.load_from_checkpoint(path_ckpt)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=6)
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
 
     # todo
     # model = DummyModel()
     # trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, resume_from_checkpoint=path_ckpt)
-    # result = trainer.fit(model)
-    # assert result
+    # trainer.fit(model)
 
     sys.path = orig_sys_paths
