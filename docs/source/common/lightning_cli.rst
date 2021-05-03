@@ -376,7 +376,7 @@ Another case in which it might be desired to extend :class:`~pytorch_lightning.u
 model and data module depend on a common parameter. For example in some cases both classes require to know the
 :code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
 parser can be configured so that a value is only given once and then propagated accordingly. With a tool implemented
-like shown below, the :code:`batch_size` would only has to be provided in the :code:`data` section of the config.
+like shown below, the :code:`batch_size` only has to be provided in the :code:`data` section of the config.
 
 .. testcode::
 
@@ -389,7 +389,7 @@ like shown below, the :code:`batch_size` would only has to be provided in the :c
 
     cli = MyLightningCLI(MyModel, MyDataModule)
 
-The linking of arguments is observed in the help of the tool, which for this example would be like:
+The linking of arguments is observed in the help of the tool, which for this example would look like:
 
 .. code-block:: bash
 

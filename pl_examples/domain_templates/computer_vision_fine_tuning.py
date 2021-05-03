@@ -100,7 +100,7 @@ class CatDogImageDataModule(LightningDataModule):
         """CatDogImageDataModule
 
         Args:
-            dl_path: Root directory where to download the data
+            dl_path: root directory where to download the data
             num_workers: number of CPU workers
             batch_size: number of sample in a batch
         """
