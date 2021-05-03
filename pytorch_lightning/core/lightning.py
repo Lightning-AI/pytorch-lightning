@@ -28,7 +28,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
-from deprecate import deprecated
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -164,8 +163,11 @@ class LightningModule(
         self._example_input_array = example
 
     @property
-    @deprecated(deprecated_in="1.3.0", remove_in="1.5.0", target=None)
     def datamodule(self) -> Any:
+        rank_zero_deprecation(
+            "The `LightningModule.datamodule` setter is deprecated and will be removed in v1.5."
+            " Access the datamodule trhough the Trainer instead."
+        )
         return self._datamodule
 
     @datamodule.setter

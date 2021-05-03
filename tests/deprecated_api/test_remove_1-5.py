@@ -25,7 +25,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
 from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, BoringDataModule
 from tests.helpers.utils import no_warning_call
 
 
@@ -242,3 +242,12 @@ def test_v1_5_0_auto_move_data():
             @auto_move_data
             def bar(self):
                 pass
+
+
+def test_v1_5_0_datamodule_setter():
+    model = BoringModel()
+    datamodule = BoringDataModule()
+    with no_deprecated_call(match="The `LightningModule.datamodule`"):
+        model.datamodule = datamodule
+    with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
+        _ = model.datamodule
