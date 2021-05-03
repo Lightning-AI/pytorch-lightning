@@ -849,7 +849,8 @@ class Trainer(
         """
         Trainer._log_api_event("fit")
 
-        self.state = TrainerState.FITTING
+        self.state.fn = TrainerFn.FITTING
+        self.state.status = TrainerStatus.RUNNING
         self.training = True
 
         # if a datamodule comes in as the second arg, then fix it for the user

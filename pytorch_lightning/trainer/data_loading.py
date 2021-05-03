@@ -354,7 +354,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # add samplers
         dataloaders = [
-            self.auto_add_sampler(dl, shuffle=False, mode=self._running_stage) for dl in dataloaders if dl is not None
+            self.auto_add_sampler(dl, shuffle=False, mode=self.state.stage) for dl in dataloaders if dl is not None
         ]
 
         # add worker_init_fn for correct seeding in worker processes
