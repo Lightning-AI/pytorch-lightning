@@ -399,7 +399,7 @@ The linking of arguments is observed in the help of the tool, which for this exa
                               Number of samples in a batch (type: int, default: 8)
 
       Linked arguments:
-        model.batch_size <= data.batch_size
+        model.batch_size <-- data.batch_size
                               Number of samples in a batch (type: int)
 
 .. tip::
