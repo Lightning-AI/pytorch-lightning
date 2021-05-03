@@ -833,7 +833,8 @@ class Trainer(
         else:
             self.accelerator.start_training(self)
 
-    def run_stage(self) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+    def run_stage(self):
+        self.accelerator.dispatch(self)
         self.profile_connector.setup()
 
         if self.evaluating:
