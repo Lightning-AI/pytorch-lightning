@@ -44,7 +44,7 @@ def main(path_req: str, torch_version: Optional[str] = None) -> None:
         replace += os.linesep
         req = re.sub(rf"{lib}[>=]*[\d\.]*{os.linesep}", replace, req)
 
-    print(req)
+    print(req)  # on purpose - to debug
     with open(path_req, "w") as fp:
         fp.write(req)
 
