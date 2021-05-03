@@ -991,9 +991,6 @@ datamodule
 ~~~~~~~~~~
 Set or access your datamodule.
 
-.. warning::
-    ``datamodule`` is deprecated from v1.3 and will be removed in v1.5. Access it through the trainer.
-
 .. code-block:: python
 
     def configure_optimizers(self):
