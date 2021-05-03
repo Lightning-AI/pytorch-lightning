@@ -3,7 +3,6 @@ import re
 import sys
 from typing import Dict, Optional
 
-# IMPORTANT: this list must be sorted from latest to oldest
 VERSIONS = [
     dict(torch="1.9.0", torchvision="", torchtext=""),  # nightly
     dict(torch="1.8.1", torchvision="0.9.1", torchtext="0.9.1"),
@@ -15,6 +14,7 @@ VERSIONS = [
     dict(torch="1.5.0", torchvision="0.6.0", torchtext="0.6"),
     dict(torch="1.4.0", torchvision="0.5.0", torchtext="0.5"),
 ]
+VERSIONS.sort(key=lambda v: v["torch"], reverse=True)
 
 
 def find_latest(ver: str) -> Dict[str, str]:
