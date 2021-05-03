@@ -31,19 +31,20 @@ class TrainerStatus(LightningEnum):
 
 class TrainerFn(LightningEnum):
     """
-    Functions of the :class:`~pytorch_lightning.trainer.trainer.Trainer`
-    functions such as ``trainer.fit()`` and ``trainer.test()``.
+    User-facing functions of the :class:`~pytorch_lightning.trainer.trainer.Trainer`
+    such as :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and
+    :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
     """
-    FITTING = 'fit'  # trainer.fit()
-    VALIDATING = 'validate'  # trainer.validate()
-    TESTING = 'test'  # trainer.test()
-    PREDICTING = 'predict'  # trainer.predict()
-    TUNING = 'tune'  # trainer.tune()
+    FITTING = 'fit'
+    VALIDATING = 'validate'
+    TESTING = 'test'
+    PREDICTING = 'predict'
+    TUNING = 'tune'
 
     @property
     def _setup_fn(self) -> 'TrainerFn':
         """
-        'fit' is used instead of 'tune' as there aren't 'tune_dataloaders'.
+        ``FITTING`` is used instead of ``TUNING`` as there are no "tune" dataloaders.
 
         This is used for the ``setup()`` and ``teardown()`` hooks
         """
@@ -51,11 +52,17 @@ class TrainerFn(LightningEnum):
 
 
 class RunningStage(LightningEnum):
-    """Current running stage.
+    """
+    Current running stage.
 
-    This stage complements :class:`TrainerState`, for example, to indicate that
-    `RunningStage.VALIDATING` will be set both during `TrainerFn.FITTING`
-    and `TrainerFn.VALIDATING`. It follows the internal code logic.
+    This stage complements :class:`TrainerFn` by specifying the current running stage for each function.
+    More than one running stage value can be set while a :class:`TrainerFn` is running:
+
+        - ``TrainerFn.FITTING`` - ``RunningStage.{SANITY_CHECKING,TRAINING,VALIDATING}``
+        - ``TrainerFn.VALIDATING`` - ``RunningStage.VALIDATING``
+        - ``TrainerFn.TESTING`` - ``RunningStage.TESTING``
+        - ``TrainerFn.PREDICTING`` - ``RunningStage.PREDICTING``
+        - ``TrainerFn.TUNING`` - ``RunningStage.{TUNING,SANITY_CHECKING,TRAINING,VALIDATING}``
     """
     TRAINING = 'train'
     SANITY_CHECKING = 'sanity_check'
