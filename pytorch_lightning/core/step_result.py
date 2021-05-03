@@ -109,7 +109,7 @@ class Result(Dict):
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
             is_dist_initialized = torch.distributed.is_available() and torch.distributed.is_initialized()
             # TODO: Find a way to make the reduction only once, so we don't need to clone.
-            if (is_dist_initialized or tpu_distributed) and isinstance(value, torch.Tensor):
+            if (is_dist_initialized or tpu_distributed()) and isinstance(value, torch.Tensor):
                 value = value.clone()
             else:
                 value = torch.tensor(value, device=device, dtype=torch.float)

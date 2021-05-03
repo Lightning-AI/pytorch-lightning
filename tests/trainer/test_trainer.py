@@ -548,7 +548,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
             return output
 
     model = TestModel()
-    early_stop = EarlyStopping(monitor="loss", patience=0)
+    early_stop = EarlyStopping(monitor="loss", patience=0, check_on_train_epoch_end=True)
     min_epochs = 5
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1977,6 +1977,8 @@ def test_trainer_attach_data_pipeline_to_model(tmpdir):
 
 def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = BoringModel()
+    trainer.fit(model)
 
     with pytest.raises(MisconfigurationException, match=r"\.validate\(\)` with `fast_dev_run=True"):
         trainer.validate()
