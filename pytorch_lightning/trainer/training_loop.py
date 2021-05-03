@@ -884,9 +884,10 @@ class TrainLoop:
 
     def _truncated_bptt_enabled(self) -> bool:
         """ Temporary tbptt utilities until this flag is fully migrated to the lightning module. """
-        lm = self.trainer.lightning_module
+        module = self.trainer.lightning_module
+        module_tbptt_enabled = module.truncated_bptt_steps is not None and module.truncated_bptt_steps > 0
+
         trainer = self.trainer
-        module_tbptt_enabled = lm.truncated_bptt_steps is not None and module.truncated_bptt_steps > 0
         trainer_tbptt_enabled = trainer.truncated_bptt_steps is not None and trainer.truncated_bptt_steps > 0
         return module_tbptt_enabled or trainer_tbptt_enabled
 
