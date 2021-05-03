@@ -18,7 +18,7 @@ from pytorch_lightning.utilities import LightningEnum
 
 
 class TrainerStatus(LightningEnum):
-    """Status of the :class:`~pytorch_lightning.trainer.trainer.Trainer`"""
+    """Enum for the status of the :class:`~pytorch_lightning.trainer.trainer.Trainer`"""
     INITIALIZING = 'initializing'  # trainer creation
     RUNNING = 'running'
     FINISHED = 'finished'
@@ -31,7 +31,7 @@ class TrainerStatus(LightningEnum):
 
 class TrainerFn(LightningEnum):
     """
-    User-facing functions of the :class:`~pytorch_lightning.trainer.trainer.Trainer`
+    Enum for the user-facing functions of the :class:`~pytorch_lightning.trainer.trainer.Trainer`
     such as :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and
     :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
     """
@@ -53,7 +53,7 @@ class TrainerFn(LightningEnum):
 
 class RunningStage(LightningEnum):
     """
-    Current running stage.
+    Enum for the current running stage.
 
     This stage complements :class:`TrainerFn` by specifying the current running stage for each function.
     More than one running stage value can be set while a :class:`TrainerFn` is running:
