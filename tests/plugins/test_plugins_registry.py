@@ -23,6 +23,8 @@ def test_training_type_plugins_registry_with_new_plugin():
 
     class TestPlugin:
 
+        distributed_backend = "test_plugin"
+
         def __init__(self, param1, param2):
             self.param1 = param1
             self.param2 = param2
@@ -37,6 +39,7 @@ def test_training_type_plugins_registry_with_new_plugin():
     assert plugin_name in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin_name]["description"] == plugin_description
     assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"param1": "abc", "param2": 123}
+    assert TrainingTypePluginsRegistry[plugin_name]["distributed_backend"] == "test_plugin"
     assert isinstance(TrainingTypePluginsRegistry.get(plugin_name), TestPlugin)
 
     TrainingTypePluginsRegistry.remove(plugin_name)
