@@ -14,7 +14,7 @@
 
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -432,12 +432,13 @@ class TrainLoop:
                 grad_norm_dict = grad_norm(model, self.trainer.track_grad_norm)
         return grad_norm_dict
 
-    def tbptt_split_batch(self, batch):
+    def _tbptt_split_batch(self, batch) -> List[Any]:
         splits = [batch]
-        if self.trainer.truncated_bptt_steps is not None:
+        truncated_bptt_enabled = self._truncated_bptt_enabled()
+        if truncated_bptt_enabled:
             model_ref = self.trainer.lightning_module
             with self.trainer.profiler.profile("tbptt_split_batch"):
-                splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
+                splits = model_ref.tbptt_split_batch(batch, self._truncated_bptt_steps())
         return splits
 
     def run_training_epoch(self):
@@ -612,7 +613,7 @@ class TrainLoop:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
         # lightning module hook
-        splits = self.tbptt_split_batch(batch)
+        splits = self._tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
 
@@ -876,10 +877,22 @@ class TrainLoop:
                 )
 
         # pass hiddens if using tbptt
-        if self.trainer.truncated_bptt_steps is not None:
+        if self._truncated_bptt_enabled():
             args.append(hiddens)
 
         return args
+
+    def _truncated_bptt_enabled(self) -> bool:
+        """ Temporary tbptt utilities until this flag is fully migrated to the lightning module. """
+        lightning_module = self.trainer.lightning_module
+        return self.trainer.truncated_bptt_steps > 0 or lightning_module.truncated_bptt_steps > 0
+
+    def _truncated_bptt_steps(self) -> Optional[int]:
+        lightning_module = self.trainer.lightning_module
+        # Give precedence to the LightningModule as the Trainer flag will be removed in v1.5
+        if lightning_module.truncated_bptt_steps > 0:
+            return lightning_module.truncated_bptt_steps
+        return self.trainer.truncated_bptt_steps
 
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
