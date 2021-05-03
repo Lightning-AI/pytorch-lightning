@@ -49,7 +49,7 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _lightning_optimizers = None
     _progress_bar_callback: ProgressBarBase
-    state: TrainerState = None
+    state: TrainerState
     _weights_save_path: str
 
     accelerator_connector: AcceleratorConnector
