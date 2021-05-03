@@ -380,3 +380,18 @@ def test_v1_5_0_lighting_module_grad_norm(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         model.grad_norm(2)
+
+
+def test_v1_5_0_datamodule_named_argument(tmpdir):
+    model = BoringModel()
+    dm = BoringDataModule()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=False,
+        logger=False,
+    )
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.fit(model, dm)
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        trainer.tune(model, dm)
