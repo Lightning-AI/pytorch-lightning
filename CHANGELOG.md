@@ -193,6 +193,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 
 
+- Deprecated passing datamodule as an unnamed argument to `Trainer.fit` and `Trainer.tune` in favor of explicitly specifying `Trainer.fit/tune(model, datamodule=dm)` ([#7239](https://github.com/PyTorchLightning/pytorch-lightning/pull/7329/))
+
+
 - Deprecated `LightningModule.grad_norm` in favor of `pytorch_lightning.utilities.grads.grad_norm` ([#7292](https://github.com/PyTorchLightning/pytorch-lightning/pull/7292))
 
 

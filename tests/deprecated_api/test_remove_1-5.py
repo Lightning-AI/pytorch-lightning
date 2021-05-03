@@ -27,7 +27,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
 from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringModel
+from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.utils import no_warning_call
 
 
