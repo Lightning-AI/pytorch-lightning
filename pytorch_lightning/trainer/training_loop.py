@@ -891,7 +891,7 @@ class TrainLoop:
     def _truncated_bptt_steps(self) -> Optional[int]:
         lightning_module = self.trainer.lightning_module
         # Give precedence to the LightningModule as the Trainer flag will be removed in v1.5
-        if lightning_module.truncated_bptt_steps > 0:
+        if lightning_module.truncated_bptt_steps is not None and lightning_module.truncated_bptt_steps > 0:
             return lightning_module.truncated_bptt_steps
         return self.trainer.truncated_bptt_steps
 
