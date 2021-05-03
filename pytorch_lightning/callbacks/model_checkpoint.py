@@ -231,9 +231,7 @@ class ModelCheckpoint(Callback):
         self.save_checkpoint(trainer)
 
     def on_validation_end(self, trainer, pl_module) -> None:
-        """
-        checkpoints can be saved at the end of the val loop
-        """
+        """ Save a checkpoint at the end of the validation stage. """
         skip = (
             self._should_skip_saving_checkpoint(trainer) or self._every_n_val_epochs < 1
             or (trainer.current_epoch + 1) % self._every_n_val_epochs != 0

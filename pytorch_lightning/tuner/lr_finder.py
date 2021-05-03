@@ -15,13 +15,12 @@ import importlib
 import logging
 import os
 from functools import wraps
-from typing import Callable, List, Optional, Sequence, Union
+from typing import Callable, Optional, Sequence
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
-from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -62,7 +61,7 @@ def _determine_lr_attr_name(trainer: 'pl.Trainer', model: 'pl.LightningModule') 
 
 
 class _LRFinder(object):
-    """ LR finder object. This object stores the results of Trainer.lr_find().
+    """ LR finder object. This object stores the results of lr_find().
 
     Args:
         mode: either `linear` or `exponential`, how to increase lr after each step
@@ -198,77 +197,14 @@ class _LRFinder(object):
 def lr_find(
     trainer: 'pl.Trainer',
     model: 'pl.LightningModule',
-    train_dataloader: Optional[DataLoader] = None,
-    val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
     min_lr: float = 1e-8,
     max_lr: float = 1,
     num_training: int = 100,
     mode: str = 'exponential',
     early_stop_threshold: float = 4.0,
-    datamodule: Optional['pl.LightningDataModule'] = None,
     update_attr: bool = False,
 ) -> Optional[_LRFinder]:
-    r"""
-    ``lr_find`` enables the user to do a range test of good initial learning rates,
-    to reduce the amount of guesswork in picking a good starting learning rate.
-
-    Args:
-        trainer: The Trainer
-
-        model: Model to do range testing for
-
-        train_dataloader: A PyTorch
-            ``DataLoader`` with training samples. If the model has
-            a predefined train_dataloader method, this will be skipped.
-
-        min_lr: minimum learning rate to investigate
-
-        max_lr: maximum learning rate to investigate
-
-        num_training: number of learning rates to test
-
-        mode: Search strategy to update learning rate after each batch:
-
-            - ``'exponential'`` (default): Will increase the learning rate exponentially.
-            - ``'linear'``: Will increase the learning rate linearly.
-
-        early_stop_threshold: threshold for stopping the search. If the
-            loss at any point is larger than early_stop_threshold*best_loss
-            then the search is stopped. To disable, set to None.
-
-        datamodule: An optional ``LightningDataModule`` which holds the training
-            and validation dataloader(s). Note that the ``train_dataloader`` and
-            ``val_dataloaders`` parameters cannot be used at the same time as
-            this parameter, or a ``MisconfigurationException`` will be raised.
-
-        update_attr: Whether to update the learning rate attribute or not.
-
-    Raises:
-        MisconfigurationException:
-            If learning rate/lr in ``model`` or ``model.hparams`` isn't overriden when ``auto_lr_find=True``, or
-            if you are using `more than one optimizer` with learning rate finder.
-
-    Example::
-
-        # Setup model and trainer
-        model = MyModelClass(hparams)
-        trainer = pl.Trainer()
-
-        # Run lr finder
-        lr_finder = trainer.tuner.lr_find(model, ...)
-
-        # Inspect results
-        fig = lr_finder.plot(); fig.show()
-        suggested_lr = lr_finder.suggestion()
-
-        # Overwrite lr and create new model
-        hparams.lr = suggested_lr
-        model = MyModelClass(hparams)
-
-        # Ready to train with new learning rate
-        trainer.fit(model)
-
-    """
+    """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping learning rate finder since fast_dev_run is enabled.', UserWarning)
         return
@@ -311,9 +247,7 @@ def lr_find(
     model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
 
     # Fit, lr & loss logged in callback
-    trainer.tuner._launch(
-        model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule
-    )
+    trainer.tuner._run(model)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:

@@ -54,7 +54,7 @@ def test_model_reset_correctly(tmpdir):
 
     before_state_dict = deepcopy(model.state_dict())
 
-    _ = trainer.tuner.lr_find(model, num_training=5)
+    trainer.tuner.lr_find(model, num_training=5)
 
     after_state_dict = model.state_dict()
 
@@ -80,7 +80,7 @@ def test_trainer_reset_correctly(tmpdir):
         'callbacks', 'logger', 'max_steps', 'auto_lr_find', 'accumulate_grad_batches', 'checkpoint_callback'
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
-    _ = trainer.tuner.lr_find(model, num_training=5)
+    trainer.tuner.lr_find(model, num_training=5)
     actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
     assert actual == expected
@@ -278,12 +278,10 @@ def test_lr_find_with_bs_scale(tmpdir):
     before_lr = model.hparams.learning_rate
 
     # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-    )
-    bs = trainer.tuner.scale_batch_size(model)
-    lr = trainer.tuner.lr_find(model).suggestion()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, auto_lr_find=True, auto_scale_batch_size=True)
+    result = trainer.tune(model)
+    bs = result['scale_batch_size']
+    lr = result['lr_find'].suggestion()
 
     assert lr != before_lr
     assert isinstance(bs, int)
@@ -329,7 +327,7 @@ def test_lr_finder_ends_before_num_training(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir)
     num_training = 3
-    _ = trainer.tuner.lr_find(
+    trainer.tuner.lr_find(
         model=model,
         num_training=num_training,
     )
