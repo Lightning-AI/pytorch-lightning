@@ -51,7 +51,7 @@ class TrainingTricksConnector:
         self.trainer.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
-        if truncated_bptt_steps > 0:
+        if truncated_bptt_steps is not None and truncated_bptt_steps > 0:
             rank_zero_deprecation(
                 "Trainer.truncated_bptt_steps is deprecated in v1.3 and will be removed in v1.5."
                 " Set truncated_bptt_steps directly on the LightningModule instead."
