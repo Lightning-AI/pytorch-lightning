@@ -70,7 +70,7 @@ class DataConnector(object):
     def attach_data(
         self,
         model: 'pl.LightningModule',
-        train_dataloader: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        train_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         predict_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
@@ -79,7 +79,7 @@ class DataConnector(object):
         # set up the passed in dataloaders (if needed)
         self.attach_dataloaders(
             model,
-            train_dataloader=train_dataloader,
+            train_dataloaders=train_dataloaders,
             val_dataloaders=val_dataloaders,
             test_dataloaders=test_dataloaders,
             predict_dataloaders=predict_dataloaders,
@@ -91,15 +91,15 @@ class DataConnector(object):
     def attach_dataloaders(
         self,
         model: 'pl.LightningModule',
-        train_dataloader: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        train_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         predict_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
     ) -> None:
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
-        if train_dataloader is not None:
-            model.train_dataloader = _PatchDataLoader(train_dataloader)
+        if train_dataloaders is not None:
+            model.train_dataloader = _PatchDataLoader(train_dataloaders)
 
         if val_dataloaders is not None:
             model.val_dataloader = _PatchDataLoader(val_dataloaders)

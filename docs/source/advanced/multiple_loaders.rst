@@ -98,23 +98,6 @@ be returned.
         def train_dataloader(self):
 
             loader_a = torch.utils.data.DataLoader(range(8), batch_size=4)
-            loader_b = torch.utils.data.DataLoader(range(16), batch_size=2)
-
-            return {'a': loader_a, 'b': loader_b}
-
-        def training_step(self, batch, batch_idx):
-            # access a dictionnary with a batch from each dataloader
-            batch_a = batch["a"]
-            batch_b = batch["b"]
-
-
-.. testcode::
-
-    class LitModel(LightningModule):
-
-        def train_dataloader(self):
-
-            loader_a = torch.utils.data.DataLoader(range(8), batch_size=4)
             loader_b = torch.utils.data.DataLoader(range(16), batch_size=4)
             loader_c = torch.utils.data.DataLoader(range(32), batch_size=4)
             loader_c = torch.utils.data.DataLoader(range(64), batch_size=4)
