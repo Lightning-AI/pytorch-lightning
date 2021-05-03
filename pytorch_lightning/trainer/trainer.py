@@ -442,7 +442,8 @@ class Trainer(
         # deprecated in v1.3 and will be removed in v1.5
         if isinstance(train_dataloader, LightningDataModule):
             rank_zero_deprecation(
-                "Passing the datamodule without using named arguments is deprecated in v1.3 and will be removed in v1.5."
+                "Passing the datamodule without using named arguments is deprecated in v1.3 "
+                " and will be removed in v1.5."
                 " Pass the datamodule explicitly to trainer.fit(..., datamodule=dm)"
             )
             datamodule = train_dataloader
@@ -671,7 +672,8 @@ class Trainer(
         # deprecated in v1.3 and will be removed in v1.5
         if isinstance(train_dataloader, LightningDataModule):
             rank_zero_deprecation(
-                "Passing the datamodule without using named arguments is deprecated in v1.3 and will be removed in v1.5."
+                "Passing the datamodule without using named arguments is deprecated in v1.3 "
+                " and will be removed in v1.5."
                 " Pass the datamodule explicitly to trainer.fit(..., datamodule=dm)"
             )
             datamodule = train_dataloader
