@@ -163,7 +163,7 @@ class LightningModule(
     @property
     def datamodule(self) -> Any:
         rank_zero_deprecation(
-            "The `LightningModule.datamodule` getter and setter are deprecated and will be removed in v1.5."
+            "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
             " Access the datamodule through using `self.trainer.datamodule` instead."
         )
         return self._datamodule
