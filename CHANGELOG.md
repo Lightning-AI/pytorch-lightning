@@ -151,6 +151,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Improved verbose logging for `EarlyStopping` callback ([#6811](https://github.com/PyTorchLightning/pytorch-lightning/pull/6811))
 
 
+- Fix yaml loading with PyYAML=5.4.x ([#6666](https://github.com/PyTorchLightning/pytorch-lightning/issues/6666))
+
+
 ### Changed
 
 
