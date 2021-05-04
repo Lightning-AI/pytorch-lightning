@@ -288,8 +288,11 @@ after which the root node will aggregate the results.
 
 .. warning:: DP use is discouraged by PyTorch and Lightning. State is not maintained on the replicas created by the
     :class:`~torch.nn.DataParallel` wrapper and you may see errors or misbehavior if you assign state to the module
-    in the ``forward()`` or ``*_step()`` methods. For the same reason we do cannot fully support
+    in the ``forward()`` or ``*_step()`` methods. For the same reason we cannot fully support
     :ref:`manual_optimization` with DP. Use DDP which is more stable and at least 3x faster.
+
+.. warning:: DP does not support the :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` hook.
+    It will not be called.
 
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
