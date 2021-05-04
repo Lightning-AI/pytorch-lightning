@@ -1,14 +1,16 @@
 Advanced GPU Optimized Training
 ===============================
 
-When training large models or fitting larger batch sizes on multi-gpu compute, Lightning provides advanced optimized multi-gpu plugins to support these cases. For example if you'd like to train a large billion parameter transformer model, or to scale your batch size when training a semi-supervised learning model, using a Lightning optimized distributed training plugin will offer substantial improvements in GPU memory usage.
+When training large models, fitting larger batch sizes or trying to increase throughput using multi-gpu compute, Lightning provides advanced optimized multi-gpu plugins to support these cases. For example if you'd like to train a large billion parameter transformer model, or to scale your batch size when training a semi-supervised learning model, using a Lightning optimized distributed training plugin will offer substantial improvements in GPU memory usage.
 
 Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
 
 Some of these memory efficient plugins rely on offloading onto other forms of memory, such as CPU RAM or NVMe. This means you can even see memory benefits on a **single GPU**, using a plugin such as :ref:`deepspeed-zero-stage-3-offload`.
 
-Choosing an Optimized Multi-GPU Plugin
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Choosing an Advanced Distributed GPU Plugin
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you would like to stick with PyTorch DDP, see :ref:`ddp-optimizations`.
 
 Unlike PyTorch Distributed Data Parallel (DDP) where the maximum trainable model size and batch size do not change with respect to the number of GPUs, memory optimized plugins can accommodate bigger model and larger batch as more GPUs are used. This means as you scale up the number of GPUs, you can reach the number of model parameters you'd like to train.
 
@@ -28,8 +30,8 @@ For example when using 128 GPUs, you can **pre-train** large 10 to 20 Billion pa
 
 But for **fine-tuning** a model, you can reach 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-3-offload` on a **single GPU**. This does come with a significant throughput hit, which needs to be weighed accordingly.
 
-When Shouldn't I use an Optimized Multi-GPU Plugin?
-"""""""""""""""""""""""""""""""""""""""""""""""""""
+When Shouldn't I use an Optimized Distributed Plugin?
+"""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in cases where your model is small (ResNet50 of around 80M Parameters) it may be best to stick to normal distributed training, unless you are using unusually large batch sizes.
 
@@ -591,75 +593,107 @@ You can use also use an environment variable via your PyTorch Lightning script:
 
     PL_DEEPSPEED_CONFIG_PATH=/path/to/deepspeed_config.json python train.py --plugins deepspeed
 
+.. _ddp-optimizations:
 
-----------
+DDP Optimizations
+^^^^^^^^^^^^^^^^^
 
-.. _sequential-parallelism:
 
-Sequential Model Parallelism with Checkpointing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
-Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
-We also provide auto-balancing techniques through FairScale, to find optimal balances for the model across GPUs.
-In addition, we use Gradient Checkpointing to reduce GPU memory requirements further, and micro-batches to minimizing device under-utilization automatically.
+Gradients as Bucket View
+""""""""""""""""""""""""
 
-Reference: https://arxiv.org/abs/1811.06965
+Enabling ``gradient_as_bucket_view=True`` in the ``DDPPlugin`` will make gradients views point to different offsets of the ``allreduce`` communication buckets. See `DistributedDataParallel <https://pytorch.org/docs/master/_modules/torch/nn/parallel/distributed.html#DistributedDataParallel>`__ for more information.
 
-.. note:: RPCSequentialPlugin is currently supported only for Pytorch 1.6.
+This can reduce peak memory usage and throughput as saved memory will be equal to the total gradient memory + removes the need to copy gradients to the ``allreduce`` communication buckets.
 
-To get started, install FairScale using the command below. We install a specific branch which contains PyTorch related fixes for Sequential Parallelism.
+.. note::
 
-.. code-block:: bash
-
-     pip install https://github.com/PyTorchLightning/fairscale/archive/pl_1.2.0.zip
-
-To use Sequential Model Parallelism, you must define a  :class:`nn.Sequential <torch.nn.Sequential>` module that defines the layers you wish to parallelize across GPUs.
-This should be kept within the ``sequential_module`` variable within your ``LightningModule`` like below.
+    When ``gradient_as_bucket_view=True`` you cannot call ``detach_()`` on gradients. If hitting such errors, please fix it by referring to the :meth:`~torch.optim.Optimizer.zero_grad` function in ``torch/optim/optimizer.py`` as a solution (`source <https://pytorch.org/docs/master/_modules/torch/nn/parallel/distributed.html#DistributedDataParallel>`__).
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins.training_type.rpc_sequential import RPCSequentialPlugin
-    from pytorch_lightning import LightningModule
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DDPPlugin
 
-    class MyModel(LightningModule):
-        def __init__(self):
-            ...
-            self.sequential_module = nn.Sequential(my_layers)
-
-    # Split my module across 4 gpus, one layer each
     model = MyModel()
-    plugin = RPCSequentialPlugin(balance=[1, 1, 1, 1])
-    trainer = Trainer(accelerator='ddp', gpus=4, plugins=[plugin])
+    trainer = Trainer(gpus=4, plugins=DDPPlugin(gradient_as_bucket_view=True))
+    trainer.fit(model)
+
+DDP Communication Hooks
+"""""""""""""""""""""""
+
+DDP Communication hooks is an interface to control how gradients are communicated across workers, overriding the standard allreduce in DistributedDataParallel. This allows you to enable performance improving communication hooks when using multiple nodes.
+
+.. note::
+    DDP communication hooks needs pytorch version at least 1.8.0
+
+Enable `FP16 Compress Hook for multi-node throughput improvement <https://pytorch.org/docs/stable/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_hook>`__:
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DDPPlugin
+    from torch.distributed.algorithms.ddp_comm_hooks import (
+            default_hooks as default,
+            powerSGD_hook as powerSGD,
+    )
+
+    model = MyModel()
+    trainer = Trainer(gpus=4, plugins=DDPPlugin(ddp_comm_hook=default.fp16_compress_hook))
+    trainer.fit(model)
+
+Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs/stable/ddp_comm_hooks.html#powersgd-communication-hook>`__:
+
+.. note::
+
+    PowerSGD typically requires extra memory of the same size as the model’s gradients to enable error feedback, which can compensate for biased compressed communication and improve accuracy (`source <https://pytorch.org/docs/stable/ddp_comm_hooks.html#powersgd-hooks>`__).
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DDPPlugin
+    from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
+
+    model = MyModel()
+    trainer = Trainer(
+        gpus=4,
+        plugins=DDPPlugin(
+            ddp_comm_state=powerSGD.PowerSGDState(
+                process_group=None,
+                matrix_approximation_rank=1,
+                start_powerSGD_iter=5000,
+            ),
+            ddp_comm_hook=powerSGD.powerSGD_hook,
+        )
+    )
     trainer.fit(model)
 
 
-We provide a minimal example of Sequential Model Parallelism using a convolutional model training on cifar10, split onto GPUs `here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/basic_examples/conv_sequential_example.py>`_.
-To run the example, you need to install `Bolts <https://github.com/PyTorchLightning/pytorch-lightning-bolts>`_. Install with ``pip install pytorch-lightning-bolts``.
+Combine hooks for accumulated benefit:
 
-When running the Sequential Model Parallelism example on 2 GPUS we achieve these memory savings.
+.. note::
+    DDP communication wrappers needs pytorch version at least 1.9.0
 
-.. list-table:: GPU Memory Utilization
-   :widths: 25 25 50
-   :header-rows: 1
+.. code-block:: python
 
-   * - GPUS
-     - Without Balancing
-     - With Balancing
-   * - Gpu 0
-     - 4436 MB
-     - 1554 MB
-   * - Gpu 1
-     - ~0
-     - 994 MB
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.plugins import DDPPlugin
+    from torch.distributed.algorithms.ddp_comm_hooks import (
+            default_hooks as default,
+            powerSGD_hook as powerSGD,
+    )
 
-To run the example with Sequential Model Parallelism:
-
-.. code-block:: bash
-
-    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 2 --accelerator ddp --use_ddp_sequential
-
-To run the same example without Sequential Model Parallelism:
-
-.. code-block:: bash
-
-    python pl_examples/basic_examples/conv_sequential_example.py --batch_size 1024 --gpus 1
+    model = MyModel()
+    trainer = Trainer(
+        gpus=4,
+        plugins=DDPPlugin(
+            ddp_comm_state=powerSGD.PowerSGDState(
+                process_group=None,
+                matrix_approximation_rank=1,
+                start_powerSGD_iter=5000,
+            ),
+            ddp_comm_hook=powerSGD.powerSGD_hook,
+            ddp_comm_wrapper=default.fp16_compress_wrapper,
+        )
+    )
+    trainer.fit(model)
