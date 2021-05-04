@@ -240,7 +240,7 @@ class EvaluationLoop(object):
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
-    def on_evaluation_epoch_end(self, outputs: Union[List[List[Dict]], List[Dict]]) -> None:
+    def on_evaluation_epoch_end(self) -> None:
         model_ref = self.trainer.lightning_module
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
 
@@ -250,7 +250,7 @@ class EvaluationLoop(object):
 
             if hasattr(self.trainer, hook_name):
                 on_evaluation_epoch_end_hook = getattr(self.trainer, hook_name)
-                on_evaluation_epoch_end_hook(outputs)
+                on_evaluation_epoch_end_hook()
 
             if is_overridden(hook_name, model_ref):
                 model_hook_fx = getattr(model_ref, hook_name)

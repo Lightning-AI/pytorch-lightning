@@ -987,7 +987,7 @@ class Trainer(
         self.evaluation_loop.evaluation_epoch_end(outputs)
 
         # hook
-        self.evaluation_loop.on_evaluation_epoch_end(outputs)
+        self.evaluation_loop.on_evaluation_epoch_end()
 
         # update epoch-level lr_schedulers
         if on_epoch:
