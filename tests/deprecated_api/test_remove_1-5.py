@@ -395,3 +395,12 @@ def test_v1_5_0_datamodule_named_argument(tmpdir):
         trainer.fit(model, dm)
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         trainer.tune(model, dm)
+
+
+def test_v1_5_0_datamodule_setter():
+    model = BoringModel()
+    datamodule = BoringDataModule()
+    with no_deprecated_call(match="The `LightningModule.datamodule`"):
+        model.datamodule = datamodule
+    with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
+        _ = model.datamodule
