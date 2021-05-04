@@ -132,24 +132,12 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
-    """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=False,
-        callbacks=[checkpoint_cb],
-        limit_train_batches=2,
-        limit_val_batches=2,
-    )
-    # Generate checkpoint `last.ckpt` with BoringModel
-    trainer.fit(model, datamodule=dm)
-    # `True` if resume/restore successfully else `False`
-    assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
+    """ Test that trying to resume from non-existing `resume_from_checkpoint` fails with an error."""
+    model = BoringModel()
+    trainer = Trainer(resume_from_checkpoint=str(tmpdir / "non_existing.ckpt"))
+
     with pytest.raises(FileNotFoundError, match="Aborting training"):
-        trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
+        trainer.fit(model)
 
 
 class CaptureCallbacksBeforeTraining(Callback):
