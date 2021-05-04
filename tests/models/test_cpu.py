@@ -19,7 +19,6 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -47,7 +46,7 @@ def test_cpu_slurm_save_load(tmpdir):
     real_global_step = trainer.global_step
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, 'cpu model failed to complete'
+    assert trainer.state.finished, 'cpu model failed to complete'
 
     # predict with trained model before saving
     # make a prediction
@@ -226,7 +225,7 @@ def test_running_test_after_fitting(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     trainer.test()
 
@@ -269,7 +268,7 @@ def test_running_test_no_val(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     trainer.test()
 
@@ -291,7 +290,7 @@ def test_simple_cpu(tmpdir):
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, 'amp + ddp model failed to complete'
+    assert trainer.state.finished, 'amp + ddp model failed to complete'
 
 
 def test_cpu_model(tmpdir):
@@ -392,4 +391,4 @@ def test_tbptt_cpu_model(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"

@@ -118,8 +118,8 @@ RUN \
 
 RUN \
     # install DeepSpeed
-    # TODO(@SeanNaren): 0.3.15 is broken - skipping to unblock
-    pip install 'deepspeed>=0.3.14,!=0.3.15'
+    # TODO(@SeanNaren): CI failing with `>=0.3.15` - skipping to unblock
+    pip install deepspeed==0.3.14
 
 RUN \
     # Show what we have

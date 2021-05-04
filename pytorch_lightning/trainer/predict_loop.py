@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -20,6 +20,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -32,6 +33,7 @@ class PredictLoop(object):
         self.warning_cache = WarningCache()
         self.batch_indices: Optional[List[int]] = None
         self.epoch_batch_indices: Optional[List[List[int]]] = None
+        self.predictions: Optional[List[List[Any]]] = None
         # `DDPSpawnPlugin` plugins and derivate don't support return predictions.
         self._return_predictions: Optional[bool] = None
         self._previous_grad_status: Optional[bool] = None
@@ -52,6 +54,11 @@ class PredictLoop(object):
         # For non ``DDPSpawnPlugin`` plugin, the `return_predictions` is True by default unless user decide otherwise.
         self._return_predictions = not is_ddp_spawn if return_predictions is None else return_predictions
 
+    @property
+    def should_store_predictions(self) -> bool:
+        any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
+        return self.return_predictions or any_pred
+
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []
 
@@ -70,11 +77,7 @@ class PredictLoop(object):
         model_ref = self.trainer.lightning_module
         model_ref.on_predict_model_eval()
 
-    def setup(self, model, max_batches, dataloaders):
-
-        # copy properties for forward overrides
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-
+    def setup(self, max_batches, dataloaders):
         # convert max_batches to list
         if isinstance(max_batches, int):
             max_batches = [max_batches] * len(dataloaders)
@@ -117,14 +120,14 @@ class PredictLoop(object):
 
         self.trainer.call_hook("on_predict_batch_end", predictions, batch, batch_idx, dataloader_idx)
 
-        if self.return_predictions:
+        if self.should_store_predictions:
             self.predictions[dataloader_idx].append(predictions)
 
     def _store_batch_indices(self, dataloader_idx: int) -> None:
         batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
         if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             self.batch_indices = batch_sampler.batch_indices
-            if self.return_predictions:
+            if self.should_store_predictions:
                 self.epoch_batch_indices[dataloader_idx].append(batch_sampler.batch_indices)
 
     def on_predict_start(self) -> None:
@@ -138,10 +141,10 @@ class PredictLoop(object):
         self.trainer.call_hook("on_predict_start")
         self.trainer.call_hook("on_predict_epoch_start")
 
-    def on_predict_epoch_end(self) -> Optional[Union[List[Any], List[List[Any]]]]:
+    def on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
         self.trainer.profiler.describe()
 
-        results: List[List[Any]] = self.predictions
+        results = self.predictions
 
         self.trainer.call_hook("on_predict_epoch_end", results)
 

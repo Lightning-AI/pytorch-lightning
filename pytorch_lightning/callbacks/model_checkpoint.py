@@ -41,7 +41,10 @@ warning_cache = WarningCache()
 
 class ModelCheckpoint(Callback):
     r"""
-    Save the model after every epoch by monitoring a quantity.
+    Save the model periodically by monitoring a quantity. Every metric logged with
+    :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in
+    LightningModule is a candidate for the monitor key. For more information, see
+    :ref:`weights_loading`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -228,9 +231,7 @@ class ModelCheckpoint(Callback):
         self.save_checkpoint(trainer)
 
     def on_validation_end(self, trainer, pl_module) -> None:
-        """
-        checkpoints can be saved at the end of the val loop
-        """
+        """ Save a checkpoint at the end of the validation stage. """
         skip = (
             self._should_skip_saving_checkpoint(trainer) or self._every_n_val_epochs < 1
             or (trainer.current_epoch + 1) % self._every_n_val_epochs != 0
@@ -285,10 +286,10 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
 
     def _should_skip_saving_checkpoint(self, trainer) -> bool:
-        from pytorch_lightning.trainer.states import TrainerState
+        from pytorch_lightning.trainer.states import TrainerFn
         return (
             trainer.fast_dev_run  # disable checkpointing with fast_dev_run
-            or trainer.state != TrainerState.FITTING  # don't save anything during non-fit
+            or trainer.state.fn != TrainerFn.FITTING  # don't save anything during non-fit
             or trainer.sanity_checking  # don't save anything during sanity check
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
         )
@@ -659,7 +660,7 @@ class ModelCheckpoint(Callback):
         if self.check_monitor_top_k(trainer, current):
             self._update_best_and_save(current, epoch, step, trainer, monitor_candidates)
         elif self.verbose:
-            rank_zero_info(f"Epoch {epoch:d}, step {step:d}: {self.monitor} was not in top {self.save_top_k}")
+            rank_zero_info(f"Epoch {epoch:d}, global step {step:d}: {self.monitor} was not in top {self.save_top_k}")
 
     def _save_none_monitor_checkpoint(self, trainer, monitor_candidates: Dict[str, Any]):
         if self.monitor is not None or self.save_top_k == 0:

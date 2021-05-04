@@ -31,12 +31,13 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -65,7 +66,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     # fit model
     trainer.fit(model)
     # training complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
@@ -109,8 +110,8 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     )
     trainer.fit(model)
 
-    # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    # training complete
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
@@ -152,9 +153,8 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     )
     trainer.fit(model)
 
-    # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert trainer.state == TrainerState.FINISHED
+    # training complete
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
@@ -334,7 +334,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
         verbose=True
     )
     trainer = Trainer()
-    trainer.state = TrainerState.FITTING
+    trainer.state.fn = TrainerFn.FITTING
     trainer.save_checkpoint = mock_save_function
 
     # emulate callback's calls during the training
@@ -369,7 +369,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     # fit model
     trainer.fit(model)
     # training complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
 
@@ -480,8 +480,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
     # define less train epochs than steps
@@ -490,7 +489,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == num_train_samples * trainer.max_epochs
     assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
@@ -517,8 +516,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch > 0
     assert trainer.global_step >= num_train_samples, "Model did not train for at least min_epochs"
 
@@ -527,7 +525,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch > 0
     assert trainer.global_step >= math.floor(num_train_samples * 1.5), "Model did not train for at least min_steps"
 
@@ -547,7 +545,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
             return output
 
     model = TestModel()
-    early_stop = EarlyStopping(monitor="loss", patience=0)
+    early_stop = EarlyStopping(monitor="loss", patience=0, check_on_train_epoch_end=True)
     min_epochs = 5
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -583,8 +581,7 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
@@ -606,7 +603,7 @@ def test_benchmark_option(tmpdir):
     trainer.fit(model)
 
     # verify training completed
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # verify torch.backends.cudnn.benchmark is not turned off
     assert torch.backends.cudnn.benchmark
@@ -705,7 +702,7 @@ def test_disabled_training(tmpdir):
         assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     # check that limit_train_batches=0 turns off training
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 0
     assert not model.training_step_invoked, "`training_step` should not run when `limit_train_batches=0`"
     assert not model.training_epoch_end_invoked, "`training_epoch_end` should not run when `limit_train_batches=0`"
@@ -723,7 +720,7 @@ def test_disabled_training(tmpdir):
     for key in before_state_dict.keys():
         assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 0
     assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
     assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
@@ -758,11 +755,10 @@ def test_disabled_validation(tmpdir):
     )
 
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
+    trainer.fit(model)
 
     # check that limit_val_batches=0 turns off validation
-    assert result == 1, "training failed to complete"
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 1
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
@@ -773,7 +769,7 @@ def test_disabled_validation(tmpdir):
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch == 0
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
@@ -1349,7 +1345,7 @@ def test_trainer_subclassing():
 
     trainer = TrainerSubclass(123, custom_kwarg="custom", fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.custom_arg == 123
     assert trainer.custom_kwarg == "custom"
     assert trainer.fast_dev_run
@@ -1365,7 +1361,7 @@ def test_trainer_subclassing():
 
     trainer = TrainerSubclass(custom_kwarg="custom", fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.custom_kwarg == "custom"
     assert trainer.fast_dev_run
 
@@ -1512,7 +1508,33 @@ class TestLightningDataModule(LightningDataModule):
         return self._dataloaders
 
 
-class CustomPredictionWriter(Callback):
+class CustomPredictionWriter(BasePredictionWriter):
+
+    write_on_batch_end_called = False
+    write_on_epoch_end_called = False
+
+    def __init__(self, output_dir: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.output_dir = output_dir
+
+    def write_on_batch_end(self, trainer, pl_module, prediction, batch_indices, *args, **kwargs):
+        assert prediction.shape == torch.Size([1, 2])
+        if trainer.accelerator_connector.is_distributed:
+            assert len(batch_indices) == 1
+        else:
+            assert batch_indices is None
+        self.write_on_batch_end_called = True
+
+    def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
+        expected = 1 if trainer.accelerator_connector.is_distributed else 2
+        assert len(predictions) == 2
+        assert len(predictions[0]) == expected
+        if trainer.accelerator_connector.is_distributed:
+            assert len(batch_indices) == 2
+            assert len(batch_indices[0]) == expected
+        else:
+            assert batch_indices is None
+        self.write_on_epoch_end_called = True
 
     def on_predict_epoch_end(self, trainer, pl_module, outputs):
         if trainer.accelerator_connector.is_distributed:
@@ -1522,11 +1544,16 @@ class CustomPredictionWriter(Callback):
         super().on_predict_epoch_end(trainer, pl_module, outputs)
 
 
-def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None):
+def predict(
+    tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, datamodule=True, pbrr=None, use_callbacks=True
+):
     dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
 
     model = model or BoringModel()
     dm = TestLightningDataModule(dataloaders)
+
+    cb = CustomPredictionWriter(tmpdir, write_interval="batch")
+    cb_1 = CustomPredictionWriter(tmpdir, write_interval="epoch")
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1538,7 +1565,7 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
         num_processes=num_processes,
         plugins=plugins,
         progress_bar_refresh_rate=pbrr,
-        callbacks=[CustomPredictionWriter()]
+        callbacks=[cb, cb_1] if use_callbacks else []
     )
     if accelerator == "ddp_spawn":
         with pytest.raises(MisconfigurationException):
@@ -1550,12 +1577,17 @@ def predict(tmpdir, accelerator, gpus, num_processes, model=None, plugins=None, 
         results = trainer.predict(model, dataloaders=dataloaders)
 
     if not isinstance(trainer.training_type_plugin, DDPSpawnPlugin):
+        if use_callbacks:
+            assert cb.write_on_batch_end_called
+            assert not cb.write_on_epoch_end_called
+
+            assert not cb_1.write_on_batch_end_called
+            assert cb_1.write_on_epoch_end_called
+
         num_samples = 1 if accelerator == "ddp" else 2
         assert len(results) == 2
         assert len(results[0]) == num_samples
         assert results[0][0].shape == torch.Size([1, 2])
-    else:
-        assert results == 1
 
 
 def test_trainer_predict_no_return(tmpdir):
@@ -1572,7 +1604,7 @@ def test_trainer_predict_no_return(tmpdir):
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
     with pytest.warns(UserWarning, match='predict returned None'):
-        predict(tmpdir, None, None, 1, model=CustomBoringModel())
+        predict(tmpdir, None, None, 1, model=CustomBoringModel(), use_callbacks=False)
 
 
 def test_trainer_predict_grad(tmpdir):
@@ -1583,7 +1615,7 @@ def test_trainer_predict_grad(tmpdir):
             assert batch.expand_as(batch).grad_fn is None
             return super().predict_step(batch, batch_idx, dataloader_idx)
 
-    predict(tmpdir, None, None, 1, model=CustomBoringModel())
+    predict(tmpdir, None, None, 1, model=CustomBoringModel(), use_callbacks=False)
 
     x = torch.zeros(1, requires_grad=True)
     assert x.expand_as(x).grad_fn is not None
@@ -1654,8 +1686,6 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
         assert len(preds) == 1
         assert preds[0].shape == torch.Size([1, 2])
         assert preds[0].dtype == (torch.float64 if precision == 64 else torch.float32)
-    else:
-        assert preds == 1
 
 
 @pytest.mark.parametrize(
@@ -1696,7 +1726,7 @@ def test_disabled_training_for_insufficient_limit_train_batches(
         max_epochs=5,
         limit_train_batches=limit_train_batches,
     )
-    result = trainer.fit(model, train_loader)
+    trainer.fit(model, train_loader)
 
     params_string = f"""`limit_train_batches={limit_train_batches}`, `dataset_len={dataset_len}`
                         & `batch_size={batch_size}` as
@@ -1706,8 +1736,7 @@ def test_disabled_training_for_insufficient_limit_train_batches(
     else:
         error_string = f"should not run with {params_string}"
 
-    assert result == 1, "training failed to complete"
-    assert trainer.state == TrainerState.FINISHED
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == global_step
     assert trainer.num_training_batches == num_training_batches
     assert trainer.current_epoch == current_epoch
@@ -1944,6 +1973,8 @@ def test_trainer_attach_data_pipeline_to_model(tmpdir):
 
 def test_exception_when_testing_or_validating_with_fast_dev_run(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = BoringModel()
+    trainer.fit(model)
 
     with pytest.raises(MisconfigurationException, match=r"\.validate\(\)` with `fast_dev_run=True"):
         trainer.validate()
@@ -2008,3 +2039,55 @@ def test_fit_test_synchronization(tmpdir):
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f'Could not find checkpoint at rank {trainer.global_rank}'
     trainer.test()
+
+
+class CustomCallbackOnLoadCheckpoint(Callback):
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+        return {"a": None}
+
+
+def test_on_load_checkpoint_missing_callbacks(tmpdir):
+    """ Test a warning appears when callbacks in the checkpoint don't match callbacks provided when resuming. """
+
+    model = BoringModel()
+    chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=[chk, CustomCallbackOnLoadCheckpoint()])
+    trainer.fit(model)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=5, resume_from_checkpoint=chk.last_model_path, progress_bar_refresh_rate=1
+    )
+    with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
+        trainer.fit(model)
+
+
+def test_module_current_fx_attributes_reset(tmpdir):
+    """ Ensure that lightning module's attributes related to current hook fx are reset at the end of execution. """
+    model = BoringModel()
+    model.validation_step = None
+    model.training_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=False,
+        logger=False,
+        limit_val_batches=0,
+    )
+    trainer.fit(model)
+    assert model._current_fx_name == "", f"_current_fx_name not reset after fit: {model._current_fx_name}"
+    assert (
+        model._current_hook_fx_name is None
+    ), f"_current_hook_fx_name not reset after fit: {model._current_hook_fx_name}"
+    assert (
+        model._current_dataloader_idx is None
+    ), f"_current_dataloader_idx not reset after fit: {model._current_dataloader_idx}"
+    trainer.test(model)
+    assert model._current_fx_name == "", f"_current_fx_name not reset after test: {model._current_fx_name}"
+    assert (
+        model._current_hook_fx_name is None
+    ), f"_current_hook_fx_name not reset after test: {model._current_hook_fx_name}"
+    assert (
+        model._current_dataloader_idx is None
+    ), f"_current_dataloader_idx not reset after test: {model._current_dataloader_idx}"

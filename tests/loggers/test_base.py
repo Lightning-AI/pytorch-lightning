@@ -21,7 +21,6 @@ import numpy as np
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import rank_zero_only
 from tests.helpers import BoringModel
 
@@ -113,7 +112,7 @@ def test_custom_logger(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert logger.hparams_logged == model.hparams
     assert logger.metrics_logged != {}
     assert logger.finalized_status == "success"
@@ -140,7 +139,7 @@ def test_multiple_loggers(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert logger1.hparams_logged == model.hparams
     assert logger1.metrics_logged != {}
@@ -170,7 +169,7 @@ def test_adding_step_key(tmpdir):
 
     class CustomTensorBoardLogger(TensorBoardLogger):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             self.logged_step = 0
 

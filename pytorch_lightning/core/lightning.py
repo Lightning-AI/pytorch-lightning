@@ -84,8 +84,6 @@ class LightningModule(
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
-        self.exp_save_path = None
-
         self.loaded_optimizer_states_dict = {}
 
         #: Pointer to the trainer object
@@ -95,19 +93,19 @@ class LightningModule(
         self._device_type = None
 
         #: True if using amp
-        self.use_amp = False
+        self.use_amp: bool = False
 
         #: The precision used
-        self.precision = 32
+        self.precision: int = 32
 
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
         self._results: Optional[Result] = None
-        self._current_fx_name = ''
-        self._running_manual_backward = False
-        self._current_hook_fx_name = None
-        self._current_dataloader_idx = None
+        self._current_fx_name: str = ''
+        self._running_manual_backward: bool = False
+        self._current_hook_fx_name: Optional[str] = None
+        self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._param_requires_grad_state = dict()
 
@@ -167,6 +165,10 @@ class LightningModule(
 
     @property
     def datamodule(self) -> Any:
+        rank_zero_deprecation(
+            "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
+            " Access the datamodule through using `self.trainer.datamodule` instead."
+        )
         return self._datamodule
 
     @datamodule.setter
@@ -1123,8 +1125,33 @@ class LightningModule(
             - **None** - Fit will run without any optimizer.
 
         Note:
-            The lr_dict is a dictionary which contains the scheduler and its associated configuration. The default
-            configuration is shown below.
+            The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
+            to the number of sequential batches optimized with the specific optimizer.
+            It should be given to none or to all of the optimizers.
+            There is a difference between passing multiple optimizers in a list,
+            and passing multiple optimizers in dictionaries with a frequency of 1:
+            In the former case, all optimizers will operate on the given batch in each optimization step.
+            In the latter, only one optimizer will operate on the given batch at every step.
+            This is different from the ``frequency`` value specified in the lr_dict mentioned below.
+
+            .. code-block:: python
+
+                def configure_optimizers(self):
+                    optimizer_one = torch.optim.SGD(self.model.parameters(), lr=0.01)
+                    optimizer_two = torch.optim.SGD(self.model.parameters(), lr=0.01)
+                    return [
+                        {'optimizer': optimizer_one, 'frequency': 5},
+                        {'optimizer': optimizer_two, 'frequency': 10},
+                    ]
+
+            In this example, the first optimizer will be used for the first 5 steps,
+            the second optimizer for the next 10 steps and that cycle will continue.
+            If an LR scheduler is specified for an optimizer using the ``lr_scheduler`` key in the above dict,
+            the scheduler will only be updated when its optimizer is being used.
+
+        Note:
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
 
             .. code-block:: python
 
