@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from typing import Any, Callable, List, Tuple, Union
 
 import torch
@@ -102,6 +103,7 @@ class PrecisionPlugin(Plugin):
         optimizer: Optimizer,
         clip_val: Union[int, float],
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+        model: Optional[Module] = None
     ) -> None:
         """Clips the gradients"""
         if clip_val is None:

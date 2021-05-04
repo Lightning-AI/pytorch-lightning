@@ -385,9 +385,9 @@ If you have any questions please:
 ---
 
 ## Grid AI
-Grid AI is our native platform for training models at scale on the cloud!
+Grid AI is our platform for training models at scale on the cloud!
 
-**Sign up for [early access here](https://www.grid.ai/)**
+**Sign up [here](https://www.grid.ai/)**
 
 To use grid, take your regular command:
 
@@ -417,7 +417,7 @@ If you want to cite the framework feel free to use this (but only if you loved i
 ```bibtex
 @article{falcon2019pytorch,
   title={PyTorch Lightning},
-  author={Falcon, WA and .al},
+  author={Falcon, WA, et al.},
   journal={GitHub. Note: https://github.com/PyTorchLightning/pytorch-lightning},
   volume={3},
   year={2019}

@@ -132,23 +132,12 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
-    """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=False,
-        callbacks=[checkpoint_cb],
-        limit_train_batches=2,
-        limit_val_batches=2,
-    )
-    # Generate checkpoint `last.ckpt` with BoringModel
-    trainer.fit(model, datamodule=dm)
-    # `True` if resume/restore successfully else `False`
-    assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
-    assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
+    """ Test that trying to resume from non-existing `resume_from_checkpoint` fails with an error."""
+    model = BoringModel()
+    trainer = Trainer(resume_from_checkpoint=str(tmpdir / "non_existing.ckpt"))
+
+    with pytest.raises(FileNotFoundError, match="Aborting training"):
+        trainer.fit(model)
 
 
 class CaptureCallbacksBeforeTraining(Callback):
@@ -600,8 +589,8 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # load new model
     hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
-    hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
-    ckpt_path = hparams_url if url_ckpt else new_weights_path
+    ckpt_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
+    ckpt_path = ckpt_url if url_ckpt else new_weights_path
 
     class CurrentModel(BoringModel):
 

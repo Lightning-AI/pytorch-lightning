@@ -313,6 +313,12 @@ def test_call_back_validator(tmpdir):
         'on_validation_epoch_end',
         'on_validation_epoch_start',
         'on_validation_start',
+        "on_predict_batch_end",
+        "on_predict_batch_start",
+        "on_predict_end",
+        "on_predict_epoch_end",
+        "on_predict_epoch_start",
+        "on_predict_start",
         'setup',
         'teardown',
     ]
@@ -330,6 +336,12 @@ def test_call_back_validator(tmpdir):
         "on_pretrain_routine_start",
         "on_sanity_check_end",
         "on_sanity_check_start",
+        "on_predict_batch_end",
+        "on_predict_batch_start",
+        "on_predict_end",
+        "on_predict_epoch_end",
+        "on_predict_epoch_start",
+        "on_predict_start",
         "on_save_checkpoint",
         "on_test_end",
         "on_train_end",
@@ -338,10 +350,10 @@ def test_call_back_validator(tmpdir):
         "teardown",
     ]
 
-    assert (
-        funcs_name == sorted(callbacks_func)
-    ), """Detected new callback function.
-        Need to add its logging permission to CallbackHookNameValidator and update this test"""
+    assert funcs_name == sorted(callbacks_func), (
+        "Detected new callback function. Need to add its logging"
+        " permission to CallbackHookNameValidator and update this test"
+    )
 
     validator = CallbackHookNameValidator()
 
@@ -356,7 +368,7 @@ def test_call_back_validator(tmpdir):
             is_stage or "batch" in func_name or "epoch" in func_name or "grad" in func_name or "backward" in func_name
         )
         allowed = (
-            allowed and "pretrain" not in func_name
+            allowed and "pretrain" not in func_name and "predict" not in func_name
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
@@ -624,8 +636,8 @@ def test_metrics_reset(tmpdir):
             ap = self._modules[f"ap_{stage}"]
 
             labels_int = labels.to(torch.long)
-            acc(probs, labels_int)
-            ap(probs, labels_int)
+            acc(probs.flatten(), labels_int)
+            ap(probs.flatten(), labels_int)
 
             # Metric.forward calls reset so reset the mocks here
             acc.reset.reset_mock()
