@@ -60,10 +60,10 @@ def test_multi_optimizer_with_scheduling(tmpdir):
             return super().training_step(batch, batch_idx)
 
         def configure_optimizers(self):
-            optimizer1 = torch.optim.Adam(self.parameters(), lr=self.init_lr)
-            optimizer2 = torch.optim.Adam(self.parameters(), lr=self.init_lr)
-            lr_scheduler1 = torch.optim.lr_scheduler.StepLR(optimizer1, step_size=1)
-            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer2, step_size=1)
+            optimizer1 = optim.Adam(self.parameters(), lr=self.init_lr)
+            optimizer2 = optim.Adam(self.parameters(), lr=self.init_lr)
+            lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, step_size=1)
+            lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, step_size=1)
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     model = TestModel()
@@ -92,8 +92,8 @@ def test_reducelronplateau_with_no_monitor_raises(tmpdir):
     Test exception when a ReduceLROnPlateau is used with no monitor
     """
     model = EvalModelTemplate()
-    optimizer = torch.optim.Adam(model.parameters())
-    model.configure_optimizers = lambda: ([optimizer], [torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)])
+    optimizer = optim.Adam(model.parameters())
+    model.configure_optimizers = lambda: ([optimizer], [optim.lr_scheduler.ReduceLROnPlateau(optimizer)])
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(
         MisconfigurationException, match='`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`'
@@ -106,11 +106,11 @@ def test_reducelronplateau_with_no_monitor_in_lr_scheduler_dict_raises(tmpdir):
     Test exception when lr_scheduler dict has a ReduceLROnPlateau with no monitor
     """
     model = EvalModelTemplate()
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: {
         'optimizer': optimizer,
         'lr_scheduler': {
-            'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer),
+            'scheduler': optim.lr_scheduler.ReduceLROnPlateau(optimizer),
         },
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -127,10 +127,10 @@ def test_reducelronplateau_scheduling(tmpdir):
             return super().training_step(batch, batch_idx)
 
         def configure_optimizers(self):
-            optimizer = torch.optim.Adam(self.parameters())
+            optimizer = optim.Adam(self.parameters())
             return {
                 'optimizer': optimizer,
-                'lr_scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer),
+                'lr_scheduler': optim.lr_scheduler.ReduceLROnPlateau(optimizer),
                 'monitor': 'foo',
             }
 
@@ -156,10 +156,10 @@ def test_optimizer_return_options(tmpdir):
     model = BoringModel()
 
     # single optimizer
-    opt_a = torch.optim.Adam(model.parameters(), lr=0.002)
-    opt_b = torch.optim.SGD(model.parameters(), lr=0.002)
-    scheduler_a = torch.optim.lr_scheduler.StepLR(opt_a, 10)
-    scheduler_b = torch.optim.lr_scheduler.StepLR(opt_b, 10)
+    opt_a = optim.Adam(model.parameters(), lr=0.002)
+    opt_b = optim.SGD(model.parameters(), lr=0.002)
+    scheduler_a = optim.lr_scheduler.StepLR(opt_a, 10)
+    scheduler_b = optim.lr_scheduler.StepLR(opt_b, 10)
 
     # single optimizer
     model.configure_optimizers = lambda: opt_a
@@ -257,7 +257,7 @@ def test_configure_optimizer_from_dict(tmpdir):
     class TestModel(BoringModel):
 
         def configure_optimizers(self):
-            config = {'optimizer': torch.optim.SGD(params=self.parameters(), lr=1e-03)}
+            config = {'optimizer': optim.SGD(params=self.parameters(), lr=1e-03)}
             return config
 
     model = TestModel()
@@ -361,10 +361,10 @@ def test_init_optimizers_during_evaluation(tmpdir, fn):
     class TestModel(BoringModel):
 
         def configure_optimizers(self):
-            optimizer1 = torch.optim.Adam(self.parameters(), lr=0.1)
-            optimizer2 = torch.optim.Adam(self.parameters(), lr=0.1)
-            lr_scheduler1 = torch.optim.lr_scheduler.StepLR(optimizer1, step_size=1)
-            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer2, step_size=1)
+            optimizer1 = optim.Adam(self.parameters(), lr=0.1)
+            optimizer2 = optim.Adam(self.parameters(), lr=0.1)
+            lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, step_size=1)
+            lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, step_size=1)
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=10, limit_test_batches=10)
@@ -408,8 +408,8 @@ def test_multiple_optimizers_callbacks(tmpdir):
             return acc
 
         def configure_optimizers(self):
-            a = torch.optim.RMSprop(self.layer_1.parameters(), 1e-2)
-            b = torch.optim.RMSprop(self.layer_2.parameters(), 1e-2)
+            a = optim.RMSprop(self.layer_1.parameters(), 1e-2)
+            b = optim.RMSprop(self.layer_2.parameters(), 1e-2)
             return a, b
 
     model = TestModel()
@@ -430,8 +430,8 @@ def test_lr_scheduler_strict(tmpdir):
     Test "strict" support in lr_scheduler dict
     """
     model = EvalModelTemplate()
-    optimizer = torch.optim.Adam(model.parameters())
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    optimizer = optim.Adam(model.parameters())
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     model.configure_optimizers = lambda: {
@@ -478,11 +478,11 @@ def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
     Test exception when lr_scheduler dict has unknown interval param value
     """
     model = BoringModel()
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: {
         'optimizer': optimizer,
         'lr_scheduler': {
-            'scheduler': torch.optim.lr_scheduler.StepLR(optimizer, 1),
+            'scheduler': optim.lr_scheduler.StepLR(optimizer, 1),
             'interval': "incorrect_unknown_value"
         },
     }
@@ -496,11 +496,11 @@ def test_lr_scheduler_with_extra_keys_warns(tmpdir):
     Test warning when lr_scheduler dict has extra keys
     """
     model = BoringModel()
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: {
         'optimizer': optimizer,
         'lr_scheduler': {
-            'scheduler': torch.optim.lr_scheduler.StepLR(optimizer, 1),
+            'scheduler': optim.lr_scheduler.StepLR(optimizer, 1),
             'foo': 1,
             'bar': 2,
         },
@@ -516,7 +516,7 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
     """
     model = BoringModel()
     model.configure_optimizers = lambda: {
-        'optimizer': torch.optim.Adam(model.parameters()),
+        'optimizer': optim.Adam(model.parameters()),
         'lr_scheduler': {},
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
@@ -532,9 +532,9 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
     class InvalidOptimizerModel(BoringModel):
 
         def configure_optimizers(self):
-            opt1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            opt2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(opt2, step_size=1)
+            opt1 = optim.SGD(self.layer.parameters(), lr=0.1)
+            opt2 = optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = optim.lr_scheduler.StepLR(opt2, step_size=1)
             return [opt1], [lr_scheduler]
 
     model = InvalidOptimizerModel()
@@ -571,8 +571,8 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
             self.automatic_optimization = False
 
         def configure_optimizers(self):
-            opt = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            sch = torch.optim.lr_scheduler.StepLR(opt, step_size=1)
+            opt = optim.SGD(self.layer.parameters(), lr=0.1)
+            sch = optim.lr_scheduler.StepLR(opt, step_size=1)
             return [opt], [{"scheduler": sch, "interval": "epoch"}]
 
     model = TestModel()
@@ -585,7 +585,7 @@ class TestModel(BoringModel):
 
     def configure_optimizers(self):
         # Adagrad creates state tensors immediately, model is not yet on GPU.
-        return torch.optim.Adagrad(self.parameters())
+        return optim.Adagrad(self.parameters())
 
     def on_train_start(self, *args, **kwargs):
         opt = self.optimizers()
