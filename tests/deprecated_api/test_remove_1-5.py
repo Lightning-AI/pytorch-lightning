@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
+import operator
 import os
 from typing import Any, Dict
-import operator
 from unittest import mock
 
 import pytest
@@ -27,10 +27,10 @@ from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
-from tests.deprecated_api import no_deprecated_call
-from pytorch_lightning.utilities.imports import _compare_version
 from pytorch_lightning.utilities import device_parser
-from tests.helpers import BoringModel, BoringDataModule
+from pytorch_lightning.utilities.imports import _compare_version
+from tests.deprecated_api import no_deprecated_call
+from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.utils import no_warning_call
 
 
@@ -412,4 +412,3 @@ def test_v1_5_0_datamodule_setter():
         model.datamodule = datamodule
     with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
         _ = model.datamodule
-
