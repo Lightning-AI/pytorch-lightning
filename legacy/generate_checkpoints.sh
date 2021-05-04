@@ -3,6 +3,7 @@
 #  bash generate_checkpoints.sh 1.0.2 1.0.3 1.0.4
 
 LEGACY_PATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+FROZEN_MIN_PT_VERSION="1.4"
 
 echo $LEGACY_PATH
 # install some PT version here so it does not need to reinstalled for each env
@@ -22,7 +23,7 @@ do
   # activate and install PL version
   source "$ENV_PATH/bin/activate"
   # there are problem to load ckpt in older versions since they are saved the newer versions
-  pip install "pytorch_lightning==$ver" "torch==1.3" --quiet --no-cache-dir
+  pip install "pytorch_lightning==$ver" "torch==$FROZEN_MIN_PT_VERSION" --quiet --no-cache-dir
 
   python --version
   pip --version
