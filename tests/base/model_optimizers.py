@@ -17,6 +17,7 @@ from torch import optim
 
 
 class ConfigureOptimizersPool(ABC):
+
     def configure_optimizers(self):
         """
         return whatever optimizers we want here.

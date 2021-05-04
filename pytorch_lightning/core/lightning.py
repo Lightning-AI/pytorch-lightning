@@ -1120,14 +1120,9 @@ class LightningModule(
                     optimizer_one = torch.optim.SGD(self.model.parameters(), lr=0.01)
                     optimizer_two = torch.optim.SGD(self.model.parameters(), lr=0.01)
                     return [
-                        {
-                            'optimizer': optimizer_one,
-                            'frequency': 5
-                        },
-                        {
-                            'optimizer': optimizer_two,
-                            'frequency': 10
-                    }]
+                        {'optimizer': optimizer_one, 'frequency': 5},
+                        {'optimizer': optimizer_two, 'frequency': 10},
+                    ]
 
             In this example, the first optimizer will be used for the first 5 steps,
             the second optimizer for the next 10 steps and that cycle will continue.

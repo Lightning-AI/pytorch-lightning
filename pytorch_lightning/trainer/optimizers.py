@@ -121,7 +121,6 @@ class TrainerOptimizersMixin(ABC):
         """Convert each scheduler into dict structure with relevant information"""
         lr_schedulers = []
         default_config = _get_default_scheduler_config()
-
         for scheduler in schedulers:
             if isinstance(scheduler, dict):
                 # check provided keys
