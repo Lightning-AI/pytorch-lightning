@@ -35,7 +35,6 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
@@ -127,9 +126,8 @@ def test_model_checkpoint_score_and_ckpt(
         max_epochs=max_epochs,
         progress_bar_refresh_rate=0,
     )
-    results = trainer.fit(model)
-    assert results
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
@@ -163,14 +161,16 @@ def test_model_checkpoint_score_and_ckpt(
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(
-    "val_check_interval,reduce_lr_on_plateau",
+    "val_check_interval,reduce_lr_on_plateau,epoch_aligned",
     [
-        (0.25, True),
-        (0.25, False),
-        (0.33, False),
+        (0.25, True, True),
+        (0.25, False, True),
+        (0.42, False, False),
     ],
 )
-def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_interval, reduce_lr_on_plateau):
+def test_model_checkpoint_score_and_ckpt_val_check_interval(
+    tmpdir, val_check_interval, reduce_lr_on_plateau, epoch_aligned
+):
     """
     Test that when a model checkpoint is saved, it saves with the correct
     score appended to ckpt_path and checkpoint data with val_check_interval
@@ -182,6 +182,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_in
     monitor = 'val_log'
     per_epoch_steps = int(limit_train_batches * val_check_interval)
     per_epoch_call_count = limit_train_batches // per_epoch_steps
+    left_over_steps = limit_train_batches % per_epoch_steps
 
     class CustomBoringModel(BoringModel):
 
@@ -229,43 +230,62 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(tmpdir, val_check_in
         progress_bar_refresh_rate=0,
         num_sanity_val_steps=0,
     )
-    results = trainer.fit(model)
-    assert results
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
     lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
-    assert len(ckpt_files) == len(scores) == per_epoch_call_count * max_epochs
+
+    # on_train_end ckpt callback is called which creates an additional ckpt in case no ckpt is created at the
+    # end of epoch, thus if val_check_interval doesn't align with the training steps we create an additional ckpt
+    additional_ckpt, additional_ckpt_path = 0, None
+    if not epoch_aligned:
+        additional_ckpt_path = [f for f in ckpt_files if 'v1' in f.stem][0]
+        additional_ckpt = 1
+
+    additional_ckpt = 1 if not epoch_aligned else 0
+    assert len(ckpt_files) == len(scores) + additional_ckpt == per_epoch_call_count * max_epochs + additional_ckpt
     assert len(lr_scheduler_debug) == max_epochs
 
-    for epoch in range(1, max_epochs + 1):
-        for save_step in range(1, per_epoch_call_count + 1):
-            i = (epoch * save_step) - 1
-            score = scores[i]
-            expected_score = getattr(model, f'{monitor}s')[i].mean().item()
-            expected_filename = f'{monitor}={score:.4f}-epoch={epoch - 1}.ckpt'
-            assert math.isclose(score, expected_score, rel_tol=1e-4)
+    def _make_assertions(epoch, ix, add=''):
+        global_ix = ix + per_epoch_call_count * epoch
+        score = scores[global_ix]
+        expected_score = getattr(model, f'{monitor}s')[global_ix].mean().item()
+        expected_filename = f'{monitor}={score:.4f}-epoch={epoch}{add}.ckpt'
+        assert math.isclose(score, expected_score, rel_tol=1e-4)
 
-            print(sorted(os.listdir(os.path.join(checkpoint.dirpath))))
-            chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
-            expected_epoch = epoch - (save_step != per_epoch_call_count)
-            assert chk['epoch'] == expected_epoch
-            assert chk['global_step'] == save_step * per_epoch_steps
+        chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
+        assert chk['epoch'] == epoch + 1
+        epoch_num = epoch + (1 if add else 0)
+        expected_global_step = per_epoch_steps * (global_ix + 1) + (left_over_steps * epoch_num)
+        assert chk['global_step'] == expected_global_step
 
-            mc_specific_data = chk['callbacks'][type(checkpoint)]
-            assert mc_specific_data['dirpath'] == checkpoint.dirpath
-            assert mc_specific_data['monitor'] == monitor
-            assert mc_specific_data['current_score'] == score
+        mc_specific_data = chk['callbacks'][type(checkpoint)]
+        assert mc_specific_data['dirpath'] == checkpoint.dirpath
+        assert mc_specific_data['monitor'] == monitor
+        assert mc_specific_data['current_score'] == score
 
-            if not reduce_lr_on_plateau:
-                lr_scheduler_specific_data = chk['lr_schedulers'][0]
-                did_update = 1 if save_step + 1 == per_epoch_call_count else 0
-                assert lr_scheduler_specific_data['_step_count'] == epoch + 1 + did_update
-                assert lr_scheduler_specific_data['_last_lr'][0] == lr * (lr**(epoch + did_update))
+        if not reduce_lr_on_plateau:
+            lr_scheduler_specific_data = chk['lr_schedulers'][0]
+            did_update = 1 if (ix + 1 == per_epoch_call_count) and (epoch_aligned or add) else 0
+            assert lr_scheduler_specific_data['_step_count'] == epoch + 1 + did_update
+            assert lr_scheduler_specific_data['_last_lr'][0] == lr * (lr**(epoch + did_update))
+
+        return score
+
+    for epoch in range(max_epochs):
+        for i in range(per_epoch_call_count):
+            score = _make_assertions(epoch, i)
 
         assert lr_scheduler_debug[epoch]['monitor_val'] == (score if reduce_lr_on_plateau else None)
         assert lr_scheduler_debug[epoch]['monitor_key'] == (monitor if reduce_lr_on_plateau else None)
+
+    # check the ckpt file saved on_train_end
+    if additional_ckpt_path:
+        epoch = max_epochs - 1
+        i = per_epoch_call_count - 1
+        _make_assertions(epoch, i, add='-v1')
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
@@ -386,7 +406,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
         max_epochs=num_epochs,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_model_checkpoint_format_checkpoint_name(tmpdir):

@@ -129,10 +129,10 @@ A :doc:`lightning module <../common/lightning_module>` defines a *system* not a 
 Examples of systems are:
 
 - `Autoencoder <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
-- `BERT <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>`_
-- `DQN <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=IAlT0-75T_Kv>`_
-- `GAN <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/gans/basic/basic_gan_module.py>`_
-- `Image classifier <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL>`_
+- `BERT <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/04-transformers-text-classification.ipynb>`_
+- `DQN <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/08-Domain-specific-demos.ipynb>`_
+- `GAN <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/03-basic-gan.ipynb>`_
+- `Image classifier <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/01-mnist-hello-world.ipynb>`_
 - Seq2seq
 - `SimCLR <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
 - `VAE <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
@@ -740,9 +740,9 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 
 ---------------
 
-********************
-Other coool features
-********************
+*******************
+Other cool features
+*******************
 
 Once you define and train your first Lightning model, you might want to try other cool features like
 
@@ -751,7 +751,7 @@ Once you define and train your first Lightning model, you might want to try othe
 - :ref:`Automatically scale your batch size <advanced/training_tricks:Auto scaling of batch size>`
 - :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
 - :ref:`Load checkpoints directly from S3 <common/weights_loading:Checkpoint Loading>`
-- :doc:`Scale to massive compute clusters <../clouds/slurm>`
+- :doc:`Scale to massive compute clusters <../clouds/cluster>`
 - :doc:`Use multiple dataloaders per train/val/test loop <../advanced/multiple_loaders>`
 - :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
 
@@ -761,9 +761,9 @@ Or read our :doc:`Guide <../starter/introduction_guide>` to learn more!
 
 Grid AI
 =======
-Grid AI is our native solution for large scale training and tuning on the cloud provider of your choice.
+Grid AI is our native solution for large scale training and tuning on the cloud.
 
-`Click here to request early-access <https://www.grid.ai/>`_.
+`Get started for free with your GitHub or Google Account here <https://www.grid.ai/>`_.
 
 ------------
 

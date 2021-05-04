@@ -35,8 +35,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
             assert 'x' in outputs
 
         def on_train_epoch_end(self, trainer, pl_module, outputs):
-            d = outputs[0]
-            assert len(d) == trainer.num_training_batches
+            assert len(outputs) == trainer.num_training_batches
 
     class TestModel(BoringModel):
 
@@ -66,8 +65,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
 
     assert any(isinstance(c, CB) for c in trainer.callbacks)
 
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
 
 
 def test_on_val_epoch_end_outputs(tmpdir):

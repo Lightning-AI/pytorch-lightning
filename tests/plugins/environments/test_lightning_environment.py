@@ -55,3 +55,14 @@ def test_random_master_port():
     assert isinstance(port, int)
     # repeated calls do not generate a new port number
     assert env.master_port() == port
+
+
+@mock.patch.dict(os.environ, {
+    "WORLD_SIZE": "1",
+})
+def test_teardown():
+    """ Test that the GROUP_RANK substitutes NODE_RANK. """
+    env = LightningEnvironment()
+    assert "WORLD_SIZE" in os.environ
+    env.teardown()
+    assert "WORLD_SIZE" not in os.environ

@@ -42,6 +42,7 @@ from pytorch_lightning.plugins import (
     TPUHalfPrecisionPlugin,
     TPUSpawnPlugin,
     TrainingTypePlugin,
+    TrainingTypePluginsRegistry,
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
@@ -111,6 +112,16 @@ class AcceleratorConnector(object):
         self._training_type_plugin: Optional[TrainingTypePlugin] = None
         self._cluster_environment: Optional[ClusterEnvironment] = None
 
+        plugins = plugins if plugins is not None else []
+
+        if isinstance(plugins, str):
+            plugins = [plugins]
+
+        if not isinstance(plugins, Sequence):
+            plugins = [plugins]
+
+        self.plugins = plugins
+
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
             self.gpus = pick_multiple_gpus(gpus)
@@ -120,7 +131,7 @@ class AcceleratorConnector(object):
         self.set_distributed_mode()
         self.configure_slurm_ddp()
 
-        self.handle_given_plugins(plugins)
+        self.handle_given_plugins()
 
         self.accelerator = self.select_accelerator()
 
@@ -147,22 +158,22 @@ class AcceleratorConnector(object):
 
         self.replace_sampler_ddp = replace_sampler_ddp
 
-    def handle_given_plugins(
-        self, plugins: Optional[Union[ClusterEnvironment, TrainingTypePlugin, PrecisionPlugin, Sequence]]
-    ):
-        plugins = plugins if plugins is not None else []
-
-        if isinstance(plugins, str):
-            plugins = [plugins]
-
-        if not isinstance(plugins, Sequence):
-            plugins = [plugins]
+    def handle_given_plugins(self) -> None:
 
         training_type = None
         precision = None
         cluster_environment = None
 
-        for plug in plugins:
+        for plug in self.plugins:
+            if isinstance(plug, str) and plug in TrainingTypePluginsRegistry:
+                if training_type is None:
+                    training_type = TrainingTypePluginsRegistry.get(plug)
+                else:
+                    raise MisconfigurationException(
+                        'You can only specify one precision and one training type plugin.'
+                        ' Found more than 1 training type plugin:'
+                        f' {TrainingTypePluginsRegistry[plug]["plugin"]} registered to {plug}'
+                    )
             if isinstance(plug, str):
                 # Reset the distributed type as the user has overridden training type
                 # via the plugins argument
@@ -299,6 +310,10 @@ class AcceleratorConnector(object):
     @property
     def root_gpu(self) -> Optional[int]:
         return self.accelerator.root_device.index if not isinstance(self.accelerator, TPUAccelerator) else None
+
+    @property
+    def is_training_type_in_plugins(self) -> bool:
+        return any(isinstance(plug, str) and plug in TrainingTypePluginsRegistry for plug in self.plugins)
 
     @property
     def is_using_torchelastic(self) -> bool:
@@ -482,7 +497,12 @@ class AcceleratorConnector(object):
 
     def set_distributed_mode(self, distributed_backend: Optional[str] = None):
 
-        if distributed_backend is not None:
+        if distributed_backend is None and self.is_training_type_in_plugins:
+            return
+
+        if distributed_backend is not None and distributed_backend in TrainingTypePluginsRegistry:
+            self.distributed_backend = TrainingTypePluginsRegistry[distributed_backend]["distributed_backend"]
+        elif distributed_backend is not None:
             self.distributed_backend = distributed_backend
 
         if isinstance(self.distributed_backend, Accelerator):
@@ -530,7 +550,7 @@ class AcceleratorConnector(object):
             rank_zero_warn(
                 'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
             )
-            # todo: in some cases it yield in comarison None and int
+            # todo: in some cases it yield in comparison None and int
             if (self.num_nodes and self.num_nodes > 1) or (self.num_processes and self.num_processes > 1):
                 self._distrib_type = DistributedType.DDP
             else:

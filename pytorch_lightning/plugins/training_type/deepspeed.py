@@ -105,7 +105,6 @@ class DeepSpeedPlugin(DDPPlugin):
         save_full_weights: bool = True,
     ) -> None:
         """
-
         Provides capabilities to run training using the DeepSpeed library,
         with training optimizations for large billion parameter models.
         `For more information: https://www.deepspeed.ai/`.
@@ -511,8 +510,8 @@ class DeepSpeedPlugin(DDPPlugin):
     ) -> Tuple[Dict, bool]:
         if not self.save_full_weights and self.world_size > 1:
             # Rely on deepspeed to load the checkpoint and necessary information
-            from pytorch_lightning.trainer.states import TrainerState
-            stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
+            from pytorch_lightning.trainer.states import TrainerFn
+            is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
 
             if self.zero_stage_3:
@@ -520,7 +519,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 self.deepspeed_engine.optimizer._partition_all_parameters()
 
             _, client_state = self.deepspeed_engine.load_checkpoint(
-                save_dir, load_optimizer_states=stage_is_fit, load_lr_scheduler_states=stage_is_fit
+                save_dir, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
             )
 
             # restore datamodule states
@@ -543,3 +542,23 @@ class DeepSpeedPlugin(DDPPlugin):
             if total_batch_idx % self._original_accumulate_grad_batches == 0:
                 current_global_step += 1
             return current_global_step
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
+        plugin_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
+        plugin_registry.register(
+            "deepspeed_stage_2_offload",
+            cls,
+            description="DeepSpeed ZeRO Stage 2 and CPU Offload",
+            stage=2,
+            cpu_offload=True
+        )
+        plugin_registry.register("deepspeed_stage_3", cls, description="DeepSpeed ZeRO Stage 3", stage=3)
+        plugin_registry.register(
+            "deepspeed_stage_3_offload",
+            cls,
+            description="DeepSpeed ZeRO Stage 3 and CPU Offload",
+            stage=3,
+            cpu_offload=True
+        )

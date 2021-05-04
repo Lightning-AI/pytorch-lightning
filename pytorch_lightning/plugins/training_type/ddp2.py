@@ -18,6 +18,7 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 
 
 class DDP2Plugin(DDPPlugin):
+    """ DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
 
     @property
     def global_rank(self) -> int:

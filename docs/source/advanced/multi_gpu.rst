@@ -102,6 +102,8 @@ Lightning adds the correct samplers when needed, so no need to explicitly add sa
 .. note::
     By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
     ``drop_last`` in :class:`~torch.utils.data.distributed.DistributedSampler` will be set to its default value in PyTorch.
+    If you called :func:`~pytorch_lightning.utilities.seed.seed_everyting`, Lightning will set the same seed for the
+    sampler.
 
 .. note:: You can disable this behavior with ``Trainer(replace_sampler_ddp=False)``
 
@@ -224,12 +226,16 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 +---------------+-----------+---------------------+---------------------------------+
 | "0"           | str       | [0]                 | GPU 0                           |
 +---------------+-----------+---------------------+---------------------------------+
-| "3"           | str       | [3]                 | GPU 3                           |
+| "3"           | str       | [3]                 | GPU 3 (will change in v1.5)     |
 +---------------+-----------+---------------------+---------------------------------+
 | "1, 3"        | str       | [1, 3]              | GPUs 1 and 3                    |
 +---------------+-----------+---------------------+---------------------------------+
 | "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
 +---------------+-----------+---------------------+---------------------------------+
+
+.. warning::
+    The behavior for :code:`gpus="3"` (str) will change. Currently it selects the GPU with index 3, but will
+    select the first 3 GPUs from v1.5.
 
 .. note::
 
@@ -280,7 +286,10 @@ Data Parallel
 That is, if you have a batch of 32 and use DP with 2 gpus, each GPU will process 16 samples,
 after which the root node will aggregate the results.
 
-.. warning:: DP use is discouraged by PyTorch and Lightning. Use DDP which is more stable and at least 3x faster
+.. warning:: DP use is discouraged by PyTorch and Lightning. State is not maintained on the replicas created by the
+    :class:`~torch.nn.DataParallel` wrapper and you may see errors or misbehavior if you assign state to the module
+    in the ``forward()`` or ``*_step()`` methods. For the same reason we do cannot fully support
+    :ref:`manual_optimization` with DP. Use DDP which is more stable and at least 3x faster.
 
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
@@ -673,7 +682,7 @@ To use Sharded Training, you need to first install FairScale using the command b
 .. code-block:: python
 
     # train using Sharded DDP
-    trainer = Trainer(accelerator='ddp', plugins='ddp_sharded')
+    trainer = Trainer(plugins='ddp_sharded')
 
 Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
@@ -813,12 +822,6 @@ Below we describe how to enable all of these to see benefit. **With all these im
 
 Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains a lot of helpful information when configuring your own models.
 
-.. note::
-    Currently we only support non-elastic checkpointing. This means saving the model across GPUs will save shards of the model on all processes, which will then require the same amount of GPUS to load.
-    This additionally means for inference you must use the ``Trainer.test`` or ``Trainer.predict`` functionality as described below, to ensure we set up the distributed environment correctly.
-
-    This limitation is actively being worked on and will be resolved in the near future.
-
 .. code-block:: python
 
     from pytorch_lightning import Trainer
@@ -847,12 +850,6 @@ This is the case if layers may not fit on one single machines CPU or GPU memory,
 We expose a hook that layers initialized within the hook will be sharded instantly on a per layer basis, allowing you to instantly shard models.
 
 This reduces the time taken to initialize very large models, as well as ensure we do not run out of memory when instantiating larger models. For more information you can refer to the DeepSpeed docs for `Constructing Massive Models <https://deepspeed.readthedocs.io/en/latest/zero3.html>`_.
-
-.. note::
-    When using the ``configure_sharded_model`` hook to shard models, note that ``LightningModule.load_from_checkpoint`` may not work for loading saved checkpoints. If you've trained on one GPU, you can manually instantiate the model and call the hook,
-    however when using multiple GPUs, this will not work as ``LightningModule.load_from_checkpoint`` doesn't support sharded checkpoints.
-
-    We recommend using ``Trainer.test`` or ``Trainer.predict`` for inference.
 
 .. code-block:: python
 
@@ -950,7 +947,7 @@ Here is some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lig
 * If you're using Adam or AdamW, ensure to use FusedAdam or DeepSpeedCPUAdam (for CPU Offloading) rather than the default torch optimizers as they come with large speed benefits
 * Treat your GPU/CPU memory as one large pool. In some cases, you may not want to offload certain things (like activations) to provide even more space to offload model parameters
 * When offloading to the CPU, make sure to bump up the batch size as GPU memory will be freed
-
+* We also support sharded checkpointing. By passing ``save_full_weights=False`` to the ``DeepSpeedPlugin``, we'll save shards of the model which allows you to save extremely large models. However to load the model and run test/validation/predict you must use the Trainer object.
 
 Custom DeepSpeed Config
 """""""""""""""""""""""
