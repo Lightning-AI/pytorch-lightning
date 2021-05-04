@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
@@ -374,7 +374,7 @@ class Accelerator:
         Args:
             trainer: the Trainer, these optimizers should be connected to
         """
-        if trainer.state not in (TrainerState.FITTING, TrainerState.TUNING):
+        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
         optimizers, lr_schedulers, optimizer_frequencies = self.training_type_plugin.init_optimizers(
             trainer=trainer, model=self.lightning_module

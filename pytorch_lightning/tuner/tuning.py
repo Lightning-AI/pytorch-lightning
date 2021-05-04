@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Union
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 
@@ -51,13 +51,13 @@ class Tuner:
             lr_find_kwargs.setdefault('update_attr', True)
             result['lr_find'] = lr_find(self.trainer, model, **lr_find_kwargs)
 
-        self.trainer.state = TrainerState.FINISHED
+        self.trainer.state.status = TrainerStatus.FINISHED
 
         return result
 
     def _run(self, *args: Any, **kwargs: Any) -> None:
         """`_run` wrapper to set the proper state during tuning, as this can be called multiple times"""
-        self.trainer.state = TrainerState.TUNING  # last `_run` call might have set it to `FINISHED`
+        self.trainer.state.status = TrainerStatus.RUNNING  # last `_run` call might have set it to `FINISHED`
         self.trainer.training = True
         self.trainer._run(*args, **kwargs)
         self.trainer.tuning = True
