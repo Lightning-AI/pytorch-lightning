@@ -41,7 +41,7 @@ def test_optimizer_with_scheduling(tmpdir):
     init_lr = hparams.get('learning_rate')
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
 
-    assert trainer.lr_schedulers == 1
+    assert len(trainer.lr_schedulers) == 1
     assert all(a == adjusted_lr[0] for a in adjusted_lr)
     adjusted_lr = adjusted_lr[0]
     assert init_lr * 0.1 == adjusted_lr
@@ -50,11 +50,21 @@ def test_optimizer_with_scheduling(tmpdir):
 def test_multi_optimizer_with_scheduling(tmpdir):
     """ Verify that learning rate scheduling is working """
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
+    class TestModel(BoringModel):
+        init_lr = 5e-4
 
-    # fit model
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers(self):
+            optimizer1 = torch.optim.Adam(self.parameters(), lr=self.init_lr)
+            optimizer2 = torch.optim.Adam(self.parameters(), lr=self.init_lr)
+            lr_scheduler1 = torch.optim.lr_scheduler.StepLR(optimizer1, step_size=1)
+            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer2, step_size=1)
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+
+    model = TestModel()
+    model.training_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -63,47 +73,14 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     )
     trainer.fit(model)
 
-    init_lr = hparams.get('learning_rate')
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
 
     assert len(trainer.lr_schedulers) == 2
     assert all(a == adjusted_lr1[0] for a in adjusted_lr1)
-    adjusted_lr1 = adjusted_lr1[0]
     assert all(a == adjusted_lr2[0] for a in adjusted_lr2)
-    adjusted_lr2 = adjusted_lr2[0]
-    assert init_lr * 0.1 == adjusted_lr1 and init_lr * 0.1 == adjusted_lr2
-
-
-def test_multi_optimizer_with_scheduling_stepping(tmpdir):
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    model.configure_optimizers = model.configure_optimizers__multiple_schedulers
-
-    # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
-    )
-    trainer.fit(model)
-
-    init_lr = hparams.get('learning_rate')
-    adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
-    adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
-
-    assert len(trainer.lr_schedulers) == 2
-    assert all(a == adjusted_lr1[0] for a in adjusted_lr1)
-    adjusted_lr1 = adjusted_lr1[0]
-    assert all(a == adjusted_lr2[0] for a in adjusted_lr2)
-    adjusted_lr2 = adjusted_lr2[0]
-
-    # Called ones after end of epoch
-    assert init_lr * 0.1 == adjusted_lr1
-    # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
-    assert init_lr * 0.1 == adjusted_lr2
+    assert model.init_lr * 0.1 == adjusted_lr1[0]
+    assert model.init_lr * 0.1 == adjusted_lr2[0]
 
 
 def test_reducelronplateau_with_no_monitor_raises(tmpdir):
@@ -158,7 +135,7 @@ def test_reducelronplateau_scheduling(tmpdir):
         strict=True,
         opt_idx=None,
         name=None,
-    ), 'lr scheduler was not correctly converted to dict'
+    )
 
 
 def test_optimizer_return_options(tmpdir):
@@ -188,22 +165,24 @@ def test_optimizer_return_options(tmpdir):
     assert optim == [opt_a, opt_b]
     assert len(lr_sched) == len(freq) == 0
 
-    # opt tuple of 2 lists
-    model.configure_optimizers = lambda: ([opt_a], [scheduler_a])
-    optim, lr_sched, freq = trainer.init_optimizers(model)
-    assert len(optim) == len(lr_sched) == 1
-    assert len(freq) == 0
-    assert optim[0] == opt_a
-    assert lr_sched[0] == dict(
+    ref_lr_sched = dict(
         scheduler=scheduler_a,
         interval='epoch',
         frequency=1,
         reduce_on_plateau=False,
         monitor=None,
         strict=True,
-        opt_idx=None,
         name=None,
+        opt_idx=None,
     )
+
+    # opt tuple of 2 lists
+    model.configure_optimizers = lambda: ([opt_a], [scheduler_a])
+    optim, lr_sched, freq = trainer.init_optimizers(model)
+    assert len(optim) == len(lr_sched) == 1
+    assert len(freq) == 0
+    assert optim[0] == opt_a
+    assert lr_sched[0] == ref_lr_sched
 
     # opt tuple of 1 list
     model.configure_optimizers = lambda: ([opt_a], scheduler_a)
@@ -211,16 +190,7 @@ def test_optimizer_return_options(tmpdir):
     assert len(optim) == len(lr_sched) == 1
     assert len(freq) == 0
     assert optim[0] == opt_a
-    assert lr_sched[0] == dict(
-        scheduler=scheduler_a,
-        interval='epoch',
-        frequency=1,
-        reduce_on_plateau=False,
-        monitor=None,
-        strict=True,
-        opt_idx=None,
-        name=None,
-    )
+    assert lr_sched[0] == ref_lr_sched
 
     # opt single dictionary
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
@@ -228,16 +198,7 @@ def test_optimizer_return_options(tmpdir):
     assert len(optim) == len(lr_sched) == 1
     assert len(freq) == 0
     assert optim[0] == opt_a
-    assert lr_sched[0] == dict(
-        scheduler=scheduler_a,
-        interval='epoch',
-        frequency=1,
-        reduce_on_plateau=False,
-        monitor=None,
-        strict=True,
-        opt_idx=None,
-        name=None,
-    )
+    assert lr_sched[0] == ref_lr_sched
 
     # opt multiple dictionaries with frequencies
     model.configure_optimizers = lambda: (
@@ -255,26 +216,11 @@ def test_optimizer_return_options(tmpdir):
     optim, lr_sched, freq = trainer.init_optimizers(model)
     assert len(optim) == len(lr_sched) == len(freq) == 2
     assert optim[0] == opt_a
-    assert lr_sched[0] == dict(
-        scheduler=scheduler_a,
-        interval='epoch',
-        frequency=1,
-        reduce_on_plateau=False,
-        monitor=None,
-        strict=True,
-        opt_idx=0,
-        name=None,
-    )
-    assert lr_sched[1] == dict(
-        scheduler=scheduler_b,
-        interval='epoch',
-        frequency=1,
-        reduce_on_plateau=False,
-        monitor=None,
-        strict=True,
-        opt_idx=1,
-        name=None,
-    )
+    ref_lr_sched["opt_idx"] = 0
+    assert lr_sched[0] == ref_lr_sched
+    ref_lr_sched["scheduler"] = scheduler_b
+    ref_lr_sched["opt_idx"] = 1
+    assert lr_sched[1] == ref_lr_sched
     assert freq == [1, 5]
 
 
