@@ -20,16 +20,11 @@ from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNative
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE, GradClipAlgorithmType
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.experimental.optim import DynamicLossScaler
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
     """Mixed Precision for Full Sharded Training"""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.scaler = DynamicLossScaler()
 
     def clip_gradients(
         self,
