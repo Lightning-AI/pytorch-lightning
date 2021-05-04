@@ -198,32 +198,14 @@ class TrainLoop:
 
     def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
 
-        lightning_module = self.trainer.lightning_module
+        hook_overridden = self._should_add_batch_output_to_epoch_output()
+
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(batch_end_outputs):
             sample_output = opt_outputs[-1]
 
             # decide if we need to reduce at the end of the epoch automatically
             auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
-
-            # We add to the epoch outputs if
-            # 1. The model defines training_epoch_end OR
-            # 2. The model overrides on_train_epoch_end which has `outputs` in the signature OR
-            # 3. The trainer has any callback which overrides `on_train_epoch_end` and includes `outputs` in the signature
-            overrides_training_epoch_end = is_overridden("training_epoch_end", model=lightning_module)
-            overrides_on_train_epoch_end_with_outputs = False
-            if is_overridden("on_train_epoch_end", model=lightning_module):
-                model_hook_fx = getattr(model_ref, hook_name)
-                if is_param_in_hook_signature(model_hook_fx, "outputs"):
-                    overrides_on_train_epoch_end_with_outputs = True
-
-            callback_overrides_on_train_epoch_end_with_outputs = False
-            for callback in self.trainer.callbacks:
-                if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
-                    callback_overrides_on_train_epoch_end_with_outputs = True
-                    break
-
-            hook_overridden = overrides_training_epoch_end or overrides_on_train_epoch_end_with_outputs or callback_overrides_on_train_epoch_end_with_outputs
 
             # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
             if not (hook_overridden or auto_reduce_tng_result):
@@ -234,6 +216,27 @@ class TrainLoop:
                 opt_outputs = opt_outputs[0]
 
             epoch_output[opt_idx].append(opt_outputs)
+
+    def _should_add_batch_output_to_epoch_output(self) -> bool:
+        # We add to the epoch outputs if
+        # 1. The model defines training_epoch_end OR
+        # 2. The model overrides on_train_epoch_end which has `outputs` in the signature OR
+        # 3. The trainer has any callback which overrides `on_train_epoch_end` and includes `outputs` in the signature
+        # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
+        lightning_module = self.trainer.lightning_module
+        if is_overridden("training_epoch_end", model=lightning_module):
+            return True
+
+        if is_overridden("on_train_epoch_end", model=lightning_module):
+            model_hook_fx = getattr(model_ref, hook_name)
+            if is_param_in_hook_signature(model_hook_fx, "outputs"):
+                return True
+
+        for callback in self.trainer.callbacks:
+            if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
+                return True
+
+        return False
 
     def get_optimizers_iterable(self, batch_idx=None):
         """
