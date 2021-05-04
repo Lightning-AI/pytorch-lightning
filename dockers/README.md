@@ -14,20 +14,20 @@ or with specific arguments
 ```bash
 git clone <git-repository>
 docker image build \
-    -t pytorch-lightning:py3.8-pt1.6 \
+    -t pytorch-lightning:base-cuda-py3.9-pt1.8 \
     -f dockers/base-cuda/Dockerfile \
-    --build-arg PYTHON_VERSION=3.8 \
-    --build-arg PYTORCH_VERSION=1.6 \
+    --build-arg PYTHON_VERSION=3.9 \
+    --build-arg PYTORCH_VERSION=1.8 \
     .
 ```
 or nightly version from Coda
 ```bash
 git clone <git-repository>
 docker image build \
-    -t pytorch-lightning:py3.7-pt1.8 \
+    -t pytorch-lightning:base-conda-py3.8-pt1.9 \
     -f dockers/base-conda/Dockerfile \
-    --build-arg PYTHON_VERSION=3.7 \
-    --build-arg PYTORCH_VERSION=1.8 \
+    --build-arg PYTHON_VERSION=3.8 \
+    --build-arg PYTORCH_VERSION=1.9 \
     .
 ```
 
