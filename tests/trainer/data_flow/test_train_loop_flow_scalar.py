@@ -273,7 +273,7 @@ def test_train_step_no_return(tmpdir):
 
     trainer = Trainer(**trainer_args)
 
-    with pytest.warns(UserWarning, match=r'training_step returned None .*'):
+    with pytest.warns(UserWarning, match=r'training_step returned None.*'):
         trainer.fit(model)
 
     assert model.training_step_called
@@ -283,7 +283,7 @@ def test_train_step_no_return(tmpdir):
     model.automatic_optimization = False
     trainer = Trainer(**trainer_args)
 
-    with no_warning_call(UserWarning, match=r'training_step returned None .*'):
+    with no_warning_call(UserWarning, match=r'training_step returned None.*'):
         trainer.fit(model)
 
 
