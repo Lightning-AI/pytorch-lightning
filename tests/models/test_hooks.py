@@ -588,7 +588,8 @@ def test_hooks_with_different_argument_names(tmpdir):
         fast_dev_run=5,
     )
 
-    assert trainer.fit(model)
+    results = trainer.fit(model)
+    assert results
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     trainer.test(ckpt_path=None)
 

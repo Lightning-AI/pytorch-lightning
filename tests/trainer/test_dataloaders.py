@@ -1586,7 +1586,8 @@ def test_correct_dataloader_idx_in_hooks(tmpdir, multiple_trainloader_mode):
         multiple_trainloader_mode=multiple_trainloader_mode,
     )
 
-    assert trainer.fit(model)
+    results = trainer.fit(model)
+    assert results
     assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
     trainer.test(ckpt_path=None)
 
