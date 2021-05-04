@@ -18,7 +18,7 @@ from typing import Any, Dict, IO, Optional, Union
 
 import fsspec
 import torch
-from fsspec.implementations.local import LocalFileSystem
+from fsspec.implementations.local import AbstractFileSystem, LocalFileSystem
 from packaging.version import Version
 
 
@@ -36,7 +36,7 @@ def load(
         return torch.load(f, map_location=map_location)
 
 
-def get_filesystem(path: Union[str, Path]) -> LocalFileSystem:
+def get_filesystem(path: Union[str, Path]) -> AbstractFileSystem:
     path = str(path)
     if "://" in path:
         # use the fileystem from the protocol specified

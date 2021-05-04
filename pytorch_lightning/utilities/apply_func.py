@@ -36,16 +36,12 @@ else:
 def to_dtype_tensor(
     value: Union[int, float, List[Union[int, float]]],
     dtype: Optional[torch.dtype] = None,
-    device: Union[str, torch.device] = None
+    device: Optional[Union[str, torch.device]] = None
 ) -> torch.Tensor:
-    if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.tensor(value, dtype=dtype, device=device)
 
 
-def from_numpy(value: np.ndarray, device: Union[str, torch.device] = None) -> torch.Tensor:
-    if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
+def from_numpy(value: np.ndarray, device: Optional[Union[str, torch.device]] = None) -> torch.Tensor:
     return torch.from_numpy(value).to(device)
 
 
@@ -64,7 +60,7 @@ def apply_to_collection(
     function: Callable,
     *args: Any,
     wrong_dtype: Optional[Union[torch.dtype, Tuple[torch.dtype]]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.
@@ -165,10 +161,7 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
-def convert_to_tensors(data: Any, device: Union[str, torch.device] = None) -> Any:
-    if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
-
+def convert_to_tensors(data: Any, device: Optional[Union[str, torch.device]] = None) -> Any:
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
 

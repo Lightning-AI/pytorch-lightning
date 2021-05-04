@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Type, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -93,10 +93,10 @@ class LightningCLI:
 
     def __init__(
         self,
-        model_class: 'pl.LightningModule',
-        datamodule_class: Optional['pl.LightningDataModule'] = None,
-        save_config_callback: SaveConfigCallback = SaveConfigCallback,
-        trainer_class: 'pl.Trainer' = Trainer,
+        model_class: Type['pl.LightningModule'],
+        datamodule_class: Optional[Type['pl.LightningDataModule']] = None,
+        save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
+        trainer_class: Type['pl.Trainer'] = Trainer,
         trainer_defaults: Optional[Dict[str, Any]] = None,
         seed_everything_default: Optional[int] = None,
         description: str = 'pytorch-lightning trainer command line tool',
