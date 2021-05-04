@@ -62,7 +62,7 @@ jobs:
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
         pip install fairscale>=0.3.4 --upgrade-strategy only-if-needed
-        pip install deepspeed>=0.3.16 --upgrade-strategy only-if-needed
+        pip install git+https://github.com/microsoft/DeepSpeed.git
         pip list
       displayName: 'Install dependencies'
 
