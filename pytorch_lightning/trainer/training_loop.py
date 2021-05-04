@@ -512,27 +512,16 @@ class TrainLoop:
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
             self.trainer.checkpoint_connector.has_trained = True
 
-            # max steps reached, end training
-            if (
-                self.trainer.max_steps is not None and self.trainer.max_steps <= self.trainer.global_step + 1
-                and self._accumulated_batches_reached()
-            ):
-                break
-
-            # end epoch early
-            # stop when the flag is changed or we've gone past the amount
-            # requested in the batches
-            if self.trainer.should_stop:
-                break
-
             self.trainer.total_batch_idx += 1
-
-            # stop epoch if we limited the number of training batches
-            if self._num_training_batches_reached(is_last_batch):
-                break
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
+
+            max_steps_reached = (
+                self.trainer.max_steps is not None and self.trainer.max_steps <= self.trainer.global_step
+            )
+            if max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(is_last_batch):
+                break
 
         if batch_idx is None:
             # dataloader/iterator did not produce a batch
@@ -554,15 +543,6 @@ class TrainLoop:
 
         if should_train_only:
             self.check_checkpoint_callback(True)
-
-        if should_check_val:
-            self.trainer.validating = True
-            self.trainer.run_evaluation(on_epoch=True)
-            self.trainer.training = True
-
-        # increment the global step once
-        # progress global step according to grads progress
-        self.increment_accumulated_grad_global_step()
 
     def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
         # inform logger the batch loop has finished
@@ -863,16 +843,12 @@ class TrainLoop:
         elif self.trainer.val_check_batch != float('inf'):
             is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
 
-        # Note: num_training_batches is also inf for iterable datasets with no length defined
-        epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
         is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
 
         if on_epoch:
-            return (
-                is_val_check_batch and epoch_end_val_check
-            ) or self.trainer.should_stop or is_last_batch_for_infinite_dataset
+            return is_val_check_batch or self.trainer.should_stop or is_last_batch_for_infinite_dataset
         else:
-            return is_val_check_batch and not epoch_end_val_check
+            return is_val_check_batch
 
     def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
