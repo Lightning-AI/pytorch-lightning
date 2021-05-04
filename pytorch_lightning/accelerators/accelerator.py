@@ -196,7 +196,7 @@ class Accelerator:
                 - batch_idx (int): Integer displaying index of this batch
                 - optimizer_idx (int): When using multiple optimizers, this argument will also be present.
                 - hiddens(:class:`~torch.Tensor`): Passed in if
-                  :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
+                :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0
 
         """
         args[0] = self.to_device(args[0])

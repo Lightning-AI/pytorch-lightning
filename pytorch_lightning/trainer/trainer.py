@@ -279,9 +279,8 @@ class Trainer(
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
-            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer
-                sequence. This argument has been moved to LightningModule. It is deprecated here in v1.3 and
-                will be removed in v1.5.
+            truncated_bptt_steps: Deprecated in v1.3 to be removed in 1.5.
+                Please use :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` instead.
 
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).

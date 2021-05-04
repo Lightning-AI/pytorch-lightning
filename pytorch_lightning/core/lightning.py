@@ -106,7 +106,7 @@ class LightningModule(
         self._current_hook_fx_name: Optional[str] = None
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
-        self._truncated_bptt_steps: Optional[int] = None
+        self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
@@ -195,7 +195,7 @@ class LightningModule(
         self._automatic_optimization = automatic_optimization
 
     @property
-    def truncated_bptt_steps(self) -> Optional[int]:
+    def truncated_bptt_steps(self) -> int:
         """
         truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much a longer sequence.
         If this is > 0, the training step is passed ``hiddens``.
@@ -203,7 +203,7 @@ class LightningModule(
         return self._truncated_bptt_steps
 
     @truncated_bptt_steps.setter
-    def truncated_bptt_steps(self, truncated_bptt_steps: Optional[int]) -> None:
+    def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
@@ -538,9 +538,8 @@ class LightningModule(
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (int): Integer displaying index of this batch
             optimizer_idx (int): When using multiple optimizers, this argument will also be present.
-            hiddens(:class:`~torch.Tensor`): Passed in if either
+            hiddens(:class:`~torch.Tensor`): Passed in if
                 :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0
-                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0
 
 
         Return:
@@ -1462,7 +1461,6 @@ class LightningModule(
             Called in the training loop after
             :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
             if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0
-            or :paramref:`~pytorch_lightning.trainer.Trainer.truncated_bptt_steps` > 0
 
             Each returned batch split is passed separately to :meth:`training_step`.
 
@@ -1564,7 +1562,7 @@ class LightningModule(
         if avg_training_loss is not None:
             tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
-        module_tbptt_enabled = self.truncated_bptt_steps is not None and self.truncated_bptt_steps > 0
+        module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
         if module_tbptt_enabled or trainer_tbptt_enabled:
             tqdm_dict["split_idx"] = self.trainer.split_idx

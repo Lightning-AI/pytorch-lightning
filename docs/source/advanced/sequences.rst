@@ -40,13 +40,21 @@ For example, it may save memory to use Truncated Backpropagation Through Time wh
 
 Lightning can handle TBTT automatically via this flag.
 
-.. testcode::
+.. testcode:: python
 
-    # DEFAULT (single backwards pass per batch)
-    trainer = Trainer(truncated_bptt_steps=None)
+    from pytorch_lightning import LightningModule
 
-    # (split batch into sequences of size 2)
-    trainer = Trainer(truncated_bptt_steps=2)
+    class MyModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            # Important: This property activates truncated backpropagation through time
+            # Setting this value to 2 splits the batch into sequences of size 2
+            self.truncated_bptt_steps = 2
+
+        def training_step(batch, batch_idx, hiddens):
+            # The training_step will be passed a `hiddens` argument for the split batch
+            ...
 
 .. note:: If you need to modify how the batch is split,
     override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
