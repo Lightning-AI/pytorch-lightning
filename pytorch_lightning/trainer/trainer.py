@@ -1211,10 +1211,8 @@ class Trainer(
             self.logger_connector.cache_logged_metrics()
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
-        # Note this implementation is copy/pasted into the TrainLoop class
-        # in TrainLoop._on_train_epoch_end_hook
-        # This was done to manage the deprecation of an argument to
-        # on_train_epoch_end
+        # Note this implementation is copy/pasted into the TrainLoop class in TrainLoop._on_train_epoch_end_hook
+        # This was done to manage the deprecation of an argument to on_train_epoch_end
         # If making chnages to this function, ensure that those changes are also made to
         # TrainLoop._on_train_epoch_end_hook
 
