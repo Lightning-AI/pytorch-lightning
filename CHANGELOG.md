@@ -243,6 +243,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#6659](https://github.com/PyTorchLightning/pytorch-lightning/pull/6659),
 )
 
+- Deprecated the `LightningModule.datamodule` getter and setter methods; access them through `Trainer.datamodule` instead ([#7168](https://github.com/PyTorchLightning/pytorch-lightning/pull/7168))
+
 
 ### Removed
 
