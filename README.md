@@ -412,7 +412,7 @@ Please observe the Apache 2.0 license that is listed in this repository.
 In addition, the Lightning framework is Patent Pending.
 
 ## BibTeX
-If you want to cite the framework feel free to use this (but only if you loved it 😊) or [zendo](https://zenodo.org/record/3828935#.YC45Lc9Khqs):
+If you want to cite the framework feel free to use this (but only if you loved it 😊) or [zenodo](https://zenodo.org/record/3828935#.YC45Lc9Khqs):
 
 ```bibtex
 @article{falcon2019pytorch,
