@@ -18,7 +18,7 @@ import os
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 
@@ -36,9 +36,6 @@ from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
-
-if TYPE_CHECKING:
-    from pytorch_lightning.plugins.plugins_registry import TrainingTypePluginsRegistry
 
 
 def remove_module_hooks(model: torch.nn.Module) -> None:
@@ -137,119 +134,116 @@ class DeepSpeedPlugin(DDPPlugin):
 
         Arguments:
 
-            zero_optimization: Enable ZeRO optimization. This is only compatible with precision=16. (default: True)
+            zero_optimization: Enable ZeRO optimization. This is only compatible with precision=16.
 
             stage: Different stages of the ZeRO Optimizer. 0 is disabled,
                 1 is optimizer state partitioning, 2 is optimizer+gradient state partitioning,
-                3 is optimizer+gradient_parameter partitioning using the infinity engine (default: 2)
+                3 is optimizer+gradient_parameter partitioning using the infinity engine.
 
-            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``). (default: ``cpu``)
+            remote_device: Device to instantiate the model on initially (``cpu`` or ``nvme``).
 
             offload_optimizer: Enable offloading optimizer memory and computation to CPU or NVMe
-                based on ``offload_optimizer_device`` (default: False)
+                based on ``offload_optimizer_device``.
 
             offload_parameters: When using ZeRO Stage 3, Enable offloading parameter memory and computation
-                to CPU or NVMe based on ``offload_params_device`` (default: False)
+                to CPU or NVMe based on ``offload_params_device``.
 
             offload_params_device: When offloading parameters choose the device to offload to, ``cpu`` or ``nvme``.
-                (default: ``cpu``)
 
             offload_optimizer_device: When offloading optimizer state choose the device to offload to,
-                ``cpu`` or ``nvme``. (default: ``cpu``)
+                ``cpu`` or ``nvme``.
 
             params_buffer_count: Number of buffers in buffer pool for
-                parameter offloading when ``offload_params_device`` is ``nvme`` (default: 5)
+                parameter offloading when ``offload_params_device`` is ``nvme``.
 
             params_buffer_size: Size of buffers in buffer pool for parameter offloading
-                when ``offload_params_device`` is ``nvme``. (default: 1e8)
+                when ``offload_params_device`` is ``nvme``.
 
             max_in_cpu: Number of parameter elements to maintain in CPU memory when offloading to NVMe is enabled.
-                (default: 1e9)
 
             nvme_path: Filesystem path for NVMe device for optimizer/parameter state offloading.
-                (default: ``/local_nvme``)
 
             optimizer_buffer_count: Number of buffers in buffer pool for optimizer state offloading
                 when ``offload_optimizer_device`` is set to to ``nvme``.
                 This should be at least the number of states maintained per parameter by the optimizer.
-                For example, Adam optimizer has 4 states (parameter, gradient, momentum, and variance) (default: 4)
+                For example, Adam optimizer has 4 states (parameter, gradient, momentum, and variance).
 
-            block_size: When using NVMe Offloading, the I/O block size in bytes (default: 1048576)
+            block_size: When using NVMe Offloading, the I/O block size in bytes.
 
-            queue_depth: When using NVMe Offloading, the I/O queue depth (default: 8)
+            queue_depth: When using NVMe Offloading, the I/O queue depth.
 
             single_submit: When using NVMe Offloading,
                 submit requests to storage device as multiple individual requests,
-                as opposed to one block of requests. (default: False)
+                as opposed to one block of requests.
 
             overlap_events: When using NVMe Offloading,
                 submit requests to storage device in an overlapped fashion
-                without waiting for completion of earlier requests.	 (default: True)
+                without waiting for completion of earlier requests.
 
             thread_count: When using NVMe Offloading,
-                Intra-request parallelism for each read/write submitted by a user thread. (default: 1)
+                Intra-request parallelism for each read/write submitted by a user thread.
 
             pin_memory: When using ZeRO stage 3, pin optimizer state memory on CPU.
-                This could boost throughput at the cost of extra memory overhead. (Default: False)
+                This could boost throughput at the cost of extra memory overhead.
 
             sub_group_size: When using ZeRO stage 3, defines the number of parameters
                 within a sub group to offload at a time.
-                Smaller numbers require more communication, but improve memory efficiency (default: 1e12).
+                Smaller numbers require more communication, but improve memory efficiency.
 
             contiguous_gradients: Copies gradients to a continuous buffer as they are produced.
-                Avoids memory fragmentation during backwards. Useful when training large models. (default: True)
+                Avoids memory fragmentation during backwards. Useful when training large models.
 
             overlap_comm: Overlap the reduction (synchronization) of gradients with the backwards computation.
-                This is a speed optimization when training across multiple GPUs/machines. (default: True)
+                This is a speed optimization when training across multiple GPUs/machines.
 
             allgather_partitions: All gather updated parameters at the end of training step,
-                instead of using a series of broadcast collectives (default: True)
+                instead of using a series of broadcast collectives.
 
-            reduce_scatter: Use reduce/scatter instead of allreduce to average gradients (default:True)
+            reduce_scatter: Use reduce/scatter instead of allreduce to average gradients.
 
             allgather_bucket_size: Number of elements to allgather at once.
-                Used to limit the memory required for larger model sizes, with a tradeoff with speed. (default: 2e8)
+                Used to limit the memory required for larger model sizes, with a tradeoff with speed.
 
             reduce_bucket_size: Number of elements to reduce at once.
-                Used to limit the memory required for larger model sizes, with a tradeoff with speed (default: 2e8)
+                Used to limit the memory required for larger model sizes, with a tradeoff with speed.
 
             zero_allow_untested_optimizer: Allow untested optimizers to be used with ZeRO. Currently only Adam is a
-                DeepSpeed supported optimizer when using ZeRO (default: True)
+                DeepSpeed supported optimizer when using ZeRO.
 
             config: Pass in a deepspeed formatted config dict,
                 or path to a deepspeed config: https://www.deepspeed.ai/docs/config-json.
-                All defaults will be ignored if a config is passed in. (Default: ``None``)
+                All defaults will be ignored if a config is passed in.
 
-            logging_level: Set logging level for deepspeed. (Default: ``logging.WARN``)
+            logging_level: Set logging level for deepspeed.
 
             loss_scale: Loss scaling value for FP16 training.
-                0.0 results in dynamic loss scaling, otherwise static (Default: 0)
+                0.0 results in dynamic loss scaling, otherwise static.
 
             initial_scale_power: Power of the initial dynamic loss scale value. Loss scale is computed
-                by ``2^initial_scale_power`` (Default: 32)
+                by ``2^initial_scale_power``.
 
-            loss_scale_window: Window in which to raise/lower the dynamic FP16 loss scaling value (Default: 1000)
+            loss_scale_window: Window in which to raise/lower the dynamic FP16 loss scaling value.
 
-            hysteresis: FP16 Delay shift in Dynamic Loss scaling (Default: 2)
+            hysteresis: FP16 Delay shift in Dynamic Loss scaling.
 
-            min_loss_scale: The minimum FP16 dynamic loss scaling value (Default: 1000)
+            min_loss_scale: The minimum FP16 dynamic loss scaling value.
 
             partition_activations: Enables partition activation when used with ZeRO stage 3 and model parallelism.
                 Still requires you to wrap your forward functions in deepspeed.checkpointing.checkpoint.
                 See `deepspeed tutorial
-                <https://www.deepspeed.ai/tutorials/megatron/#deepspeed-activation-checkpoints-optional>`_
+                <https://www.deepspeed.ai/tutorials/megatron/#deepspeed-activation-checkpoints-optional>`_.
 
-            cpu_checkpointing: Offloads partitioned activations to CPU if ``partition_activations`` is enabled
+            cpu_checkpointing: Offloads partitioned activations to CPU if ``partition_activations`` is enabled.
 
             contiguous_memory_optimization: Copies partitioned activations so that they are contiguous in memory.
-                Not supported by all models
+                Not supported by all models.
 
             synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
 
             save_full_weights: Gathers weights across all processes before saving to disk
                 when using ZeRO Stage 3. This allows a single weight file to contain the entire model,
                 rather than individual sharded weight files.
-                Disable to save sharded states individually. (Default: True)
+                Disable to save sharded states individually.
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -686,7 +680,7 @@ class DeepSpeedPlugin(DDPPlugin):
             return current_global_step
 
     @classmethod
-    def register_plugins(cls, plugin_registry: 'TrainingTypePluginsRegistry') -> None:
+    def register_plugins(cls, plugin_registry: Dict) -> None:
         plugin_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
         plugin_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
         plugin_registry.register(
