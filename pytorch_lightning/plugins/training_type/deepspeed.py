@@ -259,9 +259,9 @@ class DeepSpeedPlugin(DDPPlugin):
 
         if cpu_offload or cpu_offload_params or cpu_offload_use_pin_memory:
             warnings.warn(
-                "The usage of ``cpu_offload`` ``cpu_offload_params`` and ``cpu_offload_use_pin_memory`` "
+                "The usage of `cpu_offload`, `cpu_offload_params`, and `cpu_offload_use_pin_memory` "
                 "is deprecated since v1.3 and will be removed in v1.4."
-                " From now on use ``offload_optimizer``, ``offload_parameters`` and ``pin_memory``.", DeprecationWarning
+                " From now on use `offload_optimizer`, `offload_parameters` and `pin_memory`.", DeprecationWarning
             )
             offload_optimizer = cpu_offload
             offload_parameters = cpu_offload_params
