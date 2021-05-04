@@ -175,6 +175,25 @@ def test_argparse_args_parsing(cli_args, expected):
     assert Trainer.from_argparse_args(args)
 
 
+@RunIf(min_python="3.7.0")
+@pytest.mark.parametrize(
+    'cli_args,expected', [
+        ('', False),
+        ('--fast_dev_run=0', False),
+        ('--fast_dev_run=True', True),
+        ('--fast_dev_run 2', 2),
+    ]
+)
+def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
+    """Test multi type argument with bool."""
+    cli_args = cli_args.split(' ') if cli_args else []
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
+        parser = ArgumentParser(add_help=False)
+        parser = Trainer.add_argparse_args(parent_parser=parser)
+        args = Trainer.parse_argparser(parser)
+    assert args.fast_dev_run is expected
+
+
 @pytest.mark.parametrize(['cli_args', 'expected_parsed', 'expected_device_ids'], [
     pytest.param('', None, None),
     pytest.param('--gpus 1', 1, [0]),

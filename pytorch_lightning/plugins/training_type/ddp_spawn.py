@@ -167,10 +167,7 @@ class DDPSpawnPlugin(ParallelPlugin):
     def new_process(self, process_idx, trainer, mp_queue):
         self.mp_queue = mp_queue
 
-        # TODO: check if needed
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
+        reset_seed()
 
         self.set_world_ranks(process_idx)
 

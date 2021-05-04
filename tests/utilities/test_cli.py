@@ -12,18 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import json
 import os
 import pickle
 import sys
 from argparse import Namespace
+from contextlib import redirect_stdout
+from io import StringIO
 from unittest import mock
 
 import pytest
 import yaml
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import LightningArgumentParser, LightningCLI, SaveConfigCallback
 from tests.helpers import BoringDataModule, BoringModel
@@ -277,6 +281,22 @@ def test_lightning_cli_args_callbacks(tmpdir):
     assert cli.trainer.ran_asserts
 
 
+def test_lightning_cli_args_cluster_environments(tmpdir):
+    plugins = [dict(class_path='pytorch_lightning.plugins.environments.SLURMEnvironment')]
+
+    class TestModel(BoringModel):
+
+        def on_fit_start(self):
+            # Ensure SLURMEnvironment is set, instead of default LightningEnvironment
+            assert isinstance(self.trainer.accelerator_connector._cluster_environment, SLURMEnvironment)
+            self.trainer.ran_asserts = True
+
+    with mock.patch('sys.argv', ['any.py', f'--trainer.plugins={json.dumps(plugins)}']):
+        cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+
+    assert cli.trainer.ran_asserts
+
+
 def test_lightning_cli_args(tmpdir):
 
     cli_args = [
@@ -290,7 +310,6 @@ def test_lightning_cli_args(tmpdir):
     with mock.patch('sys.argv', ['any.py'] + cli_args):
         cli = LightningCLI(BoringModel, BoringDataModule, trainer_defaults={'callbacks': [LearningRateMonitor()]})
 
-    assert cli.fit_result == 1
     assert cli.config['seed_everything'] == 1234
     config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml'
     assert os.path.isfile(config_path)
@@ -321,7 +340,6 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
             trainer_defaults={'callbacks': LearningRateMonitor()}
         )
 
-    assert cli.fit_result == 1
     config_path = tmpdir / 'lightning_logs' / 'version_0' / 'config.yaml'
     assert os.path.isfile(config_path)
     with open(config_path) as f:
@@ -329,3 +347,99 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
     assert config['model'] == cli.config['model']
     assert config['data'] == cli.config['data']
     assert config['trainer'] == cli.config['trainer']
+
+
+def any_model_any_data_cli():
+    LightningCLI(
+        LightningModule,
+        LightningDataModule,
+        subclass_mode_model=True,
+        subclass_mode_data=True,
+    )
+
+
+def test_lightning_cli_help():
+
+    cli_args = ['any.py', '--help']
+    out = StringIO()
+    with mock.patch('sys.argv', cli_args), redirect_stdout(out), pytest.raises(SystemExit):
+        any_model_any_data_cli()
+
+    assert '--print_config' in out.getvalue()
+    assert '--config' in out.getvalue()
+    assert '--seed_everything' in out.getvalue()
+    assert '--model.help' in out.getvalue()
+    assert '--data.help' in out.getvalue()
+
+    skip_params = {'self'}
+    for param in inspect.signature(Trainer.__init__).parameters.keys():
+        if param not in skip_params:
+            assert f'--trainer.{param}' in out.getvalue()
+
+    cli_args = ['any.py', '--data.help=tests.helpers.BoringDataModule']
+    out = StringIO()
+    with mock.patch('sys.argv', cli_args), redirect_stdout(out), pytest.raises(SystemExit):
+        any_model_any_data_cli()
+
+    assert '--data.init_args.data_dir' in out.getvalue()
+
+
+def test_lightning_cli_print_config():
+
+    cli_args = [
+        'any.py',
+        '--seed_everything=1234',
+        '--model=tests.helpers.BoringModel',
+        '--data=tests.helpers.BoringDataModule',
+        '--print_config',
+    ]
+
+    out = StringIO()
+    with mock.patch('sys.argv', cli_args), redirect_stdout(out), pytest.raises(SystemExit):
+        any_model_any_data_cli()
+
+    outval = yaml.safe_load(out.getvalue())
+    assert outval['seed_everything'] == 1234
+    assert outval['model']['class_path'] == 'tests.helpers.BoringModel'
+    assert outval['data']['class_path'] == 'tests.helpers.BoringDataModule'
+
+
+def test_lightning_cli_submodules(tmpdir):
+
+    class MainModule(BoringModel):
+
+        def __init__(
+            self,
+            submodule1: LightningModule,
+            submodule2: LightningModule,
+            main_param: int = 1,
+        ):
+            super().__init__()
+            self.submodule1 = submodule1
+            self.submodule2 = submodule2
+
+    config = """model:
+        main_param: 2
+        submodule1:
+            class_path: tests.helpers.BoringModel
+        submodule2:
+            class_path: tests.helpers.BoringModel
+    """
+    config_path = tmpdir / 'config.yaml'
+    with open(config_path, 'w') as f:
+        f.write(config)
+
+    cli_args = [
+        f'--trainer.default_root_dir={tmpdir}',
+        '--trainer.max_epochs=1',
+        f'--config={str(config_path)}',
+    ]
+
+    with mock.patch('sys.argv', ['any.py'] + cli_args):
+        cli = LightningCLI(MainModule)
+
+    assert cli.config_init['model']['main_param'] == 2
+    assert cli.model.submodule1 == cli.config_init['model']['submodule1']
+    assert cli.model.submodule2 == cli.config_init['model']['submodule2']
+    assert isinstance(cli.config_init['model']['submodule1'], BoringModel)
+    assert isinstance(cli.config_init['model']['submodule2'], BoringModel)
