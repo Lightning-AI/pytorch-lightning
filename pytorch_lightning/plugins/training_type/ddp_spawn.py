@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.distributed import (
     ReduceOp,
     sync_ddp_if_available,
 )
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
