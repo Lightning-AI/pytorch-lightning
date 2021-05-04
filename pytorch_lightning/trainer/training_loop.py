@@ -606,14 +606,14 @@ class TrainLoop:
             # capture logging
             self.trainer.logger_connector.cache_logged_metrics()
 
-            # call train epoch end hooks
-            self._on_train_epoch_end_hook(processed_epoch_output)
-            self.trainer.call_hook('on_epoch_end')
+        # call train epoch end hooks
+        self._on_train_epoch_end_hook(processed_epoch_output)
+        self.trainer.call_hook('on_epoch_end')
 
     def _on_train_epoch_end_hook(self, processed_epoch_output) -> None:
-        # Cannot rely on Trainer.call_hook because the signatures might be different across
+        # We cannot rely on Trainer.call_hook because the signatures might be different across
         # lightning module and callback
-        # Here we need to inspect if the module accepts `outputs` in `on_train_epoch_end`
+        # As a result, we need to inspect if the module accepts `outputs` in `on_train_epoch_end`
 
         # This implementation is copied from Trainer.call_hook
         hook_name = "on_train_epoch_end"
