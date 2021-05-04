@@ -981,7 +981,7 @@ class Trainer(
         self.evaluation_loop.outputs = []
 
         # with a single dataloader don't pass a 2D list
-        if self.evaluation_loop.num_dataloaders == 1:
+        if len(outputs) > 0 and self.evaluation_loop.num_dataloaders == 1:
             outputs = outputs[0]
 
         # lightning module method
