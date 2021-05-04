@@ -32,9 +32,9 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_7, _TORCH_GREATER
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.distributed import (
+    rank_zero_deprecation,
     rank_zero_only,
     rank_zero_warn,
-    rank_zero_deprecation,
     ReduceOp,
     sync_ddp_if_available,
 )
