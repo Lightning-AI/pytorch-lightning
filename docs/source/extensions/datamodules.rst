@@ -255,7 +255,7 @@ we assume all stages have been set-up.
     ``{setup,teardown,prepare_data}`` call will be only called once for a specific stage.
     If the stage was ``None`` then we assume ``{fit,validate,test}`` have been called. For example, this means that
     any duplicate ``dm.setup('fit')`` calls will be a no-op. To avoid this, you can overwrite
-    ``dm.has_setup_fit = False``
+    ``dm._has_setup_fit = False``
 
 
 train_dataloader
