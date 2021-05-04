@@ -267,22 +267,3 @@ class EvaluationLoop(object):
         self.trainer._cache_logged_metrics()
 
         self.trainer.call_hook('on_epoch_end')
-
-    def log_evaluation_step_metrics(self, batch_idx: int) -> None:
-        if self.trainer.sanity_checking:
-            return
-
-        cached_results = self.trainer.logger_connector.cached_results
-        if cached_results is not None:
-            cached_batch_pbar_metrics, cached_batch_log_metrics = cached_results.update_logger_connector()
-
-            if len(cached_batch_log_metrics) > 0:
-                # make the metrics appear as a different line in the same graph
-                metrics_by_epoch = {}
-                for k, v in cached_batch_log_metrics.items():
-                    metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
-
-                self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
-
-            if len(cached_batch_pbar_metrics) > 0:
-                self.trainer.logger_connector.add_progress_bar_metrics(cached_batch_pbar_metrics)
