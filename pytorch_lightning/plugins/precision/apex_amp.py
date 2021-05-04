@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, ContextManager, List, Sequence, Tuple, Type
+from typing import Any, Callable, ContextManager, Sequence
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 from torch.optim import Optimizer
 
-from pytorch_lightning.core import LightningModule
+import pytorch_lightning as pl
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.types import _PARAMETERS
@@ -34,24 +34,19 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         super().__init__()
         self.backend = AMPType.APEX
         self.amp_level = amp_level
+        self._connected = False
 
     def master_params(self, optimizer: Optimizer) -> _PARAMETERS:
         return amp.master_params(optimizer)
 
-    def connect(
-        self,
-        model: Module,
-        optimizers: List[Optimizer],
-        lr_schedulers: List[Any],
-    ) -> Tuple[Module, List[Optimizer], List[Any]]:
-        """Connects the precision plugin to the training process,
-        configures apex and reinits the schedulers
-        """
-        if model.device.type != "cuda":
-            return model, optimizers, lr_schedulers
-        model, optimizers = self.configure_apex(amp, model, list(optimizers), self.amp_level)
-        self.reinit_scheduler_properties(optimizers, lr_schedulers)
-        return model, optimizers, lr_schedulers
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        if not self._connected:
+            accelerator = trainer.accelerator
+            _, accelerator.optimizers = amp.initialize(
+                trainer.lightning_module, accelerator.optimizers, opt_level=self.amp_level
+            )
+            self._connected = True
+        return super().dispatch(trainer)
 
     def backward(
         self,
@@ -98,40 +93,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
         return closure_loss
-
-    def configure_apex(
-        self,
-        amp: Type,
-        model: Module,
-        optimizers: List[Optimizer],
-        amp_level: str,
-    ) -> Tuple[Module, List[Optimizer]]:
-        r"""
-        Override to init AMP your own way.
-        Must return a model and list of optimizers.
-
-        Args:
-            amp: pointer to amp library object.
-            model: pointer to current :class:`torch.nn.Module`.
-            optimizers: list of optimizers passed in :meth:`configure_optimizers`.
-            amp_level: AMP mode chosen ('O1', 'O2', etc...)
-
-        Return:
-            Apex wrapped model and optimizers
-
-        Examples:
-            .. code-block:: python
-
-                # Default implementation used by Trainer.
-                def configure_apex(self, amp, model, optimizers, amp_level):
-                    model, optimizers = amp.initialize(
-                        model, optimizers, opt_level=amp_level,
-                    )
-
-                    return model, optimizers
-        """
-        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
-        return model, optimizers
 
     @staticmethod
     def reinit_scheduler_properties(optimizers: Sequence[Optimizer], schedulers: Sequence[Any]) -> None:
