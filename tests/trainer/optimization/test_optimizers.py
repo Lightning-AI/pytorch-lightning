@@ -19,6 +19,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_optimizer_with_scheduling(tmpdir):
@@ -394,7 +395,7 @@ def test_lr_scheduler_strict(tmpdir):
     with pytest.warns(
         RuntimeWarning, match=r'ReduceLROnPlateau conditioned on metric .* which is not available but strict'
     ):
-        assert trainer.fit(model)
+        trainer.fit(model)
 
 
 def test_unknown_configure_optimizers_raises(tmpdir):
@@ -498,3 +499,28 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.warns(RuntimeWarning, match='the keys will be ignored'):
         trainer.fit(model)
+
+
+class TestModel(BoringModel):
+
+    def configure_optimizers(self):
+        # Adagrad creates state tensors immediately, model is not yet on GPU.
+        return torch.optim.Adagrad(self.parameters())
+
+    def on_train_start(self, *args, **kwargs):
+        opt = self.optimizers()
+        _, state = next(iter(opt.state.items()))
+        assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
+
+
+@RunIf(min_gpus=2, special=True)
+def test_optimizer_state_on_device(tmpdir):
+    """ Test that optimizers that create state initially at instantiation still end up with the state on the GPU. """
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=2,
+        accelerator="ddp",
+        fast_dev_run=True,
+    )
+    trainer.fit(model)

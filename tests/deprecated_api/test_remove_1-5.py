@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
 import os
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
@@ -26,7 +27,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
 from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, BoringDataModule
 from tests.helpers.utils import no_warning_call
 
 
@@ -91,6 +92,85 @@ def test_v1_5_0_old_callback_on_save_checkpoint(tmpdir):
     trainer.callbacks = [NewSignature(), ValidSignature1(), ValidSignature2()]
     with no_warning_call(DeprecationWarning):
         trainer.save_checkpoint(filepath)
+
+
+class BaseSignatureOnLoadCheckpoint(Callback):
+
+    def __init__(self):
+        self.on_load_checkpoint_called = False
+
+
+class OldSignatureOnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
+
+    def on_save_checkpoint(self, *args) -> Dict[str, Any]:
+        return {"a": 0}
+
+    def on_load_checkpoint(self, callback_state) -> None:
+        assert callback_state == {"a": 0}
+        self.on_load_checkpoint_called = True
+
+
+class NewSignatureOnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+        return {"something": "something"}
+
+    def on_load_checkpoint(self, trainer, pl_module, checkpoint):
+        assert checkpoint == {"something": "something"}
+        self.on_load_checkpoint_called = True
+
+
+class ValidSignature2OnLoadCheckpoint(BaseSignatureOnLoadCheckpoint):
+
+    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+        return {"something": "something"}
+
+    def on_load_checkpoint(self, *args):
+        assert len(args) == 3
+        self.on_load_checkpoint_called = True
+
+
+def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
+
+    model = BoringModel()
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "max_steps": 1,
+    }
+    chk = ModelCheckpoint(save_last=True)
+    trainer = Trainer(**trainer_kwargs, callbacks=[OldSignatureOnLoadCheckpoint(), chk])
+    trainer.fit(model)
+
+    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
+        trainer_kwargs["max_steps"] = 2
+        cb = OldSignatureOnLoadCheckpoint()
+        trainer = Trainer(**trainer_kwargs, callbacks=cb, resume_from_checkpoint=chk.last_model_path)
+        trainer.fit(model)
+        assert cb.on_load_checkpoint_called
+
+    class ValidSignature1(BaseSignatureOnLoadCheckpoint):
+
+        def on_load_checkpoint(self, trainer, *args):
+            assert len(args) == 2
+            self.on_load_checkpoint_called = True
+
+    model = BoringModel()
+    chk = ModelCheckpoint(save_last=True)
+    trainer = Trainer(
+        **trainer_kwargs,
+        callbacks=[
+            NewSignatureOnLoadCheckpoint(),
+            ValidSignature1(),
+            ValidSignature2OnLoadCheckpoint(),
+            chk,
+        ]
+    )
+    with no_deprecated_call(match="old signature will be removed in v1.5"):
+        trainer.fit(model)
+
+    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
+        trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=chk.last_model_path)
+        trainer.fit(model)
 
 
 def test_v1_5_0_legacy_profiler_argument():
@@ -294,3 +374,18 @@ def test_v1_5_0_trainer_logging_mixin(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         trainer.metrics_to_scalars({})
+
+
+def test_v1_5_0_lighting_module_grad_norm(tmpdir):
+    model = BoringModel()
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        model.grad_norm(2)
+
+
+def test_v1_5_0_datamodule_setter():
+    model = BoringModel()
+    datamodule = BoringDataModule()
+    with no_deprecated_call(match="The `LightningModule.datamodule`"):
+        model.datamodule = datamodule
+    with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
+        _ = model.datamodule

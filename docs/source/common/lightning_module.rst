@@ -994,7 +994,7 @@ Set or access your datamodule.
 .. code-block:: python
 
     def configure_optimizers(self):
-        num_training_samples = len(self.datamodule.train_dataloader())
+        num_training_samples = len(self.trainer.datamodule.train_dataloader())
         ...
 
 --------------

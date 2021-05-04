@@ -14,7 +14,7 @@
 from typing import Optional
 
 import torch
-from torch.utils.data import DataLoader, Dataset, Subset
+from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 
 from pytorch_lightning import LightningDataModule, LightningModule
 
@@ -58,6 +58,31 @@ class RandomDataset(Dataset):
 
     def __len__(self):
         return self.len
+
+
+class RandomIterableDataset(IterableDataset):
+
+    def __init__(self, size: int, count: int):
+        self.count = count
+        self.size = size
+
+    def __iter__(self):
+        for _ in range(self.count):
+            yield torch.randn(self.size)
+
+
+class RandomIterableDatasetWithLen(IterableDataset):
+
+    def __init__(self, size: int, count: int):
+        self.count = count
+        self.size = size
+
+    def __iter__(self):
+        for _ in range(len(self)):
+            yield torch.randn(self.size)
+
+    def __len__(self):
+        return self.count
 
 
 class BoringModel(LightningModule):
