@@ -355,12 +355,8 @@ class Accelerator:
             model=self.model,
         )
 
-    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        """Hook to do something on the end of an training epoch
-
-        Args:
-            outputs: the outputs of the training steps
-        """
+    def on_train_epoch_end(self) -> None:
+        """Hook to do something on the end of an training epoch."""
         pass
 
     def on_train_end(self) -> None:

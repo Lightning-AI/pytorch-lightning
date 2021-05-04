@@ -221,14 +221,14 @@ class TrainLoop:
         # We add to the epoch outputs if
         # 1. The model defines training_epoch_end OR
         # 2. The model overrides on_train_epoch_end which has `outputs` in the signature OR
-        # 3. The trainer has any callback which overrides `on_train_epoch_end` and includes `outputs` in the signature
+        # 3. The trainer has any callback which overrides `on_train_epoch_end` that includes `outputs` in the signature
         # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
         lightning_module = self.trainer.lightning_module
         if is_overridden("training_epoch_end", model=lightning_module):
             return True
 
         if is_overridden("on_train_epoch_end", model=lightning_module):
-            model_hook_fx = getattr(model_ref, hook_name)
+            model_hook_fx = getattr(lightning_module, "on_train_epoch_end")
             if is_param_in_hook_signature(model_hook_fx, "outputs"):
                 return True
 
@@ -611,9 +611,50 @@ class TrainLoop:
             # capture logging
             self.trainer.logger_connector.cache_logged_metrics()
 
-        # call train epoch end hooks
-        self.trainer.call_hook('on_train_epoch_end', processed_epoch_output)
-        self.trainer.call_hook('on_epoch_end')
+            # call train epoch end hooks
+            self._on_train_epoch_end_hook(processed_epoch_output)
+            self.trainer.call_hook('on_epoch_end')
+
+    def _on_train_epoch_end_hook(self, processed_epoch_output) -> None:
+        # Cannot rely on Trainer.call_hook because the signatures might be different across
+        # lightning module and callback
+        # Here we need to inspect if the module accepts `outputs` in `on_train_epoch_end`
+
+        # This implementation is copied from Trainer.call_hook
+        hook_name = "on_train_epoch_end"
+
+        # set hook_name to model + reset Result obj
+        skip = self.trainer._reset_result_and_set_hook_fx_name(hook_name)
+
+        # always profile hooks
+        with self.trainer.profiler.profile(hook_name):
+
+            # first call trainer hook
+            if hasattr(self.trainer, hook_name):
+                trainer_hook = getattr(self.trainer, hook_name)
+                trainer_hook(processed_epoch_output)
+
+            # next call hook in lightningModule
+            model_ref = self.trainer.lightning_module
+            if is_overridden(hook_name, model_ref):
+                hook_fx = getattr(model_ref, hook_name)
+                if is_param_in_hook_signature(hook_fx, "outputs"):
+                    self.warning_cache.warn(
+                        f"`ModelHooks.on_train_epoch_end` signature has changed in v1.3. `outputs` parameter has been deprecated."
+                        " Support for the old signature will be removed in v1.5", DeprecationWarning
+                    )
+                    model_ref.on_train_epoch_end(processed_epoch_output)
+                else:
+                    model_ref.on_train_epoch_end()
+
+            # if the PL module doesn't have the hook then call the accelerator
+            # used to auto-reduce things for the user with Results obj
+            elif hasattr(self.trainer.accelerator, hook_name):
+                accelerator_hook = getattr(self.trainer.accelerator, hook_name)
+                accelerator_hook()
+
+        if not skip:
+            self.trainer._cache_logged_metrics()
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
