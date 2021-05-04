@@ -196,6 +196,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `LightningModule.from_datasets()` now accepts `IterableDataset` instances as training datasets. ([#7503](https://github.com/PyTorchLightning/pytorch-lightning/pull/7503))
 
 
+- Changed `resume_from_checkpoint` warning to an error when the checkpoint file does not exist ([#7075](https://github.com/PyTorchLightning/pytorch-lightning/pull/7075))
+
+
 ### Deprecated
 
 
@@ -246,6 +249,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#6659](https://github.com/PyTorchLightning/pytorch-lightning/pull/6659),
 )
 
+- Deprecated the `LightningModule.datamodule` getter and setter methods; access them through `Trainer.datamodule` instead ([#7168](https://github.com/PyTorchLightning/pytorch-lightning/pull/7168))
+
+
+- Deprecated the use of `Trainer(gpus="i")` (string) for selecting the i-th GPU; from v1.5 this will set the number of GPUs instead of the index ([#6388](https://github.com/PyTorchLightning/pytorch-lightning/pull/6388))
 
 ### Removed
 
@@ -362,6 +369,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed bug where `BaseFinetuning.flatten_modules()` was duplicating leaf node parameters ([#6879](https://github.com/PyTorchLightning/pytorch-lightning/pull/6879))
 
 
+- Fixed bug where the learning rate schedulers did not follow the optimizer frequencies ([#4868](https://github.com/PyTorchLightning/pytorch-lightning/pull/4868))
+
+
 - Fixed `EarlyStopping` logic when `min_epochs` or `min_steps` requirement is not met ([#6705](https://github.com/PyTorchLightning/pytorch-lightning/pull/6705))
 
 
@@ -453,6 +463,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed optimizer `state` not moved to `GPU` ([#7277](https://github.com/PyTorchLightning/pytorch-lightning/pull/7277))
+
+
+- Fixed custom init args for `WandbLogger` ([#6989](https://github.com/PyTorchLightning/pytorch-lightning/pull/6989))
+
 
 
 ## [1.2.7] - 2021-04-06
