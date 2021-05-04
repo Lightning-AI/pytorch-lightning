@@ -44,6 +44,8 @@ class Tuner:
 
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
+            if isinstance(self.trainer.auto_scale_batch_size, str):
+                scale_batch_size_kwargs.setdefault("mode", self.trainer.auto_scale_batch_size)
             result['scale_batch_size'] = scale_batch_size(self.trainer, model, **scale_batch_size_kwargs)
 
         # Run learning rate finder:
