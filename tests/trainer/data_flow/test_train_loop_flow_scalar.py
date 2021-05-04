@@ -17,18 +17,18 @@ Tests to ensure that the training loop works with a dict (1.0)
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
+from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
 from tests.helpers.utils import no_warning_call
 
 
 def test__training_step__flow_scalar(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """ Tests that only training_step can be used. """
 
     class TestModel(DeterministicModel):
 
@@ -61,9 +61,7 @@ def test__training_step__flow_scalar(tmpdir):
 
 
 def test__training_step__tr_step_end__flow_scalar(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """ Tests that only training_step can be used. """
 
     class TestModel(DeterministicModel):
 
@@ -103,9 +101,7 @@ def test__training_step__tr_step_end__flow_scalar(tmpdir):
 
 
 def test__training_step__epoch_end__flow_scalar(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+    """ Tests that only training_step can be used. """
 
     class TestModel(DeterministicModel):
 
@@ -175,10 +171,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
 
 
 def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
-    """
-    Checks train_step + training_step_end + training_epoch_end
-    (all with scalar return from train_step)
-    """
+    """ Checks train_step + training_step_end + training_epoch_end (all with scalar return from train_step). """
 
     class TestModel(DeterministicModel):
 
@@ -254,10 +247,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
 
 
 def test_train_step_no_return(tmpdir):
-    """
-    Tests that only training_step raises a warning when
-    nothing is returned in case of automatic_optimization
-    """
+    """ Tests that only training_step raises a warning when nothing is returned in case of automatic_optimization. """
 
     class TestModel(BoringModel):
 
@@ -298,9 +288,7 @@ def test_train_step_no_return(tmpdir):
 
 
 def test_training_step_no_return_when_even(tmpdir):
-    """
-    Tests correctness when some training steps have been skipped
-    """
+    """ Tests correctness when some training steps have been skipped. """
 
     class TestModel(BoringModel):
 
@@ -322,6 +310,50 @@ def test_training_step_no_return_when_even(tmpdir):
     )
 
     with pytest.warns(UserWarning, match=r'.*training_step returned None.*'):
+        trainer.fit(model)
+
+    # manually check a few batches
+    for batch_idx, batch in enumerate(model.train_dataloader()):
+        out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+        if not batch_idx % 2:
+            assert out.training_step_output_for_epoch_end == [[]]
+        assert out.signal == 0
+
+
+def collate_none_when_even():
+    state = {'counter': 0}
+
+    def collate_fn(batch):
+        if state['counter'] % 2 == 0:
+            result = None
+        else:
+            result = default_collate(batch)
+        state['counter'] += 1
+        return result
+
+    return collate_fn
+
+
+def test_training_step_none_batches(tmpdir):
+    """ Tests correctness when the train dataloader gives None for some steps. """
+
+    class TestModel(BoringModel):
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64), collate_fn=collate_none_when_even())
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=4,
+        limit_val_batches=1,
+        max_epochs=4,
+        weights_summary=None,
+        logger=False,
+        checkpoint_callback=False,
+    )
+
+    with pytest.warns(UserWarning, match=r'.*train_dataloader yielded None.*'):
         trainer.fit(model)
 
     # manually check a few batches
