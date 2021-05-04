@@ -220,8 +220,7 @@ class TrainLoop:
     def _should_add_batch_output_to_epoch_output(self) -> bool:
         # We add to the epoch outputs if
         # 1. The model defines training_epoch_end OR
-        # 2. The model overrides on_train_epoch_end which has `outputs` in the signature OR
-        # 3. The trainer has any callback which overrides `on_train_epoch_end` that includes `outputs` in the signature
+        # 2. The model overrides on_train_epoch_end which has `outputs` in the signature
         # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
         lightning_module = self.trainer.lightning_module
         if is_overridden("training_epoch_end", model=lightning_module):
@@ -230,10 +229,6 @@ class TrainLoop:
         if is_overridden("on_train_epoch_end", model=lightning_module):
             model_hook_fx = getattr(lightning_module, "on_train_epoch_end")
             if is_param_in_hook_signature(model_hook_fx, "outputs"):
-                return True
-
-        for callback in self.trainer.callbacks:
-            if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
                 return True
 
         return False
