@@ -98,7 +98,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
                 warning_cache.warn(
-                    "`Callback.on_train_epoch_end` signature has changed in v1.3."
+                    "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
                     " `outputs` parameter has been removed."
                     " Support for the old signature will be removed in v1.5", DeprecationWarning
                 )
