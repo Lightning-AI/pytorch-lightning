@@ -76,7 +76,7 @@ def scale_batch_size(
     elif mode == 'binsearch':
         new_size = _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
     else:
-        raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch`')
+        raise ValueError('mode in method `scale_batch_size` could either be `power` or `binsearch`')
 
     garbage_collection_cuda()
     log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
