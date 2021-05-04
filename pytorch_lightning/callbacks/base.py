@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class Callback(abc.ABC):
