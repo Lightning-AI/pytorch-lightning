@@ -636,7 +636,7 @@ class TrainLoop:
                 hook_fx = getattr(model_ref, hook_name)
                 if is_param_in_hook_signature(hook_fx, "outputs"):
                     self.warning_cache.warn(
-                        "`ModelHooks.on_train_epoch_end` signature has changed in v1.3."
+                        "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
                         " `outputs` parameter has been deprecated."
                         " Support for the old signature will be removed in v1.5", DeprecationWarning
                     )
