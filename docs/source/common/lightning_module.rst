@@ -1018,6 +1018,8 @@ and the trainer will apply Truncated Backprop to it.
 recurrent network trajectories."
 <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
 
+`Tutorial <https://d2l.ai/chapter_recurrent-neural-networks/bptt.html>`_
+
 .. testcode:: python
 
     from pytorch_lightning import LightningModule
@@ -1040,9 +1042,6 @@ recurrent network trajectories."
                 "hiddens": hiddens
             }
 
-.. note:: If you need to modify how the batch is split,
-    override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`.
-
 Lightning takes care to split your batch along the time-dimension.
 
 .. code-block:: python
@@ -1051,13 +1050,10 @@ Lightning takes care to split your batch along the time-dimension.
     # (batch, time, ...)
     sub_batch = batch[0, 0:t, ...]
 
-.. code-block:: python
-
-
 To modify how the batch is split,
 override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
 
-.. testcode::
+.. testcode:: python
 
     class LitMNIST(LightningModule):
         def tbptt_split_batch(self, batch, split_size):

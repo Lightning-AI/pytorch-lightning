@@ -541,7 +541,6 @@ class LightningModule(
             hiddens(:class:`~torch.Tensor`): Passed in if
                 :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
 
-
         Return:
             Any of.
 
@@ -1461,7 +1460,6 @@ class LightningModule(
             Called in the training loop after
             :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
             if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
-
             Each returned batch split is passed separately to :meth:`training_step`.
 
         """
