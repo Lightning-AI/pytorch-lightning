@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.5.0"""
+import operator
 import os
 from typing import Any, Dict
 from unittest import mock
@@ -26,8 +27,10 @@ from pytorch_lightning.core.decorators import auto_move_data
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.callback_hook import warning_cache as callback_warning_cache
+from pytorch_lightning.utilities import device_parser
+from pytorch_lightning.utilities.imports import _compare_version
 from tests.deprecated_api import no_deprecated_call
-from tests.helpers import BoringModel
+from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.utils import no_warning_call
 
 
@@ -48,7 +51,7 @@ def test_v1_5_0_model_checkpoint_save_function():
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_v1_5_0_wandb_unused_sync_step(tmpdir):
+def test_v1_5_0_wandb_unused_sync_step(_):
     with pytest.deprecated_call(match=r"v1.2.1 and will be removed in v1.5"):
         WandbLogger(sync_step=True)
 
@@ -380,3 +383,32 @@ def test_v1_5_0_lighting_module_grad_norm(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
         model.grad_norm(2)
+
+
+@pytest.mark.xfail(
+    condition=_compare_version("pytorch_lightning", operator.ge, "1.5"),
+    reason="parsing of string will change in v1.5",
+)
+@mock.patch('torch.cuda.device_count', return_value=4)
+def test_v1_5_0_trainer_gpus_str_parsing(*_):
+    # TODO: when removing this, make sure docs in docs/advanced/multi-gpu.rst reflect the new
+    #   behavior regarding GPU selection. Ping @awaelchli if unsure.
+    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
+        Trainer(gpus="3", accelerator="ddp_spawn")
+
+    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='3' .* will change."):
+        gpus = device_parser.parse_gpu_ids("3")
+        assert gpus == [3]
+
+    with pytest.deprecated_call(match=r"Parsing of the Trainer argument gpus='0' .* will change."):
+        gpus = device_parser.parse_gpu_ids("0")
+        assert gpus == [0]
+
+
+def test_v1_5_0_datamodule_setter():
+    model = BoringModel()
+    datamodule = BoringDataModule()
+    with no_deprecated_call(match="The `LightningModule.datamodule`"):
+        model.datamodule = datamodule
+    with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
+        _ = model.datamodule
