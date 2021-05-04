@@ -43,8 +43,8 @@ class LoggerConnector:
         self._cached_results = {stage: EpochResultStore(trainer) for stage in RunningStage}
         self._cached_results[None] = EpochResultStore(trainer)
         self._callback_hook_validator = CallbackHookNameValidator()
-        self._val_log_step = 0
-        self._test_log_step = 0
+        self._val_log_step: int = 0
+        self._test_log_step: int = 0
 
     @property
     def callback_metrics(self) -> Dict:
