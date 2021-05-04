@@ -400,6 +400,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed custom init args for `WandbLogger` ([#6989](https://github.com/PyTorchLightning/pytorch-lightning/pull/6989))
 
 
+- Fixed a bug where an error would be raised if the train dataloader sometimes produced None for a batch ([#7342](https://github.com/PyTorchLightning/pytorch-lightning/pull/7342))
+
+
 
 ## [1.2.7] - 2021-04-06
 
