@@ -159,7 +159,7 @@ def test_fully_sharded_plugin_checkpoint_manual_autowrap(automatic_module_wrap, 
     _assert_save_equality(tmpdir, trainer)
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=False)
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
 def test_fully_sharded_plugin_multi_gpu(tmpdir):
     """
         Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
@@ -173,18 +173,14 @@ def test_fully_sharded_plugin_multi_gpu(tmpdir):
     ck = ModelCheckpoint(save_last=True)
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        gpus=2,
-        plugins='ddp_fully_sharded',
-        max_epochs=5,
-        precision=16,
+        default_root_dir=tmpdir, gpus=2, plugins='ddp_fully_sharded', max_epochs=5, precision=16, callbacks=ck
     )
 
     trainer.fit(model)
     trainer.test(model)
-    trainer.test(ck.last_model_path)
+    trainer.test(ckpt_path=ck.last_model_path)
     trainer.validate()
-    trainer.validate(ck.last_model_path)
+    trainer.validate(ckpt_path=ck.last_model_path)
     trainer.predict(dataloaders=model.val_dataloader())
 
     _assert_save_equality(tmpdir, trainer)

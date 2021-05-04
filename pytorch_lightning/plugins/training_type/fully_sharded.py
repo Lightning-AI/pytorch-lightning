@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Generator, List, Optional
+from typing import Dict, Generator, List, Optional
 
 import torch
 
@@ -23,7 +23,7 @@ from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import auto_wrap, default_auto_wrap_policy, enable_wrap, wrap
+    from fairscale.nn import auto_wrap, default_auto_wrap_policy, enable_wrap, FlattenParamsWrapper, wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
     from pytorch_lightning.overrides.fairscale import LightningFullyShardedModule, unwrap_lightning_module_fully_sharded
@@ -109,8 +109,6 @@ class FullyShardedPlugin(DDPPlugin):
                 "Full Sharded Training is not available. Install the latest FairScale via `pip install fairscale -U`"
             )
 
-        if sync_batchnorm:
-            raise MisconfigurationException("Currently sync batch norm is not supported by Full Sharded Training.")
         super().__init__(parallel_devices, num_nodes, cluster_environment, sync_batchnorm)
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
@@ -211,3 +209,10 @@ class FullyShardedPlugin(DDPPlugin):
             if isinstance(module, FullyShardedDataParallel):
                 return True
         return False
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict):
+        plugin_registry.register("fsdp", cls, description="Fully Sharded with LightningModule wrap")
+        plugin_registry.register(
+            "fsdp_offload", cls, description="Fully Sharded Training with CPU Offloading.", cpu_offload=True
+        )
