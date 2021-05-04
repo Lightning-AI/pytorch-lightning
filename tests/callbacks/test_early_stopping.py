@@ -24,7 +24,6 @@ import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -169,7 +168,9 @@ def test_early_stopping_patience_train(
     if validation_step_none:
         model.validation_step = None
 
-    early_stop_callback = EarlyStopping(monitor="train_loss", patience=patience, verbose=True)
+    early_stop_callback = EarlyStopping(
+        monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=validation_step_none
+    )
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
@@ -200,7 +201,7 @@ def test_early_stopping_no_val_step(tmpdir):
     model.validation_step = None
     model.val_dataloader = None
 
-    stopping = EarlyStopping(monitor='train_loss', min_delta=0.1, patience=0)
+    stopping = EarlyStopping(monitor='train_loss', min_delta=0.1, patience=0, check_on_train_epoch_end=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[stopping],
@@ -209,7 +210,7 @@ def test_early_stopping_no_val_step(tmpdir):
     )
     trainer.fit(model, datamodule=dm)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch < trainer.max_epochs - 1
 
 

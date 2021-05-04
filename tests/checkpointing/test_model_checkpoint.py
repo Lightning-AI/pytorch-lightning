@@ -35,7 +35,6 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
@@ -128,7 +127,7 @@ def test_model_checkpoint_score_and_ckpt(
         progress_bar_refresh_rate=0,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
@@ -232,7 +231,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         num_sanity_val_steps=0,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
@@ -407,7 +406,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
         max_epochs=num_epochs,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_model_checkpoint_format_checkpoint_name(tmpdir):

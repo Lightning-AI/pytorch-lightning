@@ -26,7 +26,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
@@ -35,6 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _TPU_AVAILABLE:
+    import torch_xla.core.xla_env_vars as xenv
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
     from torch_xla.core.xla_model import rendezvous
@@ -58,7 +59,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def global_rank(self) -> int:
-        return self.tpu_local_core_rank
+        return self.tpu_global_core_rank
 
     @property
     def local_rank(self) -> int:
@@ -175,7 +176,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.model = self.wrapped_model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if tpu_distributed():
+        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        if os.getenv(xenv.HOST_WORLD_SIZE, None) and tpu_distributed():
             rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
@@ -188,7 +190,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             # save the last weights
             last_path = None
             if (
-                self.lightning_module.trainer.state == TrainerState.FITTING and best_model_path is not None
+                self.lightning_module.trainer.state.fn == TrainerFn.FITTING and best_model_path is not None
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
