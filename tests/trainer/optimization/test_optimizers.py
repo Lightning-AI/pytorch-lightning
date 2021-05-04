@@ -556,6 +556,24 @@ def test_unknown_configure_optimizers_raises(tmpdir):
         trainer.fit(model)
 
 
+def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
+    """
+    Test exception when lr_scheduler dict has unknown interval param value
+    """
+    model = BoringModel()
+    optimizer = torch.optim.Adam(model.parameters())
+    model.configure_optimizers = lambda: {
+        'optimizer': optimizer,
+        'lr_scheduler': {
+            'scheduler': torch.optim.lr_scheduler.StepLR(optimizer, 1),
+            'interval': "incorrect_unknown_value"
+        },
+    }
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(MisconfigurationException, match=r'The "interval" key in lr scheduler dict must be'):
+        trainer.fit(model)
+
+
 def test_lr_scheduler_with_extra_keys_warns(tmpdir):
     """
     Test warning when lr_scheduler dict has extra keys
@@ -586,6 +604,25 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match='The lr scheduler dict must have the key "scheduler"'):
+        trainer.fit(model)
+
+
+def test_invalid_optimizer_in_scheduler(tmpdir):
+    """
+    Test exception when optimizer attatched to lr_schedulers wasn't returned
+    """
+
+    class InvalidOptimizerModel(BoringModel):
+
+        def configure_optimizers(self):
+            opt1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            opt2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(opt2, step_size=1)
+            return [opt1], [lr_scheduler]
+
+    model = InvalidOptimizerModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.raises(MisconfigurationException, match="attatched with an optimizer that wasn't returned"):
         trainer.fit(model)
 
 
