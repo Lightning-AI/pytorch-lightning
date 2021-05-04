@@ -194,6 +194,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `LightningModule.from_datasets()` now accepts `IterableDataset` instances as training datasets. ([#7503](https://github.com/PyTorchLightning/pytorch-lightning/pull/7503))
 
 
+- Changed `resume_from_checkpoint` warning to an error when the checkpoint file does not exist ([#7075](https://github.com/PyTorchLightning/pytorch-lightning/pull/7075))
+
+
 ### Deprecated
 
 - Deprecated `outputs` in both `LightningModule.on_train_epoch_end` and `Callback.on_train_epoch_end` hooks ([#7339](https://github.com/PyTorchLightning/pytorch-lightning/pull/7339))
