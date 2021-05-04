@@ -88,7 +88,7 @@ class DeepSpeedPlugin(DDPPlugin):
         allgather_bucket_size: int = 2e8,
         reduce_bucket_size: int = 2e8,
         zero_allow_untested_optimizer: bool = True,
-        train_micro_batch_size_per_gpu: Optional[int] = None,
+        logging_batch_size_per_gpu: Optional[int] = 1,
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
         num_nodes: int = 1,
@@ -149,7 +149,10 @@ class DeepSpeedPlugin(DDPPlugin):
             zero_allow_untested_optimizer: Allow untested optimizers to be used with ZeRO. Currently only Adam is a
                 DeepSpeed supported optimizer when using ZeRO (default: True)
 
-            train_micro_batch_size_per_gpu
+            logging_batch_size_per_gpu: Config used in DeepSpeed to calculate verbose timing for logging
+                on a per sample per second basis (only displayed if logging=logging.INFO).
+                To obtain accurate logs, set this to the actual per gpu batch size (trainer.batch_size).
+                If set to None, the logging_batch_size_per_gpu is inferred from the train DataLoader's BatchSampler
 
             config: Pass in a deepspeed formatted config dict,
                 or path to a deepspeed config: https://www.deepspeed.ai/docs/config-json.
@@ -185,6 +188,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 when using ZeRO Stage 3. This allows a single weight file to contain the entire model,
                 rather than individual sharded weight files.
                 Disable to save sharded states individually. (Default: True)
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
@@ -200,7 +204,7 @@ class DeepSpeedPlugin(DDPPlugin):
             self.config = self._create_default_config(
                 zero_optimization,
                 zero_allow_untested_optimizer,
-                train_micro_batch_size_per_gpu,
+                logging_batch_size_per_gpu,
                 partition_activations=partition_activations,
                 cpu_checkpointing=cpu_checkpointing,
                 contiguous_memory_optimization=contiguous_memory_optimization,
@@ -450,7 +454,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self,
         zero_optimization: bool,
         zero_allow_untested_optimizer: bool,
-        train_micro_batch_size_per_gpu: Optional[int],
+        logging_batch_size_per_gpu: Optional[int],
         partition_activations: bool,
         cpu_checkpointing: bool,
         contiguous_memory_optimization: bool,
@@ -471,8 +475,8 @@ class DeepSpeedPlugin(DDPPlugin):
                 "zero_optimization": zero_kwargs,
                 **cfg
             }
-        if train_micro_batch_size_per_gpu is not None:
-            cfg = {"train_micro_batch_size_per_gpu": train_micro_batch_size_per_gpu,
+        if logging_batch_size_per_gpu is not None:
+            cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu,
                    **cfg}
         return cfg
 
