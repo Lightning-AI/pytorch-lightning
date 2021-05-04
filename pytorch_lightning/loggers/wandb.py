@@ -137,9 +137,9 @@ class WandbLogger(LightningLoggerBase):
         )
         self._wandb_init.update(**kwargs)
         # extract parameters
-        self._save_dir = self._wandb_init.get('dir', None)
-        self._name = self._wandb_init.get('name', None)
-        self._id = self._wandb_init.get('id', None)
+        self._save_dir = self._wandb_init.get('dir')
+        self._name = self._wandb_init.get('name')
+        self._id = self._wandb_init.get('id')
 
     def __getstate__(self):
         state = self.__dict__.copy()
