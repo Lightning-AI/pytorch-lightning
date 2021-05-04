@@ -20,7 +20,6 @@ from typing import Any, Callable, Dict, List, Optional, Type
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
