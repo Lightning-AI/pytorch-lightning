@@ -36,23 +36,15 @@ def test_optimizer_with_scheduling(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    results = trainer.fit(model)
-    assert results == 1
+    trainer.fit(model)
 
     init_lr = hparams.get('learning_rate')
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
 
-    assert (len(
-        trainer.lr_schedulers
-    ) == 1), 'lr scheduler not initialized properly, it has %i elements instread of 1' % len(trainer.lr_schedulers)
-
-    assert all(a == adjusted_lr[0] for a in adjusted_lr), 'Lr not equally adjusted for all param groups'
+    assert trainer.lr_schedulers == 1
+    assert all(a == adjusted_lr[0] for a in adjusted_lr)
     adjusted_lr = adjusted_lr[0]
-
-    assert init_lr * 0.1 == adjusted_lr, 'Lr not adjusted correctly, expected %f but got %f' % (
-        init_lr * 0.1,
-        adjusted_lr,
-    )
+    assert init_lr * 0.1 == adjusted_lr
 
 
 def test_multi_optimizer_with_scheduling(tmpdir):
@@ -69,30 +61,18 @@ def test_multi_optimizer_with_scheduling(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    results = trainer.fit(model)
-    assert results == 1
+    trainer.fit(model)
 
     init_lr = hparams.get('learning_rate')
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
 
-    assert (
-        len(trainer.lr_schedulers) == 2
-    ), f'all lr scheduler not initialized properly, it has {len(trainer.lr_schedulers)} elements instread of 1'
-
-    assert all(
-        a == adjusted_lr1[0] for a in adjusted_lr1
-    ), 'Lr not equally adjusted for all param groups for optimizer 1'
+    assert len(trainer.lr_schedulers) == 2
+    assert all(a == adjusted_lr1[0] for a in adjusted_lr1)
     adjusted_lr1 = adjusted_lr1[0]
-
-    assert all(
-        a == adjusted_lr2[0] for a in adjusted_lr2
-    ), 'Lr not equally adjusted for all param groups for optimizer 2'
+    assert all(a == adjusted_lr2[0] for a in adjusted_lr2)
     adjusted_lr2 = adjusted_lr2[0]
-
-    assert (
-        init_lr * 0.1 == adjusted_lr1 and init_lr * 0.1 == adjusted_lr2
-    ), f'Lr not adjusted correctly, expected {init_lr * 0.1} but got {adjusted_lr1}'
+    assert init_lr * 0.1 == adjusted_lr1 and init_lr * 0.1 == adjusted_lr2
 
 
 def test_multi_optimizer_with_scheduling_stepping(tmpdir):
@@ -108,29 +88,22 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    results = trainer.fit(model)
-    assert results == 1
+    trainer.fit(model)
 
     init_lr = hparams.get('learning_rate')
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
 
-    assert len(trainer.lr_schedulers) == 2, 'all lr scheduler not initialized properly'
-
-    assert all(
-        a == adjusted_lr1[0] for a in adjusted_lr1
-    ), 'lr not equally adjusted for all param groups for optimizer 1'
+    assert len(trainer.lr_schedulers) == 2
+    assert all(a == adjusted_lr1[0] for a in adjusted_lr1)
     adjusted_lr1 = adjusted_lr1[0]
-
-    assert all(
-        a == adjusted_lr2[0] for a in adjusted_lr2
-    ), 'lr not equally adjusted for all param groups for optimizer 2'
+    assert all(a == adjusted_lr2[0] for a in adjusted_lr2)
     adjusted_lr2 = adjusted_lr2[0]
 
     # Called ones after end of epoch
-    assert init_lr * 0.1**1 == adjusted_lr1, 'lr for optimizer 1 not adjusted correctly'
+    assert init_lr * 0.1 == adjusted_lr1
     # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
-    assert init_lr * 0.1 == adjusted_lr2, 'lr for optimizer 2 not adjusted correctly'
+    assert init_lr * 0.1 == adjusted_lr2
 
 
 def test_reducelronplateau_with_no_monitor_raises(tmpdir):
@@ -173,8 +146,8 @@ def test_reducelronplateau_scheduling(tmpdir):
         'monitor': 'early_stop_on',
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    results = trainer.fit(model)
-    assert results == 1
+    trainer.fit(model)
+
     lr_scheduler = trainer.lr_schedulers[0]
     assert lr_scheduler == dict(
         scheduler=lr_scheduler['scheduler'],
@@ -329,10 +302,7 @@ def test_none_optimizer(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
     )
-    result = trainer.fit(model)
-
-    # verify training completed
-    assert result == 1
+    trainer.fit(model)
 
 
 def test_configure_optimizer_from_dict(tmpdir):
@@ -352,8 +322,7 @@ def test_configure_optimizer_from_dict(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
     )
-    result = trainer.fit(model)
-    assert result == 1
+    trainer.fit(model)
 
 
 def test_configure_optimizers_with_frequency(tmpdir):
@@ -364,8 +333,7 @@ def test_configure_optimizers_with_frequency(tmpdir):
     model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -458,13 +426,13 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
     model = DummyModel()
 
     trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=max_epochs)
-    result = trainer.fit(model)
+    trainer.fit(model)
+
     assert trainer.lr_schedulers[0]['opt_idx'] == 0
     assert trainer.lr_schedulers[1]['opt_idx'] == 1
     # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization
     assert trainer.lr_schedulers[0]['scheduler']._step_count == expected_steps[0]
     assert trainer.lr_schedulers[1]['scheduler']._step_count == expected_steps[1]
-    assert result
 
 
 @pytest.mark.parametrize("fn", ("validate", "test"))
