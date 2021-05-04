@@ -23,7 +23,6 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
@@ -172,7 +171,7 @@ def test_result_obj_predictions(tmpdir, test_option: int, do_train: bool, gpus: 
 
     if do_train:
         trainer.fit(model, dm)
-        assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+        assert trainer.state.finished, f"Training failed with {trainer.state}"
         trainer.test(datamodule=dm)
     else:
         trainer.test(model, datamodule=dm)

@@ -280,3 +280,27 @@ def test_scale_batch_size_no_trials(tmpdir):
     model = BatchSizeModel(batch_size=2)
     result = trainer.tuner.scale_batch_size(model, max_trials=0)
     assert result == 2
+
+
+def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
+    """Check the tuning raises error when called with mode that does not exist."""
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.batch_size = 2
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=1,
+        limit_train_batches=1,
+        auto_scale_batch_size='ThisModeDoesNotExist',
+    )
+
+    with pytest.raises(ValueError, match='could either be `power` or `binsearch`'):
+        trainer.tune(model)
+    with pytest.raises(ValueError, match='could either be `power` or `binsearch`'):
+        trainer.tuner.scale_batch_size(model, mode='ThisModeDoesNotExist')

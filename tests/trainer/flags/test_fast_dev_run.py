@@ -7,7 +7,6 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 
 
@@ -112,7 +111,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     trainer.fit(train_val_step_model)
     trainer.test(ckpt_path=None)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     _make_fast_dev_run_assertions(trainer, train_val_step_model)
 
     # -----------------------
@@ -125,5 +124,5 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     trainer.fit(train_step_only_model)
     trainer.test(ckpt_path=None)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     _make_fast_dev_run_assertions(trainer, train_step_only_model)

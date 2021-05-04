@@ -27,7 +27,7 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -233,7 +233,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     trainer.fit(model, datamodule=dm)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
@@ -281,7 +281,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     log.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
@@ -325,7 +325,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     trainer.fit(model, datamodule=dm)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     new_trainer = Trainer(**trainer_options)
@@ -357,7 +357,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     trainer.test(ckpt_path=None)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
@@ -410,7 +410,7 @@ def test_dp_resume(tmpdir):
     real_global_epoch = trainer.current_epoch + 1
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # ---------------------------
     # HPC LOAD/SAVE
@@ -439,7 +439,7 @@ def test_dp_resume(tmpdir):
 
             # if model and state loaded correctly, predictions will be good even though we
             # haven't trained with the new loaded model
-            new_trainer._running_stage = RunningStage.VALIDATING
+            new_trainer.state.stage = RunningStage.VALIDATING
 
             dataloader = self.train_dataloader()
             tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
@@ -476,7 +476,7 @@ def test_model_saving_loading(tmpdir):
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # make a prediction
     dataloaders = model.test_dataloader()
@@ -533,7 +533,7 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -581,7 +581,7 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')

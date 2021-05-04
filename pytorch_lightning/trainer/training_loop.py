@@ -60,7 +60,7 @@ class TrainLoop:
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.should_stop = False
-        self.trainer._state = TrainerState.INITIALIZING
+        self.trainer.state = TrainerState()
 
         self.trainer.total_batch_idx = 0
         self.trainer.batch_idx = 0
@@ -126,7 +126,7 @@ class TrainLoop:
         self.trainer.accelerator.on_train_end()
 
         # reset bookkeeping
-        self.trainer._running_stage = None
+        self.trainer.state.stage = None
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -608,7 +608,12 @@ class TrainLoop:
         batch_outputs = [[] for _ in range(len(optimizers))]
 
         if batch is None:
-            return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
+            self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            return AttributeDict(
+                signal=0,
+                grad_norm_dic=grad_norm_dic,
+                training_step_output_for_epoch_end=batch_outputs,
+            )
 
         # hook
         response = self.trainer.call_hook("on_batch_start")
@@ -773,7 +778,9 @@ class TrainLoop:
                         self._check_finite(result.loss)
 
                 else:
-                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
+                    self.warning_cache.warn(
+                        "training_step returned None. If this was on purpose, ignore this warning..."
+                    )
 
                 if len(self.trainer.optimizers) > 1:
                     # revert back to previous state
