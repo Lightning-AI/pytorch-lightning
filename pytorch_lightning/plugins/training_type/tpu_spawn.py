@@ -35,6 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _TPU_AVAILABLE:
+    import torch_xla.core.xla_env_vars as xenv
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
     from torch_xla.core.xla_model import rendezvous
@@ -58,7 +59,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def global_rank(self) -> int:
-        return self.tpu_local_core_rank
+        return self.tpu_global_core_rank
 
     @property
     def local_rank(self) -> int:
@@ -175,7 +176,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.model = self.wrapped_model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        if tpu_distributed():
+        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        if os.getenv(xenv.HOST_WORLD_SIZE, None) and tpu_distributed():
             rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):

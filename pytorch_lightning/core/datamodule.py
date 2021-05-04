@@ -246,7 +246,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Args:
             args: The parser or namespace to take arguments from. Only known arguments will be
-                parsed and passed to the :class:`LightningDataModule`.
+                parsed and passed to the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
             **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
                 These must be valid DataModule arguments.
 
@@ -327,10 +327,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         return datamodule
 
     def __new__(cls, *args: Any, **kwargs: Any) -> 'LightningDataModule':
-        obj = super(LightningDataModule, cls).__new__(cls)
-        # save `args` and `kwargs` for `__reduce__`
-        obj.__args = args
-        obj.__kwargs = kwargs
+        obj = super().__new__(cls)
         # track `DataHooks` calls and run `prepare_data` only on rank zero
         obj.prepare_data = cls._track_data_hook_calls(obj, rank_zero_only(obj.prepare_data))
         obj.setup = cls._track_data_hook_calls(obj, obj.setup)
@@ -356,7 +353,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         """
 
         @functools.wraps(fn)
-        def wrapped_fn(*args: str, **kwargs: Optional[str]) -> callable:
+        def wrapped_fn(*args: str, **kwargs: Optional[str]) -> Any:
             name = fn.__name__
 
             # If calling setup, we check the stage and assign stage-specific bool args
@@ -391,6 +388,9 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         return wrapped_fn
 
-    def __reduce__(self) -> Tuple[type, tuple, dict]:
+    def __getstate__(self) -> dict:
         # avoids _pickle.PicklingError: Can't pickle <...>: it's not the same object as <...>
-        return self.__class__, self.__args, self.__kwargs
+        d = self.__dict__.copy()
+        for fn in ("prepare_data", "setup", "teardown"):
+            del d[fn]
+        return d

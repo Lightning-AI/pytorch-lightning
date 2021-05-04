@@ -37,9 +37,13 @@ def test_wandb_logger_init(wandb, recwarn):
 
     # test wandb.init called when there is no W&B run
     wandb.run = None
-    logger = WandbLogger()
+    logger = WandbLogger(
+        name='test_name', save_dir='test_save_dir', version='test_id', project='test_project', resume='never'
+    )
     logger.log_metrics({'acc': 1.0})
-    wandb.init.assert_called_once()
+    wandb.init.assert_called_once_with(
+        name='test_name', dir='test_save_dir', id='test_id', project='test_project', resume='never', anonymous=None
+    )
     wandb.init().log.assert_called_once_with({'acc': 1.0})
 
     # test wandb.init and setting logger experiment externally
@@ -55,6 +59,8 @@ def test_wandb_logger_init(wandb, recwarn):
     wandb.init.reset_mock()
     wandb.run = wandb.init()
     logger = WandbLogger()
+    # verify default resume value
+    assert logger._wandb_init['resume'] == 'allow'
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({'acc': 1.0, 'trainer/global_step': 3})
