@@ -599,7 +599,6 @@ class TrainLoop:
         batch_outputs = [[] for _ in range(len(optimizers))]
 
         if batch is None:
-            self._curr_step_result = None
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(
                 signal=0,
