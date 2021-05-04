@@ -73,9 +73,9 @@ If your model is using an arbitrary value instead of ``self.lr`` or ``self.learn
     trainer.tune(model)
 
 
-If you want to inspect the results of the learning rate finder or just play around
-with the parameters of the algorithm, this can be done by invoking the ``lr_find``
-method of the trainer. A typical example of this would look like
+You can also inspect the results of the learning rate finder or just play around
+with the parameters of the algorithm. This can be done by invoking the
+:meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find` method. A typical example of this would look like:
 
 .. code-block:: python
 
