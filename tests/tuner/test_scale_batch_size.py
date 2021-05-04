@@ -300,7 +300,7 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
         auto_scale_batch_size='ThisModeDoesNotExist',
     )
 
-    with pytest.raises(ValueError, match='can only be `power` or `binsearch`'):
+    with pytest.raises(ValueError, match='could either be `power` or `binsearch`'):
         trainer.tune(model)
-    with pytest.raises(ValueError, match='can only be `power` or `binsearch`'):
+    with pytest.raises(ValueError, match='could either be `power` or `binsearch`'):
         trainer.tuner.scale_batch_size(model, mode='ThisModeDoesNotExist')
