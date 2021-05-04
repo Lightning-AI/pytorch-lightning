@@ -20,7 +20,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class ModelHooks:
