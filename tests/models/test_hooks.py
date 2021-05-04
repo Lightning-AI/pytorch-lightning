@@ -17,7 +17,7 @@ from unittest.mock import PropertyMock
 import pytest
 import torch
 
-from pytorch_lightning import Callback, Trainer
+from pytorch_lightning import Trainer
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -119,7 +119,6 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     not_overridden_model = NotOverriddenModel()
     not_overridden_model.training_epoch_end = None
 
-    callback = LoggingCallback()
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
