@@ -320,27 +320,26 @@ def test_training_step_no_return_when_even(tmpdir):
         assert out.signal == 0
 
 
-def collate_none_when_even():
-    state = {'counter': 0}
-
-    def collate_fn(batch):
-        if state['counter'] % 2 == 0:
-            result = None
-        else:
-            result = default_collate(batch)
-        state['counter'] += 1
-        return result
-
-    return collate_fn
-
-
 def test_training_step_none_batches(tmpdir):
     """ Tests correctness when the train dataloader gives None for some steps. """
 
     class TestModel(BoringModel):
 
+        def __init__(self):
+            super().__init__()
+
+            self.counter = 0
+
+        def collate_none_when_even(self, batch):
+            if self.counter % 2 == 0:
+                result = None
+            else:
+                result = default_collate(batch)
+            self.counter += 1
+            return result
+
         def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64), collate_fn=collate_none_when_even())
+            return DataLoader(RandomDataset(32, 64), collate_fn=self.collate_none_when_even)
 
     model = TestModel()
     trainer = Trainer(
