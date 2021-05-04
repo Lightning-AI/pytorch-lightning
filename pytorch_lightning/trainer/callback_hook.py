@@ -89,7 +89,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_epoch_start(self, self.lightning_module)
 
-    def on_train_epoch_end(self, outputs: Optional[EPOCH_OUTPUT] = None):
+    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT):
         """Called when the epoch ends.
 
         Args:
