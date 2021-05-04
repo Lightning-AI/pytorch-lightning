@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.grads import grad_norm
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -197,16 +198,32 @@ class TrainLoop:
 
     def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
 
+        lightning_module = self.trainer.lightning_module
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(batch_end_outputs):
             sample_output = opt_outputs[-1]
 
             # decide if we need to reduce at the end of the epoch automatically
             auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
-            hook_overridden = (
-                is_overridden("training_epoch_end", model=self.trainer.lightning_module)
-                or is_overridden("on_train_epoch_end", model=self.trainer.lightning_module)
-            )
+
+            # We add to the epoch outputs if
+            # 1. The model defines training_epoch_end OR
+            # 2. The model overrides on_train_epoch_end which has `outputs` in the signature OR
+            # 3. The trainer has any callback which overrides `on_train_epoch_end` and includes `outputs` in the signature
+            overrides_training_epoch_end = is_overridden("training_epoch_end", model=lightning_module)
+            overrides_on_train_epoch_end_with_outputs = False
+            if is_overridden("on_train_epoch_end", model=lightning_module):
+                model_hook_fx = getattr(model_ref, hook_name)
+                if is_param_in_hook_signature(model_hook_fx, "outputs"):
+                    overrides_on_train_epoch_end_with_outputs = True
+
+            callback_overrides_on_train_epoch_end_with_outputs = False
+            for callback in self.trainer.callbacks:
+                if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
+                    callback_overrides_on_train_epoch_end_with_outputs = True
+                    break
+
+            hook_overridden = overrides_training_epoch_end or overrides_on_train_epoch_end_with_outputs or callback_overrides_on_train_epoch_end_with_outputs
 
             # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
             if not (hook_overridden or auto_reduce_tng_result):
