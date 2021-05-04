@@ -985,7 +985,15 @@ class Trainer(
 
         # update epoch-level lr_schedulers
         if on_epoch:
-            self.optimizer_connector.update_learning_rates(interval='epoch')
+            self.optimizer_connector.update_learning_rates(
+                interval='epoch',
+                opt_indices=[
+                    opt_idx
+                    for opt_idx, _ in self.train_loop.get_optimizers_iterable(batch_idx=(
+                        self.total_batch_idx - 1
+                    ))  # Select the optimizers which were used in the last batch of the epoch
+                ],
+            )
 
         # hook
         self.evaluation_loop.on_evaluation_end()
