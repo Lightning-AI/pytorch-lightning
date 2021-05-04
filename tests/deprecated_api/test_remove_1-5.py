@@ -171,8 +171,8 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
     with no_deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=chk.last_model_path)
+    trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=chk.last_model_path)
+    with no_deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
 
