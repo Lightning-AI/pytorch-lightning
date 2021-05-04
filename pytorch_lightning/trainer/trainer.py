@@ -1156,8 +1156,8 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.setup(stage=fn)
-        self.setup(model, stage=state)
-        model.setup(stage=state)
+        self.setup(model, stage=fn)
+        model.setup(stage=fn)
 
         self.accelerator.barrier("post_setup")
 
@@ -1179,9 +1179,9 @@ class Trainer(
 
         if self.datamodule is not None:
             self.datamodule.teardown(stage=fn)
-        self.profiler.teardown(stage=state)
-        self.teardown(stage=state)
-        model.teardown(stage=state)
+        self.profiler.teardown(stage=fn)
+        self.teardown(stage=fn)
+        model.teardown(stage=fn)
 
         model._current_fx_name = ""
         model._current_hook_fx_name = None
