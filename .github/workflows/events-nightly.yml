@@ -129,7 +129,7 @@ jobs:
 
   docker-nvidia:
     runs-on: ubuntu-20.04
-    # temporarily skip as the base container does not fit to agent
+    # todo: temporarily skip as the base container does not fit to agent
     skip: true
     steps:
       - name: Checkout
