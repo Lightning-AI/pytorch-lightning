@@ -53,7 +53,7 @@ class LightningArgumentParser(ArgumentParser):
         self,
         lightning_class: Union['pl.Trainer', 'pl.LightningModule', 'pl.LightningDataModule'],
         nested_key: str,
-        subclass_mode: bool = False
+        subclass_mode: bool = False,
     ) -> None:
         """
         Adds arguments from a lightning class to a nested key of the parser
@@ -104,7 +104,7 @@ class LightningCLI:
         env_parse: bool = False,
         parser_kwargs: Optional[Dict[str, Any]] = None,
         subclass_mode_model: bool = False,
-        subclass_mode_data: bool = False
+        subclass_mode_data: bool = False,
     ) -> None:
         """
         Receives as input pytorch-lightning classes, which are instantiated

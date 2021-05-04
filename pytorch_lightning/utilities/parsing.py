@@ -188,7 +188,7 @@ def save_hyperparameters(
     obj: Any,
     *args: Any,
     ignore: Optional[Union[Sequence[str], str]] = None,
-    frame: Optional[types.FrameType] = None
+    frame: Optional[types.FrameType] = None,
 ) -> None:
     """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
 

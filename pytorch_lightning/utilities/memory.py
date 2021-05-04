@@ -20,7 +20,7 @@ import torch
 
 def recursive_detach(
     in_dict: Dict[Any, Union[torch.Tensor, Dict[Any, torch.Tensor]]],
-    to_cpu: bool = False
+    to_cpu: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """Detach all tensors in `in_dict`.
 

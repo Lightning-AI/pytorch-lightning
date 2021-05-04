@@ -64,7 +64,7 @@ class InternalDebugger(object):
         evt_value: Optional[Any] = None,
         global_rank: Optional[int] = None,
         local_rank: Optional[int] = None,
-        comment: str = ''
+        comment: str = '',
     ) -> None:
         self.events.append({
             "timestamp": time.time(),
@@ -134,7 +134,7 @@ class InternalDebugger(object):
         old_lr: float,
         new_lr: float,
         monitor_key: Optional[str] = None,
-        monitor_val: Optional[torch.Tensor] = None
+        monitor_val: Optional[torch.Tensor] = None,
     ) -> None:
         loss_dict = {
             'batch_idx': batch_idx,

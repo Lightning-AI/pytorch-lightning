@@ -36,7 +36,7 @@ else:
 def to_dtype_tensor(
     value: Union[int, float, List[Union[int, float]]],
     dtype: Optional[torch.dtype] = None,
-    device: Optional[Union[str, torch.device]] = None
+    device: Optional[Union[str, torch.device]] = None,
 ) -> torch.Tensor:
     return torch.tensor(value, dtype=dtype, device=device)
 

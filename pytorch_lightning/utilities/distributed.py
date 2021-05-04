@@ -116,7 +116,7 @@ def gather_all_tensors(result: torch.Tensor, group: Optional[Any] = None) -> Lis
 def sync_ddp_if_available(
     result: torch.Tensor,
     group: Optional[Any] = None,
-    reduce_op: Optional[Union[ReduceOp, str]] = None
+    reduce_op: Optional[Union[ReduceOp, str]] = None,
 ) -> torch.Tensor:
     """
     Function to reduce a tensor across worker processes during distributed training
@@ -137,7 +137,7 @@ def sync_ddp_if_available(
 def sync_ddp(
     result: torch.Tensor,
     group: Optional[Any] = None,
-    reduce_op: Optional[Union[ReduceOp, str]] = None
+    reduce_op: Optional[Union[ReduceOp, str]] = None,
 ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
