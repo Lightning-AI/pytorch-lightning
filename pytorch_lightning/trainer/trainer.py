@@ -212,7 +212,8 @@ class Trainer(
 
             limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches)
 
-            logger: Logger (or iterable collection of loggers) for experiment tracking.
+            logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
+                the default ``TensorBoardLogger``. ``False`` will disable logging.
 
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
 
