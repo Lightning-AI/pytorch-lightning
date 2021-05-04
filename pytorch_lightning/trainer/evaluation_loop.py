@@ -187,6 +187,13 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
+    def should_track_batch_outputs_for_epoch_end(self) -> bool:
+        model = self.trainer.lightning_module
+        if self.trainer.testing:
+            return is_overridden('test_epoch_end', model=model)
+        else:
+            return is_overridden('validation_epoch_end', model=model)
+
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end()
