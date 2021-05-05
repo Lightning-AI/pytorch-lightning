@@ -471,6 +471,8 @@ class TrainLoop:
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
+
+            # TODO: where is the profile step for to_device?
             batch = self.trainer.accelerator.to_device(batch)
 
             with self.trainer.profiler.profile("run_training_batch"):
