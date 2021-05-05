@@ -272,17 +272,20 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
 
 class BatchObserverCallback(Callback):
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    def on_train_batch_start(self,trainer, pl_module, batch, *args):
         assert batch.device == pl_module.device
-
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
-
-    def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
-
-    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
+    #
+    # def on_train_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    #     assert batch.device == pl_module.device
+    #
+    # def on_validation_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    #     assert batch.device == pl_module.device
+    #
+    # def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    #     assert batch.device == pl_module.device
+    #
+    # def on_predict_batch_end(self, trainer, pl_module, outputs, batch, *args):
+    #     assert batch.device == pl_module.device
 
 
 def test_callback_batch_on_device(tmpdir):
