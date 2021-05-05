@@ -1137,7 +1137,6 @@ class LightningModule(
                     'monitor': 'val_loss', # Metric for `ReduceLROnPlateau` to monitor
                     'strict': True, # Whether to crash the training if `monitor` is not found
                     'name': None, # Custom name for `LearningRateMonitor` to use
-                    'reduce_on_plateau': False, # For `ReduceLROnPlateau` scheduler, set automatically
                 }
 
             Only the ``"scheduler"`` key is required, the rest will be set to the defaults above.
