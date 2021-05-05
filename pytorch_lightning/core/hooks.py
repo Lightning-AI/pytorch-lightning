@@ -20,7 +20,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class ModelHooks:
@@ -245,7 +245,7 @@ class ModelHooks:
         Called in the validation loop at the very beginning of the epoch.
         """
 
-    def on_validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def on_validation_epoch_end(self) -> None:
         """
         Called in the validation loop at the very end of the epoch.
         """
@@ -255,7 +255,7 @@ class ModelHooks:
         Called in the test loop at the very beginning of the epoch.
         """
 
-    def on_test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def on_test_epoch_end(self) -> None:
         """
         Called in the test loop at the very end of the epoch.
         """
