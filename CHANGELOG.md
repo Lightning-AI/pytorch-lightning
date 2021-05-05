@@ -21,10 +21,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added more explicit exception message when trying to execute `trainer.test()` or `trainer.validate()` with `fast_dev_run=True` ([#6667](https://github.com/PyTorchLightning/pytorch-lightning/pull/6667))
 
-- Added `LightningCLI` class to provide simple reproducibility with minimum boilerplate training cli. (
+- Added `LightningCLI` class to provide simple reproducibility with minimum boilerplate training CLI (
     [#4492](https://github.com/PyTorchLightning/pytorch-lightning/pull/4492),
+    [#6862](https://github.com/PyTorchLightning/pytorch-lightning/pull/6862),
     [#7156](https://github.com/PyTorchLightning/pytorch-lightning/pull/7156),
-    [#6862](https://github.com/PyTorchLightning/pytorch-lightning/pull/6862))
+    [#7299](https://github.com/PyTorchLightning/pytorch-lightning/pull/7299))
 
 - Added `gradient_clip_algorithm` argument to Trainer for gradient clipping by value ([#6123](https://github.com/PyTorchLightning/pytorch-lightning/pull/6123)).
 
@@ -74,7 +75,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `artifact_location` argument to `MLFlowLogger` which will be passed to the `MlflowClient.create_experiment` call ([#6677](https://github.com/PyTorchLightning/pytorch-lightning/pull/6677))
 
-- Added `model` parameter to precision plugins' `clip_gradients` signature ([#6764](https://github.com/PyTorchLightning/pytorch-lightning/pull/6764))
+- Added `model` parameter to precision plugins' `clip_gradients` signature (
+    [#6764](https://github.com/PyTorchLightning/pytorch-lightning/pull/6764),
+    [#7231](https://github.com/PyTorchLightning/pytorch-lightning/pull/7231))
 
 - Added `is_last_batch` attribute to `Trainer` ([#6825](https://github.com/PyTorchLightning/pytorch-lightning/pull/6825))
 
@@ -106,6 +109,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - DeepSpeed single file saving ([#6900](https://github.com/PyTorchLightning/pytorch-lightning/issues/6900))
 
+- Added Training type Plugins Registry (
+    [#6982](https://github.com/PyTorchLightning/pytorch-lightning/issues/6982),
+    [#7063](https://github.com/PyTorchLightning/pytorch-lightning/issues/7063),
+    [#7224](https://github.com/PyTorchLightning/pytorch-lightning/issues/7224)
+)
 
 ### Changed
 
@@ -152,17 +160,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Updated DeepSpeed ZeRO ([#6546](https://github.com/PyTorchLightning/pytorch-lightning/pull/6546),
     [#6752](https://github.com/PyTorchLightning/pytorch-lightning/pull/6752))
 
-- Inserting `ddp_find_unused_parameters_false` to Registry ([#7224](https://github.com/PyTorchLightning/pytorch-lightning/pull/7224))
-
 - Improved verbose logging for `EarlyStopping` callback ([#6811](https://github.com/PyTorchLightning/pytorch-lightning/pull/6811))
 
 - Run ddp_spawn dataloader checks on Windows ([#6930](https://github.com/PyTorchLightning/pytorch-lightning/pull/6930))
 
 - Updated mlflow with using `resolve_tags` ([#6746](https://github.com/PyTorchLightning/pytorch-lightning/pull/6746))
 
-- Made better approach to register plugins ([#7063](https://github.com/PyTorchLightning/pytorch-lightning/pull/7063))
-
 - Moved `save_hyperparameters` to its own function ([#7119](https://github.com/PyTorchLightning/pytorch-lightning/pull/7119))
+
+- Replaced `_DataModuleWrapper` with `__new__` ([#7289](https://github.com/PyTorchLightning/pytorch-lightning/pull/7289))
+
+- Reset `current_fx` properties on lightning module in teardown ([#7247](https://github.com/PyTorchLightning/pytorch-lightning/pull/7247))
+
+- Auto-set `DataLoader.worker_init_fn` with `seed_everything` ([#6960](https://github.com/PyTorchLightning/pytorch-lightning/pull/6960))
 
 ### Deprecated
 
@@ -192,7 +202,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `Callback.on_load_checkpoint(checkpoint)` in favor of `Callback.on_load_checkpoint(trainer, pl_module, checkpoint)` ([#7253](https://github.com/PyTorchLightning/pytorch-lightning/pull/7253))
 
-- Deprecated metrics in favor of `torchmetrics` ([#6505](https://github.com/PyTorchLightning/pytorch-lightning/pull/6505),
+- Deprecated metrics in favor of `torchmetrics` (
+    [#6505](https://github.com/PyTorchLightning/pytorch-lightning/pull/6505),
     [#6530](https://github.com/PyTorchLightning/pytorch-lightning/pull/6530),
     [#6540](https://github.com/PyTorchLightning/pytorch-lightning/pull/6540),
     [#6547](https://github.com/PyTorchLightning/pytorch-lightning/pull/6547),
@@ -204,6 +215,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#6637](https://github.com/PyTorchLightning/pytorch-lightning/pull/6637),
     [#6649](https://github.com/PyTorchLightning/pytorch-lightning/pull/6649),
     [#6659](https://github.com/PyTorchLightning/pytorch-lightning/pull/6659),
+    [#7131](https://github.com/PyTorchLightning/pytorch-lightning/pull/7131),
 )
 
 - Deprecated the `LightningModule.datamodule` getter and setter methods; access them through `Trainer.datamodule` instead ([#7168](https://github.com/PyTorchLightning/pytorch-lightning/pull/7168))
@@ -333,8 +345,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed a bug where an error would be raised if the train dataloader sometimes produced None for a batch ([#7342](https://github.com/PyTorchLightning/pytorch-lightning/pull/7342))
 
-- Fixed examples ([#6600](https://github.com/PyTorchLightning/pytorch-lightning/pull/6600),
-    [#6638](https://github.com/PyTorchLightning/pytorch-lightning/pull/6638))
+- Fixed examples (
+    [#6600](https://github.com/PyTorchLightning/pytorch-lightning/pull/6600),
+    [#6638](https://github.com/PyTorchLightning/pytorch-lightning/pull/6638),
+    [#7096](https://github.com/PyTorchLightning/pytorch-lightning/pull/7096))
   
 - Resolved schedule step bug for PyTorch Profiler ([#6674](https://github.com/PyTorchLightning/pytorch-lightning/pull/6674),
     [#6681](https://github.com/PyTorchLightning/pytorch-lightning/pull/6681))
@@ -355,6 +369,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed matching the number of outputs of backward with forward for AllGatherGrad ([#6625](https://github.com/PyTorchLightning/pytorch-lightning/pull/6625))
 
+- Fixed the `gradient_clip_algorithm` has no effect ([#6928](https://github.com/PyTorchLightning/pytorch-lightning/pull/6928))
+
+- Fixed CUDA OOM detection and handling ([#6934](https://github.com/PyTorchLightning/pytorch-lightning/pull/6934))
+
+- Fixed `unfreeze_and_add_param_group` expects `modules` rather than `module` ([#6822](https://github.com/PyTorchLightning/pytorch-lightning/pull/6822))
+
+- Fixed DPP + SyncBN when move on device ([#6838](https://github.com/PyTorchLightning/pytorch-lightning/pull/6838))
+
+- Fixed missing arguments in `lr_find` call ([#6784](https://github.com/PyTorchLightning/pytorch-lightning/pull/6784))
 
 ## [1.2.9] - 2021-04-20
 
