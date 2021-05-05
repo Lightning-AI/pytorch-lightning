@@ -21,7 +21,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added more explicit exception message when trying to execute `trainer.test()` or `trainer.validate()` with `fast_dev_run=True` ([#6667](https://github.com/PyTorchLightning/pytorch-lightning/pull/6667))
 
-- Added `LightningCLI` class to provide simple reproducibility with minimum boilerplate training cli. ([#4492](https://github.com/PyTorchLightning/pytorch-lightning/pull/4492))
+- Added `LightningCLI` class to provide simple reproducibility with minimum boilerplate training cli. (
+    [#4492](https://github.com/PyTorchLightning/pytorch-lightning/pull/4492),
+    [#7156](https://github.com/PyTorchLightning/pytorch-lightning/pull/7156),
+    [#6862](https://github.com/PyTorchLightning/pytorch-lightning/pull/6862))
 
 - Added `gradient_clip_algorithm` argument to Trainer for gradient clipping by value ([#6123](https://github.com/PyTorchLightning/pytorch-lightning/pull/6123)).
 
@@ -101,9 +104,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added warning when missing `Callback` and using `resume_from_checkpoint` ([#7254](https://github.com/PyTorchLightning/pytorch-lightning/pull/7254))
 
-- Improved verbose logging for `EarlyStopping` callback ([#6811](https://github.com/PyTorchLightning/pytorch-lightning/pull/6811))
-
-- Fix yaml loading with PyYAML=5.4.x ([#6666](https://github.com/PyTorchLightning/pytorch-lightning/issues/6666))
+- DeepSpeed single file saving ([#6900](https://github.com/PyTorchLightning/pytorch-lightning/issues/6900))
 
 
 ### Changed
@@ -150,6 +151,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Updated DeepSpeed ZeRO ([#6546](https://github.com/PyTorchLightning/pytorch-lightning/pull/6546),
     [#6752](https://github.com/PyTorchLightning/pytorch-lightning/pull/6752))
+
+- Inserting `ddp_find_unused_parameters_false` to Registry ([#7224](https://github.com/PyTorchLightning/pytorch-lightning/pull/7224))
+
+- Improved verbose logging for `EarlyStopping` callback ([#6811](https://github.com/PyTorchLightning/pytorch-lightning/pull/6811))
+
+- Run ddp_spawn dataloader checks on Windows ([#6930](https://github.com/PyTorchLightning/pytorch-lightning/pull/6930))
+
+- Updated mlflow with using `resolve_tags` ([#6746](https://github.com/PyTorchLightning/pytorch-lightning/pull/6746))
+
+- Made better approach to register plugins ([#7063](https://github.com/PyTorchLightning/pytorch-lightning/pull/7063))
+
+- Moved `save_hyperparameters` to its own function ([#7119](https://github.com/PyTorchLightning/pytorch-lightning/pull/7119))
 
 ### Deprecated
 
@@ -329,6 +342,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Updated logic for checking TPUs availability ([#6767](https://github.com/PyTorchLightning/pytorch-lightning/pull/6767))
 
 - Resolve TPU miss rendezvous ([#6781](https://github.com/PyTorchLightning/pytorch-lightning/pull/6781))
+
+- Fixed auto-scaling mode when calling tune method on trainer ([#7321](https://github.com/PyTorchLightning/pytorch-lightning/pull/7321))
+
+- Fixed finetuning complex models correctly unfreezes ([#6880](https://github.com/PyTorchLightning/pytorch-lightning/pull/6880))
+
+- Ensure we set the eval/train flag correctly on accelerator model ([#6877](https://github.com/PyTorchLightning/pytorch-lightning/pull/6877))
+
+- Set better defaults for `rank_zero_only.rank` when training is launched with SLURM and torchelastic ([#6802](https://github.com/PyTorchLightning/pytorch-lightning/pull/6802/))
+
+- Fixed Checkpoint issue when using Horovod distributed backend ([#6958](https://github.com/PyTorchLightning/pytorch-lightning/pull/6958))
+
+- Fixed matching the number of outputs of backward with forward for AllGatherGrad ([#6625](https://github.com/PyTorchLightning/pytorch-lightning/pull/6625))
+
 
 ## [1.2.9] - 2021-04-20
 
