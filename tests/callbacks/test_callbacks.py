@@ -14,7 +14,7 @@
 from unittest import mock
 from unittest.mock import ANY, call, MagicMock, Mock
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Callback
 from tests.helpers import BoringModel
 
 
@@ -268,3 +268,24 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
         trainer_fn(ckpt_path=None)
         callbacks_after = trainer.callbacks.copy()
         assert callbacks_after == callbacks_after_fit
+
+
+class BatchObserverCallback(Callback):
+
+    def on_train_batch_end(self, trainer, pl_module, **kwargs):
+        batch = kwargs.get("batch")
+        assert batch.device.type == "cuda"
+        assert batch.device == pl_module.device
+
+
+def test_callback_batch_on_device(tmpdir):
+
+    batch_callback = BatchObserverCallback()
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=1,
+        callbacks=[batch_callback],
+    )
+    trainer.fit(model)
