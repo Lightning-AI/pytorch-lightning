@@ -42,7 +42,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ class LightningModule(
     Module,
 ):
     # Below is for property support of JIT in PyTorch 1.7
-    # since none of them is important when using JIT, we are going to ignore them.
+    # since none of these are important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = [
         "datamodule",
         "example_input_array",
@@ -72,16 +72,16 @@ class LightningModule(
         "local_rank",
         "logger",
         "model_size",
+        "automatic_optimization",
+        "truncated_bptt_steps",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
-
-        self.exp_save_path = None
 
         self.loaded_optimizer_states_dict = {}
 
@@ -92,20 +92,21 @@ class LightningModule(
         self._device_type = None
 
         #: True if using amp
-        self.use_amp = False
+        self.use_amp: bool = False
 
         #: The precision used
-        self.precision = 32
+        self.precision: int = 32
 
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
         self._results: Optional[Result] = None
-        self._current_fx_name = ''
-        self._running_manual_backward = False
-        self._current_hook_fx_name = None
-        self._current_dataloader_idx = None
+        self._current_fx_name: str = ''
+        self._running_manual_backward: bool = False
+        self._current_hook_fx_name: Optional[str] = None
+        self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
+        self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
@@ -164,6 +165,10 @@ class LightningModule(
 
     @property
     def datamodule(self) -> Any:
+        rank_zero_deprecation(
+            "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
+            " Access the datamodule through using `self.trainer.datamodule` instead."
+        )
         return self._datamodule
 
     @datamodule.setter
@@ -188,6 +193,18 @@ class LightningModule(
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
         self._automatic_optimization = automatic_optimization
+
+    @property
+    def truncated_bptt_steps(self) -> int:
+        """
+        truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much a longer sequence.
+        If this is > 0, the training step is passed ``hiddens``.
+        """
+        return self._truncated_bptt_steps
+
+    @truncated_bptt_steps.setter
+    def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
+        self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
     def logger(self):
@@ -406,7 +423,14 @@ class LightningModule(
             when running in distributed mode, calling ``write_prediction`` will create a file for
             each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
 
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
         """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction` was deprecated in v1.3'
+            ' and will be removed in v1.5.'
+        )
+
         self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
 
     def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
@@ -426,7 +450,14 @@ class LightningModule(
             when running in distributed mode, calling ``write_prediction_dict`` will create a file for
             each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
 
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
         """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction_dict` was deprecated in v1.3 and'
+            ' will be removed in v1.5.'
+        )
+
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 
@@ -508,7 +539,7 @@ class LightningModule(
             batch_idx (int): Integer displaying index of this batch
             optimizer_idx (int): When using multiple optimizers, this argument will also be present.
             hiddens(:class:`~torch.Tensor`): Passed in if
-                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
+                :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
 
         Return:
             Any of.
@@ -1035,7 +1066,7 @@ class LightningModule(
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
         """
-        Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
+        Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
         By default, it calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`.
         Override to add any processing logic.
 
@@ -1093,8 +1124,33 @@ class LightningModule(
             - **None** - Fit will run without any optimizer.
 
         Note:
-            The lr_dict is a dictionary which contains the scheduler and its associated configuration. The default
-            configuration is shown below.
+            The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
+            to the number of sequential batches optimized with the specific optimizer.
+            It should be given to none or to all of the optimizers.
+            There is a difference between passing multiple optimizers in a list,
+            and passing multiple optimizers in dictionaries with a frequency of 1:
+            In the former case, all optimizers will operate on the given batch in each optimization step.
+            In the latter, only one optimizer will operate on the given batch at every step.
+            This is different from the ``frequency`` value specified in the lr_dict mentioned below.
+
+            .. code-block:: python
+
+                def configure_optimizers(self):
+                    optimizer_one = torch.optim.SGD(self.model.parameters(), lr=0.01)
+                    optimizer_two = torch.optim.SGD(self.model.parameters(), lr=0.01)
+                    return [
+                        {'optimizer': optimizer_one, 'frequency': 5},
+                        {'optimizer': optimizer_two, 'frequency': 10},
+                    ]
+
+            In this example, the first optimizer will be used for the first 5 steps,
+            the second optimizer for the next 10 steps and that cycle will continue.
+            If an LR scheduler is specified for an optimizer using the ``lr_scheduler`` key in the above dict,
+            the scheduler will only be updated when its optimizer is being used.
+
+        Note:
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
 
             .. code-block:: python
 
@@ -1236,7 +1292,7 @@ class LightningModule(
                 loss.backward()
 
         """
-        if self.trainer.train_loop.automatic_optimization or self._running_manual_backward:
+        if self.automatic_optimization or self._running_manual_backward:
             loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
@@ -1365,9 +1421,6 @@ class LightningModule(
                 optimizer.step(closure=optimizer_closure)
 
         """
-        if not isinstance(optimizer, LightningOptimizer):
-            # wraps into LightingOptimizer only for running step
-            optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer, optimizer_idx)
         optimizer.step(closure=optimizer_closure)
 
     def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
@@ -1431,7 +1484,7 @@ class LightningModule(
         Note:
             Called in the training loop after
             :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
-            if :paramref:`~pytorch_lightning.trainer.Trainer.truncated_bptt_steps` > 0.
+            if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
 
         """
@@ -1525,14 +1578,16 @@ class LightningModule(
         avg_training_loss = None
         if running_train_loss is not None:
             avg_training_loss = running_train_loss.cpu().item()
-        elif self.trainer.train_loop.automatic_optimization:
+        elif self.automatic_optimization:
             avg_training_loss = float('NaN')
 
         tqdm_dict = {}
         if avg_training_loss is not None:
             tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
-        if self.trainer.truncated_bptt_steps is not None:
+        module_tbptt_enabled = self.truncated_bptt_steps > 0
+        trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
+        if module_tbptt_enabled or trainer_tbptt_enabled:
             tqdm_dict["split_idx"] = self.trainer.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
@@ -1544,7 +1599,7 @@ class LightningModule(
         return tqdm_dict
 
     def _verify_is_manual_optimization(self, fn_name):
-        if self.trainer.train_loop.automatic_optimization:
+        if self.automatic_optimization:
             raise MisconfigurationException(
                 f'to use {fn_name}, please disable automatic optimization:'
                 ' set model property `automatic_optimization` as False'
@@ -1645,38 +1700,10 @@ class LightningModule(
             "arg1": 1
             "arg3": 3.14
         """
+        # the frame needs to be created in this file.
         if not frame:
             frame = inspect.currentframe().f_back
-        init_args = get_init_args(frame)
-        assert init_args, "failed to inspect the self init"
-
-        if ignore is not None:
-            if isinstance(ignore, str):
-                ignore = [ignore]
-            if isinstance(ignore, (list, tuple)):
-                ignore = [arg for arg in ignore if isinstance(arg, str)]
-            init_args = {k: v for k, v in init_args.items() if k not in ignore}
-
-        if not args:
-            # take all arguments
-            hp = init_args
-            self._hparams_name = "kwargs" if hp else None
-        else:
-            # take only listed arguments in `save_hparams`
-            isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
-            if len(isx_non_str) == 1:
-                hp = args[isx_non_str[0]]
-                cand_names = [k for k, v in init_args.items() if v == hp]
-                self._hparams_name = cand_names[0] if cand_names else None
-            else:
-                hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
-                self._hparams_name = "kwargs"
-
-        # `hparams` are expected here
-        if hp:
-            self._set_hparams(hp)
-        # make deep copy so  there is not other runtime changes reflected
-        self._hparams_initial = copy.deepcopy(self._hparams)
+        save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         if isinstance(hp, Namespace):

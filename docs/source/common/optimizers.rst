@@ -15,6 +15,8 @@ For advanced/expert users who want to do esoteric optimization schedules or tech
 
 -----
 
+.. _manual_optimization:
+
 Manual optimization
 ===================
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable to
@@ -35,7 +37,7 @@ To manually optimize, do the following:
   * ``optimizer.step()`` to update your model parameters
 
 Here is a minimal example of manual optimization.
- 
+
 .. testcode:: python
 
     from pytorch_lightning import LightningModule

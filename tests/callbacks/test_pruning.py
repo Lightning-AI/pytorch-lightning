@@ -252,14 +252,14 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     actual = [m for m in actual if m.startswith("Applied")]
     assert actual == [
         "Applied `L1Unstructured`. Pruned: 0/1122 (0.00%) -> 544/1122 (48.48%)",
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 500 (48.83%)",  # noqa: E501
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 44 (68.75%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 503 (49.12%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 0 (0.00%) -> 41 (64.06%)",  # noqa: E501
         "Applied `RandomUnstructured`. Pruned: 544/1122 (48.48%) -> 680/1122 (60.61%)",
-        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.25. Pruned: 500 (48.83%) -> 635 (62.01%)",  # noqa: E501
-        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.25. Pruned: 44 (68.75%) -> 45 (70.31%)",  # noqa: E501
+        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.25. Pruned: 503 (49.12%) -> 629 (61.43%)",  # noqa: E501
+        "Applied `RandomUnstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.25. Pruned: 41 (64.06%) -> 51 (79.69%)",  # noqa: E501
         "Applied `L1Unstructured`. Pruned: 680/1122 (60.61%) -> 884/1122 (78.79%)",
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 635 (62.01%) -> 830 (81.05%)",  # noqa: E501
-        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 45 (70.31%) -> 54 (84.38%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=32, bias=True).weight` with amount=0.5. Pruned: 629 (61.43%) -> 827 (80.76%)",  # noqa: E501
+        "Applied `L1Unstructured` to `Linear(in_features=32, out_features=2, bias=True).weight` with amount=0.5. Pruned: 51 (79.69%) -> 57 (89.06%)",  # noqa: E501
     ]
 
     filepath = str(tmpdir / "foo.ckpt")

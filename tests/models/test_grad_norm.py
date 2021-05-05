@@ -19,7 +19,6 @@ import numpy as np
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.utils import reset_seed
 
@@ -78,7 +77,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     logged_metrics = trainer.dev_debugger.logged_metrics
     assert len(logged_metrics) == len(model.stored_grad_norms)
 

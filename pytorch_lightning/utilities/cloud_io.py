@@ -13,25 +13,13 @@
 # limitations under the License.
 
 import io
-import os
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import IO, Union
 
 import fsspec
 import torch
 from fsspec.implementations.local import LocalFileSystem
-
-
-class _LightningLocalFileSystem(LocalFileSystem):
-    """Extension of ``fsspec.implementations.local.LocalFileSystem`` where ``LightningLocalFileSystem.isdir`` behaves
-    the same as ``os.isdir``.
-
-    To be removed when https://github.com/intake/filesystem_spec/issues/591 is fixed.
-    """
-
-    def isdir(self, path: str) -> bool:
-        return os.path.isdir(path)  # follows symlinks
+from packaging.version import Version
 
 
 def load(path_or_url: Union[str, IO, Path], map_location=None):
@@ -52,7 +40,7 @@ def get_filesystem(path: Union[str, Path]):
         return fsspec.filesystem(path.split(":", 1)[0])
     else:
         # use local filesystem
-        return _LightningLocalFileSystem()
+        return LocalFileSystem()
 
 
 def atomic_save(checkpoint, filepath: str):
@@ -70,7 +58,7 @@ def atomic_save(checkpoint, filepath: str):
     # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
     # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
     # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-    if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
+    if Version(torch.__version__).release[:3] == (1, 6, 0):
         torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
     else:
         torch.save(checkpoint, bytesbuffer)
