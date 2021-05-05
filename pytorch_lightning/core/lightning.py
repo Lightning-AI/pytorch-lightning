@@ -1124,6 +1124,25 @@ class LightningModule(
             - **None** - Fit will run without any optimizer.
 
         Note:
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
+
+            .. code-block:: python
+
+                lr_dict = {
+                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
+                    # The unit of the scheduler's step size, could also be 'step'
+                    'interval': 'epoch',
+                    'frequency': 1, # The frequency of the scheduler
+                    'monitor': 'val_loss', # Metric for `ReduceLROnPlateau` to monitor
+                    'strict': True, # Whether to crash the training if `monitor` is not found
+                    'name': None, # Custom name for `LearningRateMonitor` to use
+                    'reduce_on_plateau': False, # For `ReduceLROnPlateau` scheduler, set automatically
+                }
+
+            Only the ``"scheduler"`` key is required, the rest will be set to the defaults above.
+
+        Note:
             The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
             to the number of sequential batches optimized with the specific optimizer.
             It should be given to none or to all of the optimizers.
@@ -1147,33 +1166,6 @@ class LightningModule(
             the second optimizer for the next 10 steps and that cycle will continue.
             If an LR scheduler is specified for an optimizer using the ``lr_scheduler`` key in the above dict,
             the scheduler will only be updated when its optimizer is being used.
-
-        Note:
-            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
-            The default configuration is shown below.
-
-            .. code-block:: python
-
-                lr_dict = {
-                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
-                    'interval': 'epoch', # The unit of the scheduler's step size
-                    'frequency': 1, # The frequency of the scheduler
-                    'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
-                    'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
-                    'strict': True, # Whether to crash the training if `monitor` is not found
-                    'name': None, # Custom name for LearningRateMonitor to use
-                }
-
-            Only the ``"scheduler"`` key is required, the rest will be set to the defaults above.
-
-        Note:
-            The ``"frequency"`` value is an ``int`` corresponding to the number of sequential batches optimized with the
-            specific optimizer. It should be given to none or to all of the optimizers.
-
-            There is a difference between passing multiple optimizers in a list and passing multiple optimizers in
-            dictionaries with a frequency of 1:
-            In the former case, all optimizers will operate on the given batch in each optimization step.
-            In the latter, only one optimizer will operate on the given batch at every step.
 
         Examples::
 
@@ -1226,18 +1218,6 @@ class LightningModule(
               at each training step.
             - If you need to control how often those optimizers step or override the default ``.step()`` schedule,
               override the :meth:`optimizer_step` hook.
-            - If you only want to call a learning rate scheduler every ``x`` step or epoch, or want to monitor a custom
-              metric, you can specify these in a lr_dict:
-
-              .. code-block:: python
-
-                  lr_dict = {
-                      'scheduler': lr_scheduler,
-                      'interval': 'step',  # or 'epoch'
-                      'monitor': 'val_f1',
-                      'frequency': x,
-                  }
-
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
