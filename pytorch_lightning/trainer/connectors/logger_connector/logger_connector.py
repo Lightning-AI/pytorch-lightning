@@ -381,6 +381,8 @@ class LoggerConnector:
             return self._val_log_step
         elif self.trainer.state.stage is RunningStage.TESTING:
             return self._test_log_step
+        else:
+            return None
 
     def increment_evaluation_log_step(self) -> None:
         if self.trainer.state.stage is RunningStage.VALIDATING:
