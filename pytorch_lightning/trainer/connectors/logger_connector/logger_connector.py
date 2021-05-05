@@ -395,10 +395,8 @@ class LoggerConnector:
 
         # logs user requested information to logger
         if len(batch_log_metrics) > 0:
-            if "step" in batch_log_metrics:
-                self.log_metrics(batch_log_metrics, {})
-            else:
-                self.log_metrics(batch_log_metrics, {}, step=self.evaluation_log_step)
+            kwargs = dict() if "step" in batch_log_metrics else dict(step=self.evaluation_log_step)
+            self.log_metrics(batch_log_metrics, {}, **kwargs)
 
         # increment the step even if nothing was logged
         self.increment_evaluation_log_step()
