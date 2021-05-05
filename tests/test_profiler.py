@@ -351,9 +351,11 @@ def test_pytorch_profiler_trainer_test(tmpdir):
 
     path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
+    import logging
 
     if _KINETO_AVAILABLE:
         files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
+        logging.error(files)
         assert any(f'test_step_{trainer.local_rank}' in f for f in files)
 
 
