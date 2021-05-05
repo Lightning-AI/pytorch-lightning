@@ -388,7 +388,7 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
-    def log_evaluation_step_metrics(self):
+    def log_evaluation_step_metrics(self) -> None:
         if self.trainer.sanity_checking:
             return
         _, batch_log_metrics = self.cached_results.update_logger_connector()
