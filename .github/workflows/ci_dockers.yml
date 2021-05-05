@@ -23,8 +23,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.6]
-        pytorch_version: [1.4, 1.7]
+        python_version: [3.7]
+        pytorch_version: [1.4, 1.8]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -46,7 +46,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: [3.7]
-        xla_version: [1.6, 1.7, "nightly"]
+        xla_version: [1.6, 1.8, "nightly"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -137,6 +137,8 @@ jobs:
 
   build-nvidia:
     runs-on: ubuntu-20.04
+    # todo: temporarily skip as the base container does not fit to agent
+    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v2
