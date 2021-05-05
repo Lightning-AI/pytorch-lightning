@@ -273,11 +273,15 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
 class BatchObserverCallback(Callback):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device.type == "cuda"
         assert batch.device == pl_module.device
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device.type == "cuda"
+        assert batch.device == pl_module.device
+
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
+        assert batch.device == pl_module.device
+
+    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, *args):
         assert batch.device == pl_module.device
 
 
