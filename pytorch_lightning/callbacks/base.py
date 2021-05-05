@@ -101,7 +101,12 @@ class Callback(abc.ABC):
     def on_train_epoch_end(
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', unused: Optional = None
     ) -> None:
-        """Called when the train epoch ends."""
+        """Called when the train epoch ends.
+
+        To access all batch outputs at the end of the epoch, either:
+        1. Implement `training_epoch_end` in the LightningModule and access outputs via the module OR
+        2. Cache data across train batch hooks inside the callback implementation to post-process in this hook.
+        """
         pass
 
     def on_validation_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
