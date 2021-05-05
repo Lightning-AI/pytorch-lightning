@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class Callback(abc.ABC):
@@ -108,9 +108,7 @@ class Callback(abc.ABC):
         """Called when the val epoch begins."""
         pass
 
-    def on_validation_epoch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT
-    ) -> None:
+    def on_validation_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the val epoch ends."""
         pass
 
@@ -118,7 +116,7 @@ class Callback(abc.ABC):
         """Called when the test epoch begins."""
         pass
 
-    def on_test_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT) -> None:
+    def on_test_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the test epoch ends."""
         pass
 
