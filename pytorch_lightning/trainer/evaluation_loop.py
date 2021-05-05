@@ -33,6 +33,7 @@ class EvaluationLoop(object):
         self.max_batches: Optional[List[Union[int, float]]] = None
         self.warning_cache = WarningCache()
         self.num_dataloaders: Optional[int] = None
+        self.should_track_batch_outputs_for_epoch_end = self._should_track_batch_outputs_for_epoch_end()
 
     def on_trainer_init(self) -> None:
         self.trainer.num_sanity_val_batches = []
@@ -187,7 +188,7 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
-    def should_track_batch_outputs_for_epoch_end(self) -> bool:
+    def _should_track_batch_outputs_for_epoch_end(self) -> bool:
         model = self.trainer.lightning_module
         if self.trainer.testing:
             return is_overridden('test_epoch_end', model=model)

@@ -972,7 +972,7 @@ class Trainer(
                 dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
 
             # store batch level output per dataloader
-            if self.evaluation_loop.should_track_batch_outputs_for_epoch_end():
+            if self.evaluation_loop.should_track_batch_outputs_for_epoch_end:
                 self.evaluation_loop.outputs.append(dl_outputs)
 
         outputs = self.evaluation_loop.outputs
