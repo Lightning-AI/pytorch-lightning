@@ -471,6 +471,8 @@ class TrainLoop:
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
+            batch = self.trainer.accelerator.to_device(batch)
+
             with self.trainer.profiler.profile("run_training_batch"):
                 batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 

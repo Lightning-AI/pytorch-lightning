@@ -198,7 +198,7 @@ class Accelerator:
                 - hiddens(:class:`~torch.Tensor`): Passed in if
                   :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
-        args[0] = self.to_device(args[0])
+        # args[0] = self.to_device(args[0])
 
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
             return self.training_type_plugin.training_step(*args)
