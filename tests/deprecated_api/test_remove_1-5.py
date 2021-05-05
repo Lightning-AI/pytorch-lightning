@@ -171,8 +171,8 @@ def test_v1_5_0_old_callback_on_load_checkpoint(tmpdir):
     with no_deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=chk.last_model_path)
+    trainer = Trainer(**trainer_kwargs, resume_from_checkpoint=chk.last_model_path)
+    with no_deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
 
@@ -424,3 +424,8 @@ def test_v1_5_0_datamodule_setter():
         model.datamodule = datamodule
     with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
         _ = model.datamodule
+
+
+def test_v1_5_0_trainer_tbptt_steps(tmpdir):
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        _ = Trainer(truncated_bptt_steps=1)
