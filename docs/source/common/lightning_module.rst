@@ -1005,6 +1005,63 @@ Get the model file size (in megabytes) using ``self.model_size`` inside Lightnin
 
 --------------
 
+truncated_bptt_steps
+^^^^^^^^^^^^^^^^^^^^
+
+Truncated back prop breaks performs backprop every k steps of
+a much longer sequence.
+
+If this is enabled, your batches will automatically get truncated
+and the trainer will apply Truncated Backprop to it.
+
+(`Williams et al. "An efficient gradient-based algorithm for on-line training of
+recurrent network trajectories."
+<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
+
+`Tutorial <https://d2l.ai/chapter_recurrent-neural-networks/bptt.html>`_
+
+.. testcode:: python
+
+    from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            # Important: This property activates truncated backpropagation through time
+            # Setting this value to 2 splits the batch into sequences of size 2
+            self.truncated_bptt_steps = 2
+
+        # Truncated back-propagation through time
+        def training_step(self, batch, batch_idx, hiddens):
+            # the training step must be updated to accept a ``hiddens`` argument
+            # hiddens are the hiddens from the previous truncated backprop step
+            out, hiddens = self.lstm(data, hiddens)
+            return {
+                "loss": ...,
+                "hiddens": hiddens
+            }
+
+Lightning takes care to split your batch along the time-dimension.
+
+.. code-block:: python
+
+    # we use the second as the time dimension
+    # (batch, time, ...)
+    sub_batch = batch[0, 0:t, ...]
+
+To modify how the batch is split,
+override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
+
+.. testcode:: python
+
+    class LitMNIST(LightningModule):
+        def tbptt_split_batch(self, batch, split_size):
+            # do your own splitting on the batch
+            return splits
+
+--------------
+
 Hooks
 ^^^^^
 This is the pseudocode to describe how all the hooks are called during a call to ``.fit()``.
