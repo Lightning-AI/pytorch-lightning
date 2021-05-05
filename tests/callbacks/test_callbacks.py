@@ -276,6 +276,10 @@ class BatchObserverCallback(Callback):
         assert batch.device.type == "cuda"
         assert batch.device == pl_module.device
 
+    def on_validation_batch_end(trainer, pl_module, outputs, batch, *args):
+        assert batch.device.type == "cuda"
+        assert batch.device == pl_module.device
+
 
 def test_callback_batch_on_device(tmpdir):
 
