@@ -112,6 +112,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added Training type Plugins Registry (
     [#6982](https://github.com/PyTorchLightning/pytorch-lightning/issues/6982),
     [#7063](https://github.com/PyTorchLightning/pytorch-lightning/issues/7063),
+    [#7214](https://github.com/PyTorchLightning/pytorch-lightning/issues/7214),
     [#7224](https://github.com/PyTorchLightning/pytorch-lightning/issues/7224)
 )
 
@@ -173,6 +174,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Reset `current_fx` properties on lightning module in teardown ([#7247](https://github.com/PyTorchLightning/pytorch-lightning/pull/7247))
 
 - Auto-set `DataLoader.worker_init_fn` with `seed_everything` ([#6960](https://github.com/PyTorchLightning/pytorch-lightning/pull/6960))
+
+- Remove `model.trainer` call inside of dataloading mixin ([#7317](https://github.com/PyTorchLightning/pytorch-lightning/pull/7317))
 
 ### Deprecated
 
@@ -348,7 +351,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed examples (
     [#6600](https://github.com/PyTorchLightning/pytorch-lightning/pull/6600),
     [#6638](https://github.com/PyTorchLightning/pytorch-lightning/pull/6638),
-    [#7096](https://github.com/PyTorchLightning/pytorch-lightning/pull/7096))
+    [#7096](https://github.com/PyTorchLightning/pytorch-lightning/pull/7096),
+    [#7246](https://github.com/PyTorchLightning/pytorch-lightning/pull/7246)
+)
   
 - Resolved schedule step bug for PyTorch Profiler ([#6674](https://github.com/PyTorchLightning/pytorch-lightning/pull/6674),
     [#6681](https://github.com/PyTorchLightning/pytorch-lightning/pull/6681))
@@ -378,6 +383,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed DPP + SyncBN when move on device ([#6838](https://github.com/PyTorchLightning/pytorch-lightning/pull/6838))
 
 - Fixed missing arguments in `lr_find` call ([#6784](https://github.com/PyTorchLightning/pytorch-lightning/pull/6784))
+
+- Fixed `set_default_tensor_type` to `torch.DoubleTensor` with precision=64 ([#7108](https://github.com/PyTorchLightning/pytorch-lightning/pull/7108))
+
+- Fixed `NeptuneLogger.log_text(step=None)` ([#7194](https://github.com/PyTorchLightning/pytorch-lightning/pull/7194))
 
 ## [1.2.9] - 2021-04-20
 
