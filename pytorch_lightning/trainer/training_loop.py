@@ -652,7 +652,6 @@ class TrainLoop:
 
         if not skip:
             self.trainer._cache_logged_metrics()
->>>>>>> update
 
     def _on_train_epoch_end_hook(self, processed_epoch_output) -> None:
         # We cannot rely on Trainer.call_hook because the signatures might be different across
