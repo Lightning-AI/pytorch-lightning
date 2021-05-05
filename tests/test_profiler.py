@@ -337,6 +337,9 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
 @RunIf(min_torch="1.8.1")
 def test_pytorch_profiler_trainer_test(tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded. """
+
+    import logging
+
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None)
     model = BoringModel()
     trainer = Trainer(
@@ -347,11 +350,12 @@ def test_pytorch_profiler_trainer_test(tmpdir):
     )
     trainer.test(model)
 
+    logging.error(pytorch_profiler.function_events)
     assert sum(e.name == 'test_step' for e in pytorch_profiler.function_events)
 
     path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
     assert path.read_text("utf-8")
-    import logging
+    logging.error(f"trainer.local_rnak={trainer.local_rank}")
 
     if _KINETO_AVAILABLE:
         files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
