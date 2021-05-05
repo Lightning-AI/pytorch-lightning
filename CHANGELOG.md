@@ -140,6 +140,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Changed `resume_from_checkpoint` warning to an error when the checkpoint file does not exist ([#7075](https://github.com/PyTorchLightning/pytorch-lightning/pull/7075))
 
+- Automatically set `sync_batchnorm` for `training_type_plugin` ([#6536](https://github.com/PyTorchLightning/pytorch-lightning/pull/6536))
+
+- Allowed training type plugin to delay optimizer creation ([#6331](https://github.com/PyTorchLightning/pytorch-lightning/pull/6331))
+
+- Removed ModelSummary validation from train loop on_trainer_init ([#6610](https://github.com/PyTorchLightning/pytorch-lightning/pull/6610))
+
+- Moved `save_function` to accelerator ([#6689](https://github.com/PyTorchLightning/pytorch-lightning/pull/6689))
+
+- Updated DeepSpeed ZeRO ([#6546](https://github.com/PyTorchLightning/pytorch-lightning/pull/6546),
+    [#6752](https://github.com/PyTorchLightning/pytorch-lightning/pull/6752))
 
 ### Deprecated
 
@@ -225,6 +235,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed `optimizer_idx` argument from `training_step` in manual optimization ([#6093](https://github.com/PyTorchLightning/pytorch-lightning/pull/6093))
 
+- Removed `logger_connector` legacy code ([#6733](https://github.com/PyTorchLightning/pytorch-lightning/pull/6733))
+
 
 ### Fixed
 
@@ -308,6 +320,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed a bug where an error would be raised if the train dataloader sometimes produced None for a batch ([#7342](https://github.com/PyTorchLightning/pytorch-lightning/pull/7342))
 
+- Fixed examples ([#6600](https://github.com/PyTorchLightning/pytorch-lightning/pull/6600),
+    [#6638](https://github.com/PyTorchLightning/pytorch-lightning/pull/6638))
+  
+- Resolved schedule step bug for PyTorch Profiler ([#6674](https://github.com/PyTorchLightning/pytorch-lightning/pull/6674),
+    [#6681](https://github.com/PyTorchLightning/pytorch-lightning/pull/6681))
+
+- Updated logic for checking TPUs availability ([#6767](https://github.com/PyTorchLightning/pytorch-lightning/pull/6767))
+
+- Resolve TPU miss rendezvous ([#6781](https://github.com/PyTorchLightning/pytorch-lightning/pull/6781))
 
 ## [1.2.9] - 2021-04-20
 
