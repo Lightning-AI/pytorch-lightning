@@ -235,7 +235,7 @@ class ModelHooks:
         Called in the training loop at the very beginning of the epoch.
         """
 
-    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def on_train_epoch_end(self, unused: Optional = None) -> None:
         """
         Called in the training loop at the very end of the epoch.
         """
