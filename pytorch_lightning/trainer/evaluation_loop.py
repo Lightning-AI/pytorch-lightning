@@ -33,7 +33,6 @@ class EvaluationLoop(object):
         self.max_batches: Optional[List[Union[int, float]]] = None
         self.warning_cache = WarningCache()
         self.num_dataloaders: Optional[int] = None
-        self.should_track_batch_outputs_for_epoch_end = self._should_track_batch_outputs_for_epoch_end()
 
     def on_trainer_init(self) -> None:
         self.trainer.num_sanity_val_batches = []
@@ -76,6 +75,7 @@ class EvaluationLoop(object):
         return sum(max_batches) == 0
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
+        self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
         else:
