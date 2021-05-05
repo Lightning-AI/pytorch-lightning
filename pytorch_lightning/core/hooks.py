@@ -241,8 +241,7 @@ class ModelHooks:
 
         To access all batch outputs at the end of the epoch, either:
         1. Implement `training_epoch_end` in the LightningModule OR
-        2. Cache data across steps on attribute(s) of the LightningModule
-           and access them in this hook
+        2. Cache data across steps on the attribute(s) of the `LightningModule` and access them in this hook
         """
 
     def on_validation_epoch_start(self) -> None:
