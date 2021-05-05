@@ -28,14 +28,14 @@ class CPUAccelerator(Accelerator):
         """
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             raise MisconfigurationException(
-                "Mixed precision is currenty only supported with the AMP backend "
-                "and AMP + cpu is not supported. Please use a GPU option or "
-                "change precision setting"
+                " Mixed precision is currenty only supported with the AMP backend"
+                " and AMP + CPU is not supported. Please use a GPU option or"
+                " change precision setting."
             )
 
         if "cpu" not in str(self.root_device):
             raise MisconfigurationException(
-                f"Device should be CPU, got {self.root_device} instead"
+                f"Device should be CPU, got {self.root_device} instead."
             )
 
         return super().setup(trainer, model)
