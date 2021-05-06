@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-03.html#rel_21-03
-FROM nvcr.io/nvidia/pytorch:21.03-py3
+FROM nvcr.io/nvidia/pytorch:21.04-py3
 
 MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
 
@@ -45,6 +45,8 @@ RUN \
     pip install "Pillow>=8.1" --no-cache-dir --upgrade-strategy only-if-needed && \
     rm -rf pytorch-lightning && \
     pip list
+
+RUN pip install lightning-grid -U
 
 ENV PYTHONPATH="/workspace"
 
