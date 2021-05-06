@@ -458,10 +458,7 @@ class TrainLoop:
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
-        val_loop_called = False
-
         batch_idx = None
-        is_last_batch = None
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
             self.trainer.batch_idx = batch_idx
@@ -500,7 +497,6 @@ class TrainLoop:
                 self.trainer.validating = True
                 self.trainer.run_evaluation()
                 self.trainer.training = True
-                val_loop_called = True
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -527,22 +523,23 @@ class TrainLoop:
             # dataloader/iterator did not produce a batch
             return
 
+        #self.trainer.global_step -= 1
+
         # handle epoch_output on epoch end
         self.on_train_epoch_end(epoch_output)
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
 
-        should_check_val = self._should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
+        # TODO: make sure we don't update these again if already updated inside the batch loop
+        self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
-
-        # update epoch level lr_schedulers if no val loop outside train loop is triggered
-        if (val_loop_called and not should_check_val) or should_train_only:
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
-
         if should_train_only:
             self.check_checkpoint_callback(True)
+
+        #self.trainer.global_step += 1
 
     def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
         # inform logger the batch loop has finished
