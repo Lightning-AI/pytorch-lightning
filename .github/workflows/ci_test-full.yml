@@ -58,6 +58,10 @@ jobs:
       if: runner.os == 'windows'
       run: |
         python .github/prune-packages.py requirements/extra.txt "horovod"
+        # https://github.com/horta/zlib.install
+        powershell -Command "(New-Object Net.WebClient).DownloadFile('https://raw.githubusercontent.com/horta/zlib.install/master/install.bat', 'install_zlib.bat')"
+        ./install_zlib.bat
+        del install_zlib.bat
 
     # todo: re-enable when allow testing py 3.9 with min config, atm some Hydra issues
     #- name: Adjust minimal for Python 3.9
