@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.4.0] - 2021-MM-DD
+
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+
+
 ## [1.3.0] - 2021-05-06
 
 ### Added
@@ -39,7 +57,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `outputs` parameter to callback's `on_validation_epoch_end` & `on_test_epoch_end` hooks ([#6120](https://github.com/PyTorchLightning/pytorch-lightning/pull/6120))
 - Added `configure_sharded_model` hook ([#6679](https://github.com/PyTorchLightning/pytorch-lightning/pull/6679))
 - Added support for `precision=64`, enabling training with double precision ([#6595](https://github.com/PyTorchLightning/pytorch-lightning/pull/6595))
-- Added support for DDP communication hooks ([#6736](https://github.com/PyTorchLightning/pytorch-lightning/issues/6736))
+- Added support for DDP communication hooks ([#6736](https://github.com/PyTorchLightning/pytorch-lightning/pull/6736))
 - Added `artifact_location` argument to `MLFlowLogger` which will be passed to the `MlflowClient.create_experiment` call ([#6677](https://github.com/PyTorchLightning/pytorch-lightning/pull/6677))
 - Added `model` parameter to precision plugins' `clip_gradients` signature (
     [#6764](https://github.com/PyTorchLightning/pytorch-lightning/pull/6764),
@@ -58,14 +76,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `tpu_distributed` check for TPU Spawn barrier ([#7241](https://github.com/PyTorchLightning/pytorch-lightning/pull/7241))
 - Added device updates to TPU Spawn for Pod training ([#7243](https://github.com/PyTorchLightning/pytorch-lightning/pull/7243))
 - Added warning when missing `Callback` and using `resume_from_checkpoint` ([#7254](https://github.com/PyTorchLightning/pytorch-lightning/pull/7254))
-- DeepSpeed single file saving ([#6900](https://github.com/PyTorchLightning/pytorch-lightning/issues/6900))
+- DeepSpeed single file saving ([#6900](https://github.com/PyTorchLightning/pytorch-lightning/pull/6900))
 - Added Training type Plugins Registry (
-    [#6982](https://github.com/PyTorchLightning/pytorch-lightning/issues/6982),
-    [#7063](https://github.com/PyTorchLightning/pytorch-lightning/issues/7063),
-    [#7214](https://github.com/PyTorchLightning/pytorch-lightning/issues/7214),
-    [#7224](https://github.com/PyTorchLightning/pytorch-lightning/issues/7224)
+    [#6982](https://github.com/PyTorchLightning/pytorch-lightning/pull/6982),
+    [#7063](https://github.com/PyTorchLightning/pytorch-lightning/pull/7063),
+    [#7214](https://github.com/PyTorchLightning/pytorch-lightning/pull/7214),
+    [#7224](https://github.com/PyTorchLightning/pytorch-lightning/pull/7224)
 )
-- Add `ignore` param to `save_hyperparameters` ([#6056](https://github.com/PyTorchLightning/pytorch-lightning/issues/6056))
+- Add `ignore` param to `save_hyperparameters` ([#6056](https://github.com/PyTorchLightning/pytorch-lightning/pull/6056))
 
 ### Changed
 
