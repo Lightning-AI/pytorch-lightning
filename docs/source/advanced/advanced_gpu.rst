@@ -23,7 +23,7 @@ This means we cannot sacrifice throughput as much as if we were fine-tuning, bec
 Overall:
 
 * When **fine-tuning** a model, use advanced memory efficient plugins such as :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
-* When **pre-training** a model, use simpler optimizations such :ref:`sharded`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded`, scaling the number of GPUs to reach larger parameter sizes
+* When **pre-training** a model, use simpler optimizations such :ref:`sharded`, :ref:`deepspeed-zero-stage-2`, scaling the number of GPUs to reach larger parameter sizes
 * For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` or :ref:`fairscale-activation-checkpointing` as the throughput degradation is not significant
 
 For example when using 128 GPUs, you can **pre-train** large 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-2` without having to take a performance hit with more advanced optimized multi-gpu plugins.
@@ -55,7 +55,7 @@ these benefits in multi-GPU setups are almost free and throughput scales well wi
 
 It is highly recommended to use Sharded Training in multi-GPU environments where memory is limited, or where training larger models are beneficial (500M+ parameter models).
 A technical note: as batch size scales, storing activations for the backwards pass becomes the bottleneck in training. As a result, sharding optimizer state and gradients becomes less impactful.
-Use :ref:`fairscale-activation-checkpointing` or :ref:`fully-sharded` to see even more benefit at the cost of some throughput.
+Use :ref:`fairscale-activation-checkpointing` to see even more benefit at the cost of some throughput.
 
 To use Sharded Training, you need to first install FairScale using the command below.
 
@@ -72,128 +72,6 @@ To use Sharded Training, you need to first install FairScale using the command b
 Sharded Training can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
 
 Internally we re-initialize your optimizers and shard them across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
-
-----------
-
-.. _fully-sharded:
-
-Fully Sharded Training
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. note::
-    Fully Sharded Training is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
-
-`Fully Sharded <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ shards optimizer state, gradients and parameters across data parallel workers. This allows you to fit much larger models onto multiple GPUs into memory.
-
-By default, Fully Sharded acts similar to :ref:`sharded` which shards optimizer states and gradients. If you can train with default Fully Sharded, it is recommended to just use :ref:`sharded`.
-
-.. warning::
-    Due to the behaviour of Fully Sharded, when defining optimizers in ``configure_optimizers`` you must use ``self.trainer.model`` as described below, which is the sharded model.
-
-.. code-block:: python
-
-    from pytorch_lightning import Trainer
-
-    class MyModel(pl.LightningModule):
-        ...
-        def configure_optimizers(self):
-            # Replace torch.optim.AdamW(self.parameters())
-            return torch.optim.AdamW(self.trainer.model.parameters())
-
-
-Shard Parameters to Reach 10+ Billion Parameters
-""""""""""""""""""""""""""""""""""""""""""""""""
-
-To reach larger parameter sizes and be memory efficient, we have to shard parameters. There are various ways to enable this.
-
-Auto Wrap
-"""""""""
-
-``auto_wrap`` will recursively wrap modules within the ``LightningModule`` with nested Fully Sharded Wrappers,
-signalling that we'd like to partition these modules across data parallel devices, discarding the full weights when not required (information `here <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp_tips.html>`__).
-
-Enabling `auto_wrap` doesn't require code changes, however can have varying level of success based on the complexity of your model. **Auto Wrap does not support models with shared parameters**, use :ref:`manual-wrap` instead.
-
-.. code-block:: python
-
-    from pytorch_lightning import Trainer
-
-    class MyModel(pl.LightningModule):
-        ...
-        def configure_optimizers(self):
-            return torch.optim.AdamW(self.trainer.model.parameters())
-
-    model = MyModel()
-    trainer = Trainer(gpus=4, plugins='ddp_fully_sharded_auto_wrap', precision=16)
-    trainer.fit(model)
-
-    trainer.test()
-    trainer.predict()
-
-
-.. _manual-wrap:
-
-Manual Wrap
-"""""""""""
-
-To activate parameter sharding, you can also wrap layers using provided ``wrap`` or ``auto_wrap`` functions as described below.
-
-When not using Fully Sharded these wrap functions are a no-op. This means once the changes have been made, there is no need to remove the changes for other plugins.
-
-This is a requirement for really large models and also saves on instantiation time as modules are sharded instantly, rather than after the entire model is created in memory.
-
-.. code-block:: python
-
-    import torch
-    import torch.nn as nn
-    from pytorch_lightning import Trainer
-    from fairscale.nn import checkpoint_wrapper, auto_wrap, wrap
-
-    class MyModel(pl.LightningModule):
-        ...
-        def configure_sharded_model(self):
-            # Created within sharded model context, modules are instantly sharded across processes
-            # as soon as they are wrapped with ``wrap`` or ``auto_wrap``
-
-             # Wraps the layer in a Fully Sharded Wrapper automatically
-            linear_layer = wrap(nn.Linear(32, 32))
-
-            # Wraps the module recursively
-            # based on a minimum number of parameters (default 100M parameters)
-            block = auto_wrap(
-                nn.Sequential(
-                    nn.Linear(32, 32),
-                    nn.ReLU()
-                )
-            )
-
-            # For best memory efficiency,
-            # add fairscale activation checkpointing
-            final_block = auto_wrap(
-                checkpoint_wrapper(
-                    nn.Sequential(
-                        nn.Linear(32, 32),
-                        nn.ReLU()
-                    )
-                )
-            )
-            self.block = nn.Sequential(
-                linear_layer,
-                nn.ReLU(),
-                block,
-                final_block
-            )
-
-        def configure_optimizers(self):
-            return torch.optim.AdamW(self.parameters())
-
-    model = MyModel()
-    trainer = Trainer(gpus=4, plugins='ddp_fully_sharded', precision=16)
-    trainer.fit(model)
-
-    trainer.test()
-    trainer.predict()
-
 
 ----------
 
@@ -217,12 +95,6 @@ This saves memory when training larger models however requires wrapping modules 
     class MyModel(pl.LightningModule):
         def __init__(self):
             # Wrap layer using checkpoint_wrapper
-            linear_layer = checkpoint_wrapper(nn.Linear(32, 32))
-            self.block = nn.Sequential(linear_layer, nn.ReLU())
-
-        def configure_sharded_model(self):
-            # Can be defined within this function as well
-            # for when using Fully Sharded.
             linear_layer = checkpoint_wrapper(nn.Linear(32, 32))
             self.block = nn.Sequential(linear_layer, nn.ReLU())
 
