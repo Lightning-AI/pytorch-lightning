@@ -110,6 +110,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#7224](https://github.com/PyTorchLightning/pytorch-lightning/issues/7224)
 )
 
+- Add `ignore` param to `save_hyperparameters` ([#6056](https://github.com/PyTorchLightning/pytorch-lightning/issues/6056))
+
 ### Changed
 
 - Changed `LightningModule.truncated_bptt_steps` to be property ([#7323](https://github.com/PyTorchLightning/pytorch-lightning/pull/7323))
@@ -156,7 +158,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Moved `save_function` to accelerator ([#6689](https://github.com/PyTorchLightning/pytorch-lightning/pull/6689))
 
 - Updated DeepSpeed ZeRO ([#6546](https://github.com/PyTorchLightning/pytorch-lightning/pull/6546),
-    [#6752](https://github.com/PyTorchLightning/pytorch-lightning/pull/6752))
+    [#6752](https://github.com/PyTorchLightning/pytorch-lightning/pull/6752),
+    [#6142](https://github.com/PyTorchLightning/pytorch-lightning/pull/6142),
+    [#6321](https://github.com/PyTorchLightning/pytorch-lightning/pull/6321))
 
 - Improved verbose logging for `EarlyStopping` callback ([#6811](https://github.com/PyTorchLightning/pytorch-lightning/pull/6811))
 
@@ -173,6 +177,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Auto-set `DataLoader.worker_init_fn` with `seed_everything` ([#6960](https://github.com/PyTorchLightning/pytorch-lightning/pull/6960))
 
 - Remove `model.trainer` call inside of dataloading mixin ([#7317](https://github.com/PyTorchLightning/pytorch-lightning/pull/7317))
+
+- Split profilers module ([#6261](https://github.com/PyTorchLightning/pytorch-lightning/pull/6261))
+
+- Ensure accelerator is valid if running interactively ([#5970](https://github.com/PyTorchLightning/pytorch-lightning/pull/5970))
 
 ### Deprecated
 
@@ -343,7 +351,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#6600](https://github.com/PyTorchLightning/pytorch-lightning/pull/6600),
     [#6638](https://github.com/PyTorchLightning/pytorch-lightning/pull/6638),
     [#7096](https://github.com/PyTorchLightning/pytorch-lightning/pull/7096),
-    [#7246](https://github.com/PyTorchLightning/pytorch-lightning/pull/7246)
+    [#7246](https://github.com/PyTorchLightning/pytorch-lightning/pull/7246),
+    [#6357](https://github.com/PyTorchLightning/pytorch-lightning/pull/6357),
+    [#6476](https://github.com/PyTorchLightning/pytorch-lightning/pull/6476)
 )
   
 - Resolved schedule step bug for PyTorch Profiler ([#6674](https://github.com/PyTorchLightning/pytorch-lightning/pull/6674),
@@ -376,6 +386,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `set_default_tensor_type` to `torch.DoubleTensor` with precision=64 ([#7108](https://github.com/PyTorchLightning/pytorch-lightning/pull/7108))
 
 - Fixed `NeptuneLogger.log_text(step=None)` ([#7194](https://github.com/PyTorchLightning/pytorch-lightning/pull/7194))
+
+- Fixed importing torchtext batch ([#6365](https://github.com/PyTorchLightning/pytorch-lightning/pull/6365),
+    [#6323](https://github.com/PyTorchLightning/pytorch-lightning/pull/6323),
+    [#6211](https://github.com/PyTorchLightning/pytorch-lightning/pull/6211))
 
 ## [1.2.9] - 2021-04-20
 
