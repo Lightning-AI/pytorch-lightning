@@ -1080,6 +1080,8 @@ class Trainer(
                 if batch_idx >= dl_max_batches:
                     break
 
+                batch = self.accelerator.to_device(batch)
+
                 # lightning module methods
                 with self.profiler.profile("predict_step"):
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
