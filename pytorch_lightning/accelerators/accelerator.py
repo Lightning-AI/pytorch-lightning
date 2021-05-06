@@ -28,7 +28,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _NATIVE_AMP_AVAILABLE:
     from torch.cuda.amp import GradScaler
@@ -350,12 +350,8 @@ class Accelerator:
             model=self.model,
         )
 
-    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        """Hook to do something on the end of an training epoch
-
-        Args:
-            outputs: the outputs of the training steps
-        """
+    def on_train_epoch_end(self) -> None:
+        """Hook to do something on the end of an training epoch."""
         pass
 
     def on_train_end(self) -> None:

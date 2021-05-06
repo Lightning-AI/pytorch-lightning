@@ -678,13 +678,13 @@ def test_metrics_reset(tmpdir):
             acc.reset.asset_not_called()
             ap.reset.assert_not_called()
 
-        def on_train_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             self._assert_epoch_end('train')
 
-        def on_validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             self._assert_epoch_end('val')
 
-        def on_test_epoch_end(self, outputs):
+        def on_test_epoch_end(self):
             self._assert_epoch_end('test')
 
     def _assert_called(model, stage):
