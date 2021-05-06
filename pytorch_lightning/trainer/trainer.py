@@ -86,6 +86,8 @@ class Trainer(
     DeprecatedTrainerAttributes,
 ):
 
+    accelerator_connector_cls = AcceleratorConnector
+
     @_defaults_from_env_vars
     def __init__(
         self,
@@ -314,7 +316,7 @@ class Trainer(
         self.data_connector = DataConnector(self)
         self.optimizer_connector = OptimizerConnector(self)
 
-        self.accelerator_connector = AcceleratorConnector(
+        self.accelerator_connector = self.accelerator_connector_cls(
             num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm, benchmark,
             replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
