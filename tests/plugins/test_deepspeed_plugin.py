@@ -236,11 +236,10 @@ def test_warn_deepspeed_override_backward(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1, deepspeed=True)
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 @pytest.mark.parametrize(['dataset_cls', 'value'], [(RandomDataset, "auto"), (RandomDataset, 10),
                                                     (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)])
-@mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
-def test_deepspeed_auto_batch_size_config_select(setup_distributed_mock, tmpdir, dataset_cls, value):
+def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
     class TestModel(BoringModel):
