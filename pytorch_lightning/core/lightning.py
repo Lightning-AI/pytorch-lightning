@@ -1116,10 +1116,10 @@ class LightningModule(
 
             - **Single optimizer**.
             - **List or Tuple** of optimizers.
-            - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers (or
-              multiple ``lr_dict``s).
+            - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers
+                (or multiple ``lr_dict``).
             - **Dictionary**, with an ``"optimizer"`` key, and (optionally) a ``"lr_scheduler"``
-              key whose value is a single LR scheduler or ``lr_dict``.
+                key whose value is a single LR scheduler or ``lr_dict``.
             - **Tuple of dictionaries** as described above, with an optional ``"frequency"`` key.
             - **None** - Fit will run without any optimizer.
 
@@ -1185,8 +1185,8 @@ class LightningModule(
                     {'optimizer': optimizer2, 'lr_scheduler': scheduler2}
                 )
 
-        Metrics can be made available to monitor by simply logging it using ``self.log('metric_to_track', metric_val)``
-        in your :class:`~pytorch_lightning.LightningModule`.
+        Metrics can be made available to monitor by simply logging it using
+        ``self.log('metric_to_track', metric_val)`` in your :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
         Note:
             The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
