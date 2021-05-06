@@ -88,7 +88,7 @@ class DeepSpeedPlugin(DDPPlugin):
         allgather_bucket_size: int = 2e8,
         reduce_bucket_size: int = 2e8,
         zero_allow_untested_optimizer: bool = True,
-        logging_batch_size_per_gpu: Optional[int] = 1,
+        logging_batch_size_per_gpu: Union[str, int] = "auto",
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
         num_nodes: int = 1,
@@ -151,8 +151,10 @@ class DeepSpeedPlugin(DDPPlugin):
 
             logging_batch_size_per_gpu: Config used in DeepSpeed to calculate verbose timing for logging
                 on a per sample per second basis (only displayed if logging=logging.INFO).
-                To obtain accurate logs, set this to the actual per gpu batch size (trainer.batch_size).
-                If set to None, the logging_batch_size_per_gpu is inferred from the train DataLoader's BatchSampler
+                If set to "auto", the plugin tries to infer this from
+                the train DataLoader's BatchSampler, else defaults to 1.
+                To obtain accurate logs when using datasets that do not support batch samplers,
+                set this to the actual per gpu batch size (trainer.batch_size).
 
             config: Pass in a deepspeed formatted config dict,
                 or path to a deepspeed config: https://www.deepspeed.ai/docs/config-json.
@@ -417,13 +419,21 @@ class DeepSpeedPlugin(DDPPlugin):
                 " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
             )
         if "train_micro_batch_size_per_gpu" not in self.config:
-            # train_micro_batch_size_per_gpu is used for throughput logging purposes
-            # by default we use the batch size of the loader which may be incorrect if a batch sampler is passed
-            batch_size = self.lightning_module.train_dataloader().batch_sampler.batch_size
+            batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
+
+    def _auto_select_batch_size(self):
+        # train_micro_batch_size_per_gpu is used for throughput logging purposes
+        # by default we try to use the batch size of the loader
+        batch_size = 1
+        if hasattr(self.lightning_module, 'train_dataloader'):
+            train_dataloader = self.lightning_module.train_dataloader()
+            if hasattr(train_dataloader, 'batch_sampler'):
+                batch_size = train_dataloader.batch_sampler.batch_size
+        return batch_size
 
     def _format_precision_config(self):
         amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
@@ -454,7 +464,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self,
         zero_optimization: bool,
         zero_allow_untested_optimizer: bool,
-        logging_batch_size_per_gpu: Optional[int],
+        logging_batch_size_per_gpu: Union[str, int],
         partition_activations: bool,
         cpu_checkpointing: bool,
         contiguous_memory_optimization: bool,
@@ -475,9 +485,8 @@ class DeepSpeedPlugin(DDPPlugin):
                 "zero_optimization": zero_kwargs,
                 **cfg
             }
-        if logging_batch_size_per_gpu is not None:
-            cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu,
-                   **cfg}
+        if logging_batch_size_per_gpu is not 'auto':
+            cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
         return cfg
 
     def _filepath_to_dir(self, filepath: str) -> str:

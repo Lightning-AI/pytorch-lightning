@@ -234,6 +234,33 @@ def test_warn_deepspeed_override_backward(tmpdir):
         trainer.fit(model)
 
 
+@RunIf(min_gpus=1, deepspeed=True)
+@pytest.mark.parametrize('value', ["auto", 10])
+def test_deepspeed_auto_batch_size_config_select(tmpdir, value):
+    """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
+    model = BoringModel()
+
+    class AssertCallback(Callback):
+
+        def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+            assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
+            config = trainer.accelerator.training_type_plugin.config
+            expected_value = pl_module.train_dataloader().batch_size if value is "auto" else value
+            assert config['train_micro_batch_size_per_gpu'] == expected_value
+            raise SystemExit
+
+    ck = AssertCallback()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        callbacks=ck,
+        gpus=1,
+        plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=value, zero_optimization=False),
+    )
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
 @RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_run_configure_optimizers(tmpdir):
     """
