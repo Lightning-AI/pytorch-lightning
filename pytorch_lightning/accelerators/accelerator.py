@@ -198,8 +198,6 @@ class Accelerator:
                 - hiddens(:class:`~torch.Tensor`): Passed in if
                   :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
-        # args[0] = self.to_device(args[0])
-
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
             return self.training_type_plugin.training_step(*args)
 
@@ -218,10 +216,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple val dataloaders used)
         """
-        # batch = self.to_device(args[0])
-
-        # args[0] = batch
-
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
             return self.training_type_plugin.validation_step(*args)
 
@@ -237,10 +231,6 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple test dataloaders used).
         """
-        # batch = self.to_device(args[0])
-
-        # args[0] = batch
-
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*args)
 
@@ -257,10 +247,6 @@ class Accelerator:
                   (only if multiple predict dataloaders used).
 
         """
-        # batch = self.to_device(args[0])
-
-        # args[0] = batch
-
         with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*args)
 
