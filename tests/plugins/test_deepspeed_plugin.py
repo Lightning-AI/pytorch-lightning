@@ -1,8 +1,8 @@
 import json
 import os
 from typing import Any, Dict
+from unittest import mock
 
-import mock
 import pytest
 import torch
 import torch.nn.functional as F
