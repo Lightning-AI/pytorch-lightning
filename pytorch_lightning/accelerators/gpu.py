@@ -36,7 +36,7 @@ class GPUAccelerator(Accelerator):
         """
         if "cuda" not in str(self.root_device):
             raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
-        self.set_nvidia_flags()
+        self.set_nvidia_flags(trainer.local_rank)
         torch.cuda.set_device(self.root_device)
         return super().setup(trainer, model)
 
@@ -55,12 +55,12 @@ class GPUAccelerator(Accelerator):
             torch.cuda.empty_cache()
 
     @staticmethod
-    def set_nvidia_flags() -> None:
+    def set_nvidia_flags(local_rank: int) -> None:
         # set the correct cuda visible devices (using pci order)
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
-        _log.info(f"LOCAL_RANK: {os.getenv('LOCAL_RANK', 0)} - CUDA_VISIBLE_DEVICES: [{devices}]")
+        _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
     def to_device(self, batch: Any) -> Any:
         # no need to transfer batch to device in DP mode
