@@ -152,5 +152,5 @@ The algorithm in short works by:
 Advanced GPU Optimizations
 --------------------------
 
-When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory effeciency and model scaling.
+When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
 Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/advanced_gpu>`.

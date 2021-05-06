@@ -1,23 +1,23 @@
 Advanced GPU Optimized Training
 ===============================
 
-When training large models, fitting larger batch sizes or trying to increase throughput using multi-gpu compute, Lightning provides advanced optimized multi-gpu plugins to support these cases. For example if you'd like to train a large billion parameter transformer model, or to scale your batch size when training a semi-supervised learning model, using a Lightning optimized distributed training plugin will offer substantial improvements in GPU memory usage.
+When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training plugins to support these cases and offer substantial improvements in memory usage.
 
 Note that some of the extreme memory saving configurations will affect the speed of training. This Speed/Memory trade-off in most cases can be adjusted.
 
-Some of these memory efficient plugins rely on offloading onto other forms of memory, such as CPU RAM or NVMe. This means you can even see memory benefits on a **single GPU**, using a plugin such as :ref:`deepspeed-zero-stage-3-offload`.
+Some of these memory-efficient plugins rely on offloading onto other forms of memory, such as CPU RAM or NVMe. This means you can even see memory benefits on a **single GPU**, using a plugin such as :ref:`deepspeed-zero-stage-3-offload`.
 
 Choosing an Advanced Distributed GPU Plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you would like to stick with PyTorch DDP, see :ref:`ddp-optimizations`.
 
-Unlike PyTorch Distributed Data Parallel (DDP) where the maximum trainable model size and batch size do not change with respect to the number of GPUs, memory optimized plugins can accommodate bigger model and larger batch as more GPUs are used. This means as you scale up the number of GPUs, you can reach the number of model parameters you'd like to train.
+Unlike PyTorch's DistributedDataParallel (DDP) where the maximum trainable model size and batch size do not change with respect to the number of GPUs, memory-optimized plugins can accommodate bigger models and larger batches as more GPUs are used. This means as you scale up the number of GPUs, you can reach the number of model parameters you'd like to train.
 
 Pre-training vs Fine-tuning
 """""""""""""""""""""""""""
 
-When fine-tuning, we often use a magnitude less data compared to pre-training a model. This is important when choosing a distributed plugin as usually for pre-training, **where we are compute bound**.
+When fine-tuning, we often use a magnitude less data compared to pre-training a model. This is important when choosing a distributed plugin as usually for pre-training, **where we are compute-bound**.
 This means we cannot sacrifice throughput as much as if we were fine-tuning, because in fine-tuning the data requirement is smaller.
 
 Overall:
@@ -33,7 +33,7 @@ But for **fine-tuning** a model, you can reach 10 to 20 Billion parameter models
 When Shouldn't I use an Optimized Distributed Plugin?
 """""""""""""""""""""""""""""""""""""""""""""""""""""
 
-Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in cases where your model is small (ResNet50 of around 80M Parameters) it may be best to stick to normal distributed training, unless you are using unusually large batch sizes.
+Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in cases where your model is small (ResNet50 of around 80M Parameters) it may be best to stick to normal distributed training, unless you are using unusually large batch sizes or inputs.
 
 ----------
 
