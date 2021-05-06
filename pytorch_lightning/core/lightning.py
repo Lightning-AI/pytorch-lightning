@@ -1189,6 +1189,24 @@ class LightningModule(
         ``self.log('metric_to_track', metric_val)`` in your :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
         Note:
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
+
+            .. code-block:: python
+
+                lr_dict = {
+                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
+                    # The unit of the scheduler's step size, could also be 'step'
+                    'interval': 'epoch',
+                    'frequency': 1, # The frequency of the scheduler
+                    'monitor': 'val_loss', # Metric for `ReduceLROnPlateau` to monitor
+                    'strict': True, # Whether to crash the training if `monitor` is not found
+                    'name': None, # Custom name for `LearningRateMonitor` to use
+                }
+
+            Only the ``"scheduler"`` key is required, the rest will be set to the defaults above.
+
+        Note:
             The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
             to the number of sequential batches optimized with the specific optimizer.
             It should be given to none or to all of the optimizers.
