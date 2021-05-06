@@ -1185,8 +1185,8 @@ class LightningModule(
                     {'optimizer': optimizer2, 'lr_scheduler': scheduler2}
                 )
 
-        Metrics can be made available to monitor by simply logging it using ``self.log('metric_to_track', metric_val)`` in
-        your :class:`~pytorch_lightning.LightningModule`.
+        Metrics can be made available to monitor by simply logging it using ``self.log('metric_to_track', metric_val)``
+        in your :class:`~pytorch_lightning.LightningModule`.
 
         Note:
             The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
