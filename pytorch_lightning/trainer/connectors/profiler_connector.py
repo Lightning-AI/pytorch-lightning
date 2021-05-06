@@ -58,4 +58,4 @@ class ProfilerConnector:
         trainer = self.trainer
         local_rank = trainer.local_rank if trainer.world_size > 1 else None
         trainer.profiler._lightning_module = proxy(trainer.lightning_module)
-        trainer.profiler.setup(stage=trainer._setup_state, local_rank=local_rank, log_dir=trainer.log_dir)
+        trainer.profiler.setup(stage=trainer.state.fn._setup_fn, local_rank=local_rank, log_dir=trainer.log_dir)

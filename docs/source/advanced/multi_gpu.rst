@@ -226,12 +226,16 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 +---------------+-----------+---------------------+---------------------------------+
 | "0"           | str       | [0]                 | GPU 0                           |
 +---------------+-----------+---------------------+---------------------------------+
-| "3"           | str       | [3]                 | GPU 3                           |
+| "3"           | str       | [3]                 | GPU 3 (will change in v1.5)     |
 +---------------+-----------+---------------------+---------------------------------+
 | "1, 3"        | str       | [1, 3]              | GPUs 1 and 3                    |
 +---------------+-----------+---------------------+---------------------------------+
 | "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
 +---------------+-----------+---------------------+---------------------------------+
+
+.. warning::
+    The behavior for :code:`gpus="3"` (str) will change. Currently it selects the GPU with index 3, but will
+    select the first 3 GPUs from v1.5.
 
 .. note::
 
@@ -284,8 +288,12 @@ after which the root node will aggregate the results.
 
 .. warning:: DP use is discouraged by PyTorch and Lightning. State is not maintained on the replicas created by the
     :class:`~torch.nn.DataParallel` wrapper and you may see errors or misbehavior if you assign state to the module
-    in the ``forward()`` or ``*_step()`` methods. For the same reason we do cannot fully support
+    in the ``forward()`` or ``*_step()`` methods. For the same reason we cannot fully support
     :ref:`manual_optimization` with DP. Use DDP which is more stable and at least 3x faster.
+
+.. warning:: DP only supports scattering and gathering primitive collections of tensors like lists, dicts, etc.
+    Therefore the :meth:`~pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device` hook does not apply in
+    this mode and if you have overridden it, it will not be called.
 
 .. testcode::
     :skipif: torch.cuda.device_count() < 2

@@ -24,11 +24,11 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.enums import AMPType, GradClipAlgorithmType, LightningEnum
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _NATIVE_AMP_AVAILABLE:
     from torch.cuda.amp import GradScaler
@@ -196,8 +196,7 @@ class Accelerator:
                 - batch_idx (int): Integer displaying index of this batch
                 - optimizer_idx (int): When using multiple optimizers, this argument will also be present.
                 - hiddens(:class:`~torch.Tensor`): Passed in if
-                  :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
-
+                  :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
         args[0] = self.to_device(args[0])
 
@@ -355,12 +354,8 @@ class Accelerator:
             model=self.model,
         )
 
-    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        """Hook to do something on the end of an training epoch
-
-        Args:
-            outputs: the outputs of the training steps
-        """
+    def on_train_epoch_end(self) -> None:
+        """Hook to do something on the end of an training epoch."""
         pass
 
     def on_train_end(self) -> None:
@@ -374,7 +369,7 @@ class Accelerator:
         Args:
             trainer: the Trainer, these optimizers should be connected to
         """
-        if trainer.state not in (TrainerState.FITTING, TrainerState.TUNING):
+        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
         optimizers, lr_schedulers, optimizer_frequencies = self.training_type_plugin.init_optimizers(
             trainer=trainer, model=self.lightning_module
