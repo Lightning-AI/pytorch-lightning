@@ -23,8 +23,6 @@ class TrainingStepVariations(ABC):
     Houses all variations of training steps
     """
 
-    test_step_inf_loss = float('inf')
-
     def training_step(self, batch, batch_idx, optimizer_idx=None):
         """Lightning calls this inside the training loop"""
         self.training_step_called = True
@@ -47,15 +45,6 @@ class TrainingStepVariations(ABC):
             'progress_bar': dict(some_val=log_train * log_train),
             'log': dict(train_some_val=log_train * log_train),
         })
-        return output
-
-    def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
-        output = self.training_step(batch, batch_idx, optimizer_idx)
-        if batch_idx == self.test_step_inf_loss:
-            if isinstance(output, dict):
-                output['loss'] *= torch.tensor(math.inf)  # make loss infinite
-            else:
-                output /= 0
         return output
 
     def training_step__multiple_dataloaders(self, batch, batch_idx, optimizer_idx=None):
