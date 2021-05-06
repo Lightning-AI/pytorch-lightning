@@ -73,8 +73,6 @@ Sharded Training can work across all DDP variants by adding the additional ``--p
 
 Internally we re-initialize your optimizers and shard them across your machines and processes. We handle all communication using PyTorch distributed, so no code changes are required.
 
-----------
-
 .. _fairscale-activation-checkpointing:
 
 FairScale Activation Checkpointing
@@ -94,9 +92,8 @@ This saves memory when training larger models however requires wrapping modules 
 
     class MyModel(pl.LightningModule):
         def __init__(self):
-            # Wrap layer using checkpoint_wrapper
-            linear_layer = checkpoint_wrapper(nn.Linear(32, 32))
-            self.block = nn.Sequential(linear_layer, nn.ReLU())
+            # Wrap layers using checkpoint_wrapper
+            self.block = checkpoint_wrapper(nn.Sequential(nn.Linear(32, 32), nn.ReLU()))
 
 
 .. _deepspeed:
@@ -464,6 +461,8 @@ You can use also use an environment variable via your PyTorch Lightning script:
 .. code-block:: bash
 
     PL_DEEPSPEED_CONFIG_PATH=/path/to/deepspeed_config.json python train.py --plugins deepspeed
+
+----------
 
 .. _ddp-optimizations:
 
