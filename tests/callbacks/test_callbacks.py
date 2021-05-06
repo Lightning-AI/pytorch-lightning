@@ -314,3 +314,6 @@ def test_callback_batch_on_device(tmpdir):
         callbacks=[batch_callback],
     )
     trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
