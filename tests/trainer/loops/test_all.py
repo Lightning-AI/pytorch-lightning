@@ -72,6 +72,7 @@ class BatchHookObserverModel(BoringModel):
 
 @RunIf(min_gpus=1)
 def test_callback_batch_on_device(tmpdir):
+    """ Test that the batch object sent to the on_*_batch_start/end hooks is on the right device."""
 
     batch_callback = BatchHookObserverCallback()
 
