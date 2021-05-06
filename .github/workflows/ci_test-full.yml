@@ -44,7 +44,7 @@ jobs:
     - name: Update pip
       run: |
         # needed for `pip cache` command
-        pip install --quiet "pip==20.3.4" --upgrade --user
+        pip install --quiet "pip==20.1" --upgrade --user
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
