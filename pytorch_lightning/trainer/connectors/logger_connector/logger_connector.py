@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Dict, Iterable, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import torch
 
@@ -24,10 +24,10 @@ from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
-from pytorch_lightning.utilities import DeviceType, flatten_dict
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities.metrics import metrics_to_scalars
+from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 
 class LoggerConnector:
@@ -78,7 +78,7 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self.trainer._running_stage)
+        return self._cached_results.get(self.trainer.state.stage)
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder: MetricsHolder = getattr(self, f"_{key}")
@@ -116,7 +116,7 @@ class LoggerConnector:
         self.cached_results._batch_size = None
 
     def cache_logged_metrics(self):
-        self._cached_results[self.trainer._running_stage].cache_result()
+        self._cached_results[self.trainer.state.stage].cache_result()
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
@@ -212,7 +212,7 @@ class LoggerConnector:
         metrics.update(grad_norm_dic)
 
         # turn all tensors to scalars
-        scalar_metrics = self.trainer.metrics_to_scalars(metrics)
+        scalar_metrics = metrics_to_scalars(metrics)
 
         if "step" in scalar_metrics and step is None:
             step = scalar_metrics.pop("step")
@@ -268,7 +268,7 @@ class LoggerConnector:
         for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
-    def get_evaluate_epoch_results(self):
+    def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
         if not self.trainer.sanity_checking:
             # log all the metrics as a single dict
             metrics_to_log = self.cached_results.get_epoch_log_metrics()
@@ -279,12 +279,12 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state != TrainerState.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
+            self.trainer.state.fn != TrainerFn.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate
         ):
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
-                print(f'DATALOADER:{result_idx} {self.trainer._running_stage.upper()} RESULTS')
+                print(f'DATALOADER:{result_idx} {self.trainer.state.stage.upper()} RESULTS')
                 pprint({
                     k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
                     for k, v in results.items()
@@ -297,46 +297,14 @@ class LoggerConnector:
         self.eval_loop_results = []
         return results
 
-    def _track_callback_metrics(self, eval_results):
-        if len(eval_results) > 0 and (eval_results[0] is None or not isinstance(eval_results[0], Result)):
-            return
-
-        flat = {}
-        if isinstance(eval_results, list):
-            for eval_result in eval_results:
-                # with a scalar return, auto set it to "val_loss" for callbacks
-                if isinstance(eval_result, torch.Tensor):
-                    flat = {'val_loss': eval_result}
-                elif isinstance(eval_result, dict):
-                    flat = flatten_dict(eval_result)
-
-                self.trainer.logger_connector.callback_metrics.update(flat)
-                if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
-                    self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
-        else:
-            # with a scalar return, auto set it to "val_loss" for callbacks
-            if isinstance(eval_results, torch.Tensor):
-                flat = {'val_loss': eval_results}
-            else:
-                flat = flatten_dict(eval_results)
-
-            self.trainer.logger_connector.callback_metrics.update(flat)
-            if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
-                self.trainer.logger_connector.evaluation_callback_metrics.update(flat)
-
     def on_train_epoch_end(self):
         # inform cached logger connector epoch finished
         self.cached_results.has_batch_loop_finished = True
 
-    def log_train_epoch_end_metrics(self, epoch_output, num_optimizers):
+    def log_train_epoch_end_metrics(self, epoch_output: List[List[List[Result]]]) -> None:
         # epoch output is a list. Each item in that list has all the outputs per optimizer
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
-
-        model = self.trainer.lightning_module
-
-        # lightning module hook
-        self.training_epoch_end(model, epoch_output, num_optimizers)
 
         # log/aggregate metrics automatically
         epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
@@ -365,29 +333,6 @@ class LoggerConnector:
         # reset epoch loop result for next epoch
         self.cached_results.reset()
 
-    def training_epoch_end(self, model, epoch_output, num_optimizers):
-        if not is_overridden('training_epoch_end', model=model):
-            return
-
-        # run training_epoch_end
-        # refresh the result for custom logging at the epoch level
-        model._current_fx_name = 'training_epoch_end'
-        epoch_output = self.__prepare_epoch_end_inputs(epoch_output)
-
-        if num_optimizers == 1 or not self.trainer.train_loop.automatic_optimization:
-            epoch_output = epoch_output[0]
-
-        # lightningmodule hook
-        epoch_output = model.training_epoch_end(epoch_output)
-
-        if epoch_output is not None:
-            raise MisconfigurationException(
-                'training_epoch_end expects a return of None. '
-                'HINT: remove the return statement in training_epoch_end'
-            )
-        # capture logging
-        self.trainer.logger_connector.cache_logged_metrics()
-
     def __auto_reduce_results_on_epoch_end(self, epoch_output):
         epoch_log_metrics = {}
         epoch_progress_bar_metrics = {}
@@ -413,35 +358,8 @@ class LoggerConnector:
 
         return epoch_log_metrics, epoch_progress_bar_metrics
 
-    def __prepare_epoch_end_inputs(self, epoch_output):
-        """
-        Pulls out only the "extra" information for epoch end
-
-        Return:
-            a single list, each element per optimizer then batch then time
-        """
-        gathered_epoch_outputs = []
-        for opt_outputs in epoch_output:
-            # gather across time first
-            time_gathered_outputs = []
-            for tbptt_outs in opt_outputs:
-                result = []
-                for x in tbptt_outs:
-                    out = x.extra
-                    out['loss'] = x.minimize
-                    result.append(out)
-
-                # when time = 0, pass in the literal dict instead of array
-                if len(result) == 1:
-                    result = result[0]
-                time_gathered_outputs.append(result)
-
-            gathered_epoch_outputs.append(time_gathered_outputs)
-
-        return gathered_epoch_outputs
-
     def log_train_step_metrics(self, batch_output):
-        if self.trainer.train_loop.should_accumulate() and self.trainer.train_loop.automatic_optimization:
+        if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
         _, batch_log_metrics = self.cached_results.update_logger_connector()
         # when metrics should be logged

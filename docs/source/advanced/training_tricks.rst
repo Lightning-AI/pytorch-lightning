@@ -26,8 +26,10 @@ The effect is a large effective batch size of size KxN.
 
 Gradient Clipping
 -----------------
-Gradient clipping may be enabled to avoid exploding gradients. Specifically, this will `clip the gradient
-norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ computed over all model parameters together.
+Gradient clipping may be enabled to avoid exploding gradients. By default, this will `clip the gradient norm
+<https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ computed over all model parameters together.
+If ``gradient_clip_algorithm`` option is set to ``value``, which is ``norm`` by default, this will
+`clip the gradient value <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value_>`_ for each parameter instead.
 
 .. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
@@ -38,6 +40,10 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
 
     # clip gradients with norm above 0.5
     trainer = Trainer(gradient_clip_val=0.5)
+
+    # clip gradients with value above 0.5
+    # gradient_clip_algorithm types => :class:`~pytorch_lightning.utilities.enums.GradClipAlgorithmType`
+    trainer = Trainer(gradient_clip_val=0.5, gradient_clip_algorithm='value')
 
 ----------
 
@@ -106,7 +112,7 @@ search for batch sizes larger than the size of the training dataset.
     to `.fit()`.
 
 The scaling algorithm has a number of parameters that the user can control by
-invoking the trainer method `.scale_batch_size` themself (see description below).
+invoking the :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size` method:
 
 .. code-block:: python
 
@@ -117,7 +123,7 @@ invoking the trainer method `.scale_batch_size` themself (see description below)
     # Invoke method
     new_batch_size = tuner.scale_batch_size(model, *extra_parameters_here)
 
-    # Override old batch size
+    # Override old batch size (this is done automatically)
     model.hparams.batch_size = new_batch_size
 
     # Fit as normal
@@ -135,10 +141,6 @@ The algorithm in short works by:
           strategy.
     3. The found batch size is saved to either `model.batch_size` or `model.hparams.batch_size`
     4. Restore the initial state of model and trainer
-
-.. autoclass:: pytorch_lightning.tuner.tuning.Tuner
-   :noindex:
-   :members: scale_batch_size
 
 .. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
 

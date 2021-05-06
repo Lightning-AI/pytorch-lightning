@@ -30,7 +30,6 @@ if ':' in PYTHONPATH:
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
-from pytorch_lightning.trainer.states import TrainerState  # noqa: E402
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE  # noqa: E402
 
 if _HOROVOD_AVAILABLE:
@@ -63,7 +62,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     model = TestModel()
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # Horovod should be initialized following training. If not, this will raise an exception.
     if check_size:

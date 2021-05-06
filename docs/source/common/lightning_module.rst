@@ -698,10 +698,22 @@ log_dict
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.log_dict
     :noindex:
 
+manual_backward
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
+    :noindex:
+
 print
 ~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.print
+    :noindex:
+
+predict_step
+~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.predict_step
     :noindex:
 
 save_hyperparameters
@@ -912,35 +924,14 @@ use_amp
 ~~~~~~~
 True if using Automatic Mixed Precision (AMP)
 
-------------
-
-use_ddp
-~~~~~~~
-True if using ddp
-
-------------
-
-use_ddp2
-~~~~~~~~
-True if using ddp2
-
-------------
-
-use_dp
-~~~~~~
-True if using dp
-
-------------
-
-use_tpu
-~~~~~~~
-True if using TPUs
-
 --------------
 
 automatic_optimization
 ~~~~~~~~~~~~~~~~~~~~~~
-When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling your optimizers. However, we do take care of precision and any accelerators used.
+When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling
+your optimizers. However, we do take care of precision and any accelerators used.
+
+See :ref:`manual optimization<common/optimizers:Manual optimization>` for details.
 
 .. code-block:: python
 
@@ -955,7 +946,9 @@ When set to ``False``, Lightning does not automate the optimization process. Thi
         self.manual_backward(loss)
         opt.step()
 
-This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter. Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
+This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note
+that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter.
+Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
 
 .. code-block:: python
 
@@ -1001,7 +994,7 @@ Set or access your datamodule.
 .. code-block:: python
 
     def configure_optimizers(self):
-        num_training_samples = len(self.datamodule.train_dataloader())
+        num_training_samples = len(self.trainer.datamodule.train_dataloader())
         ...
 
 --------------
@@ -1009,6 +1002,63 @@ Set or access your datamodule.
 model_size
 ~~~~~~~~~~
 Get the model file size (in megabytes) using ``self.model_size`` inside LightningModule.
+
+--------------
+
+truncated_bptt_steps
+^^^^^^^^^^^^^^^^^^^^
+
+Truncated back prop breaks performs backprop every k steps of
+a much longer sequence.
+
+If this is enabled, your batches will automatically get truncated
+and the trainer will apply Truncated Backprop to it.
+
+(`Williams et al. "An efficient gradient-based algorithm for on-line training of
+recurrent network trajectories."
+<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
+
+`Tutorial <https://d2l.ai/chapter_recurrent-neural-networks/bptt.html>`_
+
+.. testcode:: python
+
+    from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            # Important: This property activates truncated backpropagation through time
+            # Setting this value to 2 splits the batch into sequences of size 2
+            self.truncated_bptt_steps = 2
+
+        # Truncated back-propagation through time
+        def training_step(self, batch, batch_idx, hiddens):
+            # the training step must be updated to accept a ``hiddens`` argument
+            # hiddens are the hiddens from the previous truncated backprop step
+            out, hiddens = self.lstm(data, hiddens)
+            return {
+                "loss": ...,
+                "hiddens": hiddens
+            }
+
+Lightning takes care to split your batch along the time-dimension.
+
+.. code-block:: python
+
+    # we use the second as the time dimension
+    # (batch, time, ...)
+    sub_batch = batch[0, 0:t, ...]
+
+To modify how the batch is split,
+override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
+
+.. testcode:: python
+
+    class LitMNIST(LightningModule):
+        def tbptt_split_batch(self, batch, split_size):
+            # do your own splitting on the batch
+            return splits
 
 --------------
 
@@ -1070,7 +1120,7 @@ This is the pseudocode to describe how all the hooks are called during a call to
                 val_loop()
 
         # end training epoch
-        outs = training_epoch_end(outs)
+        training_epoch_end(outs)
         on_train_epoch_end(outs)
         on_epoch_end()
 
@@ -1109,13 +1159,6 @@ get_progress_bar_dict
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
     :noindex:
-
-manual_backward
-~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
-    :noindex:
-
 
 on_after_backward
 ~~~~~~~~~~~~~~~~~

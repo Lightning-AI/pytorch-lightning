@@ -104,6 +104,7 @@ Lightning has a few built-in callbacks.
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
+    BasePredictionWriter
     ProgressBar
     ProgressBarBase
     QuantizationAwareTraining
@@ -167,7 +168,7 @@ on_init_end
 on_fit_start
 ^^^^^^^^^^^^
 
-.. automethod:: pytorch_lightning.callbacks.Callback.on_save_checkpoint
+.. automethod:: pytorch_lightning.callbacks.Callback.on_fit_start
     :noindex:
 
 on_fit_end

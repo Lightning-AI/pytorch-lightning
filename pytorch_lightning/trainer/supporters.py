@@ -14,11 +14,13 @@
 
 import os
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Generator, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import IterableDataset
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -352,7 +354,7 @@ class CombinedLoader(object):
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
         """Return a collections of samplers extracting from loaders."""
-        return apply_to_collection(self.loaders, Iterable, getattr, 'sampler', None, wrong_dtype=(Sequence, Mapping))
+        return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, 'sampler', None)
 
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
@@ -506,3 +508,25 @@ def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable
             new_data.append(x)
 
     return compute_func(new_data)
+
+
+def prefetch_iterator(iterable: Iterable) -> Generator[Tuple[Any, bool], None, None]:
+    """
+    Returns an iterator that pre-fetches and caches the next item.
+    The values are passed through from the given iterable with an added boolean indicating if this is the last item.
+    See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_
+    """
+    it = iter(iterable)
+
+    try:
+        # the iterator may be empty from the beginning
+        last = next(it)
+    except StopIteration:
+        return
+
+    for val in it:
+        # yield last and has next
+        yield last, False
+        last = val
+    # yield last, no longer has next
+    yield last, True

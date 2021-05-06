@@ -48,9 +48,6 @@ To use 16-bit precision, do two things:
 
 .. code-block:: bash
 
-    $ git clone https://github.com/NVIDIA/apex
-    $ cd apex
-
     # ------------------------
     # OPTIONAL: on your cluster you might need to load CUDA 10 or 9
     # depending on how you installed PyTorch
@@ -65,7 +62,7 @@ To use 16-bit precision, do two things:
     # make sure you've loaded a cuda version > 4.0 and < 7.0
     module load gcc-6.1.0
 
-    $ pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+    $ pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
 
 .. warning:: NVIDIA Apex and DDP have instability problems. We recommend native 16-bit in PyTorch 1.6+
 
