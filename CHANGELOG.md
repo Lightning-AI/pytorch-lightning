@@ -182,6 +182,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Ensure accelerator is valid if running interactively ([#5970](https://github.com/PyTorchLightning/pytorch-lightning/pull/5970))
 
+- Disabled batch transfer in DP mode ([#6098](https://github.com/PyTorchLightning/pytorch-lightning/pull/6098))
+
 ### Deprecated
 
 - Deprecated `outputs` in both `LightningModule.on_train_epoch_end` and `Callback.on_train_epoch_end` hooks ([#7339](https://github.com/PyTorchLightning/pytorch-lightning/pull/7339))
@@ -270,6 +272,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed `logger_connector` legacy code ([#6733](https://github.com/PyTorchLightning/pytorch-lightning/pull/6733))
 
+- Removed unused mixin attributes ([#6487](https://github.com/PyTorchLightning/pytorch-lightning/pull/6487))
 
 ### Fixed
 
@@ -353,7 +356,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#7096](https://github.com/PyTorchLightning/pytorch-lightning/pull/7096),
     [#7246](https://github.com/PyTorchLightning/pytorch-lightning/pull/7246),
     [#6357](https://github.com/PyTorchLightning/pytorch-lightning/pull/6357),
-    [#6476](https://github.com/PyTorchLightning/pytorch-lightning/pull/6476)
+    [#6476](https://github.com/PyTorchLightning/pytorch-lightning/pull/6476),
+    [#6294](https://github.com/PyTorchLightning/pytorch-lightning/pull/6294),
+    [#6373](https://github.com/PyTorchLightning/pytorch-lightning/pull/6373),
+    [#6088](https://github.com/PyTorchLightning/pytorch-lightning/pull/6088)
 )
   
 - Resolved schedule step bug for PyTorch Profiler ([#6674](https://github.com/PyTorchLightning/pytorch-lightning/pull/6674),
