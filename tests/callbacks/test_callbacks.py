@@ -14,9 +14,8 @@
 from unittest import mock
 from unittest.mock import ANY, call, MagicMock, Mock
 
-from pytorch_lightning import Trainer, Callback
+from pytorch_lightning import Trainer
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
 @mock.patch("torch.save")  # need to mock torch.save or we get pickle error
@@ -269,52 +268,3 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
         trainer_fn(ckpt_path=None)
         callbacks_after = trainer.callbacks.copy()
         assert callbacks_after == callbacks_after_fit
-
-
-class BatchObserverCallback(Callback):
-
-    def on_train_batch_start(self, trainer, pl_module, batch, *args):
-        assert batch.device == pl_module.device
-
-    def on_validation_batch_start(self, trainer, pl_module, batch, *args):
-        assert batch.device == pl_module.device
-
-    def on_test_batch_start(self, trainer, pl_module, batch, *args):
-        assert batch.device == pl_module.device
-
-    def on_predict_batch_start(self, trainer, pl_module, batch, *args):
-        assert batch.device == pl_module.device
-
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
-
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
-
-    def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
-
-    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
-
-
-@RunIf(min_gpus=1)
-def test_callback_batch_on_device(tmpdir):
-
-    batch_callback = BatchObserverCallback()
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        limit_predict_batches=1,
-        gpus=1,
-        callbacks=[batch_callback],
-    )
-    trainer.fit(model)
-    trainer.validate(model)
-    trainer.test(model)
-    trainer.predict(model)
