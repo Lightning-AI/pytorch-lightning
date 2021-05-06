@@ -954,8 +954,8 @@ class Trainer(
                 if batch_idx >= dl_max_batches:
                     break
 
-                # TODO: where is the profile step for to_device?
-                batch = self.accelerator.to_device(batch)
+                with self.profiler.profile("evaluation_batch_to_device"):
+                    batch = self.accelerator.to_device(batch)
 
                 # hook
                 self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
@@ -1080,7 +1080,8 @@ class Trainer(
                 if batch_idx >= dl_max_batches:
                     break
 
-                batch = self.accelerator.to_device(batch)
+                with self.profiler.profile("predict_batch_to_device"):
+                    batch = self.accelerator.to_device(batch)
 
                 # lightning module methods
                 with self.profiler.profile("predict_step"):
