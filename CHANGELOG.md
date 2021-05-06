@@ -214,7 +214,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     [#6476](https://github.com/PyTorchLightning/pytorch-lightning/pull/6476),
     [#6294](https://github.com/PyTorchLightning/pytorch-lightning/pull/6294),
     [#6373](https://github.com/PyTorchLightning/pytorch-lightning/pull/6373),
-    [#6088](https://github.com/PyTorchLightning/pytorch-lightning/pull/6088)
+    [#6088](https://github.com/PyTorchLightning/pytorch-lightning/pull/6088),
+    [#7398](https://github.com/PyTorchLightning/pytorch-lightning/pull/7398)
 )
 - Resolved schedule step bug for PyTorch Profiler ([#6674](https://github.com/PyTorchLightning/pytorch-lightning/pull/6674),
     [#6681](https://github.com/PyTorchLightning/pytorch-lightning/pull/6681))
