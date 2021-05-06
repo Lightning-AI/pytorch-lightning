@@ -16,6 +16,7 @@ from unittest.mock import ANY, call, MagicMock, Mock
 
 from pytorch_lightning import Trainer, Callback
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 @mock.patch("torch.save")  # need to mock torch.save or we get pickle error
@@ -297,6 +298,7 @@ class BatchObserverCallback(Callback):
         assert batch.device == pl_module.device
 
 
+@RunIf(min_gpus=1)
 def test_callback_batch_on_device(tmpdir):
 
     batch_callback = BatchObserverCallback()
