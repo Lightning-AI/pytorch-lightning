@@ -7,7 +7,7 @@ requirement_fnames = (
 )
 
 
-def replace_min(fname):
+def replace_min(fname: str):
     req = open(fname).read().replace('>=', '==')
     open(fname, 'w').write(req)
 

@@ -2,7 +2,7 @@ import sys
 from pprint import pprint
 
 
-def main(req_file, *pkgs):
+def main(req_file: str, *pkgs):
     with open(req_file, 'r') as fp:
         lines = fp.readlines()
 
