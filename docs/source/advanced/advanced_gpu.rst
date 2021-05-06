@@ -33,7 +33,7 @@ But for **fine-tuning** a model, you can reach 10 to 20 Billion parameter models
 When Shouldn't I use an Optimized Distributed Plugin?
 """""""""""""""""""""""""""""""""""""""""""""""""""""
 
-Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in cases where your model is small (ResNet50 of around 80M Parameters) it may be best to stick to normal distributed training, unless you are using unusually large batch sizes or inputs.
+Sharding techniques help when model sizes are fairly large; roughly 500M+ parameters is where we've seen benefits. However, in cases where your model is small (ResNet50 of around 80M Parameters) it may be best to stick to ordinary distributed training, unless you are using unusually large batch sizes or inputs.
 
 ----------
 
