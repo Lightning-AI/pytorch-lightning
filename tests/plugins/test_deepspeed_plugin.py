@@ -257,7 +257,7 @@ def test_deepspeed_auto_batch_size_config_select(setup_distributed_mock, tmpdir,
             # int value overrides auto mode
             expected_value = value if isinstance(value, int) else 1
             if dataset_cls == RandomDataset:
-                expected_value = pl_module.train_dataloader().batch_size if value is "auto" else value
+                expected_value = pl_module.train_dataloader().batch_size if value == "auto" else value
 
             assert config['train_micro_batch_size_per_gpu'] == expected_value
             raise SystemExit
