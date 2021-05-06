@@ -2,6 +2,7 @@ import json
 import os
 from typing import Any, Dict
 
+import mock
 import pytest
 import torch
 import torch.nn.functional as F
@@ -238,7 +239,8 @@ def test_warn_deepspeed_override_backward(tmpdir):
 @RunIf(min_gpus=1, deepspeed=True)
 @pytest.mark.parametrize(['dataset_cls', 'value'], [(RandomDataset, "auto"), (RandomDataset, 10),
                                                     (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)])
-def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
+@mock.patch('pytorch_lightning.plugins.DDPPlugin.setup_distributed', autospec=True)
+def test_deepspeed_auto_batch_size_config_select(setup_distributed_mock, tmpdir, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
     class TestModel(BoringModel):
@@ -248,13 +250,13 @@ def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
 
     class AssertCallback(Callback):
 
-        def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+        def on_train_start(self, trainer, pl_module) -> None:
             assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
             config = trainer.accelerator.training_type_plugin.config
 
             # int value overrides auto mode
             expected_value = value if isinstance(value, int) else 1
-            if dataset_cls is RandomDataset:
+            if dataset_cls == RandomDataset:
                 expected_value = pl_module.train_dataloader().batch_size if value is "auto" else value
 
             assert config['train_micro_batch_size_per_gpu'] == expected_value

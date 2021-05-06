@@ -485,7 +485,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 "zero_optimization": zero_kwargs,
                 **cfg
             }
-        if logging_batch_size_per_gpu is not 'auto':
+        if logging_batch_size_per_gpu != 'auto':
             cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
         return cfg
 
