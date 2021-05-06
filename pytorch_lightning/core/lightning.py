@@ -1195,8 +1195,8 @@ class LightningModule(
             There is a difference between passing multiple optimizers in a list,
             and passing multiple optimizers in dictionaries with a frequency of 1:
 
-            - In the former case, all optimizers will operate on the given batch in each optimization step.
-            - In the latter, only one optimizer will operate on the given batch at every step.
+                - In the former case, all optimizers will operate on the given batch in each optimization step.
+                - In the latter, only one optimizer will operate on the given batch at every step.
 
             This is different from the ``frequency`` value specified in the ``lr_dict`` mentioned above.
 
