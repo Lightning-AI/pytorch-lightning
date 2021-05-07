@@ -90,7 +90,7 @@ class TrainLoop:
             self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
         return self._optimizer_freq_cumsum
 
-    def should_skip_training(self):
+    def should_skip_training(self) -> bool:
         should_by_max_steps = self.max_steps is not None and self.global_step >= self.max_steps
         should_by_epoch = self.max_epochs is not None and self.current_epoch >= self.max_epochs
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
