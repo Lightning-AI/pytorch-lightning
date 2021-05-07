@@ -262,8 +262,7 @@ class CombinedDataset(object):
     def min_len(self) -> Union[int, float]:
         return self._calc_num_data(self.datasets, 'min_size')
 
-    @staticmethod
-    def _calc_num_data(datasets: Union[Sequence, Mapping], mode: str) -> Union[int, float]:
+    def _calc_num_data(self, datasets: Union[Sequence, Mapping], mode: str) -> Union[int, float]:
         """
         Compute the length of `CombinedDataset` according to the `mode`.
 
@@ -281,9 +280,7 @@ class CombinedDataset(object):
             raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         # extract the lengths
-        all_lengths = apply_to_collection(
-            datasets, (Dataset, Iterable, type(None)), get_len, wrong_dtype=(Sequence, Mapping)
-        )
+        all_lengths = self._get_len_recursive(datasets)
 
         compute_func = CombinedDataset.COMPUTE_FUNCS[mode]
 
@@ -293,6 +290,34 @@ class CombinedDataset(object):
             length = _nested_calc_num_data(all_lengths, compute_func)
 
         return length
+
+    def _get_len_recursive(self, data):
+        if isinstance(data, Dataset):
+            return len(data)
+
+        elif isinstance(data, (float, int)):
+            return data
+
+        elif isinstance(data, Mapping):
+            if isinstance(list(data.values())[0], (Mapping, Sequence, Dataset, Iterable)):
+                return {k: self._get_len_recursive(v) for k, v in data.items()}
+            else:
+                return self._get_len(data)
+        elif isinstance(data, Sequence):
+            data = list(data)
+            if isinstance(data[0], (Mapping, Sequence, Dataset, Iterable)):
+                return [self._get_len_recursive(v) for v in data]
+            else:
+                return self._get_len(data)
+
+        return self._get_len(data)
+
+    @staticmethod
+    def _get_len(dataset):
+        try:
+            return len(dataset)
+        except (TypeError, NotImplementedError):
+            return float('inf')
 
     def __len__(self) -> int:
         """Return the minimum length of the datasets."""
@@ -335,6 +360,9 @@ class CombinedLoader(object):
                 'max_size_cycle' which stops if the longest loader is exhausted and cycles through the smaller ones.
 
         """
+        if mode not in self.SUPPORTED_MODES:
+            raise MisconfigurationException(f"Invalid Mode: {mode}")
+
         self.loaders = loaders
 
         datasets = apply_to_collection(
@@ -342,9 +370,6 @@ class CombinedLoader(object):
         )
         # could be multiple datasets, but use self.dataset to follow the name convention in DataLoader
         self.dataset = CombinedDataset(datasets, mode)
-
-        if mode not in self.SUPPORTED_MODES:
-            raise MisconfigurationException(f"Invalid Mode: {mode}")
 
         self.mode = mode
 
