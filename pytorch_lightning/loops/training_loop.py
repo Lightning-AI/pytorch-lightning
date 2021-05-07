@@ -12,8 +12,14 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 class TrainingLoop(Loop):
     """ Runs over all batches in a dataloader (one epoch). """
 
+    def __init__(self):
+        super().__init__()
+        # cache of all outputs in a single training run / epoch
+        # self.epoch_output = [[]]
+
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
+        # self.epoch_output = [[] for _ in range(len(trainer.optimizers))]
         self.batch_loop = BatchLoop()
 
     def on_run_start(self):
@@ -43,7 +49,7 @@ class TrainingLoop(Loop):
             return
 
         # hook
-        # TODO: add outputs to batches
+        epoch_output = [[]]  # TODO: track and return output, let loop base concatenate all outputs into a list etc.
         self.on_train_batch_end(
             epoch_output,
             batch_output.training_step_output_for_epoch_end,
@@ -133,12 +139,8 @@ class TrainingLoop(Loop):
         self.trainer.call_hook('on_train_epoch_end', processed_outputs)
         self.trainer.call_hook('on_epoch_end')
 
-        # increment the global step once
-        # progress global step according to grads progress
-        self.increment_accumulated_grad_global_step()
-
 # ------------------------------------------------------------------------------------------------------------
-# HELPER
+# HELPER --- TO BE CLEANED UP
 # ------------------------------------------------------------------------------------------------------------
 
     # TODO move to on_advance_end()

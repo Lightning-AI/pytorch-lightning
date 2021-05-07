@@ -7,6 +7,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.training_loop import TrainingLoop
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -18,23 +19,18 @@ log = logging.getLogger(__name__)
 
 class EpochLoop(Loop):
 
-    def connect(
-        self,
-        num_epochs: int,
-        max_steps: Optional[int],
-        trainer: 'pl.Trainer',
-        *loops_to_run: Loop,
-    ):
-        self.num_epochs = num_epochs
-        self.max_steps = max_steps
+    def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
+        self.num_epochs = trainer.max_epochs
+        self.min_epochs = trainer.min_epochs
+        # TODO: let inner loop track the steps
+        self.max_steps = trainer.max_steps
+        self.min_steps = trainer.min_steps
         self.trainer = trainer
-        self.loops_to_run = []
-        for loop in loops_to_run:
-            if isinstance(loop, Loop) or hasattr(loop, 'run'):
-                self.loops_to_run.append(loop)
+        self.training_loop = TrainingLoop()
 
     @property
     def done(self) -> bool:
+        # TODO: Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = self.trainer.max_steps and self.trainer.max_steps <= self.trainer.global_step
 
         should_stop = False
@@ -43,7 +39,7 @@ class EpochLoop(Loop):
             met_min_epochs = (self.iteration_count >= self.trainer.min_epochs - 1) if self.trainer.min_epochs else True
             met_min_steps = self.trainer.global_step >= self.trainer.min_steps if self.trainer.min_steps else True
             if met_min_epochs and met_min_steps:
-                self.train_loop.on_train_end()
+                self.training_loop.on_train_end()
                 should_stop = True
             else:
                 log.info(
@@ -54,7 +50,6 @@ class EpochLoop(Loop):
                 self.trainer.should_stop = False
 
         stop_epochs = self.iteration_count >= self.num_epochs
-
         return stop_steps or should_stop or stop_epochs
 
     def on_run_start(self):
@@ -69,7 +64,8 @@ class EpochLoop(Loop):
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
         self.trainer.global_step -= 1
-        self.check_checkpoint_callback(should_update=True, is_last=True)
+        # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
+        # self.check_checkpoint_callback(should_update=True, is_last=True)
         self.trainer.global_step += 1
 
         # hook
@@ -120,39 +116,40 @@ class EpochLoop(Loop):
 
     # why is this not the same as the old on_train_epoch_end?
     def on_advance_end(self, outputs):
-        # handle epoch_output on epoch end
-        self.on_train_epoch_end(outputs)
+        # # handle epoch_output on epoch end
+        # self.on_train_epoch_end(outputs)  # Handled in on_run_end of training_loop now
 
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(outputs)
 
-        should_check_val = self.should_check_val_fx(self.trainer.batch_idx, self.trainer.is_last_batch, on_epoch=True)
+        # should_check_val = self.should_check_val_fx(self.trainer.batch_idx, self.trainer.is_last_batch, on_epoch=True)
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
         # update epoch level lr_schedulers if no val loop outside train loop is triggered
-        if (val_loop_called and not should_check_val) or should_train_only:
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+        # if (val_loop_called and not should_check_val) or should_train_only:
+        self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
-        if should_train_only:
-            self.check_checkpoint_callback(True)
-            self.check_early_stopping_callback(True)
+        # if should_train_only:
+        #     self.check_checkpoint_callback(True)
+        #     self.check_early_stopping_callback(True)
 
-        if should_check_val:
-            self.trainer.validating = True
-            self.trainer.run_evaluation(on_epoch=True)
-            self.trainer.training = True
+        # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
+        # if should_check_val:
+        #     self.trainer.validating = True
+        #     self.trainer.run_evaluation(on_epoch=True)
+        #     self.trainer.training = True
 
         # increment the global step once
         # progress global step according to grads progress
-        self.increment_accumulated_grad_global_step()
+        # TODO: move inside training_loop.on_run_end? equivalent? order?
+        self.training_loop.increment_accumulated_grad_global_step()
 
     def advance(self):
-        ret_vals = []
+
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
-            for loop in self.loops_to_run:
-                ret_vals.append(loop.run())
+            output = self.training_loop.run()
 
-        return ret_vals
+        return output
 

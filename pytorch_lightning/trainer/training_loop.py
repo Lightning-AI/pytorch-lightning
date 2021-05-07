@@ -954,7 +954,7 @@ class TrainLoop:
         # optimizers = self.prepare_optimizers()
 
         # track all outputs across time and num of optimizers
-        batch_outputs = [[] for _ in range(len(optimizers))]
+        # batch_outputs = [[] for _ in range(len(optimizers))]
         #
         # if batch is None:
         #     return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
