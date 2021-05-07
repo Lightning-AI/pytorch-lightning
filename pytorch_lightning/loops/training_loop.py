@@ -14,6 +14,7 @@ class TrainingLoop(Loop):
 
     def __init__(self):
         super().__init__()
+        self.is_last_batch = True
         # cache of all outputs in a single training run / epoch
         # self.epoch_output = [[]]
 
@@ -34,7 +35,7 @@ class TrainingLoop(Loop):
         batch_idx, (batch, is_last) = next(self._train_dataloader)
 
         self.trainer.batch_idx = batch_idx
-        self.trainer.is_last_batch = is_last
+        self.is_last_batch = is_last
 
         # ------------------------------------
         # TRAINING_STEP + TRAINING_STEP_END
@@ -67,7 +68,7 @@ class TrainingLoop(Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self.should_check_val_fx(self.trainer.batch_idx, self.trainer.is_last_batch)
+        should_check_val = self.should_check_val_fx(self.trainer.batch_idx, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
             self.trainer.run_evaluation()
@@ -104,7 +105,7 @@ class TrainingLoop(Loop):
         self.trainer.total_batch_idx += 1
 
         # stop epoch if we limited the number of training batches
-        if self._num_training_batches_reached(self.trainer.is_last_batch):
+        if self._num_training_batches_reached(self.is_last_batch):
             return True
 
     # this is the old on train_epoch_end?
@@ -142,6 +143,9 @@ class TrainingLoop(Loop):
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
 # ------------------------------------------------------------------------------------------------------------
+
+    def _num_training_batches_reached(self, is_last_batch=False):
+        return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
 
     # TODO move to on_advance_end()
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
