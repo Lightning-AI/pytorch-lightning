@@ -723,7 +723,7 @@ class Trainer(
                                 |                             ||
                         create accelerator                    ||
                                 |                             ||
-                         {self._dispatch}                      ||
+                         {self._dispatch}                     ||
                                 |                             ||  LIGHTNING
                   {self.accelerator.start_training}           ||
                 or {self.accelerator.start_evaluating}        ||
@@ -731,9 +731,9 @@ class Trainer(
                                 |                             ||
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
-                        {self._run_train}                      ||
-                     or {self._run_evaluation}                 ||
-                     or {self._run_predict}                    ||
+                        {self._run_train}                     ||
+                     or {self._run_evaluation}                ||
+                     or {self._run_predict}                   ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
