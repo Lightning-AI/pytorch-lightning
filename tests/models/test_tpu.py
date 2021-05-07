@@ -26,7 +26,6 @@ from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import TPUSpawnPlugin
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -258,7 +257,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
         train_dataloader=model.train_dataloader(),
         val_dataloaders=model.val_dataloader(),
     )
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(
@@ -417,7 +416,7 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
     model = BoringModel()
     trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @RunIf(tpu=True)

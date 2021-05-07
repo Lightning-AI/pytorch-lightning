@@ -16,7 +16,6 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel
@@ -35,7 +34,7 @@ def test_optimizer_with_scheduling(tmpdir):
         val_check_interval=0.5,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     init_lr = 0.1
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
@@ -70,7 +69,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
         limit_train_batches=0.2,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
@@ -132,6 +131,7 @@ def test_reducelronplateau_scheduling(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     lr_scheduler = trainer.lr_schedulers[0]
     assert lr_scheduler == dict(
@@ -243,7 +243,7 @@ def test_none_optimizer(tmpdir):
     )
     with pytest.warns(UserWarning, match='will run with no optimizer'):
         trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_configure_optimizer_from_dict(tmpdir):
@@ -261,7 +261,7 @@ def test_configure_optimizer_from_dict(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(
@@ -339,6 +339,7 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
 
     trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=max_epochs)
     trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert trainer.lr_schedulers[0]['opt_idx'] == 0
     assert trainer.lr_schedulers[1]['opt_idx'] == 1

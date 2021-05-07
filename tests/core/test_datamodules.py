@@ -22,7 +22,6 @@ import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -272,7 +271,7 @@ def test_train_loop_only(tmpdir):
 
     # fit model
     trainer.fit(model, datamodule=dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -294,7 +293,7 @@ def test_train_val_loop_only(tmpdir):
 
     # fit model
     trainer.fit(model, datamodule=dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -330,7 +329,7 @@ def test_dm_checkpoint_save(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__name__ in checkpoint
@@ -352,7 +351,7 @@ def test_full_loop(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert dm.trainer is not None
 
     # validate

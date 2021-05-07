@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
 import pytest
 import torch
 from torch import nn
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
@@ -67,7 +65,7 @@ def test_resume_training_on_cpu(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @RunIf(tpu=True)

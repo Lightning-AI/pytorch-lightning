@@ -7,6 +7,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
@@ -14,7 +15,7 @@ from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 
@@ -231,6 +232,44 @@ def test_warn_deepspeed_override_backward(tmpdir):
         precision=16,
     )
     with pytest.warns(UserWarning, match='Overridden backward hook in the LightningModule will be ignored'):
+        trainer.fit(model)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
+@pytest.mark.parametrize(['dataset_cls', 'value'], [(RandomDataset, "auto"), (RandomDataset, 10),
+                                                    (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)])
+def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
+    """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
+
+    class TestModel(BoringModel):
+
+        def train_dataloader(self):
+            return DataLoader(dataset_cls(32, 64))
+
+    class AssertCallback(Callback):
+
+        def on_train_start(self, trainer, pl_module) -> None:
+            assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
+            config = trainer.accelerator.training_type_plugin.config
+
+            # int value overrides auto mode
+            expected_value = value if isinstance(value, int) else 1
+            if dataset_cls == RandomDataset:
+                expected_value = pl_module.train_dataloader().batch_size if value == "auto" else value
+
+            assert config['train_micro_batch_size_per_gpu'] == expected_value
+            raise SystemExit
+
+    ck = AssertCallback()
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        callbacks=ck,
+        gpus=1,
+        plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=value, zero_optimization=False),
+    )
+    with pytest.raises(SystemExit):
         trainer.fit(model)
 
 

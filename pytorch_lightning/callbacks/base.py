@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class Callback(abc.ABC):
@@ -98,17 +98,23 @@ class Callback(abc.ABC):
         """Called when the train epoch begins."""
         pass
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT) -> None:
-        """Called when the train epoch ends."""
+    def on_train_epoch_end(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', unused: Optional = None
+    ) -> None:
+        """Called when the train epoch ends.
+
+        To access all batch outputs at the end of the epoch, either:
+
+        1. Implement `training_epoch_end` in the `LightningModule` and access outputs via the module OR
+        2. Cache data across train batch hooks inside the callback implementation to post-process in this hook.
+        """
         pass
 
     def on_validation_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the val epoch begins."""
         pass
 
-    def on_validation_epoch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT
-    ) -> None:
+    def on_validation_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the val epoch ends."""
         pass
 
@@ -116,7 +122,7 @@ class Callback(abc.ABC):
         """Called when the test epoch begins."""
         pass
 
-    def on_test_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT) -> None:
+    def on_test_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the test epoch ends."""
         pass
 
