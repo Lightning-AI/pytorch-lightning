@@ -14,7 +14,6 @@ EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 _PARAMETERS = Iterator[torch.nn.Parameter]
-TRAIN_DATALOADERS = Union[DataLoader, Sequence[DataLoader], Dict[str, DataLoader],
-                          # TODO: expand allowed types once fixed.
-                          'pl.trainer.supporters.CombinedLoader', ]
+# TODO: expand allowed train_dataloaders types once fixed.
+TRAIN_DATALOADERS = Union[DataLoader, Sequence[DataLoader], Dict[str, DataLoader], 'CombinedLoader']
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]

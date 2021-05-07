@@ -64,13 +64,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import (
-    _DATALOADERS,
-    _EVALUATE_OUTPUT,
-    _PREDICT_OUTPUT,
-    EVAL_DATALOADERS,
-    TRAIN_DATALOADERS,
-)
+from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
