@@ -43,7 +43,8 @@ class TrainerModelHooksMixin(ABC):
     def has_arg(self, f_name: str, arg_name: str) -> bool:
         rank_zero_deprecation(
             "Internal: TrainerModelHooksMixin.is_function_implemented is deprecated in v1.4"
-            " and will be removed in v1.6. Use `pytorch_lightning.utilities.signature_utils.is_param_in_hook_signature` instead"
+            " and will be removed in v1.6."
+            " Use `pytorch_lightning.utilities.signature_utils.is_param_in_hook_signature` instead."
         )
         model = self.lightning_module
         f_op = getattr(model, f_name, None)
