@@ -599,7 +599,7 @@ def test_log_works_in_train_callback(tmpdir):
             # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
+        def on_train_epoch_end(self, trainer, pl_module):
             self.make_logging(
                 pl_module, 'on_train_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
             )
@@ -894,7 +894,7 @@ def test_metric_are_properly_reduced(tmpdir):
 
     class TestingModel(BoringModel):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__()
             self.val_acc = pl.metrics.Accuracy()
 

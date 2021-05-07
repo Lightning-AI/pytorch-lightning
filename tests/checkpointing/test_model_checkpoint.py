@@ -35,7 +35,6 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
@@ -127,9 +126,8 @@ def test_model_checkpoint_score_and_ckpt(
         max_epochs=max_epochs,
         progress_bar_refresh_rate=0,
     )
-    results = trainer.fit(model)
-    assert results
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
@@ -232,9 +230,8 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         progress_bar_refresh_rate=0,
         num_sanity_val_steps=0,
     )
-    results = trainer.fit(model)
-    assert results
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
     scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
@@ -409,55 +406,58 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
         max_epochs=num_epochs,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_model_checkpoint_format_checkpoint_name(tmpdir):
     # empty filename:
-    ckpt_name = ModelCheckpoint._format_checkpoint_name('', 3, 2, {})
+    ckpt_name = ModelCheckpoint._format_checkpoint_name('', {'epoch': 3, 'step': 2})
     assert ckpt_name == 'epoch=3-step=2'
 
-    ckpt_name = ModelCheckpoint._format_checkpoint_name(None, 3, 2, {}, prefix='test')
+    ckpt_name = ModelCheckpoint._format_checkpoint_name(None, {'epoch': 3, 'step': 2}, prefix='test')
     assert ckpt_name == 'test-epoch=3-step=2'
 
     # no groups case:
-    ckpt_name = ModelCheckpoint._format_checkpoint_name('ckpt', 3, 2, {}, prefix='test')
+    ckpt_name = ModelCheckpoint._format_checkpoint_name('ckpt', {}, prefix='test')
     assert ckpt_name == 'test-ckpt'
 
     # no prefix
-    ckpt_name = ModelCheckpoint._format_checkpoint_name('{epoch:03d}-{acc}', 3, 2, {'acc': 0.03})
+    ckpt_name = ModelCheckpoint._format_checkpoint_name('{epoch:03d}-{acc}', {'epoch': 3, 'acc': 0.03})
     assert ckpt_name == 'epoch=003-acc=0.03'
 
     # prefix
     char_org = ModelCheckpoint.CHECKPOINT_JOIN_CHAR
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = '@'
-    ckpt_name = ModelCheckpoint._format_checkpoint_name('{epoch},{acc:.5f}', 3, 2, {'acc': 0.03}, prefix='test')
+    ckpt_name = ModelCheckpoint._format_checkpoint_name('{epoch},{acc:.5f}', {'epoch': 3, 'acc': 0.03}, prefix='test')
     assert ckpt_name == 'test@epoch=3,acc=0.03000'
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = char_org
 
     # no dirpath set
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath=None).format_checkpoint_name(3, 2, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath=None).format_checkpoint_name({'epoch': 3, 'step': 2})
     assert ckpt_name == 'epoch=3-step=2.ckpt'
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='').format_checkpoint_name(5, 4, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='').format_checkpoint_name({'epoch': 5, 'step': 4})
     assert ckpt_name == 'epoch=5-step=4.ckpt'
 
     # CWD
-    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name(3, 4, {})
+    ckpt_name = ModelCheckpoint(monitor='early_stop_on', dirpath='.').format_checkpoint_name({'epoch': 3, 'step': 4})
     assert ckpt_name == str(Path('.').resolve() / 'epoch=3-step=4.ckpt')
 
     # with version
     ckpt = ModelCheckpoint(monitor='early_stop_on', dirpath=tmpdir, filename='name')
-    ckpt_name = ckpt.format_checkpoint_name(3, 2, {}, ver=3)
+    ckpt_name = ckpt.format_checkpoint_name({}, ver=3)
     assert ckpt_name == tmpdir / 'name-v3.ckpt'
 
     # using slashes
     ckpt = ModelCheckpoint(monitor='early_stop_on', dirpath=None, filename='{epoch}_{val/loss:.5f}')
-    ckpt_name = ckpt.format_checkpoint_name(4, 3, {'val/loss': 0.03})
+    ckpt_name = ckpt.format_checkpoint_name({'epoch': 4, 'val/loss': 0.03})
     assert ckpt_name == 'epoch=4_val/loss=0.03000.ckpt'
 
     # auto_insert_metric_name=False
     ckpt_name = ModelCheckpoint._format_checkpoint_name(
-        'epoch={epoch:03d}-val_acc={val/acc}', 3, 2, {'val/acc': 0.03}, auto_insert_metric_name=False
+        'epoch={epoch:03d}-val_acc={val/acc}', {
+            'epoch': 3,
+            'val/acc': 0.03
+        }, auto_insert_metric_name=False
     )
     assert ckpt_name == 'epoch=003-val_acc=0.03'
 
@@ -507,7 +507,7 @@ def test_model_checkpoint_save_last(tmpdir):
     )
     trainer.fit(model)
     last_filename = model_checkpoint._format_checkpoint_name(
-        ModelCheckpoint.CHECKPOINT_NAME_LAST, trainer.current_epoch, trainer.global_step, {}
+        ModelCheckpoint.CHECKPOINT_NAME_LAST, {'epoch': trainer.current_epoch}
     )
     last_filename = last_filename + '.ckpt'
     assert str(tmpdir / last_filename) == model_checkpoint.last_model_path

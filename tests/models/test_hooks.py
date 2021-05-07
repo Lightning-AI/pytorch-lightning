@@ -17,8 +17,7 @@ from unittest.mock import PropertyMock
 import pytest
 import torch
 
-from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning import Trainer
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -78,7 +77,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
         overfit_batches=2,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     metrics = trainer.progress_bar_dict
 
     # metrics added in training step should be unchanged by epoch end method
@@ -93,21 +92,17 @@ def test_training_epoch_end_metrics_collection(tmpdir):
 def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     """ Test that batch end metrics are collected when training_epoch_end is overridden at the end of an epoch. """
 
-    class LoggingCallback(Callback):
-
-        def on_train_epoch_start(self, trainer, pl_module):
-            self.len_outputs = 0
-
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
-            self.len_outputs = len(outputs)
-
     class OverriddenModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.len_outputs = 0
 
         def on_train_epoch_start(self):
             self.num_train_batches = 0
 
-        def training_epoch_end(self, outputs):  # Overridden
-            return
+        def training_epoch_end(self, outputs):
+            self.len_outputs = len(outputs)
 
         def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
             self.num_train_batches += 1
@@ -124,22 +119,14 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     not_overridden_model = NotOverriddenModel()
     not_overridden_model.training_epoch_end = None
 
-    callback = LoggingCallback()
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
         overfit_batches=2,
-        callbacks=[callback],
     )
 
     trainer.fit(overridden_model)
-    # outputs from on_train_batch_end should be accessible in on_train_epoch_end hook
-    # if training_epoch_end is overridden
-    assert callback.len_outputs == overridden_model.num_train_batches
-
-    trainer.fit(not_overridden_model)
-    # outputs from on_train_batch_end should be empty
-    assert callback.len_outputs == 0
+    assert overridden_model.len_outputs == overridden_model.num_train_batches
 
 
 @RunIf(min_gpus=1)
@@ -335,9 +322,9 @@ def test_trainer_model_hook_system(tmpdir):
             self.called.append("on_train_epoch_start")
             super().on_train_epoch_start()
 
-        def on_train_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             self.called.append("on_train_epoch_end")
-            super().on_train_epoch_end(outputs)
+            super().on_train_epoch_end()
 
         def on_validation_start(self):
             self.called.append("on_validation_start")

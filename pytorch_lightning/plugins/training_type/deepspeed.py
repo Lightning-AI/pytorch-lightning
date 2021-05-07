@@ -510,8 +510,8 @@ class DeepSpeedPlugin(DDPPlugin):
     ) -> Tuple[Dict, bool]:
         if not self.save_full_weights and self.world_size > 1:
             # Rely on deepspeed to load the checkpoint and necessary information
-            from pytorch_lightning.trainer.states import TrainerState
-            stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
+            from pytorch_lightning.trainer.states import TrainerFn
+            is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
 
             if self.zero_stage_3:
@@ -519,7 +519,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 self.deepspeed_engine.optimizer._partition_all_parameters()
 
             _, client_state = self.deepspeed_engine.load_checkpoint(
-                save_dir, load_optimizer_states=stage_is_fit, load_lr_scheduler_states=stage_is_fit
+                save_dir, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
             )
 
             # restore datamodule states

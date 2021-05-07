@@ -112,7 +112,7 @@ search for batch sizes larger than the size of the training dataset.
     to `.fit()`.
 
 The scaling algorithm has a number of parameters that the user can control by
-invoking the trainer method `.scale_batch_size` themself (see description below).
+invoking the :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size` method:
 
 .. code-block:: python
 
@@ -123,7 +123,7 @@ invoking the trainer method `.scale_batch_size` themself (see description below)
     # Invoke method
     new_batch_size = tuner.scale_batch_size(model, *extra_parameters_here)
 
-    # Override old batch size
+    # Override old batch size (this is done automatically)
     model.hparams.batch_size = new_batch_size
 
     # Fit as normal
@@ -142,16 +142,11 @@ The algorithm in short works by:
     3. The found batch size is saved to either `model.batch_size` or `model.hparams.batch_size`
     4. Restore the initial state of model and trainer
 
-.. autoclass:: pytorch_lightning.tuner.tuning.Tuner
-   :noindex:
-   :members: scale_batch_size
-
 .. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
 
 
-Sequential Model Parallelism with Checkpointing
----------------------------------------------------------------------
-PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
-Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
+Advanced GPU Optimizations
+--------------------------
 
-For more information, refer to :ref:`sequential-parallelism`.
+When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
+Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/advanced_gpu>`.

@@ -26,15 +26,16 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _TPU_AVAILABLE:
+    import torch_xla.core.xla_env_vars as xenv
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
     from torch_xla.core.xla_model import rendezvous
@@ -49,15 +50,16 @@ if _OMEGACONF_AVAILABLE:
 class TPUSpawnPlugin(DDPSpawnPlugin):
     """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
-    def __init__(self, parallel_devices: Optional[List[int]] = None, **_: Any) -> None:
+    def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
+        self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
         self.start_method = None
 
     @property
     def global_rank(self) -> int:
-        return self.tpu_local_core_rank
+        return self.tpu_global_core_rank
 
     @property
     def local_rank(self) -> int:
@@ -104,6 +106,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
+    def pre_dispatch(self):
+        if self.debug:
+            os.environ["PT_XLA_DEBUG"] = str(1)
+
     def setup(self, model: Module) -> Module:
         self.create_mp_queue()
         return self.model
@@ -137,9 +143,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def new_process(self, process_idx: int, trainer, mp_queue) -> None:
         self.mp_queue = mp_queue
 
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
+        reset_seed()
 
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
@@ -172,7 +176,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.model = self.wrapped_model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        rendezvous(name)
+        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        if os.getenv(xenv.HOST_WORLD_SIZE, None) and tpu_distributed():
+            rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
@@ -184,7 +190,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             # save the last weights
             last_path = None
             if (
-                self.lightning_module.trainer.state == TrainerState.FITTING and best_model_path is not None
+                self.lightning_module.trainer.state.fn == TrainerFn.FITTING and best_model_path is not None
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)

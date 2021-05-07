@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class Callback(abc.ABC):
@@ -98,17 +98,23 @@ class Callback(abc.ABC):
         """Called when the train epoch begins."""
         pass
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT) -> None:
-        """Called when the train epoch ends."""
+    def on_train_epoch_end(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', unused: Optional = None
+    ) -> None:
+        """Called when the train epoch ends.
+
+        To access all batch outputs at the end of the epoch, either:
+
+        1. Implement `training_epoch_end` in the `LightningModule` and access outputs via the module OR
+        2. Cache data across train batch hooks inside the callback implementation to post-process in this hook.
+        """
         pass
 
     def on_validation_epoch_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the val epoch begins."""
         pass
 
-    def on_validation_epoch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT
-    ) -> None:
+    def on_validation_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the val epoch ends."""
         pass
 
@@ -116,7 +122,7 @@ class Callback(abc.ABC):
         """Called when the test epoch begins."""
         pass
 
-    def on_test_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: EPOCH_OUTPUT) -> None:
+    def on_test_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         """Called when the test epoch ends."""
         pass
 
@@ -264,8 +270,8 @@ class Callback(abc.ABC):
         Called when saving a model checkpoint, use to persist state.
 
         Args:
-            trainer: the current Trainer instance.
-            pl_module: the current 'pl.LightningModule' instance.
+            trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
@@ -273,11 +279,20 @@ class Callback(abc.ABC):
         """
         pass
 
-    def on_load_checkpoint(self, callback_state: Dict[str, Any]) -> None:
+    def on_load_checkpoint(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[str, Any]
+    ) -> None:
         """Called when loading a model checkpoint, use to reload state.
 
         Args:
+            trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
             callback_state: the callback state returned by ``on_save_checkpoint``.
+
+        Note:
+            The ``on_load_checkpoint`` won't be called with an undefined state.
+            If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
+            you will still need to override ``on_save_checkpoint`` to return a ``dummy state``.
         """
         pass
 

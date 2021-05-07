@@ -44,10 +44,7 @@ DEFAULT_CMD_LINE = (
 
 class ModelToProfile(LightningModule):
 
-    def __init__(
-        self,
-        name: str = "resnet50"
-    ):
+    def __init__(self, name: str = "resnet50"):
         super().__init__()
         self.model = getattr(models, name)(pretrained=True)
         self.criterion = torch.nn.CrossEntropyLoss()

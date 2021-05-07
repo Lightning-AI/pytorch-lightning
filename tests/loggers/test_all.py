@@ -32,7 +32,6 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import _module_available
 from tests.helpers import BoringModel, plotting
 from tests.helpers.runif import RunIf
@@ -104,7 +103,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
     class StoreHistoryLogger(logger_class):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             self.history = []
 
@@ -358,7 +357,7 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         callbacks=[RankZeroLoggerCheck()],
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_logger_with_prefix_all(tmpdir, monkeypatch):
@@ -406,7 +405,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         wandb.run = None
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0}, step=0)
+        logger.experiment.log.assert_called_once_with({'tmp-test': 1.0, 'trainer/global_step': 0})
 
 
 @pytest.mark.skipif(
