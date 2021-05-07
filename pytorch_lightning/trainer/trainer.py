@@ -732,7 +732,7 @@ class Trainer(
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
                         {self._run_train}                     ||
-                     or {self._run_evaluation}                ||
+                     or {self.run_evaluation}                ||
                      or {self._run_predict}                   ||
                                 |                             ||
                              results                          \/
