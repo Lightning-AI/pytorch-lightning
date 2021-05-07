@@ -22,7 +22,6 @@ import torch
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
 from pytorch_lightning.utilities.distributed import rank_zero_info
@@ -62,7 +61,6 @@ class TrainLoop:
         self.global_step = 0
         self.current_epoch = 0
         self.trainer.should_stop = False
-        self.trainer.state = TrainerState()
 
         self.total_batch_idx = 0
         self.batch_idx = 0
