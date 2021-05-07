@@ -710,8 +710,8 @@ class Trainer(
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
-        self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
-        self.call_configure_sharded_model(model)  # allow user to setup in model sharded environment
+        self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
@@ -766,7 +766,7 @@ class Trainer(
             self.call_hook('on_fit_end')
 
         # teardown
-        self.call_teardown_hook(model)
+        self._call_teardown_hook(model)
 
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
@@ -1150,7 +1150,7 @@ class Trainer(
         )
         return ckpt_path
 
-    def call_setup_hook(self, model: LightningModule) -> None:
+    def _call_setup_hook(self, model: LightningModule) -> None:
         fn = self.state.fn._setup_fn
 
         self.accelerator.barrier("pre_setup")
@@ -1165,7 +1165,7 @@ class Trainer(
 
         self.accelerator.barrier("post_setup")
 
-    def call_configure_sharded_model(self, model: LightningModule) -> None:
+    def _call_configure_sharded_model(self, model: LightningModule) -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
 
@@ -1178,7 +1178,7 @@ class Trainer(
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
-    def call_teardown_hook(self, model: LightningModule) -> None:
+    def _call_teardown_hook(self, model: LightningModule) -> None:
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
