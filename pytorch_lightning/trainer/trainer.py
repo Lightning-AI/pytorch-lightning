@@ -29,6 +29,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loops.epoch_loop import EpochLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import BaseProfiler
@@ -54,7 +55,7 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
+from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus, TrainerState
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
@@ -423,7 +424,7 @@ class Trainer(
         self.global_step = 0
         self.current_epoch = 0
         self.should_stop = False
-        self._state = TrainerState.INITIALIZING
+        self.state = TrainerState()
 
         self.total_batch_idx = 0
         self.batch_idx = 0
@@ -877,11 +878,26 @@ class Trainer(
         self.on_pretrain_routine_end()
         ref_model.on_pretrain_routine_end()
 
+    def reset_train_val_dataloaders(self, model) -> None:
+        """
+        Resets train and val dataloaders if none are attached to the trainer.
+
+        The val dataloader must be initialized before training loop starts, as the training loop
+        inspects the val dataloader to determine whether to run the evaluation loop.
+        """
+        if self.train_dataloader is None:
+            self.reset_train_dataloader(model)
+
+        if self.val_dataloaders is None:
+            self.reset_val_dataloader(model)
+
     def run_train(self) -> None:
 
-        new_loop = False
+        new_loop = True
 
         if new_loop:
+            self.train_loop = EpochLoop()
+            self.train_loop.connect(self)
             self._run_train_new_loop()
         else:
             self._run_train_old_loop()
@@ -908,7 +924,7 @@ class Trainer(
         model = self.lightning_module
 
         # This might move somewhere else
-        self.train_loop.reset_train_val_dataloaders(model)
+        self.reset_train_val_dataloaders(model)
 
         try:
             if self._should_skip_training():
