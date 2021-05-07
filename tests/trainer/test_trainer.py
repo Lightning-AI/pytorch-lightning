@@ -784,12 +784,12 @@ def test_disabled_validation(tmpdir):
 
 def test_nan_loss_detection(tmpdir):
 
-    class CurrentModel(EvalModelTemplate):
-        test_batch_inf_loss = 8
+    class CurrentModel(BoringModel):
+        test_batch_inf = 3
 
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            output = super().training_step(batch, batch_idx, optimizer_idx)
-            if batch_idx == self.test_batch_inf_loss:
+        def training_step(self, batch, batch_idx):
+            output = super().training_step(batch, batch_idx)
+            if batch_idx == self.test_batch_inf:
                 if isinstance(output, dict):
                     output["loss"] *= torch.tensor(math.inf)  # make loss infinite
                 else:
@@ -801,13 +801,13 @@ def test_nan_loss_detection(tmpdir):
     # fit model
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_steps=(model.test_batch_inf_loss + 1),
+        max_steps=(model.test_batch_inf + 1),
         terminate_on_nan=True,
     )
 
     with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
-        assert trainer.global_step == model.test_step_inf_loss
+        assert trainer.global_step == model.test_batch_inf
 
     for param in model.parameters():
         assert torch.isfinite(param).all()
@@ -815,13 +815,13 @@ def test_nan_loss_detection(tmpdir):
 
 def test_nan_params_detection(tmpdir):
 
-    class CurrentModel(EvalModelTemplate):
-        test_batch_nan = 8
+    class CurrentModel(BoringModel):
+        test_batch_nan = 3
 
         def on_after_backward(self):
             if self.global_step == self.test_batch_nan:
                 # simulate parameter that became nan
-                torch.nn.init.constant_(self.c_d1.bias, math.nan)
+                torch.nn.init.constant_(self.layer.bias, math.nan)
 
     model = CurrentModel()
     trainer = Trainer(
@@ -830,7 +830,7 @@ def test_nan_params_detection(tmpdir):
         terminate_on_nan=True,
     )
 
-    with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `c_d1.bias`.*"):
+    with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
         trainer.fit(model)
         assert trainer.global_step == model.test_batch_nan
 

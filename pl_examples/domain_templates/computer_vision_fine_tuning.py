@@ -69,6 +69,7 @@ DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered
 class MilestonesFinetuning(BaseFinetuning):
 
     def __init__(self, milestones: tuple = (5, 10), train_bn: bool = False):
+        super().__init__()
         self.milestones = milestones
         self.train_bn = train_bn
 
