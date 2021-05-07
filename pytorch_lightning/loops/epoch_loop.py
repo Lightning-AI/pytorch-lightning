@@ -27,6 +27,7 @@ class EpochLoop(Loop):
         self.min_steps = trainer.min_steps
         self.trainer = trainer
         self.training_loop = TrainingLoop()
+        self.training_loop.connect(trainer)
 
     @property
     def done(self) -> bool:

@@ -6,6 +6,14 @@ from pytorch_lightning.utilities import AttributeDict
 class BatchLoop(Loop):
     """ Runs over a single batch of data. """
 
+    def connect(self, trainer, *args, **kwargs):
+        self.trainer = trainer
+
+    @property
+    def done(self):
+        # TODO this
+        return True
+
     def on_run_start(self, batch, batch_idx, dataloader_idx):
         self._grad_norm_dic = {}
         self.trainer.hiddens = None
