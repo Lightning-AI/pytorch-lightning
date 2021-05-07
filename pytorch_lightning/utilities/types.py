@@ -15,5 +15,8 @@ _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 _PARAMETERS = Iterator[torch.nn.Parameter]
 # TODO: expand allowed train_dataloaders types once fixed.
-TRAIN_DATALOADERS = Union[DataLoader, Sequence[DataLoader], Dict[str, DataLoader], 'CombinedLoader']
+TRAIN_DATALOADERS = Union[DataLoader, Sequence[DataLoader], Dict[str, DataLoader],
+                          # can't import, otherwise circular imports
+                          'CombinedLoader',  # noqa: F821 undefined name 'CombinedLoader'
+                          ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
