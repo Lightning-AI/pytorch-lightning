@@ -92,7 +92,7 @@ class TrainLoop:
         return self._optimizer_freq_cumsum
 
     def should_skip_training(self):
-        should_by_max_steps = self.trainer.max_steps is not None and self.global_step >= self.trainer.max_steps
+        should_by_max_steps = self.max_steps is not None and self.global_step >= self.max_steps
         should_by_epoch = self.trainer.max_epochs is not None and self.trainer.current_epoch >= self.trainer.max_epochs
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
@@ -530,7 +530,7 @@ class TrainLoop:
 
             # max steps reached, end training
             if (
-                self.trainer.max_steps is not None and self.trainer.max_steps <= self.global_step + 1
+                self.max_steps is not None and self.max_steps <= self.global_step + 1
                 and self._accumulated_batches_reached()
             ):
                 break

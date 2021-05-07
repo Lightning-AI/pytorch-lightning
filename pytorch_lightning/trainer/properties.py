@@ -505,11 +505,11 @@ class TrainerProperties(ABC):
 
     @property
     def max_steps(self):
-        return self.train_loop.min_epochs
+        return self.train_loop.max_steps
 
     @property
     def min_steps(self):
-        return self.train_loop.min_epochs
+        return self.train_loop.min_steps
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
