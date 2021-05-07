@@ -38,13 +38,14 @@ from pytorch_lightning.utilities.warnings import WarningCache
 class TrainLoop:
 
     def __init__(
-            self,
-            trainer, multiple_trainloader_mode: str,
-            max_epochs: Optional[int],
-            min_epochs: Optional[int],
-            max_steps: Optional[int],
-            min_steps: Optional[int],
-            num_sanity_val_steps: int,
+        self,
+        trainer,
+        multiple_trainloader_mode: str,
+        max_epochs: Optional[int],
+        min_epochs: Optional[int],
+        max_steps: Optional[int],
+        min_steps: Optional[int],
+        num_sanity_val_steps: int,
     ):
         self.trainer = trainer
         self.accumulated_loss = None
@@ -887,9 +888,7 @@ class TrainLoop:
 
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
-            self.global_step = self.trainer.accelerator.update_global_step(
-                self.total_batch_idx, self.global_step
-            )
+            self.global_step = self.trainer.accelerator.update_global_step(self.total_batch_idx, self.global_step)
 
     def _accumulated_batches_reached(self):
         return (self.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
