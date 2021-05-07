@@ -750,13 +750,13 @@ class Trainer(
             self.call_hook("on_fit_start")
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
-        self.pre_dispatch()
+        self._pre_dispatch()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
-        self.dispatch()
+        self._dispatch()
 
         # plugin will finalized fitting (e.g. ddp_spawn will load trained model)
-        self.post_dispatch()
+        self._post_dispatch()
 
         # ----------------------------
         # POST-Training CLEAN UP
@@ -774,7 +774,7 @@ class Trainer(
 
         return self.accelerator.results
 
-    def pre_dispatch(self):
+    def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
 
         # log hyper-parameters
@@ -784,11 +784,11 @@ class Trainer(
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
-    def post_dispatch(self):
+    def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
 
-    def dispatch(self):
+    def _dispatch(self):
         if self.evaluating:
             self.accelerator.start_evaluating(self)
         elif self.predicting:
@@ -801,10 +801,10 @@ class Trainer(
         self.profile_connector.setup()
 
         if self.evaluating:
-            return self.run_evaluate()
+            return self._run_evaluate()
         if self.predicting:
-            return self.run_predict()
-        return self.run_train()
+            return self._run_predict()
+        return self._run_train()
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
@@ -833,13 +833,13 @@ class Trainer(
         self.on_pretrain_routine_end()
         ref_model.on_pretrain_routine_end()
 
-    def run_train(self) -> None:
+    def _run_train(self) -> None:
         self._pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        self.run_sanity_check(self.lightning_module)
+        self._run_sanity_check(self.lightning_module)
 
         self.checkpoint_connector.has_trained = False
 
@@ -1034,7 +1034,7 @@ class Trainer(
             outputs.append(output)
         return outputs
 
-    def run_evaluate(self) -> _EVALUATE_OUTPUT:
+    def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
@@ -1052,7 +1052,7 @@ class Trainer(
 
         return eval_loop_results
 
-    def run_predict(self) -> Optional[_PREDICT_OUTPUT]:
+    def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -1090,7 +1090,7 @@ class Trainer(
 
         return results
 
-    def run_sanity_check(self, ref_model):
+    def _run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
