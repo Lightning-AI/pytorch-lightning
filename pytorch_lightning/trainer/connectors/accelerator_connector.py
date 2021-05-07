@@ -46,10 +46,10 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
+    KubeflowEnvironment,
     LightningEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    KubeflowEnvironment,
 )
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
@@ -421,12 +421,8 @@ class AcceleratorConnector(object):
             elif use_ddp_sharded_spawn:
                 ddp_plugin_cls = DDPSpawnShardedPlugin
             elif (
-                    use_ddp_cpu_slurm or
-                    use_slurm_ddp or
-                    use_ddp_cpu_torch_elastic or
-                    use_torchelastic_ddp or
-                    use_kubeflow_ddp or
-                    use_ddp_cpu_kubeflow
+                use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp
+                or use_kubeflow_ddp or use_ddp_cpu_kubeflow
             ):
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
