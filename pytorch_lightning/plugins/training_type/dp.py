@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 from typing import List, Optional
 
 import torch
@@ -20,6 +21,18 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+
+
+def _ignore_scalar_return_in_dp():
+    # Users get confused by this warning so we silence it
+    warnings.filterwarnings(
+        'ignore',
+        message='Was asked to gather along dimension 0, but all input tensors were scalars;'
+        ' will instead unsqueeze and return a vector.'
+    )
+
+
+_ignore_scalar_return_in_dp()
 
 
 class DataParallelPlugin(ParallelPlugin):
