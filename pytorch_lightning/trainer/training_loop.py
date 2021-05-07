@@ -93,7 +93,7 @@ class TrainLoop:
 
     def should_skip_training(self):
         should_by_max_steps = self.max_steps is not None and self.global_step >= self.max_steps
-        should_by_epoch = self.trainer.max_epochs is not None and self.trainer.current_epoch >= self.trainer.max_epochs
+        should_by_epoch = self.max_epochs is not None and self.current_epoch >= self.max_epochs
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
@@ -888,7 +888,7 @@ class TrainLoop:
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
             self.global_step = self.trainer.accelerator.update_global_step(
-                self.trainer.total_batch_idx, self.global_step
+                self.total_batch_idx, self.global_step
             )
 
     def _accumulated_batches_reached(self):
