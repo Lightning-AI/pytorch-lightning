@@ -223,7 +223,7 @@ def test_tpu_grad_norm(tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_tpu_clip_grad_by_value(tmpdir):
-    """Test if clip_gradients by value works on TPU. (It should not.)"""
+    """Test if clip_gradients by value works on TPU"""
     tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -237,8 +237,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
     )
 
     model = BoringModel()
-    with pytest.raises(AssertionError):
-        tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
 @RunIf(tpu=True)
@@ -382,7 +381,7 @@ def test_tpu_reduce():
 @RunIf(tpu=True)
 @pl_multi_process_test
 @pytest.mark.parametrize("clip_val", [10])
-@mock.patch("pytorch_lightning.accelerators.tpu.xla_clip_grad_norm_")
+@mock.patch("torch.nn.utils.clip_grad_norm_")
 def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
     """
     Ensure that clip gradients is only called if the value is greater than 0.
