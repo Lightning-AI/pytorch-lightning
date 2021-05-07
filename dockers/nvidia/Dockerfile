@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-03.html#rel_21-03
+# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
 FROM nvcr.io/nvidia/pytorch:21.04-py3
 
 MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
