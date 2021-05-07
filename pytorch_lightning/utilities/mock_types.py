@@ -11,15 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Mock typing for non-required packages. They can be imported as normal.
-
-Examples:
-    >>> from mock_types import package
-    # simulate `import package.submodule as short`
-    >>> plt = __import__("mock_types").matplotlib.pyplot
-
-"""
 
 
 class matplotlib:
