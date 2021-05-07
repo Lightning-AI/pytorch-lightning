@@ -14,7 +14,7 @@ class TrainingLoop(Loop):
 
     def __init__(self):
         super().__init__()
-        self.is_last_batch = True
+        self.is_last_batch = False
         # cache of all outputs in a single training run / epoch
         # self.epoch_output = [[]]
 
@@ -22,6 +22,7 @@ class TrainingLoop(Loop):
         self.trainer = trainer
         # self.epoch_output = [[] for _ in range(len(trainer.optimizers))]
         self.batch_loop = BatchLoop()
+        self.batch_loop.connect(trainer)
 
     def on_run_start(self):
         # modify dataloader if needed (ddp, etc...)
@@ -145,7 +146,7 @@ class TrainingLoop(Loop):
 # ------------------------------------------------------------------------------------------------------------
 
     def _num_training_batches_reached(self, is_last_batch=False):
-        return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
+        return self.iteration_count == self.trainer.num_training_batches or is_last_batch
 
     # TODO move to on_advance_end()
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):

@@ -8,7 +8,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.trainer.supporters import TensorRunningAccum, prefetch_iterator
 from pytorch_lightning.utilities import AttributeDict, DeviceType, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
@@ -21,7 +21,8 @@ class OptimizerLoop(Loop):
 
     def __init__(self):
         super().__init__()
-        self._optimizers = enumerate(self.prepare_optimizers())
+        self._optimizers = self.prepare_optimizers()
+        self._current_optmizer_idx = 0
 
         self.accumulated_loss = None
         self.warning_cache = WarningCache()
@@ -34,8 +35,19 @@ class OptimizerLoop(Loop):
         self._skip_backward = False
         # self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
+    def connect(self, trainer, *args, **kwargs):
+        self.trainer = trainer
+
+    @property
+    def done(self):
+        return self._current_optmizer_idx >= len(self._optimizers)
+
+    def next_optimizer(self):
+        next(self._optimizers)
+
     def advance(self, split_batch, split_idx, batch_idx):
-        opt_idx, optimizer = next(self._optimizers)
+        opt_idx = self._current_optmizer_idx
+        optimizer = self._optimizers[opt_idx]
 
         # toggle model params + set info to logger_connector
         self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)

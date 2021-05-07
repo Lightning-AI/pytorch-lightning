@@ -57,5 +57,3 @@ class Loop(metaclass=ABCMeta):
 
     def state_dict(self):
         return dict()
-
-
