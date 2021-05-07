@@ -64,7 +64,13 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _DATALOADERS, _EVALUATE_OUTPUT, _PREDICT_OUTPUT
+from pytorch_lightning.utilities.types import (
+    _DATALOADERS,
+    _EVALUATE_OUTPUT,
+    _PREDICT_OUTPUT,
+    EVAL_DATALOADERS,
+    TRAIN_DATALOADERS,
+)
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -414,10 +420,10 @@ class Trainer(
     def fit(
         self,
         model: LightningModule,
-        train_dataloaders: Optional[Union[_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[_DATALOADERS] = None,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        train_dataloader=None,  # noqa
+        train_dataloader=None,  # noqa TODO: remove with 1.6
     ) -> None:
         r"""
         Runs the full optimization routine.
@@ -429,9 +435,7 @@ class Trainer(
                 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
                 In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
 
-            val_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying validation samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
@@ -470,11 +474,11 @@ class Trainer(
     def validate(
         self,
         model: Optional[LightningModule] = None,
-        dataloaders: Optional[Union[_DATALOADERS, LightningDataModule]] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        val_dataloaders=None,  # noqa
+        val_dataloaders=None,  # noqa TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the validation set.
@@ -482,9 +486,8 @@ class Trainer(
         Args:
             model: The model to validate.
 
-            dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying validation samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
+                or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying validation samples.
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to validate.
                 If ``None``, use the current weights of the model.
@@ -543,11 +546,11 @@ class Trainer(
     def test(
         self,
         model: Optional[LightningModule] = None,
-        dataloaders: Optional[Union[_DATALOADERS, LightningDataModule]] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         ckpt_path: Optional[str] = 'best',
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
-        test_dataloaders=None,  # noqa
+        test_dataloaders=None,  # noqa TODO: remove with 1.6
     ) -> _EVALUATE_OUTPUT:
         r"""
         Perform one evaluation epoch over the test set. It's separated from
@@ -556,9 +559,8 @@ class Trainer(
         Args:
             model: The model to test.
 
-            dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying test samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
+                or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying test samples.
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the current weights of the model.
@@ -615,7 +617,7 @@ class Trainer(
     def predict(
         self,
         model: Optional[LightningModule] = None,
-        dataloaders: Optional[Union[_DATALOADERS, LightningDataModule]] = None,
+        dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
@@ -627,9 +629,8 @@ class Trainer(
         Args:
             model: The model to predict with.
 
-            dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying inference samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them,
+                or a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying prediction samples.
 
             datamodule: The datamodule with a predict_dataloader method that returns one or more dataloaders.
 
@@ -673,12 +674,12 @@ class Trainer(
     def tune(
         self,
         model: LightningModule,
-        train_dataloaders: Optional[Union[_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[_DATALOADERS] = None,
+        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
+        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        train_dataloader=None,  # noqa
+        train_dataloader=None,  # noqa TODO: remove with 1.6
     ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
         r"""
         Runs routines to tune hyperparameters before training.
@@ -690,9 +691,7 @@ class Trainer(
                 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
                 In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
 
-            val_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying validation samples.
-                In the case of multiple dataloaders, please see this :ref:`page <multiple-training-dataloaders>`.
+            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 

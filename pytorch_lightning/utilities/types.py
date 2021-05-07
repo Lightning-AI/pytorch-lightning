@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterator, List, Union
+from typing import Any, Dict, Iterator, List, Sequence, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -14,7 +14,7 @@ EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 _PARAMETERS = Iterator[torch.nn.Parameter]
-_DATALOADERS = Union[DataLoader, List[DataLoader], Dict[str, DataLoader], List[Dict[str, DataLoader]],
-                     Dict[str, Dict[str, DataLoader]], List[List[DataLoader]],  # ???
-                     Dict[str, List[DataLoader]],  # ???
-                     'pl.trainer.supporters.CombinedLoader']
+TRAIN_DATALOADERS = Union[DataLoader, Sequence[DataLoader], Dict[str, DataLoader],
+                          # TODO: expand allowed types once fixed.
+                          'pl.trainer.supporters.CombinedLoader', ]
+EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]

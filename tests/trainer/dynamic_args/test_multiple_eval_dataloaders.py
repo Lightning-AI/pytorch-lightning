@@ -15,7 +15,7 @@ import torch
 from torch.utils.data import Dataset
 
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel
 
 
 class RandomDatasetA(Dataset):
@@ -172,49 +172,3 @@ def test_multiple_optimizers_multiple_dataloaders(tmpdir):
     trainer.fit(model)
     assert model.opt_0_seen
     assert model.opt_1_seen
-
-
-def test_kk():
-
-    class TestModel(BoringModel):
-
-        def training_step(self, batch, batch_idx):
-            print(batch)
-
-        def train_dataloader(self):
-            # Dict[str, DataLoader]
-            loaders_a_b = {
-                'a': torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                'b': torch.utils.data.DataLoader(RandomDataset(32, 64))
-            }
-            loaders_c_d = {
-                'c': torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                'd': torch.utils.data.DataLoader(RandomDataset(32, 64))
-            }
-
-            # Dict[str, Dict[str, DataLoader]]
-            loaders = {'loaders_a_b': loaders_a_b, 'loaders_c_d': loaders_c_d}
-
-            # List[Dict[str, DataLoader]]
-            #loaders = [loaders_a_b, loaders_c_d]
-
-            # List[DataLoader]
-            loaders_a_b = [
-                torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                torch.utils.data.DataLoader(RandomDataset(32, 64))
-            ]
-            loaders_c_d = [
-                torch.utils.data.DataLoader(RandomDataset(32, 64)),
-                torch.utils.data.DataLoader(RandomDataset(32, 64))
-            ]
-
-            # List[List[DataLoader]
-            #loaders = [loaders_a_b, loaders_c_d]
-
-            # Dict[str, List[DataLoader]]
-            # ???
-
-            return loaders
-
-    trainer = Trainer()
-    trainer.fit(TestModel())
