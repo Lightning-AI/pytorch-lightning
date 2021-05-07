@@ -589,6 +589,7 @@ class Trainer(
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
+        ckpt_path: Optional[str] = 'best',
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""
 
@@ -605,6 +606,10 @@ class Trainer(
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to use to predict.
+                If ``None``, use the current weights of the model.
+                When the model is given as argument, this parameter will not apply.
+
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
@@ -613,8 +618,6 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("predict")
-
-        model = model or self.lightning_module
 
         self.state.fn = TrainerFn.PREDICTING
         self.state.status = TrainerStatus.RUNNING
@@ -625,8 +628,14 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`')
 
+        model_provided = model is not None
+        model = model or self.lightning_module
+
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
+
+        if not model_provided:
+            self.predicted_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         results = self._run(model)
 
