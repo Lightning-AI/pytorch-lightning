@@ -145,9 +145,8 @@ The algorithm in short works by:
 .. warning:: Batch size finder is not supported for DDP yet, it is coming soon.
 
 
-Sequential Model Parallelism with Checkpointing
----------------------------------------------------------------------
-PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
-Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
+Advanced GPU Optimizations
+--------------------------
 
-For more information, refer to :ref:`sequential-parallelism`.
+When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
+Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/advanced_gpu>`.

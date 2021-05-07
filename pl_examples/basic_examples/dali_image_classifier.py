@@ -197,7 +197,7 @@ class MyDataModule(pl.LightningDataModule):
             self.pipe_train,
             size=len(self.mnist_train),
             auto_reset=True,
-            fill_last_batch=True
+            fill_last_batch=True,
         )
 
     def val_dataloader(self):
@@ -205,7 +205,7 @@ class MyDataModule(pl.LightningDataModule):
             self.pipe_val,
             size=len(self.mnist_val),
             auto_reset=True,
-            fill_last_batch=False
+            fill_last_batch=False,
         )
 
     def test_dataloader(self):
@@ -213,7 +213,7 @@ class MyDataModule(pl.LightningDataModule):
             self.pipe_test,
             size=len(self.mnist_test),
             auto_reset=True,
-            fill_last_batch=False
+            fill_last_batch=False,
         )
 
 

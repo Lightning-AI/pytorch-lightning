@@ -43,8 +43,8 @@ jobs:
 
     - name: Update pip
       run: |
-        # todo: unfreeze PIP after resolving minimal dependencies
-        pip install --quiet "pip==20.1" --upgrade --user  # needed for get pip cacher folder
+        # needed for `pip cache` command
+        pip install --quiet "pip==20.2" --upgrade --user
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
@@ -56,11 +56,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        # remove Horovod from requirements
-        fname = 'requirements/extra.txt'
-        lines = [line for line in open(fname).readlines() if not line.startswith('horovod')]
-        open(fname, 'w').writelines(lines)
-      shell: python
+        python .github/prune-packages.py requirements/extra.txt "horovod"
 
     # todo: re-enable when allow testing py 3.9 with min config, atm some Hydra issues
     #- name: Adjust minimal for Python 3.9
@@ -78,18 +74,7 @@ jobs:
     - name: Set min. dependencies
       if: matrix.requires == 'minimal'
       run: |
-        files = (
-            'requirements.txt',
-            'requirements/extra.txt',
-            'requirements/loggers.txt',
-            'requirements/test.txt',
-            'requirements/examples.txt',
-        )
-        for fname in files:
-            req = open(fname).read().replace('>=', '==')
-            open(fname, 'w').write(req)
-
-      shell: python
+        python .github/set-min-requirements.py
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -120,7 +105,7 @@ jobs:
       if: matrix.python-version == 3.9
       run: |
         # pip uninstall -y horovod
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
+        python .github/prune-packages.py requirements/extra.txt "horovod"
 
     - name: Install dependencies
       env:
