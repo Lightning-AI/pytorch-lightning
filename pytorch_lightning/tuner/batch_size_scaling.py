@@ -115,7 +115,7 @@ def __scale_batch_dump_params(trainer: 'pl.Trainer') -> None:
 def __scale_batch_reset_params(trainer: 'pl.Trainer', model: 'pl.LightningModule', steps_per_trial: int) -> None:
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
-    trainer.current_epoch = 0
+    trainer.train_loop.current_epoch = 0
     trainer.max_steps = steps_per_trial  # take few steps
     trainer.weights_summary = None  # not needed before full run
     trainer.logger = DummyLogger()
@@ -127,7 +127,7 @@ def __scale_batch_reset_params(trainer: 'pl.Trainer', model: 'pl.LightningModule
 
 def __scale_batch_restore_params(trainer: 'pl.Trainer') -> None:
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
-    trainer.current_epoch = trainer.__dumped_params['current_epoch']
+    trainer.train_loop.current_epoch = trainer.__dumped_params['current_epoch']
     trainer.max_steps = trainer.__dumped_params['max_steps']
     trainer.weights_summary = trainer.__dumped_params['weights_summary']
     trainer.logger = trainer.__dumped_params['logger']

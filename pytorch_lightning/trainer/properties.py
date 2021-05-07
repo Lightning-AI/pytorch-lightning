@@ -491,5 +491,8 @@ class TrainerProperties(ABC):
     def global_step(self):
         return self.train_loop.global_step
 
+    @property
+    def current_epoch(self):
+        return self.train_loop.current_epoch
 # Used to represent the concrete type TrainerProperties class methods are called on.
 _T = TypeVar('_T', bound=TrainerProperties)

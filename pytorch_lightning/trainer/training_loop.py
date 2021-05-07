@@ -59,7 +59,7 @@ class TrainLoop:
         self._optimizer_freq_cumsum = None
 
         self.global_step = 0
-        self.trainer.current_epoch = 0
+        self.current_epoch = 0
         self.trainer.should_stop = False
         self.trainer.state = TrainerState()
 
@@ -145,7 +145,7 @@ class TrainLoop:
     def on_train_epoch_start(self, epoch):
 
         # update training progress in trainer
-        self.trainer.current_epoch = epoch
+        self.current_epoch = epoch
 
         model = self.trainer.lightning_module
 
