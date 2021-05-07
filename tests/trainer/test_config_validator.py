@@ -128,17 +128,13 @@ def test_trainer_predict_verify_config(tmpdir, datamodule):
         def predict_dataloader(self):
             return self._dataloaders
 
-    dataloaders = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
+    data = [torch.utils.data.DataLoader(RandomDataset(32, 2)), torch.utils.data.DataLoader(RandomDataset(32, 2))]
+    if datamodule:
+        data = TestLightningDataModule(data)
 
     model = TestModel()
-
     trainer = Trainer(default_root_dir=tmpdir)
-
-    if datamodule:
-        datamodule = TestLightningDataModule(dataloaders)
-        results = trainer.predict(model, datamodule=datamodule)
-    else:
-        results = trainer.predict(model, dataloaders=dataloaders)
+    results = trainer.predict(model, data)
 
     assert len(results) == 2
     assert results[0][0].shape == torch.Size([1, 2])
