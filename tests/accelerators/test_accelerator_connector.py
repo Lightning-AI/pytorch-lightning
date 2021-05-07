@@ -36,10 +36,10 @@ from pytorch_lightning.plugins import (
     SingleDevicePlugin,
 )
 from pytorch_lightning.plugins.environments import (
+    KubeflowEnvironment,
     LightningEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    KubeflowEnvironment,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel

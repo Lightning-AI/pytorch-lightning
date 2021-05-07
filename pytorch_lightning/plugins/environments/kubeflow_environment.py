@@ -33,10 +33,7 @@ class KubeflowEnvironment(ClusterEnvironment):
         required_env_vars = ("KUBERNETES_PORT", "MASTER_ADDR", "MASTER_PORT", "WORLD_SIZE", "RANK")
         # torchelastic sets these. Make sure we're not in torchelastic
         excluded_env_vars = ("GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
-        return (
-            all(v in os.environ for v in required_env_vars) and
-            not any(v in os.environ for v in excluded_env_vars)
-        )
+        return (all(v in os.environ for v in required_env_vars) and not any(v in os.environ for v in excluded_env_vars))
 
     def creates_children(self) -> bool:
         return True
@@ -57,9 +54,7 @@ class KubeflowEnvironment(ClusterEnvironment):
         return int(os.environ["RANK"])
 
     def set_global_rank(self, rank: int) -> None:
-        log.debug(
-            "KubeflowEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored."
-        )
+        log.debug("KubeflowEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
     def local_rank(self) -> int:
         return 0
