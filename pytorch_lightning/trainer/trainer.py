@@ -329,7 +329,9 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.train_loop = TrainLoop(self, multiple_trainloader_mode)
+        self.train_loop = TrainLoop(
+            self, multiple_trainloader_mode, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps
+        )
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
@@ -374,13 +376,6 @@ class Trainer(
             accumulate_grad_batches,
             truncated_bptt_steps,
             terminate_on_nan,
-        )
-        self.train_loop.on_trainer_init(
-            max_epochs,
-            min_epochs,
-            max_steps,
-            min_steps,
-            num_sanity_val_steps,
         )
         self.evaluation_loop.on_trainer_init()
 

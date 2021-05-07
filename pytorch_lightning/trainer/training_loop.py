@@ -37,7 +37,15 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 class TrainLoop:
 
-    def __init__(self, trainer, multiple_trainloader_mode: str):
+    def __init__(
+            self,
+            trainer, multiple_trainloader_mode: str,
+            max_epochs: Optional[int],
+            min_epochs: Optional[int],
+            max_steps: Optional[int],
+            min_steps: Optional[int],
+            num_sanity_val_steps: int,
+    ):
         self.trainer = trainer
         self.accumulated_loss = None
         self.warning_cache = WarningCache()
@@ -50,14 +58,6 @@ class TrainLoop:
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
         self._optimizer_freq_cumsum = None
 
-    def on_trainer_init(
-        self,
-        max_epochs: Optional[int],
-        min_epochs: Optional[int],
-        max_steps: Optional[int],
-        min_steps: Optional[int],
-        num_sanity_val_steps: int,
-    ) -> None:
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.should_stop = False
