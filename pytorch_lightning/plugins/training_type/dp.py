@@ -23,18 +23,6 @@ from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
-def _ignore_scalar_return_in_dp():
-    # Users get confused by this warning so we silence it
-    warnings.filterwarnings(
-        'ignore',
-        message='Was asked to gather along dimension 0, but all input tensors were scalars;'
-        ' will instead unsqueeze and return a vector.'
-    )
-
-
-_ignore_scalar_return_in_dp()
-
-
 class DataParallelPlugin(ParallelPlugin):
     """
     Implements data-parallel training in a single process, i.e., the model gets replicated to each
