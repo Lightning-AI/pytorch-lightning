@@ -92,7 +92,7 @@ class TrainLoop:
         return self._optimizer_freq_cumsum
 
     def should_skip_training(self):
-        should_by_max_steps = self.trainer.max_steps is not None and self.trainer.global_step >= self.trainer.max_steps
+        should_by_max_steps = self.trainer.max_steps is not None and self.global_step >= self.trainer.max_steps
         should_by_epoch = self.trainer.max_epochs is not None and self.trainer.current_epoch >= self.trainer.max_epochs
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
@@ -107,9 +107,9 @@ class TrainLoop:
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
-        self.trainer.global_step -= 1
+        self.global_step -= 1
         self.check_checkpoint_callback(should_update=True, is_last=True)
-        self.trainer.global_step += 1
+        self.global_step += 1
 
         # hook
         self.trainer.call_hook("on_train_end")
@@ -450,7 +450,7 @@ class TrainLoop:
 
     def _track_gradient_norm(self):
         grad_norm_dict = {}
-        if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
+        if (self.global_step + 1) % self.trainer.log_every_n_steps == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.lightning_module
                 grad_norm_dict = grad_norm(model, self.trainer.track_grad_norm)
@@ -530,7 +530,7 @@ class TrainLoop:
 
             # max steps reached, end training
             if (
-                self.trainer.max_steps is not None and self.trainer.max_steps <= self.trainer.global_step + 1
+                self.trainer.max_steps is not None and self.trainer.max_steps <= self.global_step + 1
                 and self._accumulated_batches_reached()
             ):
                 break
@@ -887,8 +887,8 @@ class TrainLoop:
 
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
-            self.trainer.global_step = self.trainer.accelerator.update_global_step(
-                self.trainer.total_batch_idx, self.trainer.global_step
+            self.global_step = self.trainer.accelerator.update_global_step(
+                self.trainer.total_batch_idx, self.global_step
             )
 
     def _accumulated_batches_reached(self):
