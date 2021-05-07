@@ -230,7 +230,7 @@ def lr_find(
     trainer.logger = DummyLogger()
 
     # Max step set to number of iterations
-    trainer.max_steps = num_training
+    trainer.train_loop.max_steps = num_training
 
     # Disable standard progress bar for fit
     if trainer.progress_bar_callback:
@@ -296,7 +296,7 @@ def __lr_finder_restore_params(trainer, model):
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
-    trainer.max_steps = trainer.__dumped_params['max_steps']
+    trainer.train_loop.max_steps = trainer.__dumped_params['max_steps']
     model.configure_optimizers = trainer.__dumped_params['configure_optimizers']
     del trainer.__dumped_params
 
@@ -364,7 +364,7 @@ class _LRCallback(Callback):
         # Check if we diverging
         if self.early_stop_threshold is not None:
             if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
-                trainer.max_steps = current_step  # stop signal
+                trainer.train_loop.max_steps = current_step  # stop signal
                 if self.progress_bar:
                     self.progress_bar.close()
 
