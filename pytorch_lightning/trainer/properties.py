@@ -488,27 +488,27 @@ class TrainerProperties(ABC):
             self.state.stage = None
 
     @property
-    def global_step(self):
+    def global_step(self) -> int:
         return self.train_loop.global_step
 
     @property
-    def current_epoch(self):
+    def current_epoch(self) -> int:
         return self.train_loop.current_epoch
 
     @property
-    def max_epochs(self):
+    def max_epochs(self) -> Optional[int]:
         return self.train_loop.max_epochs
 
     @property
-    def min_epochs(self):
+    def min_epochs(self) -> Optional[int]:
         return self.train_loop.min_epochs
 
     @property
-    def max_steps(self):
+    def max_steps(self) -> Optional[int]:
         return self.train_loop.max_steps
 
     @property
-    def min_steps(self):
+    def min_steps(self) -> Optional[int]:
         return self.train_loop.min_steps
 
 
