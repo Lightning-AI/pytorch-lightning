@@ -18,7 +18,7 @@ from contextlib import suppress
 from typing import Any, Dict, List, Tuple, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_str, str_to_bool_or_int
+from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
 
 
 def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> 'pl.Trainer':

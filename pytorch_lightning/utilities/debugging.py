@@ -16,7 +16,7 @@ import os
 import time
 from collections import Counter
 from functools import wraps
-from typing import Any, Dict, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import torch
 from torch.utils.data import DataLoader
