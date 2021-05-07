@@ -723,7 +723,7 @@ class Trainer(
                                 |                             ||
                         create accelerator                    ||
                                 |                             ||
-                         {self.dispatch}                      ||
+                         {self._dispatch}                      ||
                                 |                             ||  LIGHTNING
                   {self.accelerator.start_training}           ||
                 or {self.accelerator.start_evaluating}        ||
@@ -731,13 +731,13 @@ class Trainer(
                                 |                             ||
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
-                        {self.run_train}                      ||
-                     or {self.run_evaluation}                 ||
-                     or {self.run_predict}                    ||
+                        {self._run_train}                      ||
+                     or {self._run_evaluation}                 ||
+                     or {self._run_predict}                    ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
-        {self.run_predict} is the simplest to understand, use `Go to Definition` to read it :)
+        {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
         Search for `start_training` or `start_evaluating` or `start_predicting` in
         `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
         """  # noqa: W605
