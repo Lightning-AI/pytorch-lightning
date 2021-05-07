@@ -20,15 +20,26 @@ class LoopProgress:
     """Basic dataclass to track loop progress during execution.
 
     The general structure is to count totals across epochs as well as intra-epoch counts.
-    These counters are local to a trainer rank (i.e. they are not by default globally synced across all ranks).
+    These counters are local to a trainer rank.
+    By default, they are not by default globally synced across all ranks.
 
     Args:
-        total_epochs_finished: Number of passes through the dataset as defined by the loop
+        total_epochs_finished: Number of passes through the dataset.
         total_batches_read: Number of batches loaded through the dataloader.
-        total_batches_started: Number of batches started processing. This is intended to be incremented after on_train_batch_start runs.
-        total_batches_processed: Number of batches processed. This is intended to be incremented after `training_step` runs.
-        total_batches_finished: Number of batches finished. This is intended to be incremented after `on_train_batch_end` runs.
-        batches_processed_this_epoch: This is reset at the end of the epoch
+        total_batches_started: Number of batches started processing.
+            This is intended to be incremented after `on_train_batch_start` completes.
+        total_batches_processed: Number of batches processed.
+            This is intended to be incremented after `training_step` runs.
+        total_batches_finished: Number of batches finished.
+            This is intended to be incremented after `on_train_batch_end` runs.
+
+        batches_read_this_epoch: Number of batches loaded through the dataloader within the current epoch.
+        batches_started_this_epoch: Number of batches started processing within the current epoch.
+            This is intended to be incremented after `on_train_batch_start` completes.
+        batches_processed_this_epoch: Number of batches processed within the current epoch.
+            This is intended to be incremented after `training_step` runs.
+        batches_finished_this_epoch: Number of batches finished within the current epoch.
+            This is intended to be incremented after `on_train_batch_end` runs.
     """
     total_epochs_finished: int = 0
 
