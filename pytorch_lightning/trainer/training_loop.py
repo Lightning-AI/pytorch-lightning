@@ -58,7 +58,7 @@ class TrainLoop:
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
         self._optimizer_freq_cumsum = None
 
-        self.trainer.global_step = 0
+        self.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.should_stop = False
         self.trainer.state = TrainerState()

@@ -49,7 +49,6 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _lightning_optimizers = None
     _progress_bar_callback: ProgressBarBase
-    state: TrainerState
     _weights_save_path: str
 
     accelerator_connector: AcceleratorConnector
@@ -58,6 +57,8 @@ class TrainerProperties(ABC):
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
+    state: TrainerState
+    train_loop: TrainLoop
 
     @property
     def accelerator(self) -> Accelerator:
@@ -485,6 +486,9 @@ class TrainerProperties(ABC):
         elif self.sanity_checking:
             self.state.stage = None
 
+    @property
+    def global_step(self):
+        return self.train_loop.global_step
 
 # Used to represent the concrete type TrainerProperties class methods are called on.
 _T = TypeVar('_T', bound=TrainerProperties)
