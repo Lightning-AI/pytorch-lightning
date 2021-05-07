@@ -611,7 +611,7 @@ def test_benchmark_option(tmpdir):
 
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
-@pytest.mark.parametrize("fn", ("validate", "test"))
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
 def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
 
     class TestModel(BoringModel):
@@ -620,48 +620,55 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
             self.log("foo", -batch_idx)
             return super().validation_step(batch, batch_idx)
 
+        def test_step(self, *args):
+            return self.validation_step(*args)
+
+        def predict_step(self, *args):
+            args = args[:-1]  # remove `dataloader_idx`
+            return self.validation_step(*args)
+
     model = TestModel()
+    model.test_epoch_end = None
     trainer = Trainer(
         max_epochs=2,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
         callbacks=[ModelCheckpoint(monitor="foo", save_top_k=save_top_k)],
     )
     trainer.fit(model)
 
-    test_or_validate = getattr(trainer, fn)
+    trainer_fn = getattr(trainer, fn)
+    path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
+    assert getattr(trainer, path_attr) is None
+
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
         if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
-                test_or_validate(ckpt_path=ckpt_path)
+                trainer_fn(ckpt_path=ckpt_path)
         else:
-            test_or_validate(ckpt_path=ckpt_path)
-            if fn == "test":
-                assert trainer.tested_ckpt_path == trainer.checkpoint_callback.best_model_path
-            else:
-                assert trainer.validated_ckpt_path == trainer.checkpoint_callback.best_model_path
+            trainer_fn(ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and
         # use the weights from the end of training
-        test_or_validate(ckpt_path=ckpt_path)
-        assert trainer.tested_ckpt_path is None
-        assert trainer.validated_ckpt_path is None
+        trainer_fn(ckpt_path=ckpt_path)
+        assert getattr(trainer, path_attr) is None
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
             with pytest.raises(FileNotFoundError):
-                test_or_validate(ckpt_path="random.ckpt")
+                trainer_fn(ckpt_path="random.ckpt")
         else:
             ckpt_path = str(
                 list((Path(tmpdir) / f"lightning_logs/version_{trainer.logger.version}/checkpoints").iterdir()
                      )[0].absolute()
             )
-            test_or_validate(ckpt_path=ckpt_path)
-            if fn == "test":
-                assert trainer.tested_ckpt_path == ckpt_path
-            else:
-                assert trainer.validated_ckpt_path == ckpt_path
+            trainer_fn(ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == ckpt_path
 
 
 def test_disabled_training(tmpdir):

@@ -383,6 +383,7 @@ class Trainer(
             num_sanity_val_steps,
         )
         self.evaluation_loop.on_trainer_init()
+        self.predict_loop.on_trainer_init()
 
         # configure tuner
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
