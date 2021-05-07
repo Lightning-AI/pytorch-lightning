@@ -732,7 +732,7 @@ class Trainer(
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
                         {self._run_train}                     ||
-                     or {self.run_evaluation}                ||
+                     or {self._run_evaluation}                ||
                      or {self._run_predict}                   ||
                                 |                             ||
                              results                          \/
@@ -908,10 +908,10 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def run_evaluation(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
+    def _run_evaluation(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
         if not (self.evaluating or self.sanity_checking):
             rank_zero_warn(
-                f"`trainer.run_evaluation()` was called but the running stage is set to {self.state.stage}."
+                f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
                 " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
             )
             self.validating = True
