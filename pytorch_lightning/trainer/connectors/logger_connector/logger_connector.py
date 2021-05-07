@@ -43,6 +43,8 @@ class LoggerConnector:
         self._cached_results = {stage: EpochResultStore(trainer) for stage in RunningStage}
         self._cached_results[None] = EpochResultStore(trainer)
         self._callback_hook_validator = CallbackHookNameValidator()
+        self._val_log_step: int = 0
+        self._test_log_step: int = 0
 
     @property
     def callback_metrics(self) -> Dict:
@@ -201,7 +203,8 @@ class LoggerConnector:
         Args:
             metrics (dict): Metric values
             grad_norm_dic (dict): Gradient norms
-            step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
+            step (int): Step for which metrics should be logged. Default value is `self.global_step` during training or
+                the total validation / test log step count during validation and testing.
         """
         # add gpu memory
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
@@ -371,3 +374,31 @@ class LoggerConnector:
             if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
                 self.log_metrics(batch_log_metrics, grad_norm_dic)
                 self._callback_metrics.update(batch_log_metrics)
+
+    @property
+    def evaluation_log_step(self) -> Optional[int]:
+        if self.trainer.state.stage is RunningStage.VALIDATING:
+            return self._val_log_step
+        elif self.trainer.state.stage is RunningStage.TESTING:
+            return self._test_log_step
+        else:
+            return None
+
+    def increment_evaluation_log_step(self) -> None:
+        if self.trainer.state.stage is RunningStage.VALIDATING:
+            self._val_log_step += 1
+        elif self.trainer.state.stage is RunningStage.TESTING:
+            self._test_log_step += 1
+
+    def log_evaluation_step_metrics(self) -> None:
+        if self.trainer.sanity_checking:
+            return
+        _, batch_log_metrics = self.cached_results.update_logger_connector()
+
+        # logs user requested information to logger
+        if len(batch_log_metrics) > 0:
+            kwargs = dict() if "step" in batch_log_metrics else dict(step=self.evaluation_log_step)
+            self.log_metrics(batch_log_metrics, {}, **kwargs)
+
+        # increment the step even if nothing was logged
+        self.increment_evaluation_log_step()
