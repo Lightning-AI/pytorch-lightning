@@ -475,7 +475,7 @@ class CombinedLoaderIterator(object):
 
 def _nested_calc_num_data(data: Union[Mapping, Sequence], compute_func: Callable):
 
-    if isinstance(data, int):
+    if isinstance(data, (float, int)):
         return data
 
     if isinstance(data, Mapping):
