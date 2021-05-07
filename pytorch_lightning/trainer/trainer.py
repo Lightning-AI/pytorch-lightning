@@ -375,7 +375,7 @@ class Trainer(
             truncated_bptt_steps,
             terminate_on_nan,
         )
-        self._setup_fit_on_init(
+        self._setup_on_init(
             max_epochs,
             min_epochs,
             max_steps,
