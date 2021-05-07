@@ -59,7 +59,7 @@ class LightningModule(
     Module,
 ):
     # Below is for property support of JIT in PyTorch 1.7
-    # since none of them is important when using JIT, we are going to ignore them.
+    # since none of these are important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = [
         "datamodule",
         "example_input_array",
@@ -72,6 +72,8 @@ class LightningModule(
         "local_rank",
         "logger",
         "model_size",
+        "automatic_optimization",
+        "truncated_bptt_steps",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -104,6 +106,7 @@ class LightningModule(
         self._current_hook_fx_name: Optional[str] = None
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
+        self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
@@ -162,6 +165,10 @@ class LightningModule(
 
     @property
     def datamodule(self) -> Any:
+        rank_zero_deprecation(
+            "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
+            " Access the datamodule through using `self.trainer.datamodule` instead."
+        )
         return self._datamodule
 
     @datamodule.setter
@@ -186,6 +193,18 @@ class LightningModule(
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
         self._automatic_optimization = automatic_optimization
+
+    @property
+    def truncated_bptt_steps(self) -> int:
+        """
+        truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much a longer sequence.
+        If this is > 0, the training step is passed ``hiddens``.
+        """
+        return self._truncated_bptt_steps
+
+    @truncated_bptt_steps.setter
+    def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
+        self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
     def logger(self):
@@ -520,7 +539,7 @@ class LightningModule(
             batch_idx (int): Integer displaying index of this batch
             optimizer_idx (int): When using multiple optimizers, this argument will also be present.
             hiddens(:class:`~torch.Tensor`): Passed in if
-                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
+                :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
 
         Return:
             Any of.
@@ -1105,31 +1124,47 @@ class LightningModule(
             - **None** - Fit will run without any optimizer.
 
         Note:
-            The lr_dict is a dictionary which contains the scheduler and its associated configuration. The default
-            configuration is shown below.
+            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
+            The default configuration is shown below.
 
             .. code-block:: python
 
                 lr_dict = {
                     'scheduler': lr_scheduler, # The LR scheduler instance (required)
-                    'interval': 'epoch', # The unit of the scheduler's step size
+                    # The unit of the scheduler's step size, could also be 'step'
+                    'interval': 'epoch',
                     'frequency': 1, # The frequency of the scheduler
-                    'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
-                    'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
+                    'monitor': 'val_loss', # Metric for `ReduceLROnPlateau` to monitor
                     'strict': True, # Whether to crash the training if `monitor` is not found
-                    'name': None, # Custom name for LearningRateMonitor to use
+                    'name': None, # Custom name for `LearningRateMonitor` to use
                 }
 
             Only the ``"scheduler"`` key is required, the rest will be set to the defaults above.
 
         Note:
-            The ``"frequency"`` value is an ``int`` corresponding to the number of sequential batches optimized with the
-            specific optimizer. It should be given to none or to all of the optimizers.
-
-            There is a difference between passing multiple optimizers in a list and passing multiple optimizers in
-            dictionaries with a frequency of 1:
+            The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
+            to the number of sequential batches optimized with the specific optimizer.
+            It should be given to none or to all of the optimizers.
+            There is a difference between passing multiple optimizers in a list,
+            and passing multiple optimizers in dictionaries with a frequency of 1:
             In the former case, all optimizers will operate on the given batch in each optimization step.
             In the latter, only one optimizer will operate on the given batch at every step.
+            This is different from the ``frequency`` value specified in the lr_dict mentioned below.
+
+            .. code-block:: python
+
+                def configure_optimizers(self):
+                    optimizer_one = torch.optim.SGD(self.model.parameters(), lr=0.01)
+                    optimizer_two = torch.optim.SGD(self.model.parameters(), lr=0.01)
+                    return [
+                        {'optimizer': optimizer_one, 'frequency': 5},
+                        {'optimizer': optimizer_two, 'frequency': 10},
+                    ]
+
+            In this example, the first optimizer will be used for the first 5 steps,
+            the second optimizer for the next 10 steps and that cycle will continue.
+            If an LR scheduler is specified for an optimizer using the ``lr_scheduler`` key in the above dict,
+            the scheduler will only be updated when its optimizer is being used.
 
         Examples::
 
@@ -1182,18 +1217,6 @@ class LightningModule(
               at each training step.
             - If you need to control how often those optimizers step or override the default ``.step()`` schedule,
               override the :meth:`optimizer_step` hook.
-            - If you only want to call a learning rate scheduler every ``x`` step or epoch, or want to monitor a custom
-              metric, you can specify these in a lr_dict:
-
-              .. code-block:: python
-
-                  lr_dict = {
-                      'scheduler': lr_scheduler,
-                      'interval': 'step',  # or 'epoch'
-                      'monitor': 'val_f1',
-                      'frequency': x,
-                  }
-
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
@@ -1440,7 +1463,7 @@ class LightningModule(
         Note:
             Called in the training loop after
             :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
-            if :paramref:`~pytorch_lightning.trainer.Trainer.truncated_bptt_steps` > 0.
+            if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
 
         """
@@ -1541,7 +1564,9 @@ class LightningModule(
         if avg_training_loss is not None:
             tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
-        if self.trainer.truncated_bptt_steps is not None:
+        module_tbptt_enabled = self.truncated_bptt_steps > 0
+        trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
+        if module_tbptt_enabled or trainer_tbptt_enabled:
             tqdm_dict["split_idx"] = self.trainer.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:

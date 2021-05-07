@@ -104,6 +104,7 @@ PyTorch Lightning Documentation
    common/lightning_cli
    advanced/lr_finder
    advanced/multi_gpu
+   advanced/advanced_gpu
    advanced/multiple_loaders
    common/weights_loading
    common/optimizers

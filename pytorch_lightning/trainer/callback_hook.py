@@ -96,51 +96,35 @@ class TrainerCallbackHookMixin(ABC):
             outputs: List of outputs on each ``train`` epoch
         """
         for callback in self.callbacks:
-            callback.on_train_epoch_end(self, self.lightning_module, outputs)
+            if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
+                warning_cache.warn(
+                    "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
+                    " `outputs` parameter has been removed."
+                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                )
+                callback.on_train_epoch_end(self, self.lightning_module, outputs)
+            else:
+                callback.on_train_epoch_end(self, self.lightning_module)
 
     def on_validation_epoch_start(self):
         """Called when the epoch begins."""
         for callback in self.callbacks:
             callback.on_validation_epoch_start(self, self.lightning_module)
 
-    def on_validation_epoch_end(self, outputs: EPOCH_OUTPUT):
-        """Called when the epoch ends.
-
-        Args:
-            outputs: List of outputs on each ``validation`` epoch
-        """
+    def on_validation_epoch_end(self):
+        """Called when the validation epoch ends."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_validation_epoch_end, "outputs"):
-                callback.on_validation_epoch_end(self, self.lightning_module, outputs)
-            else:
-                warning_cache.warn(
-                    "`Callback.on_validation_epoch_end` signature has changed in v1.3."
-                    " `outputs` parameter has been added."
-                    " Support for the old signature will be removed in v1.5", DeprecationWarning
-                )
-                callback.on_validation_epoch_end(self, self.lightning_module)
+            callback.on_validation_epoch_end(self, self.lightning_module)
 
     def on_test_epoch_start(self):
         """Called when the epoch begins."""
         for callback in self.callbacks:
             callback.on_test_epoch_start(self, self.lightning_module)
 
-    def on_test_epoch_end(self, outputs: EPOCH_OUTPUT):
-        """Called when the epoch ends.
-
-        Args:
-            outputs: List of outputs on each ``test`` epoch
-        """
+    def on_test_epoch_end(self):
+        """Called when the test epoch ends."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_test_epoch_end, "outputs"):
-                callback.on_test_epoch_end(self, self.lightning_module, outputs)
-            else:
-                warning_cache.warn(
-                    "`Callback.on_test_epoch_end` signature has changed in v1.3."
-                    " `outputs` parameter has been added."
-                    " Support for the old signature will be removed in v1.5", DeprecationWarning
-                )
-                callback.on_test_epoch_end(self, self.lightning_module)
+            callback.on_test_epoch_end(self, self.lightning_module)
 
     def on_predict_epoch_start(self) -> None:
         """Called when the epoch begins."""

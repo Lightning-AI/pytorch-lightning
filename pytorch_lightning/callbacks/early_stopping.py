@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 import numpy as np
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -157,10 +158,10 @@ class EarlyStopping(Callback):
         self.patience = callback_state['patience']
 
     def _should_skip_check(self, trainer) -> bool:
-        from pytorch_lightning.trainer.states import TrainerState
-        return trainer.state != TrainerState.FITTING or trainer.sanity_checking
+        from pytorch_lightning.trainer.states import TrainerFn
+        return trainer.state.fn != TrainerFn.FITTING or trainer.sanity_checking
 
-    def on_train_epoch_end(self, trainer, pl_module, outputs) -> None:
+    def on_train_epoch_end(self, trainer, pl_module) -> None:
         if not self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
         self._run_early_stopping_check(trainer)
@@ -196,8 +197,8 @@ class EarlyStopping(Callback):
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop:
             self.stopped_epoch = trainer.current_epoch
-        if reason:
-            log.info(f"[{trainer.global_rank}] {reason}")
+        if reason and self.verbose:
+            self._log_info(trainer, reason)
 
     def _evalute_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, str]:
         should_stop = False
@@ -224,6 +225,7 @@ class EarlyStopping(Callback):
             )
         elif self.monitor_op(current - self.min_delta, self.best_score):
             should_stop = False
+            reason = self._improvement_message(current)
             self.best_score = current
             self.wait_count = 0
         else:
@@ -231,8 +233,26 @@ class EarlyStopping(Callback):
             if self.wait_count >= self.patience:
                 should_stop = True
                 reason = (
-                    f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} epochs."
+                    f"Monitored metric {self.monitor} did not improve in the last {self.wait_count} records."
                     f" Best score: {self.best_score:.3f}. Signaling Trainer to stop."
                 )
 
         return should_stop, reason
+
+    def _improvement_message(self, current: torch.Tensor) -> str:
+        """ Formats a log message that informs the user about an improvement in the monitored score. """
+        if torch.isfinite(self.best_score):
+            msg = (
+                f"Metric {self.monitor} improved by {abs(self.best_score - current):.3f} >="
+                f" min_delta = {abs(self.min_delta)}. New best score: {current:.3f}"
+            )
+        else:
+            msg = f"Metric {self.monitor} improved. New best score: {current:.3f}"
+        return msg
+
+    @staticmethod
+    def _log_info(trainer: Optional["pl.Trainer"], message: str) -> None:
+        if trainer is not None and trainer.world_size > 1:
+            log.info(f"[rank: {trainer.global_rank}] {message}")
+        else:
+            log.info(message)
