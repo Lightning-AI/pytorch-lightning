@@ -15,6 +15,7 @@ import os
 
 import torch
 
+from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -39,6 +40,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
     def is_distributed(self) -> bool:
         return False
 
+    @parameter_validation
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
