@@ -992,7 +992,7 @@ class Trainer(
                 opt_indices=[
                     opt_idx
                     for opt_idx, _ in self.train_loop.get_optimizers_iterable(batch_idx=(
-                        self.total_batch_idx - 1
+                        self.train_loop.total_batch_idx - 1
                     ))  # Select the optimizers which were used in the last batch of the epoch
                 ],
             )

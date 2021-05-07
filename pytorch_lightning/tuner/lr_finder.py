@@ -255,7 +255,7 @@ def lr_find(
 
     # Transfer results from callback to lr finder object
     lr_finder.results.update({'lr': trainer.callbacks[0].lrs, 'loss': trainer.callbacks[0].losses})
-    lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
+    lr_finder._total_batch_idx = trainer.train_loop.total_batch_idx  # for debug purpose
 
     # Reset model state
     if trainer.is_global_zero:
@@ -338,7 +338,7 @@ class _LRCallback(Callback):
 
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
-        if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if (trainer.train_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
 
         if self.progress_bar_refresh_rate and self.progress_bar is None:
@@ -348,7 +348,7 @@ class _LRCallback(Callback):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """ Called when the training batch ends, logs the calculated loss """
-        if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if (trainer.train_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
 
         if self.progress_bar:

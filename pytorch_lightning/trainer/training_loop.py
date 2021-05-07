@@ -63,8 +63,8 @@ class TrainLoop:
         self.trainer.should_stop = False
         self.trainer.state = TrainerState()
 
-        self.trainer.total_batch_idx = 0
-        self.trainer.batch_idx = 0
+        self.total_batch_idx = 0
+        self.batch_idx = 0
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
 
@@ -242,7 +242,7 @@ class TrainLoop:
             return list(enumerate(self.trainer.optimizers))
 
         if batch_idx is None:
-            batch_idx = self.trainer.total_batch_idx
+            batch_idx = self.total_batch_idx
 
         optimizers_loop_length = self.optimizer_freq_cumsum[-1]
         current_place_in_loop = batch_idx % optimizers_loop_length
@@ -480,7 +480,7 @@ class TrainLoop:
         is_last_batch = None
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
-            self.trainer.batch_idx = batch_idx
+            self.batch_idx = batch_idx
             self.trainer.is_last_batch = is_last_batch
 
             # ------------------------------------
@@ -541,7 +541,7 @@ class TrainLoop:
             if self.trainer.should_stop:
                 break
 
-            self.trainer.total_batch_idx += 1
+            self.total_batch_idx += 1
 
             # stop epoch if we limited the number of training batches
             if self._num_training_batches_reached(is_last_batch):
@@ -892,10 +892,10 @@ class TrainLoop:
             )
 
     def _accumulated_batches_reached(self):
-        return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
+        return (self.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch=False):
-        return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
+        return (self.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
 
     def should_accumulate(self):
         # checks if backward or backward + optimizer step (via closure)
