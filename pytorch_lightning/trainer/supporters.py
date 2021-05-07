@@ -356,6 +356,7 @@ class CombinedLoader(object):
         """Return a collections of samplers extracting from loaders."""
         return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, 'sampler', None)
 
+
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
         Wraps all loaders to make sure they are cycled until the longest loader is exhausted
@@ -366,27 +367,11 @@ class CombinedLoader(object):
         """
         all_lengths = apply_to_collection(self.loaders, Iterable, get_len, wrong_dtype=(Sequence, Mapping))
 
-        if isinstance(all_lengths, (int, float)):
-            length = all_lengths
+        length = _nested_calc_num_data(all_lengths, max)
 
-        elif isinstance(all_lengths, Mapping):
-            length = max(all_lengths.values())
-
-        elif isinstance(all_lengths, Sequence):
-            length = max(all_lengths)
-
-        if isinstance(self.loaders, Mapping):
-            self.loaders = type(self.loaders)({k: CycleIterator(v, length=length) for k, v in self.loaders.items()})
-
-        elif isinstance(self.loaders, Sequence):
-            self.loaders = type(self.loaders)([CycleIterator(v, length=length) for v in self.loaders])
-
-        # dataloaders are iterable but not sequence
-        elif isinstance(self.loaders, Iterable):
-            # only one dataloader, just keep it the same.
-            pass
-        else:
-            raise ValueError(f'Invalid Datatype for loaders: {type(self.loaders).__name__}')
+        # multiple loaders
+        if isinstance(self.loaders, (Sequence, Mapping)):
+            self.loaders = apply_to_collection(self.loaders, Iterable, CycleIterator, length=length, wrong_dtype=(Sequence, Mapping))
 
     def __iter__(self) -> Any:
         """
