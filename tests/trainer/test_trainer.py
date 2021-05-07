@@ -1924,7 +1924,7 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     trainer.fit(model)
     compare_optimizers()
 
-    trainer.max_epochs = 2  # simulate multiple fit calls
+    trainer.train_loop.max_epochs = 2  # simulate multiple fit calls
     trainer.fit(model)
     compare_optimizers()
 

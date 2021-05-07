@@ -494,5 +494,13 @@ class TrainerProperties(ABC):
     @property
     def current_epoch(self):
         return self.train_loop.current_epoch
+
+    @property
+    def max_epochs(self):
+        return self.train_loop.max_epochs
+
+    @property
+    def min_epochs(self):
+        return self.train_loop.min_epochs
 # Used to represent the concrete type TrainerProperties class methods are called on.
 _T = TypeVar('_T', bound=TrainerProperties)
