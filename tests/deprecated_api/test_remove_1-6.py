@@ -29,7 +29,7 @@ def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
     with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
         trainer.has_arg("training_step", "batch")
 
-        
+
 def test_v1_6_0_dataloader_renaming(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
