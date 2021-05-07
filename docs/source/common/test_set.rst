@@ -80,10 +80,10 @@ is not available at the time your model was declared.
 .. code-block:: python
 
     # setup your data loader
-    test = DataLoader(...)
+    test_dataloader = DataLoader(...)
 
     # test (pass in the loader)
-    trainer.test(test_dataloaders=test)
+    trainer.test(dataloaders=test_dataloader)
 
 You can either pass in a single dataloader or a list of them. This optional named
 parameter can be used in conjunction with any of the above use cases. Additionally,

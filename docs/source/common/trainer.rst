@@ -159,7 +159,7 @@ or after it has already been trained.
 
 .. code-block:: python
 
-    trainer.validate(val_dataloaders=val_dataloaders)
+    trainer.validate(dataloaders=val_dataloaders)
 
 ------------
 

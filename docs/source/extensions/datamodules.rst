@@ -53,7 +53,7 @@ Datamodules are for you if you ever asked the questions:
 
 What is a DataModule
 --------------------
-A DataModule is simply a collection of a train_dataloader, val_dataloader(s), test_dataloader(s) along with the
+A DataModule is simply a collection of a train_dataloader(s), val_dataloader(s), test_dataloader(s) along with the
 matching transforms and data processing/downloads steps required.
 
 Here's a simple PyTorch example:
