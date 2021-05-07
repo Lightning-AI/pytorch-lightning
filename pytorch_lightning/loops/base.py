@@ -54,3 +54,8 @@ class Loop(metaclass=ABCMeta):
 
         outputs = self.on_run_end(outputs)
         return outputs
+
+    def state_dict(self):
+        return dict()
+
+
