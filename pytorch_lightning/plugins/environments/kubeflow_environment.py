@@ -27,6 +27,17 @@ class KubeflowEnvironment(ClusterEnvironment):
     operator from `Kubeflow <https://www.kubeflow.org>`_
     """
 
+    @staticmethod
+    def is_using_kubeflow() -> bool:
+        """ Returns ``True`` if the current process was launched using Kubeflow PyTorchJob. """
+        required_env_vars = ("KUBERNETES_PORT", "MASTER_ADDR", "MASTER_PORT", "WORLD_SIZE", "RANK")
+        # torchelastic sets these. Make sure we're not in torchelastic
+        excluded_env_vars = ("GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE")
+        return (
+            all(v in os.environ for v in required_env_vars) and
+            not any(v in os.environ for v in excluded_env_vars)
+        )
+
     def creates_children(self) -> bool:
         return True
 

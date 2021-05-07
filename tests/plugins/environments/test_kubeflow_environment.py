@@ -30,6 +30,7 @@ def test_default_attributes():
 
 @mock.patch.dict(
     os.environ, {
+        "KUBERNETES_PORT": "tcp://127.0.0.1:443",
         "MASTER_ADDR": "1.2.3.4",
         "MASTER_PORT": "500",
         "WORLD_SIZE": "20",
@@ -57,3 +58,30 @@ def test_attributes_from_environment_variables(caplog):
         env.set_world_size(100)
     assert env.world_size() == 20
     assert "setting world size is not allowed" in caplog.text
+
+
+@mock.patch.dict(
+    os.environ, {
+        "KUBERNETES_PORT": "tcp://127.0.0.1:443",
+        "MASTER_ADDR": "1.2.3.4",
+        "MASTER_PORT": "500",
+        "WORLD_SIZE": "20",
+        "RANK": "1",
+    }
+)
+def test_is_using_kubeflow():
+    assert KubeflowEnvironment.is_using_kubeflow()
+
+
+@mock.patch.dict(
+    os.environ, {
+        "KUBERNETES_PORT": "tcp://127.0.0.1:443",
+        "MASTER_ADDR": "1.2.3.4",
+        "MASTER_PORT": "500",
+        "WORLD_SIZE": "20",
+        "RANK": "1",
+        "GROUP_RANK": "1",
+    }
+)
+def test_is_using_kubeflow_torchelastic():
+    assert not KubeflowEnvironment.is_using_kubeflow()
