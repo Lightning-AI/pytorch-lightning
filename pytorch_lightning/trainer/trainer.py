@@ -280,8 +280,8 @@ class Trainer(
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
-            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer
-                sequence.
+            truncated_bptt_steps: Deprecated in v1.3 to be removed in 1.5.
+                Please use :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` instead.
 
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).
@@ -972,7 +972,8 @@ class Trainer(
                 dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
 
             # store batch level output per dataloader
-            self.evaluation_loop.outputs.append(dl_outputs)
+            if self.evaluation_loop.should_track_batch_outputs_for_epoch_end:
+                self.evaluation_loop.outputs.append(dl_outputs)
 
         outputs = self.evaluation_loop.outputs
 
@@ -980,14 +981,14 @@ class Trainer(
         self.evaluation_loop.outputs = []
 
         # with a single dataloader don't pass a 2D list
-        if self.evaluation_loop.num_dataloaders == 1:
+        if len(outputs) > 0 and self.evaluation_loop.num_dataloaders == 1:
             outputs = outputs[0]
 
         # lightning module method
         self.evaluation_loop.evaluation_epoch_end(outputs)
 
         # hook
-        self.evaluation_loop.on_evaluation_epoch_end(outputs)
+        self.evaluation_loop.on_evaluation_epoch_end()
 
         # update epoch-level lr_schedulers
         if on_epoch:
@@ -1211,6 +1212,11 @@ class Trainer(
             self.logger_connector.cache_logged_metrics()
 
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
+        # Note this implementation is copy/pasted into the TrainLoop class in TrainLoop._on_train_epoch_end_hook
+        # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
+        # If making changes to this function, ensure that those changes are also made to
+        # TrainLoop._on_train_epoch_end_hook
+
         # set hook_name to model + reset Result obj
         skip = self._reset_result_and_set_hook_fx_name(hook_name)
 
