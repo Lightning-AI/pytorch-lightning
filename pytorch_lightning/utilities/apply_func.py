@@ -55,7 +55,7 @@ CONVERSION_DTYPES = [
 
 def apply_to_collection(
     data: Any,
-    dtype: Union[torch.dtype, Tuple[torch.dtype]],
+    dtype: Union[type, Tuple[type]],
     function: Callable,
     *args: Any,
     wrong_dtype: Optional[Union[torch.dtype, Tuple[torch.dtype]]] = None,
