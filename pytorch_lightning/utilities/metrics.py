@@ -19,8 +19,10 @@ import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+recursive_dict_with_tensors = Dict[str, Union[torch.Tensor, 'recursive_dict_with_tensors']]
 
-def metrics_to_scalars(metrics: Dict[str, Union[torch.Tensor, dict]]) -> Dict[str, float]:
+
+def metrics_to_scalars(metrics: recursive_dict_with_tensors) -> Dict[str, float]:
     """ Recursively walk through a dictionary of metrics and convert single-item tensors to scalar values. """
 
     # TODO: this is duplicated in MetricsHolder. should be unified

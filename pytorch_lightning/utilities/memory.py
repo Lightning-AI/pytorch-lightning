@@ -17,11 +17,10 @@ from typing import Any, Dict, Union
 
 import torch
 
+recursive_dict_with_tensors = Dict[Any, Union[torch.Tensor, 'recursive_dict_with_tensors']]
 
-def recursive_detach(
-    in_dict: Dict[Any, Union[torch.Tensor, Dict[Any, torch.Tensor]]],
-    to_cpu: bool = False,
-) -> Dict[str, torch.Tensor]:
+
+def recursive_detach(in_dict: recursive_dict_with_tensors, to_cpu: bool = False) -> Dict[str, torch.Tensor]:
     """Detach all tensors in `in_dict`.
 
     May operate recursively if some of the values in `in_dict` are dictionaries
