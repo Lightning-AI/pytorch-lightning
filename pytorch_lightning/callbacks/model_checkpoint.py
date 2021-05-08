@@ -549,7 +549,7 @@ class ModelCheckpoint(Callback):
             'step=0.ckpt'
 
         """
-        if(self.monitor is not None):
+        if(self.monitor is not None and self.monitor in metrics):
             metrics.update(monitor=metrics[self.monitor])
 
         filename = self._format_checkpoint_name(
