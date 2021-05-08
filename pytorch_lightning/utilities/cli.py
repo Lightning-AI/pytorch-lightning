@@ -51,7 +51,9 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_lightning_class_args(
         self,
-        lightning_class: Union[Type('pl.Trainer'), Type('pl.LightningModule'), Type('pl.LightningDataModule')],
+        lightning_class: Union[Type('pl.Trainer'),
+                               Type('pl.LightningModule'),
+                               Type('pl.LightningDataModule')],
         nested_key: str,
         subclass_mode: bool = False,
     ) -> None:
