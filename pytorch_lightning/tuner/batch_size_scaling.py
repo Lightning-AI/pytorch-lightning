@@ -16,7 +16,6 @@ import os
 from typing import Optional, Tuple
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -29,13 +28,13 @@ log = logging.getLogger(__name__)
 
 
 def scale_batch_size(
-    trainer: 'pl.Trainer',
-    model: 'pl.LightningModule',
-    mode: str = 'power',
-    steps_per_trial: int = 3,
-    init_val: int = 2,
-    max_trials: int = 25,
-    batch_arg_name: str = 'batch_size',
+        trainer: 'pl.Trainer',
+        model: 'pl.LightningModule',
+        mode: str = 'power',
+        steps_per_trial: int = 3,
+        init_val: int = 2,
+        max_trials: int = 25,
+        batch_arg_name: str = 'batch_size',
 ) -> Optional[int]:
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size`"""
     if trainer.fast_dev_run:
@@ -140,7 +139,7 @@ def __scale_batch_restore_params(trainer: 'pl.Trainer') -> None:
 
 
 def _run_power_scaling(
-    trainer: 'pl.Trainer', model: 'pl.LightningModule', new_size: int, batch_arg_name: str, max_trials: int
+        trainer: 'pl.Trainer', model: 'pl.LightningModule', new_size: int, batch_arg_name: str, max_trials: int
 ) -> int:
     """ Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered. """
     for _ in range(max_trials):
@@ -167,7 +166,7 @@ def _run_power_scaling(
 
 
 def _run_binsearch_scaling(
-    trainer: 'pl.Trainer', model: 'pl.LightningModule', new_size: int, batch_arg_name: str, max_trials: int
+        trainer: 'pl.Trainer', model: 'pl.LightningModule', new_size: int, batch_arg_name: str, max_trials: int
 ) -> int:
     """ Batch scaling mode where the size is initially is doubled at each iteration
         until an OOM error is encountered. Hereafter, the batch size is further
