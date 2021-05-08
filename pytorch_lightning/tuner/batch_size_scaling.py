@@ -212,11 +212,11 @@ def _run_binsearch_scaling(
 
 
 def _adjust_batch_size(
-        trainer: 'pl.Trainer',
-        batch_arg_name: str = 'batch_size',
-        factor: float = 1.0,
-        value: Optional[int] = None,
-        desc: Optional[str] = None
+    trainer: 'pl.Trainer',
+    batch_arg_name: str = 'batch_size',
+    factor: float = 1.0,
+    value: Optional[int] = None,
+    desc: Optional[str] = None
 ) -> Tuple[int, bool]:
     """ Helper function for adjusting the batch size.
 

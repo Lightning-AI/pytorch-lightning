@@ -195,14 +195,14 @@ class _LRFinder(object):
 
 
 def lr_find(
-        trainer: 'pl.Trainer',
-        model: 'pl.LightningModule',
-        min_lr: float = 1e-8,
-        max_lr: float = 1,
-        num_training: int = 100,
-        mode: str = 'exponential',
-        early_stop_threshold: float = 4.0,
-        update_attr: bool = False,
+    trainer: 'pl.Trainer',
+    model: 'pl.LightningModule',
+    min_lr: float = 1e-8,
+    max_lr: float = 1,
+    num_training: int = 100,
+    mode: str = 'exponential',
+    early_stop_threshold: float = 4.0,
+    update_attr: bool = False,
 ) -> Optional[_LRFinder]:
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
     if trainer.fast_dev_run:
@@ -320,11 +320,11 @@ class _LRCallback(Callback):
     """
 
     def __init__(
-            self,
-            num_training: int,
-            early_stop_threshold: float = 4.0,
-            progress_bar_refresh_rate: int = 0,
-            beta: float = 0.98
+        self,
+        num_training: int,
+        early_stop_threshold: float = 4.0,
+        progress_bar_refresh_rate: int = 0,
+        beta: float = 0.98
     ):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
@@ -346,9 +346,10 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
-    def on_train_batch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs, batch,
-                           batch_idx: Optional[int],
-                           dataloader_idx: Optional[int]) -> None:
+    def on_train_batch_end(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs, batch, batch_idx: Optional[int],
+        dataloader_idx: Optional[int]
+    ) -> None:
         """ Called when the training batch ends, logs the calculated loss """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -361,7 +362,7 @@ class _LRCallback(Callback):
 
         # Avg loss (loss with momentum) + smoothing
         self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
-        smoothed_loss = self.avg_loss / (1 - self.beta ** (current_step + 1))
+        smoothed_loss = self.avg_loss / (1 - self.beta**(current_step + 1))
 
         # Check if we diverging
         if self.early_stop_threshold is not None:
@@ -442,7 +443,7 @@ class _ExponentialLR(_LRScheduler):
         r = curr_iter / self.num_iter
 
         if self.last_epoch > 0:
-            val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
+            val = [base_lr * (self.end_lr / base_lr)**r for base_lr in self.base_lrs]
         else:
             val = [base_lr for base_lr in self.base_lrs]
         self._lr = val
