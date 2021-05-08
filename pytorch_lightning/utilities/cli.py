@@ -51,9 +51,9 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_lightning_class_args(
         self,
-        lightning_class: Union[Type('pl.Trainer'),
-                               Type('pl.LightningModule'),
-                               Type('pl.LightningDataModule')],
+        lightning_class: Union[Type['pl.Trainer'],
+                               Type['pl.LightningModule'],
+                               Type['pl.LightningDataModule']],
         nested_key: str,
         subclass_mode: bool = False,
     ) -> None:
@@ -84,7 +84,7 @@ class SaveConfigCallback(Callback):
         self.config = config
         self.config_filename = config_filename
 
-    def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
         log_dir = trainer.log_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
         self.parser.save(self.config, config_path, skip_none=False)
