@@ -30,7 +30,7 @@ def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
     with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
         trainer.has_arg("training_step", "batch")
 
-        
+
 def test_v1_6_0_ddp_num_nodes():
     with pytest.deprecated_call(match="Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4"):
         DDPPlugin(num_nodes=1)
