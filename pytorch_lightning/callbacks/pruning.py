@@ -373,7 +373,7 @@ class ModelPruning(Callback):
                 self._original_layers.setdefault(id_, {"data": deepcopy(module), "names": []})
                 self._original_layers[id_]["names"].append((i, name))
 
-    def on_train_epoch_end(self, trainer, pl_module: LightningModule, outputs):
+    def on_train_epoch_end(self, trainer, pl_module: LightningModule):
         current_epoch = trainer.current_epoch
         prune = self._apply_pruning(current_epoch) if isinstance(self._apply_pruning, Callable) else self._apply_pruning
         amount = self.amount(current_epoch) if isinstance(self.amount, Callable) else self.amount

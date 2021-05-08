@@ -11,12 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Test deprecated functionality which will be removed in v1.6.0"""
+""" Test deprecated functionality which will be removed in v1.6.0 """
+
 import pytest
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
+from tests.helpers import BoringModel
 
 
+def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, checkpoint_callback=False, logger=False)
+    trainer.fit(model)
+    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
+        trainer.is_function_implemented("training_step", model)
+
+    with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
+        trainer.has_arg("training_step", "batch")
+
+        
 def test_v1_6_0_ddp_num_nodes():
     with pytest.deprecated_call(match="Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4"):
         DDPPlugin(num_nodes=1)

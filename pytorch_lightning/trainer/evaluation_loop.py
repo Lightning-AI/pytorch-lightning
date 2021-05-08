@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader
 
@@ -20,7 +20,6 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -76,6 +75,7 @@ class EvaluationLoop(object):
         return sum(max_batches) == 0
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
+        self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
         else:
@@ -188,6 +188,13 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
+    def _should_track_batch_outputs_for_epoch_end(self) -> bool:
+        model = self.trainer.lightning_module
+        if self.trainer.testing:
+            return is_overridden('test_epoch_end', model=model)
+        else:
+            return is_overridden('validation_epoch_end', model=model)
+
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         # unset dataloder_idx in model
         self.trainer.logger_connector.evaluation_epoch_end()
@@ -241,7 +248,7 @@ class EvaluationLoop(object):
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
-    def on_evaluation_epoch_end(self, outputs: Union[List[List[Dict]], List[Dict]]) -> None:
+    def on_evaluation_epoch_end(self) -> None:
         model_ref = self.trainer.lightning_module
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
 
@@ -251,38 +258,12 @@ class EvaluationLoop(object):
 
             if hasattr(self.trainer, hook_name):
                 on_evaluation_epoch_end_hook = getattr(self.trainer, hook_name)
-                on_evaluation_epoch_end_hook(outputs)
+                on_evaluation_epoch_end_hook()
 
             if is_overridden(hook_name, model_ref):
                 model_hook_fx = getattr(model_ref, hook_name)
-                if is_param_in_hook_signature(model_hook_fx, "outputs"):
-                    model_hook_fx(outputs)
-                else:
-                    self.warning_cache.warn(
-                        f"`ModelHooks.{hook_name}` signature has changed in v1.3. `outputs` parameter has been added."
-                        " Support for the old signature will be removed in v1.5", DeprecationWarning
-                    )
-                    model_hook_fx()
+                model_hook_fx()
 
         self.trainer._cache_logged_metrics()
 
         self.trainer.call_hook('on_epoch_end')
-
-    def log_evaluation_step_metrics(self, batch_idx: int) -> None:
-        if self.trainer.sanity_checking:
-            return
-
-        cached_results = self.trainer.logger_connector.cached_results
-        if cached_results is not None:
-            cached_batch_pbar_metrics, cached_batch_log_metrics = cached_results.update_logger_connector()
-
-            if len(cached_batch_log_metrics) > 0:
-                # make the metrics appear as a different line in the same graph
-                metrics_by_epoch = {}
-                for k, v in cached_batch_log_metrics.items():
-                    metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
-
-                self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
-
-            if len(cached_batch_pbar_metrics) > 0:
-                self.trainer.logger_connector.add_progress_bar_metrics(cached_batch_pbar_metrics)
