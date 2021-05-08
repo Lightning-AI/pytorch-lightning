@@ -531,6 +531,9 @@ class ModelCheckpoint(Callback):
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}-{val_loss:.2f}')
             >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456)))
             'epoch=2-val_loss=0.12.ckpt'
+            >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{epoch}-{val_loss:.2f}-{monitor:.2f}') # monitor='val_loss'
+            >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456)))
+            'epoch=2-val_loss=0.12-monitor=0.12.ckpt'
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
             ... filename='epoch={epoch}-validation_loss={val_loss:.2f}',
             ... auto_insert_metric_name=False)
@@ -544,6 +547,9 @@ class ModelCheckpoint(Callback):
             'step=0.ckpt'
 
         """
+        if(self.monitor is not None):
+            metrics.update(monitor=metrics[self.monitor])
+
         filename = self._format_checkpoint_name(
             self.filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name
         )
