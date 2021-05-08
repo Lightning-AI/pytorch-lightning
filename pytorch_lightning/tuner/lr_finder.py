@@ -15,7 +15,7 @@ import importlib
 import logging
 import os
 from functools import wraps
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence, Union, Dict, Any
 
 import numpy as np
 import torch
@@ -347,7 +347,8 @@ class _LRCallback(Callback):
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
     def on_train_batch_end(
-        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs, batch, batch_idx: Optional[int],
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule',
+        outputs: Optional[Union[torch.Tensor, Dict[str, Any]]], batch: Any, batch_idx: Optional[int],
         dataloader_idx: Optional[int]
     ) -> None:
         """ Called when the training batch ends, logs the calculated loss """
