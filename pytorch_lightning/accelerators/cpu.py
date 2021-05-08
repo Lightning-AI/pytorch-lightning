@@ -34,8 +34,6 @@ class CPUAccelerator(Accelerator):
             )
 
         if "cpu" not in str(self.root_device):
-            raise MisconfigurationException(
-                f"Device should be CPU, got {self.root_device} instead."
-            )
+            raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead.")
 
         return super().setup(trainer, model)
