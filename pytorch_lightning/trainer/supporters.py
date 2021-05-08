@@ -381,7 +381,6 @@ class CombinedLoader(object):
         """Return a collections of samplers extracting from loaders."""
         return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, 'sampler', None)
 
-
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
         Wraps all loaders to make sure they are cycled until the longest loader is exhausted
@@ -396,7 +395,9 @@ class CombinedLoader(object):
 
         # multiple loaders
         if isinstance(self.loaders, (Sequence, Mapping)):
-            self.loaders = apply_to_collection(self.loaders, Iterable, CycleIterator, length=length, wrong_dtype=(Sequence, Mapping))
+            self.loaders = apply_to_collection(
+                self.loaders, Iterable, CycleIterator, length=length, wrong_dtype=(Sequence, Mapping)
+            )
 
     def __iter__(self) -> Any:
         """
