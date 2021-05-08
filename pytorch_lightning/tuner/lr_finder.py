@@ -98,7 +98,7 @@ class _LRFinder(object):
         self.results = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, configure_optimizers: Callable):
+    def _exchange_scheduler(self, configure_optimizers: Callable) -> Callable:
         """ Decorate configure_optimizers methods such that it returns the users
             originally specified optimizer together with a new scheduler that
             that takes care of the learning rate search.
@@ -280,7 +280,7 @@ def lr_find(
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer, model):
+def __lr_finder_dump_params(trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
     # Prevent going into infinite loop
     trainer.__dumped_params = {
         'auto_lr_find': trainer.auto_lr_find,
@@ -292,7 +292,7 @@ def __lr_finder_dump_params(trainer, model):
     }
 
 
-def __lr_finder_restore_params(trainer, model):
+def __lr_finder_restore_params(trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
