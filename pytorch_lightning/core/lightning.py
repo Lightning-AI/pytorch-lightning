@@ -224,9 +224,9 @@ class LightningModule(
             batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
         else:
             warning_cache.warn(
-                "`transfer_batch_to_device` hook signature has changed in v1.3."
+                "`transfer_batch_to_device` hook signature has changed in v1.4."
                 " `dataloader_idx` parameter has been added to it. Support for"
-                " the old signature will be removed in v1.5", DeprecationWarning
+                " the old signature will be removed in v1.6", DeprecationWarning
             )
             batch = self.transfer_batch_to_device(batch, device)
 
