@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed automatic metric selection of monitor in ModelCheckpoint's filename ([#7448](https://github.com/PyTorchLightning/pytorch-lightning/pull/7448))
 
 - Fixed DeepSpeed with IterableDatasets ([#7362](https://github.com/PyTorchLightning/pytorch-lightning/pull/7362))
 
