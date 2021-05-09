@@ -21,7 +21,7 @@ import torch
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from tests.helpers import BoringModel
+from tests.helpers.boring_model import BoringModelMIMO, BoringModelMISO, BoringModelSIMO, BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -125,9 +125,7 @@ def test_error_if_no_input(tmpdir):
     ):
         model.to_onnx(file_path)
 
-
-def test_if_inference_output_is_valid(tmpdir):
-    """Test that the output inferred from ONNX model is same as from PyTorch"""
+def test_multi_input_output_model_inference_is_valid(tmpdir):
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
 
@@ -140,15 +138,29 @@ def test_if_inference_output_is_valid(tmpdir):
 
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, model.example_input_array, export_params=True)
+    
+    model = BoringModelSIMO()
+    model.example_input_array = torch.randn(5, 32)
 
-    ort_session = onnxruntime.InferenceSession(file_path)
+    model.eval()
+    with torch.no_grad():
+        torch_out = model(model.example_input_array)
 
-    def to_numpy(tensor):
-        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
+    file_path = os.path.join(tmpdir, "model.onnx")
+    model.to_onnx(file_path, model.example_input_array, export_params=True)
+    
+    model = BoringModelMISO()
+    model.example_input_array = (torch.randn(5, 32), torch.randn(5, 32))
 
-    # compute ONNX Runtime output prediction
-    ort_inputs = {ort_session.get_inputs()[0].name: to_numpy(model.example_input_array)}
-    ort_outs = ort_session.run(None, ort_inputs)
+    model.eval()
 
-    # compare ONNX Runtime and PyTorch results
-    assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+    file_path = os.path.join(tmpdir, "model.onnx")
+    model.to_onnx(file_path, model.example_input_array, export_params=True)
+    
+    model = BoringModelMIMO()
+    model.example_input_array = (torch.randn(5, 32), torch.randn(5, 32))
+
+    model.eval()
+
+    file_path = os.path.join(tmpdir, "model.onnx")
+    model.to_onnx(file_path, model.example_input_array, export_params=True)
