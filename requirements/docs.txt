@@ -4,6 +4,7 @@ m2r  # fails with multi-line text
 nbsphinx>=0.8
 pandoc>=1.0
 docutils>=0.16
+Sphinx<4.0.0
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
 https://github.com/PyTorchLightning/lightning_sphinx_theme/archive/master.zip#egg=pt-lightning-sphinx-theme
