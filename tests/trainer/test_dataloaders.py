@@ -803,8 +803,12 @@ def _user_worker_init_fn(_):
     pass
 
 
+@RunIf(max_torch="1.8.9")
 def test_missing_worker_init_fn():
-    """ Test that naive worker seed initialization leads to undesired random state in subprocesses. """
+    """
+    Test that naive worker seed initialization leads to undesired random state in subprocesses.
+    PyTorch 1.9+ does not have this issue.
+    """
     dataset = NumpyRandomDataset()
 
     seed_everything(0)
