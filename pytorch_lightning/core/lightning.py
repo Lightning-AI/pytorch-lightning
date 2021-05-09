@@ -25,14 +25,15 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
+import numpy as np
+import onnx
+import onnxruntime
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-import onnx, onnxruntime
-import numpy as np
 
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -1796,7 +1797,7 @@ class LightningModule(
             input_sample = self.example_input_array
 
         input_sample = self._apply_batch_transfer_handler(input_sample)
-        
+
         if not isinstance(input_sample, (Tuple, list)):
             input_sample = (input_sample, )
 
@@ -1805,11 +1806,12 @@ class LightningModule(
             kwargs["example_outputs"] = self(*input_sample)
 
         torch.onnx.export(self, input_sample, file_path, **kwargs)
-        
+
         if model_check is None:
+
             def to_numpy(tensor):
                 return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
-            
+
             def model_check():
                 onnx_model = onnx.load(file_path)
                 onnx.checker.check_model(onnx_model)
@@ -1822,16 +1824,15 @@ class LightningModule(
                         ort_inputs[ort_input.name] = to_numpy(sample)
                 else:
                     ort_inputs[ort_session.get_inputs()[0].name] = to_numpy(input_sample[0])
-                    
+
                 ort_outs = ort_session.run(None, ort_inputs)
-                
+
                 if len(ort_outs) > 1:
                     for ort_out, torch_out in zip(ort_outs, self(*input_sample)):
                         np.testing.assert_allclose(to_numpy(torch_out), ort_out, rtol=1e-03, atol=1e-05)
                 else:
                     np.testing.assert_allclose(to_numpy(self(*input_sample)), ort_outs[0], rtol=1e-03, atol=1e-05)
-                    
-                    
+
         model_check()
         self.train(mode)
 
