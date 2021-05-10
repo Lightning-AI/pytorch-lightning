@@ -307,8 +307,8 @@ class TrainLoop:
         result = AttributeDict(
             closure_loss=closure_loss,
             loss=untouched_loss,
-            training_step_output=training_step_output,
-            training_step_output_for_epoch_end=training_step_output_for_epoch_end,
+            training_step_output=training_step_output,  # Result object
+            training_step_output_for_epoch_end=training_step_output_for_epoch_end,  # Result object
         )
         return result
 
@@ -784,7 +784,7 @@ class TrainLoop:
             yield None
 
     def _process_closure_result(self, batch_outputs: list, opt_idx: int) -> list:
-        opt_closure_result = self._curr_step_result
+        opt_closure_result = self._curr_step_result  # AttributeDict
 
         if opt_closure_result is not None:
 

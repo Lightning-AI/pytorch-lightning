@@ -74,7 +74,7 @@ class BatchLoop(Loop):
             batch_outputs = self._process_closure_result(
                 batch_outputs=batch_outputs,
                 opt_idx=opt_idx,
-            )
+            )  # 1 optimizer case: batch_outputs[0][0] = Result object
 
             # todo: Properly aggregate grad_norm accros opt_idx and split_idx
             grad_norm_dic = self._cur_grad_norm_dict
@@ -101,10 +101,12 @@ class BatchLoop(Loop):
 
         batch_outputs = super().run(batch, batch_idx, dataloader_idx)
 
+        batch_outputs = batch_outputs[0]  # TODO: hack for poc
+
         result = AttributeDict(
             signal=0,
             grad_norm_dic=self._cur_grad_norm_dict,
-            training_step_output_for_epoch_end=batch_outputs[0],
+            training_step_output_for_epoch_end=batch_outputs,
         )
         return result
 
