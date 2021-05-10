@@ -29,7 +29,6 @@ from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -204,7 +203,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 self.mp_queue.put(results)
 
     def save(self, state_dict: Dict, path: str) -> None:
-        xm.save(state_dict, path, global_master=True)
+        xm.save(state_dict, path)
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         buffer = io.BytesIO()
