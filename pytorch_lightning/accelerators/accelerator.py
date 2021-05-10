@@ -114,10 +114,11 @@ class Accelerator:
     def _move_optimizer_state(self) -> None:
         """ Moves the state of the optimizers to the GPU if needed. """
         for opt in self.optimizers:
-            state: DefaultDict = defaultdict(dict)
-            for p, v in opt.state.items():
-                state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
-            opt.state = state
+            if isinstance(opt.state, DefaultDict):
+                state: DefaultDict = defaultdict(dict)
+                for p, v in opt.state.items():
+                    state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, self.root_device)
+                opt.state = state
 
     def dispatch(self, trainer: 'pl.Trainer') -> None:
         """Hook to do something before the training/evaluation/prediction starts."""

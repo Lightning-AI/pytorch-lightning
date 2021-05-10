@@ -191,18 +191,6 @@ class LightningModule(
         self._automatic_optimization = automatic_optimization
 
     @property
-    def truncated_bptt_steps(self) -> int:
-        """
-        truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much a longer sequence.
-        If this is > 0, the training step is passed ``hiddens``.
-        """
-        return self._truncated_bptt_steps
-
-    @truncated_bptt_steps.setter
-    def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
-        self._truncated_bptt_steps = truncated_bptt_steps
-
-    @property
     def logger(self):
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None

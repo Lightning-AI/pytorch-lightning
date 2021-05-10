@@ -113,6 +113,18 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
+    @property
+    def truncated_bptt_steps(self) -> int:
+        """
+        truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much a longer sequence.
+        If this is > 0, the training step is passed ``hiddens``.
+        """
+        return self._truncated_bptt_steps
+
+    @truncated_bptt_steps.setter
+    def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
+        self._truncated_bptt_steps = truncated_bptt_steps
+
     def _apply_batch_transfer_handler(self, batch: Any, device: Optional[Any] = None, dataloader_idx: int = 0):
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
         batch = self.transfer_batch_to_device(batch, device)
