@@ -186,7 +186,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         if self.mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
+            rank_zero_warn("cleaning up tpu spawn environment...")
 
             # save the last weights
             last_path = None
@@ -197,22 +197,11 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 self.save(self.lightning_module.state_dict(), last_path)
 
-            if self.global_rank == 0:
+            if self.local_rank == 0:
                 # todo, pass complete checkpoint as state dictionary
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)
                 self.mp_queue.put(results)
-
-    def __recover_child_process_weights(self, best_path, last_path):
-        # transfer back the best path to the trainer
-        if self.lightning_module.trainer.checkpoint_callback:
-            self.lightning_module.trainer.checkpoint_callback.best_model_path = best_path
-
-        # load last weights
-        if last_path is not None and self.global_rank == 0 and \
-                self.lightning_module.trainer.state == TrainerState.FITTING:
-            ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
-            self.lightning_module.load_state_dict(ckpt)
 
     def save(self, state_dict: Dict, path: str) -> None:
         xm.save(state_dict, path, global_master=True)
