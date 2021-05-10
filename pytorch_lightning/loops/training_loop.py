@@ -14,7 +14,6 @@ class TrainingLoop(Loop):
 
     def __init__(self):
         super().__init__()
-        self.is_last_batch = False
         # cache of all outputs in a single training run / epoch
         # self.epoch_output = [[]]
 
@@ -30,6 +29,8 @@ class TrainingLoop(Loop):
 
         self._train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         self._dataloader_idx = 0
+        self.trainer.batch_idx = 0
+        self.is_last_batch = False
 
     def advance(self):
         # TODO: profiling is gone
@@ -113,6 +114,7 @@ class TrainingLoop(Loop):
 
     # this is the old on train_epoch_end?
     def on_run_end(self, outputs):
+
         # hack for poc
         outputs = outputs[0]
 
@@ -194,7 +196,7 @@ class TrainingLoop(Loop):
             self.trainer._cache_logged_metrics()
 
     def _num_training_batches_reached(self, is_last_batch=False):
-        return self.iteration_count == self.trainer.num_training_batches or is_last_batch
+        return self.trainer.batch_idx == self.trainer.num_training_batches or is_last_batch
 
     # TODO move to on_advance_end()
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):

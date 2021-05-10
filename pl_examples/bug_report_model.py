@@ -56,7 +56,7 @@ def run():
         limit_train_batches=2,
         limit_val_batches=2,
         num_sanity_val_steps=2,
-        max_epochs=1,
+        max_epochs=2,
         weights_summary=None,
     )
     trainer.fit(model, train_dataloader=train_data, val_dataloaders=val_data)

@@ -27,11 +27,6 @@ class BatchLoop(Loop):
         # self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
         self.automatic_optimization = True
-        self._curr_step_result = None
-        self._cur_grad_norm_dict = None
-        # self._multiple_trainloader_mode = multiple_trainloader_mode
-        self._skip_backward = False
-        # self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
     def connect(self, trainer, *args, **kwargs):
         self.trainer = trainer
@@ -47,6 +42,12 @@ class BatchLoop(Loop):
         # self._optimizers = self.prepare_optimizers()
         # lightning module hook
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
+
+        self._curr_step_result = None
+        self._cur_grad_norm_dict = None
+        # self._multiple_trainloader_mode = multiple_trainloader_mode
+        self._skip_backward = False
+        # self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
 
     def advance(self, batch, batch_idx, dataloader_idx):
         split_idx, split_batch = self._remaining_splits.pop(0)
