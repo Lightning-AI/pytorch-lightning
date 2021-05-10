@@ -299,7 +299,7 @@ class CombinedDataset(object):
             return data
 
         elif isinstance(data, Mapping):
-            if iany(isinstance(v, (Mapping, Sequence, Dataset, Iterable)) for v in data.values()):
+            if any(isinstance(v, (Mapping, Sequence, Dataset, Iterable)) for v in data.values()):
                 return {k: self._get_len_recursive(v) for k, v in data.items()}
             else:
                 return self._get_len(data)
