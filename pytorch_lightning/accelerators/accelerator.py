@@ -406,6 +406,12 @@ class Accelerator:
         """
         return getattr(self.training_type_plugin, 'optimizer_state', lambda x: x.state_dict())(optimizer)
 
+    def state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+        """
+        Returns state of model. Allows for syncing/collating model state from processes in custom plugins.
+        """
+        return self.training_type_plugin.state_dict()
+
     def on_save(self, checkpoint: Dict[str, Union[Any, Tensor]]) -> Dict[str, Union[Any, Tensor]]:
         return self.training_type_plugin.on_save(checkpoint)
 
