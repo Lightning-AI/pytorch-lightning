@@ -771,7 +771,7 @@ Grid AI is our native solution for large scale training and tuning on the cloud.
 Community
 **********
 Our community of core maintainers and thousands of expert researchers is active on our
-`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A>`_
+`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ>`_
 and `GitHub Discussions <https://github.com/PyTorchLightning/pytorch-lightning/discussions>`_. Drop by
 to hang out, ask Lightning questions or even discuss research!
 
