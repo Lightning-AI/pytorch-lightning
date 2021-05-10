@@ -106,7 +106,7 @@ class MLFlowLogger(LightningLoggerBase):
     def __init__(
         self,
         experiment_name: str = 'default',
-        tracking_uri: Optional[str] = os.environ.get('MLFLOW_TRACKING_URI'),,
+        tracking_uri: Optional[str] = os.getenv('MLFLOW_TRACKING_URI'),
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
