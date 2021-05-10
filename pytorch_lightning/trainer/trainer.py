@@ -969,7 +969,7 @@ class Trainer(
                 self.logger_connector.log_evaluation_step_metrics()
 
                 # track epoch level outputs
-                dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
+                dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
 
             # store batch level output per dataloader
             if self.evaluation_loop.should_track_batch_outputs_for_epoch_end:
@@ -1021,7 +1021,7 @@ class Trainer(
 
         return eval_loop_results
 
-    def track_output_for_epoch_end(self, outputs, output):
+    def _track_output_for_epoch_end(self, outputs, output):
         if output is not None:
             if isinstance(output, Result):
                 output = output.detach()
