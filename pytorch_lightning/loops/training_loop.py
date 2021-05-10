@@ -59,6 +59,7 @@ class TrainingLoop(Loop):
             batch_idx,
             self._dataloader_idx,
         )
+        return epoch_output
 
     def on_advance_end(self, output):
         # -----------------------------------------
@@ -87,6 +88,7 @@ class TrainingLoop(Loop):
 
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
+        return output
 
     @property
     def done(self):
@@ -138,8 +140,9 @@ class TrainingLoop(Loop):
             self.trainer.logger_connector.cache_logged_metrics()
 
         # call train epoch end hooks
-        self.trainer.call_hook('on_train_epoch_end', processed_outputs)
+        # self.trainer.call_hook('on_train_epoch_end', processed_outputs)
         self.trainer.call_hook('on_epoch_end')
+        return processed_outputs
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
@@ -240,7 +243,7 @@ class TrainingLoop(Loop):
         return processed_outputs
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
-        num_accumulated_batches_reached = self._accumulated_batches_reached()
+        num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
 
         if num_accumulated_batches_reached or num_training_batches_reached:
@@ -248,7 +251,7 @@ class TrainingLoop(Loop):
             self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
 
     def increment_accumulated_grad_global_step(self):
-        num_accumulated_batches_reached = self._accumulated_batches_reached()
+        num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
 
         # progress global step according to grads progress

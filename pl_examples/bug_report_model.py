@@ -54,7 +54,7 @@ def run():
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         limit_train_batches=1,
-        limit_val_batches=1,
+        limit_val_batches=0,
         num_sanity_val_steps=0,
         max_epochs=1,
         weights_summary=None,

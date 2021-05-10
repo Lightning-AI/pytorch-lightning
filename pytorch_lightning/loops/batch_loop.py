@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from copy import copy
+from typing import List
 
 import numpy as np
 import torch
@@ -56,61 +57,32 @@ class BatchLoop(Loop):
             # toggle model params + set info to logger_connector
             self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
-            if self.should_accumulate():
-                # For gradient accumulation
-
-                # -------------------
-                # calculate loss (train step + train step end)
-                # -------------------
-
-                # automatic_optimization=True: perform dpp sync only when performing optimizer_step
-                # automatic_optimization=False: don't block synchronization here
-                with self.block_ddp_sync_behaviour():
-                    self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens)
-
-                batch_outputs = self._process_closure_result(
-                    batch_outputs=batch_outputs,
-                    opt_idx=opt_idx,
+            def train_step_and_backward_closure():
+                result = self.training_step_and_backward(
+                    split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                 )
+                return None if result is None else result.loss
 
-            # ------------------------------
-            # BACKWARD PASS
-            # ------------------------------
-            # gradient update with accumulated gradients
+            # optimizer step
+            self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
-            else:
-                if self.automatic_optimization:
+            if self._curr_step_result is None:
+                # user decided to skip optimization
+                # make sure to zero grad.
+                continue
 
-                    def train_step_and_backward_closure():
-                        result = self.training_step_and_backward(
-                            split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                        )
-                        return None if result is None else result.loss
+            batch_outputs = self._process_closure_result(
+                batch_outputs=batch_outputs,
+                opt_idx=opt_idx,
+            )
 
-                    # optimizer step
-                    self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
+            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
+            grad_norm_dic = self._cur_grad_norm_dict
+            self._cur_grad_norm_dict = None
 
-                else:
-                    self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
+            # update running loss + reset accumulated loss
+            # self.update_running_loss()
 
-                if self._curr_step_result is None:
-                    # user decided to skip optimization
-                    # make sure to zero grad.
-                    # TODO add logic to skip in the outer loop
-                    return
-                    # continue
-
-                batch_outputs = self._process_closure_result(
-                    batch_outputs=batch_outputs,
-                    opt_idx=opt_idx,
-                )
-
-                # todo: Properly aggregate grad_norm accros opt_idx and split_idx
-                grad_norm_dic = self._cur_grad_norm_dict
-                self._cur_grad_norm_dict = None
-
-                # update running loss + reset accumulated loss
-                # self.update_running_loss()
         return batch_outputs
 
     def run(self, batch, batch_idx, dataloader_idx):
@@ -132,9 +104,12 @@ class BatchLoop(Loop):
         result = AttributeDict(
             signal=0,
             grad_norm_dic=self._cur_grad_norm_dict,
-            training_step_output_for_epoch_end=batch_outputs,
+            training_step_output_for_epoch_end=batch_outputs[0],
         )
         return result
+
+    def on_run_end(self, outputs: List) -> List:
+        return outputs
 
     def tbptt_split_batch(self, batch):
         splits = [batch]

@@ -3,6 +3,8 @@ from contextlib import suppress
 from copy import deepcopy
 from typing import Any, List, Optional
 
+import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.core.step_result import Result
@@ -19,6 +21,11 @@ log = logging.getLogger(__name__)
 
 class EpochLoop(Loop):
 
+    def __init__(self):
+        super().__init__()
+        self.running_loss = torch.tensor(0.0)  # dummy TODO:
+        self._teardown_already_run = False
+
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.num_epochs = trainer.max_epochs
         self.min_epochs = trainer.min_epochs
@@ -28,6 +35,10 @@ class EpochLoop(Loop):
         self.trainer = trainer
         self.training_loop = TrainingLoop()
         self.training_loop.connect(trainer)
+
+    def should_accumulate(self):
+        # TODO
+        return False
 
     @property
     def done(self) -> bool:
@@ -57,7 +68,7 @@ class EpochLoop(Loop):
         # hook
         self.trainer.call_hook("on_train_start")
 
-    def on_run_end(self):
+    def on_run_end(self, outputs):
         if self._teardown_already_run:
             return
         self._teardown_already_run = True
@@ -86,6 +97,8 @@ class EpochLoop(Loop):
 
         # reset bookkeeping
         self.trainer._running_stage = None
+
+        return outputs
 
     def on_advance_start(self):  # equal to on train epoch start
         # implemented here since this code has to be run always no matter the actual epoch implementation
