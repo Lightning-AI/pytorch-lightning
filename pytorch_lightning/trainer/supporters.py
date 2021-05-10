@@ -291,7 +291,7 @@ class CombinedDataset(object):
 
         return length
 
-    def _get_len_recursive(self, data):
+    def _get_len_recursive(self, data) -> int:
         if isinstance(data, Dataset):
             return len(data)
 
@@ -313,7 +313,7 @@ class CombinedDataset(object):
         return self._get_len(data)
 
     @staticmethod
-    def _get_len(dataset):
+    def _get_len(dataset) -> int:
         try:
             return len(dataset)
         except (TypeError, NotImplementedError):
