@@ -305,7 +305,7 @@ def test_accelerator_choice_ddp_kubeflow(device_count_mock, setup_distributed_mo
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
             assert trainer.training_type_plugin.cluster_environment.local_rank() == 0
-            assert trainer.training_type_plugin.task_idx == 1
+            assert trainer.training_type_plugin.task_idx == 0
             raise SystemExit()
 
     model = BoringModel()
