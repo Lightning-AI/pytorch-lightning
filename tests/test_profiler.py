@@ -353,7 +353,9 @@ def test_pytorch_profiler_trainer_test(tmpdir):
 
     if _KINETO_AVAILABLE:
         files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
-        assert any(f'test_step_{trainer.local_rank}' in f for f in files)
+        assert any(f'test-{pytorch_profiler.filename}' in f for f in files)
+        path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
+        assert path.read_text("utf-8")
 
 
 def test_pytorch_profiler_trainer_predict(tmpdir):

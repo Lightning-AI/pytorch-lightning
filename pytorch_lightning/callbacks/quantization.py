@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.imports import _TORCH_LOWER_EQUAL_1_4
 
 def wrap_qat_forward_context(
     quant_cb,
-    model: pl.core.LightningModule,
+    model: 'pl.LightningModule',
     func: Callable,
     trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
@@ -57,7 +57,7 @@ def wrap_qat_forward_context(
     return wrapper
 
 
-def wrap_quantize_forward_context(model: pl.core.LightningModule, func: Callable) -> Callable:
+def wrap_quantize_forward_context(model: 'pl.LightningModule', func: Callable) -> Callable:
     """
     Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out compatibility
     """

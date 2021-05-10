@@ -27,6 +27,7 @@ import yaml
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import LightningArgumentParser, LightningCLI, SaveConfigCallback
 from tests.helpers import BoringDataModule, BoringModel
@@ -280,6 +281,22 @@ def test_lightning_cli_args_callbacks(tmpdir):
     assert cli.trainer.ran_asserts
 
 
+def test_lightning_cli_args_cluster_environments(tmpdir):
+    plugins = [dict(class_path='pytorch_lightning.plugins.environments.SLURMEnvironment')]
+
+    class TestModel(BoringModel):
+
+        def on_fit_start(self):
+            # Ensure SLURMEnvironment is set, instead of default LightningEnvironment
+            assert isinstance(self.trainer.accelerator_connector._cluster_environment, SLURMEnvironment)
+            self.trainer.ran_asserts = True
+
+    with mock.patch('sys.argv', ['any.py', f'--trainer.plugins={json.dumps(plugins)}']):
+        cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+
+    assert cli.trainer.ran_asserts
+
+
 def test_lightning_cli_args(tmpdir):
 
     cli_args = [
@@ -390,6 +407,7 @@ def test_lightning_cli_print_config():
 def test_lightning_cli_submodules(tmpdir):
 
     class MainModule(BoringModel):
+
         def __init__(
             self,
             submodule1: LightningModule,

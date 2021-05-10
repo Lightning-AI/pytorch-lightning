@@ -24,7 +24,7 @@ from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
@@ -43,6 +43,8 @@ class LoggerConnector:
         self._cached_results = {stage: EpochResultStore(trainer) for stage in RunningStage}
         self._cached_results[None] = EpochResultStore(trainer)
         self._callback_hook_validator = CallbackHookNameValidator()
+        self._val_log_step: int = 0
+        self._test_log_step: int = 0
 
     @property
     def callback_metrics(self) -> Dict:
@@ -78,7 +80,7 @@ class LoggerConnector:
 
     @property
     def cached_results(self) -> Union[EpochResultStore, None]:
-        return self._cached_results.get(self.trainer._running_stage)
+        return self._cached_results.get(self.trainer.state.stage)
 
     def get_metrics(self, key: str) -> Dict:
         metrics_holder: MetricsHolder = getattr(self, f"_{key}")
@@ -116,7 +118,7 @@ class LoggerConnector:
         self.cached_results._batch_size = None
 
     def cache_logged_metrics(self):
-        self._cached_results[self.trainer._running_stage].cache_result()
+        self._cached_results[self.trainer.state.stage].cache_result()
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
@@ -201,7 +203,8 @@ class LoggerConnector:
         Args:
             metrics (dict): Metric values
             grad_norm_dic (dict): Gradient norms
-            step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
+            step (int): Step for which metrics should be logged. Default value is `self.global_step` during training or
+                the total validation / test log step count during validation and testing.
         """
         # add gpu memory
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
@@ -279,12 +282,12 @@ class LoggerConnector:
 
         # log results of evaluation
         if (
-            self.trainer.state != TrainerState.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
+            self.trainer.state.fn != TrainerFn.FITTING and self.trainer.evaluating and self.trainer.is_global_zero
             and self.trainer.verbose_evaluate
         ):
             print('-' * 80)
             for result_idx, results in enumerate(self.eval_loop_results):
-                print(f'DATALOADER:{result_idx} {self.trainer._running_stage.upper()} RESULTS')
+                print(f'DATALOADER:{result_idx} {self.trainer.state.stage.upper()} RESULTS')
                 pprint({
                     k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
                     for k, v in results.items()
@@ -371,3 +374,31 @@ class LoggerConnector:
             if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
                 self.log_metrics(batch_log_metrics, grad_norm_dic)
                 self._callback_metrics.update(batch_log_metrics)
+
+    @property
+    def evaluation_log_step(self) -> Optional[int]:
+        if self.trainer.state.stage is RunningStage.VALIDATING:
+            return self._val_log_step
+        elif self.trainer.state.stage is RunningStage.TESTING:
+            return self._test_log_step
+        else:
+            return None
+
+    def increment_evaluation_log_step(self) -> None:
+        if self.trainer.state.stage is RunningStage.VALIDATING:
+            self._val_log_step += 1
+        elif self.trainer.state.stage is RunningStage.TESTING:
+            self._test_log_step += 1
+
+    def log_evaluation_step_metrics(self) -> None:
+        if self.trainer.sanity_checking:
+            return
+        _, batch_log_metrics = self.cached_results.update_logger_connector()
+
+        # logs user requested information to logger
+        if len(batch_log_metrics) > 0:
+            kwargs = dict() if "step" in batch_log_metrics else dict(step=self.evaluation_log_step)
+            self.log_metrics(batch_log_metrics, {}, **kwargs)
+
+        # increment the step even if nothing was logged
+        self.increment_evaluation_log_step()

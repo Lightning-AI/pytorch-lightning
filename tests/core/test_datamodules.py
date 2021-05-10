@@ -22,7 +22,6 @@ import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -91,7 +90,7 @@ def test_can_prepare_data(local_rank, node_rank):
     assert trainer.data_connector.can_prepare_data()
 
 
-def test_hooks_no_recursion_error(tmpdir):
+def test_hooks_no_recursion_error():
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
     # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
     class DummyDM(LightningDataModule):
@@ -108,20 +107,20 @@ def test_hooks_no_recursion_error(tmpdir):
         dm.prepare_data()
 
 
-def test_helper_boringdatamodule(tmpdir):
+def test_helper_boringdatamodule():
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup()
 
 
-def test_helper_boringdatamodule_with_verbose_setup(tmpdir):
+def test_helper_boringdatamodule_with_verbose_setup():
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup('fit')
     dm.setup('test')
 
 
-def test_data_hooks_called(tmpdir):
+def test_data_hooks_called():
     dm = BoringDataModule()
     assert not dm.has_prepared_data
     assert not dm.has_setup_fit
@@ -168,7 +167,7 @@ def test_data_hooks_called(tmpdir):
 
 
 @pytest.mark.parametrize("use_kwarg", (False, True))
-def test_data_hooks_called_verbose(tmpdir, use_kwarg):
+def test_data_hooks_called_verbose(use_kwarg):
     dm = BoringDataModule()
     dm.prepare_data()
     assert not dm.has_setup_fit
@@ -246,7 +245,7 @@ def test_dm_init_from_argparse_args(tmpdir):
     assert dm.data_dir == args.data_dir == str(tmpdir)
 
 
-def test_dm_pickle_after_init(tmpdir):
+def test_dm_pickle_after_init():
     dm = BoringDataModule()
     pickle.dumps(dm)
 
@@ -272,7 +271,7 @@ def test_train_loop_only(tmpdir):
 
     # fit model
     trainer.fit(model, datamodule=dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -294,7 +293,7 @@ def test_train_val_loop_only(tmpdir):
 
     # fit model
     trainer.fit(model, datamodule=dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -330,7 +329,7 @@ def test_dm_checkpoint_save(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__name__ in checkpoint
@@ -352,7 +351,7 @@ def test_full_loop(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert dm.trainer is not None
 
     # validate

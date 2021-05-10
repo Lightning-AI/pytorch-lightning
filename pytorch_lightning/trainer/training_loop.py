@@ -14,7 +14,7 @@
 
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.grads import grad_norm
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -47,6 +48,7 @@ class TrainLoop:
         self._multiple_trainloader_mode = multiple_trainloader_mode
         self._skip_backward = False
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
+        self._optimizer_freq_cumsum = None
 
     def on_trainer_init(
         self,
@@ -59,7 +61,7 @@ class TrainLoop:
         self.trainer.global_step = 0
         self.trainer.current_epoch = 0
         self.trainer.should_stop = False
-        self.trainer._state = TrainerState.INITIALIZING
+        self.trainer.state = TrainerState()
 
         self.trainer.total_batch_idx = 0
         self.trainer.batch_idx = 0
@@ -82,6 +84,12 @@ class TrainLoop:
     def num_optimizers(self):
         num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
+
+    @property
+    def optimizer_freq_cumsum(self):
+        if self._optimizer_freq_cumsum is None:
+            self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
+        return self._optimizer_freq_cumsum
 
     def should_skip_training(self):
         should_by_max_steps = self.trainer.max_steps is not None and self.trainer.global_step >= self.trainer.max_steps
@@ -119,7 +127,7 @@ class TrainLoop:
         self.trainer.accelerator.on_train_end()
 
         # reset bookkeeping
-        self.trainer._running_stage = None
+        self.trainer.state.stage = None
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -190,16 +198,14 @@ class TrainLoop:
 
     def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
 
+        hook_overridden = self._should_add_batch_output_to_epoch_output()
+
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(batch_end_outputs):
             sample_output = opt_outputs[-1]
 
             # decide if we need to reduce at the end of the epoch automatically
             auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
-            hook_overridden = (
-                is_overridden("training_epoch_end", model=self.trainer.lightning_module)
-                or is_overridden("on_train_epoch_end", model=self.trainer.lightning_module)
-            )
 
             # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
             if not (hook_overridden or auto_reduce_tng_result):
@@ -211,7 +217,23 @@ class TrainLoop:
 
             epoch_output[opt_idx].append(opt_outputs)
 
-    def get_optimizers_iterable(self):
+    def _should_add_batch_output_to_epoch_output(self) -> bool:
+        # We add to the epoch outputs if
+        # 1. The model defines training_epoch_end OR
+        # 2. The model overrides on_train_epoch_end which has `outputs` in the signature
+        # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
+        lightning_module = self.trainer.lightning_module
+        if is_overridden("training_epoch_end", model=lightning_module):
+            return True
+
+        if is_overridden("on_train_epoch_end", model=lightning_module):
+            model_hook_fx = getattr(lightning_module, "on_train_epoch_end")
+            if is_param_in_hook_signature(model_hook_fx, "outputs"):
+                return True
+
+        return False
+
+    def get_optimizers_iterable(self, batch_idx=None):
         """
         Generates an iterable with (idx, optimizer) for each optimizer.
         """
@@ -219,12 +241,14 @@ class TrainLoop:
             # call training_step once per optimizer
             return list(enumerate(self.trainer.optimizers))
 
-        optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
-        optimizers_loop_length = optimizer_freq_cumsum[-1]
-        current_place_in_loop = self.trainer.total_batch_idx % optimizers_loop_length
+        if batch_idx is None:
+            batch_idx = self.trainer.total_batch_idx
+
+        optimizers_loop_length = self.optimizer_freq_cumsum[-1]
+        current_place_in_loop = batch_idx % optimizers_loop_length
 
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
-        opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
+        opt_idx = np.argmax(self.optimizer_freq_cumsum > current_place_in_loop)
         return [[opt_idx, self.trainer.optimizers[opt_idx]]]
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
@@ -432,12 +456,13 @@ class TrainLoop:
                 grad_norm_dict = grad_norm(model, self.trainer.track_grad_norm)
         return grad_norm_dict
 
-    def tbptt_split_batch(self, batch):
+    def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         splits = [batch]
-        if self.trainer.truncated_bptt_steps is not None:
+        truncated_bptt_enabled = self._truncated_bptt_enabled()
+        if truncated_bptt_enabled:
             model_ref = self.trainer.lightning_module
             with self.trainer.profiler.profile("tbptt_split_batch"):
-                splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
+                splits = model_ref.tbptt_split_batch(batch, self._truncated_bptt_steps())
         return splits
 
     def run_training_epoch(self):
@@ -484,9 +509,9 @@ class TrainLoop:
             self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
             # -----------------------------------------
-            # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
+            # VALIDATE IF NEEDED
             # -----------------------------------------
-            should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
+            should_check_val = self._should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.validating = True
                 self.trainer.run_evaluation()
@@ -535,7 +560,7 @@ class TrainLoop:
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
 
-        should_check_val = self.should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
+        should_check_val = self._should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
@@ -583,8 +608,50 @@ class TrainLoop:
             self.trainer.logger_connector.cache_logged_metrics()
 
         # call train epoch end hooks
-        self.trainer.call_hook('on_train_epoch_end', processed_epoch_output)
+        self._on_train_epoch_end_hook(processed_epoch_output)
         self.trainer.call_hook('on_epoch_end')
+
+    def _on_train_epoch_end_hook(self, processed_epoch_output) -> None:
+        # We cannot rely on Trainer.call_hook because the signatures might be different across
+        # lightning module and callback
+        # As a result, we need to inspect if the module accepts `outputs` in `on_train_epoch_end`
+
+        # This implementation is copied from Trainer.call_hook
+        hook_name = "on_train_epoch_end"
+
+        # set hook_name to model + reset Result obj
+        skip = self.trainer._reset_result_and_set_hook_fx_name(hook_name)
+
+        # always profile hooks
+        with self.trainer.profiler.profile(hook_name):
+
+            # first call trainer hook
+            if hasattr(self.trainer, hook_name):
+                trainer_hook = getattr(self.trainer, hook_name)
+                trainer_hook(processed_epoch_output)
+
+            # next call hook in lightningModule
+            model_ref = self.trainer.lightning_module
+            if is_overridden(hook_name, model_ref):
+                hook_fx = getattr(model_ref, hook_name)
+                if is_param_in_hook_signature(hook_fx, "outputs"):
+                    self.warning_cache.warn(
+                        "The signature of `ModelHooks.on_train_epoch_end` has changed in v1.3."
+                        " `outputs` parameter has been deprecated."
+                        " Support for the old signature will be removed in v1.5", DeprecationWarning
+                    )
+                    model_ref.on_train_epoch_end(processed_epoch_output)
+                else:
+                    model_ref.on_train_epoch_end()
+
+            # if the PL module doesn't have the hook then call the accelerator
+            # used to auto-reduce things for the user with Results obj
+            elif hasattr(self.trainer.accelerator, hook_name):
+                accelerator_hook = getattr(self.trainer.accelerator, hook_name)
+                accelerator_hook()
+
+        if not skip:
+            self.trainer._cache_logged_metrics()
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
@@ -599,7 +666,12 @@ class TrainLoop:
         batch_outputs = [[] for _ in range(len(optimizers))]
 
         if batch is None:
-            return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
+            self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            return AttributeDict(
+                signal=0,
+                grad_norm_dic=grad_norm_dic,
+                training_step_output_for_epoch_end=batch_outputs,
+            )
 
         # hook
         response = self.trainer.call_hook("on_batch_start")
@@ -612,7 +684,7 @@ class TrainLoop:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
         # lightning module hook
-        splits = self.tbptt_split_batch(batch)
+        splits = self._tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
 
@@ -764,7 +836,9 @@ class TrainLoop:
                         self._check_finite(result.loss)
 
                 else:
-                    self.warning_cache.warn("training_step returned None if it was on purpose, ignore this warning...")
+                    self.warning_cache.warn(
+                        "training_step returned None. If this was on purpose, ignore this warning..."
+                    )
 
                 if len(self.trainer.optimizers) > 1:
                     # revert back to previous state
@@ -801,7 +875,11 @@ class TrainLoop:
 
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
-            self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
+            self.trainer.optimizer_connector.update_learning_rates(
+                interval="step",
+                monitor_metrics=monitor_metrics,
+                opt_indices=[opt_idx for opt_idx, _ in self.get_optimizers_iterable()],
+            )
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
@@ -825,46 +903,74 @@ class TrainLoop:
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def should_check_val_fx(self, batch_idx, is_last_batch, on_epoch=False):
-        # decide if we should run validation
-        is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
-        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
-        can_check_val = self.trainer.enable_validation and is_val_check_epoch
-        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
+    def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
+        """ Decide if we should run validation. """
+
+        if not self.trainer.enable_validation:
+            return False
+
+        # check if this epoch is eligible to run validation
+        if (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
+            return False
+
+        # val_check_batch is inf for iterable datasets with no length defined
+        # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
+        is_val_check_batch = False
+        if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
+            is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
+        elif self.trainer.val_check_batch != float('inf'):
+            is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+
+        # Note: num_training_batches is also inf for iterable datasets with no length defined
         epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
+        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
 
-        should_check_val = ((is_val_check_batch and epoch_end_val_check) or self.trainer.should_stop
-                            or is_last_batch_for_infinite_dataset
-                            ) if on_epoch else (is_val_check_batch and not epoch_end_val_check)
-
-        return should_check_val and can_check_val
+        if on_epoch:
+            return (
+                is_val_check_batch and epoch_end_val_check
+            ) or self.trainer.should_stop or is_last_batch_for_infinite_dataset
+        else:
+            return is_val_check_batch and not epoch_end_val_check
 
     def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
         args = [batch, batch_idx]
 
+        lightning_module = self.trainer.lightning_module
+
         if len(self.trainer.optimizers) > 1:
-            if self.trainer.has_arg("training_step", "optimizer_idx"):
-                if not self.trainer.lightning_module.automatic_optimization:
+            training_step_fx = getattr(lightning_module, "training_step")
+            has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
+            if has_opt_idx_in_train_step:
+                if not lightning_module.automatic_optimization:
                     self.warning_cache.warn(
                         "`training_step` hook signature has changed in v1.3."
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5", DeprecationWarning
                     )
                 args.append(opt_idx)
-            elif not self.trainer.has_arg(
-                "training_step", "optimizer_idx"
-            ) and self.trainer.lightning_module.automatic_optimization:
+            elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
                     ' `training_step` is missing the `optimizer_idx` argument.'
                 )
 
         # pass hiddens if using tbptt
-        if self.trainer.truncated_bptt_steps is not None:
+        if self._truncated_bptt_enabled():
             args.append(hiddens)
 
         return args
+
+    def _truncated_bptt_enabled(self) -> bool:
+        """ Temporary tbptt utilities until this flag is fully migrated to the lightning module. """
+        return self._truncated_bptt_steps() > 0
+
+    def _truncated_bptt_steps(self) -> int:
+        lightning_module = self.trainer.lightning_module
+        # Give precedence to the LightningModule as the Trainer flag will be removed in v1.5
+        if lightning_module.truncated_bptt_steps > 0:
+            return lightning_module.truncated_bptt_steps
+        return self.trainer.truncated_bptt_steps or 0
 
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk

@@ -5,7 +5,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   push:
     branches: [master, "release/*"]
   release:
-    types: [created]
+    types: [published]
 
 
 jobs:
