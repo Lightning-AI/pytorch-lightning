@@ -59,4 +59,4 @@ The goal is to be inline with expectations for solving issues by the last one so
 - Create 5+ meaningful PRs which solves some reported issue - bug,
 - Perform 10+ PR reviews from other contributors.
 
-If you want to be considered, ping me on [Slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A).
+If you want to be considered, ping me on [Slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ).
