@@ -139,7 +139,6 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             else:
                 print(*args, **kwargs)
 
-    @abstractmethod
     def log(
         self,
         name: str,
@@ -195,7 +194,57 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
         """
-        pass
+        if self._results is not None:
+            # in any epoch end can't log step metrics (only epoch metric)
+            if 'epoch_end' in self._current_fx_name and on_step:
+                m = f'on_step=True cannot be used on {self._current_fx_name} method'
+                raise MisconfigurationException(m)
+
+            if 'epoch_end' in self._current_fx_name and on_epoch is False:
+                m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
+                raise MisconfigurationException(m)
+
+            # add log_dict
+            # TODO: if logged twice fail with crash
+
+            # set the default depending on the fx_name
+            on_step = self.__auto_choose_log_on_step(on_step)
+            on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+
+            if self._current_hook_fx_name is not None:
+                self.trainer.logger_connector.check_logging_in_callbacks(
+                    self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
+                )
+
+            # make sure user doesn't introduce logic for multi-dataloaders
+            if "/dataloader_idx_" in name:
+                raise MisconfigurationException(
+                    f"Logged key: {name} should not contain information about dataloader_idx."
+                )
+
+            training_type_plugin = self.trainer.training_type_plugin
+
+            # Determine if dataloader index should be added
+            dataloader_idx = self._current_dataloader_idx if add_dataloader_idx else None
+
+            self._results.log(
+                name,
+                value,
+                prog_bar,
+                logger,
+                on_step,
+                on_epoch,
+                reduce_fx,
+                tbptt_reduce_fx,
+                tbptt_pad_token,
+                enable_graph,
+                sync_dist,
+                sync_dist_op,
+                sync_dist_group,
+                training_type_plugin.reduce,
+                dataloader_idx,
+                self.device,
+            )
 
     def log_dict(
         self,
