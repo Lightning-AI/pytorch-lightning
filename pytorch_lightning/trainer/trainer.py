@@ -1104,7 +1104,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            self.run_evaluation()
+            self._run_evaluation()
 
             self.on_sanity_check_end()
 
