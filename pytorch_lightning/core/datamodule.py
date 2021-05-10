@@ -355,6 +355,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         @functools.wraps(fn)
         def wrapped_fn(*args: str, **kwargs: Optional[str]) -> Any:
             name = fn.__name__
+            has_run = False
 
             # If calling setup, we check the stage and assign stage-specific bool args
             if name in ("setup", "teardown"):
@@ -379,9 +380,6 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             elif name == "prepare_data":
                 has_run = obj._has_prepared_data
                 obj._has_prepared_data = True
-
-            else:
-                raise ValueError(name)
 
             if not has_run:
                 return fn(*args, **kwargs)

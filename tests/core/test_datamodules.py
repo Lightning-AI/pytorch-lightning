@@ -564,9 +564,3 @@ def test_datamodule_hooks_calls(tmpdir):
     assert dm.prepare_data_calls == 1
     assert dm.setup_calls == ['fit', None]
     assert dm.teardown_calls == ['validate', 'test']
-
-    with pytest.raises(ValueError, match="sunflower"):
-        dm.setup("sunflower")
-
-    with pytest.raises(ValueError, match="sunflower"):
-        dm.teardown("sunflower")
