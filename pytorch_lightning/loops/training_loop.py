@@ -46,9 +46,9 @@ class TrainingLoop(Loop):
             batch_output = self.batch_loop.run(batch, batch_idx, self._dataloader_idx)
 
         # when returning -1 from train_step, we end epoch early
-        if batch_output.signal == -1:
-            self._skip_remaining_steps = True
-            return
+        # if batch_output.signal == -1:
+        #     self._skip_remaining_steps = True
+        #     return
 
         # hook
         epoch_output = [[]]  # TODO: track and return output, let loop base concatenate all outputs into a list etc.
