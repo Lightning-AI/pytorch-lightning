@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import random
 from pathlib import Path
 
-import numpy
 import pytest
 import torch
 import torch.distributed as dist
@@ -31,6 +29,7 @@ from tests.helpers.runif import RunIf
 
 def _setup_ddp(rank, worldsize):
     import os
+
     os.environ["MASTER_ADDR"] = "localhost"
 
     # initialize the process group
@@ -51,7 +50,6 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
     tutils.reset_seed()
-    os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
     tutils.set_random_master_port()
 
     worldsize = 2

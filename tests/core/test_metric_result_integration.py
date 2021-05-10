@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-import numpy
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -100,7 +97,6 @@ def test_result_reduce_ddp():
     tutils.set_random_master_port()
 
     worldsize = 2
-    os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
     mp.spawn(_ddp_test_fn, args=(worldsize, ), nprocs=worldsize)
 
 
