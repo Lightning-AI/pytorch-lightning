@@ -1042,11 +1042,7 @@ d. Not a new library
 
 PyTorch Lightning is organized PyTorch - no need to learn a new framework.
 
-Switching your model to Lightning is straight forward - here's a 2-minute video on how to do it.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
+Learn how to :ref:`convert from PyTorch to Lightning here <converting>`.
 
 Your projects WILL grow in complexity and you WILL end up engineering more than trying out new ideas...
 Defer the hardest parts to Lightning!
