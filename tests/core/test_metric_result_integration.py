@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+import numpy
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torchmetrics import Metric
-import numpy
-import os
 
 import tests.helpers.utils as tutils
 from pytorch_lightning.core.step_result import Result
@@ -78,6 +79,7 @@ def _ddp_test_fn(rank, worldsize):
                 assert batch_expected[k] == batch_log[k]
 
         epoch_log = result.get_epoch_log_metrics()
+        result.reset()
 
         # assert metric state reset to default values
         assert metric_a.x == metric_a._defaults['x']
@@ -130,6 +132,7 @@ def test_result_metric_integration():
                 assert batch_expected[k] == batch_log[k]
 
         epoch_log = result.get_epoch_log_metrics()
+        result.reset()
 
         # assert metric state reset to default values
         assert metric_a.x == metric_a._defaults['x']

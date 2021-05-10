@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import seed_everything, Trainer
 from tests.helpers import BoringModel
 
 
@@ -154,11 +155,6 @@ def test_outputs_format(tmpdir):
             [HookedModel._check_output(output) for output in outputs]
             super().training_epoch_end(outputs)
 
-        def on_train_epoch_end(self, outputs):
-            assert len(outputs) == 2
-            [HookedModel._check_output(output) for output in outputs]
-            super().on_train_epoch_end(outputs)
-
     model = HookedModel()
 
     # fit model
@@ -171,6 +167,37 @@ def test_outputs_format(tmpdir):
         progress_bar_refresh_rate=0,
         weights_summary=None,
     )
+    trainer.fit(model)
 
-    result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
+
+def test_training_starts_with_seed(tmpdir):
+    """ Test that the training always starts with the same random state (when using seed_everything). """
+
+    class SeededModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.seen_batches = []
+
+        def training_step(self, batch, batch_idx):
+            self.seen_batches.append(batch.view(-1))
+            return super().training_step(batch, batch_idx)
+
+    def run_training(**trainer_kwargs):
+        model = SeededModel()
+        seed_everything(123)
+        trainer = Trainer(**trainer_kwargs)
+        trainer.fit(model)
+        return torch.cat(model.seen_batches)
+
+    sequence0 = run_training(
+        default_root_dir=tmpdir,
+        max_steps=2,
+        num_sanity_val_steps=0,
+    )
+    sequence1 = run_training(
+        default_root_dir=tmpdir,
+        max_steps=2,
+        num_sanity_val_steps=2,
+    )
+    assert torch.allclose(sequence0, sequence1)

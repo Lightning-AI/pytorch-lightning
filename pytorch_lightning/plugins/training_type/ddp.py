@@ -33,11 +33,12 @@ from pytorch_lightning.utilities import (
     _HYDRA_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
+    rank_zero_deprecation,
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
@@ -62,9 +63,9 @@ class DDPPlugin(ParallelPlugin):
     def __init__(
         self,
         parallel_devices: Optional[List[torch.device]] = None,
-        num_nodes: int = 1,
+        num_nodes: Optional[int] = None,
         cluster_environment: ClusterEnvironment = None,
-        sync_batchnorm: bool = False,
+        sync_batchnorm: Optional[bool] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
@@ -72,13 +73,23 @@ class DDPPlugin(ParallelPlugin):
     ) -> None:
         super().__init__(parallel_devices=parallel_devices, cluster_environment=cluster_environment)
         self.interactive_ddp_procs = []
-        self.num_nodes = num_nodes
-        self.sync_batchnorm = sync_batchnorm
+        if num_nodes is not None:
+            rank_zero_deprecation(
+                "Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
+                " Notice that it will be overriden by the trainer setting."
+            )
+        self._num_nodes = num_nodes or 1
+        if sync_batchnorm is not None:
+            rank_zero_deprecation(
+                "Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4, and will be removed in v1.6."
+                " Notice that it will be overriden by the trainer setting."
+            )
+        self._sync_batchnorm = sync_batchnorm or False
         self.dist = LightningDistributed()
+        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._has_spawned_children = False
         self.task_idx = None
-        self.num_processes = len(parallel_devices) if parallel_devices is not None else parallel_devices
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
@@ -87,6 +98,24 @@ class DDPPlugin(ParallelPlugin):
     @property
     def root_device(self):
         return self.parallel_devices[self.local_rank]
+
+    @property
+    def num_nodes(self) -> int:
+        return self._num_nodes
+
+    @num_nodes.setter
+    def num_nodes(self, num_nodes: int) -> None:
+        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
+        self._num_nodes = num_nodes
+        self.set_world_ranks()
+
+    @property
+    def sync_batchnorm(self) -> bool:
+        return self._sync_batchnorm
+
+    @sync_batchnorm.setter
+    def sync_batchnorm(self, sync_batchnorm: bool) -> None:
+        self._sync_batchnorm = sync_batchnorm
 
     @property
     def distributed_sampler_kwargs(self):
@@ -110,7 +139,7 @@ class DDPPlugin(ParallelPlugin):
     def _call_children_scripts(self):
 
         # bookkeeping of spawned processes
-        assert self.global_rank == 0
+        assert self.local_rank == 0
         self._check_can_spawn_children()
         self._has_spawned_children = True
 
@@ -146,9 +175,6 @@ class DDPPlugin(ParallelPlugin):
         os.environ["PL_TRAINER_GPUS"] = ",".join([str(device.index) for device in self.parallel_devices])
         os.environ["PL_IN_DDP_SUBPROCESS"] = "1"
 
-        if self.lightning_module.logger is not None:
-            os.environ["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
-
         num_gpus = len(self.parallel_devices)
         os.environ["WORLD_SIZE"] = f"{num_gpus * self.num_nodes}"
 
@@ -157,6 +183,10 @@ class DDPPlugin(ParallelPlugin):
         for local_rank in range(1, self.num_processes):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
+
+            if self.lightning_module.logger is not None:
+                # spawned processes must reference the same log dir, prevent auto-increment version
+                env_copy["PL_EXP_VERSION"] = str(self.lightning_module.logger.version)
 
             # remove env var if global seed not set
             if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:
@@ -179,10 +209,7 @@ class DDPPlugin(ParallelPlugin):
             sleep(delay)
 
     def setup_distributed(self):
-        # TODO: check if needed
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
+        reset_seed()
 
         # determine which process we are and world size
         self.set_world_ranks()
@@ -214,10 +241,11 @@ class DDPPlugin(ParallelPlugin):
             )
 
     def set_world_ranks(self) -> None:
-        if self.cluster_environment is not None:
-            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-            rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def pre_configure_ddp(self):
         # if unset, default `find_unused_parameters` `True`
@@ -284,7 +312,7 @@ class DDPPlugin(ParallelPlugin):
         self.cluster_environment.teardown()
 
     def barrier(self, *args, **kwargs):
-        if torch_distrib.is_initialized():
+        if torch_distrib.is_available() and torch_distrib.is_initialized():
             torch_distrib.barrier()
 
     def broadcast(self, obj: object, src: int = 0) -> object:
@@ -332,3 +360,12 @@ class DDPPlugin(ParallelPlugin):
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
             self.model.require_backward_grad_sync = True
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register(
+            "ddp_find_unused_parameters_false",
+            cls,
+            description="DDP Plugin with `find_unused_parameters` as False",
+            find_unused_parameters=False
+        )

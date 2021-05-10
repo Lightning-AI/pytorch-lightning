@@ -17,13 +17,16 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
     from fairscale.optim import OSS
+    from fairscale.optim.grad_scaler import ShardedGradScaler
 
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 
@@ -50,7 +53,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         trainer.optimizers = optimizers
 
     def _wrap_optimizers(self):
-        if self.model.trainer.state != TrainerState.FITTING:
+        if self.model.trainer.state.fn != TrainerFn.FITTING:
             return
         self._reinit_optimizers_with_oss()
 
@@ -69,6 +72,11 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
 
     @property
     def lightning_module(self) -> LightningModule:
+        if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
+            raise MisconfigurationException(
+                "`DDPSpawnShardedPlugin` requires `fairscale` to be installed."
+                " Install it by running `pip install fairscale`."
+            )
         return unwrap_lightning_module_sharded(self._model)
 
     def pre_backward(self, closure_loss: torch.Tensor, should_accumulate: bool, optimizer: Optimizer, opt_idx: int):
@@ -76,3 +84,11 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
 
     def post_training_step(self):
         pass
+
+    def new_process(self, process_idx, trainer, mp_queue):
+        # Ensure that the scaler points to the correct process group
+        # which is re-initialized in a new process
+        precision_plugin = trainer.accelerator.precision_plugin
+        if isinstance(precision_plugin, ShardedNativeMixedPrecisionPlugin):
+            precision_plugin.scaler = ShardedGradScaler()
+        super().new_process(process_idx, trainer, mp_queue)

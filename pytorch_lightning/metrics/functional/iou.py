@@ -17,9 +17,11 @@ import torch
 from torchmetrics.functional import iou as _iou
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_3, _TORCHMETRICS_LOWER_THAN_0_3
 
 
-@deprecated_metrics(target=_iou)
+@deprecated_metrics(target=_iou, skip_if=_TORCHMETRICS_GREATER_EQUAL_0_3)
+@deprecated_metrics(target=_iou, args_mapping=dict(pred="preds"), skip_if=_TORCHMETRICS_LOWER_THAN_0_3)
 def iou(
     pred: torch.Tensor,
     target: torch.Tensor,

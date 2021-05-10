@@ -87,8 +87,7 @@ class CheckpointConnector:
         # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(checkpoint_path)
         if not fs.exists(checkpoint_path):
-            rank_zero_warn("No checkpoint file exists at `resume_from_checkpoint`. Start from scratch")
-            return False
+            raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
 
         checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
             checkpoint_path, map_location=lambda storage, loc: storage

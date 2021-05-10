@@ -17,6 +17,7 @@ import glob
 import os
 import shutil
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
 
@@ -27,12 +28,12 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
 
-try:
-    from pytorch_lightning import __about__ as info
-except ImportError:
-    # alternative https://stackoverflow.com/a/67692/4521646
-    sys.path.append(os.path.join(PATH_ROOT, "pytorch_lightning"))
-    import __about__ as info
+spec = spec_from_file_location(
+    "pytorch_lightning/__about__.py",
+    os.path.join(PATH_ROOT, "pytorch_lightning", "__about__.py"),
+)
+about = module_from_spec(spec)
+spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 
@@ -81,13 +82,13 @@ _transform_changelog(
 # -- Project information -----------------------------------------------------
 
 project = 'PyTorch Lightning'
-copyright = info.__copyright__
-author = info.__author__
+copyright = about.__copyright__
+author = about.__author__
 
 # The short X.Y version
-version = info.__version__
+version = about.__version__
 # The full version, including alpha/beta/rc tags
-release = info.__version__
+release = about.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -179,7 +180,7 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 
 html_theme_options = {
     'pytorch_project': 'https://pytorchlightning.ai',
-    'canonical_url': info.__docs_url__,
+    'canonical_url': about.__docs_url__,
     'collapse_navigation': False,
     'display_version': True,
     'logo_only': False,
@@ -363,7 +364,8 @@ autodoc_default_options = {
 # This value determines the text for the permalink; it defaults to "¶". Set it to None or the empty
 #  string to disable permalinks.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_add_permalinks
-html_add_permalinks = "¶"
+html_permalinks = True
+html_permalinks_icon = "¶"
 
 # True to prefix each section label with the name of the document it is in, followed by a colon.
 #  For example, index:Introduction for a section called Introduction that appears in document index.rst.

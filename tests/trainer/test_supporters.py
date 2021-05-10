@@ -11,20 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from collections import Sequence
+from unittest import mock
 
 import pytest
 import torch
-from torch.utils.data import TensorDataset
+from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import Sampler
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.supporters import (
     _nested_calc_num_data,
     CombinedDataset,
     CombinedLoader,
     CombinedLoaderIterator,
     CycleIterator,
+    prefetch_iterator,
     TensorRunningAccum,
 )
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -69,6 +77,30 @@ def test_none_length_cycle_iterator():
         if idx == 1000:
             break
     assert item == 0
+
+
+def test_prefetch_iterator():
+    """ Test the prefetch_iterator with PyTorch IterableDataset. """
+
+    class IterDataset(IterableDataset):
+
+        def __iter__(self):
+            yield 1
+            yield 2
+            yield 3
+
+    dataset = IterDataset()
+    iterator = prefetch_iterator(dataset)
+    assert [item for item in iterator] == [(1, False), (2, False), (3, True)]
+
+    class EmptyIterDataset(IterableDataset):
+
+        def __iter__(self):
+            return iter([])
+
+    dataset = EmptyIterDataset()
+    iterator = prefetch_iterator(dataset)
+    assert [item for item in iterator] == []
 
 
 @pytest.mark.parametrize(
@@ -237,3 +269,46 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
     calculated_length = _nested_calc_num_data(input_data, compute_func)
 
     assert calculated_length == expected_length
+
+
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
+@mock.patch('torch.cuda.device_count', return_value=2)
+@mock.patch('torch.cuda.is_available', return_value=True)
+def test_combined_data_loader_validation_test(cuda_available_mock, device_count_mock, tmpdir):
+    """
+    This test makes sure distributed sampler has been properly injected in dataloaders
+    when using CombinedLoader
+    """
+
+    class CustomDataset(Dataset):
+
+        def __init__(self, data):
+            self.data = data
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, index):
+            return self.data[index]
+
+    dataloader = CombinedLoader({
+        "a": DataLoader(CustomDataset(range(10))),
+        "b": {
+            "c": DataLoader(CustomDataset(range(10))),
+            "d": DataLoader(CustomDataset(range(10)))
+        },
+        "e": [DataLoader(CustomDataset(range(10))),
+              DataLoader(CustomDataset(range(10)))]
+    })
+
+    trainer = Trainer(replace_sampler_ddp=True, accelerator="ddp", gpus=2)
+    dataloader = trainer.auto_add_sampler(dataloader, shuffle=True)
+    _count = 0
+
+    def _assert_distributed_sampler(v):
+        nonlocal _count
+        _count += 1
+        assert isinstance(v, DistributedSampler)
+
+    apply_to_collection(dataloader.sampler, Sampler, _assert_distributed_sampler)
+    assert _count == 5
