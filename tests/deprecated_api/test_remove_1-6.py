@@ -52,7 +52,7 @@ def test_v1_6_0_dataloader_renaming(tmpdir):
     with pytest.deprecated_call(match=r"tune\(train_dataloader\)` is deprecated in v1.4"):
         trainer.tuner.lr_find(model, train_dataloader=dl)
 
-        
+
 def test_v1_6_0_ddp_num_nodes():
     with pytest.deprecated_call(match="Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4"):
         DDPPlugin(num_nodes=1)
