@@ -1,14 +1,17 @@
+import inspect
 import json
 import os
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning import LightningModule
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -44,21 +47,21 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         return batch
 
 
-class IPUPlugin(TrainingTypePlugin):
+class IPUPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        mixed_precision: bool,
         half: bool = False,
         device_iterations: int = 1,
         replication_factor: int = 1,
         autoround_num_ipus: bool = True,
         autoreport: bool = True,
-        autoreport_dir: Optional[str] = None
+        autoreport_dir: Optional[str] = None,
+        parallel_devices: Optional[List[torch.device]] = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
     ):
-        super().__init__()
+        super().__init__(parallel_devices, cluster_environment)
         self.half = half
-        self.mixed_precision = mixed_precision
         self.device_iterations = device_iterations
         self.replication_factor = replication_factor
         self.autoround_num_ipus = autoround_num_ipus
@@ -94,23 +97,25 @@ class IPUPlugin(TrainingTypePlugin):
     def barrier(self, name: Optional[str] = None) -> None:
         pass
 
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        return tensor
+
     def broadcast(self, obj: object, src: int = 0) -> object:
-        return object
+        return obj
 
     @property
     def lightning_module(self) -> Optional[LightningModule]:
-        return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
+        model = self.model.module if isinstance(self.model, poptorch.PoplarExecutor) else self.model
+        return model.module if isinstance(model, LightningIPUModule) else model
 
     def pre_dispatch(self) -> None:
         if self.half:
             log.info('Using 16bit precision, converting model to FP16.')
             self.model = self.model.half()
-        precision = 16 if self.half or self.mixed_precision else 32
+        precision = self.lightning_module.trainer.accelerator.precision_plugin.precision
+        precision = 16 if self.half else precision
 
-        # Separate models are instantiated for different stages, but they share the same weights on host.
-        # When validation/test models are run, they sync weights first.
         # Create model for training which will run training.
-
         optimizer = self.lightning_module.trainer.optimizers[0]
         self.model = poptorch.trainingModel(
             model=LightningIPUModule(self.lightning_module, precision),
@@ -118,12 +123,16 @@ class IPUPlugin(TrainingTypePlugin):
             optimizer=optimizer
         )
 
-        # Create model for training which will run validation.
-        self.validation_model = LightningIPUModule(self.lightning_module, precision)
-        self.validation_model = poptorch.inferenceModel(
-            model=self.validation_model,
-            options=self._create_opts(is_train_model=False),
-        )
+        # Separate models are instantiated for different stages, but they share the same weights on host.
+        # When validation/test models are run, they sync weights first.
+
+        # todo: not sure this is the cleanest way to do this...
+        self.inference_models = {}
+        for x in ('val', 'test', 'predict'):
+            self.inference_models[x] = poptorch.inferenceModel(
+                model=LightningIPUModule(self.lightning_module, precision),
+                options=self._create_opts(is_train_model=False),
+            )
 
     def _create_opts(self, is_train_model):
         opts = poptorch.Options()
@@ -135,20 +144,63 @@ class IPUPlugin(TrainingTypePlugin):
         return opts
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
-        dataloader = self._convert_to_poptorch_loader(
-            dataloader=dataloader, opts=self._create_opts(is_train_model=self.lightning_module.training)
-        )
+        if isinstance(dataloader, CombinedLoader):
+            dataloader.loaders = apply_to_collection(
+                dataloader.loaders,
+                DataLoader,
+                self.process_dataloader,
+            )
+            return dataloader
+
+        if not isinstance(dataloader, poptorch.DataLoader):
+            dataloader = self._convert_to_poptorch_loader(
+                dataloader=dataloader, opts=self._create_opts(is_train_model=self.lightning_module.training)
+            )
         return dataloader
 
-    def _convert_to_poptorch_loader(self, dataloader, opts):
-        skip_keys = ['dataset_kind']
-        if dataloader.batch_size:
-            # re-create batch sampler in new poptorch loader
-            skip_keys += ['batch_sampler']
+    def _convert_to_poptorch_loader(self, dataloader: Union[Iterable, DataLoader],
+                                    opts: poptorch.Options) -> Union[Iterable, DataLoader]:
+        skip_keys = ('sampler', 'batch_sampler', 'dataset_kind')
 
-        dl_args = {k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys}
-        dl_args["options"] = opts
+        attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
+
+        params = set(inspect.signature(dataloader.__init__).parameters)
+        contains_dataset = True
+
+        if type(dataloader) is not DataLoader:
+            contains_dataset = "dataset" in params
+            params.update(inspect.signature(DataLoader.__init__).parameters)
+
+        dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
+
         multiprocessing_context = dataloader.multiprocessing_context
-        dataloader = poptorch.DataLoader(**dl_args)
+        dl_args['multiprocessing_context'] = multiprocessing_context
+        if not contains_dataset:
+            dl_args.pop('dataset')
+
+        dataloader = poptorch.DataLoader(**dl_args, options=opts)
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
+
+    def training_step(self, *args, **kwargs):
+        # todo: we shouldn't need to drop the batch idx here
+        # also the args are now being passed as individual args which is different, i.e
+        # def training_step(batch, batch_idx):
+        # becomes
+        # def training_step(x, y):
+        # where x  and y are the batch arguments...
+        args = args[0]  # Drop the batch idx
+        return self.model(*args, **kwargs)
+
+    def validation_step(self, *args, **kwargs):
+        batch_idx = torch.tensor(args[1], dtype=torch.int)
+        args = args[0]  # Drop the batch idx
+        return self.inference_models['val'](*args, batch_idx, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        args = args[0]  # Drop the batch idx
+        return self.inference_models['test'](*args, **kwargs)
+
+    def predict_step(self, *args, **kwargs):
+        args = args[0]  # Drop the batch idx
+        return self.inference_models['predict'](*args, **kwargs)

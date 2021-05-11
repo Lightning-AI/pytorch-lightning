@@ -347,7 +347,7 @@ class AcceleratorConnector(object):
         self.amp_type = AMPType.from_str(self.amp_type)
 
         if self._device_type == DeviceType.IPU:
-            return IPUPrecisionPlugin()
+            return IPUPrecisionPlugin(self.precision)
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
             return DeepSpeedPrecisionPlugin(self.precision)
@@ -446,7 +446,7 @@ class AcceleratorConnector(object):
         elif self.on_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
         elif self.on_ipu:
-            plugin = IPUPlugin(mixed_precision=self.precision == 32)
+            plugin = IPUPlugin()
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.on_gpu else "cpu"))

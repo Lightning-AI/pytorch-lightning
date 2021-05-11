@@ -20,9 +20,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 import pytorch_lightning as pl
-from pl_examples import cli_lightning_logo
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
-from pytorch_lightning.accelerators import IPUAccelerator
 
 
 class Block(nn.Module):
@@ -64,20 +62,17 @@ class LitClassifier(pl.LightningModule):
         x = self.softmax(x)
         return x
 
-    def training_step(self, batch):
-        x, y = batch
+    def training_step(self, x, y, batch_idx):
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         return loss
 
-    def validation_step(self, batch):
-        x, y = batch
+    def validation_step(self, x, y):
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         return loss
 
-    def test_step(self, batch):
-        x, y = batch
+    def test_step(self, x, y):
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         return loss
@@ -86,17 +81,15 @@ class LitClassifier(pl.LightningModule):
         return torch.optim.AdamW(self.parameters(), lr=self.hparams.learning_rate)
 
     @staticmethod
-    def add_model_specific_args(parent_parser):
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+    def add_model_specific_args(parser):
         parser.add_argument('--learning_rate', type=float, default=0.0001)
         return parser
 
 
-def cli_main():
+if __name__ == '__main__':
     parser = ArgumentParser()
     parser = pl.Trainer.add_argparse_args(parser)
     parser = LitClassifier.add_model_specific_args(parser)
-    parser = IPUAccelerator.add_argparse_args(parser)
     parser = MNISTDataModule.add_argparse_args(parser)
     args = parser.parse_args()
 
@@ -104,15 +97,9 @@ def cli_main():
 
     model = LitClassifier(args.learning_rate)
 
-    accelerator = IPUAccelerator.from_argparse_args(args)
-    trainer = pl.Trainer.from_argparse_args(args, accelerator=accelerator)
+    trainer = pl.Trainer.from_argparse_args(args, max_epochs=10, accelerator='ipu')
 
     trainer.fit(model, datamodule=dm)
 
     result = trainer.test(model, datamodule=dm)
     pprint(result)
-
-
-if __name__ == '__main__':
-    cli_lightning_logo()
-    cli_main()
