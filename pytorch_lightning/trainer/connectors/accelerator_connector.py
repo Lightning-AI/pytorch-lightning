@@ -405,11 +405,6 @@ class AcceleratorConnector(object):
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
 
-            # TODO: decouple from TE
-            # ddp script mode uses the same flags as TE
-            if os.environ.get("PL_IN_DDP_SUBPROCESS", False):
-                use_torchelastic_ddp = False
-
             if use_tpu_spawn:
                 ddp_plugin_cls = TPUSpawnPlugin
             elif use_ddp_sharded:
