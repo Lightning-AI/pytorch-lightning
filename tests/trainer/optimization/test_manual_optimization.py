@@ -1170,3 +1170,113 @@ def test_lr_schedulers(tmpdir):
     )
 
     trainer.fit(model)
+
+
+def test_lr_scheduler_step_not_called(tmpdir):
+    """
+    Test `lr_scheduler.step()` is not called in manual optimization.
+    """
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
+
+            output = self(batch)
+            loss = self.loss(batch, output)
+
+            opt.zero_grad()
+            self.manual_backward(loss)
+            opt.step()
+
+    model = TestModel()
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+    )
+
+    with patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:
+        trainer.fit(model)
+
+    # If a lr scheduler inherits `torch.optim.lr_scheduler._LRScheduler`,
+    # `.step()` is called once during its instantiation.
+    # Thus, the call count should be 1, not 0.
+    assert lr_step.call_count == 1
+
+
+@RunIf(min_torch="1.6.0", min_gpus=1)
+@pytest.mark.parametrize("precision", [16, 32])
+def test_multiple_optimizers_logging(precision, tmpdir):
+    """
+    Tests that metrics are properly being logged.
+    """
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            # Discriminator.
+            optimizer_idx = 0
+            optimizer = self.optimizers()[optimizer_idx]
+            self.toggle_optimizer(optimizer, optimizer_idx)
+
+            loss_d = self.loss(batch, self.layer(batch))
+            self.log("loss_d", loss_d, prog_bar=True)
+
+            optimizer.zero_grad()
+            self.manual_backward(loss_d, optimizer)
+            optimizer.step()
+            self.untoggle_optimizer(optimizer_idx)
+
+            # Generator.
+            optimizer_idx = 1
+            optimizer = self.optimizers()[optimizer_idx]
+            self.toggle_optimizer(optimizer, optimizer_idx)
+
+            loss_g = self.loss(batch, self.layer(batch))
+            self.log("loss_g", loss_g, prog_bar=True)
+
+            optimizer.zero_grad()
+            self.manual_backward(loss_g, optimizer)
+            optimizer.step()
+            self.untoggle_optimizer(optimizer_idx)
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            return optimizer, optimizer_2
+
+    model = TestModel()
+    model.training_epoch_end = None
+    model.val_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+        gpus=1,
+        precision=precision,
+    )
+
+    trainer.fit(model)
+
+    expected = {'epoch', 'loss_d', 'loss_g'}
+    logged = set(trainer.logged_metrics.keys())
+    assert expected == logged
+    expected = {'loss_d', 'loss_g'}
+    logged = set(trainer.progress_bar_metrics.keys())
+    assert expected == logged

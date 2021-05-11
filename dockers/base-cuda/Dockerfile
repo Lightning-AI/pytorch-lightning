@@ -26,8 +26,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
-ARG PYTORCH_VERSION=1.6
-ARG CMAKE_VERSION=3.18.4
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -83,6 +81,8 @@ ENV \
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
 
+ARG PYTORCH_VERSION=1.6
+
 # conda init
 RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
@@ -108,14 +108,18 @@ RUN \
     pip install --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda${CUDA_VERSION%%.*}0
 
 RUN \
-    # install NVIDIA AMP
-    git clone https://github.com/NVIDIA/apex && \
-    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex && \
-    rm -rf apex
+    # install NVIDIA apex
+    # TODO: later commits break CI when cpp extensions are compiling. Unset when fixed
+    pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" git+https://github.com/NVIDIA/apex@705cba9
+
+RUN \
+    # install FairScale
+    pip install fairscale>=0.3.4
 
 RUN \
     # install DeepSpeed
-    pip install deepspeed>=0.3.14
+    # TODO(@SeanNaren): CI failing with `>=0.3.15` - skipping to unblock
+    pip install deepspeed==0.3.14
 
 RUN \
     # Show what we have

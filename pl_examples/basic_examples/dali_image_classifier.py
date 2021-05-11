@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC
-from distutils.version import LooseVersion
 from random import shuffle
 from warnings import warn
 
 import numpy as np
 import torch
+from packaging.version import Version
 from torch.nn import functional as F
 from torch.utils.data import random_split
 
@@ -39,7 +39,7 @@ if _DALI_AVAILABLE:
     from nvidia.dali.pipeline import Pipeline
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator
 
-    NEW_DALI_API = LooseVersion(dali_version) >= LooseVersion('0.28.0')
+    NEW_DALI_API = Version(dali_version) >= Version('0.28.0')
     if NEW_DALI_API:
         from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 else:
@@ -197,7 +197,7 @@ class MyDataModule(pl.LightningDataModule):
             self.pipe_train,
             size=len(self.mnist_train),
             auto_reset=True,
-            fill_last_batch=True
+            fill_last_batch=True,
         )
 
     def val_dataloader(self):
@@ -205,7 +205,7 @@ class MyDataModule(pl.LightningDataModule):
             self.pipe_val,
             size=len(self.mnist_val),
             auto_reset=True,
-            fill_last_batch=False
+            fill_last_batch=False,
         )
 
     def test_dataloader(self):
@@ -213,7 +213,7 @@ class MyDataModule(pl.LightningDataModule):
             self.pipe_test,
             size=len(self.mnist_test),
             auto_reset=True,
-            fill_last_batch=False
+            fill_last_batch=False,
         )
 
 

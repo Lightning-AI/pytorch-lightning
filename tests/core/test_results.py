@@ -23,11 +23,8 @@ from torch.utils.data import DataLoader
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
-import os
-import numpy
 
 
 def _setup_ddp(rank, worldsize):
@@ -52,7 +49,6 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
     tutils.reset_seed()
-    os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
     tutils.set_random_master_port()
 
     worldsize = 2
@@ -173,14 +169,11 @@ def test_result_obj_predictions(tmpdir, test_option: int, do_train: bool, gpus: 
     assert not prediction_file.exists()
 
     if do_train:
-        result = trainer.fit(model, dm)
-        assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
-        assert result
-        result = trainer.test(datamodule=dm)
-        # TODO: add end-to-end test
-        # assert result[0]['test_loss'] < 0.6
+        trainer.fit(model, dm)
+        assert trainer.state.finished, f"Training failed with {trainer.state}"
+        trainer.test(datamodule=dm)
     else:
-        result = trainer.test(model, datamodule=dm)
+        trainer.test(model, datamodule=dm)
 
     # check prediction file now exists and is of expected length
     assert prediction_file.exists()
