@@ -220,15 +220,6 @@ def test_reload_dataloaders_every_epoch_remove_in_v1_4_0(tmpdir):
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
-    expected_sequence = [
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'train_dataloader',
-        'val_dataloader',
-        'test_dataloader'
-    ]
+    expected_sequence = ['val_dataloader'] + ['train_dataloader', 'val_dataloader'] * 3 + ['test_dataloader']
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected

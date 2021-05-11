@@ -1129,26 +1129,12 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
+    expected_sequence = ['val_dataloader']
     if n == 1:
-        expected_sequence = [
-            'val_dataloader',
-            'train_dataloader',
-            'val_dataloader',
-            'train_dataloader',
-            'val_dataloader',
-            'train_dataloader',
-            'val_dataloader',
-            'test_dataloader'
-        ]
+        expected_sequence += ['train_dataloader', 'val_dataloader'] * 3
     elif n == 2:
-        expected_sequence = [
-            'val_dataloader',
-            'train_dataloader',
-            'val_dataloader',
-            'train_dataloader',
-            'val_dataloader',
-            'test_dataloader'
-        ]
+        expected_sequence +=['train_dataloader', 'val_dataloader'] * 2
+    expected_sequence += ['test_dataloader']
 
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
