@@ -5,27 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.3.x] - 2021-MM-DD
-
-### Added
-
-
-### Changed
-
-
-### Deprecated
-
-
-### Removed
-
+## [1.3.1] - 2021-05-11
 
 ### Fixed
 
-
 - Fixed DeepSpeed with IterableDatasets ([#7362](https://github.com/PyTorchLightning/pytorch-lightning/pull/7362))
-
-
 - Fixed `Trainer.current_epoch` not getting restored after tuning ([#7434](https://github.com/PyTorchLightning/pytorch-lightning/pull/7434))
+- Fixed local rank displayed in console log ([#7395](https://github.com/PyTorchLightning/pytorch-lightning/pull/7395))
 
 
 ## [1.3.0] - 2021-05-06
