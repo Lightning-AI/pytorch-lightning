@@ -394,7 +394,7 @@ class DataHooks:
 
     def setup(self, stage: Optional[str] = None) -> None:
         """
-        Called at the beginning of fit (train + validate), validate, test, predict, or tune.
+        Called at the beginning of fit (train + validate), validate, test, and predict.
         This is a good hook when you need to build models dynamically or adjust something about them.
         This hook is called on every process when using DDP.
 
