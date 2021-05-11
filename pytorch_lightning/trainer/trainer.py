@@ -54,7 +54,7 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
+from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
@@ -308,6 +308,7 @@ class Trainer(
         """
         super().__init__()
         Trainer._log_api_event("init")
+        self.state = TrainerState()
         distributed_backend = distributed_backend or accelerator
 
         # init connectors
@@ -329,7 +330,9 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.train_loop = TrainLoop(self, multiple_trainloader_mode)
+        self.train_loop = TrainLoop(
+            self, multiple_trainloader_mode, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps
+        )
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
@@ -374,13 +377,6 @@ class Trainer(
             accumulate_grad_batches,
             truncated_bptt_steps,
             terminate_on_nan,
-        )
-        self.train_loop.on_trainer_init(
-            max_epochs,
-            min_epochs,
-            max_steps,
-            min_steps,
-            num_sanity_val_steps,
         )
         self.evaluation_loop.on_trainer_init()
 
@@ -710,8 +706,8 @@ class Trainer(
         self.call_hook("on_before_accelerator_backend_setup", model)
         self.accelerator.connect(model)
         self.accelerator.setup_environment()
-        self.call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
-        self.call_configure_sharded_model(model)  # allow user to setup in model sharded environment
+        self._call_setup_hook(model)  # allow user to setup lightning_module in accelerator environment
+        self._call_configure_sharded_model(model)  # allow user to setup in model sharded environment
         self.accelerator.setup(self, model)  # note: this sets up self.lightning_module
 
         # ----------------------------
@@ -723,7 +719,7 @@ class Trainer(
                                 |                             ||
                         create accelerator                    ||
                                 |                             ||
-                         {self.dispatch}                      ||
+                         {self._dispatch}                     ||
                                 |                             ||  LIGHTNING
                   {self.accelerator.start_training}           ||
                 or {self.accelerator.start_evaluating}        ||
@@ -731,13 +727,13 @@ class Trainer(
                                 |                             ||
                          {self.run_stage}                     ||
                                 |                             ||  DIRECTION
-                        {self.run_train}                      ||
-                     or {self.run_evaluation}                 ||
-                     or {self.run_predict}                    ||
+                        {self._run_train}                     ||
+                     or {self._run_evaluation}                ||
+                     or {self._run_predict}                   ||
                                 |                             ||
                              results                          \/
         This is used to guide readers to the core loops: train, test, predict.
-        {self.run_predict} is the simplest to understand, use `Go to Definition` to read it :)
+        {self._run_predict} is the simplest to understand, use `Go to Definition` to read it :)
         Search for `start_training` or `start_evaluating` or `start_predicting` in
         `pytorch_lightning/plugins/training_type_plugin` to find accelerator dispatch functions.
         """  # noqa: W605
@@ -750,13 +746,13 @@ class Trainer(
             self.call_hook("on_fit_start")
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
-        self.pre_dispatch()
+        self._pre_dispatch()
 
         # dispatch `start_training` or `start_evaluating` or `start_predicting`
-        self.dispatch()
+        self._dispatch()
 
         # plugin will finalized fitting (e.g. ddp_spawn will load trained model)
-        self.post_dispatch()
+        self._post_dispatch()
 
         # ----------------------------
         # POST-Training CLEAN UP
@@ -766,7 +762,7 @@ class Trainer(
             self.call_hook('on_fit_end')
 
         # teardown
-        self.call_teardown_hook(model)
+        self._call_teardown_hook(model)
 
         if self.state.status != TrainerStatus.INTERRUPTED:
             self.state.status = TrainerStatus.FINISHED
@@ -774,7 +770,7 @@ class Trainer(
 
         return self.accelerator.results
 
-    def pre_dispatch(self):
+    def _pre_dispatch(self):
         self.accelerator.pre_dispatch(self)
 
         # log hyper-parameters
@@ -784,11 +780,11 @@ class Trainer(
             self.logger.log_graph(self.lightning_module)
             self.logger.save()
 
-    def post_dispatch(self):
+    def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
 
-    def dispatch(self):
+    def _dispatch(self):
         if self.evaluating:
             self.accelerator.start_evaluating(self)
         elif self.predicting:
@@ -801,10 +797,10 @@ class Trainer(
         self.profile_connector.setup()
 
         if self.evaluating:
-            return self.run_evaluate()
+            return self._run_evaluate()
         if self.predicting:
-            return self.run_predict()
-        return self.run_train()
+            return self._run_predict()
+        return self._run_train()
 
     def _pre_training_routine(self):
         # wait for all to join if on distributed
@@ -833,13 +829,13 @@ class Trainer(
         self.on_pretrain_routine_end()
         ref_model.on_pretrain_routine_end()
 
-    def run_train(self) -> None:
+    def _run_train(self) -> None:
         self._pre_training_routine()
 
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        self.run_sanity_check(self.lightning_module)
+        self._run_sanity_check(self.lightning_module)
 
         self.checkpoint_connector.has_trained = False
 
@@ -908,10 +904,10 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def run_evaluation(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
+    def _run_evaluation(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
         if not (self.evaluating or self.sanity_checking):
             rank_zero_warn(
-                f"`trainer.run_evaluation()` was called but the running stage is set to {self.state.stage}."
+                f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
                 " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
             )
             self.validating = True
@@ -969,7 +965,7 @@ class Trainer(
                 self.logger_connector.log_evaluation_step_metrics()
 
                 # track epoch level outputs
-                dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
+                dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
 
             # store batch level output per dataloader
             if self.evaluation_loop.should_track_batch_outputs_for_epoch_end:
@@ -995,18 +991,17 @@ class Trainer(
             self.optimizer_connector.update_learning_rates(
                 interval='epoch',
                 opt_indices=[
-                    opt_idx
-                    for opt_idx, _ in self.train_loop.get_optimizers_iterable(batch_idx=(
-                        self.total_batch_idx - 1
-                    ))  # Select the optimizers which were used in the last batch of the epoch
+                    opt_idx for opt_idx, _ in self.train_loop.get_optimizers_iterable(
+                        batch_idx=(self.train_loop.total_batch_idx - 1)
+                    )  # Select the optimizers which were used in the last batch of the epoch
                 ],
             )
 
-        # hook
-        self.evaluation_loop.on_evaluation_end()
-
         # log epoch metrics
         eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
+
+        # hook
+        self.evaluation_loop.on_evaluation_end()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -1021,7 +1016,7 @@ class Trainer(
 
         return eval_loop_results
 
-    def track_output_for_epoch_end(self, outputs, output):
+    def _track_output_for_epoch_end(self, outputs, output):
         if output is not None:
             if isinstance(output, Result):
                 output = output.detach()
@@ -1034,14 +1029,14 @@ class Trainer(
             outputs.append(output)
         return outputs
 
-    def run_evaluate(self) -> _EVALUATE_OUTPUT:
+    def _run_evaluate(self) -> _EVALUATE_OUTPUT:
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
         assert self.evaluating
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
-            eval_loop_results = self.run_evaluation()
+            eval_loop_results = self._run_evaluation()
 
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):
@@ -1052,7 +1047,7 @@ class Trainer(
 
         return eval_loop_results
 
-    def run_predict(self) -> Optional[_PREDICT_OUTPUT]:
+    def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -1090,7 +1085,7 @@ class Trainer(
 
         return results
 
-    def run_sanity_check(self, ref_model):
+    def _run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
@@ -1104,7 +1099,7 @@ class Trainer(
             self.on_sanity_check_start()
 
             # run eval step
-            self.run_evaluation()
+            self._run_evaluation()
 
             self.on_sanity_check_end()
 
@@ -1150,22 +1145,19 @@ class Trainer(
         )
         return ckpt_path
 
-    def call_setup_hook(self, model: LightningModule) -> None:
+    def _call_setup_hook(self, model: LightningModule) -> None:
         fn = self.state.fn._setup_fn
 
         self.accelerator.barrier("pre_setup")
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_setup_{fn}')
-            if not called:
-                self.datamodule.setup(stage=fn)
-
+            self.datamodule.setup(stage=fn)
         self.setup(model, stage=fn)
         model.setup(stage=fn)
 
         self.accelerator.barrier("post_setup")
 
-    def call_configure_sharded_model(self, model: LightningModule) -> None:
+    def _call_configure_sharded_model(self, model: LightningModule) -> None:
         # Call configure sharded model hook if accelerator requests. In some cases
         # we will not call the hook; the hook has initialized the sharded model for example.
 
@@ -1178,14 +1170,11 @@ class Trainer(
             model.call_configure_sharded_model_hook = True
             self.accelerator.call_configure_sharded_model_hook = False
 
-    def call_teardown_hook(self, model: LightningModule) -> None:
+    def _call_teardown_hook(self, model: LightningModule) -> None:
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_teardown_{fn}')
-            if not called:
-                self.datamodule.teardown(stage=fn)
-
+            self.datamodule.teardown(stage=fn)
         self.profiler.teardown(stage=fn)
         self.teardown(stage=fn)
         model.teardown(stage=fn)
