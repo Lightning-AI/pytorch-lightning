@@ -506,7 +506,7 @@ class ModelCheckpoint(Callback):
                 name = group[1:]
 
                 if (name == 'monitor' and monitor is not None):
-                    metrics['monitor'] = metrics[monitor] 
+                    metrics['monitor'] = metrics[monitor]
                     name = monitor
 
                 if auto_insert_metric_name:
@@ -539,7 +539,7 @@ class ModelCheckpoint(Callback):
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
             ... filename='{epoch}-{val_loss:.2f}-{monitor:.2f}',
             ... monitor='val_acc')
-            >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456, 
+            >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456,
             ... val_acc=0.123456)))
             'epoch=2-val_loss=0.12-val_acc=0.12.ckpt'
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
@@ -562,7 +562,7 @@ class ModelCheckpoint(Callback):
         """
 
         filename = self._format_checkpoint_name(
-            self.filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name, monitor=self.monitor 
+            self.filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name, monitor=self.monitor
         )
 
         if ver is not None:
