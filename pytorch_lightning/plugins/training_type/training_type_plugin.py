@@ -242,7 +242,7 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return current_global_step + 1
 
-    def state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
         model = self.lightning_module
         return model.state_dict()
