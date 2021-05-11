@@ -492,7 +492,8 @@ class ModelCheckpoint(Callback):
         filename: Optional[str],
         metrics: Dict[str, _METRIC],
         prefix: str = "",
-        auto_insert_metric_name: bool = True
+        auto_insert_metric_name: bool = True,
+        monitor: str = None
     ) -> str:
         if not filename:
             # filename is not set, use default name
@@ -503,6 +504,10 @@ class ModelCheckpoint(Callback):
         if len(groups) >= 0:
             for group in groups:
                 name = group[1:]
+
+                if (name == 'monitor' and monitor is not None):
+                    metrics['monitor'] = metrics[monitor] 
+                    name = monitor
 
                 if auto_insert_metric_name:
                     filename = filename.replace(group, name + "={" + name)
@@ -533,14 +538,20 @@ class ModelCheckpoint(Callback):
             'epoch=2-val_loss=0.12.ckpt'
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
             ... filename='{epoch}-{val_loss:.2f}-{monitor:.2f}',
-            ... monitor='val_loss')
-            >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456)))
-            'epoch=2-val_loss=0.12-monitor=0.12.ckpt'
+            ... monitor='val_acc')
+            >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456, 
+            ... val_acc=0.123456)))
+            'epoch=2-val_loss=0.12-val_acc=0.12.ckpt'
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
             ... filename='epoch={epoch}-validation_loss={val_loss:.2f}',
             ... auto_insert_metric_name=False)
-            >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456)))
-            'epoch=2-validation_loss=0.12.ckpt'
+            >>> ckpt = ModelCheckpoint(dirpath=tmpdir,
+            ... filename='epoch={epoch}-validation_loss={val_loss:.2f}-validation_accuracy={monitor:.2f}',
+            ... monitor='val_acc',
+            ... auto_insert_metric_name=False)
+            >>> os.path.basename(ckpt.format_checkpoint_name(dict(epoch=2, val_loss=0.123456,
+            ... val_acc=0.123456)))
+            'epoch=2-validation_loss=0.12-validation_accuracy=0.12.ckpt'
             >>> ckpt = ModelCheckpoint(dirpath=tmpdir, filename='{missing:d}')
             >>> os.path.basename(ckpt.format_checkpoint_name({}))
             'missing=0.ckpt'
@@ -549,11 +560,9 @@ class ModelCheckpoint(Callback):
             'step=0.ckpt'
 
         """
-        if (self.monitor is not None and self.monitor in metrics):
-            metrics.update(monitor=metrics[self.monitor])
 
         filename = self._format_checkpoint_name(
-            self.filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name
+            self.filename, metrics, auto_insert_metric_name=self.auto_insert_metric_name, monitor=self.monitor 
         )
 
         if ver is not None:
