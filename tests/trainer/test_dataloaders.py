@@ -766,7 +766,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     train_dl = model.dataloader(train=False)
     train_dl.num_workers = 0
 
-    train_multi_dl = {'a': train_dl, 'b': train_dl}
+    train_multi_dl = {'a_b': [train_dl, train_dl], 'c_d_e': [train_dl, train_dl, train_dl]}
     val_multi_dl = [val_dl, val_dl]
     test_multi_dl = [train_dl, train_dl]
 
