@@ -54,7 +54,7 @@ from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.predict_loop import PredictLoop
 from pytorch_lightning.trainer.properties import TrainerProperties
-from pytorch_lightning.trainer.states import TrainerFn, TrainerStatus
+from pytorch_lightning.trainer.states import TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.tuner.lr_finder import _LRFinder
@@ -308,6 +308,7 @@ class Trainer(
         """
         super().__init__()
         Trainer._log_api_event("init")
+        self.state = TrainerState()
         distributed_backend = distributed_backend or accelerator
 
         # init connectors
@@ -329,7 +330,9 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.train_loop = TrainLoop(self, multiple_trainloader_mode)
+        self.train_loop = TrainLoop(
+            self, multiple_trainloader_mode, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps
+        )
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
@@ -374,13 +377,6 @@ class Trainer(
             accumulate_grad_batches,
             truncated_bptt_steps,
             terminate_on_nan,
-        )
-        self.train_loop.on_trainer_init(
-            max_epochs,
-            min_epochs,
-            max_steps,
-            min_steps,
-            num_sanity_val_steps,
         )
         self.evaluation_loop.on_trainer_init()
 
@@ -995,10 +991,9 @@ class Trainer(
             self.optimizer_connector.update_learning_rates(
                 interval='epoch',
                 opt_indices=[
-                    opt_idx
-                    for opt_idx, _ in self.train_loop.get_optimizers_iterable(batch_idx=(
-                        self.total_batch_idx - 1
-                    ))  # Select the optimizers which were used in the last batch of the epoch
+                    opt_idx for opt_idx, _ in self.train_loop.get_optimizers_iterable(
+                        batch_idx=(self.train_loop.total_batch_idx - 1)
+                    )  # Select the optimizers which were used in the last batch of the epoch
                 ],
             )
 

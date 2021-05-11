@@ -150,8 +150,8 @@ class CheckpointConnector:
         # restore callback states
         self.trainer.on_load_checkpoint(checkpoint)
 
-        self.trainer.global_step = checkpoint['global_step']
-        self.trainer.current_epoch = checkpoint['epoch']
+        self.trainer.train_loop.global_step = checkpoint['global_step']
+        self.trainer.train_loop.current_epoch = checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
