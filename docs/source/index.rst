@@ -97,13 +97,6 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: Guides
-   :caption: How to
-
-   guides/speed
-
-.. toctree::
-   :maxdepth: 1
    :name: Common Use Cases
    :caption: Common Use Cases
 
