@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any, Dict, List, Optional
+
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -25,18 +27,26 @@ class OptimizerConnector:
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
 
-    def update_learning_rates(self, interval: str, monitor_metrics=None):
+    def update_learning_rates(
+        self, interval: str, monitor_metrics: Optional[Dict[str, Any]] = None, opt_indices: Optional[List[int]] = None
+    ):
         """Update learning rates.
 
         Args:
             interval: either 'epoch' or 'step'.
             monitor_metrics: dict of possible values to monitor
         """
-        if not self.trainer.lr_schedulers:
+        if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
             return
 
+        if opt_indices is None:
+            opt_indices = []
+
         for scheduler_idx, lr_scheduler in enumerate(self.trainer.lr_schedulers):
-            current_idx = self.trainer.batch_idx if interval == 'step' else self.trainer.current_epoch
+            if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:
+                continue
+
+            current_idx = self.trainer.train_loop.batch_idx if interval == 'step' else self.trainer.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
@@ -76,7 +86,7 @@ class OptimizerConnector:
 
                 if self.trainer.dev_debugger.enabled:
                     self.trainer.dev_debugger.track_lr_schedulers_update(
-                        self.trainer.batch_idx,
+                        self.trainer.train_loop.batch_idx,
                         interval,
                         scheduler_idx,
                         old_lr,

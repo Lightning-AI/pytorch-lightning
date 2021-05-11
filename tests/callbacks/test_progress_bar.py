@@ -90,7 +90,6 @@ def test_progress_bar_totals(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=1,
-        limit_val_batches=1.0,
         max_epochs=1,
     )
     bar = trainer.progress_bar_callback
@@ -121,6 +120,12 @@ def test_progress_bar_totals(tmpdir):
     # check that the test progress bar is off
     assert 0 == bar.total_test_batches
     assert bar.test_progress_bar is None
+
+    trainer.validate(model)
+
+    assert bar.val_progress_bar.total == m
+    assert bar.val_progress_bar.n == m
+    assert bar.val_batch_idx == m
 
     trainer.test(model)
 
@@ -157,6 +162,13 @@ def test_progress_bar_fast_dev_run(tmpdir):
     assert 2 == progress_bar.main_progress_bar.total
     assert 2 == progress_bar.main_progress_bar.n
 
+    trainer.validate(model)
+
+    # the validation progress bar should display 1 batch
+    assert 1 == progress_bar.val_batch_idx
+    assert 1 == progress_bar.val_progress_bar.total
+    assert 1 == progress_bar.val_progress_bar.n
+
     trainer.test(model)
 
     # the test progress bar should display 1 batch
@@ -179,11 +191,11 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.batch_idx
+            assert self.train_batch_idx == trainer.train_loop.batch_idx
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.batch_idx + 1
+            assert self.train_batch_idx == trainer.train_loop.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1
@@ -214,8 +226,16 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     trainer.fit(model)
     assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
     assert progress_bar.val_batches_seen == 3 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
+    assert progress_bar.test_batches_seen == 0
+
+    trainer.validate(model)
+    assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
+    assert progress_bar.val_batches_seen == 4 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
+    assert progress_bar.test_batches_seen == 0
 
     trainer.test(model)
+    assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
+    assert progress_bar.val_batches_seen == 4 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches
 
 

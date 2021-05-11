@@ -85,13 +85,20 @@ def apply_to_collection(
 
     # Recursively apply to collection items
     if isinstance(data, Mapping):
-        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs) for k, v in data.items()})
+        return elem_type({
+            k: apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            for k, v in data.items()
+        })
 
     if isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
-        return elem_type(*(apply_to_collection(d, dtype, function, *args, **kwargs) for d in data))
+        return elem_type(
+            *(apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs) for d in data)
+        )
 
     if isinstance(data, Sequence) and not isinstance(data, str):
-        return elem_type([apply_to_collection(d, dtype, function, *args, **kwargs) for d in data])
+        return elem_type([
+            apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs) for d in data
+        ])
 
     # data is neither of dtype, nor a collection
     return data
@@ -164,6 +171,12 @@ def move_data_to_device(batch: Any, device: torch.device):
 def convert_to_tensors(data, device: torch.device = None):
     if device is None:
         raise MisconfigurationException("device (torch.device) should be provided.")
+
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
+
+    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device):
+        return t.to(device).contiguous()
+
+    data = apply_to_collection(data, torch.Tensor, partial(_move_to_device_and_make_contiguous, device=device))
     return data

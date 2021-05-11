@@ -13,13 +13,13 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from distutils.version import LooseVersion
 from unittest import mock
 
 import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
+from packaging.version import Version
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from pytorch_lightning import Trainer
@@ -63,7 +63,7 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     data_pt_1_5 = b'\x12\x1b"\x04\n\x02b1"\x04\n\x02b2*\r\n\x0b\x12\thp_metric'
     data_pt_1_6 = b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
-    hparams_data = data_pt_1_6 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0") else data_pt_1_5
+    hparams_data = data_pt_1_6 if Version(torch.__version__) >= Version("1.6.0") else data_pt_1_5
 
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
@@ -333,3 +333,22 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     hparams_file = "hparams.yaml"
     assert os.path.isfile(os.path.join(trainer.log_dir, hparams_file))
     assert not os.path.isfile(os.path.join(tmpdir, hparams_file))
+
+
+@mock.patch('pytorch_lightning.loggers.tensorboard.log')
+def test_tensorboard_with_symlink(log, tmpdir):
+    """
+    Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
+    relative paths.
+    """
+    os.chdir(tmpdir)  # need to use relative paths
+    source = os.path.join('.', 'lightning_logs')
+    dest = os.path.join('.', 'sym_lightning_logs')
+
+    os.makedirs(source, exist_ok=True)
+    os.symlink(source, dest)
+
+    logger = TensorBoardLogger(save_dir=dest, name='')
+    _ = logger.version
+
+    log.warning.assert_not_called()

@@ -62,7 +62,9 @@ class DistributedType(LightningEnum):
     @staticmethod
     def interactive_compatible_types() -> List['DistributedType']:
         """Returns a list containing interactive compatible DistributeTypes"""
-        return [DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN]
+        return [
+            DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN, DistributedType.TPU_SPAWN
+        ]
 
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible"""
@@ -72,6 +74,7 @@ class DistributedType(LightningEnum):
     DDP = 'ddp'
     DDP2 = 'ddp2'
     DDP_SPAWN = 'ddp_spawn'
+    TPU_SPAWN = 'tpu_spawn'
     DEEPSPEED = 'deepspeed'
     HOROVOD = 'horovod'
     DDP_SHARDED = 'ddp_sharded'
@@ -94,3 +97,16 @@ class DeviceType(LightningEnum):
     CPU = 'CPU'
     GPU = 'GPU'
     TPU = 'TPU'
+
+
+class GradClipAlgorithmType(LightningEnum):
+    """ Define gradient_clip_algorithm types - training-tricks.
+    NORM type means "clipping gradients by norm". This computed over all model parameters together.
+    VALUE tpye means "clipping gradients by value". This will clip the gradient value for each parameter.
+
+    References:
+        clip_by_norm: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm
+        clip_by_value: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value
+    """
+    VALUE = 'value'
+    NORM = 'norm'
