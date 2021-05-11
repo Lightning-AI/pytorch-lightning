@@ -17,7 +17,7 @@ import queue as q
 import traceback
 from multiprocessing import Process, Queue
 
-from pytorch_lightning.plugins import TPUSpawnPlugin
+from pytorch_lightning.utilities.enums import DeviceType
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
@@ -107,5 +107,5 @@ class XLADeviceUtils:
 
 
 def tpu_training_and_local_rank_zero(trainer: 'pl.Trainer') -> bool:
-    return isinstance(trainer.training_type_plugin, TPUSpawnPlugin) and \
+    return trainer._device_type == DeviceType.TPU and \
         trainer.training_type_plugin.local_rank == 0
