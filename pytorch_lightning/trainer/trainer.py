@@ -88,6 +88,7 @@ class Trainer(
 ):
 
     accelerator_connector_cls = AcceleratorConnector
+    checkpoint_connector_cls = CheckpointConnector
 
     @_defaults_from_env_vars
     def __init__(
@@ -328,7 +329,7 @@ class Trainer(
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.profile_connector = ProfilerConnector(self)
-        self.checkpoint_connector = CheckpointConnector(self)
+        self.checkpoint_connector = self.checkpoint_connector_cls(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
         self.train_loop = TrainLoop(self, multiple_trainloader_mode)
