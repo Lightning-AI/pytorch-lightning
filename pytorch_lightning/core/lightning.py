@@ -1767,6 +1767,7 @@ class LightningModule(
         Args:
             file_path: The path of the file the onnx model should be saved to.
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
+            model_check: custom function that conducts onnx model checks.
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example:
@@ -1807,32 +1808,29 @@ class LightningModule(
         torch.onnx.export(self, input_sample, file_path, **kwargs)
         
         if model_check is None:
+  
             def to_numpy(tensor):
                 return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
-            
-            def model_check():
+
+            def model_check(file_path, input_sample, torch_outs):
+
+                # Generic graph integrity checks
                 onnx_model = onnx.load(file_path)
                 onnx.checker.check_model(onnx_model)
+
+                # Get ONNX outputs
                 ort_session = onnxruntime.InferenceSession(file_path)
-                ort_inputs = {}
-                onnx_model_inputs = list(ort_session.get_inputs())
-                if len(onnx_model_inputs) > 1:
-                    assert len(onnx_model_inputs) == len(input_sample)
-                    for sample, ort_input in zip(input_sample, onnx_model_inputs):
-                        ort_inputs[ort_input.name] = to_numpy(sample)
-                else:
-                    ort_inputs[ort_session.get_inputs()[0].name] = to_numpy(input_sample[0])
-                    
+                ort_inputs = {inp.name: to_numpy(sample) for inp, sample in zip(ort_session.get_inputs(), input_sample)}
                 ort_outs = ort_session.run(None, ort_inputs)
-                
-                if len(ort_outs) > 1:
-                    for ort_out, torch_out in zip(ort_outs, self(*input_sample)):
-                        np.testing.assert_allclose(to_numpy(torch_out), ort_out, rtol=1e-03, atol=1e-05)
-                else:
-                    np.testing.assert_allclose(to_numpy(self(*input_sample)), ort_outs[0], rtol=1e-03, atol=1e-05)
-                    
-                    
-        model_check()
+
+                # Compare against PyTorch outputs
+                if not isinstance(torch_outs, (Tuple, list)):
+                    torch_outs = (torch_outs, )
+                for ort_out, torch_out in zip(ort_outs, torch_outs):
+                    np.testing.assert_allclose(to_numpy(torch_out), ort_out, rtol=1e-03, atol=1e-05)
+
+        model_check(file_path, input_sample, kwargs['example_outputs'])
+        
         self.train(mode)
 
     @torch.no_grad()

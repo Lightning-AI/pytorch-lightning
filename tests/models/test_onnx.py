@@ -125,7 +125,7 @@ def test_error_if_no_input(tmpdir):
     ):
         model.to_onnx(file_path)
 
-def test_multi_input_output_model_inference_is_valid(tmpdir):
+def test_single_input_single_output_model_inference_is_valid(tmpdir):
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
 
@@ -133,22 +133,20 @@ def test_multi_input_output_model_inference_is_valid(tmpdir):
     trainer.fit(model)
 
     model.eval()
-    with torch.no_grad():
-        torch_out = model(model.example_input_array)
 
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, model.example_input_array, export_params=True)
     
+def test_single_input_multi_output_model_inference_is_valid(tmpdir):
     model = BoringModelSIMO()
     model.example_input_array = torch.randn(5, 32)
 
     model.eval()
-    with torch.no_grad():
-        torch_out = model(model.example_input_array)
 
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, model.example_input_array, export_params=True)
     
+def test_multi_input_single_output_model_inference_is_valid(tmpdir):
     model = BoringModelMISO()
     model.example_input_array = (torch.randn(5, 32), torch.randn(5, 32))
 
@@ -157,6 +155,7 @@ def test_multi_input_output_model_inference_is_valid(tmpdir):
     file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, model.example_input_array, export_params=True)
     
+def test_multi_input_multi_output_model_inference_is_valid(tmpdir):
     model = BoringModelMIMO()
     model.example_input_array = (torch.randn(5, 32), torch.randn(5, 32))
 
