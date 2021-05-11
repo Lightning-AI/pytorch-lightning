@@ -38,7 +38,7 @@ class LightningEnvironment(ClusterEnvironment):
         self._world_size: int = 1
 
     def creates_children(self) -> bool:
-        return False
+        return "LOCAL_RANK" in os.environ
 
     def master_address(self) -> str:
         return os.environ.get("MASTER_ADDR", "127.0.0.1")
