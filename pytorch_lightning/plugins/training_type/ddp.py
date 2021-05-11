@@ -128,7 +128,7 @@ class DDPPlugin(ParallelPlugin):
 
     def setup_environment(self):
         # start the other scripts
-        if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
+        if not self.cluster_environment.creates_children():
             self._call_children_scripts()
 
         # set the task idx
