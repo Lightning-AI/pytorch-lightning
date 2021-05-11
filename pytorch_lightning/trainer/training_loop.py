@@ -480,7 +480,6 @@ class TrainLoop:
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
             self.batch_idx = batch_idx
-            self.trainer.is_last_batch = is_last_batch
 
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
