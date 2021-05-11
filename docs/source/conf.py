@@ -364,7 +364,8 @@ autodoc_default_options = {
 # This value determines the text for the permalink; it defaults to "¶". Set it to None or the empty
 #  string to disable permalinks.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_add_permalinks
-html_add_permalinks = "¶"
+html_permalinks = True
+html_permalinks_icon = "¶"
 
 # True to prefix each section label with the name of the document it is in, followed by a colon.
 #  For example, index:Introduction for a section called Introduction that appears in document index.rst.
