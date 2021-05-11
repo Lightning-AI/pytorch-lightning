@@ -273,7 +273,7 @@ class CheckpointConnector:
             'epoch': current_epoch,
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
-            'state_dict': model.state_dict(),
+            'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
 
         if not weights_only:
