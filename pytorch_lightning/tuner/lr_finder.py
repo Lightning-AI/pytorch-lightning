@@ -15,7 +15,7 @@ import importlib
 import logging
 import os
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -95,7 +95,7 @@ class _LRFinder(object):
         self.lr_max = lr_max
         self.num_training = num_training
 
-        self.results = {}
+        self.results: Dict = {}
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, configure_optimizers: Callable) -> Callable:
@@ -105,7 +105,7 @@ class _LRFinder(object):
         """
 
         @wraps(configure_optimizers)
-        def func():
+        def func() -> Tuple:
             # Decide the structure of the output from configure_optimizers
             # Same logic as method `init_optimizers` in trainer/optimizers.py
             optim_conf = configure_optimizers()
@@ -172,7 +172,7 @@ class _LRFinder(object):
 
         return fig
 
-    def suggestion(self, skip_begin: int = 10, skip_end: int = 1):
+    def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> float:
         """ This will propose a suggestion for choice of initial learning rate
         as the point with the steepest negative gradient.
 
@@ -192,6 +192,7 @@ class _LRFinder(object):
         except Exception:
             log.exception('Failed to compute suggesting for `lr`. There might not be enough points.')
             self._optimal_idx = None
+        return None
 
 
 def lr_find(
@@ -207,7 +208,7 @@ def lr_find(
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping learning rate finder since fast_dev_run is enabled.', UserWarning)
-        return
+        return None
 
     # Determine lr attr
     if update_attr:
@@ -403,7 +404,7 @@ class _LinearLR(_LRScheduler):
         self.num_iter = num_iter
         super(_LinearLR, self).__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> list:
+    def get_lr(self) -> List:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -453,5 +454,5 @@ class _ExponentialLR(_LRScheduler):
         return val
 
     @property
-    def lr(self):
+    def lr(self) -> float:
         return self._lr

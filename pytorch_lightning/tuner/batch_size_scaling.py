@@ -15,6 +15,8 @@ import logging
 import os
 from typing import Optional, Tuple
 
+from torch.utils.data import DataLoader
+
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
@@ -39,7 +41,7 @@ def scale_batch_size(
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size`"""
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping batch size scaler since fast_dev_run is enabled.', UserWarning)
-        return
+        return None
 
     if not lightning_hasattr(model, batch_arg_name):
         raise MisconfigurationException(f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
@@ -251,5 +253,5 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(current_size: int, dataloader) -> bool:
+def _is_valid_batch_size(current_size: int, dataloader: 'DataLoader') -> bool:
     return not has_len(dataloader) or current_size <= len(dataloader)

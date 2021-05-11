@@ -36,7 +36,7 @@ class Tuner:
         model: 'pl.LightningModule',
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
+    ) -> Dict[str, Union[int, _LRFinder, None]]:
         scale_batch_size_kwargs = scale_batch_size_kwargs or {}
         lr_find_kwargs = lr_find_kwargs or {}
         # return a dict instead of a tuple so BC is not broken if a new tuning procedure is added
@@ -75,7 +75,7 @@ class Tuner:
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = 'batch_size',
-    ) -> Optional[int]:
+    ) -> Union[int, _LRFinder, None]:
         """
         Iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
