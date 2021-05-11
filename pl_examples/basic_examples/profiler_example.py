@@ -23,7 +23,6 @@ The traces can be visualized in 2 ways:
 """
 
 import sys
-from argparse import ArgumentParser
 
 import torch
 import torchvision
@@ -31,27 +30,23 @@ import torchvision.models as models
 import torchvision.transforms as T
 
 from pl_examples import cli_lightning_logo
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import LightningDataModule, LightningModule
+from pytorch_lightning.utilities.cli import LightningCLI
 
 DEFAULT_CMD_LINE = (
-    "--max_epochs",
-    "1",
-    "--limit_train_batches",
-    "15",
-    "--limit_val_batches",
-    "15",
-    "--profiler",
-    "pytorch",
-    "--gpus",
-    f"{int(torch.cuda.is_available())}",
+    "--trainer.max_epochs=1",
+    "--trainer.limit_train_batches=15",
+    "--trainer.limit_val_batches=15",
+    "--trainer.profiler=pytorch",
+    f"--trainer.gpus={int(torch.cuda.is_available())}",
 )
 
 
 class ModelToProfile(LightningModule):
 
-    def __init__(self, model):
+    def __init__(self, name: str = "resnet50"):
         super().__init__()
-        self.model = model
+        self.model = getattr(models, name)(pretrained=True)
         self.criterion = torch.nn.CrossEntropyLoss()
 
     def training_step(self, batch, batch_idx):
@@ -85,16 +80,10 @@ class CIFAR10DataModule(LightningDataModule):
 
 
 def cli_main():
+    if len(sys.argv) == 1:
+        sys.argv += DEFAULT_CMD_LINE
 
-    parser = ArgumentParser()
-    parser = Trainer.add_argparse_args(parser)
-    cmd_line = None if len(sys.argv) != 1 else DEFAULT_CMD_LINE
-    args = parser.parse_args(args=cmd_line)
-
-    model = ModelToProfile(models.resnet50(pretrained=True))
-    datamodule = CIFAR10DataModule()
-    trainer = Trainer(**vars(args))
-    trainer.fit(model, datamodule=datamodule)
+    LightningCLI(ModelToProfile, CIFAR10DataModule)
 
 
 if __name__ == '__main__':

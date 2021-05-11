@@ -21,7 +21,7 @@ from torchmetrics.utilities.data import get_num_classes, to_categorical
 from pytorch_lightning.metrics.functional.auc import auc as __auc
 from pytorch_lightning.metrics.functional.auroc import auroc as __auroc
 from pytorch_lightning.metrics.functional.iou import iou as __iou
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 
 
 def stat_scores(
@@ -58,15 +58,15 @@ def stat_scores_multiple_classes(
     .. deprecated::
         Use :func:`torchmetrics.functional.stat_scores`. Will be removed in v1.4.0.
     """
-    rank_zero_warn(
+    rank_zero_deprecation(
         "This `stat_scores_multiple_classes` was deprecated in v1.2.0 in favor of"
         " `from pytorch_lightning.metrics.functional import stat_scores`."
-        " It will be removed in v1.4.0", DeprecationWarning
+        " It will be removed in v1.4.0"
     )
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
 
-    num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
+    num_classes = get_num_classes(pred, target, num_classes=num_classes)
 
     if pred.dtype != torch.bool:
         pred = pred.clamp_max(max=num_classes)
@@ -144,10 +144,10 @@ def precision_recall(
     .. deprecated::
         Use :func:`torchmetrics.functional.precision_recall`. Will be removed in v1.4.0.
     """
-    rank_zero_warn(
+    rank_zero_deprecation(
         "This `precision_recall` was deprecated in v1.2.0 in favor of"
         " `from pytorch_lightning.metrcs.functional import precision_recall`."
-        " It will be removed in v1.4.0", DeprecationWarning
+        " It will be removed in v1.4.0"
     )
 
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target, num_classes=num_classes)
@@ -172,10 +172,10 @@ def precision(
     .. deprecated::
         Use :func:`torchmetrics.functional.precision`. Will be removed in v1.4.0.
     """
-    rank_zero_warn(
+    rank_zero_deprecation(
         "This `precision` was deprecated in v1.2.0 in favor of"
         " `from pytorch_lightning.metrics.functional import precision`."
-        " It will be removed in v1.4.0", DeprecationWarning
+        " It will be removed in v1.4.0"
     )
 
     return precision_recall(pred=pred, target=target, num_classes=num_classes, class_reduction=class_reduction)[0]
@@ -192,10 +192,10 @@ def recall(
     .. deprecated::
         Use :func:`torchmetrics.functional.recall`. Will be removed in v1.4.0.
     """
-    rank_zero_warn(
+    rank_zero_deprecation(
         "This `recall` was deprecated in v1.2.0 in favor of"
         " `from pytorch_lightning.metrics.functional import recall`."
-        " It will be removed in v1.4.0", DeprecationWarning
+        " It will be removed in v1.4.0"
     )
 
     return precision_recall(pred=pred, target=target, num_classes=num_classes, class_reduction=class_reduction)[1]
@@ -210,20 +210,16 @@ def auc(
     .. deprecated::
         Use :func:`torchmetrics.functional.auc`. Will be removed in v1.4.0.
     """
-    rank_zero_warn(
+    rank_zero_deprecation(
         "This `auc` was deprecated in v1.2.0 in favor of"
         " `pytorch_lightning.metrics.functional.auc import auc`."
-        " It will be removed in v1.4.0", DeprecationWarning
+        " It will be removed in v1.4.0"
     )
     return __auc(x, y)
 
 
 # todo: remove in 1.4
 def _auc_decorator() -> Callable:
-    rank_zero_warn(
-        "This `_auc_decorator` was deprecated in v1.2.0."
-        " It will be removed in v1.4.0", DeprecationWarning
-    )
 
     def wrapper(func_to_decorate: Callable) -> Callable:
 
@@ -240,10 +236,6 @@ def _auc_decorator() -> Callable:
 
 # todo: remove in 1.4
 def _multiclass_auc_decorator() -> Callable:
-    rank_zero_warn(
-        "This `_multiclass_auc_decorator` was deprecated in v1.2.0."
-        " It will be removed in v1.4.0", DeprecationWarning
-    )
 
     def wrapper(func_to_decorate: Callable) -> Callable:
 
@@ -273,10 +265,9 @@ def auroc(
     .. deprecated::
         Use :func:`torchmetrics.functional.auroc`. Will be removed in v1.4.0.
     """
-    rank_zero_warn(
-        "This `auroc` was deprecated in v1.2.0 in favor of"
-        " `pytorch_lightning.metrics.functional.auroc import auroc`."
-        " It will be removed in v1.4.0", DeprecationWarning
+    rank_zero_deprecation(
+        "This `auroc` was deprecated in v1.2.0 in favor of `pytorch_lightning.metrics.functional.auroc import auroc`."
+        " It will be removed in v1.4.0"
     )
     return __auroc(
         preds=pred, target=target, sample_weights=sample_weight, pos_label=pos_label, max_fpr=max_fpr, num_classes=1
@@ -294,10 +285,10 @@ def multiclass_auroc(
     .. deprecated::
         Use :func:`torchmetrics.functional.auroc`. Will be removed in v1.4.0.
     """
-    rank_zero_warn(
+    rank_zero_deprecation(
         "This `multiclass_auroc` was deprecated in v1.2.0 in favor of"
         " `pytorch_lightning.metrics.functional.auroc import auroc`."
-        " It will be removed in v1.4.0", DeprecationWarning
+        " It will be removed in v1.4.0"
     )
 
     return __auroc(preds=pred, target=target, sample_weights=sample_weight, num_classes=num_classes)
@@ -346,14 +337,13 @@ def iou(
     .. deprecated::
         Use :func:`torchmetrics.functional.iou`. Will be removed in v1.4.0.
     """
-    rank_zero_warn(
-        "This `iou` was deprecated in v1.2.0 in favor of"
-        " `from pytorch_lightning.metrics.functional.iou import iou`."
-        " It will be removed in v1.4.0", DeprecationWarning
+    rank_zero_deprecation(
+        "This `iou` was deprecated in v1.2.0 in favor of `from pytorch_lightning.metrics.functional.iou import iou`."
+        " It will be removed in v1.4.0"
     )
     return __iou(
-        pred=pred,
-        target=target,
+        pred,
+        target,
         ignore_index=ignore_index,
         absent_score=absent_score,
         threshold=0.5,

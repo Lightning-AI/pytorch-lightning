@@ -11,29 +11,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING
-
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if TYPE_CHECKING:
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
-
 
 class CPUAccelerator(Accelerator):
+    """ Accelerator for CPU devices. """
 
-    def setup(self, trainer: 'Trainer', model: 'LightningModule') -> None:
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
         """
         Raises:
             MisconfigurationException:
                 If AMP is used with CPU, or if the selected device is not CPU.
         """
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):
-            raise MisconfigurationException("amp + cpu is not supported. Please use a GPU option")
+            raise MisconfigurationException(
+                " Mixed precision is currenty only supported with the AMP backend"
+                " and AMP + CPU is not supported. Please use a GPU option or"
+                " change precision setting."
+            )
 
         if "cpu" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead")
+            raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead.")
 
         return super().setup(trainer, model)

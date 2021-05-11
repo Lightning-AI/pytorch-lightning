@@ -50,12 +50,12 @@ class ProfilerConnector:
             else:
                 raise ValueError(
                     "When passing string value for the `profiler` parameter of"
-                    " `Trainer`, it can only be 'simple' or 'advanced'"
+                    " `Trainer`, it can only be 'simple', 'advanced' or 'pytorch'"
                 )
         self.trainer.profiler = profiler or PassThroughProfiler()
 
     def setup(self) -> None:
         trainer = self.trainer
         local_rank = trainer.local_rank if trainer.world_size > 1 else None
-        trainer.profiler.lightning_module = proxy(trainer.lightning_module)
-        trainer.profiler.setup(stage=trainer._setup_state, local_rank=local_rank, log_dir=trainer.log_dir)
+        trainer.profiler._lightning_module = proxy(trainer.lightning_module)
+        trainer.profiler.setup(stage=trainer.state.fn._setup_fn, local_rank=local_rank, log_dir=trainer.log_dir)

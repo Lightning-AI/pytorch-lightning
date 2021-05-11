@@ -16,12 +16,12 @@ from typing import Any, Optional
 from torchmetrics import F1 as _F1
 from torchmetrics import FBeta as _FBeta
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class FBeta(_FBeta):
 
-    @deprecated(target=_FBeta, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_FBeta)
     def __init__(
         self,
         num_classes: int,
@@ -39,11 +39,12 @@ class FBeta(_FBeta):
         .. deprecated::
             Use :class:`~torchmetrics.FBeta`. Will be removed in v1.5.0.
         """
+        _ = num_classes, beta, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group
 
 
 class F1(_F1):
 
-    @deprecated(target=_F1, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_F1)
     def __init__(
         self,
         num_classes: int,
@@ -60,3 +61,4 @@ class F1(_F1):
         .. deprecated::
             Use :class:`~torchmetrics.F1`. Will be removed in v1.5.0.
         """
+        _ = num_classes, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group
