@@ -401,7 +401,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     trainer.fit(model)
 
     generated = set(trainer.logger_connector.logged_metrics)
-    expected = {'a_step', 'a_epoch', 'n_step/epoch_0', 'n_epoch', 'epoch'}
+    expected = {'a_step', 'a_epoch', 'n_step', 'n_epoch', 'epoch'}
 
     assert generated == expected
 

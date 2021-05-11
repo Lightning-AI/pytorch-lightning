@@ -969,7 +969,7 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # log batch metrics
-                self.evaluation_loop.log_evaluation_step_metrics(batch_idx)
+                self.logger_connector.log_evaluation_step_metrics()
 
                 # track epoch level outputs
                 dl_outputs = self.track_output_for_epoch_end(dl_outputs, output)
@@ -1005,11 +1005,11 @@ class Trainer(
                 ],
             )
 
-        # hook
-        self.evaluation_loop.on_evaluation_end()
-
         # log epoch metrics
         eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
+
+        # hook
+        self.evaluation_loop.on_evaluation_end()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -1162,10 +1162,7 @@ class Trainer(
         self.accelerator.barrier("pre_setup")
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_setup_{fn}')
-            if not called:
-                self.datamodule.setup(stage=fn)
-
+            self.datamodule.setup(stage=fn)
         self.setup(model, stage=fn)
         model.setup(stage=fn)
 
@@ -1188,10 +1185,7 @@ class Trainer(
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_teardown_{fn}')
-            if not called:
-                self.datamodule.teardown(stage=fn)
-
+            self.datamodule.teardown(stage=fn)
         self.profiler.teardown(stage=fn)
         self.teardown(stage=fn)
         model.teardown(stage=fn)
