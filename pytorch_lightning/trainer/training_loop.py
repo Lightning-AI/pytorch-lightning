@@ -57,6 +57,7 @@ class TrainLoop:
         self._skip_backward = False
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
         self._optimizer_freq_cumsum = None
+        self._hiddens = None
 
         self.global_step = 0
         self.current_epoch = 0
@@ -338,7 +339,7 @@ class TrainLoop:
 
         # map to results under the hood
         result.minimize = loss
-        self.trainer.hiddens = hiddens
+        self._hiddens = hiddens
 
         # track batch for manual reduction with result
         result.track_batch_size(len(split_batch))
@@ -656,7 +657,7 @@ class TrainLoop:
         grad_norm_dic = {}
 
         # bookkeeping
-        self.trainer.hiddens = None
+        self._hiddens = None
 
         optimizers = self.prepare_optimizers()
 
@@ -703,7 +704,7 @@ class TrainLoop:
                     # automatic_optimization=False: don't block synchronization here
                     with self.block_ddp_sync_behaviour():
                         self.training_step_and_backward(
-                            split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                            split_batch, batch_idx, opt_idx, optimizer, self._hiddens
                         )
 
                     batch_outputs = self._process_closure_result(
@@ -721,7 +722,7 @@ class TrainLoop:
 
                         def train_step_and_backward_closure():
                             result = self.training_step_and_backward(
-                                split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                                split_batch, batch_idx, opt_idx, optimizer, self._hiddens
                             )
                             return None if result is None else result.loss
 
@@ -730,7 +731,7 @@ class TrainLoop:
 
                     else:
                         self._curr_step_result = self.training_step(
-                            split_batch, batch_idx, opt_idx, self.trainer.hiddens
+                            split_batch, batch_idx, opt_idx, self._hiddens
                         )
 
                     if self._curr_step_result is None:
