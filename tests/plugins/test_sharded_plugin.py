@@ -10,6 +10,7 @@ from pytorch_lightning.plugins import DDPShardedPlugin, DDPSpawnShardedPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import set_random_master_port
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
@@ -299,6 +300,7 @@ class ManualBoringModel(BoringModel):
 @RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
 @pytest.mark.parametrize("accelerator", ["ddp_sharded", "ddp_sharded_spawn"])
 def test_ddp_sharded_plugin_manual_optimization(tmpdir, accelerator):
+    set_random_master_port()
     model = ManualBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
