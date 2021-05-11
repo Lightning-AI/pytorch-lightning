@@ -1809,7 +1809,7 @@ class LightningModule(
         torch.onnx.export(self, input_sample, file_path, **kwargs)
 
         if model_check is None:
-  
+
             def to_numpy(tensor):
                 return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
@@ -1831,7 +1831,6 @@ class LightningModule(
                     np.testing.assert_allclose(to_numpy(torch_out), ort_out, rtol=1e-03, atol=1e-05)
 
         model_check(file_path, input_sample, kwargs['example_outputs'])
-        
 
         self.train(mode)
 
