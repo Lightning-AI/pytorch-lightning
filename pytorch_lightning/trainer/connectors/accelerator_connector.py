@@ -550,7 +550,7 @@ class AcceleratorConnector(object):
             if isinstance(self.tpu_cores, int):
                 self._distrib_type = DistributedType.TPU_SPAWN
         elif self.distributed_backend == 'ipu':
-                self._device_type = DeviceType.IPU
+            self._device_type = DeviceType.IPU
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
 
