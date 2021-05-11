@@ -21,7 +21,7 @@ import torch
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModelMIMO, BoringModelMISO, BoringModelSIMO, BoringModel
+from tests.helpers.boring_model import BoringModel, BoringModelMIMO, BoringModelMISO, BoringModelSIMO
 from tests.helpers.runif import RunIf
 
 

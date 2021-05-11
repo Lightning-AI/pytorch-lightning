@@ -25,14 +25,15 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
+import numpy as np
+import onnx
+import onnxruntime
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-import onnx, onnxruntime
-import numpy as np
 
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -1797,7 +1798,7 @@ class LightningModule(
             input_sample = self.example_input_array
 
         input_sample = self._apply_batch_transfer_handler(input_sample)
-        
+
         if not isinstance(input_sample, (Tuple, list)):
             input_sample = (input_sample, )
 
@@ -1806,7 +1807,7 @@ class LightningModule(
             kwargs["example_outputs"] = self(*input_sample)
 
         torch.onnx.export(self, input_sample, file_path, **kwargs)
-        
+
         if model_check is None:
   
             def to_numpy(tensor):
@@ -1831,6 +1832,7 @@ class LightningModule(
 
         model_check(file_path, input_sample, kwargs['example_outputs'])
         
+
         self.train(mode)
 
     @torch.no_grad()

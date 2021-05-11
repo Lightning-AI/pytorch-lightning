@@ -166,28 +166,28 @@ class BoringModel(LightningModule):
 
 
 class BoringModelMIMO(BoringModel):
-    
+
     def __init__(self):
         super().__init__()
         self.layer1 = torch.nn.Linear(32, 1)
         self.layer2 = torch.nn.Linear(32, 1)
-        
+
     def forward(self, x1, x2):
         y1 = self.layer1(x1)
         y2 = self.layer2(x2)
         return y1, y2
-  
-  
+
+
 class BoringModelSIMO(BoringModelMIMO):
-        
+
     def forward(self, x):
         y1 = self.layer1(x)
         y2 = self.layer2(x)
         return y1, y2
 
-    
+
 class BoringModelMISO(BoringModelMIMO):
-        
+
     def forward(self, x1, x2):
         y1 = self.layer1(x1)
         y2 = self.layer2(x2)
