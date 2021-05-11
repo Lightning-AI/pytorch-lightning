@@ -513,7 +513,7 @@ class TrainLoop:
             should_check_val = self._should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.validating = True
-                self.trainer.run_evaluation()
+                self.trainer._run_evaluation()
                 self.trainer.training = True
                 val_loop_called = True
 
@@ -572,7 +572,7 @@ class TrainLoop:
 
         if should_check_val:
             self.trainer.validating = True
-            self.trainer.run_evaluation(on_epoch=True)
+            self.trainer._run_evaluation(on_epoch=True)
             self.trainer.training = True
 
         # increment the global step once
