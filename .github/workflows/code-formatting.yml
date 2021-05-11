@@ -93,6 +93,6 @@ jobs:
           pip install vulture
           pip list
 
-      - name: Run checking
+      - name: Check for dead code with Vulture
         run: |
           vulture pytorch_lightning
