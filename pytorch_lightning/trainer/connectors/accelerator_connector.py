@@ -26,6 +26,7 @@ from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DataParallelPlugin,
     DDP2Plugin,
+    DDPFullyShardedPlugin,
     DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
@@ -33,6 +34,7 @@ from pytorch_lightning.plugins import (
     DeepSpeedPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
+    FullyShardedNativeMixedPrecisionPlugin,
     HorovodPlugin,
     NativeMixedPrecisionPlugin,
     PrecisionPlugin,
@@ -264,8 +266,13 @@ class AcceleratorConnector(object):
     @property
     def use_ddp(self) -> bool:
         return self._distrib_type in (
-            DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN, DistributedType.DEEPSPEED, DistributedType.TPU_SPAWN
+            DistributedType.DDP,
+            DistributedType.DDP_SPAWN,
+            DistributedType.DDP_SHARDED,
+            DistributedType.DDP_SHARDED_SPAWN,
+            DistributedType.DDP_FULLY_SHARDED,
+            DistributedType.DEEPSPEED,
+            DistributedType.TPU_SPAWN,
         )
 
     @property
@@ -279,6 +286,14 @@ class AcceleratorConnector(object):
     @property
     def use_deepspeed(self) -> bool:
         return self._distrib_type == DistributedType.DEEPSPEED
+
+    @property
+    def _is_sharded_training_type(self) -> bool:
+        return isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin))
+
+    @property
+    def _is_fully_sharded_training_type(self) -> bool:
+        return isinstance(self.training_type_plugin, DDPFullyShardedPlugin)
 
     @property
     def is_distributed(self) -> bool:
@@ -364,8 +379,10 @@ class AcceleratorConnector(object):
                         raise MisconfigurationException(msg)
                 else:
                     log.info("Using native 16bit precision.")
-                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                    if self._is_sharded_training_type:
                         return ShardedNativeMixedPrecisionPlugin()
+                    if self._is_fully_sharded_training_type:
+                        return FullyShardedNativeMixedPrecisionPlugin()
                     return NativeMixedPrecisionPlugin()
 
             if self.amp_type == AMPType.APEX:
@@ -404,6 +421,7 @@ class AcceleratorConnector(object):
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
+            use_ddp_fully_sharded = self._distrib_type == DistributedType.DDP_FULLY_SHARDED
 
             # TODO: decouple from TE
             # ddp script mode uses the same flags as TE
@@ -420,6 +438,8 @@ class AcceleratorConnector(object):
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
+            elif use_ddp_fully_sharded:
+                ddp_plugin_cls = DDPFullyShardedPlugin
             else:
                 ddp_plugin_cls = DDPPlugin
 

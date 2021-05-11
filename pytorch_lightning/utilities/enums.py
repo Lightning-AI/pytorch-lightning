@@ -80,6 +80,7 @@ class DistributedType(LightningEnum):
     DDP_SHARDED = 'ddp_sharded'
     DDP_SHARDED_SPAWN = 'ddp_sharded_spawn'
     RPC_SEQUENTIAL_PLUGIN = 'rpc_sequential'
+    DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
 
 class DeviceType(LightningEnum):
