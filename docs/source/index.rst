@@ -21,6 +21,7 @@ PyTorch Lightning Documentation
    :name: guides
    :caption: Best practices
 
+   guides/speed
    starter/style_guide
    benchmarking/performance
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
@@ -86,13 +87,6 @@ PyTorch Lightning Documentation
    Image-GPT <https://lightning-bolts.readthedocs.io/en/latest/convolutional.html#image-gpt>
    SimCLR <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr>
    VAE <https://lightning-bolts.readthedocs.io/en/latest/autoencoders.html#basic-vae>
-
-.. toctree::
-   :maxdepth: 1
-   :name: Guides
-   :caption: How to
-
-   guides/speed
 
 .. toctree::
    :maxdepth: 1
