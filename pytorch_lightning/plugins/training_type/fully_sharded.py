@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from typing import Generator, List, Optional
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
+from torch import Tensor
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -160,6 +161,12 @@ class DDPFullyShardedPlugin(DDPPlugin):
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
 
+    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+        # Currently it is same as default TrainingTypePlugin, i.e. return
+        # the full state dict for FSDP, in the future, we will provide sharded
+        # state dict.
+        return super().lightning_module_state_dict()
+
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:
         # Setup optimizers after the Fully Sharded Model has been made
@@ -183,7 +190,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
     @classmethod
     def register_plugins(cls, plugin_registry: Dict):
         plugin_registry.register(
-            "fsdp_full_state_dict",
+            "fsdp",
             cls,
-            description="Fully Sharded Training with checkpointing the full state dict",
+            description="Fully sharded training with checkpointing the full state dict.",
         )
