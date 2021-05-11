@@ -1156,10 +1156,7 @@ class Trainer(
         self.accelerator.barrier("pre_setup")
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_setup_{fn}')
-            if not called:
-                self.datamodule.setup(stage=fn)
-
+            self.datamodule.setup(stage=fn)
         self.setup(model, stage=fn)
         model.setup(stage=fn)
 
@@ -1182,10 +1179,7 @@ class Trainer(
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
-            called = getattr(self.datamodule, f'has_teardown_{fn}')
-            if not called:
-                self.datamodule.teardown(stage=fn)
-
+            self.datamodule.teardown(stage=fn)
         self.profiler.teardown(stage=fn)
         self.teardown(stage=fn)
         model.teardown(stage=fn)
