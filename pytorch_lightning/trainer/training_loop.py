@@ -39,7 +39,6 @@ class TrainLoop:
     def __init__(
         self,
         trainer,
-        multiple_trainloader_mode: str,
         max_epochs: Optional[int],
         min_epochs: Optional[int],
         max_steps: Optional[int],
@@ -53,9 +52,7 @@ class TrainLoop:
         self.running_loss = TensorRunningAccum(window_length=20)
         self._curr_step_result = None
         self._cur_grad_norm_dict = None
-        self._multiple_trainloader_mode = multiple_trainloader_mode
         self._skip_backward = False
-        self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
         self._optimizer_freq_cumsum = None
         self._hiddens = None
 
