@@ -135,7 +135,7 @@ class EvaluationLoop(object):
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Union[Any, int]]:
         # make dataloader_idx arg in validation_step optional
-        kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
+        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
 
         multiple_val_loaders = (
             not self.trainer.testing and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1
@@ -143,9 +143,9 @@ class EvaluationLoop(object):
         multiple_test_loaders = (self.trainer.testing and self._get_num_dataloaders(self.trainer.test_dataloaders) > 1)
 
         if multiple_test_loaders or multiple_val_loaders:
-            kwargs['dataloader_idx'] = dataloader_idx
+            step_kwargs['dataloader_idx'] = dataloader_idx
 
-        return kwargs
+        return step_kwargs
 
     def _get_num_dataloaders(self, dataloaders: Optional[List[DataLoader]]) -> int:
         # case where user does:
@@ -159,8 +159,8 @@ class EvaluationLoop(object):
             return 0
 
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
-        # configure kwargs
-        kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
+        # configure step_kwargs
+        step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
         model_ref = self.trainer.lightning_module
         model_ref._results = Result()
@@ -168,11 +168,11 @@ class EvaluationLoop(object):
         if self.trainer.testing:
             model_ref._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
-                output = self.trainer.accelerator.test_step(kwargs)
+                output = self.trainer.accelerator.test_step(step_kwargs)
         else:
             model_ref._current_fx_name = "validation_step"
             with self.trainer.profiler.profile("validation_step"):
-                output = self.trainer.accelerator.validation_step(kwargs)
+                output = self.trainer.accelerator.validation_step(step_kwargs)
 
         # capture any logged information
         self.trainer.logger_connector.cache_logged_metrics()

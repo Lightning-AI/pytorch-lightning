@@ -96,14 +96,14 @@ class PredictLoop(object):
         return length
 
     def _build_kwargs(self, batch, batch_idx, dataloader_idx):
-        kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
+        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
         if self.num_dataloaders:
-            kwargs['dataloader_idx'] = dataloader_idx
-        return kwargs
+            step_kwargs['dataloader_idx'] = dataloader_idx
+        return step_kwargs
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        # configure kwargs
-        kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
+        # configure step_kwargs
+        step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
         # extract batch_indices and store them
         self._store_batch_indices(dataloader_idx)
@@ -113,7 +113,7 @@ class PredictLoop(object):
         self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
 
         model_ref._current_fx_name = "predict"
-        predictions = self.trainer.accelerator.predict_step(kwargs)
+        predictions = self.trainer.accelerator.predict_step(step_kwargs)
 
         if predictions is None:
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")

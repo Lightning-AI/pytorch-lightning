@@ -187,12 +187,12 @@ class Accelerator:
 
     def training_step(
         self,
-        kwargs: Dict[str, Union[Any, int]],
+        step_kwargs: Dict[str, Union[Any, int]],
     ) -> STEP_OUTPUT:
         """The actual training step.
 
         Args:
-            kwargs: the arguments for the models training step. Can consist of the following:
+            step_kwargs: the arguments for the models training step. Can consist of the following:
 
                 - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                   The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
@@ -201,19 +201,19 @@ class Accelerator:
                 - hiddens(:class:`~torch.Tensor`): Passed in if
                   :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
         """
-        kwargs = self.to_device(kwargs)
+        step_kwargs = self.to_device(step_kwargs)
 
         with self.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
-            return self.training_type_plugin.training_step(*kwargs.values())
+            return self.training_type_plugin.training_step(*step_kwargs.values())
 
     def post_training_step(self) -> None:
         self.training_type_plugin.post_training_step()
 
-    def validation_step(self, kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
         Args:
-            kwargs: the arguments for the models validation step. Can consist of the following:
+            step_kwargs: the arguments for the models validation step. Can consist of the following:
 
                 - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                   The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
@@ -221,16 +221,16 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple val dataloaders used)
         """
-        kwargs = self.to_device(kwargs)
+        step_kwargs = self.to_device(step_kwargs)
 
         with self.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
-            return self.training_type_plugin.validation_step(*kwargs.values())
+            return self.training_type_plugin.validation_step(*step_kwargs.values())
 
-    def test_step(self, kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
+    def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
         Args:
-            kwargs: the arguments for the models test step. Can consist of the following:
+            step_kwargs: the arguments for the models test step. Can consist of the following:
 
                 - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                   The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
@@ -238,16 +238,16 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple test dataloaders used).
         """
-        kwargs = self.to_device(kwargs)
+        step_kwargs = self.to_device(step_kwargs)
 
         with self.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
-            return self.training_type_plugin.test_step(*kwargs.values())
+            return self.training_type_plugin.test_step(*step_kwargs.values())
 
-    def predict_step(self, kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
+    def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
         """The actual predict step.
 
         Args:
-            kwargs: the arguments for the models predict step. Can consist of the following:
+            step_kwargs: the arguments for the models predict step. Can consist of the following:
 
                 - batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                   The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
@@ -255,10 +255,10 @@ class Accelerator:
                 - dataloader_idx (int): The index of the dataloader that produced this batch
                   (only if multiple predict dataloaders used).
         """
-        kwargs = self.to_device(kwargs)
+        step_kwargs = self.to_device(step_kwargs)
 
         with self.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
-            return self.training_type_plugin.predict_step(*kwargs.values())
+            return self.training_type_plugin.predict_step(*step_kwargs.values())
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
         """A hook to do something at the end of the training step
@@ -385,12 +385,12 @@ class Accelerator:
         self.optimizers = optimizers
         self.schedulers = schedulers
 
-    def to_device(self, kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
+    def to_device(self, step_kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
         """Pushes the batch to the root device"""
-        kwargs['batch'] = self.batch_to_device(
-            kwargs['batch'], self.root_device, dataloader_idx=kwargs.get('dataloader_idx', None)
+        step_kwargs['batch'] = self.batch_to_device(
+            step_kwargs['batch'], self.root_device, dataloader_idx=step_kwargs.get('dataloader_idx', None)
         )
-        return kwargs
+        return step_kwargs
 
     @property
     def amp_backend(self) -> Optional[LightningEnum]:

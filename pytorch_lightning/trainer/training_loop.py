@@ -272,13 +272,13 @@ class TrainLoop:
         model_ref = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
-            kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
+            step_kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
 
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(kwargs)
+                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
             self.trainer.logger_connector.cache_logged_metrics()
@@ -935,7 +935,7 @@ class TrainLoop:
 
     def _build_kwargs(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
-        kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
+        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
 
         lightning_module = self.trainer.lightning_module
 
@@ -949,7 +949,7 @@ class TrainLoop:
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5", DeprecationWarning
                     )
-                kwargs['optimizer_idx'] = opt_idx
+                step_kwargs['optimizer_idx'] = opt_idx
             elif not has_opt_idx_in_train_step and self.trainer.lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
@@ -958,9 +958,9 @@ class TrainLoop:
 
         # pass hiddens if using tbptt
         if self._truncated_bptt_enabled():
-            kwargs['hiddens'] = hiddens
+            step_kwargs['hiddens'] = hiddens
 
-        return kwargs
+        return step_kwargs
 
     def _truncated_bptt_enabled(self) -> bool:
         """ Temporary tbptt utilities until this flag is fully migrated to the lightning module. """
