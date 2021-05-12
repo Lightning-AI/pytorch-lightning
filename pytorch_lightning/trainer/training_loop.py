@@ -733,7 +733,7 @@ class TrainLoop:
                     else:
                         result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
 
-                    if result is None:
+                    if not result:
                         # user decided to skip optimization
                         # make sure to zero grad.
                         continue
