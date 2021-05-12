@@ -119,31 +119,3 @@ def dice_score(
 
         scores[i - bg] += score_cls
     return reduce(scores, reduction=reduction)
-
-
-# todo: remove in 1.4
-def iou(
-    pred: torch.Tensor,
-    target: torch.Tensor,
-    ignore_index: Optional[int] = None,
-    absent_score: float = 0.0,
-    num_classes: Optional[int] = None,
-    reduction: str = 'elementwise_mean',
-) -> torch.Tensor:
-    """
-    .. deprecated::
-        Use :func:`torchmetrics.functional.iou`. Will be removed in v1.4.0.
-    """
-    rank_zero_deprecation(
-        "This `iou` was deprecated in v1.2.0 in favor of `from pytorch_lightning.metrics.functional.iou import iou`."
-        " It will be removed in v1.4.0"
-    )
-    return __iou(
-        pred,
-        target,
-        ignore_index=ignore_index,
-        absent_score=absent_score,
-        threshold=0.5,
-        num_classes=num_classes,
-        reduction=reduction
-    )
