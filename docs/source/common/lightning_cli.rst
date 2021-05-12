@@ -91,8 +91,8 @@ practice to create a configuration file and provide this to the tool. A way to d
 
 The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class takes care of parsing command line
 and config file options, instantiating the classes, setting up a callback to save the config in the log directory and
-finally running the trainer. The resulting object :code:`cli` can be used for instance to get the instance of the
-model, i.e., :code:`cli.model`.
+finally running the trainer. The resulting object :code:`cli` can be used for example to get the instance of the
+model, (:code:`cli.model`).
 
 After multiple trainings with different configurations, each run will have in its respective log directory a
 :code:`config.yaml` file. This file can be used for reference to know in detail all the settings that were used for each
