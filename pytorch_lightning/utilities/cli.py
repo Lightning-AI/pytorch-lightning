@@ -18,7 +18,6 @@ from typing import Any, Dict, List, Optional, Type, Union
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.seed import seed_everything
@@ -98,7 +97,7 @@ class LightningCLI:
         save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
-        trainer_fn: str = TrainerFn.fit.value,
+        #trainer_fn: str = TrainerFn.fit.value,
         seed_everything_default: int = None,
         description: str = 'pytorch-lightning trainer command line tool',
         env_prefix: str = 'PL',
@@ -157,7 +156,7 @@ class LightningCLI:
         self.save_config_callback = save_config_callback
         self.trainer_class = trainer_class
         self.trainer_defaults = {} if trainer_defaults is None else trainer_defaults
-        self.trainer_fn = trainer_fn
+        #self.trainer_fn = trainer_fn
         self.seed_everything_default = seed_everything_default
         self.subclass_mode_model = subclass_mode_model
         self.subclass_mode_data = subclass_mode_data
@@ -172,11 +171,7 @@ class LightningCLI:
             seed_everything(self.config['seed_everything'], workers=True)
         self.before_instantiate_classes()
         self.instantiate_classes()
-        # TODO
-        self.prepare_run_kwargs()
-        self.before_run()
-        self.run()
-        self.after_run()
+        self.run_subcommand()
 
     def init_parser(self) -> LightningArgumentParser:
         """Method that instantiates the argument parser"""
@@ -209,7 +204,7 @@ class LightningCLI:
 
     def add_subcommands(self, parser: LightningArgumentParser) -> None:
         # TODO: default fit
-        parser_subcommands = parser.add_subcommands(dest='fn')
+        parser_subcommands = parser.add_subcommands()
         for subcommand in self.subcommands:
             subcommand_parser = self.prepare_subcommand_parser(subcommand)
             # TODO: add help
@@ -220,7 +215,7 @@ class LightningCLI:
         self.add_core_arguments(parser)
         self.add_subcommand_arguments(parser)
         skip = self.subcommands[subcommand]
-        parser.add_method_arguments(self.trainer_class, subcommand, skip=skip)
+        parser.add_method_arguments(self.trainer_class, subcommand, nested_key=subcommand, skip=skip)
         return parser
 
     def add_subcommand_arguments(self, parser: LightningArgumentParser) -> None:
@@ -250,7 +245,7 @@ class LightningCLI:
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
         self.config_init = self.parser.instantiate_subclasses(self.config)
-        subcommand_config = self.config_init[self.config_init['fn']]
+        subcommand_config = self.config_init[self.config['subcommand']]
         print(self.config_init)
         self.instantiate_datamodule(subcommand_config.get('data', {}))
         self.instantiate_model(subcommand_config.get('model', {}))
@@ -285,19 +280,25 @@ class LightningCLI:
             config['callbacks'].append(self.save_config_callback(self.parser, self.config))
         self.trainer = self.trainer_class(**config)
 
-    def prepare_run_kwargs(self) -> None:
-        """Prepares ``self.run_kwargs`` with the model and datamodule"""
-        self.run_kwargs = {'model': self.model}
+    def run_subcommand(self) -> None:
+        """Run the chosen subcommand"""
+        subcommand = self.config['subcommand']
+        fn_kwargs = self.prepare_subcommand_kwargs(subcommand)
+
+        if hasattr(self, f'before_{subcommand}'):
+            getattr(self, f'before_{subcommand}')()
+
+        default = getattr(self.trainer, subcommand)
+        fn = getattr(self, subcommand, default)
+        fn(**fn_kwargs)
+
+        if hasattr(self, f'after_{subcommand}'):
+            getattr(self, f'after_{subcommand}')()
+
+    def prepare_subcommand_kwargs(self, subcommand: str) -> Dict[str, Any]:
+        """Prepares the keyword arguments to pass to the subcommand to run"""
+        # TODO: this is silly
+        fn_kwargs = {'model': self.model, **self.config_init[subcommand][subcommand]}
         if self.datamodule is not None:
-            self.run_kwargs['datamodule'] = self.datamodule
-
-    def before_run(self) -> None:
-        """Implement to run some code before the trainer is run"""
-
-    def run(self) -> None:
-        """Runs the appropriate function of the instantiated trainer class"""
-        fn = getattr(self.trainer, self.config['fn'])
-        fn(**self.run_kwargs)
-
-    def after_run(self) -> None:
-        """Implement to run some code after the trainer has finished running"""
+            fn_kwargs['datamodule'] = self.datamodule
+        return fn_kwargs
