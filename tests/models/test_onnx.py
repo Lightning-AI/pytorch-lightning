@@ -21,7 +21,7 @@ import torch
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModel, BoringModelMIMO, BoringModelMISO, BoringModelSIMO
+from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -140,6 +140,13 @@ def test_single_input_single_output_model_inference_is_valid(tmpdir):
 
 
 def test_single_input_multi_output_model_inference_is_valid(tmpdir):
+    class BoringModelSIMO(BoringModelMIMO):
+  
+        def forward(self, x):
+            y1 = self.layer1(x)
+            y2 = self.layer2(x)
+            return y1, y2
+
     model = BoringModelSIMO()
     model.example_input_array = torch.randn(5, 32)
 
@@ -150,6 +157,13 @@ def test_single_input_multi_output_model_inference_is_valid(tmpdir):
 
 
 def test_multi_input_single_output_model_inference_is_valid(tmpdir):
+    class BoringModelMISO(BoringModelMIMO):
+  
+        def forward(self, x1, x2):
+            y1 = self.layer1(x1)
+            y2 = self.layer2(x2)
+            return y1 + y2
+
     model = BoringModelMISO()
     model.example_input_array = (torch.randn(5, 32), torch.randn(5, 32))
 
@@ -160,6 +174,18 @@ def test_multi_input_single_output_model_inference_is_valid(tmpdir):
 
 
 def test_multi_input_multi_output_model_inference_is_valid(tmpdir):
+    class BoringModelMIMO(BoringModel):
+  
+        def __init__(self):
+            super().__init__()
+            self.layer1 = torch.nn.Linear(32, 1)
+            self.layer2 = torch.nn.Linear(32, 1)
+
+        def forward(self, x1, x2):
+            y1 = self.layer1(x1)
+            y2 = self.layer2(x2)
+            return y1, y2
+
     model = BoringModelMIMO()
     model.example_input_array = (torch.randn(5, 32), torch.randn(5, 32))
 
