@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 
+- Added support to call any trainer function from the `LightningCLI` ([#7508](https://github.com/PyTorchLightning/pytorch-lightning/pull/7508))
+
+
 - Added `clip_grad_by_value` support for TPUs ([#7025](https://github.com/PyTorchLightning/pytorch-lightning/pull/7025))
 
 
