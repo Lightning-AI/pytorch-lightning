@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -164,51 +164,85 @@ class LightningCLI:
         self.parser_kwargs = {} if parser_kwargs is None else parser_kwargs
         self.parser_kwargs.update({'description': description, 'env_prefix': env_prefix, 'default_env': env_parse})
 
-        self.init_parser()
-        self.add_core_arguments_to_parser()
-        self.add_arguments_to_parser(self.parser)
-        self.parse_arguments()
+        self.parser = self.init_parser()
+        self.add_arguments(self.parser)
+        self.add_subcommands(self.parser)
+        self.parse_arguments(self.parser)
         if self.config['seed_everything'] is not None:
             seed_everything(self.config['seed_everything'], workers=True)
         self.before_instantiate_classes()
         self.instantiate_classes()
+        # TODO
         self.prepare_run_kwargs()
         self.before_run()
         self.run()
         self.after_run()
 
-    def init_parser(self) -> None:
+    def init_parser(self) -> LightningArgumentParser:
         """Method that instantiates the argument parser"""
-        self.parser = LightningArgumentParser(**self.parser_kwargs)
+        return LightningArgumentParser(**self.parser_kwargs)
 
-    def add_core_arguments_to_parser(self) -> None:
-        """Adds arguments from the core classes to the parser"""
-        self.parser.add_argument(
-            'trainer_fn', type=TrainerFn, default=TrainerFn(self.trainer_fn), help='The trainer function to run'
-        )
-        self.parser.add_argument(
+    def add_arguments(self, parser: LightningArgumentParser) -> None:
+        """
+        Implement to add extra arguments to the base parser or link arguments
+
+        Args:
+            parser: The base parser object to which arguments can be added
+        """
+        parser.add_argument(
             '--seed_everything',
             type=Optional[int],
             default=self.seed_everything_default,
             help='Set to an int to run seed_everything with this value before classes instantiation',
         )
-        self.parser.add_lightning_class_args(self.trainer_class, 'trainer')
-        trainer_defaults = {'trainer.' + k: v for k, v in self.trainer_defaults.items() if k != 'callbacks'}
-        self.parser.set_defaults(trainer_defaults)
-        self.parser.add_lightning_class_args(self.model_class, 'model', subclass_mode=self.subclass_mode_model)
-        if self.datamodule_class is not None:
-            self.parser.add_lightning_class_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
 
-    def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
-        """Implement to add extra arguments to parser or link arguments
+    @property
+    def subcommands(self) -> Dict[str, List[str]]:
+        """Defines the list of available subcommands and the arguments to skip"""
+        return {
+            'fit': ['model', 'train_dataloader', 'val_dataloaders', 'datamodule'],
+            'validate': ['model', 'val_dataloaders', 'datamodule'],
+            'test': ['model', 'test_dataloaders', 'datamodule'],
+            'predict': ['model', 'dataloaders', 'datamodule'],
+            'tune': ['model', 'train_dataloader', 'val_dataloaders', 'datamodule'],
+        }
+
+    def add_subcommands(self, parser: LightningArgumentParser) -> None:
+        # TODO: default fit
+        parser_subcommands = parser.add_subcommands(dest='fn')
+        for subcommand in self.subcommands:
+            subcommand_parser = self.prepare_subcommand_parser(subcommand)
+            # TODO: add help
+            parser_subcommands.add_subcommand(subcommand, subcommand_parser)
+
+    def prepare_subcommand_parser(self, subcommand: str) -> LightningArgumentParser:
+        parser = self.init_parser()
+        self.add_core_arguments(parser)
+        self.add_subcommand_arguments(parser)
+        skip = self.subcommands[subcommand]
+        parser.add_method_arguments(self.trainer_class, subcommand, skip=skip)
+        return parser
+
+    def add_subcommand_arguments(self, parser: LightningArgumentParser) -> None:
+        """
+        Implement to add extra arguments to each subcommand parser or link arguments
 
         Args:
-            parser: The argument parser object to which arguments can be added
+            parser: The subcommand parser object to which arguments can be added
         """
 
-    def parse_arguments(self) -> None:
+    def add_core_arguments(self, parser: LightningArgumentParser) -> None:
+        """Adds arguments from the core classes to the parser"""
+        parser.add_lightning_class_args(self.trainer_class, 'trainer')
+        trainer_defaults = {'trainer.' + k: v for k, v in self.trainer_defaults.items() if k != 'callbacks'}
+        parser.set_defaults(trainer_defaults)
+        parser.add_lightning_class_args(self.model_class, 'model', subclass_mode=self.subclass_mode_model)
+        if self.datamodule_class is not None:
+            parser.add_lightning_class_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
+
+    def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in self.config"""
-        self.config = self.parser.parse_args()
+        self.config = parser.parse_args()
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes"""
@@ -216,38 +250,40 @@ class LightningCLI:
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
         self.config_init = self.parser.instantiate_subclasses(self.config)
-        self.instantiate_datamodule()
-        self.instantiate_model()
-        self.instantiate_trainer()
+        subcommand_config = self.config_init[self.config_init['fn']]
+        print(self.config_init)
+        self.instantiate_datamodule(subcommand_config.get('data', {}))
+        self.instantiate_model(subcommand_config.get('model', {}))
+        self.instantiate_trainer(subcommand_config['trainer'])
 
-    def instantiate_datamodule(self) -> None:
+    def instantiate_datamodule(self, config: Dict[str, Any]) -> None:
         """Instantiates the datamodule using self.config_init['data'] if given"""
         if self.datamodule_class is None:
             self.datamodule = None
         elif self.subclass_mode_data:
-            self.datamodule = self.config_init['data']
+            self.datamodule = config
         else:
-            self.datamodule = self.datamodule_class(**self.config_init.get('data', {}))
+            self.datamodule = self.datamodule_class(**config)
 
-    def instantiate_model(self) -> None:
+    def instantiate_model(self, config: Dict[str, Any]) -> None:
         """Instantiates the model using self.config_init['model']"""
         if self.subclass_mode_model:
-            self.model = self.config_init['model']
+            self.model = config
         else:
-            self.model = self.model_class(**self.config_init.get('model', {}))
+            self.model = self.model_class(**config)
 
-    def instantiate_trainer(self) -> None:
+    def instantiate_trainer(self, config: Dict[str, Any]) -> None:
         """Instantiates the trainer using self.config_init['trainer']"""
-        if self.config_init['trainer'].get('callbacks') is None:
-            self.config_init['trainer']['callbacks'] = []
+        if config.get('callbacks') is None:
+            config['callbacks'] = []
         if 'callbacks' in self.trainer_defaults:
             if isinstance(self.trainer_defaults['callbacks'], list):
-                self.config_init['trainer']['callbacks'].extend(self.trainer_defaults['callbacks'])
+                config['callbacks'].extend(self.trainer_defaults['callbacks'])
             else:
-                self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
+                config['callbacks'].append(self.trainer_defaults['callbacks'])
         if self.save_config_callback is not None:
-            self.config_init['trainer']['callbacks'].append(self.save_config_callback(self.parser, self.config))
-        self.trainer = self.trainer_class(**self.config_init['trainer'])
+            config['callbacks'].append(self.save_config_callback(self.parser, self.config))
+        self.trainer = self.trainer_class(**config)
 
     def prepare_run_kwargs(self) -> None:
         """Prepares ``self.run_kwargs`` with the model and datamodule"""
@@ -260,7 +296,7 @@ class LightningCLI:
 
     def run(self) -> None:
         """Runs the appropriate function of the instantiated trainer class"""
-        fn = getattr(self.trainer, self.config["trainer_fn"].value)
+        fn = getattr(self.trainer, self.config['fn'])
         fn(**self.run_kwargs)
 
     def after_run(self) -> None:
