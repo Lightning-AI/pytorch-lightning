@@ -17,6 +17,7 @@ import queue as q
 import traceback
 from multiprocessing import Process, Queue
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import DeviceType
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
