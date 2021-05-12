@@ -62,13 +62,6 @@ def test_v1_4_0_deprecated_imports():
         from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils  # noqa: F811 F401
 
 
-def test_v1_4_0_deprecated_trainer_device_distrib():
-    """Test that Trainer attributes works fine."""
-    trainer = Trainer()
-    trainer.accelerator_connector._distrib_type = None
-    trainer.accelerator_connector._device_type = None
-
-
 def test_v1_4_0_deprecated_metrics():
     from pytorch_lightning.metrics.functional.classification import stat_scores_multiple_classes
     with pytest.deprecated_call(match='will be removed in v1.4'):
