@@ -131,14 +131,6 @@ class DeprecatedTrainerAttributes:
     lightning_module: LightningModule
     sanity_checking: bool
 
-    @property
-    def accelerator_backend(self) -> Accelerator:
-        rank_zero_deprecation(
-            "The `Trainer.accelerator_backend` attribute is deprecated in favor of `Trainer.accelerator`"
-            " since 1.2 and will be removed in v1.4."
-        )
-        return self.accelerator
-
     def get_model(self) -> LightningModule:
         rank_zero_deprecation(
             "The use of `Trainer.get_model()` is deprecated in favor of `Trainer.lightning_module`"
