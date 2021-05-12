@@ -222,7 +222,7 @@ def test_accelerator_choice_ddp2_te(device_count_mock, setup_distributed_mock):
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            assert trainer..accelerator_connector._distrib_type == DistributedType.DDP2
+            assert trainer.accelerator_connector._distrib_type == DistributedType.DDP2
             assert isinstance(trainer.accelerator, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDP2Plugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, TorchElasticEnvironment)

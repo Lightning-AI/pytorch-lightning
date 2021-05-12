@@ -65,17 +65,6 @@ class DeprecatedDistDeviceAttributes:
         if val:
             self.accelerator_connector._device_type = DeviceType.GPU
 
-    @property
-    def use_dp(self) -> bool:
-        rank_zero_deprecation("Internal: `use_dp` is deprecated in v1.2 and will be removed in v1.4.")
-        return self.accelerator_connector._distrib_type == DistributedType.DP
-
-    @use_dp.setter
-    def use_dp(self, val: bool) -> None:
-        rank_zero_deprecation("Internal: `use_dp` is deprecated in v1.2 and will be removed in v1.4.")
-        if val:
-            self.accelerator_connector._distrib_type = DistributedType.DP
-
 
 class DeprecatedTrainerAttributes:
 
