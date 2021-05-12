@@ -706,17 +706,10 @@ class TrainLoop:
                             split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                         )
 
-                    batch_outputs = self._process_closure_result(
-                        opt_closure_result=result,
-                        batch_outputs=batch_outputs,
-                        opt_idx=opt_idx,
-                    )
-
                 # ------------------------------
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
-
                 else:
                     if self.trainer.lightning_module.automatic_optimization:
 
@@ -738,17 +731,17 @@ class TrainLoop:
                         # make sure to zero grad.
                         continue
 
-                    batch_outputs = self._process_closure_result(
-                        opt_closure_result=result,
-                        batch_outputs=batch_outputs,
-                        opt_idx=opt_idx,
-                    )
-
                     # todo: Properly aggregate grad_norm accros opt_idx and split_idx
                     grad_norm_dict = result.get("grad_norm_dict", {})
 
                     # update running loss + reset accumulated loss
-                    self.update_running_loss()
+                    self.update_running_loss(result.loss)
+
+                batch_outputs = self._process_closure_result(
+                    opt_closure_result=result,
+                    batch_outputs=batch_outputs,
+                    opt_idx=opt_idx,
+                )
 
         result = AttributeDict(
             signal=0,
@@ -784,8 +777,7 @@ class TrainLoop:
     def _process_closure_result(
         self, opt_closure_result: Optional[AttributeDict], batch_outputs: list, opt_idx: int
     ) -> list:
-        if opt_closure_result is not None:
-
+        if opt_closure_result:
             # cache metrics
             self.trainer.logger_connector.cache_training_step_metrics(opt_closure_result)
 
@@ -796,10 +788,6 @@ class TrainLoop:
             # track all the outputs across all steps
             batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
             batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
-
-            if self.trainer.lightning_module.automatic_optimization:
-                # track total loss for logging (avoid mem leaks)
-                self.accumulated_loss.append(opt_closure_result.loss)
 
         return batch_outputs
 
@@ -991,7 +979,11 @@ class TrainLoop:
         # use to track metrics internally
         self.trainer.logger_connector.on_train_split_start(split_idx, opt_idx, split_batch)
 
-    def update_running_loss(self):
+    def update_running_loss(self, current_loss: torch.Tensor) -> None:
+        if self.trainer.lightning_module.automatic_optimization:
+            # track total loss for logging (avoid mem leaks)
+            self.accumulated_loss.append(current_loss)
+
         accumulated_loss = self.accumulated_loss.mean()
 
         if accumulated_loss is not None:
