@@ -31,14 +31,14 @@ class ConfigValidator:
             model: The model to check the configuration.
 
         """
-        if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if self.trainer.state.fn in (TrainerFn.fit, TrainerFn.tune):
             self.__verify_train_loop_configuration(model)
             self.__verify_eval_loop_configuration(model, 'val')
-        elif self.trainer.state.fn == TrainerFn.VALIDATING:
+        elif self.trainer.state.fn == TrainerFn.validate:
             self.__verify_eval_loop_configuration(model, 'val')
-        elif self.trainer.state.fn == TrainerFn.TESTING:
+        elif self.trainer.state.fn == TrainerFn.test:
             self.__verify_eval_loop_configuration(model, 'test')
-        elif self.trainer.state.fn == TrainerFn.PREDICTING:
+        elif self.trainer.state.fn == TrainerFn.predict:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
 

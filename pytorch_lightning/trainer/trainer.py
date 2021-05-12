@@ -432,7 +432,7 @@ class Trainer(
         """
         Trainer._log_api_event("fit")
 
-        self.state.fn = TrainerFn.FITTING
+        self.state.fn = TrainerFn.fit
         self.state.status = TrainerStatus.RUNNING
         self.training = True
 
@@ -492,7 +492,7 @@ class Trainer(
         Trainer._log_api_event("validate")
         self.verbose_evaluate = verbose
 
-        self.state.fn = TrainerFn.VALIDATING
+        self.state.fn = TrainerFn.validate
         self.state.status = TrainerStatus.RUNNING
         self.validating = True
 
@@ -554,7 +554,7 @@ class Trainer(
         Trainer._log_api_event("test")
         self.verbose_evaluate = verbose
 
-        self.state.fn = TrainerFn.TESTING
+        self.state.fn = TrainerFn.test
         self.state.status = TrainerStatus.RUNNING
         self.testing = True
 
@@ -612,7 +612,7 @@ class Trainer(
 
         model = model or self.lightning_module
 
-        self.state.fn = TrainerFn.PREDICTING
+        self.state.fn = TrainerFn.predict
         self.state.status = TrainerStatus.RUNNING
         self.predicting = True
 
@@ -660,7 +660,7 @@ class Trainer(
         """
         Trainer._log_api_event("tune")
 
-        self.state.fn = TrainerFn.TUNING
+        self.state.fn = TrainerFn.tune
         self.state.status = TrainerStatus.RUNNING
         self.tuning = True
 
@@ -742,7 +742,7 @@ class Trainer(
         # TRAIN
         # ----------------------------
         # hook
-        if self.state.fn == TrainerFn.FITTING:
+        if self.state.fn == TrainerFn.fit:
             self.call_hook("on_fit_start")
 
         # plugin will setup fitting (e.g. ddp will launch child processes)
@@ -758,7 +758,7 @@ class Trainer(
         # POST-Training CLEAN UP
         # ----------------------------
         # hook
-        if self.state.fn == TrainerFn.FITTING:
+        if self.state.fn == TrainerFn.fit:
             self.call_hook('on_fit_end')
 
         # teardown

@@ -58,19 +58,19 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
         def on_test_batch_start(self, *_):
             assert self.trainer.testing
 
-    model = TestModel(TrainerFn.TUNING, RunningStage.TRAINING)
+    model = TestModel(TrainerFn.tune, RunningStage.TRAINING)
     trainer.tune(model)
     assert trainer.state.finished
 
-    model = TestModel(TrainerFn.FITTING, RunningStage.TRAINING)
+    model = TestModel(TrainerFn.fit, RunningStage.TRAINING)
     trainer.fit(model)
     assert trainer.state.finished
 
-    model = TestModel(TrainerFn.VALIDATING, RunningStage.VALIDATING)
+    model = TestModel(TrainerFn.validate, RunningStage.VALIDATING)
     trainer.validate(model)
     assert trainer.state.finished
 
-    model = TestModel(TrainerFn.TESTING, RunningStage.TESTING)
+    model = TestModel(TrainerFn.test, RunningStage.TESTING)
     trainer.test(model)
     assert trainer.state.finished
 

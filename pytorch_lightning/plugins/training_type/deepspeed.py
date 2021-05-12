@@ -532,7 +532,7 @@ class DeepSpeedPlugin(DDPPlugin):
         if not self.save_full_weights and self.world_size > 1:
             # Rely on deepspeed to load the checkpoint and necessary information
             from pytorch_lightning.trainer.states import TrainerFn
-            is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.fit
             save_dir = self._filepath_to_dir(ckpt_path)
 
             if self.zero_stage_3:

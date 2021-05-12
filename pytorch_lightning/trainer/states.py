@@ -35,20 +35,20 @@ class TrainerFn(LightningEnum):
     such as :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and
     :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
     """
-    FITTING = 'fit'
-    VALIDATING = 'validate'
-    TESTING = 'test'
-    PREDICTING = 'predict'
-    TUNING = 'tune'
+    fit = 'fit'
+    validate = 'validate'
+    test = 'test'
+    predict = 'predict'
+    tune = 'tune'
 
     @property
     def _setup_fn(self) -> 'TrainerFn':
         """
-        ``FITTING`` is used instead of ``TUNING`` as there are no "tune" dataloaders.
+        ``fit`` is used instead of ``tune`` as there are no "tune" dataloaders.
 
         This is used for the ``setup()`` and ``teardown()`` hooks
         """
-        return TrainerFn.FITTING if self == TrainerFn.TUNING else self
+        return TrainerFn.fit if self == TrainerFn.tune else self
 
 
 class RunningStage(LightningEnum):
@@ -58,11 +58,11 @@ class RunningStage(LightningEnum):
     This stage complements :class:`TrainerFn` by specifying the current running stage for each function.
     More than one running stage value can be set while a :class:`TrainerFn` is running:
 
-        - ``TrainerFn.FITTING`` - ``RunningStage.{SANITY_CHECKING,TRAINING,VALIDATING}``
-        - ``TrainerFn.VALIDATING`` - ``RunningStage.VALIDATING``
-        - ``TrainerFn.TESTING`` - ``RunningStage.TESTING``
-        - ``TrainerFn.PREDICTING`` - ``RunningStage.PREDICTING``
-        - ``TrainerFn.TUNING`` - ``RunningStage.{TUNING,SANITY_CHECKING,TRAINING,VALIDATING}``
+        - ``TrainerFn.fit`` - ``RunningStage.{SANITY_CHECKING,TRAINING,VALIDATING}``
+        - ``TrainerFn.validate`` - ``RunningStage.VALIDATING``
+        - ``TrainerFn.test`` - ``RunningStage.TESTING``
+        - ``TrainerFn.predict`` - ``RunningStage.PREDICTING``
+        - ``TrainerFn.tune`` - ``RunningStage.{TUNING,SANITY_CHECKING,TRAINING,VALIDATING}``
     """
     TRAINING = 'train'
     SANITY_CHECKING = 'sanity_check'
