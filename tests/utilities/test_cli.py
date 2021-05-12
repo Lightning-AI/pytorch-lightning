@@ -21,6 +21,7 @@ from argparse import Namespace
 from contextlib import redirect_stdout
 from io import StringIO
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 import yaml
@@ -28,6 +29,7 @@ import yaml
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import LightningArgumentParser, LightningCLI, SaveConfigCallback
 from tests.helpers import BoringDataModule, BoringModel
@@ -364,17 +366,19 @@ def test_lightning_cli_help():
     out = StringIO()
     with mock.patch('sys.argv', cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
+    out = out.getvalue()
 
-    assert '--print_config' in out.getvalue()
-    assert '--config' in out.getvalue()
-    assert '--seed_everything' in out.getvalue()
-    assert '--model.help' in out.getvalue()
-    assert '--data.help' in out.getvalue()
+    assert '--print_config' in out
+    assert '--config' in out
+    assert '--seed_everything' in out
+    assert '{fit,validate,test,predict,tune}' in out
+    assert '--model.help' in out
+    assert '--data.help' in out
 
     skip_params = {'self'}
     for param in inspect.signature(Trainer.__init__).parameters.keys():
         if param not in skip_params:
-            assert f'--trainer.{param}' in out.getvalue()
+            assert f'--trainer.{param}' in out
 
     cli_args = ['any.py', '--data.help=tests.helpers.BoringDataModule']
     out = StringIO()
@@ -443,3 +447,20 @@ def test_lightning_cli_submodules(tmpdir):
     assert cli.model.submodule2 == cli.config_init['model']['submodule2']
     assert isinstance(cli.config_init['model']['submodule1'], BoringModel)
     assert isinstance(cli.config_init['model']['submodule2'], BoringModel)
+
+
+@pytest.mark.parametrize("fn", list(TrainerFn))
+def test_lightning_cli_trainer_fn(fn):
+
+    class TestCLI(LightningCLI):
+
+        def instantiate_trainer(self):
+            self.trainer = MagicMock()
+
+    with mock.patch('sys.argv', ['any.py']):
+        cli = TestCLI(BoringModel, trainer_fn=fn)
+    getattr(cli.trainer, fn).assert_called_with(model=cli.model)
+
+    with mock.patch('sys.argv', ['any.py', fn]):
+        cli = TestCLI(BoringModel)
+    getattr(cli.trainer, fn).assert_called_with(model=cli.model)
