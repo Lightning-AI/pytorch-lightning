@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import wraps
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Tuple
 
 import torch
-from torchmetrics.utilities import class_reduce, reduce
-from torchmetrics.utilities.data import get_num_classes, to_categorical
+from torchmetrics.utilities import reduce
+from torchmetrics.utilities.data import to_categorical
 
-from pytorch_lightning.metrics.functional.auc import auc as __auc
-from pytorch_lightning.metrics.functional.auroc import auroc as __auroc
-from pytorch_lightning.metrics.functional.iou import iou as __iou
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def stat_scores(
@@ -54,41 +51,6 @@ def _confmat_normalize(cm):
         cm[torch.isnan(cm)] = 0
         rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
     return cm
-
-
-# todo: remove in 1.4
-def _auc_decorator() -> Callable:
-
-    def wrapper(func_to_decorate: Callable) -> Callable:
-
-        @wraps(func_to_decorate)
-        def new_func(*args, **kwargs) -> torch.Tensor:
-            x, y = func_to_decorate(*args, **kwargs)[:2]
-
-            return auc(x, y)
-
-        return new_func
-
-    return wrapper
-
-
-# todo: remove in 1.4
-def _multiclass_auc_decorator() -> Callable:
-
-    def wrapper(func_to_decorate: Callable) -> Callable:
-
-        @wraps(func_to_decorate)
-        def new_func(*args, **kwargs) -> torch.Tensor:
-            results = []
-            for class_result in func_to_decorate(*args, **kwargs):
-                x, y = class_result[:2]
-                results.append(auc(x, y))
-
-            return torch.stack(results)
-
-        return new_func
-
-    return wrapper
 
 
 def dice_score(

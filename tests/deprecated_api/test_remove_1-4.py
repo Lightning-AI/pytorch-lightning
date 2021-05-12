@@ -109,9 +109,6 @@ def test_v1_4_0_deprecated_trainer_device_distrib():
         assert trainer.use_horovod
 
 
-def test_v1_4_0_deprecated_metrics():
-
-
 class CustomDDPPlugin(DDPSpawnPlugin):
 
     def configure_ddp(self):
