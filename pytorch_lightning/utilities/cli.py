@@ -98,7 +98,7 @@ class LightningCLI:
         save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
-        trainer_fn: str = TrainerFn.FITTING.value,
+        trainer_fn: str = TrainerFn.fit.value,
         seed_everything_default: int = None,
         description: str = 'pytorch-lightning trainer command line tool',
         env_prefix: str = 'PL',
