@@ -115,10 +115,6 @@ def test_v1_4_0_deprecated_metrics():
     with pytest.deprecated_call(match='will be removed in v1.4'):
         iou(torch.randint(0, 2, (10, 3, 3)), torch.randint(0, 2, (10, 3, 3)))
 
-    from pytorch_lightning.metrics.functional.classification import recall
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        recall(torch.randint(0, 2, (10, 3, 3)), torch.randint(0, 2, (10, 3, 3)))
-
     from pytorch_lightning.metrics.functional.classification import auc
     with pytest.deprecated_call(match='will be removed in v1.4'):
         auc(torch.rand(10, ).sort().values, torch.rand(10, ))

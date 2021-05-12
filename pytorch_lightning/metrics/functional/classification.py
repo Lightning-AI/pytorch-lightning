@@ -57,26 +57,6 @@ def _confmat_normalize(cm):
 
 
 # todo: remove in 1.4
-def recall(
-    pred: torch.Tensor,
-    target: torch.Tensor,
-    num_classes: Optional[int] = None,
-    class_reduction: str = 'micro',
-) -> torch.Tensor:
-    """
-    .. deprecated::
-        Use :func:`torchmetrics.functional.recall`. Will be removed in v1.4.0.
-    """
-    rank_zero_deprecation(
-        "This `recall` was deprecated in v1.2.0 in favor of"
-        " `from pytorch_lightning.metrics.functional import recall`."
-        " It will be removed in v1.4.0"
-    )
-
-    return precision_recall(pred=pred, target=target, num_classes=num_classes, class_reduction=class_reduction)[1]
-
-
-# todo: remove in 1.4
 def auc(
     x: torch.Tensor,
     y: torch.Tensor,
