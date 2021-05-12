@@ -1043,14 +1043,8 @@ def test_gpu_choice(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["limit_val_batches"],
-    [
-        pytest.param(0.0),  # this should run no sanity checks
-        pytest.param(1),
-        pytest.param(1.0),
-        pytest.param(0.5),
-        pytest.param(5),
-    ],
+    "limit_val_batches",
+    [0.0, 1, 1.0, 0.5, 5],
 )
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     """
@@ -1080,15 +1074,7 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
         )
 
 
-@pytest.mark.parametrize(
-    ["limit_val_batches"],
-    [
-        pytest.param(0.0),  # this should run no sanity checks
-        pytest.param(1),
-        pytest.param(1.0),
-        pytest.param(0.3),
-    ],
-)
+@pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.3])
 def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     """
     Test that `num_sanity_val_steps=-1` runs through all validation data once, and as many batches as
@@ -1232,17 +1218,10 @@ def test_trainer_subclassing():
 
 
 @pytest.mark.parametrize(
-    "trainer_params",
-    [
-        OmegaConf.create({
-            "max_epochs": 1,
-            "gpus": 1
-        }),
-        OmegaConf.create({
-            "max_epochs": 1,
-            "gpus": [0]
-        }),
-    ],
+    "trainer_params", [
+        OmegaConf.create(dict(max_epochs=1, gpus=1)),
+        OmegaConf.create(dict(max_epochs=1, gpus=[0])),
+    ]
 )
 @RunIf(min_gpus=1)
 def test_trainer_omegaconf(trainer_params):
@@ -1862,8 +1841,9 @@ class TrainerStagesModel(BoringModel):
         assert not self.training
 
 
-@pytest.mark.parametrize(['accelerator', 'num_processes'],
-                         [(None, 1), pytest.param('ddp', 2, marks=RunIf(skip_windows=True))])
+@pytest.mark.parametrize(
+    'accelerator,num_processes', [(None, 1), pytest.param('ddp', 2, marks=RunIf(skip_windows=True))]
+)
 def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
