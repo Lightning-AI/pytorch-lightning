@@ -62,6 +62,7 @@ class TrainLoop:
 
         self.total_batch_idx = 0
         self.batch_idx = 0
+        self.split_idx = None
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
 
@@ -683,6 +684,7 @@ class TrainLoop:
         splits = self._tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
+            self.split_idx = split_idx
 
             # create an iterable for optimizers and loop over them
             for opt_idx, optimizer in optimizers:
@@ -980,9 +982,6 @@ class TrainLoop:
         return optimizers
 
     def run_train_split_start(self, split_idx, split_batch, opt_idx, optimizer):
-        # set split_idx to trainer for tracking
-        self.trainer.split_idx = split_idx
-
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
