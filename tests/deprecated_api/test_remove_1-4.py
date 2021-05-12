@@ -25,8 +25,15 @@ from pytorch_lightning.overrides.data_parallel import (
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment
+from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+
+
+def test_v1_4_0_deprecated_imports():
+    _soft_unimport_module('pytorch_lightning.utilities.argparse_utils')
+    with pytest.deprecated_call(match='will be removed in v1.4'):
+        from pytorch_lightning.utilities.argparse_utils import _gpus_arg_default  # noqa: F811 F401
 
 
 def test_v1_4_0_deprecated_trainer_device_distrib():
