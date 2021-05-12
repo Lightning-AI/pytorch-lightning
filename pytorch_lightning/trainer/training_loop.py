@@ -702,9 +702,7 @@ class TrainLoop:
                     # automatic_optimization=True: perform dpp sync only when performing optimizer_step
                     # automatic_optimization=False: don't block synchronization here
                     with self.block_ddp_sync_behaviour():
-                        self.training_step_and_backward(
-                            split_batch, batch_idx, opt_idx, optimizer, self._hiddens
-                        )
+                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self._hiddens)
 
                     batch_outputs = self._process_closure_result(
                         batch_outputs=batch_outputs,
@@ -729,9 +727,7 @@ class TrainLoop:
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
                     else:
-                        self._curr_step_result = self.training_step(
-                            split_batch, batch_idx, opt_idx, self._hiddens
-                        )
+                        self._curr_step_result = self.training_step(split_batch, batch_idx, opt_idx, self._hiddens)
 
                     if self._curr_step_result is None:
                         # user decided to skip optimization
