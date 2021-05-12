@@ -652,7 +652,7 @@ class TrainLoop:
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
-        grad_norm_dic = {}
+        grad_norm_dict = {}
 
         # bookkeeping
         self.trainer.hiddens = None
@@ -666,19 +666,19 @@ class TrainLoop:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(
                 signal=0,
-                grad_norm_dic=grad_norm_dic,
+                grad_norm_dict=grad_norm_dict,
                 training_step_output_for_epoch_end=batch_outputs,
             )
 
         # hook
         response = self.trainer.call_hook("on_batch_start")
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
+            return AttributeDict(signal=-1, grad_norm_dict=grad_norm_dict)
 
         # hook
         response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
+            return AttributeDict(signal=-1, grad_norm_dict=grad_norm_dict)
 
         # lightning module hook
         splits = self._tbptt_split_batch(batch)
@@ -747,14 +747,14 @@ class TrainLoop:
                     )
 
                     # todo: Properly aggregate grad_norm accros opt_idx and split_idx
-                    grad_norm_dic = result.get("grad_norm_dict", {})
+                    grad_norm_dict = result.get("grad_norm_dict", {})
 
                     # update running loss + reset accumulated loss
                     self.update_running_loss()
 
         result = AttributeDict(
             signal=0,
-            grad_norm_dic=grad_norm_dic,
+            grad_norm_dict=grad_norm_dict,
             training_step_output_for_epoch_end=batch_outputs,
         )
         return result
