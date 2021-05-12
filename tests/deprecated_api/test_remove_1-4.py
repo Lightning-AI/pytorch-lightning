@@ -44,13 +44,6 @@ def test_v1_4_0_deprecated_trainer_methods():
     assert trainer.get_model() == trainer.lightning_module
 
 
-def test_v1_4_0_deprecated_imports():
-
-    _soft_unimport_module('pytorch_lightning.utilities.xla_device_utils')
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils  # noqa: F811 F401
-
-
 def test_v1_4_0_deprecated_trainer_device_distrib():
     """Test that Trainer attributes works fine."""
     trainer = Trainer()
