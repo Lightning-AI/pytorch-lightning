@@ -27,9 +27,9 @@ class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
 
     def clip_gradients(
         self,
-        optimizer: "Optimizer",
+        optimizer: Optimizer,
         clip_val: Union[int, float],
-        gradient_clip_algorithm: GradClipAlgorithmType,
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.VALUE,
         model: Optional[Module] = None,
     ) -> None:
         clip_val = float(clip_val)

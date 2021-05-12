@@ -137,14 +137,13 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
         default_root_dir=tmpdir,
         gpus=1,
         plugins="fsdp",
-        fast_dev_run=True,
         precision=16,
-        callbacks=[ModelCheckpoint(save_last=True)],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
     )
     _run_multiple_stages(trainer, model)
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True)
+# @RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
@@ -155,9 +154,8 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
         default_root_dir=tmpdir,
         gpus=2,
         plugins="fsdp",
-        fast_dev_run=True,
         precision=16,
-        callbacks=[ModelCheckpoint(save_last=True)],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
     )
     _run_multiple_stages(trainer, model)
 

@@ -391,7 +391,7 @@ class AcceleratorConnector(object):
                         "You have asked for Apex AMP but you have not installed it yet."
                         " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
                     )
-                if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                if self._is_sharded_training_type or self._is_fully_sharded_training_type:
                     raise MisconfigurationException(
                         "Sharded Plugin is not supported with Apex AMP,"
                         " please using native AMP for 16-bit precision."
