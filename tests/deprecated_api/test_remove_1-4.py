@@ -103,11 +103,6 @@ def test_v1_4_0_deprecated_trainer_device_distrib():
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         assert trainer.use_ddp2
 
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.use_horovod = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.use_horovod
-
 
 def test_v1_4_0_deprecated_metrics():
     from pytorch_lightning.metrics.functional.classification import stat_scores_multiple_classes

@@ -98,17 +98,6 @@ class DeprecatedDistDeviceAttributes:
         if val:
             self.accelerator_connector._distrib_type = DistributedType.DDP2
 
-    @property
-    def use_horovod(self) -> bool:
-        rank_zero_deprecation("Internal: `use_horovod` is deprecated in v1.2 and will be removed in v1.4.")
-        return self.accelerator_connector._distrib_type == DistributedType.HOROVOD
-
-    @use_horovod.setter
-    def use_horovod(self, val: bool) -> None:
-        rank_zero_deprecation("Internal: `use_horovod` is deprecated in v1.2 and will be removed in v1.4.")
-        if val:
-            self.accelerator_connector._distrib_type = DistributedType.HOROVOD
-
 
 class DeprecatedTrainerAttributes:
 
