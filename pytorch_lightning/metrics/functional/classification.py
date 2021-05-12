@@ -57,36 +57,6 @@ def _confmat_normalize(cm):
 
 
 # todo: remove in 1.4
-def precision_recall(
-    pred: torch.Tensor,
-    target: torch.Tensor,
-    num_classes: Optional[int] = None,
-    class_reduction: str = 'micro',
-    return_support: bool = False,
-    return_state: bool = False
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    .. deprecated::
-        Use :func:`torchmetrics.functional.precision_recall`. Will be removed in v1.4.0.
-    """
-    rank_zero_deprecation(
-        "This `precision_recall` was deprecated in v1.2.0 in favor of"
-        " `from pytorch_lightning.metrcs.functional import precision_recall`."
-        " It will be removed in v1.4.0"
-    )
-
-    tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target, num_classes=num_classes)
-
-    precision = class_reduce(tps, tps + fps, sups, class_reduction=class_reduction)
-    recall = class_reduce(tps, tps + fns, sups, class_reduction=class_reduction)
-    if return_state:
-        return {'tps': tps, 'fps': fps, 'fns': fns, 'sups': sups}
-    if return_support:
-        return precision, recall, sups
-    return precision, recall
-
-
-# todo: remove in 1.4
 def precision(
     pred: torch.Tensor,
     target: torch.Tensor,
