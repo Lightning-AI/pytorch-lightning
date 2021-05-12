@@ -302,7 +302,8 @@ class LightningCLI:
 
     def prepare_subcommand_kwargs(self, subcommand: str) -> Dict[str, Any]:
         """Prepares the keyword arguments to pass to the subcommand to run"""
-        fn_kwargs = {'model': self.model, **self.config_init[subcommand]}
+        fn_kwargs = self.config_init.get(subcommand, {})
+        fn_kwargs['model'] = self.model
         if self.datamodule is not None:
             fn_kwargs['datamodule'] = self.datamodule
         return fn_kwargs

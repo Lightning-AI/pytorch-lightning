@@ -21,7 +21,6 @@ from argparse import Namespace
 from contextlib import redirect_stdout
 from io import StringIO
 from unittest import mock
-from unittest.mock import MagicMock
 
 import pytest
 import yaml
@@ -214,7 +213,7 @@ def test_init_from_argparse_args(cli_args, extra_args):
 
 
 @pytest.mark.parametrize(['cli_args', 'expected_model', 'expected_trainer'], [(
-    ['--model.model_param=7', '--trainer.limit_train_batches=100'],
+    ['--model.model_param=7', '--trainer.limit_train_batches=100', 'fit'],
     dict(model_param=7),
     dict(limit_train_batches=100),
 )])
@@ -277,7 +276,7 @@ def test_lightning_cli_args_callbacks(tmpdir):
             assert callback[0].monitor == 'NAME'
             self.trainer.ran_asserts = True
 
-    with mock.patch('sys.argv', ['any.py', f'--trainer.callbacks={json.dumps(callbacks)}']):
+    with mock.patch('sys.argv', ['any.py', f'--trainer.callbacks={json.dumps(callbacks)}', 'fit']):
         cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
 
     assert cli.trainer.ran_asserts
@@ -293,7 +292,7 @@ def test_lightning_cli_args_cluster_environments(tmpdir):
             assert isinstance(self.trainer.accelerator_connector._cluster_environment, SLURMEnvironment)
             self.trainer.ran_asserts = True
 
-    with mock.patch('sys.argv', ['any.py', f'--trainer.plugins={json.dumps(plugins)}']):
+    with mock.patch('sys.argv', ['any.py', f'--trainer.plugins={json.dumps(plugins)}', 'fit']):
         cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
 
     assert cli.trainer.ran_asserts
@@ -307,6 +306,7 @@ def test_lightning_cli_args(tmpdir):
         '--trainer.max_epochs=1',
         '--trainer.weights_summary=null',
         '--seed_everything=1234',
+        'fit',
     ]
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
@@ -327,7 +327,8 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
     config = dict(
         model=dict(class_path='tests.helpers.BoringModel'),
         data=dict(class_path='tests.helpers.BoringDataModule', init_args=dict(data_dir=str(tmpdir))),
-        trainer=dict(default_root_dir=str(tmpdir), max_epochs=1, weights_summary=None)
+        trainer=dict(default_root_dir=str(tmpdir), max_epochs=1, weights_summary=None),
+        subcommand='fit',
     )
     config_path = tmpdir / 'config.yaml'
     with open(config_path, 'w') as f:
@@ -388,6 +389,7 @@ def test_lightning_cli_help():
     assert '--data.init_args.data_dir' in out.getvalue()
 
 
+# TODO: print_config is broken?
 def test_lightning_cli_print_config():
 
     cli_args = [
@@ -401,11 +403,11 @@ def test_lightning_cli_print_config():
     out = StringIO()
     with mock.patch('sys.argv', cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
+    out = yaml.safe_load(out.getvalue())
 
-    outval = yaml.safe_load(out.getvalue())
-    assert outval['seed_everything'] == 1234
-    assert outval['model']['class_path'] == 'tests.helpers.BoringModel'
-    assert outval['data']['class_path'] == 'tests.helpers.BoringDataModule'
+    assert out['seed_everything'] == 1234
+    assert out['model']['class_path'] == 'tests.helpers.BoringModel'
+    assert out['data']['class_path'] == 'tests.helpers.BoringDataModule'
 
 
 def test_lightning_cli_submodules(tmpdir):
@@ -437,6 +439,7 @@ def test_lightning_cli_submodules(tmpdir):
         f'--trainer.default_root_dir={tmpdir}',
         '--trainer.max_epochs=1',
         f'--config={str(config_path)}',
+        'fit',
     ]
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
@@ -449,18 +452,65 @@ def test_lightning_cli_submodules(tmpdir):
     assert isinstance(cli.config_init['model']['submodule2'], BoringModel)
 
 
-@pytest.mark.parametrize("fn", list(TrainerFn))
+@pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
 def test_lightning_cli_trainer_fn(fn):
 
     class TestCLI(LightningCLI):
 
-        def instantiate_trainer(self):
-            self.trainer = MagicMock()
+        def __init__(self, *args, **kwargs):
+            self.called = []
+            super().__init__(*args, **kwargs)
 
-    with mock.patch('sys.argv', ['any.py']):
-        cli = TestCLI(BoringModel, trainer_fn=fn)
-    getattr(cli.trainer, fn).assert_called_with(model=cli.model)
+        def before_fit(self):
+            self.called.append('before_fit')
+
+        def fit(self, **_):
+            self.called.append('fit')
+
+        def after_fit(self):
+            self.called.append('after_fit')
+
+        def before_validate(self):
+            self.called.append('before_validate')
+
+        def validate(self, **_):
+            self.called.append('validate')
+
+        def after_validate(self):
+            self.called.append('after_validate')
+
+        def before_test(self):
+            self.called.append('before_test')
+
+        def test(self, **_):
+            self.called.append('test')
+
+        def after_test(self):
+            self.called.append('after_test')
+
+        def before_predict(self):
+            self.called.append('before_predict')
+
+        def predict(self, **_):
+            self.called.append('predict')
+
+        def after_predict(self):
+            self.called.append('after_predict')
+
+        def before_tune(self):
+            self.called.append('before_tune')
+
+        def tune(self, **_):
+            self.called.append('tune')
+
+        def after_tune(self):
+            self.called.append('after_tune')
+
+    # TODO
+    #with mock.patch('sys.argv', ['any.py']):
+    #    cli = TestCLI(BoringModel, trainer_fn=fn)
+    #getattr(cli.trainer, fn).assert_called()
 
     with mock.patch('sys.argv', ['any.py', fn]):
         cli = TestCLI(BoringModel)
-    getattr(cli.trainer, fn).assert_called_with(model=cli.model)
+    assert cli.called == [f'before_{fn}', fn, f'after_{fn}']
