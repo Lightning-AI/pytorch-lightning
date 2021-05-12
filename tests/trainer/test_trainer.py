@@ -339,8 +339,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        trainer.current_epoch = i
-        trainer.global_step = i
+        trainer.train_loop.current_epoch = i
+        trainer.train_loop.global_step = i
         trainer.logger_connector.callback_metrics = {"checkpoint_on": torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
@@ -1931,7 +1931,7 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     trainer.fit(model)
     compare_optimizers()
 
-    trainer.max_epochs = 2  # simulate multiple fit calls
+    trainer.train_loop.max_epochs = 2  # simulate multiple fit calls
     trainer.fit(model)
     compare_optimizers()
 

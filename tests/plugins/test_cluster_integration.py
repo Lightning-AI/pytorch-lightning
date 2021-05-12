@@ -60,13 +60,14 @@ def environment_combinations():
 
 
 @pytest.mark.parametrize(
-    "plugin_cls", [
+    "plugin_cls",
+    [
         DDPPlugin,
         DDPShardedPlugin,
         DDP2Plugin,
         pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
         pytest.param(RPCSequentialPlugin, marks=RunIf(fairscale_pipe=True)),
-    ]
+    ],
 )
 def test_ranks_available_manual_plugin_selection(plugin_cls):
     """ Test that the rank information is readily available after Trainer initialization. """
@@ -79,10 +80,12 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
         with mock.patch.dict(os.environ, variables):
             plugin = plugin_cls(
                 parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)],
-                num_nodes=num_nodes,
                 cluster_environment=cluster,
             )
-            trainer = Trainer(plugins=[plugin])
+            trainer = Trainer(
+                plugins=[plugin],
+                num_nodes=num_nodes,
+            )
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
             assert trainer.local_rank == expected["local_rank"]
@@ -91,13 +94,14 @@ def test_ranks_available_manual_plugin_selection(plugin_cls):
 
 
 @pytest.mark.parametrize(
-    "trainer_kwargs", [
+    "trainer_kwargs",
+    [
         dict(accelerator="ddp", gpus=[1, 2]),
         dict(accelerator="ddp_sharded", gpus=[1, 2]),
         dict(accelerator="ddp2", gpus=[1, 2]),
         dict(accelerator="ddp_cpu", num_processes=2),
         dict(accelerator="ddp_spawn", gpus=[1, 2]),
-    ]
+    ],
 )
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=4)

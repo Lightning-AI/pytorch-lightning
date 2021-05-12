@@ -131,6 +131,7 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     trainer = Trainer(
         callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss_step', save_top_k=k, mode="max")],
         default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=epochs,
         weights_summary=None,
         val_check_interval=val_check_interval,
