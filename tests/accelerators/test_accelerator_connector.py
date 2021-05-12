@@ -36,7 +36,6 @@ from pytorch_lightning.plugins import (
     SingleDevicePlugin,
 )
 from pytorch_lightning.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
-from pytorch_lightning.utilities import DistributedType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
