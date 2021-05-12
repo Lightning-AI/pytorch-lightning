@@ -168,7 +168,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.barrier("end-process")
 
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if self.global_rank == 0:
+        if self.local_rank == 0:
             time.sleep(2)
 
     def model_to_device(self) -> None:
