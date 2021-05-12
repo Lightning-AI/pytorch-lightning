@@ -91,26 +91,6 @@ def _multiclass_auc_decorator() -> Callable:
     return wrapper
 
 
-# todo: remove in 1.4
-def multiclass_auroc(
-    pred: torch.Tensor,
-    target: torch.Tensor,
-    sample_weight: Optional[Sequence] = None,
-    num_classes: Optional[int] = None,
-) -> torch.Tensor:
-    """
-    .. deprecated::
-        Use :func:`torchmetrics.functional.auroc`. Will be removed in v1.4.0.
-    """
-    rank_zero_deprecation(
-        "This `multiclass_auroc` was deprecated in v1.2.0 in favor of"
-        " `pytorch_lightning.metrics.functional.auroc import auroc`."
-        " It will be removed in v1.4.0"
-    )
-
-    return __auroc(preds=pred, target=target, sample_weights=sample_weight, num_classes=num_classes)
-
-
 def dice_score(
     pred: torch.Tensor,
     target: torch.Tensor,

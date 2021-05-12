@@ -18,7 +18,6 @@ from pytorch_lightning.metrics.functional.average_precision import average_preci
 from pytorch_lightning.metrics.functional.classification import (  # noqa: F401
     dice_score,
     get_num_classes,
-    multiclass_auroc,
     to_categorical,
 )
 from pytorch_lightning.metrics.functional.confusion_matrix import confusion_matrix  # noqa: F401
