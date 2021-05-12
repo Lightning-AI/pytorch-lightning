@@ -48,53 +48,6 @@ def test_v1_4_0_deprecated_imports():
         from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils  # noqa: F811 F401
 
 
-def test_v1_4_0_deprecated_trainer_device_distrib():
-    """Test that Trainer attributes works fine."""
-    trainer = Trainer()
-    trainer.accelerator_connector._distrib_type = None
-    trainer.accelerator_connector._device_type = None
-
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.on_cpu = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.on_cpu
-
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.on_gpu = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.on_gpu
-
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.on_tpu = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.on_tpu
-    trainer.accelerator_connector._device_type = None
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.use_tpu = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.use_tpu
-
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.use_dp = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.use_dp
-
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.use_ddp = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.use_ddp
-
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.use_ddp2 = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.use_ddp2
-
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.use_horovod = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.use_horovod
-
-
 class CustomDDPPlugin(DDPSpawnPlugin):
 
     def configure_ddp(self):
