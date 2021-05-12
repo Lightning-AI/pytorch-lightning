@@ -25,7 +25,6 @@ from pytorch_lightning.overrides.data_parallel import (
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment
-from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
