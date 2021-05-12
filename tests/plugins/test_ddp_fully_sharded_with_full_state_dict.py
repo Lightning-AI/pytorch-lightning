@@ -14,7 +14,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import auto_wrap, default_auto_wrap_policy, FullyShardedDataParallel, wrap
+    from fairscale.nn import FullyShardedDataParallel, wrap
 
 
 @RunIf(fairscale_fully_sharded=True)
@@ -25,7 +25,7 @@ def test_sharded_ddp_choice(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        plugins="fsdp_full_state_dict",
+        plugins="fsdp",
     )
     assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
 
@@ -44,7 +44,7 @@ def test_invalid_apex_sharded(tmpdir):
         trainer = Trainer(
             default_root_dir=tmpdir,
             fast_dev_run=True,
-            plugins="fsdp_full_state_dict",
+            plugins="fsdp",
             precision=16,
             amp_backend="apex",
         )
@@ -65,102 +65,140 @@ def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
         fast_dev_run=True,
         gpus=1,
         precision=16,
-        plugins="fsdp_full_state_dict",
+        plugins="fsdp",
     )
 
     assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
     assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 
+class TestFSDPModel(BoringModel):
+
+    def setup(self, stage: str) -> None:
+        if stage != "fit":
+            # when running stages like test, validate, and predict, we will skip setting up,
+            # will directly use the module itself unless we load from checkpoint
+            return
+        # resetting call_configure_sharded_model_hook attribute so that we could call
+        # configure sharded model
+        self.call_configure_sharded_model_hook = False
+        # for loading full state dict, we first need to create a new unwrapped model
+        # to load state dict and then wrapping
+        self.layer = torch.nn.Sequential(
+            torch.nn.Linear(32, 32),
+            torch.nn.ReLU(),
+            torch.nn.Linear(32, 2),
+        )
+
+    def configure_sharded_model(self) -> None:
+        for i, layer in enumerate(self.layer):
+            if i % 2 == 0:
+                self.layer[i] = wrap(layer)
+        self.layer = wrap(self.layer)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        # when loading full state dict, we first need to create a new unwrapped model
+        self.setup("fit")
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+    def on_train_start(self) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def on_test_start(self) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def on_validation_start(self) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def on_prediction_start(self) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def _assert_layer_fsdp_instance(self) -> None:
+        assert isinstance(self.layer, FullyShardedDataParallel)
+        assert isinstance(self.layer.module[0], FullyShardedDataParallel)
+        assert isinstance(self.layer.module[2], FullyShardedDataParallel)
+        # root should not be resharding
+        assert self.layer.reshard_after_forward is False
+        # Assert that the nested layers are set reshard_after_forward to True
+        assert self.layer.module[0].reshard_after_forward is True
+        assert self.layer.module[2].reshard_after_forward is True
+
+
 @RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True)
 def test_fully_sharded_plugin_checkpoint(tmpdir):
     """
-    Test to ensure that checkpoint is saved correctly when using a single GPU.
+    Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run.
     """
 
-    class TestModel(BoringModel):
-
-        def configure_sharded_model(self) -> None:
-            self.layer = wrap(
-                torch.nn.Sequential(
-                    wrap(torch.nn.Linear(32, 32)),
-                    torch.nn.ReLU(),
-                    wrap(torch.nn.Linear(32, 2)),
-                )
-            )
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
-
-        def on_train_start(self) -> None:
-            assert isinstance(self.layer, FullyShardedDataParallel)
-            assert isinstance(self.layer.module[0], FullyShardedDataParallel)
-            assert isinstance(self.layer.module[2], FullyShardedDataParallel)
-            # root should not be resharding
-            assert self.layer.reshard_after_forward is False
-            # Assert that the nested layers are set reshard_after_forward to True
-            assert self.layer.module[0].reshard_after_forward is True
-            assert self.layer.module[2].reshard_after_forward is True
-
-    model = TestModel()
+    model = TestFSDPModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         gpus=1,
-        plugins="fsdp_full_state_dict",
+        plugins="fsdp",
         fast_dev_run=True,
         precision=16,
+        callbacks=[ModelCheckpoint(save_last=True)],
     )
-
-    trainer.fit(model)
-
-    _assert_save_equality(tmpdir, trainer, cls=TestModel)
+    _run_multiple_stages(trainer, model)
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=False)
-def test_fully_sharded_plugin_multi_gpu(tmpdir):
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True)
+def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
     """
 
-    class TestModel(BoringModel):
-
-        def configure_sharded_model(self) -> None:
-            self.layer = wrap(self.layer)
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
-
-    ck = ModelCheckpoint(save_last=True)
-    model = TestModel()
+    model = TestFSDPModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        gpus=1,
-        plugins="fsdp_full_state_dict",
-        max_epochs=5,
+        gpus=2,
+        plugins="fsdp",
+        fast_dev_run=True,
         precision=16,
-        callbacks=ck,
+        callbacks=[ModelCheckpoint(save_last=True)],
     )
-
-    trainer.fit(model)
-    trainer.test(model)
-    trainer.test(ckpt_path=ck.last_model_path)
-    trainer.validate()
-    trainer.validate(ckpt_path=ck.last_model_path)
-    trainer.predict(dataloaders=model.val_dataloader())
-
-    _assert_save_equality(tmpdir, trainer, cls=TestModel)
+    _run_multiple_stages(trainer, model)
 
 
-def _assert_save_equality(tmpdir, trainer, cls=BoringModel):
-    checkpoint_path = os.path.join(tmpdir, "model.pt")
-    trainer.save_checkpoint(checkpoint_path)
+def _assert_save_equality(trainer, cls=TestFSDPModel):
+    last_ckpt_path = trainer.checkpoint_callback.last_model_path
 
     # Use FullySharded to get the state dict for the sake of comparison
-    model_state_dict = trainer.lightning_module.state_dict()
+    model_state_dict = trainer.accelerator.lightning_module_state_dict()
 
-    if trainer.global_rank == 0:
-        saved_model = cls.load_from_checkpoint(checkpoint_path)
+    saved_model = cls.load_from_checkpoint(last_ckpt_path)
 
-        # Assert model parameters are identical after loading
-        for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
-            assert torch.equal(ddp_param.float().cpu(), shard_param)
+    # Assert model parameters are identical after loading
+    for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
+        assert torch.equal(ddp_param.float().cpu(), shard_param)
+
+
+def _run_multiple_stages(trainer, model):
+    trainer.fit(model)
+
+    model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+    trainer_accelerator_call_configure_sharded_model_hook = (trainer.accelerator.call_configure_sharded_model_hook)
+
+    assert model_call_configure_sharded_model_hook
+    assert not trainer_accelerator_call_configure_sharded_model_hook
+
+    _assert_save_equality(trainer, cls=TestFSDPModel)
+
+    last_ckpt_path = trainer.checkpoint_callback.last_model_path
+
+    # Test entry point
+    trainer.test(model)  # model is wrapped, will not call configure_shared_model
+
+    # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
+    trainer.test(ckpt_path=last_ckpt_path)
+
+    # Validate entry point
+    trainer.validate(model)  # model is wrapped, will not call configure_shared_model
+
+    # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
+    trainer.validate(ckpt_path=last_ckpt_path)
+
+    # Predict entry point
+    trainer.predict(dataloaders=model.val_dataloader())
