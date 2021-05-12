@@ -109,21 +109,6 @@ class DeprecatedDistDeviceAttributes:
         if val:
             self.accelerator_connector._distrib_type = DistributedType.HOROVOD
 
-    @property
-    def use_single_gpu(self) -> bool:
-        rank_zero_deprecation("Internal: `use_single_gpu` is deprecated in v1.2 and will be removed in v1.4.")
-        # todo, limiting to exclude DDP2 is not clear but it comes from connectors...
-        return (
-            self.accelerator_connector._device_type and self.accelerator_connector._device_type == DeviceType.GPU
-            and self.num_gpus == 1 and self.accelerator_connector._distrib_type not in (DistributedType.DDP2, )
-        )
-
-    @use_single_gpu.setter
-    def use_single_gpu(self, val: bool) -> None:
-        rank_zero_deprecation("Internal: `use_single_gpu` is deprecated in v1.2 and will be removed in v1.4.")
-        if val:
-            self.accelerator_connector._device_type = DeviceType.GPU
-
 
 class DeprecatedTrainerAttributes:
 
