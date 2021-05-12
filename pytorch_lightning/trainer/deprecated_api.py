@@ -44,16 +44,6 @@ class DeprecatedDistDeviceAttributes:
         if val:
             self.accelerator_connector._device_type = DeviceType.TPU
 
-    @property
-    def use_tpu(self) -> bool:
-        rank_zero_deprecation("Internal: `use_tpu` is deprecated in v1.2 and will be removed in v1.4.")
-        return self.on_tpu
-
-    @use_tpu.setter
-    def use_tpu(self, val: bool) -> None:
-        rank_zero_deprecation("Internal: `use_tpu` is deprecated in v1.2 and will be removed in v1.4.")
-        self.on_tpu = val
-
 
 class DeprecatedTrainerAttributes:
 

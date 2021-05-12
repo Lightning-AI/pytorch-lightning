@@ -77,11 +77,6 @@ def test_v1_4_0_deprecated_trainer_device_distrib():
         trainer.on_tpu = True
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         assert trainer.on_tpu
-    trainer.accelerator_connector._device_type = None
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.use_tpu = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.use_tpu
 
 
 def test_v1_4_0_deprecated_metrics():
