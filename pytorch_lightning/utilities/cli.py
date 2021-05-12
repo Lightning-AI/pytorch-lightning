@@ -155,27 +155,33 @@ class LightningCLI:
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
         self.trainer_class = trainer_class
-        self.trainer_defaults = {} if trainer_defaults is None else trainer_defaults
+        self.trainer_defaults = trainer_defaults or {}
         #self.trainer_fn = trainer_fn
         self.seed_everything_default = seed_everything_default
         self.subclass_mode_model = subclass_mode_model
         self.subclass_mode_data = subclass_mode_data
-        self.parser_kwargs = {} if parser_kwargs is None else parser_kwargs
-        self.parser_kwargs.update({'description': description, 'env_prefix': env_prefix, 'default_env': env_parse})
 
-        self.parser = self.init_parser()
+        parser_kwargs = parser_kwargs or {}
+        parser_kwargs.update({'description': description, 'env_prefix': env_prefix, 'default_env': env_parse})
+        self.parser = self.init_parser(**parser_kwargs)
+
+        self.add_core_arguments(self.parser)
         self.add_arguments(self.parser)
         self.add_subcommands(self.parser)
         self.parse_arguments(self.parser)
+
         if self.config['seed_everything'] is not None:
             seed_everything(self.config['seed_everything'], workers=True)
+
         self.before_instantiate_classes()
         self.instantiate_classes()
+
         self.run_subcommand()
 
-    def init_parser(self) -> LightningArgumentParser:
+    def init_parser(self, use_base: bool = False, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser"""
-        return LightningArgumentParser(**self.parser_kwargs)
+        cls = ArgumentParser if use_base else LightningArgumentParser
+        return cls(**kwargs)
 
     def add_arguments(self, parser: LightningArgumentParser) -> None:
         """
@@ -211,11 +217,11 @@ class LightningCLI:
             parser_subcommands.add_subcommand(subcommand, subcommand_parser)
 
     def prepare_subcommand_parser(self, subcommand: str) -> LightningArgumentParser:
-        parser = self.init_parser()
-        self.add_core_arguments(parser)
+        # TODO: pass env_prefix and default_env?
+        parser = self.init_parser(use_base=True)
         self.add_subcommand_arguments(parser)
         skip = self.subcommands[subcommand]
-        parser.add_method_arguments(self.trainer_class, subcommand, nested_key=subcommand, skip=skip)
+        parser.add_method_arguments(self.trainer_class, subcommand, skip=skip)
         return parser
 
     def add_subcommand_arguments(self, parser: LightningArgumentParser) -> None:
@@ -245,11 +251,9 @@ class LightningCLI:
     def instantiate_classes(self) -> None:
         """Instantiates the classes using settings from self.config"""
         self.config_init = self.parser.instantiate_subclasses(self.config)
-        subcommand_config = self.config_init[self.config['subcommand']]
-        print(self.config_init)
-        self.instantiate_datamodule(subcommand_config.get('data', {}))
-        self.instantiate_model(subcommand_config.get('model', {}))
-        self.instantiate_trainer(subcommand_config['trainer'])
+        self.instantiate_datamodule(self.config_init.get('data', {}))
+        self.instantiate_model(self.config_init.get('model', {}))
+        self.instantiate_trainer(self.config_init['trainer'])
 
     def instantiate_datamodule(self, config: Dict[str, Any]) -> None:
         """Instantiates the datamodule using self.config_init['data'] if given"""
@@ -297,8 +301,7 @@ class LightningCLI:
 
     def prepare_subcommand_kwargs(self, subcommand: str) -> Dict[str, Any]:
         """Prepares the keyword arguments to pass to the subcommand to run"""
-        # TODO: this is silly
-        fn_kwargs = {'model': self.model, **self.config_init[subcommand][subcommand]}
+        fn_kwargs = {'model': self.model, **self.config_init[subcommand]}
         if self.datamodule is not None:
             fn_kwargs['datamodule'] = self.datamodule
         return fn_kwargs
