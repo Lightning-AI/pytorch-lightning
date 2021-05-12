@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional, Type, Union
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.seed import seed_everything
@@ -97,6 +98,7 @@ class LightningCLI:
         save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
+        trainer_fn: str = TrainerFn.FITTING.value,
         seed_everything_default: int = None,
         description: str = 'pytorch-lightning trainer command line tool',
         env_prefix: str = 'PL',
@@ -133,6 +135,7 @@ class LightningCLI:
             save_config_callback: A callback class to save the training config.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
+            trainer_fn: The trainer function to run.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
             description: Description of the tool shown when running ``--help``.
@@ -155,6 +158,7 @@ class LightningCLI:
         self.save_config_callback = save_config_callback
         self.trainer_class = trainer_class
         self.trainer_defaults = {} if trainer_defaults is None else trainer_defaults
+        self.trainer_fn = trainer_fn
         self.seed_everything_default = seed_everything_default
         self.subclass_mode_model = subclass_mode_model
         self.subclass_mode_data = subclass_mode_data
@@ -169,10 +173,10 @@ class LightningCLI:
             seed_everything(self.config['seed_everything'], workers=True)
         self.before_instantiate_classes()
         self.instantiate_classes()
-        self.prepare_fit_kwargs()
-        self.before_fit()
-        self.fit()
-        self.after_fit()
+        self.prepare_run_kwargs()
+        self.before_run()
+        self.run()
+        self.after_run()
 
     def init_parser(self) -> None:
         """Method that instantiates the argument parser"""
@@ -180,6 +184,9 @@ class LightningCLI:
 
     def add_core_arguments_to_parser(self) -> None:
         """Adds arguments from the core classes to the parser"""
+        self.parser.add_argument(
+            'trainer_fn', type=TrainerFn, default=self.trainer_fn, help='Trainer entry point to use'
+        )
         self.parser.add_argument(
             '--seed_everything',
             type=Optional[int],
@@ -243,18 +250,19 @@ class LightningCLI:
             self.config_init['trainer']['callbacks'].append(self.save_config_callback(self.parser, self.config))
         self.trainer = self.trainer_class(**self.config_init['trainer'])
 
-    def prepare_fit_kwargs(self) -> None:
-        """Prepares fit_kwargs including datamodule using self.config_init['data'] if given"""
-        self.fit_kwargs = {'model': self.model}
+    def prepare_run_kwargs(self) -> None:
+        """Prepares ``self.fn_kwargs``"""
+        self.fn_kwargs = {'model': self.model}
         if self.datamodule is not None:
-            self.fit_kwargs['datamodule'] = self.datamodule
+            self.fn_kwargs['datamodule'] = self.datamodule
 
-    def before_fit(self) -> None:
-        """Implement to run some code before fit is started"""
+    def before_run(self) -> None:
+        """Implement to run some code before the trainer is run"""
 
-    def fit(self) -> None:
-        """Runs fit of the instantiated trainer class and prepared fit keyword arguments"""
-        self.trainer.fit(**self.fit_kwargs)
+    def run(self) -> None:
+        """Runs the appropriate function of the instantiated trainer class"""
+        fn = getattr(self.trainer, self.config["trainer_fn"].value)
+        fn(**self.fn_kwargs)
 
-    def after_fit(self) -> None:
-        """Implement to run some code after fit has finished"""
+    def after_run(self) -> None:
+        """Implement to run some code after the trainer has finished running"""
