@@ -38,6 +38,7 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, Un
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -1118,207 +1119,67 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     [
         (
             dict(accelerator=None, gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="dp", gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
-        ),
-        (
-            dict(accelerator="dp", gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp", num_processes=2, gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp", num_nodes=2, gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator=None, gpus=1),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=1,
-                on_gpu=True,
-                use_single_gpu=True,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="dp", gpus=1),
-            dict(
-                use_dp=True,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=1,
-                on_gpu=True,
-                use_single_gpu=True,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=1),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=1,
-                on_gpu=True,
-                use_single_gpu=True,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=1),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=True,
-                num_gpus=1,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator=None, gpus=2),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=2,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(accelerator="dp", gpus=2),
-            dict(
-                use_dp=True,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=2,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=2),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=2,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=2),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=True,
-                num_gpus=2,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
     ],
 )
@@ -1327,7 +1188,7 @@ def test_trainer_config(trainer_kwargs, expected, monkeypatch):
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
     trainer = Trainer(**trainer_kwargs)
-    assert len(expected) == 7
+    assert len(expected) == 4
     for k, v in expected.items():
         assert getattr(trainer, k) == v, f"Failed {k}: {v}"
 
