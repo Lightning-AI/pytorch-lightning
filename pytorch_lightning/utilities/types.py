@@ -2,6 +2,7 @@ from typing import Any, Dict, Iterator, List, Union
 
 import torch
 from torchmetrics import Metric
+
 """
 Convention:
  - Do not include any `_TYPE` suffix

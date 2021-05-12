@@ -52,6 +52,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Removed deprecated utils modules `model_utils`, `warning_utils`, `xla_device_utils` and partially `argparse_utils` ([7503](https://github.com/PyTorchLightning/pytorch-lightning/pull/7503))
+
 
 ### Fixed
 
