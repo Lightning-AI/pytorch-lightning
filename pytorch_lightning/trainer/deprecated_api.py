@@ -87,17 +87,6 @@ class DeprecatedDistDeviceAttributes:
         if val:
             self.accelerator_connector._distrib_type = DistributedType.DDP
 
-    @property
-    def use_ddp2(self) -> bool:
-        rank_zero_deprecation("Internal: `use_ddp2` is deprecated in v1.2 and will be removed in v1.4.")
-        return self.accelerator_connector._distrib_type == DistributedType.DDP2
-
-    @use_ddp2.setter
-    def use_ddp2(self, val: bool) -> None:
-        rank_zero_deprecation("Internal: `use_ddp2` is deprecated in v1.2 and will be removed in v1.4.")
-        if val:
-            self.accelerator_connector._distrib_type = DistributedType.DDP2
-
 
 class DeprecatedTrainerAttributes:
 
