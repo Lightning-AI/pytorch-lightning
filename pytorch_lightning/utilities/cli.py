@@ -250,10 +250,10 @@ class LightningCLI:
         self.trainer = self.trainer_class(**self.config_init['trainer'])
 
     def prepare_run_kwargs(self) -> None:
-        """Prepares ``self.fn_kwargs``"""
-        self.fn_kwargs = {'model': self.model}
+        """Prepares ``self.run_kwargs`` with the model and datamodule"""
+        self.run_kwargs = {'model': self.model}
         if self.datamodule is not None:
-            self.fn_kwargs['datamodule'] = self.datamodule
+            self.run_kwargs['datamodule'] = self.datamodule
 
     def before_run(self) -> None:
         """Implement to run some code before the trainer is run"""
@@ -261,7 +261,7 @@ class LightningCLI:
     def run(self) -> None:
         """Runs the appropriate function of the instantiated trainer class"""
         fn = getattr(self.trainer, self.config["trainer_fn"].value)
-        fn(**self.fn_kwargs)
+        fn(**self.run_kwargs)
 
     def after_run(self) -> None:
         """Implement to run some code after the trainer has finished running"""
