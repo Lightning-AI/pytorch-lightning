@@ -21,7 +21,7 @@ class LoopProgress:
 
     The general structure is to count totals across epochs as well as intra-epoch counts.
     These counters are local to a trainer rank.
-    By default, they are not by globally synced across all ranks.
+    By default, they are not globally synced across all ranks.
 
     Args:
         epochs_finished_total: Number of passes through the dataset.
