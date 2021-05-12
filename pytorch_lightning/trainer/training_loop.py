@@ -60,9 +60,13 @@ class TrainLoop:
         self.current_epoch = 0
         self.trainer.should_stop = False
 
+        # the total batch index across all epochs
         self.total_batch_idx = 0
+        # the current batch index in the loop that runs over the dataloader(s)
         self.batch_idx = 0
+        # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx = None
+
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
 
