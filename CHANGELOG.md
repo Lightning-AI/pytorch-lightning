@@ -52,7 +52,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Prune deprecated classif. metrics `iou`, `multiclass_auroc`, `auroc`, `auc`, `recall`, `precision`, `precision_recall`, `stat_scores_multiple_classes` from `pytorch_lightning.metrics.functional.classification` ([7499](https://github.com/PyTorchLightning/pytorch-lightning/pull/7499))
+- Prune deprecated classif. metrics from `pytorch_lightning.metrics.functional.classification` ([7499](https://github.com/PyTorchLightning/pytorch-lightning/pull/7499))
 
 
 ### Fixed
