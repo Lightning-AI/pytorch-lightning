@@ -101,7 +101,7 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
-        if self.trainer.state.fn != TrainerFn.fit:
+        if self.trainer.state.fn != TrainerFn.FITTING:
             # summarize profile results
             self.trainer.profiler.describe()
 

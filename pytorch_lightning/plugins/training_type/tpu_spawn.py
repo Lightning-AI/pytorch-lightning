@@ -190,7 +190,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             # save the last weights
             last_path = None
             if (
-                self.lightning_module.trainer.state.fn == TrainerFn.fit and best_model_path is not None
+                self.lightning_module.trainer.state.fn == TrainerFn.FITTING and best_model_path is not None
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)

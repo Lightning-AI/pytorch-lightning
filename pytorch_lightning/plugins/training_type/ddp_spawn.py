@@ -280,7 +280,7 @@ class DDPSpawnPlugin(ParallelPlugin):
             # save the last weights
             last_path = None
             if (
-                self.lightning_module.trainer.state.fn == TrainerFn.fit and best_model_path is not None
+                self.lightning_module.trainer.state.fn == TrainerFn.FITTING and best_model_path is not None
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
@@ -298,7 +298,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # todo, pass also best score
 
         # load last weights
-        if last_path is not None and self.lightning_module.trainer.state.fn == TrainerFn.fit:
+        if last_path is not None and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             ckpt = pl_load(last_path, map_location=lambda storage, loc: storage)
             self.lightning_module.load_state_dict(ckpt)
 
