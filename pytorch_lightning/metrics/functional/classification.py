@@ -57,23 +57,6 @@ def _confmat_normalize(cm):
 
 
 # todo: remove in 1.4
-def auc(
-    x: torch.Tensor,
-    y: torch.Tensor,
-) -> torch.Tensor:
-    """
-    .. deprecated::
-        Use :func:`torchmetrics.functional.auc`. Will be removed in v1.4.0.
-    """
-    rank_zero_deprecation(
-        "This `auc` was deprecated in v1.2.0 in favor of"
-        " `pytorch_lightning.metrics.functional.auc import auc`."
-        " It will be removed in v1.4.0"
-    )
-    return __auc(x, y)
-
-
-# todo: remove in 1.4
 def _auc_decorator() -> Callable:
 
     def wrapper(func_to_decorate: Callable) -> Callable:
