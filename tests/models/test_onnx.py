@@ -140,7 +140,12 @@ def test_single_input_single_output_model_inference_is_valid(tmpdir):
 
 
 def test_single_input_multi_output_model_inference_is_valid(tmpdir):
-    class BoringModelSIMO(BoringModelMIMO):
+    class BoringModelSIMO(BoringModel):
+        
+        def __init__(self):
+            super().__init__()
+            self.layer1 = torch.nn.Linear(32, 1)
+            self.layer2 = torch.nn.Linear(32, 1)
   
         def forward(self, x):
             y1 = self.layer1(x)
@@ -157,7 +162,12 @@ def test_single_input_multi_output_model_inference_is_valid(tmpdir):
 
 
 def test_multi_input_single_output_model_inference_is_valid(tmpdir):
-    class BoringModelMISO(BoringModelMIMO):
+    class BoringModelMISO(BoringModel):
+        
+        def __init__(self):
+            super().__init__()
+            self.layer1 = torch.nn.Linear(32, 1)
+            self.layer2 = torch.nn.Linear(32, 1)
   
         def forward(self, x1, x2):
             y1 = self.layer1(x1)
