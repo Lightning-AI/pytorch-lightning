@@ -731,9 +731,7 @@ class TrainLoop:
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
                     else:
-                        result = self.training_step(
-                            split_batch, batch_idx, opt_idx, self.trainer.hiddens
-                        )
+                        result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
 
                     if result is None:
                         # user decided to skip optimization
@@ -783,7 +781,9 @@ class TrainLoop:
         else:
             yield None
 
-    def _process_closure_result(self, opt_closure_result: Optional[AttributeDict], batch_outputs: list, opt_idx: int) -> list:
+    def _process_closure_result(
+        self, opt_closure_result: Optional[AttributeDict], batch_outputs: list, opt_idx: int
+    ) -> list:
         if opt_closure_result is not None:
 
             # cache metrics
