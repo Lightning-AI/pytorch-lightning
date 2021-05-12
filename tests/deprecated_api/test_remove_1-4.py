@@ -73,11 +73,6 @@ def test_v1_4_0_deprecated_trainer_device_distrib():
     with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
         assert trainer.on_cpu
 
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        trainer.on_tpu = True
-    with pytest.deprecated_call(match='deprecated in v1.2 and will be removed in v1.4'):
-        assert trainer.on_tpu
-
 
 def test_v1_4_0_deprecated_metrics():
     from pytorch_lightning.metrics.functional.classification import stat_scores_multiple_classes
