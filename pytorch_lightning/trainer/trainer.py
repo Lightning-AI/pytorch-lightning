@@ -1139,9 +1139,14 @@ class Trainer(
         if not self._device_type == DeviceType.TPU:
             self.training_type_plugin.barrier()
 
-        self.training_type_plugin.restore_model_state_from_ckpt_path(
-            ckpt_path, map_location=lambda storage, loc: storage
-        )
+        # Serialize checkpoint loading to avoid OOMs
+        for current_worker in range(self.num_gpus):
+            if current_worker == self.local_rank:
+                self.training_type_plugin.restore_model_state_from_ckpt_path(
+                    ckpt_path, map_location=lambda storage, loc: storage
+                )
+            self.training_type_plugin.barrier()
+
         return ckpt_path
 
     def _call_setup_hook(self, model: LightningModule) -> None:
