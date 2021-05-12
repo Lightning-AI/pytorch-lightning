@@ -766,7 +766,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
     train_dl = model.dataloader(train=False)
     train_dl.num_workers = 0
 
-    train_multi_dl = {'a': train_dl, 'b': train_dl}
+    train_multi_dl = {'a_b': [train_dl, train_dl], 'c_d_e': [train_dl, train_dl, train_dl]}
     val_multi_dl = [val_dl, val_dl]
     test_multi_dl = [train_dl, train_dl]
 
@@ -803,8 +803,12 @@ def _user_worker_init_fn(_):
     pass
 
 
+@RunIf(max_torch="1.8.9")
 def test_missing_worker_init_fn():
-    """ Test that naive worker seed initialization leads to undesired random state in subprocesses. """
+    """
+    Test that naive worker seed initialization leads to undesired random state in subprocesses.
+    PyTorch 1.9+ does not have this issue.
+    """
     dataset = NumpyRandomDataset()
 
     seed_everything(0)
