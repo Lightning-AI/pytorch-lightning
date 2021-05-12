@@ -495,10 +495,11 @@ class AcceleratorConnector(object):
             acc_cls = TPUAccelerator
         else:
             acc_cls = CPUAccelerator
-
+        # as precision_plugin is dependent on training_type_plugin, make sure
+        # that we first select training_type_plugin, then precision_plugin
         return acc_cls(
-            precision_plugin=self.precision_plugin,
             training_type_plugin=self.training_type_plugin,
+            precision_plugin=self.precision_plugin,
         )
 
     def select_cluster_environment(self) -> ClusterEnvironment:

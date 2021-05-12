@@ -39,7 +39,7 @@ def test_invalid_apex_sharded(tmpdir):
     model = BoringModel()
     with pytest.raises(
         MisconfigurationException,
-        match="Sharded Plugins are not supported with Apex AMP",
+        match="Sharded Plugin is not supported with Apex AMP",
     ):
         trainer = Trainer(
             default_root_dir=tmpdir,
