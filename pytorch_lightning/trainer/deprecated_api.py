@@ -131,13 +131,6 @@ class DeprecatedTrainerAttributes:
     lightning_module: LightningModule
     sanity_checking: bool
 
-    def get_model(self) -> LightningModule:
-        rank_zero_deprecation(
-            "The use of `Trainer.get_model()` is deprecated in favor of `Trainer.lightning_module`"
-            " and will be removed in v1.4."
-        )
-        return self.lightning_module
-
     @property
     def running_sanity_check(self) -> bool:
         rank_zero_deprecation(

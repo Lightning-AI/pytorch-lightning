@@ -30,13 +30,6 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-def test_v1_4_0_deprecated_trainer_methods():
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        trainer = Trainer()
-        _ = trainer.get_model()
-    assert trainer.get_model() == trainer.lightning_module
-
-
 def test_v1_4_0_deprecated_imports():
     _soft_unimport_module('pytorch_lightning.utilities.argparse_utils')
     with pytest.deprecated_call(match='will be removed in v1.4'):
