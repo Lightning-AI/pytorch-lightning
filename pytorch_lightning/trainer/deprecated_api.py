@@ -127,8 +127,6 @@ class DeprecatedDistDeviceAttributes:
 
 class DeprecatedTrainerAttributes:
 
-    accelerator: Accelerator
-    lightning_module: LightningModule
     sanity_checking: bool
 
     @property
