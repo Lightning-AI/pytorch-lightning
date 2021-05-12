@@ -108,12 +108,11 @@ class LightningCLI:
         subclass_mode_data: bool = False
     ) -> None:
         """
-        Receives as input pytorch-lightning classes, which are instantiated
-        using a parsed configuration file and/or command line args and then runs
-        trainer.fit. Parsing of configuration from environment variables can
-        be enabled by setting ``env_parse=True``. A full configuration yaml would
-        be parsed from ``PL_CONFIG`` if set. Individual settings are so parsed from
-        variables named for example ``PL_TRAINER__MAX_EPOCHS``.
+        Receives as input pytorch-lightning classes, which are instantiated using
+        a parsed configuration file and/or command line args and then runs ``trainer.fit()`` (by default).
+        Parsing of configuration from environment variables can be enabled by setting ``env_parse=True``.
+        A full configuration yaml would be parsed from ``PL_CONFIG`` if set.
+        Individual settings are so parsed from variables named for example ``PL_TRAINER__MAX_EPOCHS``.
 
         Example, first implement the ``trainer.py`` tool as::
 
@@ -185,7 +184,7 @@ class LightningCLI:
     def add_core_arguments_to_parser(self) -> None:
         """Adds arguments from the core classes to the parser"""
         self.parser.add_argument(
-            'trainer_fn', type=TrainerFn, default=self.trainer_fn, help='Trainer entry point to use'
+            'trainer_fn', type=TrainerFn, default=TrainerFn(self.trainer_fn), help='The trainer function to run'
         )
         self.parser.add_argument(
             '--seed_everything',
