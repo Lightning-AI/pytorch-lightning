@@ -704,10 +704,12 @@ class TrainLoop:
             if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in optimizers:
                     if self._should_skip_optimizer(opt_idx, batch_idx):
+                        # frequency of this optimizer doesnt align with current batch index, skip it
                         continue
                     result = self.run_batch_split(batch_idx, split_idx, split_batch, opt_idx, optimizer)
                     if result:
                         batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
+                        grad_norm_dict = result.get("grad_norm_dict", {})
             else:
                 result = self.run_batch_split(batch_idx, split_idx, split_batch)
                 if result:
@@ -716,12 +718,13 @@ class TrainLoop:
                     # TODO: make grad accumulation + manual optimization incompatible to simplify this logic here!
                     batch_outputs[0].append(result.training_step_output_for_epoch_end)
 
-        result = AttributeDict(
+        output = AttributeDict(
             signal=0,
+            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
             grad_norm_dict=grad_norm_dict,
             training_step_output_for_epoch_end=batch_outputs,
         )
-        return result
+        return output
 
     def run_batch_split(self, batch_idx, split_idx, split_batch, opt_idx=None, optimizer=None):
         # toggle model params + set info to logger_connector
@@ -766,9 +769,6 @@ class TrainLoop:
                 # user decided to skip optimization
                 # make sure to zero grad.
                 return result
-
-            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
-            grad_norm_dict = result.get("grad_norm_dict", {})
 
             # update running loss + reset accumulated loss
             self.update_running_loss(result.loss)
