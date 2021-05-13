@@ -30,12 +30,8 @@ from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import reset_seed
 
 
-@mock.patch(
-    "pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock
-)
-@mock.patch(
-    "pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock
-)
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
+@mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
 
     dm = BoringDataModule()
@@ -98,6 +94,7 @@ def test_hooks_no_recursion_error():
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
     # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
     class DummyDM(LightningDataModule):
+
         def setup(self, *args, **kwargs):
             pass
 
@@ -301,13 +298,16 @@ def test_train_val_loop_only(tmpdir):
 
 
 def test_dm_checkpoint_save(tmpdir):
+
     class CustomBoringModel(BoringModel):
+
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
             self.log("early_stop_on", out["x"])
             return out
 
     class CustomBoringDataModule(BoringDataModule):
+
         def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
             checkpoint[self.__class__.__name__] = self.__class__.__name__
 
@@ -374,6 +374,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     expected_device = torch.device("cuda", 0)
 
     class CustomBatch:
+
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]
@@ -426,9 +427,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     assert dm.on_after_batch_transfer_hook_rank == 2
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected_device
     assert torch.allclose(batch_gpu.samples.cpu(), torch.ones(5, 32))
-    assert torch.allclose(
-        batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2
-    )
+    assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
 def test_dm_reload_dataloaders_every_epoch(tmpdir):
@@ -436,6 +435,7 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
     reload_dataloaders_every_epoch is set to True/False"""
 
     class CustomBoringDataModule(BoringDataModule):
+
         def __init__(self):
             super().__init__()
             self._epochs_called_for = []
@@ -465,6 +465,7 @@ def test_dm_reload_dataloaders_every_epoch(tmpdir):
 
 
 class DummyDS(torch.utils.data.Dataset):
+
     def __getitem__(self, index):
         return 1
 
@@ -473,6 +474,7 @@ class DummyDS(torch.utils.data.Dataset):
 
 
 class DummyIDS(torch.utils.data.IterableDataset):
+
     def __iter__(self):
         yield 1
 
@@ -485,92 +487,76 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
-        dl_mock.assert_called_once_with(
-            train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True
-        )
+        dl_mock.assert_called_once_with(train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
     train_ds_sequence = [ds(), ds()]
-    dm = LightningDataModule.from_datasets(
-        train_ds_sequence, batch_size=4, num_workers=0
-    )
+    dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0)
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
-        dl_mock.assert_has_calls(
-            [
-                call(
-                    train_ds_sequence[0],
-                    batch_size=4,
-                    shuffle=not iterable,
-                    num_workers=0,
-                    pin_memory=True,
-                ),
-                call(
-                    train_ds_sequence[1],
-                    batch_size=4,
-                    shuffle=not iterable,
-                    num_workers=0,
-                    pin_memory=True,
-                ),
-            ]
-        )
+        dl_mock.assert_has_calls([
+            call(
+                train_ds_sequence[0],
+                batch_size=4,
+                shuffle=not iterable,
+                num_workers=0,
+                pin_memory=True,
+            ),
+            call(
+                train_ds_sequence[1],
+                batch_size=4,
+                shuffle=not iterable,
+                num_workers=0,
+                pin_memory=True,
+            ),
+        ])
     assert dm.val_dataloader() is None
     assert dm.test_dataloader() is None
 
     valid_ds = ds()
     test_ds = ds()
-    dm = LightningDataModule.from_datasets(
-        val_dataset=valid_ds, test_dataset=test_ds, batch_size=2, num_workers=0
-    )
+    dm = LightningDataModule.from_datasets(val_dataset=valid_ds, test_dataset=test_ds, batch_size=2, num_workers=0)
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.val_dataloader()
-        dl_mock.assert_called_with(
-            valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True
-        )
+        dl_mock.assert_called_with(valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
         dm.test_dataloader()
-        dl_mock.assert_called_with(
-            test_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True
-        )
+        dl_mock.assert_called_with(test_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
     assert dm.train_dataloader() is None
 
     valid_dss = [ds(), ds()]
     test_dss = [ds(), ds()]
-    dm = LightningDataModule.from_datasets(
-        train_ds, valid_dss, test_dss, batch_size=4, num_workers=0
-    )
+    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.val_dataloader()
         dm.test_dataloader()
-        dl_mock.assert_has_calls(
-            [
-                call(
-                    valid_dss[0],
-                    batch_size=4,
-                    shuffle=False,
-                    num_workers=0,
-                    pin_memory=True,
-                ),
-                call(
-                    valid_dss[1],
-                    batch_size=4,
-                    shuffle=False,
-                    num_workers=0,
-                    pin_memory=True,
-                ),
-                call(
-                    test_dss[0],
-                    batch_size=4,
-                    shuffle=False,
-                    num_workers=0,
-                    pin_memory=True,
-                ),
-                call(
-                    test_dss[1],
-                    batch_size=4,
-                    shuffle=False,
-                    num_workers=0,
-                    pin_memory=True,
-                ),
-            ]
-        )
+        dl_mock.assert_has_calls([
+            call(
+                valid_dss[0],
+                batch_size=4,
+                shuffle=False,
+                num_workers=0,
+                pin_memory=True,
+            ),
+            call(
+                valid_dss[1],
+                batch_size=4,
+                shuffle=False,
+                num_workers=0,
+                pin_memory=True,
+            ),
+            call(
+                test_dss[0],
+                batch_size=4,
+                shuffle=False,
+                num_workers=0,
+                pin_memory=True,
+            ),
+            call(
+                test_dss[1],
+                batch_size=4,
+                shuffle=False,
+                num_workers=0,
+                pin_memory=True,
+            ),
+        ])

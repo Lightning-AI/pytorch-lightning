@@ -108,13 +108,8 @@ class TrainerDataLoadingMixin(ABC):
             )
 
     def auto_add_worker_init_fn(self, dataloader: DataLoader) -> None:
-        if (
-            int(os.environ.get("PL_SEED_WORKERS", 0))
-            and dataloader.worker_init_fn is None
-        ):
-            dataloader.worker_init_fn = partial(
-                pl_worker_init_function, rank=self.global_rank
-            )
+        if (int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None):
+            dataloader.worker_init_fn = partial(pl_worker_init_function, rank=self.global_rank)
 
     def auto_add_sampler(
         self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
@@ -125,17 +120,14 @@ class TrainerDataLoadingMixin(ABC):
         is_iterable_ds = has_iterable_dataset(dataloader)
 
         if isinstance(dataloader, CombinedLoader):
-            dataloader.loaders = apply_to_collection(
-                dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle
-            )
+            dataloader.loaders = apply_to_collection(dataloader.loaders, DataLoader, self.auto_add_sampler, shuffle)
             return dataloader
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
 
         need_dist_sampler = (
-            self.accelerator_connector.is_distributed
-            and not isinstance(dataloader.sampler, DistributedSampler)
+            self.accelerator_connector.is_distributed and not isinstance(dataloader.sampler, DistributedSampler)
         )
         if self.accelerator_connector.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
@@ -153,15 +145,11 @@ class TrainerDataLoadingMixin(ABC):
         return dataloader
 
     @staticmethod
-    def _resolve_batch_sampler(
-        dl_args, dataloader, sampler, mode: Optional[RunningStage] = None
-    ) -> Dict[str, Any]:
+    def _resolve_batch_sampler(dl_args, dataloader, sampler, mode: Optional[RunningStage] = None) -> Dict[str, Any]:
         batch_sampler = getattr(dataloader, "batch_sampler")
         is_predicting = mode == RunningStage.PREDICTING
         # checking the batch sampler type is different than PyTorch default.
-        if (
-            batch_sampler is not None and type(batch_sampler) is not BatchSampler
-        ) or is_predicting:
+        if (batch_sampler is not None and type(batch_sampler) is not BatchSampler) or is_predicting:
             batch_sampler = type(batch_sampler)(
                 sampler,
                 batch_size=batch_sampler.batch_size,
@@ -181,9 +169,7 @@ class TrainerDataLoadingMixin(ABC):
 
         return dl_args
 
-    def replace_sampler(
-        self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
-    ) -> DataLoader:
+    def replace_sampler(self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None) -> DataLoader:
         skip_keys = ("sampler", "batch_sampler", "dataset_kind")
         skip_signature_keys = ("args", "kwargs", "self")
 
@@ -196,11 +182,7 @@ class TrainerDataLoadingMixin(ABC):
             contains_dataset = "dataset" in params
             params.update(inspect.signature(DataLoader.__init__).parameters)
 
-        dl_args = {
-            name: attrs[name]
-            for name in params
-            if name in attrs and name not in skip_keys
-        }
+        dl_args = {name: attrs[name] for name in params if name in attrs and name not in skip_keys}
 
         dl_args = self._resolve_batch_sampler(dl_args, dataloader, sampler, mode=mode)
 
@@ -240,11 +222,7 @@ class TrainerDataLoadingMixin(ABC):
         kwargs["shuffle"] = shuffle and not self.overfit_batches
         if _TORCH_GREATER_EQUAL_1_6:
             kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        cls = (
-            UnrepeatedDistributedSampler
-            if mode == RunningStage.PREDICTING
-            else DistributedSampler
-        )
+        cls = (UnrepeatedDistributedSampler if mode == RunningStage.PREDICTING else DistributedSampler)
         sampler = cls(dataloader.dataset, **kwargs)
         return sampler
 
@@ -277,9 +255,7 @@ class TrainerDataLoadingMixin(ABC):
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
 
         if self.overfit_batches > 0:
-            if hasattr(self.train_dataloader, "sampler") and isinstance(
-                self.train_dataloader.sampler, RandomSampler
-            ):
+            if hasattr(self.train_dataloader, "sampler") and isinstance(self.train_dataloader.sampler, RandomSampler):
                 rank_zero_warn(
                     "You requested to overfit but enabled training dataloader shuffling."
                     " We are turning it off for you."
@@ -290,9 +266,7 @@ class TrainerDataLoadingMixin(ABC):
                 )
 
         # debugging
-        self.dev_debugger.track_load_dataloader_call(
-            "train_dataloader", dataloaders=[self.train_dataloader]
-        )
+        self.dev_debugger.track_load_dataloader_call("train_dataloader", dataloaders=[self.train_dataloader])
 
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
@@ -300,34 +274,20 @@ class TrainerDataLoadingMixin(ABC):
         )
 
         # check the workers recursively
-        apply_to_collection(
-            self.train_dataloader, DataLoader, self._worker_check, "train dataloader"
-        )
+        apply_to_collection(self.train_dataloader, DataLoader, self._worker_check, "train dataloader")
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(
-            self.train_dataloader, DataLoader, self.auto_add_worker_init_fn
-        )
+        apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
-        self.train_dataloader = CombinedLoader(
-            self.train_dataloader, self._multiple_trainloader_mode
-        )
+        self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)
 
-        self.num_training_batches = (
-            len(self.train_dataloader)
-            if has_len(self.train_dataloader)
-            else float("inf")
-        )
+        self.num_training_batches = (len(self.train_dataloader) if has_len(self.train_dataloader) else float("inf"))
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
-            self.num_training_batches = min(
-                self.num_training_batches, int(self.limit_train_batches)
-            )
+            self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
         elif self.num_training_batches != float("inf"):
-            self.num_training_batches = int(
-                self.num_training_batches * self.limit_train_batches
-            )
+            self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
                 "When using an IterableDataset for `limit_train_batches`,"
@@ -357,9 +317,7 @@ class TrainerDataLoadingMixin(ABC):
                         " checking validation every k training batches."
                     )
             else:
-                self.val_check_batch = int(
-                    self.num_training_batches * self.val_check_interval
-                )
+                self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
     def _reset_eval_dataloader(
@@ -390,20 +348,14 @@ class TrainerDataLoadingMixin(ABC):
             train_dataloader = self.request_dataloader(model, "train")
             dataloaders = [deepcopy(train_dataloader) for _ in range(num_loaders)]
 
-        self.dev_debugger.track_load_dataloader_call(
-            loader_name, dataloaders=dataloaders
-        )
+        self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
 
         for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]
 
             # shuffling in val and test set is bad practice
             modes = ("val", "test", "predict")
-            if (
-                mode in modes
-                and hasattr(loader, "sampler")
-                and isinstance(loader.sampler, RandomSampler)
-            ):
+            if (mode in modes and hasattr(loader, "sampler") and isinstance(loader.sampler, RandomSampler)):
 
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0 and mode != "predict":
@@ -411,9 +363,7 @@ class TrainerDataLoadingMixin(ABC):
                         "You requested to overfit but enabled val/test dataloader shuffling."
                         " We are turning it off for you."
                     )
-                    dataloaders[loader_i] = self.replace_sampler(
-                        loader, SequentialSampler(loader.dataset)
-                    )
+                    dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset))
 
                 else:
                     rank_zero_warn(
@@ -426,15 +376,11 @@ class TrainerDataLoadingMixin(ABC):
 
         # add samplers
         dataloaders = [
-            self.auto_add_sampler(dl, shuffle=False, mode=self.state.stage)
-            for dl in dataloaders
-            if dl is not None
+            self.auto_add_sampler(dl, shuffle=False, mode=self.state.stage) for dl in dataloaders if dl is not None
         ]
 
         # add worker_init_fn for correct seeding in worker processes
-        apply_to_collection(
-            dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn
-        )
+        apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
 
         loader_num_batches = []
 
@@ -460,11 +406,7 @@ class TrainerDataLoadingMixin(ABC):
                         f" `num_{mode}_batches` to use."
                     )
 
-                if (
-                    num_batches == 0
-                    and limit_eval_batches > 0.0
-                    and isinstance(limit_eval_batches, float)
-                ):
+                if (num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float)):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
                         f"you requested to check {limit_eval_batches} of the {mode} dataloader but"
@@ -485,9 +427,7 @@ class TrainerDataLoadingMixin(ABC):
         has_loader = is_overridden("val_dataloader", model)
         has_step = is_overridden("validation_step", model)
         if has_loader and has_step:
-            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(
-                model, "val"
-            )
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, "val")
 
     def reset_test_dataloader(self, model) -> None:
         """Resets the test dataloader and determines the number of batches.
@@ -498,9 +438,7 @@ class TrainerDataLoadingMixin(ABC):
         has_loader = is_overridden("test_dataloader", model)
         has_step = is_overridden("test_step", model)
         if has_loader and has_step:
-            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(
-                model, "test"
-            )
+            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(model, "test")
 
     def reset_predict_dataloader(self, model) -> None:
         """Resets the predict dataloader and determines the number of batches.

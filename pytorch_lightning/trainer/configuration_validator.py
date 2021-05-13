@@ -19,6 +19,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class ConfigValidator:
+
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
 
@@ -70,31 +71,21 @@ class ConfigValidator:
         trainer = self.trainer
 
         trainer.overriden_optimizer_step = is_overridden("optimizer_step", model)
-        trainer.overriden_optimizer_zero_grad = is_overridden(
-            "optimizer_zero_grad", model
-        )
+        trainer.overriden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
         automatic_optimization = model.automatic_optimization
-        going_to_accumulate_grad_batches = (
-            trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
-        )
+        going_to_accumulate_grad_batches = (trainer.accumulation_scheduler.going_to_accumulate_grad_batches())
 
         has_overriden_optimization_functions = (
             trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
         )
-        if (
-            has_overriden_optimization_functions
-            and going_to_accumulate_grad_batches
-            and automatic_optimization
-        ):
+        if (has_overriden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization):
             raise MisconfigurationException(
                 "When overriding `LightningModule` optimizer_step or optimizer_zero_grad,"
                 " `accumulate_grad_batches` in `Trainer` should be 1."
                 " It ensures optimizer_step or optimizer_zero_grad are called on every batch."
             )
 
-    def __verify_eval_loop_configuration(
-        self, model: "pl.LightningModule", stage: str
-    ) -> None:
+    def __verify_eval_loop_configuration(self, model: "pl.LightningModule", stage: str) -> None:
         loader_name = f"{stage}_dataloader"
         step_name = "validation_step" if stage == "val" else "test_step"
 
@@ -102,20 +93,14 @@ class ConfigValidator:
         has_step = is_overridden(step_name, model)
 
         if has_loader and not has_step:
-            rank_zero_warn(
-                f"you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop"
-            )
+            rank_zero_warn(f"you passed in a {loader_name} but have no {step_name}. Skipping {stage} loop")
         if has_step and not has_loader:
-            rank_zero_warn(
-                f"you defined a {step_name} but have no {loader_name}. Skipping {stage} loop"
-            )
+            rank_zero_warn(f"you defined a {step_name} but have no {loader_name}. Skipping {stage} loop")
 
     def __verify_predict_loop_configuration(self, model: "pl.LightningModule") -> None:
         has_predict_dataloader = is_overridden("predict_dataloader", model)
         if not has_predict_dataloader:
-            raise MisconfigurationException(
-                "Dataloader not found for `Trainer.predict`"
-            )
+            raise MisconfigurationException("Dataloader not found for `Trainer.predict`")
 
     def __verify_dp_batch_transfer_support(self, model: "pl.LightningModule") -> None:
         """Raise Misconfiguration exception since these hooks are not supported in DP mode"""
@@ -127,6 +112,4 @@ class ConfigValidator:
         )
         for hook in batch_transfer_hooks:
             if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
-                raise MisconfigurationException(
-                    f"Overriding `{hook}` is not supported in DP mode."
-                )
+                raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")

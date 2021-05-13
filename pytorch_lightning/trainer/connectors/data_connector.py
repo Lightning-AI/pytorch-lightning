@@ -23,6 +23,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class DataConnector(object):
+
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -61,19 +62,13 @@ class DataConnector(object):
 
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
-        if self.trainer.datamodule is not None and is_overridden(
-            "prepare_data", self.trainer.datamodule
-        ):
+        if self.trainer.datamodule is not None and is_overridden("prepare_data", self.trainer.datamodule):
             should_call_dm_prepare_data = not self.trainer.datamodule.has_prepared_data
 
         if self.trainer.prepare_data_per_node:
             return self.trainer.local_rank == 0 and should_call_dm_prepare_data
         else:
-            return (
-                self.trainer.node_rank == 0
-                and self.trainer.local_rank == 0
-                and should_call_dm_prepare_data
-            )
+            return (self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data)
 
     def attach_data(
         self,
