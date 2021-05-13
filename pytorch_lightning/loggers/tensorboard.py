@@ -126,6 +126,8 @@ class TensorBoardLogger(LightningLoggerBase):
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         sub_dir = self.sub_dir if isinstance(self.sub_dir, str) else ""
         log_dir = os.path.join(self.root_dir, version, sub_dir)
+        log_dir = os.path.expandvars(log_dir)
+        log_dir = os.path.expanduser(log_dir)
         return log_dir
 
     @property
