@@ -704,19 +704,14 @@ class TrainLoop:
             if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in optimizers:
                     if self._should_skip_optimizer(opt_idx, batch_idx):
-                        # frequency of this optimizer doesnt align with current batch index, skip it
+                        # frequency of this optimizer does not align with current batch index, skip it
                         continue
                     result = self.run_batch_split(batch_idx, split_idx, split_batch, opt_idx, optimizer)
-                    if result:
-                        batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
-                        grad_norm_dict = result.get("grad_norm_dict", {})
+                    batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
+                    grad_norm_dict = result.get("grad_norm_dict", {})
             else:
                 result = self.run_batch_split(batch_idx, split_idx, split_batch)
-                if result:
-                    # this if check is required for
-                    # tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_and_accumulated_grad
-                    # TODO: make grad accumulation + manual optimization incompatible to simplify this logic here!
-                    batch_outputs[0].append(result.training_step_output_for_epoch_end)
+                batch_outputs[0].append(result.training_step_output_for_epoch_end)
 
         output = AttributeDict(
             signal=0,
