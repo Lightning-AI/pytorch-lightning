@@ -143,7 +143,8 @@ class Trainer(
         distributed_backend: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = 'max_size_cycle',
-        stochastic_weight_avg: bool = False
+        stochastic_weight_avg: bool = False,
+        serialize_checkpoint_loading: bool = False
     ):
         r"""
         Customize every aspect of training via flags
@@ -304,6 +305,8 @@ class Trainer(
             stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
 
+            serialize_checkpoint_loading: Whether to load checkpoints sequentially on each host vs in parallel.
+                Useful to avoid out of memory errors when doing multi-GPU training on same host with very large checkpoint.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -342,6 +345,7 @@ class Trainer(
             )
         self.weights_summary = weights_summary
         self.shown_warnings = set()
+        self.serialize_checkpoint_loading = serialize_checkpoint_loading
 
         # init callbacks
         # Declare attributes to be set in callback_connector on_trainer_init
@@ -1140,7 +1144,7 @@ class Trainer(
             self.training_type_plugin.barrier()
 
         # Serialize checkpoint loading to avoid OOMs
-        if self.num_gpus > 0:
+        if self.serialize_checkpoint_loading and self.num_gpus > 0:
             for current_worker in range(self.num_gpus):
                 if current_worker == self.local_rank:
                     self.training_type_plugin.restore_model_state_from_ckpt_path(

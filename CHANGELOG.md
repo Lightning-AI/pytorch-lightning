@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `clip_grad_by_value` support for TPUs ([#7025](https://github.com/PyTorchLightning/pytorch-lightning/pull/7025))
 
+- Added `serialize_checkpoint_loading` parameter to the trainer to allow loading very large checkpoints ([#7509](https://github.com/PyTorchLightning/pytorch-lightning/pull/7509))
 
 ### Changed
 
