@@ -802,13 +802,15 @@ class TrainLoop:
 
     def _process_closure_result(self, opt_closure_result: Optional[AttributeDict]) -> None:
         """ For manual_optimization, opt_idx is None. """
-        if opt_closure_result:
-            # cache metrics
-            self.trainer.logger_connector.cache_training_step_metrics(opt_closure_result)
+        if not opt_closure_result:
+            return
 
-            # check if loss or model weights are nan
-            if self.trainer.terminate_on_nan:
-                self._check_finite(opt_closure_result.loss)
+        # cache metrics
+        self.trainer.logger_connector.cache_training_step_metrics(opt_closure_result)
+
+        # check if loss or model weights are nan
+        if self.trainer.terminate_on_nan:
+            self._check_finite(opt_closure_result.loss)
 
     def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
