@@ -51,8 +51,6 @@ class TrainLoop:
         self.warning_cache = WarningCache()
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
-        self._curr_step_result = None
-        self._cur_grad_norm_dict = None
         self._multiple_trainloader_mode = multiple_trainloader_mode
         self._skip_backward = False
         self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
@@ -437,15 +435,15 @@ class TrainLoop:
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def track_and_norm_grad(self, optimizer):
+    def track_and_norm_grad(self, optimizer) -> dict:
         # track gradient norms
-        grad_norm_dic = self._track_gradient_norm()
+        grad_norm_dict = self._track_gradient_norm()
 
         # clip gradients
         self.trainer.accelerator.clip_gradients(
             optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
         )
-        self._cur_grad_norm_dict = grad_norm_dic
+        return grad_norm_dict
 
     def _track_gradient_norm(self):
         grad_norm_dict = {}
@@ -654,7 +652,7 @@ class TrainLoop:
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
-        grad_norm_dic = {}
+        grad_norm_dict = {}
 
         # bookkeeping
         self.trainer.hiddens = None
@@ -668,19 +666,19 @@ class TrainLoop:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(
                 signal=0,
-                grad_norm_dic=grad_norm_dic,
+                grad_norm_dict={},
                 training_step_output_for_epoch_end=batch_outputs,
             )
 
         # hook
         response = self.trainer.call_hook("on_batch_start")
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
+            return AttributeDict(signal=-1, grad_norm_dict={})
 
         # hook
         response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
+            return AttributeDict(signal=-1, grad_norm_dict={})
 
         # lightning module hook
         splits = self._tbptt_split_batch(batch)
@@ -693,6 +691,7 @@ class TrainLoop:
                 # toggle model params + set info to logger_connector
                 self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
+                result = AttributeDict()
                 if self.should_accumulate():
                     # For gradient accumulation
 
@@ -703,24 +702,19 @@ class TrainLoop:
                     # automatic_optimization=True: perform dpp sync only when performing optimizer_step
                     # automatic_optimization=False: don't block synchronization here
                     with self.block_ddp_sync_behaviour():
-                        self.training_step_and_backward(
+                        result = self.training_step_and_backward(
                             split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                         )
-
-                    batch_outputs = self._process_closure_result(
-                        batch_outputs=batch_outputs,
-                        opt_idx=opt_idx,
-                    )
 
                 # ------------------------------
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
-
                 else:
                     if self.trainer.lightning_module.automatic_optimization:
 
                         def train_step_and_backward_closure():
+                            nonlocal result
                             result = self.training_step_and_backward(
                                 split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
                             )
@@ -730,30 +724,28 @@ class TrainLoop:
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
                     else:
-                        self._curr_step_result = self.training_step(
-                            split_batch, batch_idx, opt_idx, self.trainer.hiddens
-                        )
+                        result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
 
-                    if self._curr_step_result is None:
+                    if not result:
                         # user decided to skip optimization
                         # make sure to zero grad.
                         continue
 
-                    batch_outputs = self._process_closure_result(
-                        batch_outputs=batch_outputs,
-                        opt_idx=opt_idx,
-                    )
-
                     # todo: Properly aggregate grad_norm accros opt_idx and split_idx
-                    grad_norm_dic = self._cur_grad_norm_dict
-                    self._cur_grad_norm_dict = None
+                    grad_norm_dict = result.get("grad_norm_dict", {})
 
                     # update running loss + reset accumulated loss
-                    self.update_running_loss()
+                    self.update_running_loss(result.loss)
+
+                batch_outputs = self._process_closure_result(
+                    opt_closure_result=result,
+                    batch_outputs=batch_outputs,
+                    opt_idx=opt_idx,
+                )
 
         result = AttributeDict(
             signal=0,
-            grad_norm_dic=grad_norm_dic,
+            grad_norm_dict=grad_norm_dict,
             training_step_output_for_epoch_end=batch_outputs,
         )
         return result
@@ -782,11 +774,10 @@ class TrainLoop:
         else:
             yield None
 
-    def _process_closure_result(self, batch_outputs: list, opt_idx: int) -> list:
-        opt_closure_result = self._curr_step_result
-
-        if opt_closure_result is not None:
-
+    def _process_closure_result(
+        self, opt_closure_result: Optional[AttributeDict], batch_outputs: list, opt_idx: int
+    ) -> list:
+        if opt_closure_result:
             # cache metrics
             self.trainer.logger_connector.cache_training_step_metrics(opt_closure_result)
 
@@ -798,12 +789,6 @@ class TrainLoop:
             batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
             batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
 
-            if self.trainer.lightning_module.automatic_optimization:
-                # track total loss for logging (avoid mem leaks)
-                self.accumulated_loss.append(opt_closure_result.loss)
-
-        self._curr_step_result = None
-
         return batch_outputs
 
     def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
@@ -811,7 +796,6 @@ class TrainLoop:
         with self.trainer.profiler.profile("training_step_and_backward"):
             # lightning module hook
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
-            self._curr_step_result = result
 
             if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
                 is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
@@ -866,7 +850,7 @@ class TrainLoop:
 
         if not self.should_accumulate():
             # track gradients
-            self.track_and_norm_grad(optimizer=optimizer)
+            result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
@@ -995,7 +979,11 @@ class TrainLoop:
         # use to track metrics internally
         self.trainer.logger_connector.on_train_split_start(split_idx, opt_idx, split_batch)
 
-    def update_running_loss(self):
+    def update_running_loss(self, current_loss: torch.Tensor) -> None:
+        if self.trainer.lightning_module.automatic_optimization:
+            # track total loss for logging (avoid mem leaks)
+            self.accumulated_loss.append(current_loss)
+
         accumulated_loss = self.accumulated_loss.mean()
 
         if accumulated_loss is not None:
