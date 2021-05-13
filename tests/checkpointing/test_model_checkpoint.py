@@ -566,16 +566,24 @@ def test_invalid_every_n_train_steps(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=2)
 
 
-def test_invalid_every_n_train_steps_val_epochs_combination(tmpdir):
+def test_invalid_trigger_combination(tmpdir):
     """
     Test that a MisconfigurationException is raised if both
     every_n_val_epochs and every_n_train_steps are enabled together.
     """
-    with pytest.raises(MisconfigurationException, match=r'.*Both cannot be enabled at the same time'):
+    with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
         ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_val_epochs=2)
+    with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
+        _ = ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_val_epochs=2)
+    with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
+        _ = ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_train_steps=2)
+
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_val_epochs=3)
     ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=4, every_n_val_epochs=0)
+    ModelCheckpoint(
+        dirpath=tmpdir, every_n_train_steps=0, every_n_val_epochs=0, train_time_interval=timedelta(minutes=1)
+    )
 
 
 def test_none_every_n_train_steps_val_epochs(tmpdir):
@@ -753,11 +761,6 @@ def test_ckpt_train_time_interval(mock_datetime, tmpdir) -> None:
     # batches per epoch, so total time to run is 7*64*2 = 896 sec < 14.96 minutes,
     # so we should have 14 checkpoints.
     assert len(os.listdir(tmpdir)) == 14
-
-
-def test_invalid_train_time_interval_val_epochs_combination(tmpdir) -> None:
-    with pytest.raises(MisconfigurationException, match="Invalid values for train_time_interval="):
-        _ = ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_val_epochs=2)
 
 
 def test_model_checkpoint_topk_zero(tmpdir):

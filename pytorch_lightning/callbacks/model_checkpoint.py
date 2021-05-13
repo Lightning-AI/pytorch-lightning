@@ -348,17 +348,15 @@ class ModelCheckpoint(Callback):
             raise MisconfigurationException(
                 f'Invalid value for every_n_val_epochs={self._every_n_val_epochs}. Must be >= 0'
             )
-        if self._every_n_train_steps > 0 and self._every_n_val_epochs > 0:
+
+        every_n_train_steps_triggered = self._every_n_train_steps >= 1
+        every_n_val_epochs_triggered = self._every_n_val_epochs >= 1
+        train_time_interval_triggered = self._train_time_interval is not None
+        if (every_n_train_steps_triggered + every_n_val_epochs_triggered + train_time_interval_triggered > 1):
             raise MisconfigurationException(
-                f'Invalid values for every_n_train_steps={self._every_n_train_steps}'
-                f' and every_n_val_epochs={self._every_n_val_epochs}.'
-                ' Both cannot be enabled at the same time.'
-            )
-        if self._train_time_interval is not None and self._every_n_val_epochs > 0:
-            raise MisconfigurationException(
-                f'Invalid values for train_time_interval={self._train_time_interval}'
-                f' and every_n_val_epochs={self._every_n_val_epochs}.'
-                ' Both cannot be enabled at the same time.'
+                f"Combination of parameters every_n_train_steps={self._every_n_train_steps}, "
+                f"every_n_val_epochs={self._every_n_val_epochs} and train_time_interval={self._train_time_interval} "
+                "should be mutually exclusive."
             )
 
         if self.monitor is None:
