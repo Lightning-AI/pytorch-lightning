@@ -694,13 +694,13 @@ class TrainLoop:
 
             if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
-                    result = self.run_batch_split(batch_idx, split_idx, split_batch, opt_idx, optimizer)
+                    result = self.run_optimization(batch_idx, split_idx, split_batch, opt_idx, optimizer)
                     if result:
                         batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
                         grad_norm_dict = result.get("grad_norm_dict", {})
             else:
                 # in manual optimization, there is no looping over optimizers
-                result = self.run_batch_split(batch_idx, split_idx, split_batch)
+                result = self.run_optimization(batch_idx, split_idx, split_batch)
                 if result:
                     batch_outputs[0].append(result.training_step_output_for_epoch_end)
 
@@ -712,7 +712,7 @@ class TrainLoop:
         )
         return output
 
-    def run_batch_split(self, batch_idx, split_idx, split_batch, opt_idx=None, optimizer=None):
+    def run_optimization(self, batch_idx, split_idx, split_batch, opt_idx=None, optimizer=None):
         # toggle model params + set info to logger_connector
         self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
