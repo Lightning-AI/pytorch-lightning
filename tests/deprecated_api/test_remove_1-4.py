@@ -23,19 +23,7 @@ from tests.helpers import BoringModel
 def test_v1_4_0_deprecated_imports():
     _soft_unimport_module('pytorch_lightning.utilities.argparse_utils')
     with pytest.deprecated_call(match='will be removed in v1.4'):
-        from pytorch_lightning.utilities.argparse_utils import from_argparse_args  # noqa: F811 F401
-
-    _soft_unimport_module('pytorch_lightning.utilities.model_utils')
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        from pytorch_lightning.utilities.model_utils import is_overridden  # noqa: F811 F401
-
-    _soft_unimport_module('pytorch_lightning.utilities.warning_utils')
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        from pytorch_lightning.utilities.warning_utils import WarningCache  # noqa: F811 F401
-
-    _soft_unimport_module('pytorch_lightning.utilities.xla_device_utils')
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils  # noqa: F811 F401
+        from pytorch_lightning.utilities.argparse_utils import _gpus_arg_default  # noqa: F811 F401
 
 
 def test_v1_4_0_deprecated_manual_optimization_optimizer(tmpdir):
