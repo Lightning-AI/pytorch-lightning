@@ -764,7 +764,7 @@ class TrainLoop:
             # update running loss + reset accumulated loss
             self.update_running_loss(result.loss)
 
-        self._process_closure_result(opt_closure_result=result)
+        self._process_closure_result(result)
         return result
 
     @contextmanager
@@ -792,7 +792,6 @@ class TrainLoop:
             yield None
 
     def _process_closure_result(self, opt_closure_result: Optional[AttributeDict]) -> None:
-        """ For manual_optimization, opt_idx is None. """
         if not opt_closure_result:
             return
 
