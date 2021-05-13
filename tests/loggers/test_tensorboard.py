@@ -131,7 +131,6 @@ def test_tensorboard_log_sub_dir(tmpdir):
         def name(self):
             return "name"
 
-
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_steps=1,
