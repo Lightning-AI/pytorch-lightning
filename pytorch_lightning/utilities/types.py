@@ -28,10 +28,17 @@ EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 _PARAMETERS = Iterator[torch.nn.Parameter]
-TRAIN_DATALOADERS = Union[DataLoader, Sequence[DataLoader], Sequence[Sequence[DataLoader]], Sequence[Dict[str,
-                                                                                                          DataLoader]],
-                          Dict[str, DataLoader], Dict[str, Dict[str, DataLoader]], Dict[str, Sequence[DataLoader]],
-                          # can't import, otherwise circular imports
-                          'CombinedLoader',  # noqa: F821 undefined name 'CombinedLoader'
-                          ]
+# yapf: disable
+TRAIN_DATALOADERS = Union[
+    DataLoader,
+    Sequence[DataLoader],
+    Sequence[Sequence[DataLoader]],
+    Sequence[Dict[str, DataLoader]],
+    Dict[str, DataLoader],
+    Dict[str, Dict[str, DataLoader]],
+    Dict[str, Sequence[DataLoader]],
+    # can't import, otherwise circular imports
+    'CombinedLoader',  # noqa: F821 undefined name 'CombinedLoader'
+]
+# yapf: enable
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
