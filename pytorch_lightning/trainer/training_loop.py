@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import OrderedDict
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
 from typing import Any, Dict, List, Optional, Union
@@ -268,13 +269,13 @@ class TrainLoop:
         model_ref = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
-            args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
+            step_kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
 
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(args)
+                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
             self.trainer.logger_connector.cache_logged_metrics()
@@ -913,9 +914,9 @@ class TrainLoop:
         else:
             return is_val_check_batch and not epoch_end_val_check
 
-    def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
+    def _build_kwargs(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
-        args = [batch, batch_idx]
+        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
 
         lightning_module = self.trainer.lightning_module
 
@@ -929,8 +930,8 @@ class TrainLoop:
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5", DeprecationWarning
                     )
-                args.append(opt_idx)
-            elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
+                step_kwargs['optimizer_idx'] = opt_idx
+            elif not has_opt_idx_in_train_step and self.trainer.lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
                     ' `training_step` is missing the `optimizer_idx` argument.'
@@ -938,9 +939,9 @@ class TrainLoop:
 
         # pass hiddens if using tbptt
         if self._truncated_bptt_enabled():
-            args.append(hiddens)
+            step_kwargs['hiddens'] = hiddens
 
-        return args
+        return step_kwargs
 
     def _truncated_bptt_enabled(self) -> bool:
         """ Temporary tbptt utilities until this flag is fully migrated to the lightning module. """
