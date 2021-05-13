@@ -13,10 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from logging import warning
 from typing import Any, Dict, List, Optional, Type, Union
-
-from docstring_parser import parse
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -27,6 +24,7 @@ from pytorch_lightning.utilities.seed import seed_everything
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
+    from docstring_parser import parse
     from jsonargparse import ActionConfigFile, ArgumentParser
 else:
     ArgumentParser = object
