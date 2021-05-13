@@ -528,8 +528,8 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
         r"""
-        Perform one evaluation epoch over the test set. It's separated from
-        fit to make sure you never run on your test set until you want to.
+        Perform one evaluation epoch over the test set.
+        It's separated from fit to make sure you never run on your test set until you want to.
 
         Args:
             model: The model to test.

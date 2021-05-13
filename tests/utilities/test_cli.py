@@ -506,11 +506,6 @@ def test_lightning_cli_trainer_fn(fn):
         def after_tune(self):
             self.called.append('after_tune')
 
-    # TODO
-    #with mock.patch('sys.argv', ['any.py']):
-    #    cli = TestCLI(BoringModel, trainer_fn=fn)
-    #getattr(cli.trainer, fn).assert_called()
-
     with mock.patch('sys.argv', ['any.py', fn]):
         cli = TestCLI(BoringModel)
     assert cli.called == [f'before_{fn}', fn, f'after_{fn}']

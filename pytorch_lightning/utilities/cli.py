@@ -13,13 +13,16 @@
 # limitations under the License.
 import os
 from argparse import Namespace
+from logging import warning
 from typing import Any, Dict, List, Optional, Type, Union
+
+from docstring_parser import parse
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities import _module_available, rank_zero_warn
 from pytorch_lightning.utilities.seed import seed_everything
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
@@ -97,8 +100,6 @@ class LightningCLI:
         save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
         trainer_class: Type[Trainer] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
-        # TODO
-        #trainer_fn: str = TrainerFn.fit.value,
         seed_everything_default: int = None,
         description: str = 'pytorch-lightning trainer command line tool',
         env_prefix: str = 'PL',
@@ -134,7 +135,6 @@ class LightningCLI:
             save_config_callback: A callback class to save the training config.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
-            trainer_fn: The trainer function to run.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
             description: Description of the tool shown when running ``--help``.
@@ -157,7 +157,6 @@ class LightningCLI:
         self.save_config_callback = save_config_callback
         self.trainer_class = trainer_class
         self.trainer_defaults = trainer_defaults or {}
-        #self.trainer_fn = trainer_fn
         self.seed_everything_default = seed_everything_default
         self.subclass_mode_model = subclass_mode_model
         self.subclass_mode_data = subclass_mode_data
@@ -167,11 +166,11 @@ class LightningCLI:
         self.parser = self.init_parser(**parser_kwargs)
 
         self.add_core_arguments(self.parser)
-        self.add_arguments(self.parser)
         self.add_subcommands(self.parser)
+        self.add_arguments(self.parser)
         self.parse_arguments(self.parser)
 
-        if self.config['seed_everything'] is not None:
+        if self.config.get('seed_everything') is not None:
             seed_everything(self.config['seed_everything'], workers=True)
 
         self.before_instantiate_classes()
@@ -179,10 +178,51 @@ class LightningCLI:
 
         self.run_subcommand()
 
-    def init_parser(self, use_base: bool = False, **kwargs: Any) -> LightningArgumentParser:
+    def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser"""
-        cls = ArgumentParser if use_base else LightningArgumentParser
-        return cls(**kwargs)
+        return LightningArgumentParser(**kwargs)
+
+    def add_core_arguments(self, parser: LightningArgumentParser) -> None:
+        """Adds arguments from the core classes to the parser"""
+        parser.add_lightning_class_args(self.trainer_class, 'trainer')
+        trainer_defaults = {'trainer.' + k: v for k, v in self.trainer_defaults.items() if k != 'callbacks'}
+        parser.set_defaults(trainer_defaults)
+        parser.add_lightning_class_args(self.model_class, 'model', subclass_mode=self.subclass_mode_model)
+        if self.datamodule_class is not None:
+            parser.add_lightning_class_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
+
+    @property
+    def subcommands(self) -> Dict[str, List[str]]:
+        """Defines the list of available subcommands and the arguments to skip"""
+        return {
+            'fit': ['model', 'train_dataloader', 'val_dataloaders', 'datamodule'],
+            'validate': ['model', 'val_dataloaders', 'datamodule'],
+            'test': ['model', 'test_dataloaders', 'datamodule'],
+            'predict': ['model', 'dataloaders', 'datamodule'],
+            'tune': ['model', 'train_dataloader', 'val_dataloaders', 'datamodule'],
+        }
+
+    def add_subcommands(self, parser: LightningArgumentParser) -> None:
+        parser_subcommands = parser.add_subcommands()
+        for subcommand in self.subcommands:
+            subcommand_parser = self.prepare_subcommand_parser(subcommand)
+            fn = getattr(self.trainer_class, subcommand)
+            description = self._get_short_description(fn)
+            parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
+
+    def prepare_subcommand_parser(self, subcommand: str) -> LightningArgumentParser:
+        parser = ArgumentParser()
+        skip = self.subcommands[subcommand]
+        parser.add_method_arguments(self.trainer_class, subcommand, skip=skip)
+        return parser
+
+    @staticmethod
+    def _get_short_description(component: object) -> Optional[str]:
+        try:
+            docstring = parse(component.__doc__)
+            return docstring.short_description
+        except ValueError:
+            rank_zero_warn(f'Failed parsing docstring for {component}')
 
     def add_arguments(self, parser: LightningArgumentParser) -> None:
         """
@@ -197,50 +237,6 @@ class LightningCLI:
             default=self.seed_everything_default,
             help='Set to an int to run seed_everything with this value before classes instantiation',
         )
-
-    @property
-    def subcommands(self) -> Dict[str, List[str]]:
-        """Defines the list of available subcommands and the arguments to skip"""
-        return {
-            'fit': ['model', 'train_dataloader', 'val_dataloaders', 'datamodule'],
-            'validate': ['model', 'val_dataloaders', 'datamodule'],
-            'test': ['model', 'test_dataloaders', 'datamodule'],
-            'predict': ['model', 'dataloaders', 'datamodule'],
-            'tune': ['model', 'train_dataloader', 'val_dataloaders', 'datamodule'],
-        }
-
-    def add_subcommands(self, parser: LightningArgumentParser) -> None:
-        # TODO: default fit
-        parser_subcommands = parser.add_subcommands()
-        for subcommand in self.subcommands:
-            subcommand_parser = self.prepare_subcommand_parser(subcommand)
-            # TODO: add help
-            parser_subcommands.add_subcommand(subcommand, subcommand_parser)
-
-    def prepare_subcommand_parser(self, subcommand: str) -> LightningArgumentParser:
-        # TODO: pass env_prefix and default_env?
-        parser = self.init_parser(use_base=True)
-        self.add_subcommand_arguments(parser)
-        skip = self.subcommands[subcommand]
-        parser.add_method_arguments(self.trainer_class, subcommand, skip=skip)
-        return parser
-
-    def add_subcommand_arguments(self, parser: LightningArgumentParser) -> None:
-        """
-        Implement to add extra arguments to each subcommand parser or link arguments
-
-        Args:
-            parser: The subcommand parser object to which arguments can be added
-        """
-
-    def add_core_arguments(self, parser: LightningArgumentParser) -> None:
-        """Adds arguments from the core classes to the parser"""
-        parser.add_lightning_class_args(self.trainer_class, 'trainer')
-        trainer_defaults = {'trainer.' + k: v for k, v in self.trainer_defaults.items() if k != 'callbacks'}
-        parser.set_defaults(trainer_defaults)
-        parser.add_lightning_class_args(self.model_class, 'model', subclass_mode=self.subclass_mode_model)
-        if self.datamodule_class is not None:
-            parser.add_lightning_class_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
 
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in self.config"""
