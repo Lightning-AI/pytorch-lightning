@@ -230,6 +230,22 @@ class TrainLoop:
 
         return False
 
+    # TODO: find a better way to compute this
+    def _should_skip_optimizer(self, opt_idx: int, batch_idx: Optional[int] = None) -> bool:
+        """ Determine if the optimizer should be skipped based on desired frequencies. """
+        if not self.trainer.optimizer_frequencies:
+            return False
+
+        if batch_idx is None:
+            batch_idx = self.total_batch_idx
+
+        optimizers_loop_length = self.optimizer_freq_cumsum[-1]
+        current_place_in_loop = batch_idx % optimizers_loop_length
+
+        # find optimzier index by looking for the first {item > current_place} in the cumsum list
+        return opt_idx != np.argmax(self.optimizer_freq_cumsum > current_place_in_loop)
+
+    # TODO: get rid of this method
     def get_optimizers_iterable(self, batch_idx=None):
         """
         Generates an iterable with (idx, optimizer) for each optimizer.
@@ -657,7 +673,7 @@ class TrainLoop:
         # bookkeeping
         self.trainer.hiddens = None
 
-        optimizers = self.prepare_optimizers()
+        optimizers = list(enumerate(self.trainer.optimizers))
 
         # track all outputs across time and num of optimizers
         batch_outputs = [[] for _ in range(len(optimizers))]
@@ -687,6 +703,8 @@ class TrainLoop:
 
             if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in optimizers:
+                    if self._should_skip_optimizer(opt_idx, batch_idx):
+                        continue
                     self.run_batch_split(batch_outputs, batch_idx, split_idx, split_batch, opt_idx, optimizer)
             else:
                 self.run_batch_split(batch_outputs, batch_idx, split_idx, split_batch)
@@ -780,7 +798,7 @@ class TrainLoop:
             yield None
 
     def _process_closure_result(
-        self, opt_closure_result: Optional[AttributeDict], batch_outputs: list, opt_idx: int
+        self, opt_closure_result: Optional[AttributeDict], batch_outputs: list, opt_idx: Optional[int]
     ) -> list:
         if opt_closure_result:
             # cache metrics
@@ -791,8 +809,9 @@ class TrainLoop:
                 self._check_finite(opt_closure_result.loss)
 
             # track all the outputs across all steps
-            batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
-            batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
+            # batch_opt_idx = opt_idx if self.trainer.lightning_module.automatic_optimization else 0
+            opt_idx = 0 if opt_idx is None else opt_idx
+            batch_outputs[opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
 
         return batch_outputs
 
