@@ -194,14 +194,14 @@ class LoggerConnector:
         self._callback_metrics.update(callback_metrics_tmp)
         self._logged_metrics.update(logged_metrics_tmp)
 
-    def log_metrics(self, metrics, grad_norm_dic, step=None):
+    def log_metrics(self, metrics, grad_norm_dict, step=None):
         """Logs the metric dict passed in.
         If `step` parameter is None and `step` key is presented is metrics,
         uses metrics["step"] as a step
 
         Args:
             metrics (dict): Metric values
-            grad_norm_dic (dict): Gradient norms
+            grad_norm_dict (dict): Gradient norms
             step (int): Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
@@ -211,7 +211,7 @@ class LoggerConnector:
             metrics.update(mem_map)
 
         # add norms
-        metrics.update(grad_norm_dic)
+        metrics.update(grad_norm_dict)
 
         # turn all tensors to scalars
         scalar_metrics = metrics_to_scalars(metrics)
@@ -367,11 +367,11 @@ class LoggerConnector:
         # when metrics should be logged
         if self.should_update_logs or self.trainer.fast_dev_run is True:
             # logs user requested information to logger
-            grad_norm_dic = batch_output.grad_norm_dic
-            if grad_norm_dic is None:
-                grad_norm_dic = {}
-            if len(batch_log_metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(batch_log_metrics, grad_norm_dic)
+            grad_norm_dict = batch_output.grad_norm_dict
+            if grad_norm_dict is None:
+                grad_norm_dict = {}
+            if len(batch_log_metrics) > 0 or len(grad_norm_dict) > 0:
+                self.log_metrics(batch_log_metrics, grad_norm_dict)
                 self._callback_metrics.update(batch_log_metrics)
 
     @property
