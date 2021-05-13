@@ -24,9 +24,12 @@ from pytorch_lightning.utilities.seed import seed_everything
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
-    from jsonargparse import ActionConfigFile, ArgumentParser
+    from jsonargparse import ActionConfigFile, ArgumentParser, set_config_read_mode
 else:
     ArgumentParser = object
+
+
+set_config_read_mode(fsspec_enabled=True)
 
 
 class LightningArgumentParser(ArgumentParser):
