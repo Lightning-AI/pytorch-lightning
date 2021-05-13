@@ -16,7 +16,9 @@ import math
 import os
 import pickle
 import re
+import time
 from argparse import Namespace
+from datetime import timedelta
 from logging import INFO
 from pathlib import Path
 from typing import Union
@@ -716,6 +718,46 @@ def test_ckpt_every_n_train_steps(tmpdir):
         f"step={i}.ckpt" for i in range(every_n_train_steps - 1, max_epochs * epoch_length, every_n_train_steps)
     ]
     assert set(os.listdir(tmpdir)) == set(expected)
+
+
+@mock.patch("pytorch_lightning.callbacks.model_checkpoint.time")
+def test_ckpt_train_time_interval(mock_datetime, tmpdir) -> None:
+    """Tests that the checkpoints are saved at the specified time interval."""
+    seconds_per_batch = 7
+    start_time = time.monotonic()
+    batches_per_epoch = 64
+    num_epochs = 2
+    max_batches = batches_per_epoch * num_epochs + 1
+    mock_datetime.monotonic.side_effect = [start_time + seconds_per_batch * i for i in range(max_batches)]
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        min_epochs=num_epochs,
+        max_epochs=num_epochs,
+        progress_bar_refresh_rate=0,
+        callbacks=[
+            ModelCheckpoint(
+                filename="{epoch}-{step}",
+                dirpath=tmpdir,
+                train_time_interval=timedelta(minutes=1),
+                save_top_k=-1,
+                save_last=False,
+            )
+        ],
+        logger=False,
+    )
+
+    trainer.fit(model)
+    # Each batch takes 7 sec and we checkpoint every minute. There are 64
+    # batches per epoch, so total time to run is 7*64*2 = 896 sec < 14.96 minutes,
+    # so we should have 14 checkpoints.
+    assert len(os.listdir(tmpdir)) == 14
+
+
+def test_invalid_train_time_interval_val_epochs_combination(tmpdir) -> None:
+    with pytest.raises(MisconfigurationException, match="Invalid values for train_time_interval="):
+        _ = ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_val_epochs=2)
 
 
 def test_model_checkpoint_topk_zero(tmpdir):
