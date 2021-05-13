@@ -12,183 +12,116 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.trainer.progress import LoopProgress, TrainLoopProgress
+import logging
+
+from pytorch_lightning.trainer.progress import LoopProgress
 
 
-def test_increment_batch_read(tmpdir):
+def test_increment_batch_ready(tmpdir):
     prog = LoopProgress()
-    prog.increment_batch_read()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == prog.batches_read_total
+    prog.increment_batch_ready()
+    assert prog.total.ready == 1
+    assert prog.epoch.ready == prog.total.ready
 
 
 def test_increment_batch_started(tmpdir):
     prog = LoopProgress()
     prog.increment_batch_started()
-    assert prog.batches_read_total == 0
-    assert prog.batches_started_epoch == 1
-    assert prog.batches_started_epoch == prog.batches_started_total
+    logging.error(prog)
+    assert prog.total.ready == 0
+    assert prog.epoch.started == 1
+    assert prog.epoch.started == prog.total.started
 
 
 def test_increment_batch_processed(tmpdir):
     prog = LoopProgress()
     prog.increment_batch_processed()
-    assert prog.batches_started_total == 0
-    assert prog.batches_processed_total == 1
-    assert prog.batches_processed_epoch == prog.batches_processed_total
+    assert prog.total.started == 0
+    assert prog.total.processed == 1
+    assert prog.epoch.processed == prog.total.processed
 
 
-def test_increment_batch_finished(tmpdir):
+def test_increment_batch_completed(tmpdir):
     prog = LoopProgress()
-    prog.increment_batch_finished()
-    assert prog.batches_processed_total == 0
-    assert prog.batches_finished_total == 1
-    assert prog.batches_finished_epoch == prog.batches_finished_total
-
-
-def test_train_increment_step(tmpdir):
-    """ Test sequences for incrementing optimizer steps. """
-    prog = TrainLoopProgress()
-    prog.increment_optimizer_step()
-    assert prog.optimizer_steps_processed_total == 1
-    assert prog.optimizer_steps_processed_total == prog.optimizer_steps_processed_epoch
+    prog.increment_batch_completed()
+    assert prog.total.processed == 0
+    assert prog.total.completed == 1
+    assert prog.epoch.completed == prog.total.completed
 
 
 def test_increment_epoch(tmpdir):
     """ Test sequences for incrementing epochs. """
     prog = LoopProgress()
-    prog.increment_epoch_finished()
-    assert prog.epochs_finished_total == 1
+    prog.increment_epoch_completed()
+    assert prog.epochs_completed_total == 1
 
 
-def test_increment_batch_read_start_process_finish_epoch(tmpdir):
+def test_increment_batch_ready_start_process_finish_epoch(tmpdir):
     """ Test sequences for incrementing batches reads and epochs. """
     prog = LoopProgress()
 
-    prog.increment_batch_read()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 1
+    prog.increment_batch_ready()
+    assert prog.total.ready == 1
+    assert prog.epoch.ready == 1
 
     prog.increment_batch_started()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 1
-    assert prog.batches_started_total == 1
-    assert prog.batches_started_epoch == 1
+    assert prog.total.ready == 1
+    assert prog.epoch.ready == 1
+    assert prog.total.started == 1
+    assert prog.epoch.started == 1
 
     prog.increment_batch_processed()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 1
-    assert prog.batches_started_total == 1
-    assert prog.batches_started_epoch == 1
-    assert prog.batches_processed_total == 1
-    assert prog.batches_processed_epoch == 1
+    assert prog.total.ready == 1
+    assert prog.epoch.ready == 1
+    assert prog.total.started == 1
+    assert prog.epoch.started == 1
+    assert prog.total.processed == 1
+    assert prog.epoch.processed == 1
 
-    prog.increment_batch_finished()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 1
-    assert prog.batches_started_total == 1
-    assert prog.batches_started_epoch == 1
-    assert prog.batches_processed_total == 1
-    assert prog.batches_processed_epoch == 1
-    assert prog.batches_finished_total == 1
-    assert prog.batches_finished_epoch == 1
+    prog.increment_batch_completed()
+    assert prog.total.ready == 1
+    assert prog.epoch.ready == 1
+    assert prog.total.started == 1
+    assert prog.epoch.started == 1
+    assert prog.total.processed == 1
+    assert prog.epoch.processed == 1
+    assert prog.total.completed == 1
+    assert prog.epoch.completed == 1
 
-    prog.increment_epoch_finished()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 0
-    assert prog.batches_started_total == 1
-    assert prog.batches_started_epoch == 0
-    assert prog.batches_processed_total == 1
-    assert prog.batches_processed_epoch == 0
-    assert prog.batches_finished_total == 1
-    assert prog.batches_finished_epoch == 0
-    assert prog.epochs_finished_total == 1
+    prog.increment_epoch_completed()
+    assert prog.total.ready == 1
+    assert prog.epoch.ready == 0
+    assert prog.total.started == 1
+    assert prog.epoch.started == 0
+    assert prog.total.processed == 1
+    assert prog.epoch.processed == 0
+    assert prog.total.completed == 1
+    assert prog.epoch.completed == 0
+    assert prog.epochs_completed_total == 1
 
-    prog.increment_batch_read()
-    assert prog.batches_read_total == 2
-    assert prog.batches_read_epoch == 1
-    assert prog.epochs_finished_total == 1
-
-    prog.reset_on_epoch()
-    assert prog.batches_read_epoch == 0
-
-
-def test_increment_batch_read_start_process_step_finish_epoch(tmpdir):
-    """ Test sequences for incrementing batches reads and epochs. """
-    prog = TrainLoopProgress()
-
-    prog.increment_batch_read()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 1
-
-    prog.increment_batch_started()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 1
-    assert prog.batches_started_total == 1
-    assert prog.batches_started_epoch == 1
-
-    prog.increment_batch_processed()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 1
-    assert prog.batches_started_total == 1
-    assert prog.batches_started_epoch == 1
-    assert prog.batches_processed_total == 1
-    assert prog.batches_processed_epoch == 1
-
-    prog.increment_optimizer_step()
-    assert prog.optimizer_steps_processed_total == 1
-    assert prog.optimizer_steps_processed_epoch == 1
-
-    prog.increment_batch_finished()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 1
-    assert prog.batches_started_total == 1
-    assert prog.batches_started_epoch == 1
-    assert prog.batches_processed_total == 1
-    assert prog.batches_processed_epoch == 1
-    assert prog.batches_finished_total == 1
-    assert prog.batches_finished_epoch == 1
-
-    prog.increment_epoch_finished()
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 0
-    assert prog.batches_started_total == 1
-    assert prog.batches_started_epoch == 0
-    assert prog.batches_processed_total == 1
-    assert prog.batches_processed_epoch == 0
-    assert prog.optimizer_steps_processed_total == 1
-    assert prog.optimizer_steps_processed_epoch == 0
-    assert prog.batches_finished_total == 1
-    assert prog.batches_finished_epoch == 0
-    assert prog.epochs_finished_total == 1
-
-    prog.increment_batch_read()
-    assert prog.batches_read_total == 2
-    assert prog.batches_read_epoch == 1
-    assert prog.epochs_finished_total == 1
+    prog.increment_batch_ready()
+    assert prog.total.ready == 2
+    assert prog.epoch.ready == 1
+    assert prog.epochs_completed_total == 1
 
     prog.reset_on_epoch()
-    assert prog.optimizer_steps_processed_epoch == 0
+    assert prog.epoch.ready == 0
 
 
 def test_reset_on_epoch(tmpdir):
     """ Test sequences for resetting. """
-    prog = TrainLoopProgress()
-    prog.increment_batch_read()
-    prog.increment_optimizer_step()
+    prog = LoopProgress()
+    prog.increment_batch_ready()
     prog.reset_on_epoch()
 
-    assert prog.batches_read_total == 1
-    assert prog.batches_read_epoch == 0
-    assert prog.optimizer_steps_processed_total == 1
-    assert prog.optimizer_steps_processed_epoch == 0
+    assert prog.total.ready == 1
+    assert prog.epoch.ready == 0
 
-    prog.increment_batch_read()
-    assert prog.batches_read_total == 2
-    assert prog.batches_read_epoch == 1
-    assert prog.optimizer_steps_processed_total == 1
-    assert prog.optimizer_steps_processed_epoch == 0
+    prog.increment_batch_ready()
+    assert prog.total.ready == 2
+    assert prog.epoch.ready == 1
 
-    prog.increment_optimizer_step()
-    assert prog.optimizer_steps_processed_total == 2
-    assert prog.optimizer_steps_processed_epoch == 1
+    prog.increment_epoch_completed()
+    assert prog.total.ready == 2
+    assert prog.epoch.ready == 0
+    assert prog.epochs_completed_total == 1

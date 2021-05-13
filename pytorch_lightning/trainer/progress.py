@@ -16,6 +16,22 @@ from dataclasses import dataclass
 
 
 @dataclass
+class Progress:
+    """ Basic dataclass to track event progress.
+
+    Args:
+        ready: Intended to track the number of batches fetched from the dataloader.
+        started: Intended to be incremented after `on_*_batch_start` completes.
+        processed: Intended to be incremented after `*_step` runs.
+        completed: Intended to be incremented after `on_*_batch_end` runs.
+    """
+    ready: int = 0
+    started: int = 0
+    processed: int = 0
+    completed: int = 0
+
+
+@dataclass
 class LoopProgress:
     """Basic dataclass to track loop progress during execution.
 
@@ -24,91 +40,43 @@ class LoopProgress:
     By default, they are not globally synced across all ranks.
 
     Args:
-        epochs_finished_total: Number of passes through the dataset.
-            This is intended to be incremented after `on_*_epoch_end` completes.
-        batches_read_total: Number of batches loaded through the dataloader.
-        batches_started_total: Number of batches started processing.
-            This is intended to be incremented after `on_*_batch_start` completes.
-        batches_processed_total: Number of batches processed.
-            This is intended to be incremented after `*_step` runs.
-        batches_finished_total: Number of batches finished.
-            This is intended to be incremented after `on_*_batch_end` runs.
-
-        batches_read_epoch: Number of batches loaded through the dataloader within the current epoch.
-        batches_started_epoch: Number of batches started processing within the current epoch.
-            This is intended to be incremented after `on_*_batch_start` completes.
-        batches_processed_epoch: Number of batches processed within the current epoch.
-            This is intended to be incremented after `*_step` runs.
-        batches_finished_epoch: Number of batches finished within the current epoch.
-            This is intended to be incremented after `on_*_batch_end` runs.
+        total: Tracks the progress counters across epochs
+        epoch: Tracks the progress within the current epoch.
+        epochs_completed_total: Track the total number of passes through the dataset
     """
-    epochs_finished_total: int = 0
+    total = Progress()
+    epoch = Progress()
+    epochs_completed_total: int = 0
 
-    batches_read_total: int = 0
-    batches_started_total: int = 0
-    batches_processed_total: int = 0
-    batches_finished_total: int = 0
-
-    batches_read_epoch: int = 0
-    batches_started_epoch: int = 0
-    batches_processed_epoch: int = 0
-    batches_finished_epoch: int = 0
-
-    def increment_batch_read(self) -> None:
-        self.batches_read_total += 1
-        self.batches_read_epoch += 1
+    def increment_batch_ready(self) -> None:
+        self.total.ready += 1
+        self.epoch.ready += 1
 
     def increment_batch_started(self) -> None:
-        self.batches_started_total += 1
-        self.batches_started_epoch += 1
+        self.total.started += 1
+        self.epoch.started += 1
 
     def increment_batch_processed(self) -> None:
-        self.batches_processed_total += 1
-        self.batches_processed_epoch += 1
+        self.total.processed += 1
+        self.epoch.processed += 1
 
-    def increment_batch_finished(self) -> None:
-        self.batches_finished_total += 1
-        self.batches_finished_epoch += 1
+    def increment_batch_completed(self) -> None:
+        self.total.completed += 1
+        self.epoch.completed += 1
 
-    def increment_epoch_finished(self) -> None:
-        self.epochs_finished_total += 1
+    def increment_epoch_completed(self) -> None:
+        self.epochs_completed_total += 1
         self.reset_on_epoch()
 
     def reset_on_epoch(self) -> None:
-        self.batches_read_epoch = 0
-        self.batches_started_epoch = 0
-        self.batches_processed_epoch = 0
-        self.batches_finished_epoch = 0
+        self.epoch = Progress()
 
 
 @dataclass
-class TrainLoopProgress(LoopProgress):
-    """Extension of ``LoopProgress`` for training specific fields.
-
-    Optimizer steps (parameter updates) are unique to training.
-    """
-
-    optimizer_steps_processed_total: int = 0
-    optimizer_steps_processed_epoch: int = 0
-
-    def increment_optimizer_step(self) -> None:
-        self.optimizer_steps_processed_total += 1
-        self.optimizer_steps_processed_epoch += 1
-
-    def reset_on_epoch(self) -> None:
-        super().reset_on_epoch()
-        self.optimizer_steps_processed_epoch = 0
-
-    def increment_epoch_finished(self) -> None:
-        super().increment_epoch_finished()
-        self.reset_on_epoch()
-
-
-@dataclass
-class Progress:
+class TrainerProgress:
     """ Basic dataclass to track loop progress across stages during trainer execution. """
 
-    train_progress: TrainLoopProgress
-    val_progress: LoopProgress
-    test_progress: LoopProgress
-    predict_progress: LoopProgress
+    train: LoopProgress
+    val: LoopProgress
+    test: LoopProgress
+    predict: LoopProgress
