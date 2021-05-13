@@ -685,10 +685,11 @@ class TrainLoop:
 
         for split_idx, split_batch in enumerate(splits):
 
-            # create an iterable for optimizers and loop over them
-            for opt_idx, optimizer in optimizers:
-                self.run_batch_split(batch_outputs, batch_idx, split_idx, split_batch, opt_idx, optimizer)
-
+            if self.trainer.lightning_module.automatic_optimization:
+                for opt_idx, optimizer in optimizers:
+                    self.run_batch_split(batch_outputs, batch_idx, split_idx, split_batch, opt_idx, optimizer)
+            else:
+                self.run_batch_split(batch_outputs, batch_idx, split_idx, split_batch)
 
         result = AttributeDict(
             signal=0,
@@ -697,7 +698,7 @@ class TrainLoop:
         )
         return result
 
-    def run_batch_split(self, batch_outputs, batch_idx, split_idx, split_batch, opt_idx, optimizer):
+    def run_batch_split(self, batch_outputs, batch_idx, split_idx, split_batch, opt_idx=None, optimizer=None):
         # toggle model params + set info to logger_connector
         self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
