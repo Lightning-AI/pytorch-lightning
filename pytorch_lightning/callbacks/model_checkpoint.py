@@ -251,7 +251,7 @@ class ModelCheckpoint(Callback):
         train_time_interval = self._train_time_interval
         skip_time = True
         now = time.monotonic()
-        if train_time_interval is not None:
+        if train_time_interval:
             prev_time_check = self._prev_time_check
             skip_time = (prev_time_check is None or (now - prev_time_check) < train_time_interval.total_seconds())
             # in case we have time differences across ranks
