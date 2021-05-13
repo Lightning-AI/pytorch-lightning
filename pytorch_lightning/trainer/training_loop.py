@@ -704,7 +704,7 @@ class TrainLoop:
             if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in optimizers:
                     if self._should_skip_optimizer(opt_idx, batch_idx):
-                        # frequency of this optimizer doesnt align with current batch index, skip it
+                        # frequency of this optimizer does not align with current batch index, skip it
                         continue
                     result = self.run_batch_split(batch_idx, split_idx, split_batch, opt_idx, optimizer)
                     if result:
