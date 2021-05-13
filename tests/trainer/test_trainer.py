@@ -38,6 +38,7 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, Un
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
@@ -339,8 +340,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
-        trainer.current_epoch = i
-        trainer.global_step = i
+        trainer.train_loop.current_epoch = i
+        trainer.train_loop.global_step = i
         trainer.logger_connector.callback_metrics = {"checkpoint_on": torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
@@ -611,7 +612,7 @@ def test_benchmark_option(tmpdir):
 
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
-@pytest.mark.parametrize("fn", ("validate", "test"))
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
 def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
 
     class TestModel(BoringModel):
@@ -620,48 +621,55 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
             self.log("foo", -batch_idx)
             return super().validation_step(batch, batch_idx)
 
+        def test_step(self, *args):
+            return self.validation_step(*args)
+
+        def predict_step(self, *args):
+            args = args[:-1]  # remove `dataloader_idx`
+            return self.validation_step(*args)
+
     model = TestModel()
+    model.test_epoch_end = None
     trainer = Trainer(
         max_epochs=2,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
         progress_bar_refresh_rate=0,
         default_root_dir=tmpdir,
         callbacks=[ModelCheckpoint(monitor="foo", save_top_k=save_top_k)],
     )
     trainer.fit(model)
 
-    test_or_validate = getattr(trainer, fn)
+    trainer_fn = getattr(trainer, fn)
+    path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
+    assert getattr(trainer, path_attr) is None
+
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
         if save_top_k == 0:
             with pytest.raises(MisconfigurationException, match=".*is not configured to save the best.*"):
-                test_or_validate(ckpt_path=ckpt_path)
+                trainer_fn(ckpt_path=ckpt_path)
         else:
-            test_or_validate(ckpt_path=ckpt_path)
-            if fn == "test":
-                assert trainer.tested_ckpt_path == trainer.checkpoint_callback.best_model_path
-            else:
-                assert trainer.validated_ckpt_path == trainer.checkpoint_callback.best_model_path
+            trainer_fn(ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and
         # use the weights from the end of training
-        test_or_validate(ckpt_path=ckpt_path)
-        assert trainer.tested_ckpt_path is None
-        assert trainer.validated_ckpt_path is None
+        trainer_fn(ckpt_path=ckpt_path)
+        assert getattr(trainer, path_attr) is None
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
             with pytest.raises(FileNotFoundError):
-                test_or_validate(ckpt_path="random.ckpt")
+                trainer_fn(ckpt_path="random.ckpt")
         else:
             ckpt_path = str(
                 list((Path(tmpdir) / f"lightning_logs/version_{trainer.logger.version}/checkpoints").iterdir()
                      )[0].absolute()
             )
-            test_or_validate(ckpt_path=ckpt_path)
-            if fn == "test":
-                assert trainer.tested_ckpt_path == ckpt_path
-            else:
-                assert trainer.validated_ckpt_path == ckpt_path
+            trainer_fn(ckpt_path=ckpt_path)
+            assert getattr(trainer, path_attr) == ckpt_path
 
 
 def test_disabled_training(tmpdir):
@@ -1042,14 +1050,8 @@ def test_gpu_choice(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["limit_val_batches"],
-    [
-        pytest.param(0.0),  # this should run no sanity checks
-        pytest.param(1),
-        pytest.param(1.0),
-        pytest.param(0.5),
-        pytest.param(5),
-    ],
+    "limit_val_batches",
+    [0.0, 1, 1.0, 0.5, 5],
 )
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     """
@@ -1079,15 +1081,7 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
         )
 
 
-@pytest.mark.parametrize(
-    ["limit_val_batches"],
-    [
-        pytest.param(0.0),  # this should run no sanity checks
-        pytest.param(1),
-        pytest.param(1.0),
-        pytest.param(0.3),
-    ],
-)
+@pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.3])
 def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     """
     Test that `num_sanity_val_steps=-1` runs through all validation data once, and as many batches as
@@ -1118,207 +1112,67 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     [
         (
             dict(accelerator=None, gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="dp", gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
-        ),
-        (
-            dict(accelerator="dp", gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp", num_processes=2, gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp", num_nodes=2, gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.CPU, num_gpus=0, num_processes=1),
         ),
         (
             dict(accelerator=None, gpus=1),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=1,
-                on_gpu=True,
-                use_single_gpu=True,
-                num_processes=1,
-            ),
+            dict(_distrib_type=None, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="dp", gpus=1),
-            dict(
-                use_dp=True,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=1,
-                on_gpu=True,
-                use_single_gpu=True,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=1),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=1,
-                on_gpu=True,
-                use_single_gpu=True,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=1),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=True,
-                num_gpus=1,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=1, num_processes=1),
         ),
         (
             dict(accelerator=None, gpus=2),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=2,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(accelerator="dp", gpus=2),
-            dict(
-                use_dp=True,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=2,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
         (
             dict(accelerator="ddp", gpus=2),
-            dict(
-                use_dp=False,
-                use_ddp=True,
-                use_ddp2=False,
-                num_gpus=2,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=2,
-            ),
+            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.GPU, num_gpus=2, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=2),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=True,
-                num_gpus=2,
-                on_gpu=True,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
+            dict(_distrib_type=DistributedType.DDP2, _device_type=DeviceType.GPU, num_gpus=2, num_processes=1),
         ),
     ],
 )
@@ -1327,7 +1181,7 @@ def test_trainer_config(trainer_kwargs, expected, monkeypatch):
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
     trainer = Trainer(**trainer_kwargs)
-    assert len(expected) == 7
+    assert len(expected) == 4
     for k, v in expected.items():
         assert getattr(trainer, k) == v, f"Failed {k}: {v}"
 
@@ -1371,17 +1225,10 @@ def test_trainer_subclassing():
 
 
 @pytest.mark.parametrize(
-    "trainer_params",
-    [
-        OmegaConf.create({
-            "max_epochs": 1,
-            "gpus": 1
-        }),
-        OmegaConf.create({
-            "max_epochs": 1,
-            "gpus": [0]
-        }),
-    ],
+    "trainer_params", [
+        OmegaConf.create(dict(max_epochs=1, gpus=1)),
+        OmegaConf.create(dict(max_epochs=1, gpus=[0])),
+    ]
 )
 @RunIf(min_gpus=1)
 def test_trainer_omegaconf(trainer_params):
@@ -1924,7 +1771,7 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
     trainer.fit(model)
     compare_optimizers()
 
-    trainer.max_epochs = 2  # simulate multiple fit calls
+    trainer.train_loop.max_epochs = 2  # simulate multiple fit calls
     trainer.fit(model)
     compare_optimizers()
 
@@ -2001,8 +1848,9 @@ class TrainerStagesModel(BoringModel):
         assert not self.training
 
 
-@pytest.mark.parametrize(['accelerator', 'num_processes'],
-                         [(None, 1), pytest.param('ddp', 2, marks=RunIf(skip_windows=True))])
+@pytest.mark.parametrize(
+    'accelerator,num_processes', [(None, 1), pytest.param('ddp', 2, marks=RunIf(skip_windows=True))]
+)
 def test_model_in_correct_mode_during_stages(tmpdir, accelerator, num_processes):
     model = TrainerStagesModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, num_processes=num_processes, fast_dev_run=True)
