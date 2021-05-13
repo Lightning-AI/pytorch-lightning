@@ -230,20 +230,10 @@ class TrainLoop:
 
         return False
 
-    # TODO: find a better way to compute this
     def _should_skip_optimizer(self, opt_idx: int, batch_idx: Optional[int] = None) -> bool:
         """ Determine if the optimizer should be skipped based on desired frequencies. """
-        if not self.trainer.optimizer_frequencies:
-            return False
-
-        if batch_idx is None:
-            batch_idx = self.total_batch_idx
-
-        optimizers_loop_length = self.optimizer_freq_cumsum[-1]
-        current_place_in_loop = batch_idx % optimizers_loop_length
-
-        # find optimzier index by looking for the first {item > current_place} in the cumsum list
-        return opt_idx != np.argmax(self.optimizer_freq_cumsum > current_place_in_loop)
+        active_indices = [idx for (idx, _) in self.get_active_optimizers(batch_idx)]
+        return opt_idx not in active_indices
 
     def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
         """
