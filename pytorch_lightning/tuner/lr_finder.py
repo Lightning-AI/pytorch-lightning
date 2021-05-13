@@ -119,7 +119,7 @@ class _LRFinder(object):
             elif isinstance(optim_conf, (list, tuple)) and isinstance(optim_conf[0], dict):
                 optimizers = [opt_dict["optimizer"] for opt_dict in optim_conf]
             elif isinstance(optim_conf, (list, tuple)):
-                optimizers = [optim_conf]
+                optimizers = [optim_conf]  # type: ignore
 
             if len(optimizers) != 1:
                 raise MisconfigurationException(
@@ -141,7 +141,7 @@ class _LRFinder(object):
 
         return func
 
-    def plot(self, suggest: bool = False, show: bool = False):
+    def plot(self, suggest: bool = False, show: bool = False):  # type: ignore
         """ Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -172,7 +172,7 @@ class _LRFinder(object):
 
         return fig
 
-    def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> float:
+    def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> Optional[float]:
         """ This will propose a suggestion for choice of initial learning rate
         as the point with the steepest negative gradient.
 
@@ -245,7 +245,7 @@ def lr_find(
     trainer.save_checkpoint(str(save_path))
 
     # Configure optimizer and scheduler
-    model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
+    model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)  # type: ignore
 
     # Fit, lr & loss logged in callback
     trainer.tuner._run(model)
@@ -300,7 +300,7 @@ def __lr_finder_restore_params(trainer: 'pl.Trainer', model: 'pl.LightningModule
     trainer.callbacks = trainer.__dumped_params['callbacks']
     trainer.train_loop.max_steps = trainer.__dumped_params['max_steps']
     trainer.train_loop.current_epoch = trainer.__dumped_params['current_epoch']
-    model.configure_optimizers = trainer.__dumped_params['configure_optimizers']
+    model.configure_optimizers = trainer.__dumped_params['configure_optimizers']  # type: ignore
     del trainer.__dumped_params
 
 
@@ -332,8 +332,8 @@ class _LRCallback(Callback):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
-        self.losses = []
-        self.lrs = []
+        self.losses: List[float] = []
+        self.lrs: List[float] = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
@@ -347,7 +347,7 @@ class _LRCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
 
-        self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
+        self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])  # type: ignore
 
     def on_train_batch_end(
         self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', outputs: Optional[Union[torch.Tensor, Dict[str,
@@ -404,7 +404,7 @@ class _LinearLR(_LRScheduler):
         self.num_iter = num_iter
         super(_LinearLR, self).__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List:
+    def get_lr(self) -> List[float]:  # type: ignore
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -416,7 +416,7 @@ class _LinearLR(_LRScheduler):
         return val
 
     @property
-    def lr(self):
+    def lr(self) -> List[float]:
         return self._lr
 
 
@@ -442,7 +442,7 @@ class _ExponentialLR(_LRScheduler):
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> list:
+    def get_lr(self) -> List[float]:  # type: ignore
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -450,9 +450,10 @@ class _ExponentialLR(_LRScheduler):
             val = [base_lr * (self.end_lr / base_lr)**r for base_lr in self.base_lrs]
         else:
             val = [base_lr for base_lr in self.base_lrs]
+            # todo: why not `val = self.base_lrs`?
         self._lr = val
         return val
 
     @property
-    def lr(self) -> float:
+    def lr(self) -> List[float]:
         return self._lr

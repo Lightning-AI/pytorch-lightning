@@ -246,7 +246,7 @@ def _adjust_batch_size(
         log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
 
     if not _is_valid_batch_size(new_size, trainer.train_dataloader):
-        new_size = min(new_size, len(trainer.train_dataloader.dataset))
+        new_size = min(new_size, len(trainer.train_dataloader.dataset))  # type: ignore
 
     changed = new_size != batch_size
     lightning_setattr(model, batch_arg_name, new_size)

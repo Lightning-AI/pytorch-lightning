@@ -51,11 +51,11 @@ class Tuner:
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
             lr_find_kwargs.setdefault('update_attr', True)
-            result['lr_find'] = lr_find(self.trainer, model, **lr_find_kwargs)
+            result['lr_find'] = lr_find(self.trainer, model, **lr_find_kwargs)  # type: ignore
 
         self.trainer.state.status = TrainerStatus.FINISHED
 
-        return result
+        return result  # type: ignore
 
     def _run(self, *args: Any, **kwargs: Any) -> None:
         """`_run` wrapper to set the proper state during tuning, as this can be called multiple times"""
@@ -198,4 +198,4 @@ class Tuner:
             }
         )
         self.trainer.auto_lr_find = False
-        return result['lr_find']
+        return result['lr_find']  # type: ignore
