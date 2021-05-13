@@ -1630,7 +1630,7 @@ class LightningModule(
 
         tqdm_dict = {}
         if avg_training_loss is not None:
-            tqdm_dict["loss"] = f"{avg_training_loss:.3f}"
+            tqdm_dict["loss"] = f"{avg_training_loss:#.3g}"
 
         module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
