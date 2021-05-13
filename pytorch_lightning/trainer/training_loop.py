@@ -705,9 +705,16 @@ class TrainLoop:
                 for opt_idx, optimizer in optimizers:
                     if self._should_skip_optimizer(opt_idx, batch_idx):
                         continue
-                    self.run_batch_split(batch_outputs, batch_idx, split_idx, split_batch, opt_idx, optimizer)
+                    result = self.run_batch_split(batch_idx, split_idx, split_batch, opt_idx, optimizer)
+                    if result:
+                        batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
             else:
-                self.run_batch_split(batch_outputs, batch_idx, split_idx, split_batch)
+                result = self.run_batch_split(batch_idx, split_idx, split_batch)
+                if result:
+                    # this if check is required for
+                    # tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_and_accumulated_grad
+                    # TODO: make grad accumulation + manual optimization incompatible to simplify this logic here!
+                    batch_outputs[0].append(result.training_step_output_for_epoch_end)
 
         result = AttributeDict(
             signal=0,
@@ -716,7 +723,7 @@ class TrainLoop:
         )
         return result
 
-    def run_batch_split(self, batch_outputs, batch_idx, split_idx, split_batch, opt_idx=None, optimizer=None):
+    def run_batch_split(self, batch_idx, split_idx, split_batch, opt_idx=None, optimizer=None):
         # toggle model params + set info to logger_connector
         self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
@@ -758,7 +765,7 @@ class TrainLoop:
             if not result:
                 # user decided to skip optimization
                 # make sure to zero grad.
-                return batch_outputs
+                return result
 
             # todo: Properly aggregate grad_norm accros opt_idx and split_idx
             grad_norm_dict = result.get("grad_norm_dict", {})
@@ -767,15 +774,7 @@ class TrainLoop:
             self.update_running_loss(result.loss)
 
         self._process_closure_result(opt_closure_result=result)
-        # track all the outputs across all steps
-
-        if result is not None:
-            # this if check is required for tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_and_accumulated_grad
-            # TODO: make grad accumulation + manual optimization incompatible to simplify this logic here!
-            opt_idx = 0 if opt_idx is None else opt_idx
-            batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
-
-        return batch_outputs
+        return result
 
     @contextmanager
     def block_ddp_sync_behaviour(self, should_block_sync: bool = False):
