@@ -14,10 +14,11 @@
 
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
 
 import numpy as np
 import torch
+from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
@@ -78,9 +79,8 @@ class TrainLoop:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
 
     @property
-    def num_optimizers(self):
-        num_optimizers = len(self.get_optimizers_iterable())
-        return num_optimizers
+    def num_active_optimizers(self):
+        return len(self.get_active_optimizers())
 
     @property
     def optimizer_freq_cumsum(self):
@@ -245,24 +245,25 @@ class TrainLoop:
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
         return opt_idx != np.argmax(self.optimizer_freq_cumsum > current_place_in_loop)
 
-    # TODO: get rid of this method
-    def get_optimizers_iterable(self, batch_idx=None):
+    def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
         """
-        Generates an iterable with (idx, optimizer) for each optimizer.
+        Returns the currently active optimizers. When multiple optimizers are used with different frequencies,
+        only one of the optimizers is active at a time.
+
+        Returns:
+            A list of tuples (opt_idx, optimizer) of currently active optimizers.
         """
         if not self.trainer.optimizer_frequencies:
             # call training_step once per optimizer
             return list(enumerate(self.trainer.optimizers))
 
-        if batch_idx is None:
-            batch_idx = self.total_batch_idx
-
+        batch_idx = self.total_batch_idx if batch_idx is None else batch_idx
         optimizers_loop_length = self.optimizer_freq_cumsum[-1]
         current_place_in_loop = batch_idx % optimizers_loop_length
 
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
-        opt_idx = np.argmax(self.optimizer_freq_cumsum > current_place_in_loop)
-        return [[opt_idx, self.trainer.optimizers[opt_idx]]]
+        opt_idx = int(np.argmax(self.optimizer_freq_cumsum > current_place_in_loop))
+        return [(opt_idx, self.trainer.optimizers[opt_idx])]
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
         training_step_output.detach()
@@ -483,7 +484,7 @@ class TrainLoop:
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
 
         # track epoch output
-        epoch_output = [[] for _ in range(self.num_optimizers)]
+        epoch_output = [[] for _ in range(self.num_active_optimizers)]
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
@@ -882,7 +883,7 @@ class TrainLoop:
             self.trainer.optimizer_connector.update_learning_rates(
                 interval="step",
                 monitor_metrics=monitor_metrics,
-                opt_indices=[opt_idx for opt_idx, _ in self.get_optimizers_iterable()],
+                opt_indices=[opt_idx for opt_idx, _ in self.get_active_optimizers()],
             )
 
     def increment_accumulated_grad_global_step(self):
@@ -979,13 +980,6 @@ class TrainLoop:
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
-
-    def prepare_optimizers(self):
-        # in manual optimization we loop over all optimizers at once
-        optimizers = self.get_optimizers_iterable()
-        if not self.trainer.lightning_module.automatic_optimization:
-            optimizers = [optimizers[0]]
-        return optimizers
 
     def run_train_split_start(self, split_idx, split_batch, opt_idx, optimizer):
         # set split_idx to trainer for tracking
