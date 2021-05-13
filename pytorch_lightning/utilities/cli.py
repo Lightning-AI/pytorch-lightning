@@ -28,7 +28,6 @@ if _JSONARGPARSE_AVAILABLE:
 else:
     ArgumentParser = object
 
-
 set_config_read_mode(fsspec_enabled=True)
 
 
