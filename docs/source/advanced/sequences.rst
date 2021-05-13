@@ -40,7 +40,7 @@ For example, it may save memory to use Truncated Backpropagation Through Time wh
 
 Lightning can handle TBTT automatically via this flag.
 
-.. testcode:: python
+.. testcode::
 
     from pytorch_lightning import LightningModule
 
