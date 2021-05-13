@@ -687,61 +687,8 @@ class TrainLoop:
 
             # create an iterable for optimizers and loop over them
             for opt_idx, optimizer in optimizers:
+                self.run_batch_split(batch_outputs, batch_idx, split_idx, split_batch, opt_idx, optimizer)
 
-                # toggle model params + set info to logger_connector
-                self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
-
-                result = AttributeDict()
-                if self.should_accumulate():
-                    # For gradient accumulation
-
-                    # -------------------
-                    # calculate loss (train step + train step end)
-                    # -------------------
-
-                    # automatic_optimization=True: perform dpp sync only when performing optimizer_step
-                    # automatic_optimization=False: don't block synchronization here
-                    with self.block_ddp_sync_behaviour():
-                        result = self.training_step_and_backward(
-                            split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                        )
-
-                # ------------------------------
-                # BACKWARD PASS
-                # ------------------------------
-                # gradient update with accumulated gradients
-                else:
-                    if self.trainer.lightning_module.automatic_optimization:
-
-                        def train_step_and_backward_closure():
-                            nonlocal result
-                            result = self.training_step_and_backward(
-                                split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                            )
-                            return None if result is None else result.loss
-
-                        # optimizer step
-                        self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
-
-                    else:
-                        result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
-
-                    if not result:
-                        # user decided to skip optimization
-                        # make sure to zero grad.
-                        continue
-
-                    # todo: Properly aggregate grad_norm accros opt_idx and split_idx
-                    grad_norm_dict = result.get("grad_norm_dict", {})
-
-                    # update running loss + reset accumulated loss
-                    self.update_running_loss(result.loss)
-
-                batch_outputs = self._process_closure_result(
-                    opt_closure_result=result,
-                    batch_outputs=batch_outputs,
-                    opt_idx=opt_idx,
-                )
 
         result = AttributeDict(
             signal=0,
@@ -749,6 +696,63 @@ class TrainLoop:
             training_step_output_for_epoch_end=batch_outputs,
         )
         return result
+
+    def run_batch_split(self, batch_outputs, batch_idx, split_idx, split_batch, opt_idx, optimizer):
+        # toggle model params + set info to logger_connector
+        self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
+
+        result = AttributeDict()
+        if self.should_accumulate():
+            # For gradient accumulation
+
+            # -------------------
+            # calculate loss (train step + train step end)
+            # -------------------
+
+            # automatic_optimization=True: perform dpp sync only when performing optimizer_step
+            # automatic_optimization=False: don't block synchronization here
+            with self.block_ddp_sync_behaviour():
+                result = self.training_step_and_backward(
+                    split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                )
+
+        # ------------------------------
+        # BACKWARD PASS
+        # ------------------------------
+        # gradient update with accumulated gradients
+        else:
+            if self.trainer.lightning_module.automatic_optimization:
+
+                def train_step_and_backward_closure():
+                    nonlocal result
+                    result = self.training_step_and_backward(
+                        split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                    )
+                    return None if result is None else result.loss
+
+                # optimizer step
+                self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
+
+            else:
+                result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
+
+            if not result:
+                # user decided to skip optimization
+                # make sure to zero grad.
+                return batch_outputs
+
+            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
+            grad_norm_dict = result.get("grad_norm_dict", {})
+
+            # update running loss + reset accumulated loss
+            self.update_running_loss(result.loss)
+
+        batch_outputs = self._process_closure_result(
+            opt_closure_result=result,
+            batch_outputs=batch_outputs,
+            opt_idx=opt_idx,
+        )
+        return batch_outputs
 
     @contextmanager
     def block_ddp_sync_behaviour(self, should_block_sync: bool = False):
