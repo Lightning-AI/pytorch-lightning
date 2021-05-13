@@ -60,6 +60,7 @@ class PredictLoop(object):
 
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []
+        self.trainer.predicted_ckpt_path = None
 
     def get_predict_dataloaders(self):
         self.trainer.reset_predict_dataloader(self.trainer.lightning_module)
