@@ -90,6 +90,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed recursive passing of `wrong_type` keyword argument in `pytorch_lightning.utilities.apply_to_collection` ([#7433](https://github.com/PyTorchLightning/pytorch-lightning/pull/7433))
 
 
+- Fixed progress bar jittering when loss precision changes rapidly ([#7532](https://github.com/PyTorchLightning/pytorch-lightning/pull/7532))
+
 
 ## [1.3.1] - 2021-05-11
 
