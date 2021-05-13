@@ -766,11 +766,15 @@ class TrainLoop:
             # update running loss + reset accumulated loss
             self.update_running_loss(result.loss)
 
-        batch_outputs = self._process_closure_result(
-            opt_closure_result=result,
-            batch_outputs=batch_outputs,
-            opt_idx=opt_idx,
-        )
+        self._process_closure_result(opt_closure_result=result)
+        # track all the outputs across all steps
+
+        if result is not None:
+            # this if check is required for tests/trainer/optimization/test_manual_optimization.py::test_step_with_optimizer_closure_and_accumulated_grad
+            # TODO: make grad accumulation + manual optimization incompatible to simplify this logic here!
+            opt_idx = 0 if opt_idx is None else opt_idx
+            batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
+
         return batch_outputs
 
     @contextmanager
@@ -797,9 +801,8 @@ class TrainLoop:
         else:
             yield None
 
-    def _process_closure_result(
-        self, opt_closure_result: Optional[AttributeDict], batch_outputs: list, opt_idx: Optional[int]
-    ) -> list:
+    def _process_closure_result(self, opt_closure_result: Optional[AttributeDict]) -> None:
+        """ For manual_optimization, opt_idx is None. """
         if opt_closure_result:
             # cache metrics
             self.trainer.logger_connector.cache_training_step_metrics(opt_closure_result)
@@ -807,13 +810,6 @@ class TrainLoop:
             # check if loss or model weights are nan
             if self.trainer.terminate_on_nan:
                 self._check_finite(opt_closure_result.loss)
-
-            # track all the outputs across all steps
-            # batch_opt_idx = opt_idx if self.trainer.lightning_module.automatic_optimization else 0
-            opt_idx = 0 if opt_idx is None else opt_idx
-            batch_outputs[opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
-
-        return batch_outputs
 
     def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """Wrap forward, zero_grad and backward in a closure so second order methods work"""
