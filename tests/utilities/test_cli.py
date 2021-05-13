@@ -389,17 +389,15 @@ def test_lightning_cli_help():
     assert '--data.init_args.data_dir' in out.getvalue()
 
 
-# TODO: print_config is broken?
 def test_lightning_cli_print_config():
-
     cli_args = [
         'any.py',
         '--seed_everything=1234',
         '--model=tests.helpers.BoringModel',
         '--data=tests.helpers.BoringDataModule',
-        '--print_config',
+        '--print_config=""',
+        'predict',
     ]
-
     out = StringIO()
     with mock.patch('sys.argv', cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
@@ -408,6 +406,8 @@ def test_lightning_cli_print_config():
     assert out['seed_everything'] == 1234
     assert out['model']['class_path'] == 'tests.helpers.BoringModel'
     assert out['data']['class_path'] == 'tests.helpers.BoringDataModule'
+    assert out['subcommand'] == 'predict'
+    assert out['predict']['ckpt_path'] == 'best'
 
 
 def test_lightning_cli_submodules(tmpdir):
