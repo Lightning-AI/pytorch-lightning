@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 
+- Changed the `Trainer`'s `checkpoint_callback` argument to allow boolean values only ([#7539](https://github.com/PyTorchLightning/pytorch-lightning/pull/7539))
+
+
 - Log epoch metrics before the `on_evaluation_end` hook ([#7272](https://github.com/PyTorchLightning/pytorch-lightning/pull/7272))
 
 

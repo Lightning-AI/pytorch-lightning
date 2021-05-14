@@ -54,7 +54,7 @@ class CallbackConnector:
 
         # configure checkpoint callback
         # pass through the required args to figure out defaults
-        self.configure_checkpoint_callbacks(checkpoint_callback)
+        self._configure_checkpoint_callbacks(checkpoint_callback)
 
         # configure swa callback
         self._configure_swa_callbacks()
@@ -70,11 +70,12 @@ class CallbackConnector:
         # it is important that these are the last callbacks to run
         self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
-    def configure_checkpoint_callbacks(self, checkpoint_callback: bool) -> None:
+    def _configure_checkpoint_callbacks(self, checkpoint_callback: bool) -> None:
         if not isinstance(checkpoint_callback, bool):
-            raise MisconfigurationException(
-                f"Invalid type provided for checkpoint_callback: Expected bool but received {type(checkpoint_callback)}."
-            )
+            error_msg = f"Invalid type provided for checkpoint_callback: Expected bool but received {type(checkpoint_callback)}."
+            if isinstance(checkpoint_callback, Callback):
+                error_msg += f" Pass callback instances to the `callbacks` argument in the Trainer constructor instead."
+            raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
                 "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
