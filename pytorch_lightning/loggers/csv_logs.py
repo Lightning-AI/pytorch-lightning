@@ -152,7 +152,7 @@ class CSVLogger(LightningLoggerBase):
         return self._save_dir
 
     @property
-    def experiment_dir(self) -> Optional[str]:
+    def experiment_dir(self) -> str:
         """
         The log directory for this run. By default, it is named
         ``save_dir/name/'version_${self.version}'`` but the root directory, experiment name and version can also be

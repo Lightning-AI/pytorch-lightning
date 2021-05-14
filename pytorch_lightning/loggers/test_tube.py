@@ -198,7 +198,7 @@ class TestTubeLogger(LightningLoggerBase):
         return self._save_dir
 
     @property
-    def experiment_dir(self) -> Optional[str]:
+    def experiment_dir(self) -> str:
         tf_log_dir = Path(self.experiment.log_dir)
         return str(tf_log_dir.parent)
 
