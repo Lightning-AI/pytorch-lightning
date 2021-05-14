@@ -15,13 +15,14 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.base.boring_model import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
 
 
 def test_overfit_multiple_val_loaders(tmpdir):
     """
     Tests that only training_step can be used
     """
+
     class TestModel(BoringModel):
 
         def validation_step(self, batch, batch_idx, dataloader_idx):

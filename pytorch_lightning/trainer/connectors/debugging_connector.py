@@ -25,13 +25,14 @@ class DebuggingConnector:
         self.trainer = trainer
 
     def on_init_start(
-            self,
-            limit_train_batches,
-            limit_val_batches,
-            limit_test_batches,
-            val_check_interval,
-            overfit_batches,
-            fast_dev_run
+        self,
+        limit_train_batches,
+        limit_val_batches,
+        limit_test_batches,
+        limit_predict_batches,
+        val_check_interval,
+        overfit_batches,
+        fast_dev_run,
     ):
         if not isinstance(fast_dev_run, (bool, int)):
             raise MisconfigurationException(
@@ -56,21 +57,23 @@ class DebuggingConnector:
             limit_train_batches = fast_dev_run
             limit_val_batches = fast_dev_run
             limit_test_batches = fast_dev_run
-            self.trainer.max_steps = fast_dev_run
+            limit_predict_batches = fast_dev_run
+            self.trainer.train_loop.max_steps = fast_dev_run
             self.trainer.num_sanity_val_steps = 0
-            self.trainer.max_epochs = 1
-            self.trainer.val_check_interval = 1.0
+            self.trainer.train_loop.max_epochs = 1
+            val_check_interval = 1.0
             self.trainer.check_val_every_n_epoch = 1
             self.trainer.logger = DummyLogger()
 
             rank_zero_info(
                 'Running in fast_dev_run mode: will run a full train,'
-                f' val and test loop using {fast_dev_run} batch(es).'
+                f' val, test and prediction loop using {fast_dev_run} batch(es).'
             )
 
         self.trainer.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
         self.trainer.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')
         self.trainer.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
+        self.trainer.limit_predict_batches = _determine_batch_limits(limit_predict_batches, 'limit_predict_batches')
         self.trainer.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
         self.trainer.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
         self.determine_data_use_amount(self.trainer.overfit_batches)

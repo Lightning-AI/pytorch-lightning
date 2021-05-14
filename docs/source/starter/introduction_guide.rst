@@ -240,7 +240,7 @@ In this case, it's better to group the full definition of a dataset into a `Data
             tokenize()
             build_vocab()
 
-        def setup(self):
+        def setup(self, stage: Optional[str] = None):
             # called on every GPU
             vocab = load_vocab()
             self.vocab_size = len(vocab)
@@ -295,8 +295,6 @@ When your models need to know about the data, it's best to process the data befo
 1. use ``prepare_data()`` to download and process the dataset.
 2. use ``setup()`` to do splits, and build your model internals
 
-|
-
 An alternative to using a DataModule is to defer initialization of the models modules to the ``setup`` method of your LightningModule as follows:
 
 .. testcode::
@@ -310,8 +308,8 @@ An alternative to using a DataModule is to defer initialization of the models mo
             download_data()
             tokenize()
 
-        def setup(self, step):
-            # step is either 'fit' or 'test' 90% of the time not relevant
+        def setup(self, stage: Optional[str] = None):
+            # step is either 'fit', 'validate', 'test', or 'predict'. 90% of the time not relevant
             data = load_data()
             num_classes = data.classes
             self.l1 = nn.Linear(..., num_classes)
@@ -361,9 +359,9 @@ The training step is what happens inside the training loop.
             # TRAINING STEP
             # ....
             # TRAINING STEP
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
 In the case of MNIST, we do the following
 
@@ -377,9 +375,9 @@ In the case of MNIST, we do the following
             loss = F.nll_loss(logits, y)
             # ------ TRAINING STEP END ------
 
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
 In Lightning, everything that is in the training step gets organized under the
 :func:`~pytorch_lightning.core.LightningModule.training_step` function in the LightningModule.
@@ -488,7 +486,7 @@ Once your training starts, you can view the logs by using your favorite logger o
 
 Which will generate automatic tensorboard logs (or with the logger of your choice).
 
-.. figure:: ../_images/mnist_imgs/mnist_tb.png
+.. figure:: ../_static/images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
    :width: 500
 
@@ -509,7 +507,7 @@ Train on CPU
 
 You should see the following weights summary and progress bar
 
-.. figure:: ../_images/mnist_imgs/mnist_cpu_bar.png
+.. figure:: ../_static/images/mnist_imgs/mnist_cpu_bar.png
    :alt: mnist CPU bar
 
 
@@ -524,7 +522,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
     trainer.fit(model, train_loader)
 
 
-.. figure:: ../_images/mnist_imgs/mnist_gpu.png
+.. figure:: ../_static/images/mnist_imgs/mnist_gpu.png
     :alt: mnist GPU bar
 
 Train on Multi-GPU
@@ -558,11 +556,11 @@ Let's train on Colab (`full demo available here <https://colab.research.google.c
 
 First, change the runtime to TPU (and reinstall lightning).
 
-.. figure:: ../_images/mnist_imgs/runtime_tpu.png
+.. figure:: ../_static/images/mnist_imgs/runtime_tpu.png
     :alt: mnist GPU bar
     :width: 400
 
-.. figure:: ../_images/mnist_imgs/restart_runtime.png
+.. figure:: ../_static/images/mnist_imgs/restart_runtime.png
     :alt: mnist GPU bar
     :width: 400
 
@@ -572,9 +570,7 @@ Next, install the required xla library (adds support for PyTorch on TPUs)
 
 .. code-block:: shell
 
-    !curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
-
-    !python pytorch-xla-env-setup.py --version nightly --apt-packages libomp5 libopenblas-dev
+    !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.8-cp37-cp37m-linux_x86_64.whl
 
 In distributed training (multiple GPUs and multiple TPU cores) each GPU or TPU core will run a copy
 of this program. This means that without taking any care you will download the dataset N times which
@@ -598,7 +594,7 @@ In this method we do all the preparation we need to do once (instead of on every
             MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
             MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
-        def setup(self, stage):
+        def setup(self, stage: Optional[str] = None):
             # transform
             transform=transforms.Compose([transforms.ToTensor()])
             mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
@@ -637,13 +633,13 @@ Now we can train the LightningModule on a TPU without doing anything else!
 
 You'll now see the TPU cores booting up.
 
-.. figure:: ../_images/mnist_imgs/tpu_start.png
+.. figure:: ../_static/images/mnist_imgs/tpu_start.png
     :alt: TPU start
     :width: 400
 
 Notice the epoch is MUCH faster!
 
-.. figure:: ../_images/mnist_imgs/tpu_fast.png
+.. figure:: ../_static/images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
     :width: 600
 
@@ -768,7 +764,7 @@ Once you train your model simply call ``.test()``.
 
         --------------------------------------------------------------
         TEST RESULTS
-        {'test_loss': tensor(1.1703, device='cuda:0')}
+        {'test_loss': 1.1703}
         --------------------------------------------------------------
 
 You can also run the test from a saved lightning model
@@ -857,7 +853,8 @@ In this case, we've set this LightningModel to predict logits. But we could also
     x = mnist_image()
     feature_maps = model(x)
 
-Or maybe we have a model that we use to do generation
+Or maybe we have a model that we use to do generation.
+A :class:`~pytorch_lightning.core.lightning.LightningModule` is also just a :class:`torch.nn.Module`.
 
 .. testcode::
 
@@ -882,8 +879,11 @@ Or maybe we have a model that we use to do generation
     generated_imgs = model(z)
 
 
-To perform inference at scale, it is possible to use ``trainer.predict`` with LightningModule ``predict`` function
-By default, LightningModule ``predict`` calls forward, but it can be overriden to add any processing logic.
+To perform inference at scale, it is possible to use :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
+with :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`
+By default, :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`
+calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`,
+but it can be overridden to add any processing logic.
 
 .. code-block:: python
 
@@ -893,7 +893,7 @@ By default, LightningModule ``predict`` calls forward, but it can be overriden t
             imgs = self.decoder(z)
             return imgs
 
-        def predict(self, batch, batch_idx: int , dataloader_idx: int = None):
+        def predict_step(self, batch, batch_idx: int , dataloader_idx: int = None):
             return self(batch)
 
 
@@ -901,14 +901,18 @@ By default, LightningModule ``predict`` calls forward, but it can be overriden t
     trainer.predict(model, datamodule)
 
 
-How you split up what goes in ``forward`` vs ``training_step`` vs ``predict`` depends on how you want to use this model for
-prediction.
-However, we recommend ``forward`` to contain only tensor operation with your model, ``training_step`` to encapsulate ``forward`` logic with logging,
-metrics and loss computation and ``predict`` to encapsulate ``forward`` with preprocess, postprocess functions.
+How you split up what goes in :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`
+vs :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
+vs :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` depends on how you want to use this model for prediction.
+However, we recommend :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` to contain only tensor operations with your model.
+:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` to encapsulate
+:meth:`~pytorch_lightning.core.lightning.LightningModule.forward` logic with logging, metrics, and loss computation.
+:meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` to encapsulate
+:meth:`~pytorch_lightning.core.lightning.LightningModule.forward` with any necessary preprocess or postprocess functions.
 
 ----------------
 
-The nonessentials
+The non-essentials
 ==================
 
 Extensibility
@@ -1036,11 +1040,7 @@ d. Not a new library
 
 PyTorch Lightning is organized PyTorch - no need to learn a new framework.
 
-Switching your model to Lightning is straight forward - here's a 2-minute video on how to do it.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
+Learn how to :ref:`convert from PyTorch to Lightning here <converting>`.
 
 Your projects WILL grow in complexity and you WILL end up engineering more than trying out new ideas...
 Defer the hardest parts to Lightning!

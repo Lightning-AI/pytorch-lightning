@@ -18,6 +18,15 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 
 
 class DDP2Plugin(DDPPlugin):
+    """ DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
+
+    @property
+    def global_rank(self) -> int:
+        return self.node_rank
+
+    @property
+    def world_size(self) -> int:
+        return self.num_nodes
 
     def setup(self, model):
         self._model = model
@@ -25,14 +34,26 @@ class DDP2Plugin(DDPPlugin):
         self.task_idx = self.cluster_environment.local_rank()
         # the difference to DDP is that we don't call children processes here
 
-    def reduce(self, output, *args, **kwargs):
-        if isinstance(output, Result):
-            output.dp_reduce()
+    def reduce(self, tensor, *args, **kwargs):
+        """
+        Reduces a tensor from all processes to one aggregated tensor.
+        In DDP2, the reduction here is only across local devices within the node.
 
-        elif isinstance(output, torch.Tensor):
-            output = output.mean()
+        Args:
+            tensor: the tensor to sync and reduce
+            *args: ignored for DDP2
+            **kwargs: ignored for DDP2
 
-        return output
+        Return:
+            reduced value, except when the input was not a tensor the output remains is unchanged
+        """
+        if isinstance(tensor, Result):
+            tensor.dp_reduce()
+
+        elif isinstance(tensor, torch.Tensor):
+            tensor = tensor.mean()
+
+        return tensor
 
     @property
     def root_device(self):
@@ -47,8 +68,12 @@ class DDP2Plugin(DDPPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.num_nodes, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def set_world_ranks(self):
-        self.local_rank = self.task_idx
-        self.node_rank = self.cluster_environment.node_rank()
-        self.global_rank = self.node_rank
-        self.world_size = self.num_nodes
+    @property
+    def _is_single_process_single_device(self) -> bool:
+        return False
+
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank)
+        self.cluster_environment.set_world_size(self.num_nodes)

@@ -31,10 +31,10 @@ Native torch
 When using PyTorch 1.6+ Lightning uses the native amp implementation to support 16-bit.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     # turn on 16-bit
-    trainer = Trainer(precision=16)
+    trainer = Trainer(precision=16, gpus=1)
 
 Apex 16-bit
 ^^^^^^^^^^^
@@ -47,9 +47,6 @@ To use 16-bit precision, do two things:
 2. Set the "precision" trainer flag.
 
 .. code-block:: bash
-
-    $ git clone https://github.com/NVIDIA/apex
-    $ cd apex
 
     # ------------------------
     # OPTIONAL: on your cluster you might need to load CUDA 10 or 9
@@ -65,7 +62,7 @@ To use 16-bit precision, do two things:
     # make sure you've loaded a cuda version > 4.0 and < 7.0
     module load gcc-6.1.0
 
-    $ pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+    $ pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
 
 .. warning:: NVIDIA Apex and DDP have instability problems. We recommend native 16-bit in PyTorch 1.6+
 
@@ -73,7 +70,7 @@ Enable 16-bit
 ^^^^^^^^^^^^^
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     # turn on 16-bit
     trainer = Trainer(amp_level='O2', precision=16)

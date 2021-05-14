@@ -19,12 +19,12 @@ import numpy as np
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.trainer.states import TrainerState
-from tests.base import EvalModelTemplate
-from tests.base.develop_utils import reset_seed
+from tests.helpers import BoringModel
+from tests.helpers.utils import reset_seed
 
 
-class ModelWithManualGradTracker(EvalModelTemplate):
+class ModelWithManualGradTracker(BoringModel):
+
     def __init__(self, norm_type, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.stored_grad_norms, self.norm_type = [], float(norm_type)
@@ -35,9 +35,9 @@ class ModelWithManualGradTracker(EvalModelTemplate):
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
         # just return a loss, no log or progress bar meta
-        x, y = batch
-        loss_val = self.loss(y, self(x.flatten(1, -1)))
-        return {'loss': loss_val}
+        output = self(batch)
+        loss = self.loss(batch, output)
+        return {'loss': loss}
 
     def on_after_backward(self):
         out, norms = {}, []
@@ -77,7 +77,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     )
     trainer.fit(model)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     logged_metrics = trainer.dev_debugger.logged_metrics
     assert len(logged_metrics) == len(model.stored_grad_norms)
 
@@ -101,7 +101,7 @@ def test_grad_tracking_interval(tmpdir, log_every_n_steps):
     )
 
     with patch.object(trainer.logger, "log_metrics") as mocked:
-        model = EvalModelTemplate()
+        model = BoringModel()
         trainer.fit(model)
         expected = trainer.global_step // log_every_n_steps
         grad_norm_dicts = []

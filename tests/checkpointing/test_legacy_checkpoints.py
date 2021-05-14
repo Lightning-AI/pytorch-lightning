@@ -18,35 +18,55 @@ import sys
 import pytest
 
 from pytorch_lightning import Trainer
-from tests import LEGACY_PATH
+from tests import PATH_LEGACY
 
-LEGACY_CHECKPOINTS_PATH = os.path.join(LEGACY_PATH, 'checkpoints')
+LEGACY_CHECKPOINTS_PATH = os.path.join(PATH_LEGACY, 'checkpoints')
 CHECKPOINT_EXTENSION = ".ckpt"
 
 
 # todo: add more legacy checkpoints - for < v0.8
-@pytest.mark.parametrize("pl_version", [
-    # "0.8.1",
-    "0.8.3",
-    "0.8.4",
-    # "0.8.5", # this version has problem with loading on PT<=1.4 as it seems to be archive
-    # "0.9.0", # this version has problem with loading on PT<=1.4 as it seems to be archive
-    "0.10.0",
-    "1.0.0",
-    "1.0.1",
-    "1.0.2",
-    "1.0.3",
-    "1.0.4",
-    "1.0.5",
-    "1.0.6",
-    "1.0.7",
-    "1.0.8",
-    "1.1.0",
-    "1.1.1",
-    "1.1.2",
-    "1.1.3",
-])
-def test_resume_legacy_checkpoints(tmpdir, pl_version):
+@pytest.mark.parametrize(
+    "pl_version",
+    [
+        # "0.8.1",
+        "0.8.3",
+        "0.8.4",
+        # "0.8.5", # this version has problem with loading on PT<=1.4 as it seems to be archive
+        # "0.9.0", # this version has problem with loading on PT<=1.4 as it seems to be archive
+        "0.10.0",
+        "1.0.0",
+        "1.0.1",
+        "1.0.2",
+        "1.0.3",
+        "1.0.4",
+        "1.0.5",
+        "1.0.6",
+        "1.0.7",
+        "1.0.8",
+        "1.1.0",
+        "1.1.1",
+        "1.1.2",
+        "1.1.3",
+        "1.1.4",
+        "1.1.5",
+        "1.1.6",
+        "1.1.7",
+        "1.1.8",
+        "1.2.0",
+        "1.2.1",
+        "1.2.2",
+        "1.2.3",
+        "1.2.4",
+        "1.2.5",
+        "1.2.6",
+        "1.2.7",
+        "1.2.8",
+        "1.2.10",
+        "1.3.0",
+        "1.3.1",
+    ]
+)
+def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     path_dir = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
 
     # todo: make this as mock, so it is cleaner...
@@ -60,13 +80,11 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version):
 
     model = DummyModel.load_from_checkpoint(path_ckpt)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=6)
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
 
     # todo
     # model = DummyModel()
     # trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, resume_from_checkpoint=path_ckpt)
-    # result = trainer.fit(model)
-    # assert result
+    # trainer.fit(model)
 
     sys.path = orig_sys_paths

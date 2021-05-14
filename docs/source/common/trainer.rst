@@ -75,12 +75,14 @@ Here's the pseudocode for what the trainer does under the hood (showing the trai
         # train step
         loss = training_step(batch)
 
+        # clear gradients
+        optimizer.zero_grad()
+
         # backward
         loss.backward()
 
-        # apply and clear grads
+        # update parameters
         optimizer.step()
-        optimizer.zero_grad()
 
         losses.append(loss)
 
@@ -142,9 +144,22 @@ So you can run it like so:
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
     The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown, including
-    running callbacks such as ``on_train_end``. The trainer object will also set an attribute
-    ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
+    running accelerator callback ``on_train_end`` to clean up memory. The trainer object will also set
+    an attribute ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
     resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs.
+
+------------
+
+Validation
+----------
+You can perform an evaluation epoch over the validation set, outside of the training loop,
+using :meth:`pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
+useful if you want to collect new metrics from a model right at its initialization
+or after it has already been trained.
+
+.. code-block:: python
+
+    trainer.validate(val_dataloaders=val_dataloaders)
 
 ------------
 
@@ -155,34 +170,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test(test_dataloaders=test_dataloader)
-
-------------
-
-Deployment / prediction
------------------------
-You just trained a LightningModule which is also just a torch.nn.Module.
-Use it to do whatever!
-
-.. code-block:: python
-
-    # load model
-    pretrained_model = LightningModule.load_from_checkpoint(PATH)
-    pretrained_model.freeze()
-
-    # use it for finetuning
-    def forward(self, x):
-        features = pretrained_model(x)
-        classes = classifier(features)
-
-    # or for prediction
-    out = pretrained_model(x)
-    api_write({'response': out}
-
-
-You may wish to run the model on a variety of devices. Instead of moving the data
-manually to the correct device, decorate the forward method (or any other method you use for inference)
-with :func:`~pytorch_lightning.core.decorators.auto_move_data` and Lightning will take care of the rest.
+    trainer.test(test_dataloaders=test_dataloaders)
 
 ------------
 
@@ -196,11 +184,15 @@ Example::
 
     from pytorch_lightning import Trainer, seed_everything
 
-    seed_everything(42)
+    seed_everything(42, workers=True)
     # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
     model = Model()
     trainer = Trainer(deterministic=True)
 
+
+By setting ``workers=True`` in :func:`~pytorch_lightning.utilities.seed.seed_everything`, Lightning derives
+unique seeds across all dataloader workers and processes for :mod:`torch`, :mod:`numpy` and stdlib
+:mod:`random` number generators. When turned on, it ensures that e.g. data augmentations are not repeated across workers.
 
 -------
 
@@ -251,10 +243,10 @@ You can also modify hardware behavior by subclassing an existing accelerator to 
 
 Example::
 
-    class MyOwnDDP(DDPAccelerator):
+    class MyOwnAcc(Accelerator):
         ...
 
-    Trainer(accelerator=MyOwnDDP())
+    Trainer(accelerator=MyOwnAcc())
 
 .. warning:: Passing in custom accelerators is experimental but work is in progress to enable full compatibility.
 
@@ -326,43 +318,6 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(amp_level='O2')
-
-automatic_optimization
-^^^^^^^^^^^^^^^^^^^^^^
-When set to False, Lightning does not automate the optimization process. This means you are responsible for your own
-optimizer behavior
-
-Example::
-
-    def training_step(self, batch, batch_idx):
-        # access your optimizers with use_pl_optimizer=False. Default is True
-        opt = self.optimizers(use_pl_optimizer=True)
-
-        loss = ...
-        self.manual_backward(loss, opt)
-        opt.step()
-        opt.zero_grad()
-
-This is not recommended when using a single optimizer, instead it's recommended when using 2+ optimizers
-AND you are an expert user. Most useful for research like RL, sparse coding and GAN research.
-
-In the multi-optimizer case, ignore the optimizer_idx flag and use the optimizers directly
-
-Example::
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        # access your optimizers with use_pl_optimizer=False. Default is True
-        (opt_a, opt_b) = self.optimizers(use_pl_optimizer=True)
-
-        gen_loss = ...
-        self.manual_backward(gen_loss, opt_a)
-        opt_a.step()
-        opt_a.zero_grad()
-
-        disc_loss = ...
-        self.manual_backward(disc_loss, opt_b)
-        opt_b.step()
-        opt_b.zero_grad()
 
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^
@@ -515,7 +470,9 @@ callbacks
 
 |
 
-Add a list of :class:`~pytorch_lightning.callbacks.Callback`.
+Add a list of :class:`~pytorch_lightning.callbacks.Callback`. Callbacks run sequentially in the order defined here
+with the exception of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
+after all others to ensure all states are saved to the checkpoints.
 
 .. code-block:: python
 
@@ -532,6 +489,14 @@ Example::
             print("Training is started!")
         def on_train_end(self, trainer, pl_module):
             print("Training is done.")
+
+
+Model-specific callbacks can also be added inside the ``LightningModule`` through
+:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
+the trainer callbacks should there be two or more of the same type.
+:class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
+
 
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -905,7 +870,7 @@ logger
 
 |
 
-:doc:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking.
+:doc:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
 
 .. testcode::
 
@@ -998,6 +963,26 @@ Trainer will train model for at least min_steps or min_epochs (latest).
 
     # Run at least for 100 steps (disable min_epochs)
     trainer = Trainer(min_steps=100, min_epochs=0)
+
+max_time
+^^^^^^^^
+
+Set the maximum amount of time for training. Training will get interrupted mid-epoch.
+For customizable options use the :class:`~pytorch_lightning.callbacks.timer.Timer` callback.
+
+.. testcode::
+
+    # Default (disabled)
+    trainer = Trainer(max_time=None)
+
+    # Stop after 12 hours of training or when reaching 10 epochs (string)
+    trainer = Trainer(max_time="00:12:00:00", max_epochs=10)
+
+    # Stop after 1 day and 5 hours (dict)
+    trainer = Trainer(max_time={"days": 1, "hours": 5})
+
+In case ``max_time`` is used together with ``min_steps`` or ``min_epochs``, the ``min_*`` requirement
+always has precedence.
 
 num_nodes
 ^^^^^^^^^
@@ -1110,18 +1095,18 @@ plugins
 
 |
 
-Plugins allow you to connect arbitrary backends, precision libraries, SLURM, etc... For example:
+:ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- DDP
-- SLURM
-- TorchElastic
-- Apex
+- :ref:`DDP <multi_gpu>`
+- `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
+- :ref:`Apex <amp>`
 
-To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own cluster.
+To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
+:class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.
 
 .. code-block:: python
 
-    from pytorch_lightning.cluster_environments import cluster_environment
+    from pytorch_lightning.plugins.environments import ClusterEnvironment
 
     class MyCluster(ClusterEnvironment):
 
@@ -1134,7 +1119,8 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
         def world_size(self):
             return the_world_size
 
-    trainer = Trainer(cluster_environment=cluster_environment())
+    trainer = Trainer(plugins=[MyCluster()], ...)
+
 
 prepare_data_per_node
 ^^^^^^^^^^^^^^^^^^^^^
@@ -1169,20 +1155,23 @@ precision
 
 |
 
-Full precision (32), half precision (16).
-Can be used on CPU, GPU or TPUs.
+Double precision (64), full precision (32) or half precision (16).
+Can all be used on GPU or TPUs. Only double (64) and full precision (32) available on CPU.
 
 If used on TPU will use torch.bfloat16 but tensor printing
 will still show torch.float32.
 
 .. testcode::
-    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE
+    :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
     # default used by the Trainer
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16)
+    trainer = Trainer(precision=16, gpus=1)
+
+    # 64-bit precision
+    trainer = Trainer(precision=64)
 
 Example::
 
@@ -1488,15 +1477,9 @@ with the hidden
         def training_step(self, batch, batch_idx, hiddens):
             # hiddens are the hiddens from the previous truncated backprop step
             out, hiddens = self.lstm(data, hiddens)
-
-            # remember to detach() hiddens.
-            # If you don't, you will get a RuntimeError: Trying to backward through
-            # the graph a second time...
-            # Using hiddens.detach() allows each split to be disconnected.
-
             return {
                 "loss": ...,
-                "hiddens": hiddens  # remember to detach() this
+                "hiddens": hiddens
             }
 
 To modify how the batch is split,
@@ -1616,10 +1599,22 @@ fit
 .. automethod:: pytorch_lightning.trainer.Trainer.fit
    :noindex:
 
+validate
+********
+
+.. automethod:: pytorch_lightning.trainer.Trainer.validate
+   :noindex:
+
 test
 ****
 
 .. automethod:: pytorch_lightning.trainer.Trainer.test
+   :noindex:
+
+predict
+*******
+
+.. automethod:: pytorch_lightning.trainer.Trainer.predict
    :noindex:
 
 tune

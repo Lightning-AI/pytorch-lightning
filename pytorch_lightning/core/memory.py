@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -71,14 +71,15 @@ class LayerSummary(object):
     def __del__(self):
         self.detach_hook()
 
-    def _register_hook(self) -> RemovableHandle:
+    def _register_hook(self) -> Optional[RemovableHandle]:
         """
         Registers a hook on the module that computes the input- and output size(s) on the first forward pass.
         If the hook is called, it will remove itself from the from the module, meaning that
         recursive models will only record their input- and output shapes once.
+        Registering hooks on :class:`~torch.jit.ScriptModule` is not supported.
 
         Return:
-            A handle for the installed hook.
+            A handle for the installed hook, or ``None`` if registering the hook is not possible.
         """
 
         def hook(module, inp, out):
@@ -88,7 +89,10 @@ class LayerSummary(object):
             self._out_size = parse_batch_shape(out)
             self._hook_handle.remove()
 
-        return self._module.register_forward_hook(hook)
+        handle = None
+        if not isinstance(self._module, torch.jit.ScriptModule):
+            handle = self._module.register_forward_hook(hook)
+        return handle
 
     def detach_hook(self):
         """
@@ -183,7 +187,9 @@ class ModelSummary(object):
         self._mode = mode
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
-        self._precision_megabytes = (self._model.precision / 8.0) * 1e-6
+        # TODO: how do we compute precisin_megabytes in case of mixed precision?
+        precision = self._model.precision if isinstance(self._model.precision, int) else 32
+        self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
@@ -227,6 +233,7 @@ class ModelSummary(object):
 
     @property
     def model_size(self) -> float:
+        # todo: seems it does not work with quantized models - it returns 0.0
         return self.total_parameters * self._precision_megabytes
 
     def summarize(self) -> Dict[str, LayerSummary]:
@@ -243,7 +250,7 @@ class ModelSummary(object):
         trainer = self._model.trainer
 
         input_ = model.example_input_array
-        input_ = model.transfer_batch_to_device(input_, model.device)
+        input_ = model._apply_batch_transfer_handler(input_)
 
         if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
             model.forward = torch.cuda.amp.autocast()(model.forward)
@@ -385,9 +392,7 @@ def get_gpu_memory_map() -> Dict[str, int]:
 
     # Convert lines into a dictionary
     gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {
-        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
-    }
+    gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
 
@@ -427,9 +432,9 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10 ** shift)
+    number = number * (10**shift)
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
-    else:
-        return f"{number:,.1f} {labels[index]}"
+
+    return f"{number:,.1f} {labels[index]}"

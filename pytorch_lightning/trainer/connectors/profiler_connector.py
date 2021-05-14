@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
 from typing import Union
+from weakref import proxy
 
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -21,13 +21,12 @@ from pytorch_lightning.profiler import (
     PyTorchProfiler,
     SimpleProfiler,
 )
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 PROFILERS = {
     "simple": SimpleProfiler,
     "advanced": AdvancedProfiler,
-    "pytorch": PyTorchProfiler
+    "pytorch": PyTorchProfiler,
 }
 
 
@@ -36,29 +35,27 @@ class ProfilerConnector:
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, profiler: Union[BaseProfiler, bool, str]):
+    def on_trainer_init(self, profiler: Union[BaseProfiler, str]):
 
-        if profiler and not isinstance(profiler, (bool, str, BaseProfiler)):
-            # TODO: Update exception on removal of bool
-            raise MisconfigurationException("Only None, bool, str and subclasses of `BaseProfiler`"
-                                            " are valid values for `Trainer`'s `profiler` parameter."
-                                            f" Received {profiler} which is of type {type(profiler)}.")
-
-        if isinstance(profiler, bool):
-            rank_zero_warn("Passing a bool value as a `profiler` argument to `Trainer` is deprecated"
-                           " and will be removed in v1.3. Use str ('simple' or 'advanced') instead.",
-                           DeprecationWarning)
-            if profiler:
-                profiler = SimpleProfiler()
-        elif isinstance(profiler, str):
+        if profiler and not isinstance(profiler, (str, BaseProfiler)):
+            raise MisconfigurationException(
+                "Only None, str and subclasses of `BaseProfiler`"
+                " are valid values for `Trainer`'s `profiler` parameter."
+                f" Received {profiler} which is of type {type(profiler)}."
+            )
+        if isinstance(profiler, str):
             if profiler.lower() in PROFILERS:
                 profiler_class = PROFILERS[profiler.lower()]
                 profiler = profiler_class()
             else:
-                raise ValueError("When passing string value for the `profiler` parameter of"
-                                 " `Trainer`, it can only be 'simple' or 'advanced'")
+                raise ValueError(
+                    "When passing string value for the `profiler` parameter of"
+                    " `Trainer`, it can only be 'simple', 'advanced' or 'pytorch'"
+                )
         self.trainer.profiler = profiler or PassThroughProfiler()
 
-    def on_train_start(self, trainer):
+    def setup(self) -> None:
+        trainer = self.trainer
         local_rank = trainer.local_rank if trainer.world_size > 1 else None
-        self.trainer.profiler.on_train_start(local_rank)
+        trainer.profiler._lightning_module = proxy(trainer.lightning_module)
+        trainer.profiler.setup(stage=trainer.state.fn._setup_fn, local_rank=local_rank, log_dir=trainer.log_dir)

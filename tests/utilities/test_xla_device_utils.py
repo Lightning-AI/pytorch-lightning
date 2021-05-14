@@ -12,35 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
+from unittest.mock import patch
 
 import pytest
 
 import pytorch_lightning.utilities.xla_device as xla_utils
-from pytorch_lightning.utilities import _TPU_AVAILABLE, _XLA_AVAILABLE
-from tests.base.develop_utils import pl_multi_process_test
+from pytorch_lightning.utilities import _XLA_AVAILABLE
+from tests.helpers.runif import RunIf
 
 
-# lets hope that in or env we have installed XLA only for TPU devices, otherwise,
-#  it is testing in the cycle "if I am true test that I am true :D"
 @pytest.mark.skipif(_XLA_AVAILABLE, reason="test requires torch_xla to be absent")
 def test_tpu_device_absence():
-    """Check tpu_device_exists returns None when torch_xla is not available"""
-    assert xla_utils.XLADeviceUtils.tpu_device_exists() is None
+    """Check tpu_device_exists returns False when torch_xla is not available"""
+    assert not xla_utils.XLADeviceUtils.tpu_device_exists()
 
 
-@pytest.mark.skipif(not _TPU_AVAILABLE, reason="test requires torch_xla to be installed")
-@pl_multi_process_test
+@RunIf(tpu=True)
 def test_tpu_device_presence():
     """Check tpu_device_exists returns True when TPU is available"""
-    assert xla_utils.XLADeviceUtils.tpu_device_exists() is True
+    assert xla_utils.XLADeviceUtils.tpu_device_exists()
 
 
-def test_result_returns_within_20_seconds():
-    """Check that pl_multi_process returns within 10 seconds"""
+def sleep_fn(sleep_time: float) -> bool:
+    time.sleep(sleep_time)
+    return True
+
+
+@patch('pytorch_lightning.utilities.xla_device.TPU_CHECK_TIMEOUT', 3)
+@pytest.mark.skipif(not _XLA_AVAILABLE, reason="test requires torch_xla to be present")
+def test_result_returns_within_timeout_seconds():
+    """Check that pl_multi_process returns within 3 seconds"""
+    fn = xla_utils.pl_multi_process(sleep_fn)
 
     start = time.time()
-    result = xla_utils.pl_multi_process(time.sleep)(25)
+    result = fn(xla_utils.TPU_CHECK_TIMEOUT * 0.5)
     end = time.time()
     elapsed_time = int(end - start)
-    assert elapsed_time <= 20
-    assert result is False
+
+    assert elapsed_time <= xla_utils.TPU_CHECK_TIMEOUT
+    assert result

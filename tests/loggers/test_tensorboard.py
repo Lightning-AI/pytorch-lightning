@@ -13,35 +13,37 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from distutils.version import LooseVersion
 from unittest import mock
 
 import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
+from packaging.version import Version
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base import BoringModel
+from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
-    reason="Minimal PT version is set to 1.5",
-)
+@RunIf(min_torch="1.5.0")
 def test_tensorboard_hparams_reload(tmpdir):
+
     class CustomModel(BoringModel):
+
         def __init__(self, b1=0.5, b2=0.999):
             super().__init__()
             self.save_hyperparameters()
 
-    model = CustomModel()
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    model = CustomModel()
+    assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 
-    folder_path = trainer.logger.log_dir
+    assert trainer.log_dir == trainer.logger.log_dir
+    folder_path = trainer.log_dir
 
     # make sure yaml is there
     with open(os.path.join(folder_path, "hparams.yaml")) as file:
@@ -61,7 +63,7 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     data_pt_1_5 = b'\x12\x1b"\x04\n\x02b1"\x04\n\x02b2*\r\n\x0b\x12\thp_metric'
     data_pt_1_6 = b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
-    hparams_data = data_pt_1_6 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0") else data_pt_1_5
+    hparams_data = data_pt_1_6 if Version(torch.__version__) >= Version("1.6.0") else data_pt_1_5
 
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
@@ -136,7 +138,11 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -151,7 +157,11 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar="buzz")),
         "layer": torch.nn.BatchNorm1d,
@@ -167,7 +177,11 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {"a": {"b": "c"}},
+        "dict": {
+            "a": {
+                "b": "c"
+            }
+        },
         "list": [1, 2, 3],
         # "namespace": Namespace(foo=Namespace(bar="buzz")),
         # "layer": torch.nn.BatchNorm1d,
@@ -199,7 +213,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     with pytest.warns(
         UserWarning,
         match='Could not log computational graph since the `model.example_input_array`'
-            ' attribute is not set or `input_array` was not given'
+        ' attribute is not set or `input_array` was not given'
     ):
         logger.log_graph(model)
 
@@ -212,6 +226,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
     """
     Tests to ensure that tensorboard log properly when accumulated_gradients > 1
     """
+
     class TestModel(BoringModel):
 
         def __init__(self):
@@ -265,3 +280,43 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, expected, tmp
 
     mock_count_steps = [m[2]["step"] for m in mock_log_metrics.mock_calls if "count_step" in m[2]["metrics"]]
     assert model._indexes == mock_count_steps
+
+
+@mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter')
+def test_tensorboard_finalize(summary_writer, tmpdir):
+    """ Test that the SummaryWriter closes in finalize. """
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.finalize("any")
+    summary_writer().flush.assert_called()
+    summary_writer().close.assert_called()
+
+
+def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
+    model = BoringModel()
+    logger = TensorBoardLogger(save_dir=tmpdir, default_hp_metric=False)
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    assert trainer.log_dir == trainer.logger.log_dir
+    trainer.fit(model)
+
+    hparams_file = "hparams.yaml"
+    assert os.path.isfile(os.path.join(trainer.log_dir, hparams_file))
+    assert not os.path.isfile(os.path.join(tmpdir, hparams_file))
+
+
+@mock.patch('pytorch_lightning.loggers.tensorboard.log')
+def test_tensorboard_with_symlink(log, tmpdir):
+    """
+    Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
+    relative paths.
+    """
+    os.chdir(tmpdir)  # need to use relative paths
+    source = os.path.join('.', 'lightning_logs')
+    dest = os.path.join('.', 'sym_lightning_logs')
+
+    os.makedirs(source, exist_ok=True)
+    os.symlink(source, dest)
+
+    logger = TensorBoardLogger(save_dir=dest, name='')
+    _ = logger.version
+
+    log.warning.assert_not_called()

@@ -12,46 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+from abc import ABC
+from typing import Generator
 
-import torch
+import pytorch_lightning as pl
 
 
-class Plugin(object):
-    """Basic Plugin class to derive precision and training type plugins from."""
+class Plugin(ABC):
+    """Basic class for all precision- and training type plugins."""
 
-    def connect(self, model: torch.nn.Module, *args, **kwargs):
-        """Connects the plugin with the accelerator (and thereby with trainer and model).
-        Will be called by the accelerator.
-        """
-        pass
+    def pre_dispatch(self) -> None:
+        """Hook to do something before the training/evaluation/prediction starts."""
 
-    def pre_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int):
-        """Hook to do something before each optimizer step."""
-        pass
+    def dispatch(self, trainer: "pl.Trainer") -> None:
+        """Hook to do something at trainer run_stage starts."""
 
-    def post_optimizer_step(self, optimizer: torch.optim.Optimizer, optimizer_idx: int):
-        """Hook to do something after each optimizer step."""
-        pass
-
-    def pre_training(self):
-        """Hook to do something before the training starts."""
-        pass
-
-    def post_training(self):
-        """Hook to do something after the training finishes."""
-        pass
+    def post_dispatch(self) -> None:
+        """Hook to do something after the training/evaluation/prediction finishes."""
 
     @contextlib.contextmanager
-    def train_step_context(self):
+    def train_step_context(self) -> Generator:
         """A contextmanager for the trainstep"""
         yield
 
     @contextlib.contextmanager
-    def val_step_context(self):
+    def val_step_context(self) -> Generator:
         """A contextmanager for the validation step"""
         yield
 
     @contextlib.contextmanager
-    def test_step_context(self):
+    def test_step_context(self) -> Generator:
         """A contextmanager for the teststep"""
+        yield
+
+    @contextlib.contextmanager
+    def predict_step_context(self) -> Generator:
+        """A contextmanager for the predict step"""
         yield
