@@ -148,11 +148,15 @@ class CSVLogger(LightningLoggerBase):
         return os.path.join(self.save_dir, self.name)
 
     @property
-    def log_dir(self) -> str:
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
+
+    @property
+    def experiment_dir(self) -> Optional[str]:
         """
         The log directory for this run. By default, it is named
-        ``'version_${self.version}'`` but it can be overridden by passing a string value
-        for the constructor's version parameter instead of ``None`` or an int.
+        ``save_dir/name/'version_${self.version}'`` but the root directory, experiment name and version can also be
+        manually set via the constructor.
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
@@ -160,8 +164,8 @@ class CSVLogger(LightningLoggerBase):
         return log_dir
 
     @property
-    def save_dir(self) -> Optional[str]:
-        return self._save_dir
+    def log_dir(self) -> str:
+        return self.experiment_dir
 
     @property
     @rank_zero_experiment
