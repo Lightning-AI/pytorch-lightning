@@ -1141,18 +1141,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
             ),
         ),
         (
-            dict(accelerator="dp", gpus=None),
-            dict(
-                use_dp=False,
-                use_ddp=False,
-                use_ddp2=False,
-                num_gpus=0,
-                on_gpu=False,
-                use_single_gpu=False,
-                num_processes=1,
-            ),
-        ),
-        (
             dict(accelerator="ddp", gpus=None),
             dict(
                 use_dp=False,
