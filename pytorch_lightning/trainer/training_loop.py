@@ -744,7 +744,6 @@ class TrainLoop:
 
             if not result:
                 # user decided to skip optimization
-                # make sure to zero grad.
                 return result
 
             # update running loss + reset accumulated loss
