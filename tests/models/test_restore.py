@@ -395,7 +395,7 @@ def test_dp_resume(tmpdir):
 
     # exp file to get weights
     # logger file to get weights
-    checkpoint = tutils.init_checkpoint_callback(logger)
+    checkpoint = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     # add these to the trainer options
     trainer_options['logger'] = logger
@@ -412,12 +412,6 @@ def test_dp_resume(tmpdir):
     # correct result and ok accuracy
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    # ---------------------------
-    # HPC LOAD/SAVE
-    # ---------------------------
-    # save
-    trainer.checkpoint_connector.hpc_save(tmpdir, logger)
-
     # init new trainer
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
@@ -425,6 +419,7 @@ def test_dp_resume(tmpdir):
     trainer_options['limit_train_batches'] = 0.5
     trainer_options['limit_val_batches'] = 0.2
     trainer_options['max_epochs'] = 1
+    trainer_options['resume_from_checkpoint'] = os.path.join(tmpdir, 'last.ckpt')
     new_trainer = Trainer(**trainer_options)
 
     class CustomModel(CustomClassificationModelDP):
