@@ -44,7 +44,6 @@ from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnecto
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
-from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
@@ -327,7 +326,6 @@ class Trainer(
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.profile_connector = ProfilerConnector(self)
         self.checkpoint_connector = CheckpointConnector(self)
-        self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
         self.train_loop = TrainLoop(
             self, multiple_trainloader_mode, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps
@@ -814,9 +812,6 @@ class Trainer(
     def _pre_training_routine(self):
         # wait for all to join if on distributed
         self.accelerator.barrier("setup_training")
-
-        # register auto-resubmit when on SLURM
-        self.slurm_connector.register_slurm_signal_handlers()
 
         # --------------------------
         # Pre-train
