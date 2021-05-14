@@ -13,6 +13,9 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.4.0"""
 
+import os
+from unittest import mock
+
 import pytest
 
 from pytorch_lightning import Trainer
