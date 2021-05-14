@@ -209,7 +209,7 @@ class ModelCheckpoint(Callback):
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._last_global_step_saved = -1
-        self._prev_time_check: Optional[float]
+        self._prev_time_check: Optional[float] = None
         self.current_score = None
         self.best_k_models = {}
         self.kth_best_model_path = ""
