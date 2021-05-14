@@ -28,7 +28,8 @@ class DataConnector(object):
         self.trainer = trainer
 
     def on_trainer_init(
-        self, check_val_every_n_epoch: int, reload_dataloaders_every_n_epochs: int, reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool
+        self, check_val_every_n_epoch: int, reload_dataloaders_every_n_epochs: int,
+        reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool
     ) -> None:
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
