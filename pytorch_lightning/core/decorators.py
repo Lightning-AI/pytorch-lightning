@@ -71,7 +71,6 @@ def auto_move_data(fn: Callable) -> Callable:
 
 def parameter_validation(fn: Callable) -> Callable:
     """
-    Decorator for :meth:`~pytorch_lightning.core.LightningModule.to` method.
     Validates that the module parameter lengths match after moving to the device. It is useful
     when tying weights on TPU's.
 
