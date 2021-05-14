@@ -204,6 +204,10 @@ class WandbLogger(LightningLoggerBase):
         return self._save_dir
 
     @property
+    def experiment_dir(self) -> Optional[str]:
+        return os.path.join(self.save_dir, self.name, self.version)
+
+    @property
     def name(self) -> Optional[str]:
         # don't create an experiment if we don't have one
         return self._experiment.project_name() if self._experiment else self._name
