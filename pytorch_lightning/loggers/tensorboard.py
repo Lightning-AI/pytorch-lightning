@@ -111,7 +111,11 @@ class TensorBoardLogger(LightningLoggerBase):
             return os.path.join(self.save_dir, self.name)
 
     @property
-    def log_dir(self) -> str:
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
+
+    @property
+    def experiment_dir(self) -> str:
         """
         The directory for this run's tensorboard checkpoint. By default, it is named
         ``'version_${self.version}'`` but it can be overridden by passing a string value
@@ -123,8 +127,8 @@ class TensorBoardLogger(LightningLoggerBase):
         return log_dir
 
     @property
-    def save_dir(self) -> Optional[str]:
-        return self._save_dir
+    def log_dir(self) -> Optional[str]:
+        return self.experiment_dir
 
     @property
     @rank_zero_experiment
@@ -144,7 +148,7 @@ class TensorBoardLogger(LightningLoggerBase):
         assert rank_zero_only.rank == 0, 'tried to init log dirs in non global_rank=0'
         if self.root_dir:
             self._fs.makedirs(self.root_dir, exist_ok=True)
-        self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
+        self._experiment = SummaryWriter(log_dir=self.experiment_dir, **self._kwargs)
         return self._experiment
 
     @rank_zero_only
@@ -228,7 +232,7 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_only
     def save(self) -> None:
         super().save()
-        dir_path = self.log_dir
+        dir_path = self.experiment_dir
 
         # prepare the file path
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
