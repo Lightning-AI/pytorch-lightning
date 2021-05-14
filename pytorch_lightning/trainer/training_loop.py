@@ -727,7 +727,7 @@ class TrainLoop:
             # calculate loss (train step + train step end)
             # -------------------
 
-            # automatic_optimization=True: perform dpp sync only when performing optimizer_step
+            # automatic_optimization=True: perform ddp sync only when performing optimizer_step
             # automatic_optimization=False: don't block synchronization here
             with self.block_ddp_sync_behaviour():
                 closure()
