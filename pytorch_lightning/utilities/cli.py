@@ -161,11 +161,7 @@ class LightningCLI:
 
         parser_kwargs = parser_kwargs or {}
         parser_kwargs.update({'description': description, 'env_prefix': env_prefix, 'default_env': env_parse})
-        self.parser = self.init_parser(**parser_kwargs)
-
-        self.add_core_arguments(self.parser)
-        self.add_subcommands(self.parser)
-        self.add_arguments(self.parser)
+        self.setup_parser(**parser_kwargs)
         self.parse_arguments(self.parser)
 
         if self.config.get('seed_everything') is not None:
@@ -176,9 +172,26 @@ class LightningCLI:
 
         self.run_subcommand()
 
+    def setup_parser(self, **kwargs: Any) -> None:
+        """Initialize and setup the parser, subcommands, and arguments"""
+        self.parser = self.init_parser(**kwargs)
+        self.add_default_arguments(self.parser)
+        self.add_core_arguments(self.parser)
+        self.add_subcommands(self.parser)
+        self.add_arguments(self.parser)
+
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser"""
         return LightningArgumentParser(**kwargs)
+
+    def add_default_arguments(self, parser: LightningArgumentParser):
+        """Adds default arguments to the parser"""
+        parser.add_argument(
+            '--seed_everything',
+            type=Optional[int],
+            default=self.seed_everything_default,
+            help='Set to an int to run seed_everything with this value before classes instantiation',
+        )
 
     def add_core_arguments(self, parser: LightningArgumentParser) -> None:
         """Adds arguments from the core classes to the parser"""
@@ -229,12 +242,6 @@ class LightningCLI:
         Args:
             parser: The base parser object to which arguments can be added
         """
-        parser.add_argument(
-            '--seed_everything',
-            type=Optional[int],
-            default=self.seed_everything_default,
-            help='Set to an int to run seed_everything with this value before classes instantiation',
-        )
 
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
         """Parses command line arguments and stores it in self.config"""
