@@ -213,7 +213,7 @@ def test_init_from_argparse_args(cli_args, extra_args):
 
 
 @pytest.mark.parametrize(['cli_args', 'expected_model', 'expected_trainer'], [(
-    ['--model.model_param=7', '--trainer.limit_train_batches=100', 'fit'],
+    ['fit', '--model.model_param=7', '--trainer.limit_train_batches=100'],
     dict(model_param=7),
     dict(limit_train_batches=100),
 )])
@@ -276,7 +276,7 @@ def test_lightning_cli_args_callbacks(tmpdir):
             assert callback[0].monitor == 'NAME'
             self.trainer.ran_asserts = True
 
-    with mock.patch('sys.argv', ['any.py', f'--trainer.callbacks={json.dumps(callbacks)}', 'fit']):
+    with mock.patch('sys.argv', ['any.py', 'fit', f'--trainer.callbacks={json.dumps(callbacks)}']):
         cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
 
     assert cli.trainer.ran_asserts
@@ -292,7 +292,7 @@ def test_lightning_cli_args_cluster_environments(tmpdir):
             assert isinstance(self.trainer.accelerator_connector._cluster_environment, SLURMEnvironment)
             self.trainer.ran_asserts = True
 
-    with mock.patch('sys.argv', ['any.py', f'--trainer.plugins={json.dumps(plugins)}', 'fit']):
+    with mock.patch('sys.argv', ['any.py', 'fit', f'--trainer.plugins={json.dumps(plugins)}']):
         cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
 
     assert cli.trainer.ran_asserts
@@ -301,12 +301,12 @@ def test_lightning_cli_args_cluster_environments(tmpdir):
 def test_lightning_cli_args(tmpdir):
 
     cli_args = [
+        'fit',
         f'--data.data_dir={tmpdir}',
         f'--trainer.default_root_dir={tmpdir}',
         '--trainer.max_epochs=1',
         '--trainer.weights_summary=null',
         '--seed_everything=1234',
-        'fit',
     ]
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
@@ -325,10 +325,10 @@ def test_lightning_cli_args(tmpdir):
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
 
     config = dict(
+        subcommand='fit',
         model=dict(class_path='tests.helpers.BoringModel'),
         data=dict(class_path='tests.helpers.BoringDataModule', init_args=dict(data_dir=str(tmpdir))),
         trainer=dict(default_root_dir=str(tmpdir), max_epochs=1, weights_summary=None),
-        subcommand='fit',
     )
     config_path = tmpdir / 'config.yaml'
     with open(config_path, 'w') as f:
@@ -392,11 +392,11 @@ def test_lightning_cli_help():
 def test_lightning_cli_print_config():
     cli_args = [
         'any.py',
+        'predict',
         '--seed_everything=1234',
         '--model=tests.helpers.BoringModel',
         '--data=tests.helpers.BoringDataModule',
-        '--print_config=""',
-        'predict',
+        '--print_config',
     ]
     out = StringIO()
     with mock.patch('sys.argv', cli_args), redirect_stdout(out), pytest.raises(SystemExit):
@@ -436,20 +436,21 @@ def test_lightning_cli_submodules(tmpdir):
         f.write(config)
 
     cli_args = [
+        'fit',
         f'--trainer.default_root_dir={tmpdir}',
         '--trainer.max_epochs=1',
         f'--config={str(config_path)}',
-        'fit',
     ]
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
         cli = LightningCLI(MainModule)
 
-    assert cli.config_init['model']['main_param'] == 2
-    assert cli.model.submodule1 == cli.config_init['model']['submodule1']
-    assert cli.model.submodule2 == cli.config_init['model']['submodule2']
-    assert isinstance(cli.config_init['model']['submodule1'], BoringModel)
-    assert isinstance(cli.config_init['model']['submodule2'], BoringModel)
+    config = cli.config_init['fit']
+    assert config['model']['main_param'] == 2
+    assert cli.model.submodule1 == config['model']['submodule1']
+    assert cli.model.submodule2 == config['model']['submodule2']
+    assert isinstance(config['model']['submodule1'], BoringModel)
+    assert isinstance(config['model']['submodule2'], BoringModel)
 
 
 @pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
