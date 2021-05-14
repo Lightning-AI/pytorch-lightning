@@ -184,7 +184,7 @@ class LightningCLI:
         """Method that instantiates the argument parser"""
         return LightningArgumentParser(**kwargs)
 
-    def add_default_arguments(self, parser: LightningArgumentParser):
+    def add_default_arguments(self, parser: LightningArgumentParser) -> None:
         """Adds default arguments to the parser"""
         parser.add_argument(
             '--seed_everything',
