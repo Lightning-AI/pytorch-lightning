@@ -82,7 +82,7 @@ class SaveConfigCallback(Callback):
         self.config_filename = config_filename
 
     def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        log_dir = trainer.log_dir or trainer.default_root_dir
+        log_dir = trainer.experiment_dir or trainer.default_root_dir
         config_path = os.path.join(log_dir, self.config_filename)
         self.parser.save(self.config, config_path, skip_none=False)
 

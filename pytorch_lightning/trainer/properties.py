@@ -131,11 +131,22 @@ class TrainerProperties(ABC):
 
     @property
     def log_dir(self) -> Optional[str]:
+        rank_zero_warn(
+            "Trainer.log_dir is deprecated since v1.4 and will be removed in v1.6."
+            " Use Trainer.experiment_dir instead, which consistently points to `save_dir/name/version`"
+            " for all built-in loggers."
+        )
         if self.logger is None:
             dirpath = self.default_root_dir
         else:
-            dirpath = self.logger.log_dir or self.logger.save_dir
+            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
+        dirpath = self.accelerator.broadcast(dirpath)
+        return dirpath
+
+    @property
+    def experiment_dir(self):
+        dirpath = self.logger.experiment_dir if self.logger is not None else self.default_root_dir
         dirpath = self.accelerator.broadcast(dirpath)
         return dirpath
 
