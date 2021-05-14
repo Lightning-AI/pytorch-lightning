@@ -6,7 +6,7 @@ Lightning Governance | Persons of interest
 Leads
 -----
 - William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
-- Jirka Borovec (`Borda <https://github.com/Borda>`_) (longest standing)
+- Jirka Borovec (`Borda <https://github.com/Borda>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 - Justus Schock (`justusschock <https://github.com/justusschock>`_) (Former Core Member PyTorch Ignite)
 - Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
