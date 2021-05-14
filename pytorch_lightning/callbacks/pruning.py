@@ -19,11 +19,12 @@ import inspect
 import logging
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TypedDict, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn.utils.prune as pytorch_prune
 from torch import nn
+from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
