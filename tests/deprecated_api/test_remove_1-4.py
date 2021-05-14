@@ -14,81 +14,16 @@
 """Test deprecated functionality which will be removed in v1.4.0"""
 
 import pytest
-import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.overrides.data_parallel import (
-    LightningDataParallel,
-    LightningDistributedDataParallel,
-    LightningParallelModule,
-)
-from pytorch_lightning.overrides.distributed import LightningDistributedModule
-from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.plugins.environments import LightningEnvironment
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
 def test_v1_4_0_deprecated_imports():
     _soft_unimport_module('pytorch_lightning.utilities.argparse_utils')
     with pytest.deprecated_call(match='will be removed in v1.4'):
-        from pytorch_lightning.utilities.argparse_utils import from_argparse_args  # noqa: F811 F401
-
-    _soft_unimport_module('pytorch_lightning.utilities.model_utils')
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        from pytorch_lightning.utilities.model_utils import is_overridden  # noqa: F811 F401
-
-    _soft_unimport_module('pytorch_lightning.utilities.warning_utils')
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        from pytorch_lightning.utilities.warning_utils import WarningCache  # noqa: F811 F401
-
-    _soft_unimport_module('pytorch_lightning.utilities.xla_device_utils')
-    with pytest.deprecated_call(match='will be removed in v1.4'):
-        from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils  # noqa: F811 F401
-
-
-class CustomDDPPlugin(DDPSpawnPlugin):
-
-    def configure_ddp(self):
-        # old, deprecated implementation
-        with pytest.deprecated_call(
-            match='`LightningDistributedDataParallel` is deprecated since v1.2 and will be removed in v1.4.'
-        ):
-            self._model = LightningDistributedDataParallel(
-                module=self.lightning_module,
-                device_ids=self.determine_ddp_device_ids(),
-                **self._ddp_kwargs,
-            )
-            assert isinstance(self.model, torch.nn.parallel.DistributedDataParallel)
-            assert isinstance(self.model.module, LightningDistributedModule)
-
-
-@RunIf(min_gpus=2, skip_windows=True)
-def test_v1_4_0_deprecated_lightning_distributed_data_parallel(tmpdir):
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        gpus=2,
-        accelerator="ddp_spawn",
-        plugins=[
-            CustomDDPPlugin(
-                parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
-                cluster_environment=LightningEnvironment(),
-            )
-        ]
-    )
-    trainer.fit(model)
-
-
-@RunIf(min_gpus=1)
-def test_v1_4_0_deprecated_lightning_data_parallel():
-    model = BoringModel()
-    with pytest.deprecated_call(match="`LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."):
-        dp_model = LightningDataParallel(model, device_ids=[0])
-    assert isinstance(dp_model, torch.nn.DataParallel)
-    assert isinstance(dp_model.module, LightningParallelModule)
+        from pytorch_lightning.utilities.argparse_utils import _gpus_arg_default  # noqa: F811 F401
 
 
 def test_v1_4_0_deprecated_manual_optimization_optimizer(tmpdir):
