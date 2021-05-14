@@ -273,6 +273,11 @@ class NeptuneLogger(LightningLoggerBase):
     def save_dir(self) -> Optional[str]:
         # Neptune does not save any local files
         return None
+    
+    @property
+    def experiment_dir(self) -> Optional[str]:
+        # Neptune does not save any local files
+        return None
 
     @property
     def name(self) -> str:
