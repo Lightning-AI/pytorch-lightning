@@ -274,6 +274,10 @@ class CometLogger(LightningLoggerBase):
         return self._save_dir
 
     @property
+    def experiment_dir(self) -> str:
+        return os.path.join(self.save_dir, self.name, self.version)
+
+    @property
     def name(self) -> str:
         # Don't create an experiment if we don't have one
         if self._experiment is not None and self._experiment.project_name is not None:
