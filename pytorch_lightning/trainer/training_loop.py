@@ -15,7 +15,7 @@
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
 from functools import partial, update_wrapper
-from typing import Any, Dict, List, Optional, Tuple, Union, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
