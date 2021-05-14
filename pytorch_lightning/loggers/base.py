@@ -325,6 +325,15 @@ class LightningLoggerBase(ABC):
         return None
 
     @property
+    def log_dir(self) -> Optional[str]:
+        """
+        Return the experiment directory for the current run where logs get saved, or `None` if the logger does not
+        save data locally. This is usually a versioned directory under
+        :meth:`pytorch_lightning.loggers.base.LightningLoggerBase.save_dir`.
+        """
+        return None
+
+    @property
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""

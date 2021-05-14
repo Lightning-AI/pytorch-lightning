@@ -15,7 +15,9 @@
 Test Tube Logger
 ----------------
 """
+import os
 from argparse import Namespace
+from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -194,6 +196,11 @@ class TestTubeLogger(LightningLoggerBase):
     @property
     def save_dir(self) -> Optional[str]:
         return self._save_dir
+
+    @property
+    def log_dir(self) -> Optional[str]:
+        tf_log_dir = Path(self.experiment.log_dir)
+        return str(tf_log_dir.parent)
 
     @property
     def name(self) -> str:
