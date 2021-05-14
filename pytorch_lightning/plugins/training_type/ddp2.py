@@ -18,6 +18,15 @@ from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 
 
 class DDP2Plugin(DDPPlugin):
+    """ DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
+
+    @property
+    def global_rank(self) -> int:
+        return self.node_rank
+
+    @property
+    def world_size(self) -> int:
+        return self.num_nodes
 
     def setup(self, model):
         self._model = model
@@ -63,8 +72,8 @@ class DDP2Plugin(DDPPlugin):
     def _is_single_process_single_device(self) -> bool:
         return False
 
-    def set_world_ranks(self):
-        self.local_rank = self.task_idx
-        self.node_rank = self.cluster_environment.node_rank()
-        self.global_rank = self.node_rank
-        self.world_size = self.num_nodes
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank)
+        self.cluster_environment.set_world_size(self.num_nodes)

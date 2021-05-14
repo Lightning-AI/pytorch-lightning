@@ -88,9 +88,10 @@ class DeepSpeedPlugin(DDPPlugin):
         allgather_bucket_size: int = 2e8,
         reduce_bucket_size: int = 2e8,
         zero_allow_untested_optimizer: bool = True,
+        logging_batch_size_per_gpu: Union[str, int] = "auto",
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
-        num_nodes: int = 1,
+        num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,
@@ -102,9 +103,9 @@ class DeepSpeedPlugin(DDPPlugin):
         cpu_checkpointing: bool = False,
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
+        save_full_weights: bool = True,
     ) -> None:
         """
-
         Provides capabilities to run training using the DeepSpeed library,
         with training optimizations for large billion parameter models.
         `For more information: https://www.deepspeed.ai/`.
@@ -148,6 +149,13 @@ class DeepSpeedPlugin(DDPPlugin):
             zero_allow_untested_optimizer: Allow untested optimizers to be used with ZeRO. Currently only Adam is a
                 DeepSpeed supported optimizer when using ZeRO (default: True)
 
+            logging_batch_size_per_gpu: Config used in DeepSpeed to calculate verbose timing for logging
+                on a per sample per second basis (only displayed if logging=logging.INFO).
+                If set to "auto", the plugin tries to infer this from
+                the train DataLoader's BatchSampler, else defaults to 1.
+                To obtain accurate logs when using datasets that do not support batch samplers,
+                set this to the actual per gpu batch size (trainer.batch_size).
+
             config: Pass in a deepspeed formatted config dict,
                 or path to a deepspeed config: https://www.deepspeed.ai/docs/config-json.
                 All defaults will be ignored if a config is passed in. (Default: ``None``)
@@ -177,11 +185,17 @@ class DeepSpeedPlugin(DDPPlugin):
                 Not supported by all models
 
             synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
+
+            save_full_weights: Gathers weights across all processes before saving to disk
+                when using ZeRO Stage 3. This allows a single weight file to contain the entire model,
+                rather than individual sharded weight files.
+                Disable to save sharded states individually. (Default: True)
+
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
                 "To use the DeepSpeed plugin, you must have DeepSpeed installed."
-                " pip install deepspeed mpi4py"
+                " pip install deepspeed"
             )
         super().__init__(
             parallel_devices=parallel_devices, num_nodes=num_nodes, cluster_environment=cluster_environment
@@ -192,6 +206,7 @@ class DeepSpeedPlugin(DDPPlugin):
             self.config = self._create_default_config(
                 zero_optimization,
                 zero_allow_untested_optimizer,
+                logging_batch_size_per_gpu,
                 partition_activations=partition_activations,
                 cpu_checkpointing=cpu_checkpointing,
                 contiguous_memory_optimization=contiguous_memory_optimization,
@@ -205,10 +220,12 @@ class DeepSpeedPlugin(DDPPlugin):
                 allgather_partitions=allgather_partitions,
                 reduce_scatter=reduce_scatter,
                 allgather_bucket_size=allgather_bucket_size,
-                reduce_bucket_size=reduce_bucket_size
+                reduce_bucket_size=reduce_bucket_size,
             )
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
+
+        self.save_full_weights = save_full_weights
 
         # default FP16 parameters.
         self.loss_scale = loss_scale
@@ -402,13 +419,21 @@ class DeepSpeedPlugin(DDPPlugin):
                 " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
             )
         if "train_micro_batch_size_per_gpu" not in self.config:
-            # train_micro_batch_size_per_gpu is used for throughput logging purposes
-            # by default we use the batch size of the loader which may be incorrect if a batch sampler is passed
-            batch_size = self.lightning_module.train_dataloader().batch_sampler.batch_size
+            batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
+
+    def _auto_select_batch_size(self):
+        # train_micro_batch_size_per_gpu is used for throughput logging purposes
+        # by default we try to use the batch size of the loader
+        batch_size = 1
+        if hasattr(self.lightning_module, 'train_dataloader'):
+            train_dataloader = self.lightning_module.train_dataloader()
+            if hasattr(train_dataloader, 'batch_sampler'):
+                batch_size = train_dataloader.batch_sampler.batch_size
+        return batch_size
 
     def _format_precision_config(self):
         amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
@@ -439,6 +464,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self,
         zero_optimization: bool,
         zero_allow_untested_optimizer: bool,
+        logging_batch_size_per_gpu: Union[str, int],
         partition_activations: bool,
         cpu_checkpointing: bool,
         contiguous_memory_optimization: bool,
@@ -459,6 +485,8 @@ class DeepSpeedPlugin(DDPPlugin):
                 "zero_optimization": zero_kwargs,
                 **cfg
             }
+        if logging_batch_size_per_gpu != 'auto':
+            cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
         return cfg
 
     def _filepath_to_dir(self, filepath: str) -> str:
@@ -472,17 +500,27 @@ class DeepSpeedPlugin(DDPPlugin):
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
+            checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
-            weights_only: saving model weights only
         """
         if self.world_size > 1 and self.zero_stage_3:
+            if self.save_full_weights:
+                # todo: expose this as general function in deepspeed
+                state_dict = self.deepspeed_engine._zero3_consolidated_fp16_state_dict()
+                if self.is_global_zero:
+                    # State dict keys will include reference to wrapper LightningDeepSpeedModule
+                    # Delete `module` prefix before saving.
+                    state_dict = {k.partition('module.')[2]: state_dict[k] for k in state_dict.keys()}
+                    checkpoint['state_dict'] = state_dict
+                    return super().save_checkpoint(checkpoint, filepath)
+                return
+
             # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
             # dump states as a checkpoint dictionary object
             save_dir = self._filepath_to_dir(filepath)
             _exclude_keys = ['state_dict', 'optimizer_states', 'lr_schedulers']
             checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
             self.deepspeed_engine.save_checkpoint(save_dir, client_state=checkpoint)
-
         else:
             super().save_checkpoint(checkpoint, filepath)
 
@@ -491,9 +529,10 @@ class DeepSpeedPlugin(DDPPlugin):
         ckpt_path: str,
         map_location: Callable = lambda storage, loc: storage,
     ) -> Tuple[Dict, bool]:
-        if self.world_size > 1:
-            from pytorch_lightning.trainer.states import TrainerState
-            stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
+        if not self.save_full_weights and self.world_size > 1:
+            # Rely on deepspeed to load the checkpoint and necessary information
+            from pytorch_lightning.trainer.states import TrainerFn
+            is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
 
             if self.zero_stage_3:
@@ -501,7 +540,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 self.deepspeed_engine.optimizer._partition_all_parameters()
 
             _, client_state = self.deepspeed_engine.load_checkpoint(
-                save_dir, load_optimizer_states=stage_is_fit, load_lr_scheduler_states=stage_is_fit
+                save_dir, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
             )
 
             # restore datamodule states
@@ -511,6 +550,10 @@ class DeepSpeedPlugin(DDPPlugin):
             # hook: give user access to checkpoint if needed.
             self.lightning_module.on_load_checkpoint(client_state)
             return client_state, False
+
+        # Broadcast to ensure we load from the rank 0 checkpoint
+        # This doesn't have to be the case when using deepspeed sharded checkpointing
+        ckpt_path = self.broadcast(ckpt_path)
         return super().restore_model_state_from_ckpt_path(ckpt_path, map_location=map_location)
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
@@ -520,3 +563,23 @@ class DeepSpeedPlugin(DDPPlugin):
             if total_batch_idx % self._original_accumulate_grad_batches == 0:
                 current_global_step += 1
             return current_global_step
+
+    @classmethod
+    def register_plugins(cls, plugin_registry: Dict) -> None:
+        plugin_registry.register("deepspeed", cls, description="Default DeepSpeed Plugin")
+        plugin_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
+        plugin_registry.register(
+            "deepspeed_stage_2_offload",
+            cls,
+            description="DeepSpeed ZeRO Stage 2 and CPU Offload",
+            stage=2,
+            cpu_offload=True
+        )
+        plugin_registry.register("deepspeed_stage_3", cls, description="DeepSpeed ZeRO Stage 3", stage=3)
+        plugin_registry.register(
+            "deepspeed_stage_3_offload",
+            cls,
+            description="DeepSpeed ZeRO Stage 3 and CPU Offload",
+            stage=3,
+            cpu_offload=True
+        )

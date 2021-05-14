@@ -60,6 +60,10 @@ CHECKPOINT_EXTENSION = ".ckpt"
         "1.2.5",
         "1.2.6",
         "1.2.7",
+        "1.2.8",
+        "1.2.10",
+        "1.3.0",
+        "1.3.1",
     ]
 )
 def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
@@ -76,13 +80,11 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
 
     model = DummyModel.load_from_checkpoint(path_ckpt)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=6)
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
 
     # todo
     # model = DummyModel()
     # trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, resume_from_checkpoint=path_ckpt)
-    # result = trainer.fit(model)
-    # assert result
+    # trainer.fit(model)
 
     sys.path = orig_sys_paths

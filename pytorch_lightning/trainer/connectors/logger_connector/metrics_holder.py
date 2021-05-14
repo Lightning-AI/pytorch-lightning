@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numbers
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Optional
 
 import torch
 from torchmetrics import Metric
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-_METRIC_TYPE = Union[Metric, torch.Tensor, int, float, Any]
+from pytorch_lightning.utilities.types import _METRIC
 
 
 class MetricsHolder:
@@ -31,16 +30,16 @@ class MetricsHolder:
     """
 
     def __init__(self, to_float: bool = False) -> None:
-        self.metrics: Dict[str, _METRIC_TYPE] = {}
+        self.metrics: Dict[str, _METRIC] = {}
         self._to_float = to_float
 
     def update(self, metrics: dict) -> None:
         self.metrics.update(metrics)
 
-    def pop(self, key: str, default: _METRIC_TYPE) -> _METRIC_TYPE:
+    def pop(self, key: str, default: _METRIC) -> _METRIC:
         return self.metrics.pop(key, default)
 
-    def reset(self, metrics: Dict[str, _METRIC_TYPE]) -> None:
+    def reset(self, metrics: Dict[str, _METRIC]) -> None:
         self.metrics = metrics
 
     def convert(self, device: Optional[torch.device]) -> None:
@@ -57,7 +56,7 @@ class MetricsHolder:
             self.metrics[key] = converted
 
     @staticmethod
-    def _convert_to_float(current: _METRIC_TYPE) -> float:
+    def _convert_to_float(current: _METRIC) -> float:
         if isinstance(current, Metric):
             current = current.compute().detach()
 
@@ -70,7 +69,7 @@ class MetricsHolder:
         return current
 
     @staticmethod
-    def _convert_to_tensor(current: _METRIC_TYPE, device: Optional[torch.device]) -> torch.Tensor:
+    def _convert_to_tensor(current: _METRIC, device: Optional[torch.device]) -> torch.Tensor:
         if isinstance(current, Metric):
             current = current.compute().detach()
 

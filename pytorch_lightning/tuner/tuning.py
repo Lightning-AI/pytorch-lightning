@@ -11,92 +11,94 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+import pytorch_lightning as pl
+from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
-from pytorch_lightning.tuner.lr_finder import lr_find
+from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 
 
 class Tuner:
+    """Tuner class to tune your model"""
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: 'pl.Trainer') -> None:
         self.trainer = trainer
 
-    def on_trainer_init(self, auto_lr_find, auto_scale_batch_size):
+    def on_trainer_init(self, auto_lr_find: Union[str, bool], auto_scale_batch_size: Union[str, bool]) -> None:
         self.trainer.auto_lr_find = auto_lr_find
         self.trainer.auto_scale_batch_size = auto_scale_batch_size
 
-    def setup_trainer(
+    def _tune(
         self,
-        model: LightningModule,
-        train_dataloader: Optional[DataLoader] = None,
-        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-        datamodule: LightningDataModule = None,
-    ):
-        self.trainer.model_connector.copy_trainer_model_properties(model)
-        # setup data, etc...
-        self.trainer.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
-        # hook
-        self.trainer.data_connector.prepare_data(model)
+        model: 'pl.LightningModule',
+        scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
+        lr_find_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
+        scale_batch_size_kwargs = scale_batch_size_kwargs or {}
+        lr_find_kwargs = lr_find_kwargs or {}
+        # return a dict instead of a tuple so BC is not broken if a new tuning procedure is added
+        result = {}
 
-    def tune(self, model, train_dataloader, val_dataloaders, datamodule):
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:
-            if isinstance(self.trainer.auto_scale_batch_size, bool):
-                self.trainer.auto_scale_batch_size = 'power'
-            self.scale_batch_size(
-                model,
-                mode=self.trainer.auto_scale_batch_size,
-                train_dataloader=train_dataloader,
-                val_dataloaders=val_dataloaders,
-                datamodule=datamodule,
-            )
+            if isinstance(self.trainer.auto_scale_batch_size, str):
+                scale_batch_size_kwargs.setdefault("mode", self.trainer.auto_scale_batch_size)
+            result['scale_batch_size'] = scale_batch_size(self.trainer, model, **scale_batch_size_kwargs)
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            self.lr_find(
-                model,
-                update_attr=True,
-                train_dataloader=train_dataloader,
-                val_dataloaders=val_dataloaders,
-                datamodule=datamodule,
-            )
+            lr_find_kwargs.setdefault('update_attr', True)
+            result['lr_find'] = lr_find(self.trainer, model, **lr_find_kwargs)
 
-        self.trainer.state = TrainerState.FINISHED
+        self.trainer.state.status = TrainerStatus.FINISHED
+
+        return result
+
+    def _run(self, *args: Any, **kwargs: Any) -> None:
+        """`_run` wrapper to set the proper state during tuning, as this can be called multiple times"""
+        self.trainer.state.status = TrainerStatus.RUNNING  # last `_run` call might have set it to `FINISHED`
+        self.trainer.training = True
+        self.trainer._run(*args, **kwargs)
+        self.trainer.tuning = True
 
     def scale_batch_size(
         self,
-        model,
+        model: 'pl.LightningModule',
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional['pl.LightningDataModule'] = None,
         mode: str = 'power',
         steps_per_trial: int = 3,
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = 'batch_size',
-        **fit_kwargs
-    ):
-        r"""
-        Will iteratively try to find the largest batch size for a given model
+    ) -> Optional[int]:
+        """
+        Iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
 
         Args:
-            model: Model to fit.
+            model: Model to tune.
 
-            mode: string setting the search mode. Either `power` or `binsearch`.
-                If mode is `power` we keep multiplying the batch size by 2, until
-                we get an OOM error. If mode is 'binsearch', we will initially
-                also keep multiplying by 2 and after encountering an OOM error
-                do a binary search between the last successful batch size and the
-                batch size that failed.
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
+
+            mode: Search strategy to update the batch size:
+
+                - ``'power'`` (default): Keep multiplying the batch size by 2, until we get an OOM error.
+                - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
+                    do a binary search between the last successful batch size and the batch size that failed.
 
             steps_per_trial: number of steps to run with a given batch size.
-                Idealy 1 should be enough to test if a OOM error occurs,
+                Ideally 1 should be enough to test if a OOM error occurs,
                 however in practise a few are needed
 
             init_val: initial batch size to start the search with
@@ -112,50 +114,88 @@ class Tuner:
                 - ``model.hparams``
                 - ``model.datamodule``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
-
-            **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
-                or datamodule.
-
         """
-        self.setup_trainer(model, **fit_kwargs)
-        return scale_batch_size(
-            self.trainer,
+        self.trainer.auto_scale_batch_size = True
+        result = self.trainer.tune(
             model,
-            mode,
-            steps_per_trial,
-            init_val,
-            max_trials,
-            batch_arg_name,
-            **fit_kwargs,
+            train_dataloader=train_dataloader,
+            val_dataloaders=val_dataloaders,
+            datamodule=datamodule,
+            scale_batch_size_kwargs={
+                'mode': mode,
+                'steps_per_trial': steps_per_trial,
+                'init_val': init_val,
+                'max_trials': max_trials,
+                'batch_arg_name': batch_arg_name,
+            }
         )
+        self.trainer.auto_scale_batch_size = False
+        return result['scale_batch_size']
 
     def lr_find(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         train_dataloader: Optional[DataLoader] = None,
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional['pl.LightningDataModule'] = None,
         min_lr: float = 1e-8,
         max_lr: float = 1,
         num_training: int = 100,
         mode: str = 'exponential',
         early_stop_threshold: float = 4.0,
-        datamodule: Optional[LightningDataModule] = None,
         update_attr: bool = False,
-    ):
-        self.setup_trainer(model, train_dataloader, val_dataloaders, datamodule)
-        return lr_find(
-            self.trainer,
-            model,
-            train_dataloader,
-            val_dataloaders,
-            min_lr,
-            max_lr,
-            num_training,
-            mode,
-            early_stop_threshold,
-            datamodule,
-            update_attr,
-        )
+    ) -> Optional[_LRFinder]:
+        """
+        Enables the user to do a range test of good initial learning rates,
+        to reduce the amount of guesswork in picking a good starting learning rate.
 
-    def pick_multiple_gpus(self, num_gpus: int):
-        return pick_multiple_gpus(num_gpus)
+        Args:
+            model: Model to tune.
+
+            train_dataloader: A Pytorch DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+
+            val_dataloaders: Either a single Pytorch Dataloader or a list of them, specifying validation samples.
+                If the model has a predefined val_dataloaders method this will be skipped
+
+            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
+
+            min_lr: minimum learning rate to investigate
+
+            max_lr: maximum learning rate to investigate
+
+            num_training: number of learning rates to test
+
+            mode: Search strategy to update learning rate after each batch:
+
+                - ``'exponential'`` (default): Will increase the learning rate exponentially.
+                - ``'linear'``: Will increase the learning rate linearly.
+
+            early_stop_threshold: threshold for stopping the search. If the
+                loss at any point is larger than early_stop_threshold*best_loss
+                then the search is stopped. To disable, set to None.
+
+            update_attr: Whether to update the learning rate attribute or not.
+
+        Raises:
+            MisconfigurationException:
+                If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden when ``auto_lr_find=True``,
+                or if you are using more than one optimizer.
+        """
+        self.trainer.auto_lr_find = True
+        result = self.trainer.tune(
+            model,
+            train_dataloader=train_dataloader,
+            val_dataloaders=val_dataloaders,
+            datamodule=datamodule,
+            lr_find_kwargs={
+                'min_lr': min_lr,
+                'max_lr': max_lr,
+                'num_training': num_training,
+                'mode': mode,
+                'early_stop_threshold': early_stop_threshold,
+                'update_attr': update_attr
+            }
+        )
+        self.trainer.auto_lr_find = False
+        return result['lr_find']

@@ -1,12 +1,13 @@
 import json
 import os
-from typing import Any
+from typing import Any, Dict
 
 import pytest
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
@@ -14,7 +15,7 @@ from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.plugins import DeepSpeedPlugin, DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 
@@ -27,6 +28,9 @@ class ModelParallelBoringModel(BoringModel):
 
     def configure_sharded_model(self) -> None:
         self.linear = torch.nn.Linear(32, 2)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        self.configure_sharded_model()
 
 
 def test_deepspeed_lightning_module(tmpdir):
@@ -232,6 +236,44 @@ def test_warn_deepspeed_override_backward(tmpdir):
 
 
 @RunIf(min_gpus=1, deepspeed=True, special=True)
+@pytest.mark.parametrize(['dataset_cls', 'value'], [(RandomDataset, "auto"), (RandomDataset, 10),
+                                                    (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)])
+def test_deepspeed_auto_batch_size_config_select(tmpdir, dataset_cls, value):
+    """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
+
+    class TestModel(BoringModel):
+
+        def train_dataloader(self):
+            return DataLoader(dataset_cls(32, 64))
+
+    class AssertCallback(Callback):
+
+        def on_train_start(self, trainer, pl_module) -> None:
+            assert isinstance(trainer.accelerator.training_type_plugin, DeepSpeedPlugin)
+            config = trainer.accelerator.training_type_plugin.config
+
+            # int value overrides auto mode
+            expected_value = value if isinstance(value, int) else 1
+            if dataset_cls == RandomDataset:
+                expected_value = pl_module.train_dataloader().batch_size if value == "auto" else value
+
+            assert config['train_micro_batch_size_per_gpu'] == expected_value
+            raise SystemExit
+
+    ck = AssertCallback()
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        callbacks=ck,
+        gpus=1,
+        plugins=DeepSpeedPlugin(logging_batch_size_per_gpu=value, zero_optimization=False),
+    )
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@RunIf(min_gpus=1, deepspeed=True, special=True)
 def test_deepspeed_run_configure_optimizers(tmpdir):
     """
     Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation),
@@ -350,11 +392,12 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
 
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         plugins=[DeepSpeedPlugin(config=deepspeed_zero_config)],
         precision=16,
         gpus=1,
-        default_root_dir=tmpdir,
         callbacks=[TestCallback()]
     )
     with pytest.raises(SystemExit):
@@ -368,8 +411,8 @@ def test_deepspeed_multigpu(tmpdir, deepspeed_config):
     """
     model = BoringModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(zero_optimization=False, stage=2)],
         default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(zero_optimization=False, stage=2)],
         gpus=2,
         fast_dev_run=True,
         precision=16,
@@ -447,8 +490,8 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     """
     model = ModelParallelBoringModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(stage=3)],
         default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3)],
         gpus=2,
         fast_dev_run=True,
         precision=16,
@@ -456,24 +499,19 @@ def test_deepspeed_multigpu_stage_3(tmpdir, deepspeed_config):
     trainer.fit(model)
     trainer.test(model)
 
-    # todo (tchaton) Currently load_from_checkpoint is not support for zero-v3
-    # _assert_save_model_is_equal(model, tmpdir, trainer)
+    _assert_save_model_is_equal(model, tmpdir, trainer, cls=ModelParallelBoringModel)
 
 
-@RunIf(min_gpus=2, deepspeed=True, special=True)
-def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
-    """
-    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
-    and see convergence.
-    """
-    seed_everything(42)
+def run_checkpoint_test(tmpdir, save_full_weights):
+    seed_everything(1)
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     ck = ModelCheckpoint(monitor="val_acc", mode="max", save_last=True, save_top_k=-1)
     trainer = Trainer(
-        max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3)],
         default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=10,
+        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
         gpus=2,
         precision=16,
         accumulate_grad_batches=2,
@@ -489,9 +527,9 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     assert saved_results == results
 
     trainer = Trainer(
-        max_epochs=10,
-        plugins=[DeepSpeedPlugin(stage=3)],
         default_root_dir=tmpdir,
+        max_epochs=10,
+        plugins=[DeepSpeedPlugin(stage=3, save_full_weights=save_full_weights)],
         gpus=2,
         precision=16,
         accumulate_grad_batches=2,
@@ -504,6 +542,24 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
     dm.predict_dataloader = dm.test_dataloader
     results = trainer.predict(datamodule=dm)
     assert results[-1] > 0.7
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    and see convergence.
+    """
+    run_checkpoint_test(tmpdir, save_full_weights=False)
+
+
+@RunIf(min_gpus=2, deepspeed=True, special=True)
+def test_deepspeed_multigpu_stage_3_checkpointing_full_weights(tmpdir):
+    """
+    Test to ensure with Stage 3 and multiple GPUs that we can save/load a model resuming from a checkpoint,
+    where we save the full weights to one file.
+    """
+    run_checkpoint_test(tmpdir, save_full_weights=True)
 
 
 @RunIf(min_gpus=2, deepspeed=True, special=True)
@@ -525,6 +581,8 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
     model = ModelParallelClassificationModel()
     dm = ClassifDataModule()
     trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=5,
         plugins=[DeepSpeedPlugin(stage=2, cpu_offload=cpu_offload)],
         gpus=2,
@@ -543,8 +601,8 @@ def test_deepspeed_multigpu_test(tmpdir, deepspeed_config):
     """
     model = ModelParallelBoringModel()
     trainer = Trainer(
-        plugins=[DeepSpeedPlugin(stage=3)],
         default_root_dir=tmpdir,
+        plugins=[DeepSpeedPlugin(stage=3)],
         gpus=2,
         fast_dev_run=True,
         precision=16,

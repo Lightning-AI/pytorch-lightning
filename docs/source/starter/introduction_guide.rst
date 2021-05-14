@@ -295,8 +295,6 @@ When your models need to know about the data, it's best to process the data befo
 1. use ``prepare_data()`` to download and process the dataset.
 2. use ``setup()`` to do splits, and build your model internals
 
-|
-
 An alternative to using a DataModule is to defer initialization of the models modules to the ``setup`` method of your LightningModule as follows:
 
 .. testcode::
@@ -855,7 +853,8 @@ In this case, we've set this LightningModel to predict logits. But we could also
     x = mnist_image()
     feature_maps = model(x)
 
-Or maybe we have a model that we use to do generation
+Or maybe we have a model that we use to do generation.
+A :class:`~pytorch_lightning.core.lightning.LightningModule` is also just a :class:`torch.nn.Module`.
 
 .. testcode::
 
@@ -880,8 +879,11 @@ Or maybe we have a model that we use to do generation
     generated_imgs = model(z)
 
 
-To perform inference at scale, it is possible to use ``trainer.predict`` with LightningModule ``predict_step`` function
-By default, LightningModule ``predict_step`` calls forward, but it can be overriden to add any processing logic.
+To perform inference at scale, it is possible to use :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`
+with :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`
+By default, :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`
+calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`,
+but it can be overridden to add any processing logic.
 
 .. code-block:: python
 
@@ -899,14 +901,18 @@ By default, LightningModule ``predict_step`` calls forward, but it can be overri
     trainer.predict(model, datamodule)
 
 
-How you split up what goes in ``forward`` vs ``training_step`` vs ``predict`` depends on how you want to use this model for
-prediction.
-However, we recommend ``forward`` to contain only tensor operation with your model, ``training_step`` to encapsulate ``forward`` logic with logging,
-metrics and loss computation and ``predict`` to encapsulate ``forward`` with preprocess, postprocess functions.
+How you split up what goes in :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`
+vs :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
+vs :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` depends on how you want to use this model for prediction.
+However, we recommend :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` to contain only tensor operations with your model.
+:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` to encapsulate
+:meth:`~pytorch_lightning.core.lightning.LightningModule.forward` logic with logging, metrics, and loss computation.
+:meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` to encapsulate
+:meth:`~pytorch_lightning.core.lightning.LightningModule.forward` with any necessary preprocess or postprocess functions.
 
 ----------------
 
-The nonessentials
+The non-essentials
 ==================
 
 Extensibility
@@ -1034,11 +1040,7 @@ d. Not a new library
 
 PyTorch Lightning is organized PyTorch - no need to learn a new framework.
 
-Switching your model to Lightning is straight forward - here's a 2-minute video on how to do it.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
+Learn how to :ref:`convert from PyTorch to Lightning here <converting>`.
 
 Your projects WILL grow in complexity and you WILL end up engineering more than trying out new ideas...
 Defer the hardest parts to Lightning!

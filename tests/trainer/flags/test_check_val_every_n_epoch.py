@@ -14,7 +14,6 @@
 import pytest
 
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 
 
@@ -47,7 +46,7 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
         logger=False,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert model.val_epoch_calls == expected_val_loop_calls
     assert model.val_batches == expected_val_batches

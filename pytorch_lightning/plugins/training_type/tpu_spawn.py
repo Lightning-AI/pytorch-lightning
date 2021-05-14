@@ -15,22 +15,27 @@ import io
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.multiprocessing as mp
+from torch.nn import Module
+from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
+from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
+from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
+from pytorch_lightning.utilities.seed import reset_seed
 
 if _TPU_AVAILABLE:
+    import torch_xla.core.xla_env_vars as xenv
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
     from torch_xla.core.xla_model import rendezvous
@@ -42,20 +47,34 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
-if TYPE_CHECKING:
-    from torch.nn import Module
-    from torch.utils.data import DataLoader
-
-
 class TPUSpawnPlugin(DDPSpawnPlugin):
+    """ Plugin for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method. """
 
-    def __init__(self, parallel_devices: Optional[List[int]] = None, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, parallel_devices: Optional[List[int]] = None, debug: bool = False, **_: Any) -> None:
         super().__init__(parallel_devices, num_nodes=1, cluster_environment=None, sync_batchnorm=False)
+        self.debug = debug
         self.tpu_local_core_rank = 0
+        self.tpu_global_core_rank = 0
         self.start_method = None
 
+    @property
+    def global_rank(self) -> int:
+        return self.tpu_global_core_rank
+
+    @property
+    def local_rank(self) -> int:
+        return self.tpu_local_core_rank
+
+    @property
+    def world_size(self) -> int:
+        return self.num_processes
+
+    @property
+    def root_device(self) -> torch.device:
+        return self.device
+
     @staticmethod
-    def _validate_dataloader(dataloaders: Union[List['DataLoader'], 'DataLoader']):
+    def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
@@ -67,7 +86,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 )
 
     @staticmethod
-    def _validate_patched_dataloaders(model: 'Module') -> None:
+    def _validate_patched_dataloaders(model: Module) -> None:
         """Validate and fail fast if the dataloaders were passed directly to fit.
         """
         if hasattr(model, 'train_dataloader') and isinstance(model.train_dataloader, _PatchDataLoader):
@@ -82,11 +101,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if hasattr(model, 'predict_dataloader') and isinstance(model.predict_dataloader, _PatchDataLoader):
             TPUSpawnPlugin._validate_dataloader(model.predict_dataloader.dataloader)
 
-    def connect(self, model: 'Module') -> None:
+    def connect(self, model: 'pl.LightningModule') -> None:
         TPUSpawnPlugin._validate_patched_dataloaders(model)
+        self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def setup(self, model: 'Module') -> 'Module':
+    def pre_dispatch(self):
+        if self.debug:
+            os.environ["PT_XLA_DEBUG"] = str(1)
+
+    def setup(self, model: Module) -> Module:
         self.create_mp_queue()
         return self.model
 
@@ -96,18 +120,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.mp_queue = smp.SimpleQueue()
 
     @property
-    def distributed_sampler_kwargs(self) -> dict:
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
     @property
-    def is_distributed(self):
+    def is_distributed(self) -> bool:
         return self.world_size != 1
 
-    def process_dataloader(self, dataloader: 'DataLoader') -> MpDeviceLoader:
+    def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
-        device = xm.xla_device()
-        dataloader = MpDeviceLoader(dataloader, device)
-        return dataloader
+        return MpDeviceLoader(dataloader, self.device)
 
     def configure_ddp(self) -> None:
         pass
@@ -115,20 +137,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def init_ddp_connection(self, global_rank: int, world_size: int) -> None:
         pass
 
-    def set_world_ranks(self, process_idx: int) -> None:
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
-        self.global_rank = self.tpu_local_core_rank
-        self.world_size = self.num_nodes * self.num_processes
+    def set_world_ranks(self, process_idx: int = 0) -> None:
+        pass
 
     def new_process(self, process_idx: int, trainer, mp_queue) -> None:
         self.mp_queue = mp_queue
 
-        seed = os.environ.get("PL_GLOBAL_SEED")
-        if seed is not None:
-            seed_everything(int(seed))
+        reset_seed()
 
-        self.set_world_ranks(process_idx)
+        self.tpu_local_core_rank = xm.get_local_ordinal()
+        self.tpu_global_core_rank = xm.get_ordinal()
 
         # set warning rank
         rank_zero_only.rank = self.global_rank
@@ -154,10 +172,13 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             time.sleep(2)
 
     def model_to_device(self) -> None:
-        self._model.to(xm.xla_device())
+        self.device = xm.xla_device()
+        self.model = self.wrapped_model.to(self.device)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        rendezvous(name)
+        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        if os.getenv(xenv.HOST_WORLD_SIZE, None) and tpu_distributed():
+            rendezvous(name)
 
     def transfer_distrib_spawn_state_on_fit_end(self, results):
         checkpoint_callback = self.lightning_module.trainer.checkpoint_callback
@@ -169,7 +190,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             # save the last weights
             last_path = None
             if (
-                self.lightning_module.trainer.state == TrainerState.FITTING and best_model_path is not None
+                self.lightning_module.trainer.state.fn == TrainerFn.FITTING and best_model_path is not None
                 and len(best_model_path) > 0
             ):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
@@ -188,21 +209,21 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data).to(xm.xla_device(), dtype=torch.float)
+        data_tensor = torch.tensor(data, device=self.device, dtype=torch.float)
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
         return obj
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.device)
-        decision = self.reduce(decision, "sum")
+        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = self.reduce(decision, reduce_op="sum")
         decision = bool(decision == self.world_size)
         return decision
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, torch.Tensor):
-            output = torch.tensor(output, device=self.device)
+            output = torch.tensor(output, device=self.lightning_module.device)
 
         _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
         _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
@@ -245,16 +266,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         xmp.spawn(self.new_process, **self.xmp_spawn_kwargs)
 
     def training_step(self, *args, **kwargs):
-        return self.lightning_module.training_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
-        return self.lightning_module.validation_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.lightning_module.test_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        return self.lightning_module.predict_step(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -267,3 +288,17 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if _OMEGACONF_AVAILABLE:
             checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
         self.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, filepath)
+
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        """
+        Function to gather a tensor from several distributed processes
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: not available with TPUs
+            sync_grads: not available with TPUs
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
+            tensor = tensor.unsqueeze(0)
+        return xm.all_gather(tensor)

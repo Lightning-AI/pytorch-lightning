@@ -11,17 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Convention:
+ - Do not include any `_TYPE` suffix
+ - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no trailing `_`)
+"""
+from typing import Any, Dict, Iterator, List, Union
 
-import warnings
+import torch
+from torchmetrics import Metric
 
-
-def ignore_scalar_return_in_dp():
-    # Users get confused by this warning so we silence it
-    warnings.filterwarnings(
-        'ignore',
-        message='Was asked to gather along dimension 0, but all input tensors were scalars;'
-        ' will instead unsqueeze and return a vector.'
-    )
-
-
-ignore_scalar_return_in_dp()
+_METRIC = Union[Metric, torch.Tensor, int, float]
+STEP_OUTPUT = Union[torch.Tensor, Dict[str, Any]]
+EPOCH_OUTPUT = List[STEP_OUTPUT]
+_EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
+_PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
+_PARAMETERS = Iterator[torch.nn.Parameter]

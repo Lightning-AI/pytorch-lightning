@@ -16,11 +16,11 @@ import os
 import platform
 import time
 from copy import deepcopy
-from distutils.version import LooseVersion
 
 import numpy as np
 import pytest
 import torch
+from packaging.version import Version
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
@@ -303,6 +303,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=5,
         limit_val_batches=5,
@@ -353,7 +354,9 @@ def test_pytorch_profiler_trainer_test(tmpdir):
 
     if _KINETO_AVAILABLE:
         files = sorted([file for file in os.listdir(tmpdir) if file.endswith('.json')])
-        assert any(f'test_step_{trainer.local_rank}' in f for f in files)
+        assert any(f'test-{pytorch_profiler.filename}' in f for f in files)
+        path = pytorch_profiler.dirpath / f"test-{pytorch_profiler.filename}.txt"
+        assert path.read_text("utf-8")
 
 
 def test_pytorch_profiler_trainer_predict(tmpdir):
@@ -417,10 +420,10 @@ def test_pytorch_profiler_nested(tmpdir):
             'signed char', 'add', 'profiler::_record_function_exit', 'bool', 'char', 'profiler::_record_function_enter'
         }
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    if Version(torch.__version__) >= Version("1.6.0"):
         expected = {'add', 'zeros', 'ones', 'zero_', 'b', 'fill_', 'c', 'a', 'empty'}
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+    if Version(torch.__version__) >= Version("1.7.0"):
         expected = {
             'aten::zeros', 'aten::add', 'aten::zero_', 'c', 'b', 'a', 'aten::fill_', 'aten::empty', 'aten::ones'
         }

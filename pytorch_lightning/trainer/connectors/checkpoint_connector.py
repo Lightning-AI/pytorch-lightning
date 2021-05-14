@@ -87,8 +87,7 @@ class CheckpointConnector:
         # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
         fs = get_filesystem(checkpoint_path)
         if not fs.exists(checkpoint_path):
-            rank_zero_warn("No checkpoint file exists at `resume_from_checkpoint`. Start from scratch")
-            return False
+            raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
 
         checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
             checkpoint_path, map_location=lambda storage, loc: storage
@@ -151,8 +150,8 @@ class CheckpointConnector:
         # restore callback states
         self.trainer.on_load_checkpoint(checkpoint)
 
-        self.trainer.global_step = checkpoint['global_step']
-        self.trainer.current_epoch = checkpoint['epoch']
+        self.trainer.train_loop.global_step = checkpoint['global_step']
+        self.trainer.train_loop.current_epoch = checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
@@ -274,7 +273,7 @@ class CheckpointConnector:
             'epoch': current_epoch,
             'global_step': global_step,
             'pytorch-lightning_version': pytorch_lightning.__version__,
-            'state_dict': model.state_dict(),
+            'state_dict': self.trainer.accelerator.lightning_module_state_dict(),
         }
 
         if not weights_only:

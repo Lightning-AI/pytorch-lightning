@@ -30,11 +30,13 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
     GradClipAlgorithmType,
     LightningEnum,
 )
+from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
     _BOLTS_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
+    _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE,
     _FAIRSCALE_PIPE_AVAILABLE,
     _GROUP_AVAILABLE,
     _HOROVOD_AVAILABLE,
@@ -45,6 +47,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _RPC_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_5,
     _TORCH_GREATER_EQUAL_1_6,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,
@@ -53,12 +56,10 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _TORCH_QUANTIZE_AVAILABLE,
     _TORCHTEXT_AVAILABLE,
     _TORCHVISION_AVAILABLE,
+    _TPU_AVAILABLE,
     _XLA_AVAILABLE,
 )
 from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict, is_picklable  # noqa: F401
-from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: F401
-
-_TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
