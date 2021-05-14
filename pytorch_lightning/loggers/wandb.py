@@ -15,21 +15,21 @@
 Weights and Biases Logger
 -------------------------
 """
+import operator
 import os
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from weakref import ReferenceType
-import operator
 
 import torch.nn as nn
 
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available, rank_zero_only
-from pytorch_lightning.utilities.imports import _compare_version
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _compare_version
 from pytorch_lightning.utilities.warnings import WarningCache
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 warning_cache = WarningCache()
 
@@ -251,25 +251,32 @@ class WandbLogger(LightningLoggerBase):
         checkpoints = {
             checkpoint_callback.last_model_path: checkpoint_callback.current_score,
             checkpoint_callback.best_model_path: checkpoint_callback.best_model_score,
-            **checkpoint_callback.best_k_models}
-        checkpoints = sorted([(Path(p).stat().st_mtime, p, s)
-                              for p, s in checkpoints.items() if Path(p).is_file()])
-        checkpoints = [c for c in checkpoints
-                       if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]]
+            **checkpoint_callback.best_k_models
+        }
+        checkpoints = sorted([(Path(p).stat().st_mtime, p, s) for p, s in checkpoints.items() if Path(p).is_file()])
+        checkpoints = [
+            c for c in checkpoints if c[1] not in self._logged_model_time.keys() or self._logged_model_time[c[1]] < c[0]
+        ]
 
         # log iteratively all new checkpoints
         for t, p, s in checkpoints:
-            metadata = {'score': s, 'original_filename': Path(p).name,
-                        'ModelCheckpoint': {k: getattr(checkpoint_callback, k) for k in [
-                            'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', '_every_n_train_steps',
-                            '_every_n_val_epochs']
-                            # ensure it does not break if `ModelCheckpoint` args change
-                        if hasattr(checkpoint_callback, k)}} if _WANDB_GREATER_EQUAL_0_10_22 else None
+            metadata = {
+                'score': s,
+                'original_filename': Path(p).name,
+                'ModelCheckpoint': {
+                    k: getattr(checkpoint_callback, k)
+                    for k in [
+                        'monitor', 'mode', 'save_last', 'save_top_k', 'save_weights_only', '_every_n_train_steps',
+                        '_every_n_val_epochs'
+                    ]
+                    # ensure it does not break if `ModelCheckpoint` args change
+                    if hasattr(checkpoint_callback, k)
+                }
+            } if _WANDB_GREATER_EQUAL_0_10_22 else None
             artifact = wandb.Artifact(name=f"model-{self.experiment.id}", type="model", metadata=metadata)
             artifact.add_file(p, name='model.ckpt')
             self.experiment.log_artifact(
-                artifact,
-                aliases=["latest", "best"] if p == checkpoint_callback.best_model_path
-                else ["latest"])
+                artifact, aliases=["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
+            )
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t

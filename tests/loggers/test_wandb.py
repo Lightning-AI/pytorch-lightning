@@ -202,13 +202,23 @@ def test_wandb_log_model(wandb, tmpdir):
     logger.experiment.project_name.return_value = 'project'
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
-    wandb.Artifact.assert_called_once_with(name='model-1', type='model',
-                                           metadata={'score': None, 'original_filename': 'epoch=1-step=5-v3.ckpt',
-                                                     'ModelCheckpoint': {'monitor': None, 'mode': 'min',
-                                                                         'save_last': None, 'save_top_k': None,
-                                                                         'save_weights_only': False,
-                                                                         '_every_n_train_steps': 0,
-                                                                         '_every_n_val_epochs': 1}})
+    wandb.Artifact.assert_called_once_with(
+        name='model-1',
+        type='model',
+        metadata={
+            'score': None,
+            'original_filename': 'epoch=1-step=5-v3.ckpt',
+            'ModelCheckpoint': {
+                'monitor': None,
+                'mode': 'min',
+                'save_last': None,
+                'save_top_k': None,
+                'save_weights_only': False,
+                '_every_n_train_steps': 0,
+                '_every_n_val_epochs': 1
+            }
+        }
+    )
 
 
 def test_wandb_sanitize_callable_params(tmpdir):

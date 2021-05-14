@@ -23,8 +23,8 @@ import os
 import re
 from copy import deepcopy
 from pathlib import Path
-from weakref import proxy
 from typing import Any, Callable, Dict, Optional, Union
+from weakref import proxy
 
 import numpy as np
 import torch
