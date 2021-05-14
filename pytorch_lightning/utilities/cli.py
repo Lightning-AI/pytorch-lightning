@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, Optional, Set, Type, Union
 
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -53,7 +53,7 @@ class LightningArgumentParser(ArgumentParser):
         self,
         lightning_class: Union[Type[Trainer], Type[LightningModule], Type[LightningDataModule]],
         nested_key: str,
-        subclass_mode: bool = False
+        subclass_mode: bool = False,
     ) -> None:
         """
         Adds arguments from a lightning class to a nested key of the parser
@@ -76,7 +76,7 @@ class SaveConfigCallback(Callback):
         self,
         parser: LightningArgumentParser,
         config: Union[Namespace, Dict[str, Any]],
-        config_filename: str = 'config.yaml'
+        config_filename: str = 'config.yaml',
     ) -> None:
         self.parser = parser
         self.config = config
@@ -104,7 +104,7 @@ class LightningCLI:
         env_parse: bool = False,
         parser_kwargs: Dict[str, Any] = None,
         subclass_mode_model: bool = False,
-        subclass_mode_data: bool = False
+        subclass_mode_data: bool = False,
     ) -> None:
         """
         Receives as input pytorch-lightning classes, which are instantiated using
@@ -203,14 +203,14 @@ class LightningCLI:
             parser.add_lightning_class_args(self.datamodule_class, 'data', subclass_mode=self.subclass_mode_data)
 
     @property
-    def subcommands(self) -> Dict[str, List[str]]:
+    def subcommands(self) -> Dict[str, Set[str]]:
         """Defines the list of available subcommands and the arguments to skip"""
         return {
-            'fit': ['model', 'train_dataloader', 'val_dataloaders', 'datamodule'],
-            'validate': ['model', 'val_dataloaders', 'datamodule'],
-            'test': ['model', 'test_dataloaders', 'datamodule'],
-            'predict': ['model', 'dataloaders', 'datamodule'],
-            'tune': ['model', 'train_dataloader', 'val_dataloaders', 'datamodule'],
+            'fit': {'model', 'train_dataloader', 'val_dataloaders', 'datamodule'},
+            'validate': {'model', 'val_dataloaders', 'datamodule'},
+            'test': {'model', 'test_dataloaders', 'datamodule'},
+            'predict': {'model', 'dataloaders', 'datamodule'},
+            'tune': {'model', 'train_dataloader', 'val_dataloaders', 'datamodule'},
         }
 
     def add_subcommands(self, parser: LightningArgumentParser) -> None:
@@ -237,10 +237,10 @@ class LightningCLI:
 
     def add_arguments(self, parser: LightningArgumentParser) -> None:
         """
-        Implement to add extra arguments to the base parser or link arguments
+        Implement to add extra arguments to the parser or link arguments
 
         Args:
-            parser: The base parser object to which arguments can be added
+            parser: The parser object to which arguments can be added
         """
 
     def parse_arguments(self, parser: LightningArgumentParser) -> None:
