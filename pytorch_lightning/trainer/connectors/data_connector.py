@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.supporters import prefetch_iterator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class DataConnector(object):
