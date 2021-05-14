@@ -373,9 +373,7 @@ class Trainer(
 
         # init data flags
         self.data_connector.on_trainer_init(
-            check_val_every_n_epoch,
-            reload_dataloaders_every_n_epochs,
-            reload_dataloaders_every_epoch,
+            check_val_every_n_epoch, reload_dataloaders_every_n_epochs, reload_dataloaders_every_epoch,
             prepare_data_per_node
         )
 

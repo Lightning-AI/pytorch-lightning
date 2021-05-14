@@ -49,7 +49,7 @@ def test_v1_4_0_deprecated_manual_optimization_optimizer(tmpdir):
     with pytest.deprecated_call(
         match="`optimizer` argument to `manual_backward` is deprecated in v1.2 and will be removed in v1.4"
     ):
-      trainer.fit(model)
+        trainer.fit(model)
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
@@ -73,7 +73,7 @@ def test_reload_dataloaders_every_epoch_remove_in_v1_4_0(tmpdir):
     expected_sequence = ['val_dataloader'] + ['train_dataloader', 'val_dataloader'] * 3 + ['test_dataloader']
     for call, expected in zip(calls, expected_sequence):
         assert call['name'] == expected
-  
+
 
 def test_v1_4_0_deprecated_checkpoint_on(tmpdir):
     from pytorch_lightning.callbacks.model_checkpoint import warning_cache

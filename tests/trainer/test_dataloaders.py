@@ -1372,7 +1372,7 @@ def test_dataloaders_load_every_n_epochs(tmpdir, n):
     if n == 1:
         expected_sequence += ['train_dataloader', 'val_dataloader'] * 3
     elif n == 2:
-        expected_sequence +=['train_dataloader', 'val_dataloader'] * 2
+        expected_sequence += ['train_dataloader', 'val_dataloader'] * 2
     expected_sequence += ['test_dataloader']
 
     for call, expected in zip(calls, expected_sequence):
