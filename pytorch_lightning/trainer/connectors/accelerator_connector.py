@@ -522,7 +522,7 @@ class AcceleratorConnector(object):
 
         # special case with DDP on CPUs
         if self.distributed_backend == "ddp_cpu":
-            self._distrib_type = DistributedType.DDP
+            self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
