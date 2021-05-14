@@ -14,7 +14,8 @@
 
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
-from typing import Any, Dict, List, Optional, Tuple, Union
+from functools import partial, update_wrapper
+from typing import Any, Dict, List, Optional, Tuple, Union, Callable
 
 import numpy as np
 import torch
@@ -717,6 +718,8 @@ class TrainLoop:
         self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
         result = AttributeDict()
+        closure = self.make_closure(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens, result)
+
         if self.should_accumulate():
             # For gradient accumulation
 
@@ -727,9 +730,7 @@ class TrainLoop:
             # automatic_optimization=True: perform dpp sync only when performing optimizer_step
             # automatic_optimization=False: don't block synchronization here
             with self.block_ddp_sync_behaviour():
-                result = self.training_step_and_backward(
-                    split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                )
+                closure()
 
         # ------------------------------
         # BACKWARD PASS
@@ -737,17 +738,7 @@ class TrainLoop:
         # gradient update with accumulated gradients
         else:
             if self.trainer.lightning_module.automatic_optimization:
-
-                def train_step_and_backward_closure():
-                    nonlocal result
-                    result = self.training_step_and_backward(
-                        split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                    )
-                    return None if result is None else result.loss
-
-                # optimizer step
-                self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
-
+                self.optimizer_step(optimizer, opt_idx, batch_idx, closure)
             else:
                 result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
 
@@ -761,6 +752,26 @@ class TrainLoop:
 
         self._process_closure_result(result)
         return result
+
+    def training_step_and_backward_closure(
+        self,
+        split_batch: Any,
+        batch_idx: int,
+        opt_idx: int,
+        optimizer: Optimizer,
+        hiddens,
+        return_result: AttributeDict,
+    ) -> Optional[torch.Tensor]:
+
+        step_result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        if step_result is not None:
+            return_result.update(step_result)
+            return return_result.loss
+
+    def make_closure(self, *closure_args, **closure_kwargs: Any) -> Callable:
+        """ Wraps the training step closure into a partial object which will be called within ``optimizer.step``. """
+        partial_func = partial(self.training_step_and_backward_closure, *closure_args, **closure_kwargs)
+        return update_wrapper(partial_func, self.training_step_and_backward_closure)
 
     @contextmanager
     def block_ddp_sync_behaviour(self, should_block_sync: bool = False):
