@@ -39,7 +39,7 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
     model = CustomModel()
-    assert trainer.experiment_dir == trainer.logger.experiment
+    assert trainer.experiment_dir == trainer.logger.experiment_dir
     trainer.fit(model)
 
     assert trainer.experiment_dir == trainer.logger.experiment_dir
