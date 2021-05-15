@@ -191,7 +191,7 @@ def _tpu_cores_valid(tpu_cores: Optional[Union[int, Iterable[int], List[int], Tu
     # allow 1 or 8 cores
     if tpu_cores in (1, 8, None):
         return True
-    
+
     # First condition is necessary for mypy compatibility;
     # list_tpu_cores is required to declare for mypy compatiblity too
     if (tpu_cores is not None) and (not isinstance(tpu_cores, int)):

@@ -189,7 +189,9 @@ class AllGatherGrad(torch.autograd.Function):
     def backward(ctx: torch.autograd.Function, *grad_output: torch.Tensor) -> Tuple[torch.Tensor, None]:
         grad_output_cat = torch.cat(grad_output)
 
-        torch.distributed.all_reduce(grad_output_cat, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
+        torch.distributed.all_reduce(
+            grad_output_cat, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group
+        )
 
         return grad_output_cat[torch.distributed.get_rank()], None
 
@@ -308,7 +310,7 @@ def register_ddp_comm_hook(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
-    
+
     # If condition required for mypy compatibility
     if ddp_comm_hook is not None:
         rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
