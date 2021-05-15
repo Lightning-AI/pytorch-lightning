@@ -169,7 +169,9 @@ class InternalDebugger(object):
         self.pbar_added_metrics.append(metrics)
 
     @enabled_only
-    def track_early_stopping_history(self, callback: 'pl.callbacks.early_stopping.EarlyStopping', current: torch.Tensor) -> None:
+    def track_early_stopping_history(
+        self, callback: 'pl.callbacks.early_stopping.EarlyStopping', current: torch.Tensor
+    ) -> None:
         debug_dict = {
             'epoch': self.trainer.current_epoch,
             'global_step': self.trainer.global_step,
