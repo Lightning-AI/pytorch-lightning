@@ -69,7 +69,7 @@ class LightningArgumentParser(ArgumentParser):
 
 
 class SaveConfigCallback(Callback):
-    """Saves a LightningCLI config to the log_dir when training starts"""
+    """Saves a LightningCLI config to the logger experiment_dir when training starts"""
 
     def __init__(
         self,

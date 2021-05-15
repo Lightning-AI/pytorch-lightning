@@ -49,7 +49,7 @@ def test_gpu_stats_monitor(tmpdir):
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
-    path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
+    path_csv = os.path.join(logger.experiment_dir, ExperimentWriter.NAME_METRICS_FILE)
     met_data = np.genfromtxt(path_csv, delimiter=',', names=True, deletechars='', replace_space=' ')
 
     batch_time_data = met_data['batch_time/intra_step (ms)']

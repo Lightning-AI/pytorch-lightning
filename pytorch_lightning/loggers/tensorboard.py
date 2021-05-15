@@ -123,8 +123,8 @@ class TensorBoardLogger(LightningLoggerBase):
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, version)
-        return log_dir
+        experiment_dir = os.path.join(self.root_dir, version)
+        return experiment_dir
 
     @property
     @rank_zero_experiment

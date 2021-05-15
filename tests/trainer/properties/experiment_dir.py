@@ -26,7 +26,7 @@ class TestModel(BoringModel):
         self.expected_log_dir = expected_log_dir
 
     def training_step(self, *args, **kwargs):
-        assert self.trainer.log_dir == self.expected_log_dir
+        assert self.trainer.experiment_dir == self.expected_log_dir
         return super().training_step(*args, **kwargs)
 
 
@@ -44,9 +44,9 @@ def test_logdir(tmpdir):
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_no_checkpoint_cb(tmpdir):
@@ -62,9 +62,9 @@ def test_logdir_no_checkpoint_cb(tmpdir):
         checkpoint_callback=False,
     )
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_no_logger(tmpdir):
@@ -81,9 +81,9 @@ def test_logdir_no_logger(tmpdir):
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
     )
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_no_logger_no_checkpoint(tmpdir):
@@ -100,9 +100,9 @@ def test_logdir_no_logger_no_checkpoint(tmpdir):
         checkpoint_callback=False,
     )
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_custom_callback(tmpdir):
@@ -118,9 +118,9 @@ def test_logdir_custom_callback(tmpdir):
         callbacks=[ModelCheckpoint(dirpath=os.path.join(tmpdir, 'ckpts'))],
     )
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
 
 
 def test_logdir_custom_logger(tmpdir):
@@ -137,6 +137,6 @@ def test_logdir_custom_logger(tmpdir):
         logger=TensorBoardLogger(save_dir=tmpdir, name='custom_logs')
     )
 
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == expected
+    assert trainer.experiment_dir == expected

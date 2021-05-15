@@ -87,7 +87,7 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
-def test_mlflow_log_dir(client, mlflow, tmpdir):
+def test_mlflow_experiment_dir(client, mlflow, tmpdir):
     """ Test that the trainer saves checkpoints in the logger's save dir. """
 
     # simulate experiment creation with mlflow client mock
@@ -111,11 +111,11 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
         limit_train_batches=1,
         limit_val_batches=3,
     )
-    assert trainer.log_dir == logger.save_dir
+    assert trainer.experiment_dir == logger.experiment_dir
     trainer.fit(model)
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "exp-id" / "run-id" / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=0.ckpt'}
-    assert trainer.log_dir == logger.save_dir
+    assert trainer.experiment_dir == logger.experiment_dir
 
 
 def test_mlflow_logger_dirs_creation(tmpdir):
