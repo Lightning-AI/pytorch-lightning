@@ -122,7 +122,7 @@ class TransferableDataType(ABC):
     """
 
     @classmethod
-    def __subclasshook__(cls, subclass: Any) -> Union[bool, Type[NotImplemented]]:
+    def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
         if cls is TransferableDataType:
             to = getattr(subclass, "to", None)
             return callable(to)
