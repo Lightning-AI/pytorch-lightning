@@ -40,7 +40,7 @@ def pl_multi_process(func: Callable) -> Callable:
 
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Union[Any, bool]:
-        queue = Queue()
+        queue: Queue = Queue()
         proc = Process(target=inner_f, args=(queue, func, *args), kwargs=kwargs)
         proc.start()
         proc.join(TPU_CHECK_TIMEOUT)

@@ -27,7 +27,7 @@ class LightningEnum(str, Enum):
                 return getattr(cls, st)
         return None
 
-    def __eq__(self, other: Union[str, Enum]) -> bool:
+    def __eq__(self, other: Union[object, Enum]) -> bool:
         other = other.value if isinstance(other, Enum) else str(other)
         return self.value.lower() == other.lower()
 
