@@ -15,7 +15,6 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Type, Union
 
-import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule

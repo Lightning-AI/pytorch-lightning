@@ -14,7 +14,6 @@
 
 from typing import Union
 
-import pytorch_lightning as pl
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 

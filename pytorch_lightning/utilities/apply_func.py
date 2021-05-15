@@ -16,7 +16,7 @@ from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
-from typing import Any, Callable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
