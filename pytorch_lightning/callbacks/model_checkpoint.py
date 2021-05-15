@@ -209,7 +209,7 @@ class ModelCheckpoint(Callback):
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._last_global_step_saved = -1
-        self._prev_time_check: Optional[float] = None
+        self._last_time_checked: Optional[float] = None
         self.current_score = None
         self.best_k_models = {}
         self.kth_best_model_path = ""
@@ -231,7 +231,7 @@ class ModelCheckpoint(Callback):
         self._save_function = trainer.save_checkpoint
 
     def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
-        self._prev_time_check = time.monotonic()
+        self._last_time_checked = time.monotonic()
 
     def on_train_batch_end(
         self,
@@ -252,7 +252,7 @@ class ModelCheckpoint(Callback):
         skip_time = True
         now = time.monotonic()
         if train_time_interval:
-            prev_time_check = self._prev_time_check
+            prev_time_check = self._last_time_checked
             skip_time = (prev_time_check is None or (now - prev_time_check) < train_time_interval.total_seconds())
             # in case we have time differences across ranks
             # broadcast the decision on whether to checkpoint from rank 0 to avoid possible hangs
@@ -261,7 +261,7 @@ class ModelCheckpoint(Callback):
         if skip_batch and skip_time:
             return
         if not skip_time:
-            self._prev_time_check = now
+            self._last_time_checked = now
 
         self.save_checkpoint(trainer)
 

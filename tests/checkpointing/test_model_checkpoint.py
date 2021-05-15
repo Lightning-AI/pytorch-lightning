@@ -568,8 +568,8 @@ def test_invalid_every_n_train_steps(tmpdir):
 
 def test_invalid_trigger_combination(tmpdir):
     """
-    Test that a MisconfigurationException is raised if both
-    every_n_val_epochs and every_n_train_steps are enabled together.
+    Test that a MisconfigurationException is raised if more than one of
+    every_n_val_epochs, every_n_train_steps, and train_time_interval are enabled together.
     """
     with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
         ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_val_epochs=2)
