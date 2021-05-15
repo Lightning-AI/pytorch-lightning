@@ -71,6 +71,7 @@ class CallbackConnector:
         self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
     def _configure_checkpoint_callbacks(self, checkpoint_callback: bool) -> None:
+        # TODO: Remove this error in v1.5 so we rely purely on the type signature
         if not isinstance(checkpoint_callback, bool):
             error_msg = (
                 "Invalid type provided for checkpoint_callback:"
