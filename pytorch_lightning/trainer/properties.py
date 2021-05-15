@@ -147,7 +147,9 @@ class TrainerProperties(ABC):
     @property
     def experiment_dir(self):
         dirpath = self.logger.experiment_dir if self.logger is not None else self.default_root_dir
-        dirpath = self.accelerator.broadcast(dirpath)
+        if not getattr(self, "__experiment_dir_broadcast", False):
+            dirpath = self.accelerator.broadcast(dirpath)
+            setattr(self, "__experiment_dir_broadcast", True)
         return dirpath
 
     @property
