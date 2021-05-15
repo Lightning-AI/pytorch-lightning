@@ -231,11 +231,6 @@ class TrainLoop:
 
         return False
 
-    def _should_skip_optimizer(self, opt_idx: int, batch_idx: Optional[int] = None) -> bool:
-        """ Determine if the optimizer should be skipped based on desired frequencies. """
-        active_indices = [idx for (idx, _) in self.get_active_optimizers(batch_idx)]
-        return opt_idx not in active_indices
-
     def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
         """
         Returns the currently active optimizers. When multiple optimizers are used with different frequencies,
