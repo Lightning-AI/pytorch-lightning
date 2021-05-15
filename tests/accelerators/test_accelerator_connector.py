@@ -443,7 +443,6 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
         accelerator='ddp_cpu',
         num_processes=2,
     )
-    assert trainer.use_ddp
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
     assert isinstance(trainer.training_type_plugin.cluster_environment, CustomCluster)
