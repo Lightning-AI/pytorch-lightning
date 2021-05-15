@@ -18,7 +18,8 @@ import types
 from argparse import Namespace
 from enum import Enum
 from types import FrameType
-from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.lightning import LightningModule
