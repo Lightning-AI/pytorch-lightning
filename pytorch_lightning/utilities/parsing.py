@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
-from enum import Enum
 import inspect
 import pickle
-from pytorch_lightning.core.lightning import LightningModule
 import types
 from argparse import Namespace
+from enum import Enum
 from types import FrameType
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 
 
