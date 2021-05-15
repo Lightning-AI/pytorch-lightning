@@ -199,15 +199,14 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def experiment_dir(self) -> str:
-        tf_log_dir = Path(self.experiment.log_dir)
-        return str(tf_log_dir.parent)
+        return os.path.join(self.save_dir, self.name, f"version_{self.version}")
 
     @property
     def name(self) -> str:
         if self._experiment is None:
             return self._name
 
-        return self.experiment.name
+        return str(self.experiment.name)
 
     @property
     def version(self) -> int:
