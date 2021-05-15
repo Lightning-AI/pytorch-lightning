@@ -226,6 +226,11 @@ class MLFlowLogger(LightningLoggerBase):
             return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
 
     @property
+    def experiment_dir(self) -> Optional[str]:
+        if self.save_dir is not None:
+            return os.path.join(self.save_dir, self.name, self.version)
+
+    @property
     def name(self) -> str:
         return self.experiment_id
 
