@@ -16,7 +16,7 @@ import os
 import time
 from collections import Counter
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -44,19 +44,19 @@ class InternalDebugger(object):
     def __init__(self, trainer: 'pl.Trainer') -> None:
         self.enabled = os.environ.get('PL_DEV_DEBUG', '0') == '1'
         self.trainer = trainer
-        self.logged_metrics = []
-        self.pbar_added_metrics = []
-        self.saved_train_losses = []
-        self.saved_val_losses = []
-        self.saved_test_losses = []
-        self.early_stopping_history = []
-        self.checkpoint_callback_history = []
-        self.events = []
-        self.saved_lr_scheduler_updates = []
-        self.train_dataloader_calls = []
-        self.val_dataloader_calls = []
-        self.test_dataloader_calls = []
-        self.dataloader_sequence_calls = []
+        self.logged_metrics: List[Dict[str, Union[int, torch.Tensor]]] = []
+        self.pbar_added_metrics: List[Dict[str, Union[int, torch.Tensor]]] = []
+        self.saved_train_losses: List[Dict[str, Union[int, torch.Tensor, object]]] = []
+        self.saved_val_losses: List[Dict[str, Union[int, torch.Tensor, object]]] = []
+        self.saved_test_losses: List[Dict[str, Union[int, torch.Tensor, object]]] = []
+        self.early_stopping_history: List[Dict[str, Union[int, torch.Tensor, object]]] = []
+        self.checkpoint_callback_history: List[Dict[str, Union[int, torch.Tensor, object]]] = []
+        self.events: List[Dict[str, Any]] = []
+        self.saved_lr_scheduler_updates: List[Dict[str, Union[int, float, str, torch.Tensor, None]]] = []
+        self.train_dataloader_calls: List[Dict[str, Union[int, str, object]]] = []
+        self.val_dataloader_calls: List[Dict[str, Union[int, str, object]]] = []
+        self.test_dataloader_calls: List[Dict[str, Union[int, str, object]]] = []
+        self.dataloader_sequence_calls: List[Dict[str, Union[int, str, object]]] = []
 
     def track_event(
         self,
@@ -116,7 +116,7 @@ class InternalDebugger(object):
             self.test_dataloader_calls.append(values)
 
     @enabled_only
-    def track_logged_metrics_history(self, scalar_metrics: Dict[str, torch.Tensor]) -> None:
+    def track_logged_metrics_history(self, scalar_metrics: Dict[str, Union[int, torch.Tensor]]) -> None:
         scalar_metrics['global_step'] = self.trainer.global_step
         self.logged_metrics.append(scalar_metrics)
 
@@ -164,12 +164,12 @@ class InternalDebugger(object):
             self.saved_val_losses.append(loss_dict)
 
     @enabled_only
-    def track_pbar_metrics_history(self, metrics: Dict[str, torch.Tensor]) -> None:
+    def track_pbar_metrics_history(self, metrics: Dict[str, Union[int, torch.Tensor]]) -> None:
         metrics['debug_epoch'] = self.trainer.current_epoch
         self.pbar_added_metrics.append(metrics)
 
     @enabled_only
-    def track_early_stopping_history(self, callback: 'pl.Callback', current: torch.Tensor) -> None:
+    def track_early_stopping_history(self, callback: 'pl.callbacks.early_stopping.EarlyStopping', current: torch.Tensor) -> None:
         debug_dict = {
             'epoch': self.trainer.current_epoch,
             'global_step': self.trainer.global_step,
@@ -199,7 +199,7 @@ class InternalDebugger(object):
 
     @property
     def num_seen_val_check_batches(self) -> Counter:
-        counts = Counter()
+        counts: Counter = Counter()
         for x in self.saved_val_losses:
             if not x['sanity_check']:
                 counts.update({x['dataloader_idx']: 1})
@@ -207,7 +207,7 @@ class InternalDebugger(object):
 
     @property
     def num_seen_test_check_batches(self) -> Counter:
-        counts = Counter()
+        counts: Counter = Counter()
         for x in self.saved_test_losses:
             if not x['sanity_check']:
                 counts.update({x['dataloader_idx']: 1})
