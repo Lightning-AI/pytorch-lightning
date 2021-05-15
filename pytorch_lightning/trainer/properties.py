@@ -34,7 +34,7 @@ from pytorch_lightning.trainer.connectors.checkpoint_connector import Checkpoint
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_loop import TrainLoop
-from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
+from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn, rank_zero_deprecation
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
     from_argparse_args,
@@ -131,7 +131,7 @@ class TrainerProperties(ABC):
 
     @property
     def log_dir(self) -> Optional[str]:
-        rank_zero_warn(
+        rank_zero_deprecation(
             "Trainer.log_dir is deprecated since v1.4 and will be removed in v1.6."
             " Use Trainer.experiment_dir instead, which consistently points to `save_dir/name/version`"
             " for all built-in loggers."

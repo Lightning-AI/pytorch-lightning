@@ -334,6 +334,17 @@ class LightningLoggerBase(ABC):
         return self.save_dir
 
     @property
+    def log_dir(self) -> str:
+        """
+        Return the experiment directory for the current run where logs get saved.
+
+        .. deprecated::
+            Use :meth:`pytorch_lightning.loggers.base.LightningLoggerBase.experiment_dir` instead.
+            Will be removed in v1.6.0.
+        """
+        return self.experiment_dir
+
+    @property
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""

@@ -164,10 +164,6 @@ class CSVLogger(LightningLoggerBase):
         return log_dir
 
     @property
-    def log_dir(self) -> str:
-        return self.experiment_dir
-
-    @property
     @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""

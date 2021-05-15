@@ -127,10 +127,6 @@ class TensorBoardLogger(LightningLoggerBase):
         return log_dir
 
     @property
-    def log_dir(self) -> Optional[str]:
-        return self.experiment_dir
-
-    @property
     @rank_zero_experiment
     def experiment(self) -> SummaryWriter:
         r"""
