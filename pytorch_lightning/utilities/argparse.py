@@ -15,7 +15,7 @@ import inspect
 import os
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
@@ -150,7 +150,7 @@ def add_argparse_args(
     parent_parser: ArgumentParser,
     *,
     use_argument_group: bool = True,
-) -> ArgumentParser:
+) -> Union[_ArgumentGroup, ArgumentParser]:
     r"""Extends existing argparse by default attributes for ``cls``.
 
     Args:
@@ -190,7 +190,7 @@ def add_argparse_args(
         raise RuntimeError("Please only pass an ArgumentParser instance.")
     if use_argument_group:
         group_name = _get_abbrev_qualified_cls_name(cls)
-        parser = parent_parser.add_argument_group(group_name)
+        parser: Union[_ArgumentGroup, ArgumentParser] = parent_parser.add_argument_group(group_name)
     else:
         parser = ArgumentParser(
             parents=[parent_parser],
@@ -213,16 +213,16 @@ def add_argparse_args(
     args_help = _parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__ or "")
 
     for arg, arg_types, arg_default in args_and_types:
-        arg_types = [at for at in allowed_types if at in arg_types]
+        arg_types = tuple(at for at in allowed_types if at in arg_types)
         if not arg_types:
             # skip argument with not supported type
             continue
-        arg_kwargs = {}
+        arg_kwargs: Dict[str, Any] = {}
         if bool in arg_types:
             arg_kwargs.update(nargs="?", const=True)
             # if the only arg type is bool
             if len(arg_types) == 1:
-                use_type = str_to_bool
+                use_type: Callable[[str], Union[bool, int, float, str]] = str_to_bool
             elif int in arg_types:
                 use_type = str_to_bool_or_int
             elif str in arg_types:
@@ -261,7 +261,7 @@ def add_argparse_args(
 
 def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
     arg_block_indent = None
-    current_arg = None
+    current_arg = ''
     parsed = {}
     for line in docstring.split("\n"):
         stripped = line.lstrip()
