@@ -61,3 +61,10 @@ def test_v1_6_0_ddp_spawn_num_nodes():
 def test_v1_6_0_ddp_spawn_sync_batchnorm():
     with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4"):
         DDPSpawnPlugin(sync_batchnorm=False)
+
+
+def test_v1_6_0_log_dir():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="Trainer.log_dir is deprecated since v1.4 and will be removed in v1.6."):
+        log_dir = trainer.log_dir
+    assert log_dir == trainer.experiment_dir
