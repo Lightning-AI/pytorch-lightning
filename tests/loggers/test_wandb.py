@@ -116,7 +116,7 @@ def test_wandb_pickle(wandb, tmpdir):
     )
     # Access the experiment to ensure it's created
     assert trainer.logger.experiment, 'missing experiment'
-    assert trainer.experiment_dir == logger.save_dir
+    assert trainer.experiment_dir == logger.experiment_dir == 'wandb/the_project_name/the_id'
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
 
@@ -156,12 +156,12 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     version = logger.version
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
-    assert trainer.experiment_dir == logger.save_dir
+    assert trainer.experiment_dir == logger.experiment_dir == tmpdir / 'project' / '1'
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=2.ckpt'}
-    assert trainer.experiment_dir == logger.save_dir
+    assert trainer.experiment_dir == logger.experiment_dir
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
