@@ -16,7 +16,7 @@ from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import torch
@@ -84,13 +84,20 @@ def apply_to_collection(
 
     # Recursively apply to collection items
     if isinstance(data, Mapping):
-        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs) for k, v in data.items()})
+        return elem_type({
+            k: apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            for k, v in data.items()
+        })
 
-    if isinstance(data, Tuple) and hasattr(data, '_fields'):  # named tuple
-        return elem_type(*(apply_to_collection(d, dtype, function, *args, **kwargs) for d in data))
+    if isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
+        return elem_type(
+            *(apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs) for d in data)
+        )
 
     if isinstance(data, Sequence) and not isinstance(data, str):
-        return elem_type([apply_to_collection(d, dtype, function, *args, **kwargs) for d in data])
+        return elem_type([
+            apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs) for d in data
+        ])
 
     # data is neither of dtype, nor a collection
     return data
@@ -115,7 +122,7 @@ class TransferableDataType(ABC):
     """
 
     @classmethod
-    def __subclasshook__(cls, subclass: Any) -> Union[bool, type(NotImplemented)]:
+    def __subclasshook__(cls, subclass: Any) -> Union[bool, Type[NotImplemented]]:
         if cls is TransferableDataType:
             to = getattr(subclass, "to", None)
             return callable(to)
