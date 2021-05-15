@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import operator
-from typing import Any, List, MutableSequence, Optional, Set, Tuple, Union
+from typing import Any, Iterable, List, MutableSequence, Optional, Set, Tuple, Union
 
 import torch
 
@@ -187,15 +187,20 @@ def _check_data_type(device_ids: Any) -> None:
         raise MisconfigurationException("Device ID's (GPU/TPU) must be int, string or sequence of ints or None.")
 
 
-def _tpu_cores_valid(tpu_cores: Optional[Union[int, List[int], Tuple[int], Set[int]]]) -> bool:
+def _tpu_cores_valid(tpu_cores: Optional[Union[int, Iterable[int], List[int], Tuple[int], Set[int]]] = None) -> bool:
     # allow 1 or 8 cores
     if tpu_cores in (1, 8, None):
         return True
+    
+    # First condition is necessary for mypy compatibility;
+    # list_tpu_cores is required to declare for mypy compatiblity too
+    if (tpu_cores is not None) and (not isinstance(tpu_cores, int)):
+        list_tpu_cores: List[int] = list(tpu_cores)
 
     # allow picking 1 of 8 indexes
-    if isinstance(tpu_cores, (List, Tuple, Set)):
-        has_1_tpu_idx = len(tpu_cores) == 1
-        is_valid_tpu_idx = tpu_cores[0] in range(1, 9)
+    if isinstance(list_tpu_cores, List):
+        has_1_tpu_idx = len(list_tpu_cores) == 1
+        is_valid_tpu_idx = list_tpu_cores[0] in range(1, 9)
 
         is_valid_tpu_core_choice = has_1_tpu_idx and is_valid_tpu_idx
         return is_valid_tpu_core_choice
@@ -205,7 +210,7 @@ def _tpu_cores_valid(tpu_cores: Optional[Union[int, List[int], Tuple[int], Set[i
 
 def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
     if tpu_cores in ('1', '8'):
-        tpu_cores = int(tpu_cores)
+        int_tpu_cores: Union[int, List[int]] = int(tpu_cores)
     else:
-        tpu_cores = [int(x.strip()) for x in tpu_cores.split(',') if len(x) > 0]
-    return tpu_cores
+        int_tpu_cores = [int(x.strip()) for x in tpu_cores.split(',') if len(x) > 0]
+    return int_tpu_cores

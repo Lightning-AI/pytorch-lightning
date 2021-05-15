@@ -16,7 +16,7 @@ import logging
 import os
 import warnings
 from functools import partial, wraps
-from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -41,12 +41,13 @@ else:
 log = logging.getLogger(__name__)
 
 
-def rank_zero_only(fn: Callable) -> Optional[Callable]:
+def rank_zero_only(fn: Callable) -> Callable:
 
     @wraps(fn)
     def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
         if rank_zero_only.rank == 0:
             return fn(*args, **kwargs)
+        return None
 
     return wrapped_fn
 
@@ -174,23 +175,23 @@ def sync_ddp(
 class AllGatherGrad(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx: object, tensor: torch.Tensor, group=group.WORLD) -> torch.Tensor:
+    def forward(ctx: torch.autograd.Function, tensor: torch.Tensor, group=group.WORLD) -> torch.Tensor:
         ctx.group = group
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
 
         torch.distributed.all_gather(gathered_tensor, tensor, group=group)
-        gathered_tensor = torch.stack(gathered_tensor, dim=0)
+        stacked_tensor = torch.stack(gathered_tensor, dim=0)
 
-        return gathered_tensor
+        return stacked_tensor
 
     @staticmethod
-    def backward(ctx: object, *grad_output: Sequence[torch.Tensor]) -> Tuple[torch.Tensor, None]:
-        grad_output = torch.cat(grad_output)
+    def backward(ctx: torch.autograd.Function, *grad_output: torch.Tensor) -> Tuple[torch.Tensor, None]:
+        grad_output_cat = torch.cat(grad_output)
 
-        torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
+        torch.distributed.all_reduce(grad_output_cat, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
 
-        return grad_output[torch.distributed.get_rank()], None
+        return grad_output_cat[torch.distributed.get_rank()], None
 
 
 def all_gather_ddp_if_available(
@@ -307,12 +308,14 @@ def register_ddp_comm_hook(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
-
-    rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
-    model.register_comm_hook(
-        state=ddp_comm_state,
-        hook=ddp_comm_hook,
-    )
+    
+    # If condition required for mypy compatibility
+    if ddp_comm_hook is not None:
+        rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
+        model.register_comm_hook(
+            state=ddp_comm_state,
+            hook=ddp_comm_hook,
+        )
 
 
 def tpu_distributed() -> bool:
