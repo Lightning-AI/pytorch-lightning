@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+from enum import Enum
 import inspect
 import pickle
+from pytorch_lightning.core.lightning import LightningModule
 import types
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
+from types import FrameType
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
@@ -51,10 +54,10 @@ def str_to_bool(val: str) -> bool:
     >>> str_to_bool('FALSE')
     False
     """
-    val = str_to_bool_or_str(val)
-    if isinstance(val, bool):
-        return val
-    raise ValueError(f'invalid truth value {val}')
+    val_converted = str_to_bool_or_str(val)
+    if isinstance(val_converted, bool):
+        return val_converted
+    raise ValueError(f'invalid truth value {val_converted}')
 
 
 def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
@@ -69,13 +72,13 @@ def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
     >>> str_to_bool_or_int("abc")
     'abc'
     """
-    val = str_to_bool_or_str(val)
-    if isinstance(val, bool):
-        return val
+    val_converted = str_to_bool_or_str(val)
+    if isinstance(val_converted, bool):
+        return val_converted
     try:
-        return int(val)
+        return int(val_converted)
     except ValueError:
-        return val
+        return val_converted
 
 
 def is_picklable(obj: object) -> bool:
@@ -118,7 +121,10 @@ def parse_class_init_keys(cls) -> Tuple[str, str, str]:
     # self is always first
     n_self = init_params[0].name
 
-    def _get_first_if_any(params: Sequence[Namespace], param_type: Type) -> str:
+    def _get_first_if_any(
+        params: List[inspect.Parameter],
+        param_type: Literal[inspect._ParameterKind.VAR_POSITIONAL, inspect._ParameterKind.VAR_KEYWORD],
+    ) -> str:
         for p in params:
             if p.kind == param_type:
                 return p.name
@@ -129,7 +135,7 @@ def parse_class_init_keys(cls) -> Tuple[str, str, str]:
     return n_self, n_args, n_kwargs
 
 
-def get_init_args(frame: object) -> Dict[str, Any]:
+def get_init_args(frame: FrameType) -> Dict[str, Any]:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if '__class__' not in local_vars:
         return {}
@@ -145,7 +151,7 @@ def get_init_args(frame: object) -> Dict[str, Any]:
     return local_args
 
 
-def collect_init_args(frame: object, path_args: List[Dict[str, Any]], inside: bool = False) -> List[Dict[str, Any]]:
+def collect_init_args(frame: FrameType, path_args: List[Dict[str, Any]], inside: bool = False) -> List[Dict[str, Any]]:
     """
     Recursively collects the arguments passed to the child constructors in the inheritance tree.
 
@@ -160,13 +166,16 @@ def collect_init_args(frame: object, path_args: List[Dict[str, Any]], inside: bo
           most specific class in the hierarchy.
     """
     _, _, _, local_vars = inspect.getargvalues(frame)
-    if '__class__' in local_vars:
-        local_args = get_init_args(frame)
-        # recursive update
-        path_args.append(local_args)
-        return collect_init_args(frame.f_back, path_args, inside=True)
-    elif not inside:
-        return collect_init_args(frame.f_back, path_args, inside)
+    if isinstance(frame.f_back, FrameType):
+        if '__class__' in local_vars:
+            local_args = get_init_args(frame)
+            # recursive update
+            path_args.append(local_args)
+            return collect_init_args(frame.f_back, path_args, inside=True)
+        elif not inside:
+            return collect_init_args(frame.f_back, path_args, inside)
+        else:
+            return path_args
     else:
         return path_args
 
@@ -272,7 +281,7 @@ def _lightning_get_all_attr_holders(model: 'pl.LightningModule', attribute: str)
     """
     trainer = getattr(model, 'trainer', None)
 
-    holders = []
+    holders: List[Union[Dict[Any, Any], Namespace, LightningModule]] = []
 
     # Check if attribute in model
     if hasattr(model, attribute):
