@@ -80,7 +80,7 @@ class TrainLoop:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
 
     @property
-    def num_active_optimizers(self):
+    def num_active_optimizers(self) -> int:
         return len(self.get_active_optimizers())
 
     @property
