@@ -13,16 +13,16 @@
 # limitations under the License.
 """Helper functions to operate on metric values. """
 
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-RECURSIVE_DICT_WITH_TENSORS = Dict[str, Union[torch.Tensor, 'RECURSIVE_DICT_WITH_TENSORS']]
+RECURSIVE_DICT_WITH_TENSORS = Union[Dict[str, torch.Tensor], Dict[Any, Any]]
 
 
-def metrics_to_scalars(metrics: RECURSIVE_DICT_WITH_TENSORS) -> Dict[str, float]:
+def metrics_to_scalars(metrics: RECURSIVE_DICT_WITH_TENSORS) -> Dict[str, Union[Any, Dict[str, float], float]]:
     """ Recursively walk through a dictionary of metrics and convert single-item tensors to scalar values. """
 
     # TODO: this is duplicated in MetricsHolder. should be unified

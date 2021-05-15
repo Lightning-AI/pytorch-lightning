@@ -25,7 +25,7 @@ class DeviceDtypeModuleMixin(Module):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype = torch.get_default_dtype()
+        self._dtype: Union[str, torch.dtype] = torch.get_default_dtype()
         self._device = torch.device('cpu')
 
     @property
@@ -188,7 +188,7 @@ class DeviceDtypeModuleMixin(Module):
         self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
     ) -> None:
 
-        def apply_fn(module):
+        def apply_fn(module: Module) -> None:
             if not isinstance(module, DeviceDtypeModuleMixin):
                 return
             if device is not None:

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+from typing import Any, Set
 
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 
@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_warn
 class WarningCache:
 
     def __init__(self) -> None:
-        self.warnings = set()
+        self.warnings: Set[Any] = set()
 
     def warn(self, m: Any, *args: Any, **kwargs: Any) -> None:
         if m not in self.warnings:

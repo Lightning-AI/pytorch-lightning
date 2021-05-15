@@ -15,13 +15,13 @@ import inspect
 import os
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Type, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
 
 
-def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> 'pl.Trainer':
+def from_argparse_args(cls: Type['pl.Trainer'], args: Union[Namespace, ArgumentParser], **kwargs: Any) -> 'pl.Trainer':
     """Create an instance from CLI arguments.
     Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
 
@@ -53,7 +53,7 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs: An
     return cls(**trainer_kwargs)
 
 
-def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+def parse_argparser(cls: Type['pl.Trainer'], arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
     """Parse CLI arguments, required for custom bool types."""
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
@@ -78,7 +78,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
     return Namespace(**modified_args)
 
 
-def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def parse_env_variables(cls: Type['pl.Trainer'], template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
     Example:
@@ -107,7 +107,7 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
     return Namespace(**env_args)
 
 
-def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
+def get_init_arguments_and_types(cls: Type['pl.Trainer']) -> List[Tuple[str, Tuple, Any]]:
     r"""Scans the class signature and returns argument names, types and default values.
 
     Returns:
@@ -135,7 +135,7 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-def _get_abbrev_qualified_cls_name(cls) -> str:
+def _get_abbrev_qualified_cls_name(cls: Type['pl.Trainer']) -> str:
     assert isinstance(cls, type), repr(cls)
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
@@ -146,7 +146,7 @@ def _get_abbrev_qualified_cls_name(cls) -> str:
 
 
 def add_argparse_args(
-    cls,
+    cls: Type['pl.Trainer'],
     parent_parser: ArgumentParser,
     *,
     use_argument_group: bool = True,

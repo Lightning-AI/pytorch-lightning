@@ -17,7 +17,7 @@ import pickle
 import types
 from argparse import Namespace
 from types import FrameType
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 from typing_extensions import Literal
 
@@ -105,7 +105,7 @@ def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
         del hparams_dict[k]
 
 
-def parse_class_init_keys(cls) -> Tuple[str, str, str]:
+def parse_class_init_keys(cls: Type['pl.LightningModule']) -> Tuple[str, str, str]:
     """Parse key words for standard self, *args and **kwargs
 
     >>> class Model():

@@ -16,7 +16,7 @@ import logging
 import os
 import warnings
 from functools import partial, wraps
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -175,7 +175,11 @@ def sync_ddp(
 class AllGatherGrad(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx: torch.autograd.Function, tensor: torch.Tensor, group=group.WORLD) -> torch.Tensor:
+    def forward(
+        ctx: torch.autograd.Function,
+        tensor: torch.Tensor,
+        group: Optional['torch.distributed.ProcessGroup'] = group.WORLD,
+    ) -> torch.Tensor:
         ctx.group = group
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
@@ -197,7 +201,7 @@ class AllGatherGrad(torch.autograd.Function):
 
 
 def all_gather_ddp_if_available(
-    tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False
+    tensor: torch.Tensor, group: Optional[Type['torch.distributed.ProcessGroup']] = None, sync_grads: bool = False
 ) -> torch.Tensor:
     """
     Function to gather a tensor from several distributed processes
