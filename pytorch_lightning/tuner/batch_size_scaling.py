@@ -160,7 +160,10 @@ def _run_power_scaling(
             else:
                 raise  # some other error not memory related
 
-        if not changed:
+        if changed:
+            # set train dataloader to None so it is reset
+            trainer.train_dataloader = None
+        else:
             break
     return new_size
 
@@ -192,7 +195,10 @@ def _run_binsearch_scaling(
             else:
                 new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
 
-            if not changed:
+            if changed:
+                # set train dataloader to None so it is reset
+                trainer.train_dataloader = None
+            else:
                 break
 
         except RuntimeError as exception:
