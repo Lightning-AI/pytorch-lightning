@@ -147,17 +147,18 @@ def test_tensorboard_log_sub_dir(tmpdir):
     trainer = Trainer(**trainer_args, logger=logger)
     assert trainer.logger.log_dir == save_dir / "name" / "version" / "sub_dir"
 
-    # tests that `~` and `$` are handled correctly
-    save_dir = "~/tmp/"
-    explicit_save_dir = os.path.expandvars(save_dir)
+    # test home dir (`~`) handling
+    save_dir = "~/tmp"
     explicit_save_dir = os.path.expanduser(explicit_save_dir)
     logger = TestLogger(save_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
     assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
 
-    save_dir = "$:/tmp/"
-    explicit_save_dir = os.path.expandvars(save_dir)
-    explicit_save_dir = os.path.expanduser(explicit_save_dir)
+    # test env var (`$`) handling
+    test_env_dir = "some_directory"
+    os.environ["test_env_dir"] = test_env_dir
+    save_dir = "$test_env_dir/tmp"
+    explicit_save_dir = f"{test_env_dir}/tmp"
     logger = TestLogger(save_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
     assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
