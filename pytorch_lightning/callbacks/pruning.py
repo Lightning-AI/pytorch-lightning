@@ -251,7 +251,7 @@ class ModelPruning(Callback):
         return ModelPruning._wrap_pruning_fn(pruning_fn, **kwargs)
 
     @staticmethod
-    def _wrap_pruning_fn(pruning_fn: Callable, **kwargs: Any) -> partial:
+    def _wrap_pruning_fn(pruning_fn: Callable, **kwargs: Any) -> Callable:
         return partial(pruning_fn, **kwargs)
 
     def make_pruning_permanent(self, pl_module: LightningModule) -> None:
@@ -297,7 +297,7 @@ class ModelPruning(Callback):
 
         assert self._original_layers is not None
         for d in self._original_layers.values():
-            copy = d['data']
+            copy = d["data"]
             names = d["names"]
             if self._resample_parameters and hasattr(copy, "reset_parameters") and callable(copy.reset_parameters):
                 copy = deepcopy(copy)  # keep the original parameters
