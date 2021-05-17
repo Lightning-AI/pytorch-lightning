@@ -63,7 +63,7 @@ def test_v1_6_0_ddp_spawn_sync_batchnorm():
         DDPSpawnPlugin(sync_batchnorm=False)
 
 
-def test_reload_dataloaders_every_epoch_remove_in_v1_4_0(tmpdir):
+def test_reload_dataloaders_every_epoch_remove_in_v1_6_0(tmpdir):
 
     model = BoringModel()
 
