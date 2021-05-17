@@ -377,13 +377,6 @@ class Accelerator:
         self.optimizers = optimizers
         self.schedulers = schedulers
 
-    def to_device(self, step_kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
-        """Pushes the batch to the root device"""
-        step_kwargs['batch'] = self.batch_to_device(
-            step_kwargs['batch'], self.root_device, dataloader_idx=step_kwargs.get('dataloader_idx', None)
-        )
-        return step_kwargs
-
     @property
     def amp_backend(self) -> Optional[LightningEnum]:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):

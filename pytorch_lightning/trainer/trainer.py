@@ -958,7 +958,7 @@ class Trainer(
                     break
 
                 with self.profiler.profile("evaluation_batch_to_device"):
-                    batch = self.accelerator.to_device(batch)
+                    batch = self.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
                 # hook
                 self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
@@ -1084,7 +1084,7 @@ class Trainer(
                     break
 
                 with self.profiler.profile("predict_batch_to_device"):
-                    batch = self.accelerator.to_device(batch)
+                    batch = self.accelerator.batch_to_device(batch, dataloader_idx=dataloader_idx)
 
                 # lightning module methods
                 with self.profiler.profile("predict_step"):
