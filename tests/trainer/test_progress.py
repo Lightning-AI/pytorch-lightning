@@ -12,116 +12,100 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+import pytest
 
-from pytorch_lightning.trainer.progress import LoopProgress
-
-
-def test_increment_batch_ready(tmpdir):
-    prog = LoopProgress()
-    prog.increment_batch_ready()
-    assert prog.total.ready == 1
-    assert prog.epoch.ready == prog.total.ready
+from pytorch_lightning.trainer.progress import BaseProgress, LoopProgress, Progress
 
 
-def test_increment_batch_started(tmpdir):
-    prog = LoopProgress()
-    prog.increment_batch_started()
-    logging.error(prog)
-    assert prog.total.ready == 0
-    assert prog.epoch.started == 1
-    assert prog.epoch.started == prog.total.started
+def test_progress_geattr_setattr():
+    p = Progress(ready=10, completed=None)
+    # can read
+    assert p.completed is None
+    # can't read non-existing attr
+    with pytest.raises(AttributeError, match="object has no attribute 'non_existing_attr'"):
+        p.non_existing_attr  # noqa
+    # can set new attr
+    p.non_existing_attr = 10
+    # can't write unused attr
+    with pytest.raises(AttributeError, match="'completed' attribute is meant to be unused"):
+        p.completed = 10
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        # default python error, would need to override `__getattribute__`
+        # but we want to allow reading the `None value`
+        p.completed += 10
 
 
-def test_increment_batch_processed(tmpdir):
-    prog = LoopProgress()
-    prog.increment_batch_processed()
-    assert prog.total.started == 0
-    assert prog.total.processed == 1
-    assert prog.epoch.processed == prog.total.processed
+def test_progress_reset():
+    p = Progress(ready=1, started=2, completed=None)
+    p.reset()
+    assert p == Progress(completed=None)
 
 
-def test_increment_batch_completed(tmpdir):
-    prog = LoopProgress()
-    prog.increment_batch_completed()
-    assert prog.total.processed == 0
-    assert prog.total.completed == 1
-    assert prog.epoch.completed == prog.total.completed
+def teset_progress_repr():
+    assert repr(Progress(ready=None, started=None)) == "Progress(processed=0, completed=0)"
 
 
-def test_increment_epoch(tmpdir):
-    """ Test sequences for incrementing epochs. """
-    prog = LoopProgress()
-    prog.increment_epoch_completed()
-    assert prog.epochs_completed_total == 1
+@pytest.mark.parametrize("attr", ("ready", "started", "processed", "completed"))
+def test_increment_batch(attr):
+    p = LoopProgress()
+    fn = getattr(p, f"increment_batch_{attr}")
+    fn()
+    expected = Progress(**{attr: 1})
+    assert p.batch.total == expected
+    assert p.batch.current == expected
 
 
-def test_increment_batch_ready_start_process_finish_epoch(tmpdir):
+def test_increment_epoch():
+    p = LoopProgress()
+    p.increment_epoch_completed()
+    p.increment_epoch_completed()
+    assert p.epoch.total == Progress(completed=2)
+    assert p.epoch.current == Progress()
+    assert p.batch.current == Progress()
+
+
+def test_base_progress_from_defaults():
+    actual = BaseProgress.from_defaults(completed=5, started=None)
+    expected = BaseProgress(total=Progress(started=None, completed=5), current=Progress(started=None, completed=5))
+    assert actual == expected
+
+
+def test_loop_progress_increment_sequence():
     """ Test sequences for incrementing batches reads and epochs. """
-    prog = LoopProgress()
+    p = LoopProgress(batch=BaseProgress(total=Progress(started=None)))
 
-    prog.increment_batch_ready()
-    assert prog.total.ready == 1
-    assert prog.epoch.ready == 1
+    p.increment_batch_ready()
+    assert p.batch.total == Progress(ready=1, started=None)
+    assert p.batch.current == Progress(ready=1)
 
-    prog.increment_batch_started()
-    assert prog.total.ready == 1
-    assert prog.epoch.ready == 1
-    assert prog.total.started == 1
-    assert prog.epoch.started == 1
+    p.increment_batch_started()
+    assert p.batch.total == Progress(ready=1, started=None)
+    assert p.batch.current == Progress(ready=1)
 
-    prog.increment_batch_processed()
-    assert prog.total.ready == 1
-    assert prog.epoch.ready == 1
-    assert prog.total.started == 1
-    assert prog.epoch.started == 1
-    assert prog.total.processed == 1
-    assert prog.epoch.processed == 1
+    p.increment_batch_processed()
+    assert p.batch.total == Progress(ready=1, started=None, processed=1)
+    assert p.batch.current == Progress(ready=1, processed=1)
 
-    prog.increment_batch_completed()
-    assert prog.total.ready == 1
-    assert prog.epoch.ready == 1
-    assert prog.total.started == 1
-    assert prog.epoch.started == 1
-    assert prog.total.processed == 1
-    assert prog.epoch.processed == 1
-    assert prog.total.completed == 1
-    assert prog.epoch.completed == 1
+    p.increment_batch_completed()
+    assert p.batch.total == Progress(ready=1, started=None, processed=1, completed=1)
+    assert p.batch.current == Progress(ready=1, processed=1, completed=1)
 
-    prog.increment_epoch_completed()
-    assert prog.total.ready == 1
-    assert prog.epoch.ready == 0
-    assert prog.total.started == 1
-    assert prog.epoch.started == 0
-    assert prog.total.processed == 1
-    assert prog.epoch.processed == 0
-    assert prog.total.completed == 1
-    assert prog.epoch.completed == 0
-    assert prog.epochs_completed_total == 1
+    assert p.epoch.total == Progress()
+    assert p.epoch.current == Progress()
+    p.increment_epoch_completed()
+    assert p.batch.total == Progress(ready=1, started=None, processed=1, completed=1)
+    assert p.batch.current == Progress()
+    assert p.epoch.total == Progress(completed=1)
+    assert p.epoch.current == Progress()
 
-    prog.increment_batch_ready()
-    assert prog.total.ready == 2
-    assert prog.epoch.ready == 1
-    assert prog.epochs_completed_total == 1
+    p.increment_batch_ready()
+    assert p.batch.total == Progress(ready=2, started=None, processed=1, completed=1)
+    assert p.batch.current == Progress(ready=1)
+    assert p.epoch.total == Progress(completed=1)
+    assert p.epoch.current == Progress()
 
-    prog.reset_on_epoch()
-    assert prog.epoch.ready == 0
-
-
-def test_reset_on_epoch(tmpdir):
-    """ Test sequences for resetting. """
-    prog = LoopProgress()
-    prog.increment_batch_ready()
-    prog.reset_on_epoch()
-
-    assert prog.total.ready == 1
-    assert prog.epoch.ready == 0
-
-    prog.increment_batch_ready()
-    assert prog.total.ready == 2
-    assert prog.epoch.ready == 1
-
-    prog.increment_epoch_completed()
-    assert prog.total.ready == 2
-    assert prog.epoch.ready == 0
-    assert prog.epochs_completed_total == 1
+    p.reset_on_epoch()
+    assert p.batch.total == Progress(ready=2, started=None, processed=1, completed=1)
+    assert p.batch.current == Progress()
+    assert p.epoch.total == Progress(completed=1)
+    assert p.epoch.current == Progress()
