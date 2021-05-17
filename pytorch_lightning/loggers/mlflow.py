@@ -16,6 +16,7 @@ MLflow Logger
 -------------
 """
 import logging
+import os
 import re
 from argparse import Namespace
 from time import time
@@ -85,7 +86,8 @@ class MLFlowLogger(LightningLoggerBase):
     Args:
         experiment_name: The name of the experiment
         tracking_uri: Address of local or remote tracking server.
-            If not provided, defaults to `file:<save_dir>`.
+            If not provided, defaults to `MLFLOW_TRACKING_URI` environment variable if set, otherwise it falls
+            back to `file:<save_dir>`.
         tags: A dictionary tags for the experiment.
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlflow` if `tracking_uri` is not provided.
@@ -104,7 +106,7 @@ class MLFlowLogger(LightningLoggerBase):
     def __init__(
         self,
         experiment_name: str = 'default',
-        tracking_uri: Optional[str] = None,
+        tracking_uri: Optional[str] = os.getenv('MLFLOW_TRACKING_URI'),
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = './mlruns',
         prefix: str = '',
