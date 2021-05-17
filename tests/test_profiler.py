@@ -129,11 +129,10 @@ def test_simple_profiler_log_dir(tmpdir):
     )
     trainer.fit(model)
 
-    expected = os.path.join(tmpdir, "lightning_logs/version_0/")
+    expected = tmpdir / "lightning_logs" / "version_0"
     assert trainer.log_dir == expected
     assert profiler._log_dir == trainer.log_dir
-    expected_file_path = os.path.join(tmpdir, "lightning_logs/version_0/fit-profiler.txt")
-    assert os.path.exists(expected_file_path)
+    assert expected.join("fit-profiler.txt").exists()
 
 
 @RunIf(skip_windows=True)
