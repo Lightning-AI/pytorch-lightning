@@ -110,7 +110,7 @@ class LoopProgress:
     batch: BaseProgress = field(default_factory=BaseProgress)
 
     def increment_epoch_completed(self) -> None:
-        self.epoch.total.completed += 1
+        self.epoch.increment_completed()
         self.reset_on_epoch()
 
     def reset_on_epoch(self) -> None:
