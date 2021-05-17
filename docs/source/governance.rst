@@ -37,7 +37,4 @@ Alumni
 - Jeff Ling (`jeffling <https://github.com/jeffling>`_)
 - Teddy Koker (`teddykoker <https://github.com/teddykoker>`_)
 - Nate Raw (`nateraw <https://github.com/nateraw>`_)
-<<<<<<< HEAD
-=======
 - Peter Yu (`yukw777 <https://github.com/yukw777>`_)
->>>>>>> upstream/master
