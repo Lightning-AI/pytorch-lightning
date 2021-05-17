@@ -94,6 +94,7 @@ class CheckpointConnector:
         )
 
         model = self.trainer.lightning_module
+        self.trainer.accelerator.setup(self.trainer, model)
 
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
