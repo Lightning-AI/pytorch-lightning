@@ -43,8 +43,11 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.warnings import WarningCache
 
+warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 
@@ -211,9 +214,22 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def _apply_batch_transfer_handler(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0):
+    def _apply_batch_transfer_handler(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ) -> Any:
+        device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
-        batch = self.transfer_batch_to_device(batch, device)
+
+        if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
+            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
+        else:
+            warning_cache.warn(
+                "`transfer_batch_to_device` hook signature has changed in v1.4."
+                " `dataloader_idx` parameter has been added to it. Support for"
+                " the old signature will be removed in v1.6", DeprecationWarning
+            )
+            batch = self.transfer_batch_to_device(batch, device)
+
         batch = self.on_after_batch_transfer(batch, dataloader_idx)
         return batch
 
@@ -1619,7 +1635,7 @@ class LightningModule(
         module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
         if module_tbptt_enabled or trainer_tbptt_enabled:
-            tqdm_dict["split_idx"] = self.trainer.split_idx
+            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version

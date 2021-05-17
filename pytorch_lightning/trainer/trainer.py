@@ -316,7 +316,7 @@ class Trainer(
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
-        self.data_connector = DataConnector(self)
+        self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
@@ -332,9 +332,7 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.train_loop = TrainLoop(
-            self, multiple_trainloader_mode, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps
-        )
+        self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
@@ -382,6 +380,7 @@ class Trainer(
             terminate_on_nan,
         )
         self.evaluation_loop.on_trainer_init()
+        self.predict_loop.on_trainer_init()
 
         # configure tuner
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
@@ -588,6 +587,7 @@ class Trainer(
         dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
+        ckpt_path: Optional[str] = 'best',
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""
 
@@ -604,6 +604,10 @@ class Trainer(
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to use to predict.
+                If ``None``, use the current weights of the model.
+                When the model is given as argument, this parameter will not apply.
+
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
@@ -612,8 +616,6 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         Trainer._log_api_event("predict")
-
-        model = model or self.lightning_module
 
         self.state.fn = TrainerFn.PREDICTING
         self.state.status = TrainerStatus.RUNNING
@@ -624,8 +626,14 @@ class Trainer(
         if dataloaders is not None and datamodule:
             raise MisconfigurationException('You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`')
 
+        model_provided = model is not None
+        model = model or self.lightning_module
+
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
+
+        if not model_provided:
+            self.predicted_ckpt_path = self.__load_ckpt_weights(ckpt_path)
 
         results = self._run(model)
 
@@ -994,7 +1002,7 @@ class Trainer(
             self.optimizer_connector.update_learning_rates(
                 interval='epoch',
                 opt_indices=[
-                    opt_idx for opt_idx, _ in self.train_loop.get_optimizers_iterable(
+                    opt_idx for opt_idx, _ in self.train_loop.get_active_optimizers(
                         batch_idx=(self.train_loop.total_batch_idx - 1)
                     )  # Select the optimizers which were used in the last batch of the epoch
                 ],

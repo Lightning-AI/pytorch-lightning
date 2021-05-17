@@ -24,7 +24,8 @@ from pytorch_lightning.utilities.seed import seed_everything
 
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 if _JSONARGPARSE_AVAILABLE:
-    from jsonargparse import ActionConfigFile, ArgumentParser
+    from jsonargparse import ActionConfigFile, ArgumentParser, set_config_read_mode
+    set_config_read_mode(fsspec_enabled=True)
 else:
     ArgumentParser = object
 
@@ -128,13 +129,14 @@ class LightningCLI:
         .. warning:: ``LightningCLI`` is in beta and subject to change.
 
         Args:
-            model_class: The LightningModule class to train on.
-            datamodule_class: An optional LightningDataModule class.
+            model_class: :class:`~pytorch_lightning.core.lightning.LightningModule` class to train on.
+            datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class.
             save_config_callback: A callback class to save the training config.
-            trainer_class: An optional extension of the Trainer class.
+            trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks.
-            seed_everything_default: Default value for seed_everything argument.
-            description: Description of the tool shown when running --help.
+            seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
+                seed argument.
+            description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
             parser_kwargs: Additional arguments to instantiate LightningArgumentParser.
@@ -165,7 +167,7 @@ class LightningCLI:
         self.add_arguments_to_parser(self.parser)
         self.parse_arguments()
         if self.config['seed_everything'] is not None:
-            seed_everything(self.config['seed_everything'])
+            seed_everything(self.config['seed_everything'], workers=True)
         self.before_instantiate_classes()
         self.instantiate_classes()
         self.prepare_fit_kwargs()
