@@ -313,7 +313,7 @@ class Trainer(
         # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
-        self.data_connector = DataConnector(self)
+        self.data_connector = DataConnector(self, multiple_trainloader_mode)
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
@@ -329,9 +329,7 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
-        self.train_loop = TrainLoop(
-            self, multiple_trainloader_mode, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps
-        )
+        self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
@@ -1000,7 +998,7 @@ class Trainer(
             self.optimizer_connector.update_learning_rates(
                 interval='epoch',
                 opt_indices=[
-                    opt_idx for opt_idx, _ in self.train_loop.get_optimizers_iterable(
+                    opt_idx for opt_idx, _ in self.train_loop.get_active_optimizers(
                         batch_idx=(self.train_loop.total_batch_idx - 1)
                     )  # Select the optimizers which were used in the last batch of the epoch
                 ],
