@@ -31,7 +31,7 @@ def test_progress_geattr_setattr():
         p.completed = 10
     with pytest.raises(TypeError, match="unsupported operand type"):
         # default python error, would need to override `__getattribute__`
-        # but we want to allow reading the `None value`
+        # but we want to allow reading the `None` value
         p.completed += 10
 
 
