@@ -61,3 +61,25 @@ def test_v1_6_0_ddp_spawn_num_nodes():
 def test_v1_6_0_ddp_spawn_sync_batchnorm():
     with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4"):
         DDPSpawnPlugin(sync_batchnorm=False)
+
+
+def test_reload_dataloaders_every_epoch_remove_in_v1_4_0(tmpdir):
+
+    model = BoringModel()
+
+    with pytest.deprecated_call(match='will be removed in v1.6'):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            limit_train_batches=0.3,
+            limit_val_batches=0.3,
+            reload_dataloaders_every_epoch=True,
+            max_epochs=3,
+        )
+    trainer.fit(model)
+    trainer.test()
+
+    # verify the sequence
+    calls = trainer.dev_debugger.dataloader_sequence_calls
+    expected_sequence = ['val_dataloader'] + ['train_dataloader', 'val_dataloader'] * 3 + ['test_dataloader']
+    for call, expected in zip(calls, expected_sequence):
+        assert call['name'] == expected

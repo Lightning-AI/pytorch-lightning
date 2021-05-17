@@ -29,8 +29,11 @@ class DataConnector(object):
         self.trainer = trainer
 
     def on_trainer_init(
-        self, check_val_every_n_epoch: int, reload_dataloaders_every_n_epochs: int,
-        reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool
+        self,
+        check_val_every_n_epoch: int,
+        reload_dataloaders_every_n_epochs: int,
+        reload_dataloaders_every_epoch: bool,
+        prepare_data_per_node: bool,
     ) -> None:
         self.trainer.datamodule = None
         self.trainer.prepare_data_per_node = prepare_data_per_node
@@ -45,7 +48,7 @@ class DataConnector(object):
         if reload_dataloaders_every_epoch:
             reload_dataloaders_every_n_epochs = int(reload_dataloaders_every_epoch)
             rank_zero_warn(
-                "`reload_dataloaders_every_epoch` is deprecated in v1.2 and will be removed in v1.4."
+                "`reload_dataloaders_every_epoch` is deprecated in v1.4 and will be removed in v1.6."
                 " Please use `reload_dataloaders_every_n_epochs` in Trainer.", DeprecationWarning
             )
 
