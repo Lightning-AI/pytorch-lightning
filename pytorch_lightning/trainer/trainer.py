@@ -998,7 +998,7 @@ class Trainer(
             self.optimizer_connector.update_learning_rates(
                 interval='epoch',
                 opt_indices=[
-                    opt_idx for opt_idx, _ in self.train_loop.get_optimizers_iterable(
+                    opt_idx for opt_idx, _ in self.train_loop.get_active_optimizers(
                         batch_idx=(self.train_loop.total_batch_idx - 1)
                     )  # Select the optimizers which were used in the last batch of the epoch
                 ],
