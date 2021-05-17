@@ -712,7 +712,10 @@ class TrainLoop:
         )
         return output
 
-    def _run_optimization(self, batch_idx, split_idx, split_batch, opt_idx=None, optimizer=None):
+    def _run_optimization(self, batch_idx, split_idx, split_batch, opt_idx=0, optimizer=None):
+        # TODO: In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
+        #   opt_idx=0 to opt_idx=None in the signature here
+
         # toggle model params + set info to logger_connector
         self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
