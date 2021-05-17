@@ -16,6 +16,7 @@ from unittest.mock import PropertyMock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
@@ -147,19 +148,22 @@ def test_apply_batch_transfer_handler(model_getter_mock):
         on_after_batch_transfer_hook_rank = None
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
+            assert dataloader_idx is None
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
             return batch
 
         def on_after_batch_transfer(self, batch, dataloader_idx):
+            assert dataloader_idx is None
             assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.targets *= 2
             return batch
 
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
+            assert dataloader_idx is None
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
             batch.samples = batch.samples.to(device)
@@ -310,6 +314,18 @@ def test_trainer_model_hook_system(tmpdir):
             self.called.append("on_train_end")
             super().on_train_end()
 
+        def on_before_batch_transfer(self, *args, **kwargs):
+            self.called.append("on_before_batch_transfer")
+            return super().on_before_batch_transfer(*args, **kwargs)
+
+        def transfer_batch_to_device(self, *args, **kwargs):
+            self.called.append("transfer_batch_to_device")
+            return super().transfer_batch_to_device(*args, **kwargs)
+
+        def on_after_batch_transfer(self, *args, **kwargs):
+            self.called.append("on_after_batch_transfer")
+            return super().on_after_batch_transfer(*args, **kwargs)
+
         def on_train_batch_start(self, *args, **kwargs):
             self.called.append("on_train_batch_start")
             super().on_train_batch_start(*args, **kwargs)
@@ -424,6 +440,9 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_start',
         'on_validation_epoch_start',
         'on_validation_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_validation_batch_end',
         'on_validation_epoch_end',
         'on_epoch_end',
@@ -433,10 +452,16 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_start',
         'on_train_epoch_start',
         'on_train_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_before_zero_grad',
         'on_after_backward',
         'on_train_batch_end',
         'on_train_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_before_zero_grad',
         'on_after_backward',
         'on_train_batch_end',
@@ -447,6 +472,9 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_start',
         'on_validation_epoch_start',
         'on_validation_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_validation_batch_end',
         'on_validation_epoch_end',
         'on_epoch_end',
@@ -469,6 +497,9 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_start',
         'on_validation_epoch_start',
         'on_validation_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_validation_batch_end',
         'on_validation_epoch_end',
         'on_epoch_end',
@@ -488,6 +519,9 @@ def test_trainer_model_hook_system(tmpdir):
         'on_epoch_start',
         'on_test_epoch_start',
         'on_test_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
         'on_test_batch_end',
         'on_test_epoch_end',
         'on_epoch_end',
@@ -496,6 +530,59 @@ def test_trainer_model_hook_system(tmpdir):
         'teardown_test',
     ]
     assert model.called == expected
+
+
+def test_hooks_with_different_argument_names(tmpdir):
+    """
+    Test that argument names can be anything in the hooks
+    """
+
+    class CustomBoringModel(BoringModel):
+
+        def assert_args(self, x, batch_nb):
+            assert isinstance(x, torch.Tensor)
+            assert x.size() == (1, 32)
+            assert isinstance(batch_nb, int)
+
+        def training_step(self, x1, batch_nb1):
+            self.assert_args(x1, batch_nb1)
+            return super().training_step(x1, batch_nb1)
+
+        def validation_step(self, x2, batch_nb2):
+            self.assert_args(x2, batch_nb2)
+            return super().validation_step(x2, batch_nb2)
+
+        def test_step(self, x3, batch_nb3, dl_idx3):
+            self.assert_args(x3, batch_nb3)
+            assert isinstance(dl_idx3, int)
+            return super().test_step(x3, batch_nb3)
+
+        def predict(self, x4, batch_nb4, dl_idx4):
+            self.assert_args(x4, batch_nb4)
+            assert isinstance(dl_idx4, int)
+            return super().predict(x4, batch_nb4, dl_idx4)
+
+        def test_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+        def predict_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+
+    model = CustomBoringModel()
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=5,
+    )
+
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+    trainer.test(ckpt_path=None)
+
+    preds = trainer.predict(model)
+    assert len(preds) == 2
+    assert all(len(x) == 5 for x in preds)
 
 
 def test_trainer_datamodule_hook_system(tmpdir):

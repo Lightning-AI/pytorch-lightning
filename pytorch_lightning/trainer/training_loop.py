@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import OrderedDict
 from contextlib import contextmanager, suppress
 from copy import copy, deepcopy
 from functools import partial, update_wrapper
@@ -41,7 +42,6 @@ class TrainLoop:
     def __init__(
         self,
         trainer,
-        multiple_trainloader_mode: str,
         max_epochs: Optional[int],
         min_epochs: Optional[int],
         max_steps: Optional[int],
@@ -53,17 +53,21 @@ class TrainLoop:
         self.warning_cache = WarningCache()
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
-        self._multiple_trainloader_mode = multiple_trainloader_mode
         self._skip_backward = False
-        self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
         self._optimizer_freq_cumsum = None
+        self._hiddens = None
 
         self.global_step = 0
         self.current_epoch = 0
         self.trainer.should_stop = False
 
+        # the total batch index across all epochs
         self.total_batch_idx = 0
+        # the current batch index in the loop that runs over the dataloader(s)
         self.batch_idx = 0
+        # the current split index when the batch gets split into chunks in truncated backprop through time
+        self.split_idx = None
+
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
 
@@ -271,13 +275,13 @@ class TrainLoop:
         model_ref = self.trainer.lightning_module
 
         with self.trainer.profiler.profile("model_forward"):
-            args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
+            step_kwargs = self._build_kwargs(split_batch, batch_idx, opt_idx, hiddens)
 
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
             model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
-                training_step_output = self.trainer.accelerator.training_step(args)
+                training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
             self.trainer.logger_connector.cache_logged_metrics()
@@ -339,7 +343,7 @@ class TrainLoop:
 
         # map to results under the hood
         result.minimize = loss
-        self.trainer.hiddens = hiddens
+        self._hiddens = hiddens
 
         # track batch for manual reduction with result
         result.track_batch_size(len(split_batch))
@@ -481,7 +485,6 @@ class TrainLoop:
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
             self.batch_idx = batch_idx
-            self.trainer.is_last_batch = is_last_batch
 
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
@@ -658,7 +661,7 @@ class TrainLoop:
         grad_norm_dict = {}
 
         # bookkeeping
-        self.trainer.hiddens = None
+        self._hiddens = None
 
         optimizers = list(enumerate(self.trainer.optimizers))
 
@@ -687,6 +690,7 @@ class TrainLoop:
         splits = self._tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
+            self.split_idx = split_idx
 
             if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
@@ -713,7 +717,7 @@ class TrainLoop:
         self.run_train_split_start(split_idx, split_batch, opt_idx, optimizer)
 
         result = AttributeDict()
-        closure = self.make_closure(split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens, result)
+        closure = self.make_closure(split_batch, batch_idx, opt_idx, optimizer, self._hiddens, result)
 
         if self.should_accumulate():
             # For gradient accumulation
@@ -735,7 +739,7 @@ class TrainLoop:
             if self.trainer.lightning_module.automatic_optimization:
                 self.optimizer_step(optimizer, opt_idx, batch_idx, closure)
             else:
-                result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
+                result = self.training_step(split_batch, batch_idx, opt_idx, self._hiddens)
 
             if not result:
                 # user decided to skip optimization
@@ -924,9 +928,9 @@ class TrainLoop:
         else:
             return is_val_check_batch and not epoch_end_val_check
 
-    def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
+    def _build_kwargs(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
-        args = [batch, batch_idx]
+        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
 
         lightning_module = self.trainer.lightning_module
 
@@ -940,8 +944,8 @@ class TrainLoop:
                         " `optimizer_idx` argument has been removed in case of manual optimization. Support for"
                         " the old signature will be removed in v1.5", DeprecationWarning
                     )
-                args.append(opt_idx)
-            elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
+                step_kwargs['optimizer_idx'] = opt_idx
+            elif not has_opt_idx_in_train_step and self.trainer.lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
                     ' `training_step` is missing the `optimizer_idx` argument.'
@@ -949,9 +953,9 @@ class TrainLoop:
 
         # pass hiddens if using tbptt
         if self._truncated_bptt_enabled():
-            args.append(hiddens)
+            step_kwargs['hiddens'] = hiddens
 
-        return args
+        return step_kwargs
 
     def _truncated_bptt_enabled(self) -> bool:
         """ Temporary tbptt utilities until this flag is fully migrated to the lightning module. """
@@ -971,9 +975,6 @@ class TrainLoop:
             self.trainer.logger.save()
 
     def run_train_split_start(self, split_idx, split_batch, opt_idx, optimizer):
-        # set split_idx to trainer for tracking
-        self.trainer.split_idx = split_idx
-
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
