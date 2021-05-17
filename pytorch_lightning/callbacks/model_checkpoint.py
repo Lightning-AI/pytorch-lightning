@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
-from pytorch_lightning.utilities.xla_device_utils import tpu_training_and_local_rank_zero
+from pytorch_lightning.utilities.xla_device import tpu_training_and_local_rank_zero
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
