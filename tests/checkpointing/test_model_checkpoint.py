@@ -729,7 +729,7 @@ def test_ckpt_every_n_train_steps(tmpdir):
 
 
 @mock.patch("pytorch_lightning.callbacks.model_checkpoint.time")
-def test_ckpt_train_time_interval(mock_datetime, tmpdir) -> None:
+def test_model_checkpoint_train_time_interval(mock_datetime, tmpdir) -> None:
     """Tests that the checkpoints are saved at the specified time interval."""
     seconds_per_batch = 7
     start_time = time.monotonic()
