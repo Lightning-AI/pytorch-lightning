@@ -74,19 +74,19 @@ def test_loop_progress_increment_sequence():
     """ Test sequences for incrementing batches reads and epochs. """
     p = LoopProgress(batch=BaseProgress(total=Progress(started=None)))
 
-    p.increment_batch_ready()
+    p.batch.increment_ready()
     assert p.batch.total == Progress(ready=1, started=None)
     assert p.batch.current == Progress(ready=1)
 
-    p.increment_batch_started()
+    p.batch.increment_started()
     assert p.batch.total == Progress(ready=1, started=None)
     assert p.batch.current == Progress(ready=1)
 
-    p.increment_batch_processed()
+    p.batch.increment_processed()
     assert p.batch.total == Progress(ready=1, started=None, processed=1)
     assert p.batch.current == Progress(ready=1, processed=1)
 
-    p.increment_batch_completed()
+    p.batch.increment_completed()
     assert p.batch.total == Progress(ready=1, started=None, processed=1, completed=1)
     assert p.batch.current == Progress(ready=1, processed=1, completed=1)
 
@@ -98,7 +98,7 @@ def test_loop_progress_increment_sequence():
     assert p.epoch.total == Progress(completed=1)
     assert p.epoch.current == Progress()
 
-    p.increment_batch_ready()
+    p.batch.increment_ready()
     assert p.batch.total == Progress(ready=2, started=None, processed=1, completed=1)
     assert p.batch.current == Progress(ready=1)
     assert p.epoch.total == Progress(completed=1)
