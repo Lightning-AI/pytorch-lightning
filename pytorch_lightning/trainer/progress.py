@@ -106,19 +106,11 @@ class OptimizationProgress:
     Dataclass to track optimization progress.
 
     Args:
-        optimizer: Tracks optimizer progress.
-        scheduler: Tracks scheduler progress.
+        optimizer_steps: Number of optimizer updates
+        scheduler_steps: Number of scheduler updates
     """
-    optimizer: BaseProgress = BaseProgress()
-    scheduler: BaseProgress = BaseProgress()
-
-    @property
-    def optimizer_steps(self) -> int:
-        return self.optimizer.total.completed
-
-    @property
-    def scheduler_steps(self) -> int:
-        return self.scheduler.total.completed
+    optimizer_steps: int = 0
+    scheduler_steps: int = 0
 
 
 @dataclass
@@ -139,7 +131,7 @@ class TrainLoopProgress(LoopProgress):
 
 @dataclass
 class FitLoopProgress:
-    train: TrainProgress = TrainLoopProgress()
+    train: TrainLoopProgress = TrainLoopProgress()
     val: LoopProgress = LoopProgress()
 
 
