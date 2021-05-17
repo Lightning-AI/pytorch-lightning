@@ -63,9 +63,12 @@ class EpochLoop(Loop):
         self.trainer = trainer
         self.training_loop.connect(trainer)
 
+    # TODO: is it used anywhere?
     def should_accumulate(self):
-        # TODO
-        return False
+        return self.training_loop.batch_loop.should_accumulate()
+
+    def _accumulated_batches_reached(self):
+        return (self.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
 
     @property
     def done(self) -> bool:

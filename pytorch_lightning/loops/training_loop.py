@@ -29,6 +29,11 @@ class TrainingLoop(Loop):
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx = None
 
+        self.batch_loop = None
+        self._train_dataloader = None
+        self._dataloader_idx = None
+        self.is_last_batch = None
+
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
         # self.epoch_output = [[] for _ in range(len(trainer.optimizers))]
@@ -39,6 +44,7 @@ class TrainingLoop(Loop):
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
 
+        # reset
         self._train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         self._dataloader_idx = 0
         self.batch_idx = 0
@@ -48,8 +54,6 @@ class TrainingLoop(Loop):
         # TODO: profiling is gone
         batch_idx, (batch, is_last) = next(self._train_dataloader)
         self.batch_idx = batch_idx
-
-        self.trainer.batch_idx = batch_idx
         self.is_last_batch = is_last
 
         # ------------------------------------
@@ -73,21 +77,22 @@ class TrainingLoop(Loop):
             batch_idx,
             self._dataloader_idx,
         )
+
+        # -----------------------------------------
+        # SAVE METRICS TO LOGGERS
+        # -----------------------------------------
+        self.trainer.logger_connector.log_train_step_metrics(epoch_output)
+
         return epoch_output
 
     def on_advance_end(self, output):
         # -----------------------------------------
-        # SAVE METRICS TO LOGGERS
-        # -----------------------------------------
-        self.trainer.logger_connector.log_train_step_metrics(output)
-
-        # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self.should_check_val_fx(self.trainer.batch_idx, self.is_last_batch)
+        should_check_val = self.should_check_val_fx(self.batch_idx, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
-            self.trainer.run_evaluation()
+            self.trainer._run_evaluation()
             self.trainer.training = True
 
         # -----------------------------------------

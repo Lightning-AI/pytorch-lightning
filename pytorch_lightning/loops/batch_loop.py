@@ -339,10 +339,10 @@ class BatchLoop(Loop):
         return grad_norm_dict
 
     def _accumulated_batches_reached(self):
-        return (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
+        return (self.iteration_count + 1) % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch=False):
-        return (self.trainer.batch_idx + 1) == self.trainer.num_training_batches or is_last_batch
+        return (self.iteration_count + 1) == self.trainer.num_training_batches or is_last_batch
 
     def should_accumulate(self):
         # checks if backward or backward + optimizer step (via closure)
