@@ -295,7 +295,6 @@ def test_accelerator_choice_ddp_kubeflow(device_count_mock, setup_distributed_mo
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
             assert isinstance(trainer.accelerator, GPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
@@ -331,7 +330,6 @@ def test_accelerator_choice_ddp_cpu_kubeflow(device_count_mock, setup_distribute
     class CB(Callback):
 
         def on_fit_start(self, trainer, pl_module):
-            assert trainer.use_ddp
             assert isinstance(trainer.accelerator, CPUAccelerator)
             assert isinstance(trainer.training_type_plugin, DDPPlugin)
             assert isinstance(trainer.training_type_plugin.cluster_environment, KubeflowEnvironment)
