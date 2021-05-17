@@ -40,7 +40,6 @@ class TrainLoop:
     def __init__(
         self,
         trainer,
-        multiple_trainloader_mode: str,
         max_epochs: Optional[int],
         min_epochs: Optional[int],
         max_steps: Optional[int],
@@ -52,17 +51,21 @@ class TrainLoop:
         self.warning_cache = WarningCache()
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
-        self._multiple_trainloader_mode = multiple_trainloader_mode
         self._skip_backward = False
-        self.trainer._multiple_trainloader_mode = multiple_trainloader_mode
         self._optimizer_freq_cumsum = None
+        self._hiddens = None
 
         self.global_step = 0
         self.current_epoch = 0
         self.trainer.should_stop = False
 
+        # the total batch index across all epochs
         self.total_batch_idx = 0
+        # the current batch index in the loop that runs over the dataloader(s)
         self.batch_idx = 0
+        # the current split index when the batch gets split into chunks in truncated backprop through time
+        self.split_idx = None
+
         self.trainer.num_training_batches = 0
         self.trainer.train_dataloader = None
 
@@ -337,7 +340,7 @@ class TrainLoop:
 
         # map to results under the hood
         result.minimize = loss
-        self.trainer.hiddens = hiddens
+        self._hiddens = hiddens
 
         # track batch for manual reduction with result
         result.track_batch_size(len(split_batch))
@@ -479,7 +482,6 @@ class TrainLoop:
 
         for batch_idx, (batch, is_last_batch) in train_dataloader:
             self.batch_idx = batch_idx
-            self.trainer.is_last_batch = is_last_batch
 
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
@@ -656,7 +658,7 @@ class TrainLoop:
         grad_norm_dict = {}
 
         # bookkeeping
-        self.trainer.hiddens = None
+        self._hiddens = None
 
         optimizers = self.prepare_optimizers()
 
@@ -685,6 +687,7 @@ class TrainLoop:
         splits = self._tbptt_split_batch(batch)
 
         for split_idx, split_batch in enumerate(splits):
+            self.split_idx = split_idx
 
             # create an iterable for optimizers and loop over them
             for opt_idx, optimizer in optimizers:
@@ -703,9 +706,7 @@ class TrainLoop:
                     # automatic_optimization=True: perform dpp sync only when performing optimizer_step
                     # automatic_optimization=False: don't block synchronization here
                     with self.block_ddp_sync_behaviour():
-                        result = self.training_step_and_backward(
-                            split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
-                        )
+                        self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, self._hiddens)
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -717,7 +718,7 @@ class TrainLoop:
                         def train_step_and_backward_closure():
                             nonlocal result
                             result = self.training_step_and_backward(
-                                split_batch, batch_idx, opt_idx, optimizer, self.trainer.hiddens
+                                split_batch, batch_idx, opt_idx, optimizer, self._hiddens
                             )
                             return None if result is None else result.loss
 
@@ -725,7 +726,7 @@ class TrainLoop:
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
                     else:
-                        result = self.training_step(split_batch, batch_idx, opt_idx, self.trainer.hiddens)
+                        result = self.training_step(split_batch, batch_idx, opt_idx, self._hiddens)
 
                     if not result:
                         # user decided to skip optimization
@@ -968,9 +969,6 @@ class TrainLoop:
         return optimizers
 
     def run_train_split_start(self, split_idx, split_batch, opt_idx, optimizer):
-        # set split_idx to trainer for tracking
-        self.trainer.split_idx = split_idx
-
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
