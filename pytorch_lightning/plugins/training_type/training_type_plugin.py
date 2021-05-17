@@ -63,6 +63,11 @@ class TrainingTypePlugin(Plugin, ABC):
 
     @property
     @abstractmethod
+    def on_tpu(self) -> bool:
+        """Returns whether the current process is done on TPU"""
+
+    @property
+    @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device"""
 
@@ -289,6 +294,28 @@ class TrainingTypePlugin(Plugin, ABC):
     @call_configure_sharded_model_hook.setter
     def call_configure_sharded_model_hook(self, mode: bool) -> None:
         self._call_configure_sharded_model_hook = mode
+
+    def teardown(self) -> None:
+        """
+        This method is called to teardown the training process.
+        It is the right place to release memory and free other ressources.
+
+        By default we add a barrier here to synchronize processes before returning
+        control back to the caller.
+        """
+        if self.on_gpu():
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            with torch.cuda.device(self.root_device):
+                torch.cuda.empty_cache()
+            return
+        if self.on_tpu():
+            # TPU teardown
+            if "PT_XLA_DEBUG" in os.environ:
+                del os.environ["PT_XLA_DEBUG"]
+            return
+        self.barrier("teardown")
 
     @classmethod
     def register_plugins(cls, plugin_registry):

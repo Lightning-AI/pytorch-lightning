@@ -154,14 +154,7 @@ class Accelerator:
         return self.training_type_plugin.root_device
 
     def teardown(self) -> None:
-        """
-        This method is called to teardown the training process.
-        It is the right place to release memory and free other ressources.
-
-        By default we add a barrier here to synchronize processes before returning
-        control back to the caller.
-        """
-        self.barrier("teardown")
+        self.training_type_plugin.teardown()
 
     def batch_to_device(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
