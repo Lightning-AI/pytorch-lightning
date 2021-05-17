@@ -11,19 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
 from abc import ABC
 from collections import OrderedDict
-
-import torch
 
 
 class TrainingStepVariations(ABC):
     """
     Houses all variations of training steps
     """
-
-    test_step_inf_loss = float('inf')
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
         """Lightning calls this inside the training loop"""
@@ -49,24 +44,18 @@ class TrainingStepVariations(ABC):
         })
         return output
 
-    def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
-        output = self.training_step(batch, batch_idx, optimizer_idx)
-        if batch_idx == self.test_step_inf_loss:
-            if isinstance(output, dict):
-                output['loss'] *= torch.tensor(math.inf)  # make loss infinite
-            else:
-                output /= 0
-        return output
-
     def training_step__multiple_dataloaders(self, batch, batch_idx, optimizer_idx=None):
         """Training step for multiple train loaders"""
 
         assert isinstance(batch, dict)
         assert len(batch) == 2
-        assert 'a' in batch and 'b' in batch
+
+        assert 'a_b' in batch and 'c_d_e' in batch, batch.keys()
+        assert isinstance(batch['a_b'], list) and len(batch['a_b']) == 2
+        assert isinstance(batch['c_d_e'], list) and len(batch['c_d_e']) == 3
 
         # forward pass
-        x, y = batch['a']
+        x, y = batch['a_b'][0]
         x = x.view(x.size(0), -1)
         y_hat = self(x)
 
