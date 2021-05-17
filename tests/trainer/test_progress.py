@@ -41,33 +41,33 @@ def test_progress_reset():
     assert p == Progress(completed=None)
 
 
-def teset_progress_repr():
+def test_progress_repr():
     assert repr(Progress(ready=None, started=None)) == "Progress(processed=0, completed=0)"
 
 
 @pytest.mark.parametrize("attr", ("ready", "started", "processed", "completed"))
-def test_increment_batch(attr):
-    p = LoopProgress()
-    fn = getattr(p, f"increment_batch_{attr}")
+def test_base_progress_increment(attr):
+    p = BaseProgress()
+    fn = getattr(p, f"increment_{attr}")
     fn()
     expected = Progress(**{attr: 1})
-    assert p.batch.total == expected
-    assert p.batch.current == expected
-
-
-def test_increment_epoch():
-    p = LoopProgress()
-    p.increment_epoch_completed()
-    p.increment_epoch_completed()
-    assert p.epoch.total == Progress(completed=2)
-    assert p.epoch.current == Progress()
-    assert p.batch.current == Progress()
+    assert p.total == expected
+    assert p.current == expected
 
 
 def test_base_progress_from_defaults():
     actual = BaseProgress.from_defaults(completed=5, started=None)
     expected = BaseProgress(total=Progress(started=None, completed=5), current=Progress(started=None, completed=5))
     assert actual == expected
+
+
+def test_loop_progress_increment_epoch():
+    p = LoopProgress()
+    p.increment_epoch_completed()
+    p.increment_epoch_completed()
+    assert p.epoch.total == Progress(completed=2)
+    assert p.epoch.current == Progress()
+    assert p.batch.current == Progress()
 
 
 def test_loop_progress_increment_sequence():
