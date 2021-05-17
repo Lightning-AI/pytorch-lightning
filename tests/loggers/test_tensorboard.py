@@ -140,7 +140,7 @@ def test_tensorboard_log_sub_dir(tmpdir):
     save_dir = tmpdir / "logs"
     logger = TestLogger(save_dir)
     trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir[:-1] == save_dir / "name" / "version"
+    assert trainer.logger.log_dir == save_dir / "name" / "version"
 
     # sub_dir specified
     logger = TestLogger(save_dir, sub_dir="sub_dir")
