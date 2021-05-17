@@ -306,7 +306,7 @@ class Trainer(
                 <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
 
             serialize_checkpoint_loading: Whether to load checkpoints sequentially on each host vs in parallel.
-                Useful to avoid out of memory errors when doing multi-GPU training on same host with very large checkpoint.
+                Useful to avoid out of memory errors when doing multi-GPU training with very large checkpoints.
         """
         super().__init__()
         Trainer._log_api_event("init")
