@@ -1263,4 +1263,4 @@ def test_model_checkpoint_mode_options():
 def test_trainer_checkpoint_callback_bool(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir)
     with pytest.raises(MisconfigurationException, match="Invalid type provided for checkpoint_callback"):
-        _ = Trainer(checkpoint_callback=mc)
+        Trainer(checkpoint_callback=mc)
