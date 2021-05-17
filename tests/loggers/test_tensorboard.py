@@ -149,7 +149,7 @@ def test_tensorboard_log_sub_dir(tmpdir):
 
     # test home dir (`~`) handling
     save_dir = "~/tmp"
-    explicit_save_dir = os.path.expanduser(explicit_save_dir)
+    explicit_save_dir = os.path.expanduser(save_dir)
     logger = TestLogger(save_dir, sub_dir="sub_dir")
     trainer = Trainer(**trainer_args, logger=logger)
     assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
