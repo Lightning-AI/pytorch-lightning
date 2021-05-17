@@ -7,15 +7,27 @@ from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.batch_loop import BatchLoop
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 
 class TrainingLoop(Loop):
     """ Runs over all batches in a dataloader (one epoch). """
 
-    def __init__(self):
+    def __init__(self, min_steps, max_steps):
         super().__init__()
         # cache of all outputs in a single training run / epoch
         # self.epoch_output = [[]]
+        self.min_steps = min_steps
+        self.max_steps = max_steps
+
+        self.global_step = 0
+
+        # the total batch index across all epochs
+        self.total_batch_idx = 0
+        # the current batch index in the loop that runs over the dataloader(s)
+        self.batch_idx = 0
+        # the current split index when the batch gets split into chunks in truncated backprop through time
+        self.split_idx = None
 
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
@@ -29,12 +41,13 @@ class TrainingLoop(Loop):
 
         self._train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         self._dataloader_idx = 0
-        self.trainer.batch_idx = 0
+        self.batch_idx = 0
         self.is_last_batch = False
 
     def advance(self):
         # TODO: profiling is gone
         batch_idx, (batch, is_last) = next(self._train_dataloader)
+        self.batch_idx = batch_idx
 
         self.trainer.batch_idx = batch_idx
         self.is_last_batch = is_last
@@ -106,7 +119,7 @@ class TrainingLoop(Loop):
         if self.trainer.should_stop:
             return True
 
-        self.trainer.total_batch_idx += 1
+        self.total_batch_idx += 1
 
         # stop epoch if we limited the number of training batches
         if self._num_training_batches_reached(self.is_last_batch):
@@ -196,7 +209,7 @@ class TrainingLoop(Loop):
             self.trainer._cache_logged_metrics()
 
     def _num_training_batches_reached(self, is_last_batch=False):
-        return self.trainer.batch_idx == self.trainer.num_training_batches or is_last_batch
+        return self.batch_idx == self.trainer.num_training_batches or is_last_batch
 
     # TODO move to on_advance_end()
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
@@ -307,8 +320,8 @@ class TrainingLoop(Loop):
 
         # progress global step according to grads progress
         if num_accumulated_batches_reached or num_training_batches_reached:
-            self.trainer.global_step = self.trainer.accelerator.update_global_step(
-                self.trainer.total_batch_idx, self.trainer.global_step
+            self.global_step = self.trainer.accelerator.update_global_step(
+                self.total_batch_idx, self.trainer.global_step
             )
 
     def should_check_val_fx(self, batch_idx, is_last_batch, on_epoch=False):

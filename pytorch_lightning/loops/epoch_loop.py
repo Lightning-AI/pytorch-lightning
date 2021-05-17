@@ -21,19 +21,46 @@ log = logging.getLogger(__name__)
 
 class EpochLoop(Loop):
 
-    def __init__(self):
+    def __init__(self, min_epochs, max_epochs, min_steps, max_steps):
         super().__init__()
         self.running_loss = torch.tensor(0.0)  # dummy TODO:
         self._teardown_already_run = False
 
+        # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
+        self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
+        # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
+        self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
+
+        self.current_epoch = 0
+
+        self.training_loop = TrainingLoop(min_steps, max_steps)
+
+    @property
+    def global_step(self):
+        return self.training_loop.global_step
+
+    @property
+    def total_batch_idx(self):
+        return self.training_loop.total_batch_idx
+
+    @property
+    def batch_idx(self):
+        return self.training_loop.batch_idx
+
+    @property
+    def split_idx(self):
+        return self.training_loop.split_idx
+
+    @property
+    def min_steps(self):
+        return self.training_loop.min_steps
+
+    @property
+    def max_steps(self):
+        return self.training_loop.max_steps
+
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
-        self.num_epochs = trainer.max_epochs
-        self.min_epochs = trainer.min_epochs
-        # TODO: let inner loop track the steps
-        self.max_steps = trainer.max_steps
-        self.min_steps = trainer.min_steps
         self.trainer = trainer
-        self.training_loop = TrainingLoop()
         self.training_loop.connect(trainer)
 
     def should_accumulate(self):
@@ -43,13 +70,13 @@ class EpochLoop(Loop):
     @property
     def done(self) -> bool:
         # TODO: Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.trainer.max_steps and self.trainer.max_steps <= self.trainer.global_step
+        stop_steps = self.max_steps and self.max_steps <= self.global_step
 
         should_stop = False
         if self.trainer.should_stop:
             # early stopping
-            met_min_epochs = (self.iteration_count >= self.trainer.min_epochs - 1) if self.trainer.min_epochs else True
-            met_min_steps = self.trainer.global_step >= self.trainer.min_steps if self.trainer.min_steps else True
+            met_min_epochs = (self.iteration_count >= self.min_epochs - 1) if self.min_epochs else True
+            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 self.training_loop.on_train_end()
                 should_stop = True
@@ -61,7 +88,7 @@ class EpochLoop(Loop):
                 )
                 self.trainer.should_stop = False
 
-        stop_epochs = self.iteration_count >= self.num_epochs
+        stop_epochs = self.iteration_count >= self.max_epochs
         return stop_steps or should_stop or stop_epochs
 
     def on_run_start(self):
@@ -75,10 +102,10 @@ class EpochLoop(Loop):
 
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
-        self.trainer.global_step -= 1
+        self.training_loop.global_step -= 1
         # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
         # self.check_checkpoint_callback(should_update=True, is_last=True)
-        self.trainer.global_step += 1
+        self.training_loop.global_step += 1
 
         # hook
         self.trainer.call_hook("on_train_end")
@@ -105,7 +132,7 @@ class EpochLoop(Loop):
         epoch = self.iteration_count + 1
 
         # update training progress in trainer
-        self.trainer.current_epoch = epoch
+        self.current_epoch = epoch
 
         model = self.trainer.lightning_module
 
@@ -122,7 +149,7 @@ class EpochLoop(Loop):
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
-        self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
+        self.training_loop.batch_loop.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
 
         # hook
         self.trainer.call_hook("on_epoch_start")

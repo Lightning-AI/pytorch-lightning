@@ -30,6 +30,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.epoch_loop import EpochLoop
+from pytorch_lightning.loops.training_loop import TrainingLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import BaseProfiler
@@ -330,6 +331,11 @@ class Trainer(
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
+
+        self.new_epoch_loop = EpochLoop(min_epochs, max_epochs, min_steps, max_steps)
+        self.new_epoch_loop.connect(self)
+
+        # old loops:
         self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
@@ -377,10 +383,6 @@ class Trainer(
             terminate_on_nan,
         )
         self._setup_on_init(
-            max_epochs,
-            min_epochs,
-            max_steps,
-            min_steps,
             num_sanity_val_steps,
         )
         self.evaluation_loop.on_trainer_init()
@@ -416,28 +418,12 @@ class Trainer(
 
     def _setup_on_init(
         self,
-        max_epochs: Optional[int],
-        min_epochs: Optional[int],
-        max_steps: Optional[int],
-        min_steps: Optional[int],
         num_sanity_val_steps: int,
     ):
-        self.global_step = 0
-        self.current_epoch = 0
         self.should_stop = False
         self.state = TrainerState()
-
-        self.total_batch_idx = 0
-        self.batch_idx = 0
         self.num_training_batches = 0
         self.train_dataloader = None
-
-        # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
-        self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
-        # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
-        self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
-        self.max_steps = max_steps
-        self.min_steps = min_steps
 
         if num_sanity_val_steps == -1:
             self.num_sanity_val_steps = float("inf")
@@ -901,13 +887,12 @@ class Trainer(
         if self.val_dataloaders is None:
             self.reset_val_dataloader(model)
 
-    def run_train(self) -> None:
+    def _run_train(self) -> None:
 
         new_loop = True
 
         if new_loop:
-            self.train_loop = EpochLoop()
-            self.train_loop.connect(self)
+            self.train_loop = self.new_epoch_loop
             self._run_train_new_loop()
         else:
             self._run_train_old_loop()
@@ -922,7 +907,7 @@ class Trainer(
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        self.run_sanity_check(self.lightning_module)
+        self._run_sanity_check(self.lightning_module)
 
         self.checkpoint_connector.has_trained = False
 
