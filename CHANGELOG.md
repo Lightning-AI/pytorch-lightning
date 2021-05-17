@@ -374,6 +374,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Remove hardcoding of local rank in accelerator connector ([#6878](https://github.com/PyTorchLightning/pytorch-lightning/pull/6878))
 
 
+- Fixed incorrect number of calls to LR scheduler when `check_val_every_n_epoch > 1` ([#7032](https://github.com/PyTorchLightning/pytorch-lightning/pull/7032))
+
+
 ## [1.2.7] - 2021-04-06
 
 ### Fixed
