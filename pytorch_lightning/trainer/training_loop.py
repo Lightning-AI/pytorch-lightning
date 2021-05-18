@@ -148,7 +148,7 @@ class TrainLoop:
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if epoch != 0 and self.trainer.should_reload_dl_epoch:
+        if epoch != 0 and self.trainer._should_reload_dl_epoch:
             self.trainer.reset_train_dataloader(model)
 
         # todo: specify the possible exception
