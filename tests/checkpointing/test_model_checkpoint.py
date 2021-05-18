@@ -574,9 +574,9 @@ def test_invalid_trigger_combination(tmpdir):
     with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
         ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_val_epochs=2)
     with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
-        _ = ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_val_epochs=2)
+        ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_val_epochs=2)
     with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
-        _ = ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_train_steps=2)
+        ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_train_steps=2)
 
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_val_epochs=3)
