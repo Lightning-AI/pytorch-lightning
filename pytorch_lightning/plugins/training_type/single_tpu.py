@@ -59,3 +59,9 @@ class SingleTPUPlugin(SingleDevicePlugin):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
+
+    def teardown(self) -> None:
+        # TPU teardown
+        if "PT_XLA_DEBUG" in os.environ:
+            del os.environ["PT_XLA_DEBUG"]
+        return

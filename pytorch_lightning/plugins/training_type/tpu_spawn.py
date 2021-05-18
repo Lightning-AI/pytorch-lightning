@@ -208,7 +208,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data, device=root_device, dtype=torch.float)
+        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
@@ -301,3 +301,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
+
+    def teardown(self) -> None:
+        # TPU teardown
+        if "PT_XLA_DEBUG" in os.environ:
+            del os.environ["PT_XLA_DEBUG"]
+        self.barrier("teardown")

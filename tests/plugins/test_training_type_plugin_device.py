@@ -17,7 +17,7 @@ from unittest import mock
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin, SingleDevicePlugin, SingleTPUPlugin, TPUSpawnPlugin
+from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin, SingleDevicePlugin, TPUSpawnPlugin
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
 
@@ -70,7 +70,7 @@ def test_ddp_multi_gpu(device_count_mock, mock_cuda_available):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_single_tpu():
+def test_model_tpu_one_core():
     """Tests in_gpu and on_tpu is set correctly for tpu spawn plugin."""
     trainer = Trainer(tpu_cores=1)
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
