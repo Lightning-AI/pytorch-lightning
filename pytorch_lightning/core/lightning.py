@@ -351,7 +351,7 @@ class LightningModule(
                 sync_dist_op=sync_dist_op,
                 sync_dist_group=sync_dist_group,
                 sync_fn=self.trainer.training_type_plugin.reduce,
-                dataloader_idx=self._current_dataloader_idx if add_dataloader_idx else None,
+                dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
                 device=self.device,
             )
 

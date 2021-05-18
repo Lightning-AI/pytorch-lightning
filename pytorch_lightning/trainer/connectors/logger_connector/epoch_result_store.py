@@ -469,7 +469,7 @@ class EpochResultStore:
             batch_idx: Batch index seen during batch training or evaluation.
                 Works only with ``reduced=False``
 
-            split_idx: Index of split idx in training loop when ttbpt is used.
+            split_idx: Index of split idx in training loop when tbptt is used.
 
             reduced: Data are being aggregated on on_epoch_end.
                 Indicates if we want to access the aggregated Result or not.
