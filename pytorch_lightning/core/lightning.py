@@ -270,7 +270,7 @@ class LightningModule(
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+    ) -> None:
         """
         Log a key, value
 
@@ -310,16 +310,6 @@ class LightningModule(
                 each dataloader to not mix values
         """
         if self._results is not None:
-            if 'epoch_end' in self._current_fx_name and on_step:
-                raise MisconfigurationException(
-                    f'`self.log(on_step=True)` cannot be used on the {self._current_fx_name} hook'
-                )
-
-            if 'epoch_end' in self._current_fx_name and not on_epoch:
-                raise MisconfigurationException(
-                    f'`self.log(on_epoch=False)` cannot be used on the {self._current_fx_name} hook'
-                )
-
             # TODO: if logged twice fail with crash
 
             # set the default depending on the fx_name
@@ -370,7 +360,7 @@ class LightningModule(
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+    ) -> None:
         """
         Log a dictonary of values at once
 
