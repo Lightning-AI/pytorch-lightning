@@ -18,6 +18,8 @@ import traceback
 from multiprocessing import Process, Queue
 from typing import Any, Callable, Union
 
+import pytorch_lightning as pl
+from pytorch_lightning.utilities.enums import DeviceType
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
@@ -104,3 +106,8 @@ class XLADeviceUtils:
             if XLADeviceUtils._TPU_AVAILABLE:
                 os.environ["PL_TPU_AVAILABLE"] = '1'
         return XLADeviceUtils._TPU_AVAILABLE
+
+
+def tpu_training_and_local_rank_zero(trainer: 'pl.Trainer') -> bool:
+    return trainer._device_type == DeviceType.TPU and \
+        trainer.training_type_plugin.local_rank == 0
