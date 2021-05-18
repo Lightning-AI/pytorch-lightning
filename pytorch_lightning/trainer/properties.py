@@ -256,7 +256,7 @@ class TrainerProperties(ABC):
         return all_metrics
 
     @property
-    def should_reload_dl_epoch(self) -> bool:
+    def _should_reload_dl_epoch(self) -> bool:
         """ Check if dataloader should be reloaded in the current epoch. """
         n_epochs = self.reload_dataloaders_every_n_epochs
         return n_epochs and (not self.current_epoch % n_epochs)
