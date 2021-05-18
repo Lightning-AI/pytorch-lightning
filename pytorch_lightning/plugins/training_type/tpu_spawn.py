@@ -58,14 +58,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.start_method = None
 
     @property
-    def on_gpu(self) -> bool:
-        return False
-
-    @property
-    def on_tpu(self) -> bool:
-        return True
-
-    @property
     def global_rank(self) -> int:
         return self.tpu_global_core_rank
 

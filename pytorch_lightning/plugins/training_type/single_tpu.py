@@ -36,14 +36,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.tpu_global_core_rank = 0
 
     @property
-    def on_gpu(self) -> bool:
-        return False
-
-    @property
-    def on_tpu(self) -> bool:
-        return True
-
-    @property
     def is_distributed(self) -> bool:
         return False
 

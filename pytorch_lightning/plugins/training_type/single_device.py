@@ -16,6 +16,7 @@ from typing import Any, Optional, Union
 import torch
 
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
 class SingleDevicePlugin(TrainingTypePlugin):
@@ -30,7 +31,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
 
     @property
     def on_tpu(self) -> bool:
-        return False
+        return self.device.type == "xla" and _XLA_AVAILABLE
 
     @property
     def on_gpu(self) -> bool:
@@ -84,8 +85,10 @@ class SingleDevicePlugin(TrainingTypePlugin):
         This method is called to teardown the training process.
         It is the right place to release memory and free other ressources.
 
-        By default, we teardown in the following way: if training is on gpu,
-        we move lightning module to CPU and clean up cuda memory.
+        By default, we teardown in the following way:
+            1. if training is on gpu, we move lightning module to CPU and clean up
+            cuda memory;
+            2. if training is on tpu, we clean up os environment debug flag
         """
         if self.on_gpu:
             # GPU teardown
@@ -93,3 +96,9 @@ class SingleDevicePlugin(TrainingTypePlugin):
             # clean up memory
             with torch.cuda.device(self.root_device):
                 torch.cuda.empty_cache()
+            return
+        if self.on_tpu:
+            # TPU teardown
+            if "PT_XLA_DEBUG" in os.environ:
+                del os.environ["PT_XLA_DEBUG"]
+            return

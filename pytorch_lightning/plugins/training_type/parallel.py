@@ -23,6 +23,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
@@ -49,7 +50,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @property
     def on_tpu(self) -> bool:
-        return False
+        return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
     def lightning_module(self):
@@ -132,9 +133,11 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         This method is called to teardown the training process.
         It is the right place to release memory and free other ressources.
 
-        By default, we teardown in the following way: if training is on gpu,
-        we move lightning module to CPU and clean up cuda memory and we add a barrier
-        here to synchronize processes before returning control back to the caller.
+        By default, we teardown in the following way:
+            1. if training is on gpu, we move lightning module to CPU and
+            clean up cuda memory and we add a barrier
+            2. if training is on tpu, we clean up os environment debug flag
+        At the end, we synchronize processes before returning control back to the caller.
         """
         if self.on_gpu:
             # GPU teardown
@@ -142,4 +145,8 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             # clean up memory
             with torch.cuda.device(self.root_device):
                 torch.cuda.empty_cache()
+        elif self.on_tpu:
+            # TPU teardown
+            if "PT_XLA_DEBUG" in os.environ:
+                del os.environ["PT_XLA_DEBUG"]
         self.barrier("teardown")

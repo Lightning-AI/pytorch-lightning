@@ -73,7 +73,6 @@ def test_single_tpu():
 @RunIf(tpu=True)
 def test_multi_tpu():
     """Tests in_gpu and on_tpu is set correctly for multi tpu plugin."""
-    assert _XLA_AVAILABLE
     trainer = Trainer(tpu_cores=8)
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
     assert not trainer.training_type_plugin.on_gpu
