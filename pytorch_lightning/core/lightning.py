@@ -310,26 +310,25 @@ class LightningModule(
                 each dataloader to not mix values
         """
         if self._results is not None:
-            # in any epoch end can't log step metrics (only epoch metric)
             if 'epoch_end' in self._current_fx_name and on_step:
-                m = f'on_step=True cannot be used on {self._current_fx_name} method'
-                raise MisconfigurationException(m)
+                raise MisconfigurationException(
+                    f'`self.log(on_step=True)` cannot be used on the {self._current_fx_name} hook'
+                )
 
-            if 'epoch_end' in self._current_fx_name and on_epoch is False:
-                m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
-                raise MisconfigurationException(m)
+            if 'epoch_end' in self._current_fx_name and not on_epoch:
+                raise MisconfigurationException(
+                    f'`self.log(on_epoch=False)` cannot be used on the {self._current_fx_name} hook'
+                )
 
-            # add log_dict
             # TODO: if logged twice fail with crash
 
             # set the default depending on the fx_name
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-            if self._current_hook_fx_name is not None:
-                self.trainer.logger_connector.check_logging_in_callbacks(
-                    self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
-                )
+            self.trainer.logger_connector.check_logging_in_callbacks(
+                self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
+            )
 
             # make sure user doesn't introduce logic for multi-dataloaders
             if "/dataloader_idx_" in name:
@@ -337,28 +336,23 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
-            training_type_plugin = self.trainer.training_type_plugin
-
-            # Determine if dataloader index should be added
-            dataloader_idx = self._current_dataloader_idx if add_dataloader_idx else None
-
             self._results.log(
                 name,
                 value,
-                prog_bar,
-                logger,
-                on_step,
-                on_epoch,
-                reduce_fx,
-                tbptt_reduce_fx,
-                tbptt_pad_token,
-                enable_graph,
-                sync_dist,
-                sync_dist_op,
-                sync_dist_group,
-                training_type_plugin.reduce,
-                dataloader_idx,
-                self.device,
+                prog_bar=prog_bar,
+                logger=logger,
+                on_step=on_step,
+                on_epoch=on_epoch,
+                reduce_fx=reduce_fx,
+                tbptt_reduce_fx=tbptt_reduce_fx,
+                tbptt_pad_token=tbptt_pad_token,
+                enable_graph=enable_graph,
+                sync_dist=sync_dist,
+                sync_dist_op=sync_dist_op,
+                sync_dist_group=sync_dist_group,
+                sync_fn=self.trainer.training_type_plugin.reduce,
+                dataloader_idx=self._current_dataloader_idx if add_dataloader_idx else None,
+                device=self.device,
             )
 
     def log_dict(
@@ -477,30 +471,16 @@ class LightningModule(
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 
-    def __auto_choose_log_on_step(self, on_step):
+    def __auto_choose_log_on_step(self, on_step: Optional[bool]) -> bool:
         if on_step is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_step = True
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_step = False
-            else:
-                on_step = False
-
+            on_step = False
+            on_step |= self._current_fx_name in ('training_step', 'training_step_end')
         return on_step
 
-    def __auto_choose_log_on_epoch(self, on_epoch):
+    def __auto_choose_log_on_epoch(self, on_epoch: Optional[bool]) -> bool:
         if on_epoch is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_epoch = False
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_epoch = True
-            else:
-                on_epoch = True
-
+            on_epoch = True
+            on_epoch &= self._current_fx_name not in ('training_step', 'training_step_end')
         return on_epoch
 
     def all_gather(
