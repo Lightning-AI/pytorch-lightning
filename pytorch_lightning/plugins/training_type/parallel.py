@@ -122,3 +122,20 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
                 yield None
         else:
             yield None
+
+    def teardown(self) -> None:
+        """
+        This method is called to teardown the training process.
+        It is the right place to release memory and free other ressources.
+
+        By default, we teardown in the following way: if training is on gpu,
+        we move lightning module to CPU and clean up cuda memory and we add a barrier
+        here to synchronize processes before returning control back to the caller.
+        """
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            with torch.cuda.device(self.root_device):
+                torch.cuda.empty_cache()
+        self.barrier("teardown")

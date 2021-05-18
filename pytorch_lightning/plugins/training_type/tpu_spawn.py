@@ -62,10 +62,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return False
 
     @property
-    def on_tpu(self) -> bool:
-        return True
-
-    @property
     def global_rank(self) -> int:
         return self.tpu_global_core_rank
 
@@ -310,3 +306,9 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
+
+    def teardown(self) -> None:
+        # TPU teardown
+        if "PT_XLA_DEBUG" in os.environ:
+            del os.environ["PT_XLA_DEBUG"]
+        self.barrier("teardown")
