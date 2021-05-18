@@ -62,6 +62,10 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         return False
 
     @property
+    def on_tpu(self) -> bool:
+        return True
+
+    @property
     def global_rank(self) -> int:
         return self.tpu_global_core_rank
 

@@ -40,12 +40,16 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @property
     @abstractmethod
-    def root_device(self):
+    def root_device(self) -> torch.device:
         raise NotImplementedError
 
     @property
-    def on_gpu(self):
+    def on_gpu(self) -> bool:
         return self.root_device.type == "cuda" and torch.cuda.is_available()
+
+    @property
+    def on_tpu(self) -> bool:
+        return False
 
     @property
     def lightning_module(self):

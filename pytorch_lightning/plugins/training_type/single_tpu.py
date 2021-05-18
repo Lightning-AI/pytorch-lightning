@@ -40,6 +40,10 @@ class SingleTPUPlugin(SingleDevicePlugin):
         return False
 
     @property
+    def on_tpu(self) -> bool:
+        return True
+
+    @property
     def is_distributed(self) -> bool:
         return False
 

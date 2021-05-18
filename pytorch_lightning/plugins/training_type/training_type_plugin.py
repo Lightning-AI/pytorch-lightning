@@ -64,6 +64,12 @@ class TrainingTypePlugin(Plugin, ABC):
 
     @property
     @abstractmethod
+    def on_tpu(self) -> bool:
+        """Returns whether the current process is done on TPU"""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device"""
         raise NotImplementedError
