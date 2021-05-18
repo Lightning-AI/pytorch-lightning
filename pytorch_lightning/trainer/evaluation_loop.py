@@ -60,7 +60,7 @@ class EvaluationLoop(object):
             max_batches = self.trainer.num_test_batches
         else:
             # val
-            if self.trainer.val_dataloaders is None or self.trainer.should_reload_dl_epoch:
+            if self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
                 self.trainer.reset_val_dataloader(model)
             if self.trainer.sanity_checking:
                 self.trainer.num_sanity_val_batches = [
