@@ -103,7 +103,7 @@ class HookResultStore:
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
 
         func = getattr(opt_metric, func_name)
-        metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
+        metrics_to_log = func(*args, add_dataloader_idx=self.num_dataloaders > 1, **kwargs)
 
         results.append(metrics_to_log)
 
