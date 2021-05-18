@@ -54,6 +54,7 @@ class BatchSizeModel(BoringModel):
         (BatchSizeModel(2), BatchSizeDataModule(2)),
         (BatchSizeModel(2), BatchSizeDataModule(None)),
         (BatchSizeModel(None), BatchSizeDataModule(2)),
+        (BatchSizeModel(16), BatchSizeDataModule(16)),
     ]
 )
 def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model, datamodule):
