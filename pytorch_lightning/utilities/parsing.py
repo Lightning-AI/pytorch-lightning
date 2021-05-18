@@ -199,7 +199,7 @@ def save_hyperparameters(
     ignore: Optional[Union[Sequence[str], str]] = None,
     frame: Optional[types.FrameType] = None,
 ) -> None:
-    """See :meth:`~pytorch_lightning.'pl.core.lightning.LightningModule'.save_hyperparameters`"""
+    """See :meth:`~pytorch_lightning.core.lightning.LightningModule'.save_hyperparameters`"""
 
     if len(args) == 1 and not isinstance(args, str) and not args[0]:
         # args[0] is an empty container
@@ -274,14 +274,14 @@ class AttributeDict(Dict):
         return out
 
 
-def _lightning_get_all_attr_holders(model: 'pl.core.lightning.LightningModule', attribute: str) -> Any:
+def _lightning_get_all_attr_holders(model: 'pl.LightningModule', attribute: str) -> Any:
     """
     Special attribute finding for Lightning. Gets all of the objects or dicts that holds attribute.
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
     """
     trainer = getattr(model, 'trainer', None)
 
-    holders: List[Union[Dict[Any, Any], Namespace, 'pl.core.lightning.LightningModule']] = []
+    holders: List[Union[Dict[Any, Any], Namespace, 'pl.LightningModule']] = []
 
     # Check if attribute in model
     if hasattr(model, attribute):
@@ -299,7 +299,7 @@ def _lightning_get_all_attr_holders(model: 'pl.core.lightning.LightningModule', 
     return holders
 
 
-def _lightning_get_first_attr_holder(model: 'pl.core.lightning.LightningModule', attribute: str) -> Optional[Any]:
+def _lightning_get_first_attr_holder(model: 'pl.LightningModule', attribute: str) -> Optional[Any]:
     """
     Special attribute finding for Lightning.  Gets the object or dict that holds attribute, or None.
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule,
@@ -312,7 +312,7 @@ def _lightning_get_first_attr_holder(model: 'pl.core.lightning.LightningModule',
     return holders[-1]
 
 
-def lightning_hasattr(model: 'pl.core.lightning.LightningModule', attribute: str) -> bool:
+def lightning_hasattr(model: 'pl.LightningModule', attribute: str) -> bool:
     """
     Special hasattr for Lightning. Checks for attribute in model namespace,
     the old hparams namespace/dict, and the datamodule.
@@ -320,7 +320,7 @@ def lightning_hasattr(model: 'pl.core.lightning.LightningModule', attribute: str
     return _lightning_get_first_attr_holder(model, attribute) is not None
 
 
-def lightning_getattr(model: 'pl.core.lightning.LightningModule', attribute: str) -> Any:
+def lightning_getattr(model: 'pl.LightningModule', attribute: str) -> Any:
     """
     Special getattr for Lightning. Checks for attribute in model namespace,
     the old hparams namespace/dict, and the datamodule.
@@ -342,7 +342,7 @@ def lightning_getattr(model: 'pl.core.lightning.LightningModule', attribute: str
     return getattr(holder, attribute)
 
 
-def lightning_setattr(model: 'pl.core.lightning.LightningModule', attribute: str, value: Any) -> None:
+def lightning_setattr(model: 'pl.LightningModule', attribute: str, value: Any) -> None:
     """
     Special setattr for Lightning. Checks for attribute in model namespace
     and the old hparams namespace/dict.
