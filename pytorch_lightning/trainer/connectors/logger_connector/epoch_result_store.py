@@ -253,7 +253,7 @@ class EpochResultStore:
         """
         model_ref = self.trainer.lightning_module
         return {
-            "batch_idx": self.trainer.batch_idx,
+            "batch_idx": self.trainer.train_loop.batch_idx,
             "fx_name": model_ref._current_hook_fx_name or model_ref._current_fx_name,
             "dataloader_idx": model_ref._current_dataloader_idx or 0,
             "opt_idx": self._opt_idx or 0,

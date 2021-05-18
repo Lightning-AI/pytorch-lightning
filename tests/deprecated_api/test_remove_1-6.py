@@ -31,6 +31,18 @@ def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
         trainer.has_arg("training_step", "batch")
 
 
+def test_old_transfer_batch_to_device_hook(tmpdir):
+
+    class OldModel(BoringModel):
+
+        def transfer_batch_to_device(self, batch, device):
+            return super().transfer_batch_to_device(batch, device, None)
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
+    with pytest.deprecated_call(match='old signature will be removed in v1.6'):
+        trainer.fit(OldModel())
+
+
 def test_v1_6_0_ddp_num_nodes():
     with pytest.deprecated_call(match="Argument `num_nodes` in `DDPPlugin` is deprecated in v1.4"):
         DDPPlugin(num_nodes=1)
