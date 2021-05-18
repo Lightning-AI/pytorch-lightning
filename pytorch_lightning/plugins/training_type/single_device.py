@@ -31,11 +31,11 @@ class SingleDevicePlugin(TrainingTypePlugin):
 
     @property
     def on_tpu(self) -> bool:
-        return self.device.type == "xla" and _XLA_AVAILABLE
+        return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
     def on_gpu(self) -> bool:
-        return self.device.type == "cuda" and torch.cuda.is_available()
+        return self.root_device.type == "cuda" and torch.cuda.is_available()
 
     def reduce(self, tensor: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
         """

@@ -302,9 +302,3 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
-
-    def teardown(self) -> None:
-        # TPU teardown
-        if "PT_XLA_DEBUG" in os.environ:
-            del os.environ["PT_XLA_DEBUG"]
-        self.barrier("teardown")

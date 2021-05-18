@@ -14,6 +14,8 @@
 import os
 from unittest import mock
 
+import torch
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import DDPPlugin, DDPSpawnPlugin, SingleDevicePlugin, SingleTPUPlugin, TPUSpawnPlugin
 from tests.helpers.runif import RunIf
@@ -25,6 +27,7 @@ def test_single_cpu():
     assert isinstance(trainer.training_type_plugin, SingleDevicePlugin)
     assert not trainer.training_type_plugin.on_gpu
     assert not trainer.training_type_plugin.on_tpu
+    assert trainer.training_type_plugin.root_device == torch.device("cpu")
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
@@ -36,6 +39,7 @@ def test_single_gpu(device_count_mock, mock_cuda_available):
     assert isinstance(trainer.training_type_plugin, SingleDevicePlugin)
     assert trainer.training_type_plugin.on_gpu
     assert not trainer.training_type_plugin.on_tpu
+    assert trainer.training_type_plugin.root_device == torch.device("cuda:0")
 
 
 @mock.patch("torch.cuda.is_available", return_value=False)
@@ -45,6 +49,7 @@ def test_ddp_cpu(mock_cuda_available):
     assert isinstance(trainer.training_type_plugin, DDPSpawnPlugin)
     assert not trainer.training_type_plugin.on_gpu
     assert not trainer.training_type_plugin.on_tpu
+    assert trainer.training_type_plugin.root_device == torch.device("cpu")
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
@@ -59,6 +64,7 @@ def test_ddp_multi_gpu(device_count_mock, mock_cuda_available):
     assert isinstance(trainer.training_type_plugin, DDPPlugin)
     assert trainer.training_type_plugin.on_gpu
     assert not trainer.training_type_plugin.on_tpu
+    assert trainer.training_type_plugin.root_device == torch.device("cuda:0")
 
 
 @RunIf(tpu=True)
@@ -68,6 +74,7 @@ def test_single_tpu():
     assert isinstance(trainer.training_type_plugin, SingleTPUPlugin)
     assert not trainer.training_type_plugin.on_gpu
     assert trainer.training_type_plugin.on_tpu
+    assert trainer.training_type_plugin.root_device == torch.device("xla")
 
 
 @RunIf(tpu=True)
@@ -77,3 +84,4 @@ def test_multi_tpu():
     assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
     assert not trainer.training_type_plugin.on_gpu
     assert trainer.training_type_plugin.on_tpu
+    assert trainer.training_type_plugin.root_device == torch.device("xla")
