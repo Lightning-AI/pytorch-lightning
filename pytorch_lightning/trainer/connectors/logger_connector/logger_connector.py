@@ -95,10 +95,8 @@ class LoggerConnector:
     def reset(self) -> None:
         self.cached_results.reset()
 
-    def check_logging_in_callbacks(self, hook_fx_name, on_step: bool = None, on_epoch: bool = None) -> None:
-        self._callback_hook_validator.check_logging_in_callbacks(
-            current_hook_fx_name=hook_fx_name, on_step=on_step, on_epoch=on_epoch
-        )
+    def check_logging_in_callbacks(self, fx_name: str, on_step: bool, on_epoch: bool) -> None:
+        self._callback_hook_validator.check_logging_in_callbacks(fx_name=fx_name, on_step=on_step, on_epoch=on_epoch)
 
     def on_evaluation_batch_start(self, batch, dataloader_idx, num_dataloaders):
         model = self.trainer.lightning_module

@@ -49,7 +49,7 @@ Here is a minimal example of manual optimization.
             # Important: This property activates manual optimization.
             self.automatic_optimization = False
 
-        def training_step(batch, batch_idx):
+        def training_step(self, batch, batch_idx):
             opt = self.optimizers()
             opt.zero_grad()
             loss = self.compute_loss(batch)

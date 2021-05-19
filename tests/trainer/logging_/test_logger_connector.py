@@ -372,19 +372,17 @@ def test_call_back_validator(tmpdir):
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
-            validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+            validator.check_logging_in_callbacks(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
                 with pytest.raises(MisconfigurationException, match="function supports only"):
-                    validator.check_logging_in_callbacks(
-                        current_hook_fx_name=func_name, on_step=True, on_epoch=on_epoch
-                    )
+                    validator.check_logging_in_callbacks(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="function doesn't support"):
-                validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+                validator.check_logging_in_callbacks(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
 
         # should not fail
-        validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
+        validator.check_logging_in_callbacks(fx_name=None, on_step=None, on_epoch=None)
 
 
 @RunIf(min_gpus=2)

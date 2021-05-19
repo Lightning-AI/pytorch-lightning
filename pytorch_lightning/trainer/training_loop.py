@@ -478,7 +478,6 @@ class TrainLoop:
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
-        val_loop_called = False
 
         batch_idx = None
         is_last_batch = None
@@ -519,7 +518,6 @@ class TrainLoop:
                 self.trainer.validating = True
                 self.trainer._run_evaluation()
                 self.trainer.training = True
-                val_loop_called = True
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -568,7 +566,7 @@ class TrainLoop:
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
         # update epoch level lr_schedulers if no val loop outside train loop is triggered
-        if (val_loop_called and not should_check_val) or should_train_only:
+        if not should_check_val or should_train_only:
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
         if should_train_only:
@@ -597,8 +595,6 @@ class TrainLoop:
             # run training_epoch_end
             # refresh the result for custom logging at the epoch level
             model._current_fx_name = 'training_epoch_end'
-
-            # lightningmodule hook
             training_epoch_end_output = model.training_epoch_end(processed_epoch_output)
 
             if training_epoch_end_output is not None:
@@ -623,7 +619,7 @@ class TrainLoop:
         hook_name = "on_train_epoch_end"
 
         # set hook_name to model + reset Result obj
-        skip = self.trainer._reset_result_and_set_hook_fx_name(hook_name)
+        skip = self.trainer._reset_result_and_set_fx_name(hook_name)
 
         # always profile hooks
         with self.trainer.profiler.profile(hook_name):
