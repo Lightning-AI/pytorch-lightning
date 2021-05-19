@@ -500,5 +500,5 @@ def test_progbar_pickle():
     pickle.dumps(bar)
     trainer.test(model)
     pickle.dumps(bar)
-    trainer.predict(model, model.test_dataloader())
+    trainer.predict(model)
     pickle.dumps(bar)
