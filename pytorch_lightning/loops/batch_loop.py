@@ -45,30 +45,32 @@ class BatchLoop(Loop):
 
     def on_run_start(self, batch, batch_idx, dataloader_idx):
         self._hiddens = None
-        self._optimizers = self.get_active_optimizers()
-        # lightning module hook
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
+
+        # TODO: let loops track individual outputs
+        self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def advance(self, batch, batch_idx, dataloader_idx):
         split_idx, split_batch = self._remaining_splits.pop(0)
         self.split_idx = split_idx
 
         # TODO: this list needs to go outside this loop
-        batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
+        # batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
         if self.trainer.lightning_module.automatic_optimization:
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                 result = self._run_optimization(batch_idx, split_idx, split_batch, opt_idx, optimizer)
                 if result:
-                    batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
+                    self.batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
                     grad_norm_dict = result.get("grad_norm_dict", {})
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_idx, split_batch)
             if result:
-                batch_outputs[0].append(result.training_step_output_for_epoch_end)
+                self.batch_outputs[0].append(result.training_step_output_for_epoch_end)
 
-        return batch_outputs
+        # TODO: return and accumulate batch outputs
+        return None
 
     def run(self, batch, batch_idx, dataloader_idx):
         if batch is None:
@@ -84,33 +86,30 @@ class BatchLoop(Loop):
         if response == -1:
             return AttributeDict(signal=-1, grad_norm_dic={})
 
-        batch_outputs = super().run(batch, batch_idx, dataloader_idx)
+        super().run(batch, batch_idx, dataloader_idx)
 
-        batch_outputs = batch_outputs[0]  # TODO: hack for poc
+        # batch_outputs = batch_outputs[0]  # TODO: hack for poc
 
         output = AttributeDict(
             signal=0,
             # todo: Properly aggregate grad_norm accros opt_idx and split_idx
             # grad_norm_dict=grad_norm_dict,
             grad_norm_dict={},
-            training_step_output_for_epoch_end=batch_outputs,
+            training_step_output_for_epoch_end=self.batch_outputs,
         )
         return output
 
     def on_run_end(self, outputs: List) -> List:
         return outputs
 
-    def tbptt_split_batch(self, batch):
-        splits = [batch]
-        if self.trainer.truncated_bptt_steps is not None:
-            model_ref = self.trainer.lightning_module
-            with self.trainer.profiler.profile("tbptt_split_batch"):
-                splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
-        return splits
-
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
 # ------------------------------------------------------------------------------------------------------------
+
+    @property
+    def num_active_optimizers(self) -> int:
+        return len(self.get_active_optimizers())
+
     def _run_optimization(self, batch_idx, split_idx, split_batch, opt_idx=0, optimizer=None):
         # TODO: In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
         #   opt_idx=0 to opt_idx=None in the signature here
@@ -349,6 +348,14 @@ class BatchLoop(Loop):
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
+    def tbptt_split_batch(self, batch):
+        splits = [batch]
+        if self.trainer.truncated_bptt_steps is not None:
+            model_ref = self.trainer.lightning_module
+            with self.trainer.profiler.profile("tbptt_split_batch"):
+                splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
+        return splits
+
     def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
         args = [batch, batch_idx]
@@ -485,7 +492,6 @@ class BatchLoop(Loop):
 
         # reset for next set of accumulated grads
         self.accumulated_loss.reset()
-
 
     def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
         """

@@ -50,6 +50,9 @@ class TrainingLoop(Loop):
         self.batch_idx = 0
         self.is_last_batch = False
 
+        # track epoch output
+        self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers)]
+
     def advance(self):
         # TODO: profiling is gone
         batch_idx, (batch, is_last) = next(self._train_dataloader)
@@ -69,9 +72,9 @@ class TrainingLoop(Loop):
             return
 
         # hook
-        epoch_output = [[]]  # TODO: track and return output, let loop base concatenate all outputs into a list etc.
+        # epoch_output = [[]]  # TODO: track and return output, let loop base concatenate all outputs into a list etc.
         self.on_train_batch_end(
-            epoch_output,
+            self.epoch_output,
             batch_output.training_step_output_for_epoch_end,
             batch,
             batch_idx,
@@ -81,9 +84,10 @@ class TrainingLoop(Loop):
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS
         # -----------------------------------------
-        self.trainer.logger_connector.log_train_step_metrics(epoch_output)
+        self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
-        return epoch_output
+        # TODO
+        return None
 
     def on_advance_end(self, output):
         # -----------------------------------------
@@ -107,7 +111,7 @@ class TrainingLoop(Loop):
 
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
-        return output
+        return None
 
     @property
     def done(self):
@@ -134,13 +138,13 @@ class TrainingLoop(Loop):
     def on_run_end(self, outputs):
 
         # hack for poc
-        outputs = outputs[0]
+        # outputs = outputs[0]
 
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
         # prepare epoch output
-        processed_outputs = self._prepare_outputs(outputs, batch_mode=False)
+        processed_outputs = self._prepare_outputs(self.epoch_output, batch_mode=False)
 
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
