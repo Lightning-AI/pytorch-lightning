@@ -68,14 +68,14 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 
 ENV \
-    HOROVOD_GPU_OPERATIONS=NCCL \
+export    HOROVOD_GPU_OPERATIONS=NCCL \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
     HOROVOD_WITHOUT_MPI=1 \
-    # MAKEFLAGS="-j$(nproc)" \
-    MAKEFLAGS="-j1" \
+    MAKEFLAGS="-j$(nproc)" \
+    # MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
 
 COPY ./requirements.txt requirements.txt
