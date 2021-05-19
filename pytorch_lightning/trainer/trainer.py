@@ -502,6 +502,10 @@ class Trainer(
 
         model_provided = model is not None
         model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.validate()` when it hasn't been passed in a previous run"
+            )
 
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=val_dataloaders, datamodule=datamodule)
@@ -562,6 +566,10 @@ class Trainer(
 
         model_provided = model is not None
         model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
+            )
 
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=test_dataloaders, datamodule=datamodule)
@@ -624,6 +632,10 @@ class Trainer(
 
         model_provided = model is not None
         model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.predict()` when it hasn't been passed in a previous run"
+            )
 
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
