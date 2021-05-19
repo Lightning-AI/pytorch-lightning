@@ -126,7 +126,7 @@ class TestFSDPModel(BoringModel):
         assert self.layer.module[2].reshard_after_forward is True
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True)
+@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, special=True)
 def test_fully_sharded_plugin_checkpoint(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run.
@@ -138,12 +138,13 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
         gpus=1,
         plugins="fsdp",
         precision=16,
+        limit_train_batches=3,
         callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
     )
     _run_multiple_stages(trainer, model)
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True)
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
@@ -155,6 +156,7 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
         gpus=2,
         plugins="fsdp",
         precision=16,
+        limit_train_batches=3,
         callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
     )
     _run_multiple_stages(trainer, model)
@@ -191,12 +193,3 @@ def _run_multiple_stages(trainer, model):
 
     # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
     trainer.test(ckpt_path=last_ckpt_path)
-
-    # Validate entry point
-    trainer.validate(model)  # model is wrapped, will not call configure_shared_model
-
-    # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
-    trainer.validate(ckpt_path=last_ckpt_path)
-
-    # Predict entry point
-    trainer.predict(dataloaders=model.val_dataloader())
