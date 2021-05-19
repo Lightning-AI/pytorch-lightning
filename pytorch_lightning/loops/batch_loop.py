@@ -33,6 +33,7 @@ class BatchLoop(Loop):
         self.accumulated_loss = None
         self._skip_backward = False
         self._hiddens = None
+        self._optimizer_freq_cumsum = None
 
         self.split_idx = None
 
@@ -106,9 +107,14 @@ class BatchLoop(Loop):
 # HELPER --- TO BE CLEANED UP
 # ------------------------------------------------------------------------------------------------------------
 
+    def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
+        return len(self.get_active_optimizers(batch_idx))
+
     @property
-    def num_active_optimizers(self) -> int:
-        return len(self.get_active_optimizers())
+    def optimizer_freq_cumsum(self):
+        if self._optimizer_freq_cumsum is None:
+            self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
+        return self._optimizer_freq_cumsum
 
     def _run_optimization(self, batch_idx, split_idx, split_batch, opt_idx=0, optimizer=None):
         # TODO: In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
@@ -505,7 +511,6 @@ class BatchLoop(Loop):
             # call training_step once per optimizer
             return list(enumerate(self.trainer.optimizers))
 
-        batch_idx = self.total_batch_idx if batch_idx is None else batch_idx
         optimizers_loop_length = self.optimizer_freq_cumsum[-1]
         current_place_in_loop = batch_idx % optimizers_loop_length
 

@@ -51,7 +51,7 @@ class TrainingLoop(Loop):
         self.is_last_batch = False
 
         # track epoch output
-        self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers)]
+        self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
     def advance(self):
         # TODO: profiling is gone
@@ -118,7 +118,7 @@ class TrainingLoop(Loop):
         # max steps reached, end training
         if (
             self.trainer.max_steps is not None and self.trainer.max_steps <= self.trainer.global_step + 1
-            and self._accumulated_batches_reached()
+            and self.batch_loop._accumulated_batches_reached()
         ):
             return True
 
@@ -321,7 +321,11 @@ class TrainingLoop(Loop):
 
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
-            self.trainer.optimizer_connector.update_learning_rates(interval="step", monitor_metrics=monitor_metrics)
+            self.trainer.optimizer_connector.update_learning_rates(
+                interval="step",
+                monitor_metrics=monitor_metrics,
+                opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
+            )
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
