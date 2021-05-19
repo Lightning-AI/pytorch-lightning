@@ -175,11 +175,6 @@ def test_progress_bar_fast_dev_run(tmpdir):
     assert 1 == progress_bar.test_batch_idx
     assert 1 == progress_bar.test_progress_bar.total
     assert 1 == progress_bar.test_progress_bar.n
-    
-    trainer.predict(model, model.test_dataloader())
-    assert 1 == progress_bar.predict_batch_idx
-    assert 1 == progress_bar.predict_progress_bar.total
-    assert 1 == progress_bar.predict_progress_bar.n
 
 
 @pytest.mark.parametrize('refresh_rate', [0, 1, 50])
@@ -487,3 +482,17 @@ def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
         call("test_step"),
     ])
     tqdm_write.assert_not_called()
+    
+def test_progbar_pickle():
+    bar = ProgressBar()
+    trainer = Trainer(fast_dev_run=True, callbacks=[bar, limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1, max_steps=1)
+    model = BoringModel()
+    pickle.dumps(bar)
+    trainer.fit(model)
+    pickle.dumps(bar)
+    trainer.test(model)
+    pickle.dumps(bar)
+    trainer.predict(model, model.test_dataloader())
+    pickle.dumps(bar)
