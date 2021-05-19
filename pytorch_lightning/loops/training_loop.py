@@ -49,7 +49,6 @@ class TrainingLoop(Loop):
         self._dataloader_idx = 0
         self.batch_idx = 0
         self.is_last_batch = False
-        self.val_loop_called = False
 
         # track epoch output
         self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
@@ -99,7 +98,6 @@ class TrainingLoop(Loop):
             self.trainer.validating = True
             self.trainer._run_evaluation()
             self.trainer.training = True
-            self.val_loop_called = True
 
         # -----------------------------------------
         # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -186,7 +184,7 @@ class TrainingLoop(Loop):
         hook_name = "on_train_epoch_end"
 
         # set hook_name to model + reset Result obj
-        skip = self.trainer._reset_result_and_set_hook_fx_name(hook_name)
+        skip = self.trainer._reset_result_and_set_fx_name(hook_name)
 
         # always profile hooks
         with self.trainer.profiler.profile(hook_name):
@@ -339,19 +337,34 @@ class TrainingLoop(Loop):
                 self.total_batch_idx, self.trainer.global_step
             )
 
-    def should_check_val_fx(self, batch_idx, is_last_batch, on_epoch=False):
-        # decide if we should run validation
-        is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
-        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
-        can_check_val = self.trainer.enable_validation and is_val_check_epoch
-        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
+    def should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
+        """ Decide if we should run validation. """
+
+        if not self.trainer.enable_validation:
+            return False
+
+        # check if this epoch is eligible to run validation
+        if (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
+            return False
+
+        # val_check_batch is inf for iterable datasets with no length defined
+        # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
+        is_val_check_batch = False
+        if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
+            is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
+        elif self.trainer.val_check_batch != float('inf'):
+            is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+
+        # Note: num_training_batches is also inf for iterable datasets with no length defined
         epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
+        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
 
-        should_check_val = ((is_val_check_batch and epoch_end_val_check) or self.trainer.should_stop
-                            or is_last_batch_for_infinite_dataset
-                            ) if on_epoch else (is_val_check_batch and not epoch_end_val_check)
-
-        return should_check_val and can_check_val
+        if on_epoch:
+            return (
+                is_val_check_batch and epoch_end_val_check
+            ) or self.trainer.should_stop or is_last_batch_for_infinite_dataset
+        else:
+            return is_val_check_batch and not epoch_end_val_check
 
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk

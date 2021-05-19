@@ -68,8 +68,8 @@ class EpochLoop(Loop):
     def should_accumulate(self):
         return self.training_loop.batch_loop.should_accumulate()
 
-    def _accumulated_batches_reached(self):
-        return (self.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
+    def get_active_optimizers(self, batch_idx):
+        return self.training_loop.batch_loop.get_active_optimizers(batch_idx)
 
     @property
     def done(self) -> bool:
@@ -172,7 +172,7 @@ class EpochLoop(Loop):
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
         # update epoch level lr_schedulers if no val loop outside train loop is triggered
-        if (self.training_loop.val_loop_called and not should_check_val) or should_train_only:
+        if not should_check_val or should_train_only:
             self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
         if should_train_only:
