@@ -482,14 +482,18 @@ def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
         call("test_step"),
     ])
     tqdm_write.assert_not_called()
-    
+
+
 def test_progbar_pickle():
     bar = ProgressBar()
-    trainer = Trainer(fast_dev_run=True, callbacks=[bar], 
-                      limit_train_batches=1,
-                      limit_val_batches=1,
-                      limit_test_batches=1, 
-                      max_steps=1)
+    trainer = Trainer(
+        fast_dev_run=True,
+        callbacks=[bar],
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        max_steps=1
+    )
     model = BoringModel()
     pickle.dumps(bar)
     trainer.fit(model)
