@@ -169,7 +169,7 @@ class TrainingLoop(Loop):
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
-        return processed_outputs
+        return self.epoch_output
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
