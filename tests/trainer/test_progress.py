@@ -13,11 +13,11 @@
 # limitations under the License.
 import pytest
 
-from pytorch_lightning.trainer.progress import BaseProgress, LoopProgress, Progress
+from pytorch_lightning.trainer.progress import LoopProgress, Progress, Tracker
 
 
 def test_progress_geattr_setattr():
-    p = Progress(ready=10, completed=None)
+    p = Tracker(ready=10, completed=None)
     # can read
     assert p.completed is None
     # can't read non-existing attr
@@ -35,28 +35,28 @@ def test_progress_geattr_setattr():
 
 
 def test_progress_reset():
-    p = Progress(ready=1, started=2, completed=None)
+    p = Tracker(ready=1, started=2, completed=None)
     p.reset()
-    assert p == Progress(completed=None)
+    assert p == Tracker(completed=None)
 
 
 def test_progress_repr():
-    assert repr(Progress(ready=None, started=None)) == "Progress(processed=0, completed=0)"
+    assert repr(Tracker(ready=None, started=None)) == "Tracker(processed=0, completed=0)"
 
 
 @pytest.mark.parametrize("attr", ("ready", "started", "processed", "completed"))
 def test_base_progress_increment(attr):
-    p = BaseProgress()
+    p = Progress()
     fn = getattr(p, f"increment_{attr}")
     fn()
-    expected = Progress(**{attr: 1})
+    expected = Tracker(**{attr: 1})
     assert p.total == expected
     assert p.current == expected
 
 
 def test_base_progress_from_defaults():
-    actual = BaseProgress.from_defaults(completed=5, started=None)
-    expected = BaseProgress(total=Progress(started=None, completed=5), current=Progress(started=None, completed=5))
+    actual = Progress.from_defaults(completed=5, started=None)
+    expected = Progress(total=Tracker(started=None, completed=5), current=Tracker(started=None, completed=5))
     assert actual == expected
 
 
@@ -64,47 +64,47 @@ def test_loop_progress_increment_epoch():
     p = LoopProgress()
     p.increment_epoch_completed()
     p.increment_epoch_completed()
-    assert p.epoch.total == Progress(completed=2)
-    assert p.epoch.current == Progress()
-    assert p.batch.current == Progress()
+    assert p.epoch.total == Tracker(completed=2)
+    assert p.epoch.current == Tracker()
+    assert p.batch.current == Tracker()
 
 
 def test_loop_progress_increment_sequence():
     """ Test sequences for incrementing batches reads and epochs. """
-    p = LoopProgress(batch=BaseProgress(total=Progress(started=None)))
+    p = LoopProgress(batch=Progress(total=Tracker(started=None)))
 
     p.batch.increment_ready()
-    assert p.batch.total == Progress(ready=1, started=None)
-    assert p.batch.current == Progress(ready=1)
+    assert p.batch.total == Tracker(ready=1, started=None)
+    assert p.batch.current == Tracker(ready=1)
 
     p.batch.increment_started()
-    assert p.batch.total == Progress(ready=1, started=None)
-    assert p.batch.current == Progress(ready=1)
+    assert p.batch.total == Tracker(ready=1, started=None)
+    assert p.batch.current == Tracker(ready=1)
 
     p.batch.increment_processed()
-    assert p.batch.total == Progress(ready=1, started=None, processed=1)
-    assert p.batch.current == Progress(ready=1, processed=1)
+    assert p.batch.total == Tracker(ready=1, started=None, processed=1)
+    assert p.batch.current == Tracker(ready=1, processed=1)
 
     p.batch.increment_completed()
-    assert p.batch.total == Progress(ready=1, started=None, processed=1, completed=1)
-    assert p.batch.current == Progress(ready=1, processed=1, completed=1)
+    assert p.batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
+    assert p.batch.current == Tracker(ready=1, processed=1, completed=1)
 
-    assert p.epoch.total == Progress()
-    assert p.epoch.current == Progress()
+    assert p.epoch.total == Tracker()
+    assert p.epoch.current == Tracker()
     p.increment_epoch_completed()
-    assert p.batch.total == Progress(ready=1, started=None, processed=1, completed=1)
-    assert p.batch.current == Progress()
-    assert p.epoch.total == Progress(completed=1)
-    assert p.epoch.current == Progress()
+    assert p.batch.total == Tracker(ready=1, started=None, processed=1, completed=1)
+    assert p.batch.current == Tracker()
+    assert p.epoch.total == Tracker(completed=1)
+    assert p.epoch.current == Tracker()
 
     p.batch.increment_ready()
-    assert p.batch.total == Progress(ready=2, started=None, processed=1, completed=1)
-    assert p.batch.current == Progress(ready=1)
-    assert p.epoch.total == Progress(completed=1)
-    assert p.epoch.current == Progress()
+    assert p.batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
+    assert p.batch.current == Tracker(ready=1)
+    assert p.epoch.total == Tracker(completed=1)
+    assert p.epoch.current == Tracker()
 
     p.reset_on_epoch()
-    assert p.batch.total == Progress(ready=2, started=None, processed=1, completed=1)
-    assert p.batch.current == Progress()
-    assert p.epoch.total == Progress(completed=1)
-    assert p.epoch.current == Progress()
+    assert p.batch.total == Tracker(ready=2, started=None, processed=1, completed=1)
+    assert p.batch.current == Tracker()
+    assert p.epoch.total == Tracker(completed=1)
+    assert p.epoch.current == Tracker()

@@ -16,15 +16,15 @@ from typing import Optional
 
 
 @dataclass
-class Progress:
+class Tracker:
     """
-    Basic dataclass to track event progress.
+    Track an event's progress.
 
     Args:
         ready: Intended to track the number of events ready to start.
-        started: Intended to be incremented after ``on_*_start`` completes.
+        started: Intended to be incremented after the event is started (e.g. after ``on_*_start`` runs).
         processed: Intended to be incremented after the event is processed.
-        completed: Intended to be incremented after ``on_*_end`` completes.
+        completed: Intended to be incremented after the event completes (e.g. after ``on_*_end`` runs).
 
     Attributes set to ``None`` are treated as unused and are restricted.
     """
@@ -55,16 +55,16 @@ class Progress:
 
 
 @dataclass
-class BaseProgress:
+class Progress:
     """
-    Basic dataclass to track event progress.
+    Track aggregated and current progress.
 
     Args:
         total: Intended to track the total progress of an event
         current: Intended to track the current progress of an event
     """
-    total: Progress = field(default_factory=Progress)
-    current: Progress = field(default_factory=Progress)
+    total: Tracker = field(default_factory=Tracker)
+    current: Tracker = field(default_factory=Tracker)
 
     def increment_ready(self) -> None:
         if self.total.ready is None or self.current.ready is None:
@@ -91,14 +91,14 @@ class BaseProgress:
         self.current.completed += 1
 
     @classmethod
-    def from_defaults(cls, **kwargs: Optional[int]) -> 'BaseProgress':
-        return cls(total=Progress(**kwargs), current=Progress(**kwargs))
+    def from_defaults(cls, **kwargs: Optional[int]) -> 'Progress':
+        return cls(total=Tracker(**kwargs), current=Tracker(**kwargs))
 
 
 @dataclass
 class LoopProgress:
     """
-    Dataclass to track loop progress during execution.
+    Track loop progress during execution.
 
     These counters are local to a trainer rank. By default, they are not globally synced across all ranks.
 
@@ -106,8 +106,8 @@ class LoopProgress:
         epoch: Tracks epochs progress.
         batch: Tracks batch progress.
     """
-    epoch: BaseProgress = field(default_factory=BaseProgress)
-    batch: BaseProgress = field(default_factory=BaseProgress)
+    epoch: Progress = field(default_factory=Progress)
+    batch: Progress = field(default_factory=Progress)
 
     def increment_epoch_completed(self) -> None:
         self.epoch.increment_completed()
@@ -121,15 +121,15 @@ class LoopProgress:
 @dataclass
 class OptimizationProgress:
     """
-    Dataclass to track optimization progress.
+    Track optimization progress.
 
     Args:
         optimizer: Tracks optimizer progress.
         scheduler: Tracks scheduler progress.
     """
-    optimizer: BaseProgress = BaseProgress.from_defaults(processed=None)
-    scheduler: BaseProgress = BaseProgress.from_defaults(started=None, processed=None)
-    zero_grad: BaseProgress = BaseProgress.from_defaults(processed=None)
+    optimizer: Progress = Progress.from_defaults(processed=None)
+    scheduler: Progress = Progress.from_defaults(started=None, processed=None)
+    zero_grad: Progress = Progress.from_defaults(processed=None)
 
     @property
     def optimizer_steps(self) -> int:
@@ -141,9 +141,9 @@ class OptimizationProgress:
 
 
 @dataclass
-class TrainProgress(BaseProgress):
+class TrainProgress(Progress):
     """
-    Extends the progress with training specific attributes
+    Extends ``Progress`` with training specific attributes
 
     Args:
         optimization: Tracks optimization progress
