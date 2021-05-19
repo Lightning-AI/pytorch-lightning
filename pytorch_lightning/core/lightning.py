@@ -43,8 +43,11 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.warnings import WarningCache
 
+warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 
@@ -211,9 +214,22 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def _apply_batch_transfer_handler(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0):
+    def _apply_batch_transfer_handler(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ) -> Any:
+        device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
-        batch = self.transfer_batch_to_device(batch, device)
+
+        if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
+            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
+        else:
+            warning_cache.warn(
+                "`transfer_batch_to_device` hook signature has changed in v1.4."
+                " `dataloader_idx` parameter has been added to it. Support for"
+                " the old signature will be removed in v1.6", DeprecationWarning
+            )
+            batch = self.transfer_batch_to_device(batch, device)
+
         batch = self.on_after_batch_transfer(batch, dataloader_idx)
         return batch
 
@@ -254,7 +270,7 @@ class LightningModule(
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+    ) -> None:
         """
         Log a key, value
 
@@ -294,26 +310,15 @@ class LightningModule(
                 each dataloader to not mix values
         """
         if self._results is not None:
-            # in any epoch end can't log step metrics (only epoch metric)
-            if 'epoch_end' in self._current_fx_name and on_step:
-                m = f'on_step=True cannot be used on {self._current_fx_name} method'
-                raise MisconfigurationException(m)
-
-            if 'epoch_end' in self._current_fx_name and on_epoch is False:
-                m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
-                raise MisconfigurationException(m)
-
-            # add log_dict
             # TODO: if logged twice fail with crash
 
             # set the default depending on the fx_name
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-            if self._current_hook_fx_name is not None:
-                self.trainer.logger_connector.check_logging_in_callbacks(
-                    self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
-                )
+            self.trainer.logger_connector.check_logging_in_callbacks(
+                self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
+            )
 
             # make sure user doesn't introduce logic for multi-dataloaders
             if "/dataloader_idx_" in name:
@@ -321,28 +326,23 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
-            training_type_plugin = self.trainer.training_type_plugin
-
-            # Determine if dataloader index should be added
-            dataloader_idx = self._current_dataloader_idx if add_dataloader_idx else None
-
             self._results.log(
                 name,
                 value,
-                prog_bar,
-                logger,
-                on_step,
-                on_epoch,
-                reduce_fx,
-                tbptt_reduce_fx,
-                tbptt_pad_token,
-                enable_graph,
-                sync_dist,
-                sync_dist_op,
-                sync_dist_group,
-                training_type_plugin.reduce,
-                dataloader_idx,
-                self.device,
+                prog_bar=prog_bar,
+                logger=logger,
+                on_step=on_step,
+                on_epoch=on_epoch,
+                reduce_fx=reduce_fx,
+                tbptt_reduce_fx=tbptt_reduce_fx,
+                tbptt_pad_token=tbptt_pad_token,
+                enable_graph=enable_graph,
+                sync_dist=sync_dist,
+                sync_dist_op=sync_dist_op,
+                sync_dist_group=sync_dist_group,
+                sync_fn=self.trainer.training_type_plugin.reduce,
+                dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
+                device=self.device,
             )
 
     def log_dict(
@@ -360,7 +360,7 @@ class LightningModule(
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+    ) -> None:
         """
         Log a dictonary of values at once
 
@@ -461,30 +461,16 @@ class LightningModule(
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 
-    def __auto_choose_log_on_step(self, on_step):
+    def __auto_choose_log_on_step(self, on_step: Optional[bool]) -> bool:
         if on_step is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_step = True
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_step = False
-            else:
-                on_step = False
-
+            on_step = False
+            on_step |= self._current_fx_name in ('training_step', 'training_step_end')
         return on_step
 
-    def __auto_choose_log_on_epoch(self, on_epoch):
+    def __auto_choose_log_on_epoch(self, on_epoch: Optional[bool]) -> bool:
         if on_epoch is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_epoch = False
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_epoch = True
-            else:
-                on_epoch = True
-
+            on_epoch = True
+            on_epoch &= self._current_fx_name not in ('training_step', 'training_step_end')
         return on_epoch
 
     def all_gather(
@@ -1619,7 +1605,7 @@ class LightningModule(
         module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
         if module_tbptt_enabled or trainer_tbptt_enabled:
-            tqdm_dict["split_idx"] = self.trainer.split_idx
+            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version
