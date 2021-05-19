@@ -13,7 +13,7 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, prefetch_iterator
-from pytorch_lightning.utilities import AttributeDict, DeviceType, AMPType
+from pytorch_lightning.utilities import AttributeDict, DeviceType, AMPType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
@@ -44,7 +44,6 @@ class BatchLoop(Loop):
         return len(self._remaining_splits) == 0
 
     def on_run_start(self, batch, batch_idx, dataloader_idx):
-        self._grad_norm_dic = {}
         self._hiddens = None
         self._optimizers = self.get_active_optimizers()
         # lightning module hook
@@ -320,22 +319,22 @@ class BatchLoop(Loop):
     def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
         self.trainer.accelerator.optimizer_zero_grad(self.trainer.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def track_and_norm_grad(self, optimizer):
+    def track_and_norm_grad(self, optimizer) -> dict:
         # track gradient norms
-        grad_norm_dic = self._track_gradient_norm()
+        grad_norm_dict = self._track_gradient_norm()
 
         # clip gradients
         self.trainer.accelerator.clip_gradients(
             optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
         )
-        self._cur_grad_norm_dict = grad_norm_dic
+        return grad_norm_dict
 
     def _track_gradient_norm(self):
         grad_norm_dict = {}
         if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.lightning_module
-                grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
+                grad_norm_dict = grad_norm(model, self.trainer.track_grad_norm)
         return grad_norm_dict
 
     def _accumulated_batches_reached(self):
@@ -471,7 +470,7 @@ class BatchLoop(Loop):
 
         if not self.should_accumulate():
             # track gradients
-            self.track_and_norm_grad(optimizer=optimizer)
+            result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
 
     def update_running_loss(self, current_loss: torch.Tensor) -> None:
         if self.trainer.lightning_module.automatic_optimization:
