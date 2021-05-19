@@ -175,6 +175,11 @@ def test_progress_bar_fast_dev_run(tmpdir):
     assert 1 == progress_bar.test_batch_idx
     assert 1 == progress_bar.test_progress_bar.total
     assert 1 == progress_bar.test_progress_bar.n
+    
+    trainer.predict(model, model.test_dataloader())
+    assert 1 == progress_bar.predict_batch_idx
+    assert 1 == progress_bar.predict_progress_bar.total
+    assert 1 == progress_bar.predict_progress_bar.n
 
 
 @pytest.mark.parametrize('refresh_rate', [0, 1, 50])
