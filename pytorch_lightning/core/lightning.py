@@ -104,9 +104,8 @@ class LightningModule(
         self._example_input_array = None
         self._datamodule = None
         self._results: Optional[Result] = None
-        self._current_fx_name: str = ''
+        self._current_fx_name: Optional[str] = None
         self._running_manual_backward: bool = False
-        self._current_hook_fx_name: Optional[str] = None
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
@@ -316,8 +315,9 @@ class LightningModule(
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
+            assert self._current_fx_name is not None
             self.trainer.logger_connector.check_logging_in_callbacks(
-                self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
+                self._current_fx_name, on_step=on_step, on_epoch=on_epoch
             )
 
             # make sure user doesn't introduce logic for multi-dataloaders

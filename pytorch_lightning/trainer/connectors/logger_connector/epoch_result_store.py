@@ -228,8 +228,8 @@ class EpochResultStore:
 
     ..example::
 
-        model._current_fx_name = 'something'
         model._results = Result()
+        model._current_fx_name = 'something'
         model.log('a', ...)
         epoch_result_store.cache_result()
     """
@@ -250,7 +250,7 @@ class EpochResultStore:
         model_ref = self.trainer.lightning_module
         return {
             "batch_idx": self.trainer.train_loop.batch_idx,
-            "fx_name": model_ref._current_hook_fx_name or model_ref._current_fx_name,
+            "fx_name": model_ref._current_fx_name,
             "dataloader_idx": model_ref._current_dataloader_idx or 0,
             "opt_idx": self._opt_idx or 0,
             "split_idx": self._split_idx or 0,
@@ -266,8 +266,7 @@ class EpochResultStore:
         """
         model_ref = self.trainer.lightning_module
         model_ref._results = Result()
-        model_ref._current_hook_fx_name = None
-        model_ref._current_fx_name = ''
+        model_ref._current_fx_name = None
 
     def cache_result(self) -> None:
         """
@@ -280,8 +279,7 @@ class EpochResultStore:
             hook_result = model_ref._results
 
             if len(hook_result) == 1:
-                model_ref._current_hook_fx_name = None
-                model_ref._current_fx_name = ''
+                model_ref._current_fx_name = None
                 return
 
             info = self.info
