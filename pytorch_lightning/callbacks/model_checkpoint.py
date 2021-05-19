@@ -36,6 +36,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.xla_device import tpu_training_and_local_rank_zero
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -453,7 +454,7 @@ class ModelCheckpoint(Callback):
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
         # make paths
-        if trainer.is_global_zero:
+        if trainer.is_global_zero or tpu_training_and_local_rank_zero(trainer):
             self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the trainer
@@ -591,7 +592,7 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        if not trainer.fast_dev_run and trainer.is_global_zero:
+        if (not trainer.fast_dev_run and (trainer.is_global_zero or tpu_training_and_local_rank_zero(trainer))):
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer: 'pl.Trainer') -> None:
@@ -654,7 +655,10 @@ class ModelCheckpoint(Callback):
 
         self._save_model(trainer, filepath)
 
-        if self.last_model_path and self.last_model_path != filepath and trainer.is_global_zero:
+        if (
+            self.last_model_path and self.last_model_path != filepath
+            and (trainer.is_global_zero or tpu_training_and_local_rank_zero(trainer))
+        ):
             self._del_model(self.last_model_path)
 
         self.last_model_path = filepath
@@ -681,7 +685,7 @@ class ModelCheckpoint(Callback):
 
         if (
             self.save_top_k is None and self.best_model_path and self.best_model_path != filepath
-            and trainer.is_global_zero
+            and (trainer.is_global_zero or tpu_training_and_local_rank_zero(trainer))
         ):
             self._del_model(self.best_model_path)
 
