@@ -68,7 +68,7 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 
 ENV \
-export    HOROVOD_GPU_OPERATIONS=NCCL \
+    HOROVOD_GPU_OPERATIONS=NCCL \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
