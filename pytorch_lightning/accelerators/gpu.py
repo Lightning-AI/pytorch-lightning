@@ -48,9 +48,6 @@ class GPUAccelerator(Accelerator):
             torch.cuda.empty_cache()
 
     def teardown(self) -> None:
-        # Note: this would be problematic for large model (which could not fit in one GPU)
-        # as FSDP module.to(device) would first summon all parameters
-        # (TODO: need to figure out solution)
         self.lightning_module.cpu()
 
         # clean up memory
