@@ -136,8 +136,8 @@ class ModelCheckpoint(Callback):
         For example, you can change the default last checkpoint name by doing
         ``checkpoint_callback.CHECKPOINT_NAME_LAST = "{epoch}-last"``
 
-        If you want a checkpoint at both every N hours and every M train batches or val epochs,
-        then multiple ``ModelCheckpoint`` should be created.
+        If you want to checkpoint every N hours, every M train batches, and/or every K val epochs,
+        then you should create multiple ``ModelCheckpoint`` callbacks.
 
     Raises:
         MisconfigurationException:
