@@ -1132,7 +1132,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=None),
@@ -1152,7 +1152,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=1),
@@ -1912,30 +1912,19 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
 
 
 def test_module_current_fx_attributes_reset(tmpdir):
-    """ Ensure that lightning module's attributes related to current hook fx are reset at the end of execution. """
+    """ Ensure that lightning module's attributes related to current fx are reset at the end of execution. """
     model = BoringModel()
-    model.validation_step = None
-    model.training_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        fast_dev_run=1,
         checkpoint_callback=False,
         logger=False,
-        limit_val_batches=0,
     )
+
     trainer.fit(model)
-    assert model._current_fx_name == "", f"_current_fx_name not reset after fit: {model._current_fx_name}"
-    assert (
-        model._current_hook_fx_name is None
-    ), f"_current_hook_fx_name not reset after fit: {model._current_hook_fx_name}"
-    assert (
-        model._current_dataloader_idx is None
-    ), f"_current_dataloader_idx not reset after fit: {model._current_dataloader_idx}"
+    assert model._current_fx_name is None
+    assert model._current_dataloader_idx is None
+
     trainer.test(model)
-    assert model._current_fx_name == "", f"_current_fx_name not reset after test: {model._current_fx_name}"
-    assert (
-        model._current_hook_fx_name is None
-    ), f"_current_hook_fx_name not reset after test: {model._current_hook_fx_name}"
-    assert (
-        model._current_dataloader_idx is None
-    ), f"_current_dataloader_idx not reset after test: {model._current_dataloader_idx}"
+    assert model._current_fx_name is None
+    assert model._current_dataloader_idx is None

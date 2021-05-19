@@ -58,6 +58,26 @@ class Progress:
 class BaseProgress:
     """
     Basic dataclass to track event progress.
+        started: Intended to be incremented after the event is started (e.g. after `on_*_start runs).
+        processed: Intended to be incremented after the event is processed.
+        completed: Intended to be incremented after the event completes (e.g. after `on_*_end` runs).
+    """
+    ready: int = 0
+    started: int = 0
+    processed: int = 0
+    completed: int = 0
+
+    def reset(self) -> None:
+        self.ready = 0
+        self.started = 0
+        self.processed = 0
+        self.completed = 0
+
+
+@dataclass
+class Progress:
+    """
+    Basic dataclass to track aggregated and current progress states.
 
     Args:
         total: Intended to track the total progress of an event

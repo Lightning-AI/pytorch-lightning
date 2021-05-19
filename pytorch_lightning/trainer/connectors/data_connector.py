@@ -24,8 +24,9 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 class DataConnector(object):
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
+        self.multiple_trainloader_mode = multiple_trainloader_mode
 
     def on_trainer_init(
         self, check_val_every_n_epoch: int, reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool

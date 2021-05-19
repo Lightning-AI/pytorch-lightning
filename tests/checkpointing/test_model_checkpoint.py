@@ -1258,3 +1258,9 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
 def test_model_checkpoint_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* but got unknown_option"):
         ModelCheckpoint(mode="unknown_option")
+
+
+def test_trainer_checkpoint_callback_bool(tmpdir):
+    mc = ModelCheckpoint(dirpath=tmpdir)
+    with pytest.raises(MisconfigurationException, match="Invalid type provided for checkpoint_callback"):
+        Trainer(checkpoint_callback=mc)
