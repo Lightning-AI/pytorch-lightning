@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added correct `dataloader_idx` to batch transfer hooks ([#6241](https://github.com/PyTorchLightning/pytorch-lightning/pull/6241))
 
+- Added [TorchIO](http://torchio.rtfd.io/) integration example with Lightning ([#7595](https://github.com/PyTorchLightning/pytorch-lightning/pull/7612))
+
+
 
 ### Changed
 
