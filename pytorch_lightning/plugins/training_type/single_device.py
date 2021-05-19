@@ -96,8 +96,3 @@ class SingleDevicePlugin(TrainingTypePlugin):
             with torch.cuda.device(self.root_device):
                 torch.cuda.empty_cache()
             return
-        if self.on_tpu:
-            # TPU teardown
-            if "PT_XLA_DEBUG" in os.environ:
-                del os.environ["PT_XLA_DEBUG"]
-            return
