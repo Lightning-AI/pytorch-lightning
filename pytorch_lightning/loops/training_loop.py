@@ -49,6 +49,7 @@ class TrainingLoop(Loop):
         self._dataloader_idx = 0
         self.batch_idx = 0
         self.is_last_batch = False
+        self.val_loop_called = False
 
         # track epoch output
         self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
@@ -98,6 +99,7 @@ class TrainingLoop(Loop):
             self.trainer.validating = True
             self.trainer._run_evaluation()
             self.trainer.training = True
+            self.val_loop_called = True
 
         # -----------------------------------------
         # SAVE LOGGERS (ie: Tensorboard, etc...)

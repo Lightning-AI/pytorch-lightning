@@ -11,6 +11,7 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.training_loop import TrainingLoop
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -107,7 +108,7 @@ class EpochLoop(Loop):
         # when a checkpoint was saved at the last step
         self.training_loop.global_step -= 1
         # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
-        # self.check_checkpoint_callback(should_update=True, is_last=True)
+        self.check_checkpoint_callback(should_update=True, is_last=True)
         self.training_loop.global_step += 1
 
         # hook
@@ -166,23 +167,21 @@ class EpochLoop(Loop):
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(outputs)
 
-        # should_check_val = self.should_check_val_fx(self.trainer.batch_idx, self.trainer.is_last_batch, on_epoch=True)
+        should_check_val = self.training_loop.should_check_val_fx(self.batch_idx, self.training_loop.is_last_batch, on_epoch=True)
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
 
         # update epoch level lr_schedulers if no val loop outside train loop is triggered
-        # if (val_loop_called and not should_check_val) or should_train_only:
-        self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+        if (self.training_loop.val_loop_called and not should_check_val) or should_train_only:
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
-        # if should_train_only:
-        #     self.check_checkpoint_callback(True)
-        #     self.check_early_stopping_callback(True)
+        if should_train_only:
+            self.check_checkpoint_callback(True)
 
-        # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
-        # if should_check_val:
-        #     self.trainer.validating = True
-        #     self.trainer.run_evaluation(on_epoch=True)
-        #     self.trainer.training = True
+        if should_check_val:
+            self.trainer.validating = True
+            self.trainer._run_evaluation(on_epoch=True)
+            self.trainer.training = True
 
         # increment the global step once
         # progress global step according to grads progress
@@ -197,3 +196,44 @@ class EpochLoop(Loop):
 
         return output
 
+    def check_checkpoint_callback(self, should_update, is_last=False):
+        # TODO bake this logic into the ModelCheckpoint callback
+        if should_update and self.trainer.checkpoint_connector.has_trained:
+            callbacks = self.trainer.checkpoint_callbacks
+
+            if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
+                rank_zero_info("Saving latest checkpoint...")
+
+            model = self.trainer.lightning_module
+
+            for cb in callbacks:
+                cb.on_validation_end(self.trainer, model)
+
+    # def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
+    #     """ Decide if we should run validation. """
+    #
+    #     if not self.trainer.enable_validation:
+    #         return False
+    #
+    #     # check if this epoch is eligible to run validation
+    #     if (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
+    #         return False
+    #
+    #     # val_check_batch is inf for iterable datasets with no length defined
+    #     # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
+    #     is_val_check_batch = False
+    #     if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
+    #         is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
+    #     elif self.trainer.val_check_batch != float('inf'):
+    #         is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+    #
+    #     # Note: num_training_batches is also inf for iterable datasets with no length defined
+    #     epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
+    #     is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
+    #
+    #     if on_epoch:
+    #         return (
+    #             is_val_check_batch and epoch_end_val_check
+    #         ) or self.trainer.should_stop or is_last_batch_for_infinite_dataset
+    #     else:
+    #         return is_val_check_batch and not epoch_end_val_check
