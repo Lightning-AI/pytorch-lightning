@@ -40,6 +40,10 @@ class EpochLoop(Loop):
     def global_step(self):
         return self.training_loop.global_step
 
+    @global_step.setter
+    def global_step(self, value):
+        self.training_loop.global_step = value
+
     @property
     def total_batch_idx(self):
         return self.training_loop.total_batch_idx

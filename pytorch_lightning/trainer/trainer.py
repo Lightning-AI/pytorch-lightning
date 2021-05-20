@@ -929,16 +929,17 @@ class Trainer(
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
             # user could press Ctrl+c many times... only shutdown once
             if not self.interrupted:
-                self.state = TrainerState.INTERRUPTED
+                self.state.status = TrainerStatus.INTERRUPTED
                 self.on_keyboard_interrupt()
                 # same treatment as below
                 self.accelerator.on_train_end()
-                self._running_stage = None
+                self.state.stage = None
         except BaseException:
+            self.state.status = TrainerStatus.INTERRUPTED
             # give accelerators a chance to finish
             self.accelerator.on_train_end()
             # reset bookkeeping
-            self._running_stage = None
+            self.state.stage = None
             raise
 
     def _run_train_old_loop(self) -> None:
