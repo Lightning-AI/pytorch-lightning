@@ -105,7 +105,7 @@ def test_mlflow_run_name_setting(client, mlflow, tmpdir):
     _ = logger.experiment
     client.return_value.create_run.assert_called_with(experiment_id='exp-id', tags=tags)
 
-    # default run_name (= None) does not append new tag.
+    # default run_name (= None) does not append new tag
     logger = MLFlowLogger('test', save_dir=tmpdir)
     logger = mock_mlflow_run_creation(logger, experiment_id='exp-id')
     _ = logger.experiment
