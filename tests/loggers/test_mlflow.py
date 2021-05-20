@@ -80,7 +80,6 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
     client.return_value.create_experiment = MagicMock(return_value="exp-id-3")
     client.return_value.create_run = MagicMock(return_value=run3)
 
-
     # logger with new experiment name causes new experiment id and new run id to be created
     logger3 = MLFlowLogger('new', save_dir=tmpdir)
     assert logger3.experiment_id == "exp-id-3" != logger.experiment_id
