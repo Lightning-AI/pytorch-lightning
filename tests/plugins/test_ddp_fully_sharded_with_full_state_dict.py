@@ -140,7 +140,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
         precision=16,
         max_epochs=1,
     )
-    _run_multiple_stages(trainer, model, checkpoint_path)
+    _run_multiple_stages(trainer, model)
 
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
