@@ -19,6 +19,7 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests.helpers.datamodules import MNISTDataModule
@@ -164,7 +165,11 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     model = modelclass()
     output_file = os.path.join(_DUMMY_PRFEIX, tmpdir, "model.pt")
     script = model.to_torchscript(file_path=output_file)
-    loaded_script = torch.jit.load(output_file)
+
+    fs = get_filesystem(output_file)
+    with fs.open(output_file, "rb") as f:
+        loaded_script = torch.jit.load(output_file)
+
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
 
