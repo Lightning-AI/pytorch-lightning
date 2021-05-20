@@ -36,6 +36,7 @@ try:
 except ImportError:
     _MLFLOW_AVAILABLE = False
     mlflow, MlflowClient, context = None, None, None
+    MLFLOW_RUN_NAME = "mlflow.runName"
 
 # before v1.1.0
 if hasattr(context, 'resolve_tags'):
