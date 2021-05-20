@@ -77,6 +77,11 @@ class FxValidator:
     )
 
     def check_logging(self, fx_name: str, on_step: bool, on_epoch: bool) -> None:
+        if fx_name not in self.functions:
+            raise RuntimeError(
+                f'You are trying to `self.log()` inside `{fx_name}` but it is not implemented.'
+                ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`'
+            )
         allowed = self.functions[fx_name]
         if allowed is None:
             raise MisconfigurationException(f"{fx_name} function doesn't support logging using `self.log()`")

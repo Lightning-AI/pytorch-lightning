@@ -271,8 +271,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
         torch.testing.assert_allclose(generated, expected)
 
 
-def test_call_back_validator(tmpdir):
-
+def test_fx_validator(tmpdir):
     funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
 
     callbacks_func = [
@@ -380,6 +379,9 @@ def test_call_back_validator(tmpdir):
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="function doesn't support"):
                 validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+
+    with pytest.raises(RuntimeError, match="`foo` but it is not implemented"):
+        validator.check_logging("foo", False, False)
 
 
 @RunIf(min_gpus=2)
