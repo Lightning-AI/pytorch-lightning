@@ -8,6 +8,7 @@ from pytorch_lightning.loops.batch_loop import BatchLoop
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.warnings import WarningCache
 
 
 class TrainingLoop(Loop):
