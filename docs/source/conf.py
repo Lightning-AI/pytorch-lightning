@@ -100,6 +100,7 @@ needs_sphinx = '3.4'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinxcontrib.contentui',
     'sphinx.ext.autodoc',
     # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
