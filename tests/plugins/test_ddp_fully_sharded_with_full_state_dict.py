@@ -139,9 +139,8 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
         plugins="fsdp",
         precision=16,
         max_epochs=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
     )
-    _run_multiple_stages(trainer, model)
+    _run_multiple_stages(trainer, model, checkpoint_path)
 
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
@@ -157,18 +156,15 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
         plugins="fsdp",
         precision=16,
         max_epochs=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_last=True)],
     )
     _run_multiple_stages(trainer, model)
 
 
-def _assert_save_equality(trainer, cls=TestFSDPModel):
-    last_ckpt_path = trainer.checkpoint_callback.last_model_path
-
+def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
     # Use FullySharded to get the state dict for the sake of comparison
     model_state_dict = trainer.accelerator.lightning_module_state_dict()
 
-    saved_model = cls.load_from_checkpoint(last_ckpt_path)
+    saved_model = cls.load_from_checkpoint(ckpt_path)
 
     # Assert model parameters are identical after loading
     for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
@@ -184,12 +180,13 @@ def _run_multiple_stages(trainer, model):
     assert model_call_configure_sharded_model_hook
     assert not trainer_accelerator_call_configure_sharded_model_hook
 
-    _assert_save_equality(trainer, cls=TestFSDPModel)
+    ckpt_path = os.path.join(tmpdir, "last.ckpt")
+    trainer.save_checkpoint(ckpt_path, weights_only=True)
 
-    last_ckpt_path = trainer.checkpoint_callback.last_model_path
+    _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel)
 
     # Test entry point
     trainer.test(model)  # model is wrapped, will not call configure_shared_model
 
     # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
-    trainer.test(ckpt_path=last_ckpt_path)
+    trainer.test(ckpt_path=ckpt_path)
