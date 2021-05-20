@@ -144,17 +144,6 @@ def test_torchscript_save_load(tmpdir, modelclass):
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
 
-_DUMMY_PRFEIX = "dummy"
-_PREFIX_SEPARATOR = "://"
-
-
-class DummyFileSystem(LocalFileSystem):
-    ...
-
-
-fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem)
-
-
 @pytest.mark.parametrize("modelclass", [
     BoringModel,
     ParityModuleRNN,
@@ -163,6 +152,15 @@ fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem)
 @RunIf(min_torch="1.5.0")
 def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     """ Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems. """
+
+    _DUMMY_PRFEIX = "dummy"
+    _PREFIX_SEPARATOR = "://"
+
+    class DummyFileSystem(LocalFileSystem):
+        ...
+
+    fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem, clobber=True)
+
     model = modelclass()
     output_file = os.path.join(_DUMMY_PRFEIX, _PREFIX_SEPARATOR, tmpdir, "model.pt")
     script = model.to_torchscript(file_path=output_file)
