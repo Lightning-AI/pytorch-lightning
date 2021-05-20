@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import pickle
 import sys
 from typing import Optional, Union
 from unittest import mock
@@ -482,3 +483,17 @@ def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
         call("test_step"),
     ])
     tqdm_write.assert_not_called()
+
+
+def test_progress_bar_can_be_pickled():
+    bar = ProgressBar()
+    trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
+    model = BoringModel()
+
+    pickle.dumps(bar)
+    trainer.fit(model)
+    pickle.dumps(bar)
+    trainer.test(model)
+    pickle.dumps(bar)
+    trainer.predict(model)
+    pickle.dumps(bar)
