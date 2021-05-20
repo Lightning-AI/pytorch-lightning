@@ -85,7 +85,8 @@ class FxValidator:
             validation_step=dict(on_step=(False, True), on_epoch=(False, True)),
             test_step=dict(on_step=(False, True), on_epoch=(False, True)),
             predict_step=None,
-            train_epoch_end=dict(on_step=(False, ), on_epoch=(False, True)),
+            training_epoch_end=dict(on_step=(False, ), on_epoch=(False, True)),
             validation_epoch_end=dict(on_step=(False, ), on_epoch=(False, True)),
+            test_epoch_end=dict(on_step=(False, ), on_epoch=(False, True)),
             # TODO(@carmocca): some {step,epoch}_{start,end} are missing
         )
