@@ -206,7 +206,6 @@ class LightningOptimizer:
             profiler_name = "closure_{self._optimizer_idx}"
             closure = do_nothing_closure
         else:
-            import pdb; pdb.set.trace()
             if not callable(closure):
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
