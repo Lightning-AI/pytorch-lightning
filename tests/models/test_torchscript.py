@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+import fsspec
 import pytest
 import torch
+from fsspec.implementations.local import LocalFileSystem
 
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
@@ -134,6 +138,31 @@ def test_torchscript_save_load(tmpdir, modelclass):
     """ Test that scripted LightningModule is correctly saved and can be loaded. """
     model = modelclass()
     output_file = str(tmpdir / "model.pt")
+    script = model.to_torchscript(file_path=output_file)
+    loaded_script = torch.jit.load(output_file)
+    assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
+
+
+_DUMMY_PRFEIX = "dummy://"
+
+
+class DummyFileSystem(LocalFileSystem):
+    ...
+
+
+fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem)
+
+
+@pytest.mark.parametrize("modelclass", [
+    BoringModel,
+    ParityModuleRNN,
+    BasicGAN,
+])
+@RunIf(min_torch="1.5.0")
+def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
+    """ Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems. """
+    model = modelclass()
+    output_file = os.path.join(_DUMMY_PRFEIX, tmpdir, "model.pt")
     script = model.to_torchscript(file_path=output_file)
     loaded_script = torch.jit.load(output_file)
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
