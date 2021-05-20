@@ -143,7 +143,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, tmpdir)
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
