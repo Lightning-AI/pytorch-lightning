@@ -44,6 +44,31 @@ class BatchLoop(Loop):
     def done(self):
         return len(self._remaining_splits) == 0
 
+    def run(self, batch, batch_idx, dataloader_idx):
+        if batch is None:
+            return AttributeDict(signal=0, grad_norm_dic={})
+
+        # hook
+        response = self.trainer.call_hook("on_batch_start")
+        if response == -1:
+            return AttributeDict(signal=-1, grad_norm_dic={})
+
+        # hook
+        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
+        if response == -1:
+            return AttributeDict(signal=-1, grad_norm_dic={})
+
+        super().run(batch, batch_idx, dataloader_idx)
+
+        output = AttributeDict(
+            signal=0,
+            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
+            # grad_norm_dict=grad_norm_dict,
+            grad_norm_dict={},
+            training_step_output_for_epoch_end=self.batch_outputs,
+        )
+        return output
+
     def on_run_start(self, batch, batch_idx, dataloader_idx):
         self._hiddens = None
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
@@ -69,31 +94,6 @@ class BatchLoop(Loop):
             result = self._run_optimization(batch_idx, split_idx, split_batch)
             if result:
                 self.batch_outputs[0].append(result.training_step_output_for_epoch_end)
-
-    def run(self, batch, batch_idx, dataloader_idx):
-        if batch is None:
-            return AttributeDict(signal=0, grad_norm_dic={})
-
-        # hook
-        response = self.trainer.call_hook("on_batch_start")
-        if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dic={})
-
-        # hook
-        response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
-        if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dic={})
-
-        super().run(batch, batch_idx, dataloader_idx)
-
-        output = AttributeDict(
-            signal=0,
-            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
-            # grad_norm_dict=grad_norm_dict,
-            grad_norm_dict={},
-            training_step_output_for_epoch_end=self.batch_outputs,
-        )
-        return output
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP

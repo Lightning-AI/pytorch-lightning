@@ -73,13 +73,6 @@ class EpochLoop(Loop):
         self.trainer = trainer
         self.training_loop.connect(trainer)
 
-    # TODO: is it used anywhere?
-    def should_accumulate(self):
-        return self.training_loop.batch_loop.should_accumulate()
-
-    def get_active_optimizers(self, batch_idx):
-        return self.training_loop.batch_loop.get_active_optimizers(batch_idx)
-
     @property
     def done(self) -> bool:
         # TODO: Move track steps inside training loop and move part of these condition inside training loop
@@ -109,6 +102,68 @@ class EpochLoop(Loop):
         # hook
         self.trainer.call_hook("on_train_start")
 
+    def on_advance_start(self):  # equal to on train epoch start
+        # implemented here since this code has to be run always no matter the actual epoch implementation
+        epoch = self.iteration_count + 1
+
+        # update training progress in trainer
+        self.current_epoch = epoch
+
+        model = self.trainer.lightning_module
+
+        # reset train dataloader
+        if epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
+            self.trainer.reset_train_dataloader(model)
+
+        # todo: specify the possible exception
+        with suppress(Exception):
+            # set seed for distributed sampler (enables shuffling for each epoch)
+            self.trainer.train_dataloader.sampler.set_epoch(epoch)
+
+        # changing gradient according accumulation_scheduler
+        self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
+
+        # stores accumulated grad fractions per batch
+        self.training_loop.batch_loop.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
+
+        # hook
+        self.trainer.call_hook("on_epoch_start")
+        self.trainer.call_hook("on_train_epoch_start")
+
+    def advance(self):
+
+        with self.trainer.profiler.profile("run_training_epoch"):
+            # run train epoch
+            epoch_output = self.training_loop.run()
+            # log epoch metrics
+            self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
+
+    def on_advance_end(self):
+        # # handle epoch_output on epoch end
+        # self.on_train_epoch_end(outputs)  # Handled in on_run_end of training_loop now
+
+        should_check_val = self.training_loop.should_check_val_fx(self.batch_idx, self.training_loop.is_last_batch, on_epoch=True)
+        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
+        should_train_only = self.trainer.disable_validation or should_skip_eval
+
+        # update epoch level lr_schedulers if no val loop outside train loop is triggered
+        if not should_check_val or should_train_only:
+            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+
+        if should_train_only:
+            self.check_checkpoint_callback(True)
+
+        if should_check_val:
+            self.trainer.validating = True
+            self.trainer._run_evaluation(on_epoch=True)
+            self.trainer.training = True
+
+        # increment the global step once
+        # progress global step according to grads progress
+        # TODO: move inside training_loop.on_run_end? equivalent? order?
+        self.training_loop.increment_accumulated_grad_global_step()
+
+    # why is this not the same as the old on_train_epoch_end?
     def on_run_end(self):
         if self._teardown_already_run:
             return
@@ -139,67 +194,11 @@ class EpochLoop(Loop):
         # reset bookkeeping
         self.trainer._running_stage = None
 
-    def on_advance_start(self):  # equal to on train epoch start
-        # implemented here since this code has to be run always no matter the actual epoch implementation
-        epoch = self.iteration_count + 1
+    def should_accumulate(self):
+        return self.training_loop.batch_loop.should_accumulate()
 
-        # update training progress in trainer
-        self.current_epoch = epoch
-
-        model = self.trainer.lightning_module
-
-        # reset train dataloader
-        if epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
-            self.trainer.reset_train_dataloader(model)
-
-        # todo: specify the possible exception
-        with suppress(Exception):
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            self.trainer.train_dataloader.sampler.set_epoch(epoch)
-
-        # changing gradient according accumulation_scheduler
-        self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
-
-        # stores accumulated grad fractions per batch
-        self.training_loop.batch_loop.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
-
-        # hook
-        self.trainer.call_hook("on_epoch_start")
-        self.trainer.call_hook("on_train_epoch_start")
-
-    # why is this not the same as the old on_train_epoch_end?
-    def on_advance_end(self):
-        # # handle epoch_output on epoch end
-        # self.on_train_epoch_end(outputs)  # Handled in on_run_end of training_loop now
-
-        should_check_val = self.training_loop.should_check_val_fx(self.batch_idx, self.training_loop.is_last_batch, on_epoch=True)
-        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
-        should_train_only = self.trainer.disable_validation or should_skip_eval
-
-        # update epoch level lr_schedulers if no val loop outside train loop is triggered
-        if not should_check_val or should_train_only:
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
-
-        if should_train_only:
-            self.check_checkpoint_callback(True)
-
-        if should_check_val:
-            self.trainer.validating = True
-            self.trainer._run_evaluation(on_epoch=True)
-            self.trainer.training = True
-
-        # increment the global step once
-        # progress global step according to grads progress
-        # TODO: move inside training_loop.on_run_end? equivalent? order?
-        self.training_loop.increment_accumulated_grad_global_step()
-
-    def advance(self):
-
-        with self.trainer.profiler.profile("run_training_epoch"):
-            # run train epoch
-            epoch_output = self.training_loop.run()
-            # log epoch metrics
-            self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
+    def get_active_optimizers(self, batch_idx):
+        return self.training_loop.batch_loop.get_active_optimizers(batch_idx)
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -213,3 +212,4 @@ class EpochLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
+

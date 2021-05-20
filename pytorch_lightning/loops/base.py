@@ -1,11 +1,11 @@
 from _weakref import proxy
-from abc import ABCMeta, abstractmethod
-from typing import Any, Counter, List, Optional
+from abc import abstractmethod, ABC
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 
 
-class Loop(metaclass=ABCMeta):
+class Loop(ABC):
 
     def __init__(self):
         self.iteration_count: int = 0
@@ -21,22 +21,6 @@ class Loop(metaclass=ABCMeta):
     def done(self):
         """Property indicating when loop is finished"""
 
-    @abstractmethod
-    def advance(self, *args: Any, **kwargs: Any):
-        """What to do within a single step"""
-
-    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        pass
-
-    def on_run_end(self) -> Any:
-        pass
-
-    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
-        pass
-
-    def on_advance_end(self) -> None:
-        pass
-
     def run(self, *args: Any, **kwargs: Any):
         self.on_run_start(*args, **kwargs)
 
@@ -48,6 +32,22 @@ class Loop(metaclass=ABCMeta):
             self.iteration_count += 1
 
         return self.on_run_end()
+
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    @abstractmethod
+    def advance(self, *args: Any, **kwargs: Any):
+        """What to do within a single step"""
+
+    def on_advance_end(self) -> None:
+        pass
+
+    def on_run_end(self) -> Any:
+        pass
 
     def state_dict(self):
         return dict()

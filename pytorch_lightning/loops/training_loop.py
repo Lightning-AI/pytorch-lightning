@@ -45,6 +45,43 @@ class TrainingLoop(Loop):
         self.batch_loop = BatchLoop()
         self.batch_loop.connect(trainer)
 
+    @property
+    def done(self):
+        # max steps reached, end training
+        if (
+            self.max_steps is not None and self.max_steps <= self.global_step + 1
+            and self.batch_loop._accumulated_batches_reached()
+        ):
+            return True
+
+        # end epoch early
+        # stop when the flag is changed or we've gone past the amount
+        # requested in the batches
+        if self.trainer.should_stop:
+            return True
+
+        # TODO: moved to on_advance_end, check if correct?
+        # self.total_batch_idx += 1
+
+        # stop epoch if we limited the number of training batches
+        if self._num_training_batches_reached(self.is_last_batch):
+            return True
+
+    def run(self, *args, **kwargs):
+        self.on_run_start()
+
+        while True:
+            try:
+                self.on_advance_start()
+                self.advance()
+                self.on_advance_end()
+            except StopIteration:
+                break
+
+            self.iteration_count += 1
+
+        return self.on_run_end()
+
     def on_run_start(self):
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
@@ -121,28 +158,6 @@ class TrainingLoop(Loop):
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
-    @property
-    def done(self):
-        # max steps reached, end training
-        if (
-            self.max_steps is not None and self.max_steps <= self.global_step + 1
-            and self.batch_loop._accumulated_batches_reached()
-        ):
-            return True
-
-        # end epoch early
-        # stop when the flag is changed or we've gone past the amount
-        # requested in the batches
-        if self.trainer.should_stop:
-            return True
-
-        # TODO: moved to on_advance_end, check if correct?
-        # self.total_batch_idx += 1
-
-        # stop epoch if we limited the number of training batches
-        if self._num_training_batches_reached(self.is_last_batch):
-            return True
-
     # this is the old on train_epoch_end?
     def on_run_end(self):
         # inform logger the batch loop has finished
@@ -175,21 +190,6 @@ class TrainingLoop(Loop):
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         return self.epoch_output
-
-    def run(self, *args, **kwargs):
-        self.on_run_start()
-
-        while True:
-            try:
-                self.on_advance_start()
-                self.advance()
-                self.on_advance_end()
-            except StopIteration:
-                break
-
-            self.iteration_count += 1
-
-        return self.on_run_end()
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
