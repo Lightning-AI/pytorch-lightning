@@ -140,7 +140,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
         precision=16,
         max_epochs=1,
     )
-    _run_multiple_stages(trainer, model)
+    _run_multiple_stages(trainer, model, tmpdir)
 
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
@@ -157,7 +157,7 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
         precision=16,
         max_epochs=1,
     )
-    _run_multiple_stages(trainer, model)
+    _run_multiple_stages(trainer, model, tmpdir)
 
 
 def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
@@ -171,7 +171,7 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
         assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
-def _run_multiple_stages(trainer, model):
+def _run_multiple_stages(trainer, model, tmpdir):
     trainer.fit(model)
 
     model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
