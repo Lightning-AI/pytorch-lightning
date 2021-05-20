@@ -70,9 +70,6 @@ class BatchLoop(Loop):
             if result:
                 self.batch_outputs[0].append(result.training_step_output_for_epoch_end)
 
-        # TODO: return and accumulate batch outputs
-        return None
-
     def run(self, batch, batch_idx, dataloader_idx):
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic={})
@@ -89,8 +86,6 @@ class BatchLoop(Loop):
 
         super().run(batch, batch_idx, dataloader_idx)
 
-        # batch_outputs = batch_outputs[0]  # TODO: hack for poc
-
         output = AttributeDict(
             signal=0,
             # todo: Properly aggregate grad_norm accros opt_idx and split_idx
@@ -99,9 +94,6 @@ class BatchLoop(Loop):
             training_step_output_for_epoch_end=self.batch_outputs,
         )
         return output
-
-    def on_run_end(self, outputs: List) -> List:
-        return outputs
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP

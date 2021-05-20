@@ -88,11 +88,7 @@ class TrainingLoop(Loop):
         # -----------------------------------------
         self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
-        # TODO
-        return None
-
-    def on_advance_end(self, output):
-
+    def on_advance_end(self):
         # TODO: where is the right place update this !!!!?????
         self.total_batch_idx += 1
 
@@ -117,7 +113,6 @@ class TrainingLoop(Loop):
 
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
-        return None
 
     @property
     def done(self):
@@ -142,11 +137,7 @@ class TrainingLoop(Loop):
             return True
 
     # this is the old on train_epoch_end?
-    def on_run_end(self, outputs):
-
-        # hack for poc
-        # outputs = outputs[0]
-
+    def on_run_end(self):
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
@@ -227,7 +218,7 @@ class TrainingLoop(Loop):
     def _num_training_batches_reached(self, is_last_batch=False):
         return self.batch_idx == self.trainer.num_training_batches - 1 or is_last_batch
 
-    # TODO move to on_advance_end()
+    # TODO move to on_advance_end() ??
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
 
         # epoch output : [[] ... ]

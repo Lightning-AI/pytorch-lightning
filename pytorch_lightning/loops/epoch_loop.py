@@ -100,7 +100,7 @@ class EpochLoop(Loop):
         # hook
         self.trainer.call_hook("on_train_start")
 
-    def on_run_end(self, outputs):
+    def on_run_end(self):
         if self._teardown_already_run:
             return
         self._teardown_already_run = True
@@ -129,8 +129,6 @@ class EpochLoop(Loop):
 
         # reset bookkeeping
         self.trainer._running_stage = None
-
-        return outputs
 
     def on_advance_start(self):  # equal to on train epoch start
         # implemented here since this code has to be run always no matter the actual epoch implementation
@@ -161,12 +159,9 @@ class EpochLoop(Loop):
         self.trainer.call_hook("on_train_epoch_start")
 
     # why is this not the same as the old on_train_epoch_end?
-    def on_advance_end(self, outputs):
+    def on_advance_end(self):
         # # handle epoch_output on epoch end
         # self.on_train_epoch_end(outputs)  # Handled in on_run_end of training_loop now
-
-        # log epoch metrics
-        self.trainer.logger_connector.log_train_epoch_end_metrics(outputs)
 
         should_check_val = self.training_loop.should_check_val_fx(self.batch_idx, self.training_loop.is_last_batch, on_epoch=True)
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
@@ -193,9 +188,9 @@ class EpochLoop(Loop):
 
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
-            output = self.training_loop.run()
-
-        return output
+            epoch_output = self.training_loop.run()
+            # log epoch metrics
+            self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
 
     def check_checkpoint_callback(self, should_update, is_last=False):
         # TODO bake this logic into the ModelCheckpoint callback
@@ -209,32 +204,3 @@ class EpochLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
-
-    # def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
-    #     """ Decide if we should run validation. """
-    #
-    #     if not self.trainer.enable_validation:
-    #         return False
-    #
-    #     # check if this epoch is eligible to run validation
-    #     if (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
-    #         return False
-    #
-    #     # val_check_batch is inf for iterable datasets with no length defined
-    #     # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
-    #     is_val_check_batch = False
-    #     if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
-    #         is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
-    #     elif self.trainer.val_check_batch != float('inf'):
-    #         is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
-    #
-    #     # Note: num_training_batches is also inf for iterable datasets with no length defined
-    #     epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
-    #     is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
-    #
-    #     if on_epoch:
-    #         return (
-    #             is_val_check_batch and epoch_end_val_check
-    #         ) or self.trainer.should_stop or is_last_batch_for_infinite_dataset
-    #     else:
-    #         return is_val_check_batch and not epoch_end_val_check

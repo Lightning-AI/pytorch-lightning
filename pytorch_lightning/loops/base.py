@@ -25,35 +25,29 @@ class Loop(metaclass=ABCMeta):
     def advance(self, *args: Any, **kwargs: Any):
         """What to do within a single step"""
 
-    def on_run_start(self, *args: Any, **kwargs: Any):
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def on_run_end(self, outputs: List) -> List:
-        return outputs
-
-    def on_advance_start(self, *args: Any, **kwargs: Any):
+    def on_run_end(self) -> Any:
         pass
 
-    def on_advance_end(self, curr_output: Any) -> Any:
-        return curr_output
+    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def on_advance_end(self) -> None:
+        pass
 
     def run(self, *args: Any, **kwargs: Any):
         self.on_run_start(*args, **kwargs)
 
-        outputs = []
-
         while not self.done:
 
             self.on_advance_start(*args, **kwargs)
-            curr_output = self.advance(*args, **kwargs)
-            curr_output = self.on_advance_end(curr_output)
-
-            outputs.append(curr_output)
-
+            self.advance(*args, **kwargs)
+            self.on_advance_end()
             self.iteration_count += 1
 
-        outputs = self.on_run_end(outputs)
-        return outputs
+        return self.on_run_end()
 
     def state_dict(self):
         return dict()
