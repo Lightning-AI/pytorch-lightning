@@ -19,7 +19,7 @@ from multiprocessing import Process, Queue
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.enums import DeviceType
-from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
+from pytorch_lightning.utilities.imports import _XLA_AVAILABLE, _JAX_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -74,6 +74,8 @@ class XLADeviceUtils:
         # multiple VMs and TPU_CONFIG won't be available, running
         # `xm.get_xla_supported_devices("TPU")` won't be possible.
         
+        if _JAX_AVAILABLE and "TPU_IP_ADDRESS" in os.environ:
+            return True
         ## Temporary to support tpu+vm arch
         if "XRT_TPU_CONFIG" not in os.environ:
             return False
