@@ -624,9 +624,8 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
         def test_step(self, *args):
             return self.validation_step(*args)
 
-        def predict_step(self, *args):
-            args = args[:-1]  # remove `dataloader_idx`
-            return self.validation_step(*args)
+        def predict_step(self, batch, *_):
+            return self(batch)
 
     model = TestModel()
     model.test_epoch_end = None
