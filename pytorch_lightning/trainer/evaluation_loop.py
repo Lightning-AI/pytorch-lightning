@@ -253,7 +253,7 @@ class EvaluationLoop(object):
         model_ref = self.trainer.lightning_module
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
 
-        self.trainer._reset_result_and_set_hook_fx_name(hook_name)
+        self.trainer._reset_result_and_set_fx_name(hook_name)
 
         with self.trainer.profiler.profile(hook_name):
 
