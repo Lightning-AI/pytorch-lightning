@@ -163,8 +163,10 @@ class MLFlowLogger(LightningLoggerBase):
             if self._run_name is not None:
                 self.tags = self.tags or {}
                 if MLFLOW_RUN_NAME in self.tags:
-                    log.warning(f'The tag {MLFLOW_RUN_NAME} is found in tags. '
-                                f'The value will be overridden by {self._run_name}.')
+                    log.warning(
+                        f'The tag {MLFLOW_RUN_NAME} is found in tags. '
+                        f'The value will be overridden by {self._run_name}.'
+                    )
                 self.tags[MLFLOW_RUN_NAME] = self._run_name
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
