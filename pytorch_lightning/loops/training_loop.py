@@ -33,6 +33,7 @@ class TrainingLoop(Loop):
         self._train_dataloader = None
         self._dataloader_idx = None
         self.is_last_batch = None
+        self.warning_cache = WarningCache()
 
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
