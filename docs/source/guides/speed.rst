@@ -184,9 +184,9 @@ When using PyTorch 1.6+, Lightning uses the native AMP implementation to support
     If you need to configure the apex init for your particular use case, or want to ucustumize the
     16-bit training behviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
 
-
 16-bit precision on TPUs
 ========================
+
 To use 16-bit precision on TPUs simply set the number of tpu cores, and set `precision` trainer flag to 16.
 
 .. testcode::
@@ -197,7 +197,6 @@ To use 16-bit precision on TPUs simply set the number of tpu cores, and set `pre
 
     # turn on 16-bit
     trainer = Trainer(tpu_cores=8, precision=16)
-
 
 ----------------
 
@@ -412,5 +411,4 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
             h_cls = h[:, 0]
             logits = self.W(h_cls)
             return logits, attn
-
 
