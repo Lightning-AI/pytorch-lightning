@@ -11,7 +11,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `KubeflowEnvironment` for use with the `PyTorchJob` operator in Kubeflow
 
+
 - Added LightningCLI support for config files on object stores ([#7521](https://github.com/PyTorchLightning/pytorch-lightning/pull/7521))
+
+
+- Added support for checkpointing based on a provided time interval during training ([#7515](https://github.com/PyTorchLightning/pytorch-lightning/pull/7515))
 
 
 - Added dataclasses for progress tracking (
