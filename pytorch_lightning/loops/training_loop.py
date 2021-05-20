@@ -90,6 +90,10 @@ class TrainingLoop(Loop):
         return None
 
     def on_advance_end(self, output):
+
+        # TODO: where is the right place update this !!!!?????
+        self.total_batch_idx += 1
+
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
@@ -117,7 +121,7 @@ class TrainingLoop(Loop):
     def done(self):
         # max steps reached, end training
         if (
-            self.trainer.max_steps is not None and self.trainer.max_steps <= self.trainer.global_step + 1
+            self.max_steps is not None and self.max_steps <= self.global_step + 1
             and self.batch_loop._accumulated_batches_reached()
         ):
             return True
@@ -128,7 +132,8 @@ class TrainingLoop(Loop):
         if self.trainer.should_stop:
             return True
 
-        self.total_batch_idx += 1
+        # TODO: moved to on_advance_end, check if correct?
+        # self.total_batch_idx += 1
 
         # stop epoch if we limited the number of training batches
         if self._num_training_batches_reached(self.is_last_batch):
