@@ -30,16 +30,18 @@ class TrainingLoop(Loop):
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx = None
 
-        self.batch_loop = None
         self._train_dataloader = None
         self._dataloader_idx = None
+        self._should_stop = False
+
         self.is_last_batch = None
         self.batches_seen = 0
         self.warning_cache = WarningCache()
 
+        self.batch_loop = None
+
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
-        # self.epoch_output = [[] for _ in range(len(trainer.optimizers))]
         self.batch_loop = BatchLoop()
         self.batch_loop.connect(trainer)
 
@@ -50,6 +52,7 @@ class TrainingLoop(Loop):
         # reset
         self._train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         self._dataloader_idx = 0
+        self._should_stop = False
         self.batch_idx = 0
         self.batches_seen = 0
         self.is_last_batch = False
@@ -114,11 +117,16 @@ class TrainingLoop(Loop):
         self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
         self.trainer.checkpoint_connector.has_trained = True
 
+        self._should_stop = self.stopping_condition()
+
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
     @property
     def done(self):
+        return self._should_stop
+
+    def stopping_condition(self):
         # max steps reached, end training
         if (
             self.max_steps is not None and self.max_steps <= self.global_step + 1
