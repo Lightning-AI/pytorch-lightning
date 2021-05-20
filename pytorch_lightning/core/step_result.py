@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_d
 
 class Result(Dict):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self['meta'] = {'_internal': {'_reduce_on_epoch': False, 'batch_sizes': []}}
 
