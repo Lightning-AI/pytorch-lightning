@@ -595,8 +595,6 @@ class TrainLoop:
             # run training_epoch_end
             # refresh the result for custom logging at the epoch level
             model._current_fx_name = 'training_epoch_end'
-
-            # lightningmodule hook
             training_epoch_end_output = model.training_epoch_end(processed_epoch_output)
 
             if training_epoch_end_output is not None:
@@ -621,7 +619,7 @@ class TrainLoop:
         hook_name = "on_train_epoch_end"
 
         # set hook_name to model + reset Result obj
-        skip = self.trainer._reset_result_and_set_hook_fx_name(hook_name)
+        skip = self.trainer._reset_result_and_set_fx_name(hook_name)
 
         # always profile hooks
         with self.trainer.profiler.profile(hook_name):

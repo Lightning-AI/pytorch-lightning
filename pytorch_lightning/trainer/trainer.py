@@ -1186,11 +1186,10 @@ class Trainer(
         self.teardown(stage=fn)
         model.teardown(stage=fn)
 
-        model._current_fx_name = ""
-        model._current_hook_fx_name = None
+        model._current_fx_name = None
         model._current_dataloader_idx = None
 
-    def _reset_result_and_set_hook_fx_name(self, hook_name: str) -> bool:
+    def _reset_result_and_set_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step
         if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
             return True
@@ -1198,7 +1197,7 @@ class Trainer(
         if model_ref is not None:
             # used to track current hook name called
             model_ref._results = Result()
-            model_ref._current_hook_fx_name = hook_name
+            model_ref._current_fx_name = hook_name
         return False
 
     def _cache_logged_metrics(self):
@@ -1214,7 +1213,7 @@ class Trainer(
         # TrainLoop._on_train_epoch_end_hook
 
         # set hook_name to model + reset Result obj
-        skip = self._reset_result_and_set_hook_fx_name(hook_name)
+        skip = self._reset_result_and_set_fx_name(hook_name)
 
         # always profile hooks
         with self.profiler.profile(hook_name):
