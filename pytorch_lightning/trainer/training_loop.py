@@ -833,11 +833,11 @@ class TrainLoop:
                     # check if loss or model weights are nan
                     if self.trainer.terminate_on_nan:
                         self._check_finite(result.loss)
-
-                else:
-                    self.warning_cache.warn(
-                        "training_step returned None. If this was on purpose, ignore this warning..."
-                    )
+                # todo (sean): we should handle the loss within this code.
+                # else:
+                #     self.warning_cache.warn(
+                #         "training_step returned None. If this was on purpose, ignore this warning..."
+                #     )
 
                 if len(self.trainer.optimizers) > 1:
                     # revert back to previous state
