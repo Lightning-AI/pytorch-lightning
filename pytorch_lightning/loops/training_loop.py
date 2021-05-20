@@ -225,7 +225,7 @@ class TrainingLoop(Loop):
             self.trainer._cache_logged_metrics()
 
     def _num_training_batches_reached(self, is_last_batch=False):
-        return self.batch_idx == self.trainer.num_training_batches or is_last_batch
+        return self.batch_idx == self.trainer.num_training_batches - 1 or is_last_batch
 
     # TODO move to on_advance_end()
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
