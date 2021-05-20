@@ -169,7 +169,7 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
 
     fs = get_filesystem(output_file)
     with fs.open(output_file, "rb") as f:
-        loaded_script = torch.jit.load(output_file)
+        loaded_script = torch.jit.load(f)
 
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
