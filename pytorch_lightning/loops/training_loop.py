@@ -76,11 +76,9 @@ class TrainingLoop(Loop):
 
         # when returning -1 from train_step, we end epoch early
         if batch_output.signal == -1:
-            self._skip_remaining_steps = True
-            return
+            raise StopIteration
 
         # hook
-        # epoch_output = [[]]  # TODO: track and return output, let loop base concatenate all outputs into a list etc.
         self.on_train_batch_end(
             self.epoch_output,
             batch_output.training_step_output_for_epoch_end,
@@ -117,16 +115,14 @@ class TrainingLoop(Loop):
         self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
         self.trainer.checkpoint_connector.has_trained = True
 
-        self._should_stop = self.stopping_condition()
+        if self.done:
+            raise StopIteration
 
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
     @property
     def done(self):
-        return self._should_stop
-
-    def stopping_condition(self):
         # max steps reached, end training
         if (
             self.max_steps is not None and self.max_steps <= self.global_step + 1
@@ -179,6 +175,21 @@ class TrainingLoop(Loop):
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
         return self.epoch_output
+
+    def run(self, *args, **kwargs):
+        self.on_run_start()
+
+        while True:
+            try:
+                self.on_advance_start()
+                self.advance()
+                self.on_advance_end()
+            except StopIteration:
+                break
+
+            self.iteration_count += 1
+
+        return self.on_run_end()
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
