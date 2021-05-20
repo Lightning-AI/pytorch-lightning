@@ -76,6 +76,8 @@ warnings.filterwarnings(
     'please use torch.distributed.ReduceOp instead'
 )
 
+NEW_LOOP = True
+
 
 class Trainer(
     TrainerProperties,
@@ -332,11 +334,13 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
-        self.new_epoch_loop = EpochLoop(min_epochs, max_epochs, min_steps, max_steps)
-        self.new_epoch_loop.connect(self)
+        if NEW_LOOP:
+            self.train_loop = EpochLoop(min_epochs, max_epochs, min_steps, max_steps)
+            self.train_loop.connect(self)
+        else:
+            # old loops:
+            self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
 
-        # old loops:
-        self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
         self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
@@ -888,11 +892,7 @@ class Trainer(
             self.reset_val_dataloader(model)
 
     def _run_train(self) -> None:
-
-        new_loop = True
-
-        if new_loop:
-            self.train_loop = self.new_epoch_loop
+        if NEW_LOOP:
             self._run_train_new_loop()
         else:
             self._run_train_old_loop()

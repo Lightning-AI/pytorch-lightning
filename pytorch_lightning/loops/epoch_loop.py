@@ -64,6 +64,11 @@ class EpochLoop(Loop):
     def max_steps(self):
         return self.training_loop.max_steps
 
+    @max_steps.setter
+    def max_steps(self, value):
+        # TODO: This setter is required by debugging connector (fast dev run)
+        self.training_loop.max_steps = value
+
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
         self.training_loop.connect(trainer)
