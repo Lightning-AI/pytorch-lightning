@@ -5,6 +5,7 @@ ipython[notebook]
 pandoc>=1.0
 docutils>=0.16
 sphinxcontrib-fulltoc>=1.0
+sphinxcontrib-contentui
 sphinxcontrib-mockautodoc
 https://github.com/PyTorchLightning/lightning_sphinx_theme/archive/master.zip#egg=pt-lightning-sphinx-theme
 sphinx-autodoc-typehints>=1.0
