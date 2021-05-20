@@ -34,6 +34,7 @@ class TrainingLoop(Loop):
         self._train_dataloader = None
         self._dataloader_idx = None
         self.is_last_batch = None
+        self.batches_seen = 0
         self.warning_cache = WarningCache()
 
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
@@ -50,6 +51,7 @@ class TrainingLoop(Loop):
         self._train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         self._dataloader_idx = 0
         self.batch_idx = 0
+        self.batches_seen = 0
         self.is_last_batch = False
 
         # track epoch output
@@ -67,6 +69,7 @@ class TrainingLoop(Loop):
         with self.trainer.profiler.profile("run_training_batch"):
             # batch_output = self.run_training_batch(batch, batch_idx, self._dataloader_idx)
             batch_output = self.batch_loop.run(batch, batch_idx, self._dataloader_idx)
+            self.batches_seen += 1
 
         # when returning -1 from train_step, we end epoch early
         if batch_output.signal == -1:
@@ -216,7 +219,7 @@ class TrainingLoop(Loop):
             self.trainer._cache_logged_metrics()
 
     def _num_training_batches_reached(self, is_last_batch=False):
-        return self.batch_idx == self.trainer.num_training_batches - 1 or is_last_batch
+        return self.batches_seen == self.trainer.num_training_batches or is_last_batch
 
     # TODO move to on_advance_end() ??
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
