@@ -46,7 +46,6 @@ else:
     from pytorch_lightning.utilities.mock_types import matplotlib as _matplotlib
     plt = _matplotlib.pyplot
 
-
 # before v1.1.0
 if hasattr(context, 'resolve_tags'):
     from mlflow.tracking.context import resolve_tags

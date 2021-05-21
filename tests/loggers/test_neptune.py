@@ -129,8 +129,8 @@ def test_neptune_leave_open_experiment_after_fit(neptune, tmpdir):
 
 
 @pytest.mark.skipif(
-    not _module_available("matplotlib"),
-    reason="close figure test requires matplotlib to be installed.")
+    not _module_available("matplotlib"), reason="close figure test requires matplotlib to be installed."
+)
 @patch('pytorch_lightning.loggers.neptune.neptune')
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_neptune_log_figure(neptune, step_idx):
@@ -141,5 +141,4 @@ def test_neptune_log_figure(neptune, step_idx):
         f = plotting.dummy_figure()
         logger.log_figure('dummy', f, step_idx, close=True)
 
-    mock_log.assert_called_once_with('dummy', f,
-                                     description=f"step_{step_idx}" if step_idx is not None else None)
+    mock_log.assert_called_once_with('dummy', f, description=f"step_{step_idx}" if step_idx is not None else None)

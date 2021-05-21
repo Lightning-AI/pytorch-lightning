@@ -14,6 +14,7 @@
 
 
 class matplotlib:
+
     class pyplot:
         figure = None
         close = None
