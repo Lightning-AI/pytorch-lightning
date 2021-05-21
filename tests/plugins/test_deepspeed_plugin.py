@@ -9,6 +9,7 @@ from torch import nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+import tests.helpers.utils as tutils
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.metrics import Accuracy
@@ -568,6 +569,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
+    tutils.set_random_master_port()
     seed_everything(42)
 
     class VerificationCallback(Callback):
