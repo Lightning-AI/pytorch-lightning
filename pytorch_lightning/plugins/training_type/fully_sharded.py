@@ -15,15 +15,14 @@ import contextlib
 from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
-from pytorch_lightning.plugins.environments.cluster_environment import (
-    ClusterEnvironment,
-)
+from torch import Tensor
+from torch.distributed import ProcessGroup
+from torch.nn import Module
+
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from torch import Tensor
-from torch.nn import Module
-from torch.distributed import ProcessGroup
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
@@ -31,6 +30,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 
 class DDPFullyShardedPlugin(DDPPlugin):
+
     def __init__(
         self,
         cpu_offload: bool = False,
@@ -118,20 +118,17 @@ class DDPFullyShardedPlugin(DDPPlugin):
     def setup_distributed(self) -> None:
         if not self.on_gpu:
             raise MisconfigurationException(
-                "You selected accelerator to be ddp_fully_sharded, but GPU is not available."
+                "You selected accelerator to be `ddp_fully_sharded`, but GPU is not available."
             )
         super().setup_distributed()
         torch.cuda.set_device(self.root_device)
-
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
         precision = self.lightning_module.trainer.precision
 
         def wrap_policy(*args, **kwargs):
-            return default_auto_wrap_policy(
-                *args, **kwargs, min_num_params=self.min_num_params
-            )
+            return default_auto_wrap_policy(*args, **kwargs, min_num_params=self.min_num_params)
 
         with enable_wrap(
             wrapper_cls=FullyShardedDataParallel,
@@ -151,9 +148,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
 
     def connect(self, model: Module) -> None:
         super().connect(model)
-        model_call_configure_sharded_model_hook = getattr(
-            model, "call_configure_sharded_model_hook", False
-        )
+        model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
         if not model_call_configure_sharded_model_hook:
             # if model has not called configure sharded model, we reset
             # the training type plugin's call_configure_sharded_model_hook
@@ -169,9 +164,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
             self.model_to_device()
 
         # setup optimizers after fully sharded has wrapped the lightning module
-        self.lightning_module.trainer.accelerator.setup_optimizers(
-            self.lightning_module.trainer
-        )
+        self.lightning_module.trainer.accelerator.setup_optimizers(self.lightning_module.trainer)
 
     def pre_dispatch(self):
         if self.sync_batchnorm:
