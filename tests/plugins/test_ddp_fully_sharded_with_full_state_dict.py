@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from unittest import mock
 
 import pytest
@@ -152,7 +152,7 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
     trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins="fsdp", precision=16, max_epochs=1, callbacks=[ck])
-    _run_multiple_stages(trainer, model, ck.last_model_path)
+    _run_multiple_stages(trainer, model)
 
 
 def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
@@ -167,11 +167,13 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
             assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
-def _run_multiple_stages(trainer, model, model_path):
+def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
 
     model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
     trainer_accelerator_call_configure_sharded_model_hook = (trainer.accelerator.call_configure_sharded_model_hook)
+
+    model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
 
     assert model_call_configure_sharded_model_hook
     assert not trainer_accelerator_call_configure_sharded_model_hook
