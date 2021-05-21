@@ -16,7 +16,6 @@ from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.distributed import ProcessGroup
 from torch.nn import Module
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -110,7 +109,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         self._process_group = None
 
     @property
-    def process_group(self) -> ProcessGroup:
+    def process_group(self):
         if self._process_group is None:
             self._process_group = torch.distributed.new_group()
         return self._process_group
@@ -155,7 +154,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
             # to give trainer a chance to configure.
             self.call_configure_sharded_model_hook = True
 
-    def configure_ddp(self):
+    def configure_ddp(self) -> None:
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us.
             # Note: this would be problematic for large model (which could not fit in one GPU)
@@ -166,13 +165,13 @@ class DDPFullyShardedPlugin(DDPPlugin):
         # setup optimizers after fully sharded has wrapped the lightning module
         self.lightning_module.trainer.accelerator.setup_optimizers(self.lightning_module.trainer)
 
-    def pre_dispatch(self):
+    def pre_dispatch(self) -> None:
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
         self.configure_ddp()
         self.barrier()
 
-    def model_to_device(self):
+    def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
 
