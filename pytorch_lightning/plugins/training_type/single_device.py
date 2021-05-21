@@ -83,10 +83,7 @@ class SingleDevicePlugin(TrainingTypePlugin):
     def teardown(self) -> None:
         """
         This method is called to teardown the training process.
-        It is the right place to release memory and free other ressources.
-
-        By default, we teardown in the following way: if training is on gpu,
-        we move lightning module to CPU and clean up cuda memory.
+        It is the right place to release memory and free other resources.
         """
         if self.on_gpu:
             # GPU teardown

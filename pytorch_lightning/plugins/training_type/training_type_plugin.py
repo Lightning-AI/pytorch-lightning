@@ -302,7 +302,7 @@ class TrainingTypePlugin(Plugin, ABC):
     def teardown(self) -> None:
         """
         This method is called to teardown the training process.
-        It is the right place to release memory and free other ressources.
+        It is the right place to release memory and free other resources.
         """
         raise NotImplementedError
 

@@ -62,5 +62,4 @@ class SingleTPUPlugin(SingleDevicePlugin):
 
     def teardown(self) -> None:
         # TPU teardown
-        if "PT_XLA_DEBUG" in os.environ:
-            del os.environ["PT_XLA_DEBUG"]
+        os.environ.pop("PT_XLA_DEBUG", None)

@@ -131,12 +131,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
     def teardown(self) -> None:
         """
         This method is called to teardown the training process.
-        It is the right place to release memory and free other ressources.
-
-        By default, we teardown in the following way: if training is on gpu,
-        we move lightning module to CPU and clean up cuda memory.
-
-        At the end, we synchronize processes before returning control back to the caller.
+        It is the right place to release memory and free other resources.
         """
         if self.on_gpu:
             # GPU teardown
