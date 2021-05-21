@@ -40,6 +40,7 @@ from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITI
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
@@ -1860,7 +1861,9 @@ class LightningModule(
         self.train(mode)
 
         if file_path is not None:
-            torch.jit.save(torchscript_module, file_path)
+            fs = get_filesystem(file_path)
+            with fs.open(file_path, "wb") as f:
+                torch.jit.save(torchscript_module, f)
 
         return torchscript_module
 
