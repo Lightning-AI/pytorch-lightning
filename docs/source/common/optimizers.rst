@@ -230,6 +230,23 @@ If you want to call ``lr_scheduler.step()`` every ``n`` steps/epochs, do the fol
         if self.trainer.is_last_batch and (self.trainer.current_epoch + 1) % n == 0:
             sch.step()
 
+If you want to call optimizers that require a metric value after each epoch, consider doing the following:
+
+.. testcode:: python
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_epoch_end(self, outputs):
+        sch = self.lr_schedulers()
+
+        # If the selected scheduler is a ReduceLROnPlateau scheduler.
+        if isinstance(sch, th.optim.lr_scheduler.ReduceLROnPlateau):
+            loss = th.stack([x['loss'] for x in outputs]).mean()
+            loss = self.all_gather(loss).mean()
+            sch.step(loss)
+
 -----
 
 Use closure for LBFGS-like optimizers
