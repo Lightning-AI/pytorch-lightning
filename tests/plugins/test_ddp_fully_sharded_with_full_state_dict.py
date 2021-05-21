@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins import DDPFullyShardedPlugin, FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -142,35 +143,31 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, tmpdir)
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True)
+@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
     """
 
     model = TestFSDPModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        gpus=2,
-        plugins="fsdp",
-        precision=16,
-        max_epochs=1,
-    )
-    _run_multiple_stages(trainer, model, tmpdir)
+    ck = ModelCheckpoint(save_last=True)
+    trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins="fsdp", precision=16, max_epochs=1, callbacks=[ck])
+    _run_multiple_stages(trainer, model, ck)
 
 
 def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
     # Use FullySharded to get the state dict for the sake of comparison
     model_state_dict = trainer.accelerator.lightning_module_state_dict()
 
-    saved_model = cls.load_from_checkpoint(ckpt_path)
+    if trainer.is_global_zero:
+        saved_model = cls.load_from_checkpoint(ckpt_path)
 
-    # Assert model parameters are identical after loading
-    for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
-        assert torch.equal(ddp_param.float().cpu(), shard_param)
+        # Assert model parameters are identical after loading
+        for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
+            assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
-def _run_multiple_stages(trainer, model, tmpdir):
+def _run_multiple_stages(trainer, model, ck):
     trainer.fit(model)
 
     model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
@@ -178,14 +175,12 @@ def _run_multiple_stages(trainer, model, tmpdir):
 
     assert model_call_configure_sharded_model_hook
     assert not trainer_accelerator_call_configure_sharded_model_hook
+    trainer.save_checkpoint(ck.last_model_path, weights_only=True)
 
-    ckpt_path = os.path.join(tmpdir, "last.ckpt")
-    trainer.save_checkpoint(ckpt_path, weights_only=True)
-
-    _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel)
+    _assert_save_equality(trainer, ck.last_model_path, cls=TestFSDPModel)
 
     # Test entry point
     trainer.test(model)  # model is wrapped, will not call configure_shared_model
 
     # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
-    trainer.test(ckpt_path=ckpt_path)
+    trainer.test(ckpt_path=ck.last_model_path)
