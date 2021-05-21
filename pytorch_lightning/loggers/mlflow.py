@@ -46,7 +46,6 @@ else:
     from pytorch_lightning.utilities.mock_types import matplotlib as _matplotlib
     plt = _matplotlib.pyplot
 
-
 # before v1.1.0
 if hasattr(context, 'resolve_tags'):
     from mlflow.tracking.context import resolve_tags
@@ -226,9 +225,7 @@ class MLFlowLogger(LightningLoggerBase):
         with tempfile.NamedTemporaryFile(suffix=self._figure_file_extension) as tmp_file:
             figure.savefig(tmp_file)
             self.experiment.log_artifact(
-                self.run_id,
-                tmp_file.name,
-                artifact_path=Path(self.save_dir) / ("figure_" + name)
+                self.run_id, tmp_file.name, artifact_path=Path(self.save_dir) / ("figure_" + name)
             )
 
         if close:

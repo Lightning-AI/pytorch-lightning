@@ -409,17 +409,20 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 
 
 @pytest.mark.skipif(
-    not _module_available("matplotlib"),
-    reason="close figure test requires matplotlib to be installed.")
+    not _module_available("matplotlib"), reason="close figure test requires matplotlib to be installed."
+)
 @pytest.mark.parametrize("close", [True, False])
-@pytest.mark.parametrize("logger_class", [
-    CometLogger,
-    CSVLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TensorBoardLogger,
-    # Wandb has its own close_figure test
-])
+@pytest.mark.parametrize(
+    "logger_class",
+    [
+        CometLogger,
+        CSVLogger,
+        MLFlowLogger,
+        NeptuneLogger,
+        TensorBoardLogger,
+        # Wandb has its own close_figure test
+    ]
+)
 def test_logger_close_figure_all(tmpdir, monkeypatch, logger_class, close):
     _patch_comet_atexit(monkeypatch)
     try:

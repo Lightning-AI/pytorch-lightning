@@ -226,8 +226,8 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
 
 
 @pytest.mark.skipif(
-    not _module_available("matplotlib"),
-    reason="close figure test requires matplotlib to be installed.")
+    not _module_available("matplotlib"), reason="close figure test requires matplotlib to be installed."
+)
 @patch("pytorch_lightning.loggers.comet.CometExperiment")
 @patch('pytorch_lightning.loggers.comet.comet_ml')
 @pytest.mark.parametrize("step_idx", [10, None])

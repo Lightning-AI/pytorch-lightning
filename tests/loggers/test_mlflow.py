@@ -231,8 +231,8 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
 
 
 @pytest.mark.skipif(
-    not _module_available("matplotlib"),
-    reason="close figure test requires matplotlib to be installed.")
+    not _module_available("matplotlib"), reason="close figure test requires matplotlib to be installed."
+)
 @mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
 @mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
 @pytest.mark.parametrize("step_idx", [10, None])

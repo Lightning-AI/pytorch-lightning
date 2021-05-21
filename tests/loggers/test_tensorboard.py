@@ -178,8 +178,8 @@ def test_tensorboard_log_metrics(tmpdir, step_idx):
 
 
 @pytest.mark.skipif(
-    not _module_available("matplotlib"),
-    reason="close figure test requires matplotlib to be installed.")
+    not _module_available("matplotlib"), reason="close figure test requires matplotlib to be installed."
+)
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_figure(tmpdir, step_idx):
     logger = TensorBoardLogger(tmpdir)
