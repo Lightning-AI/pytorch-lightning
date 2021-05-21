@@ -141,7 +141,7 @@ class OptimizationProgress:
 
 
 @dataclass
-class TrainProgress(Progress):
+class TrainingProgress(Progress):
     """
     Extends ``Progress`` with training specific attributes
 
@@ -152,8 +152,8 @@ class TrainProgress(Progress):
 
 
 @dataclass
-class TrainLoopProgress(LoopProgress):
-    epoch: TrainProgress = field(default_factory=TrainProgress)
+class TrainingLoopProgress(LoopProgress):
+    epoch: TrainingProgress = field(default_factory=TrainingProgress)
 
     def reset_on_epoch(self) -> None:
         # override to avoid resetting `epoch.current`
@@ -162,7 +162,7 @@ class TrainLoopProgress(LoopProgress):
 
 @dataclass
 class FitLoopProgress:
-    train: TrainLoopProgress = field(default_factory=TrainLoopProgress)
+    train: TrainingLoopProgress = field(default_factory=TrainingLoopProgress)
     val: LoopProgress = field(default_factory=LoopProgress)
 
 
