@@ -161,7 +161,7 @@ def _run_power_scaling(
                 raise  # some other error not memory related
 
         if changed:
-            # set train dataloader to None so it is reset
+            # Force the train dataloader to reset as the batch size has changed
             trainer.train_dataloader = None
         else:
             break
@@ -196,7 +196,7 @@ def _run_binsearch_scaling(
                 new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
 
             if changed:
-                # set train dataloader to None so it is reset
+                # Force the train dataloader to reset as the batch size has changed
                 trainer.train_dataloader = None
             else:
                 break
