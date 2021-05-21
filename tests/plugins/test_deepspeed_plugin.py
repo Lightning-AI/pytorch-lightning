@@ -569,8 +569,8 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
-    tutils.set_random_master_port()
     seed_everything(42)
+    tutils.set_random_master_port()
 
     class VerificationCallback(Callback):
 
