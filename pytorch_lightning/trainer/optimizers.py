@@ -158,6 +158,8 @@ class TrainerOptimizersMixin(ABC):
                         ' {"scheduler": scheduler, "monitor": "your_loss"}}'
                     )
                 lr_schedulers.append({**default_config, **scheduler})
+            elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau) and is_manual_optimization:
+                lr_schedulers.append({**default_config, 'scheduler': scheduler})
             elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                 if monitor is None:
                     raise MisconfigurationException(
