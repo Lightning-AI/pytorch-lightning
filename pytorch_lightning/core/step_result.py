@@ -46,6 +46,7 @@ class Metadata:
             names += name + '_epoch'
         return names
 
+
 @dataclass
 class Result:
     data: Any  # TODO: Union[Tensor, Metric]?
