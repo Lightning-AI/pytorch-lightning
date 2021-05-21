@@ -228,7 +228,7 @@ class MLFlowLogger(LightningLoggerBase):
             self.experiment.log_artifact(
                 self.run_id,
                 tmp_file.name,
-                artifact_path=Path(self.save_dir) / ("figure_" + name)
+                artifact_path=Path(self.save_dir) / f"figure_{name}{self._figure_file_extension}"
             )
 
         if close:
