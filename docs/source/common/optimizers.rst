@@ -232,7 +232,7 @@ If you want to call ``lr_scheduler.step()`` every ``n`` steps/epochs, do the fol
 
 If you want to call optimizers that require a metric value after each epoch, consider doing the following:
 
-.. testcode:: python
+.. testcode::
 
     def __init__(self):
         super().__init__()
