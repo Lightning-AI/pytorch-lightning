@@ -165,7 +165,11 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+        batch,
+        batch_idx,
+        0,
+        trainer.optimizers[0],
+        hiddens=None,
     )
     assert opt_closure_result['loss'].item() == 171
 
@@ -241,7 +245,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+        batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
     assert opt_closure_result['loss'].item() == 171
 

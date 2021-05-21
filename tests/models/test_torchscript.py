@@ -12,9 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+import fsspec
 import pytest
 import torch
+from fsspec.implementations.local import LocalFileSystem
 
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests.helpers.datamodules import MNISTDataModule
@@ -136,6 +141,34 @@ def test_torchscript_save_load(tmpdir, modelclass):
     output_file = str(tmpdir / "model.pt")
     script = model.to_torchscript(file_path=output_file)
     loaded_script = torch.jit.load(output_file)
+    assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
+
+
+@pytest.mark.parametrize("modelclass", [
+    BoringModel,
+    ParityModuleRNN,
+    BasicGAN,
+])
+@RunIf(min_torch="1.5.0")
+def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
+    """ Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems. """
+
+    _DUMMY_PRFEIX = "dummy"
+    _PREFIX_SEPARATOR = "://"
+
+    class DummyFileSystem(LocalFileSystem):
+        ...
+
+    fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem, clobber=True)
+
+    model = modelclass()
+    output_file = os.path.join(_DUMMY_PRFEIX, _PREFIX_SEPARATOR, tmpdir, "model.pt")
+    script = model.to_torchscript(file_path=output_file)
+
+    fs = get_filesystem(output_file)
+    with fs.open(output_file, "rb") as f:
+        loaded_script = torch.jit.load(f)
+
     assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
 
 
