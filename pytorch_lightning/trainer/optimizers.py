@@ -122,7 +122,23 @@ class TrainerOptimizersMixin(ABC):
         lr_schedulers = []
         default_config = _get_default_scheduler_config()
         for scheduler in schedulers:
-            if isinstance(scheduler, dict):
+            if is_manual_optimization:
+                if isinstance(scheduler, dict):
+                    invalid_keys = {'interval', 'frequency', 'reduce_on_plateau', 'monitor', 'strict'}
+                    keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
+
+                    if keys_to_warn:
+                        rank_zero_warn(
+                            f'The lr scheduler dict contains the key(s) {keys_to_warn}, but the keys will be ignored.'
+                            ' You need to call `lr_scheduler.step()` manually in manual optimization.',
+                            RuntimeWarning,
+                        )
+
+                    scheduler = {key: scheduler[key] for key in scheduler if key not in invalid_keys}
+                    lr_schedulers.append({**default_config, **scheduler})
+                else:
+                    lr_schedulers.append({**default_config, 'scheduler': scheduler})
+            elif isinstance(scheduler, dict):
                 # check provided keys
                 extra_keys = [k for k in scheduler.keys() if k not in default_config.keys()]
                 if extra_keys:
@@ -136,30 +152,16 @@ class TrainerOptimizersMixin(ABC):
                         f'The "interval" key in lr scheduler dict must be "step" or "epoch"'
                         f' but is "{scheduler["interval"]}"'
                     )
-                if is_manual_optimization:
-                    invalid_keys = {'interval', 'frequency', 'reduce_on_plateau', 'monitor', 'strict'}
-                    keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
-
-                    if keys_to_warn:
-                        rank_zero_warn(
-                            f'The lr scheduler dict contains the key(s) {keys_to_warn}, but the keys will be ignored.'
-                            ' You need to call `lr_scheduler.step()` manually in manual optimization.',
-                            RuntimeWarning,
-                        )
-
                 scheduler['reduce_on_plateau'] = isinstance(
                     scheduler['scheduler'], optim.lr_scheduler.ReduceLROnPlateau
                 )
-                if scheduler['reduce_on_plateau'] and scheduler.get('monitor', None) is None \
-                        and not is_manual_optimization:
+                if scheduler['reduce_on_plateau'] and scheduler.get('monitor', None) is None:
                     raise MisconfigurationException(
                         'The lr scheduler dict must include a monitor when a `ReduceLROnPlateau` scheduler is used.'
                         ' For example: {"optimizer": optimizer, "lr_scheduler":'
                         ' {"scheduler": scheduler, "monitor": "your_loss"}}'
                     )
                 lr_schedulers.append({**default_config, **scheduler})
-            elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau) and is_manual_optimization:
-                lr_schedulers.append({**default_config, 'scheduler': scheduler})
             elif isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
                 if monitor is None:
                     raise MisconfigurationException(
