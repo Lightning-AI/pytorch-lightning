@@ -24,11 +24,11 @@ from tests.helpers.utils import pl_multi_process_test
 class BoringModelGPUTearDown(BoringModel):
 
     def on_train_start(self) -> None:
-        assert self.device() == torch.device("cuda:0")
+        assert self.device == torch.device("cuda:0")
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
     def on_fit_end(self) -> None:
-        assert self.device() == torch.device("cpu")
+        assert self.device == torch.device("cpu")
         cuda_memory = torch.cuda.memory_allocated()
         assert cuda_memory < self.start_cuda_memory
 

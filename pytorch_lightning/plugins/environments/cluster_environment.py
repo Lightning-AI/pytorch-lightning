@@ -11,7 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
+import os
 from abc import ABC, abstractmethod
+
+log = logging.getLogger(__name__)
 
 
 class ClusterEnvironment(ABC):
@@ -56,3 +60,8 @@ class ClusterEnvironment(ABC):
     def teardown(self) -> None:
         """ Clean up any state set after execution finishes. """
         pass
+
+    def override_environment(self, environment_args: Dict[str, str]) -> None:
+        for arg, val in environment_args.items():
+            os.environ[arg] = val
+            log.info(f"Setting {arg} to be {val} for environment.")

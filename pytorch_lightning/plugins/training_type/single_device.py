@@ -81,10 +81,6 @@ class SingleDevicePlugin(TrainingTypePlugin):
         return obj
 
     def teardown(self) -> None:
-        """
-        This method is called to teardown the training process.
-        It is the right place to release memory and free other resources.
-        """
         if self.on_gpu:
             # GPU teardown
             self.lightning_module.cpu()

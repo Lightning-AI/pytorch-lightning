@@ -151,9 +151,14 @@ class Accelerator:
 
     @property
     def root_device(self) -> torch.device:
+        """Returns the root device"""
         return self.training_type_plugin.root_device
 
     def teardown(self) -> None:
+        """
+        This method is called to teardown the training process.
+        It is the right place to release memory and free other resources.
+        """
         self.training_type_plugin.teardown()
 
     def batch_to_device(
