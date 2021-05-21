@@ -230,7 +230,7 @@ If you want to call ``lr_scheduler.step()`` every ``n`` steps/epochs, do the fol
         if self.trainer.is_last_batch and (self.trainer.current_epoch + 1) % n == 0:
             sch.step()
 
-If you want to call optimizers that require a metric value after each epoch, consider doing the following:
+If you want to call schedulers that require a metric value after each epoch, consider doing the following:
 
 .. testcode::
 
