@@ -263,8 +263,8 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
+        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
@@ -299,8 +299,6 @@ class LightningModule(
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -309,6 +307,19 @@ class LightningModule(
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
         """
+        if tbptt_reduce_fx is not None:
+            rank_zero_deprecation(
+                '`self.log(tbptt_reduce_fx=...)` is no longer supported. The flag will be removed in v1.6.'
+                ' Please, open a discussion explaining your use-case in'
+                ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
+            )
+        if tbptt_pad_token is not None:
+            rank_zero_deprecation(
+                '`self.log(tbptt_pad_token=...)` is no longer supported. The flag will be removed in v1.6.'
+                ' Please, open a discussion explaining your use-case in'
+                ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
+            )
+
         if self._results is not None:
             # TODO: if logged twice fail with crash
 
@@ -333,8 +344,6 @@ class LightningModule(
                 on_step=on_step,
                 on_epoch=on_epoch,
                 reduce_fx=reduce_fx,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-                tbptt_pad_token=tbptt_pad_token,
                 enable_graph=enable_graph,
                 sync_dist=sync_dist,
                 sync_dist_op=sync_dist_op,
@@ -352,8 +361,8 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
+        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
@@ -375,8 +384,6 @@ class LightningModule(
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
