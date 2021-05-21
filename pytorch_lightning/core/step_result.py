@@ -46,7 +46,6 @@ class Metadata:
             names += name + '_epoch'
         return names
 
-
 @dataclass
 class Result:
     data: Any  # TODO: Union[Tensor, Metric]?
@@ -148,6 +147,19 @@ class ResultCollection(dict):
         else:
             value = torch.tensor(value, device=device, dtype=torch.float)
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
+
+    @property
+    def minimize(self) -> Optional[Tensor]:
+        return self.get('minimize', None)
+
+    @minimize.setter
+    def minimize(self, val: Optional[torch.Tensor]) -> None:
+        if val is not None:
+            if not isinstance(val, Tensor):
+                raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {val}")
+            if val.grad_fn is None:
+                raise RuntimeError("`Result.minimize` must have a `grad_fn`")
+        self['minimize'] = val
 
     def log(
         self,
