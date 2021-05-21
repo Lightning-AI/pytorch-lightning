@@ -152,23 +152,7 @@ improve readability and reproducibility.
         model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
 
 
-3.  Assign to `self.hparams`. Anything assigned to `self.hparams` will also be saved automatically.
-
-    .. code-block:: python
-
-        # using a argparse.Namespace
-        class LitMNIST(LightningModule):
-            def __init__(self, hparams, *args, **kwargs):
-                super().__init__()
-                self.hparams = hparams
-                self.layer_1 = nn.Linear(28 * 28, self.hparams.layer_1_dim)
-                self.layer_2 = nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
-                self.layer_3 = nn.Linear(self.hparams.layer_2_dim, 10)
-            def train_dataloader(self):
-                return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
-
-
-4.  You can also save full objects such as `dict` or `Namespace` to the checkpoint.
+3.  You can also save full objects such as `dict` or `Namespace` to the checkpoint.
 
     .. code-block:: python
 
