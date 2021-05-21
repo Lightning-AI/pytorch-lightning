@@ -46,6 +46,7 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
+    KubeflowEnvironment,
     LightningEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
@@ -133,6 +134,7 @@ class AcceleratorConnector(object):
 
         self.handle_given_plugins()
 
+        self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
 
         # override dist backend when using tpus
@@ -222,10 +224,13 @@ class AcceleratorConnector(object):
 
     @property
     def training_type_plugin(self) -> TrainingTypePlugin:
+        if self._training_type_plugin_resolved:
+            # avoid calling `resolve_training_type_plugin` multiple times
+            return self._training_type_plugin
         if self._training_type_plugin is None:
             self._training_type_plugin = self.select_training_type_plugin()
-        else:
-            self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+        self._training_type_plugin = self.resolve_training_type_plugin(self._training_type_plugin)
+        self._training_type_plugin_resolved = True
 
         return self._training_type_plugin
 
@@ -320,7 +325,6 @@ class AcceleratorConnector(object):
         """
         .. deprecated:: v1.3
             Will be removed in v1.5.0.
-
         Returns:
             ``True`` if the current process was launched using the torchelastic command.
         """
@@ -385,23 +389,21 @@ class AcceleratorConnector(object):
         if self.use_ddp2:
             plugin = DDP2Plugin(
                 parallel_devices=self.parallel_devices,
-                num_nodes=self.num_nodes,
                 cluster_environment=self.cluster_environment,
-                sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_ddp and self.use_deepspeed:
             plugin = DeepSpeedPlugin(
-                num_nodes=self.num_nodes,
-                cluster_environment=self.select_cluster_environment(),
-                parallel_devices=self.parallel_devices
+                cluster_environment=self.select_cluster_environment(), parallel_devices=self.parallel_devices
             )
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
+            use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
             use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
             use_tpu_spawn = self.on_tpu and self._distrib_type == DistributedType.TPU_SPAWN
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
+            use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
@@ -417,7 +419,10 @@ class AcceleratorConnector(object):
                 ddp_plugin_cls = DDPShardedPlugin
             elif use_ddp_sharded_spawn:
                 ddp_plugin_cls = DDPSpawnShardedPlugin
-            elif use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
+            elif (
+                use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp
+                or use_kubeflow_ddp or use_ddp_cpu_kubeflow
+            ):
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
@@ -426,9 +431,7 @@ class AcceleratorConnector(object):
 
             plugin = ddp_plugin_cls(
                 parallel_devices=self.parallel_devices,
-                num_nodes=self.num_nodes,
                 cluster_environment=self.cluster_environment,
-                sync_batchnorm=self.sync_batchnorm,
             )
         elif self.use_dp:
             plugin = DataParallelPlugin(parallel_devices=self.parallel_devices)
@@ -443,7 +446,7 @@ class AcceleratorConnector(object):
 
     def resolve_training_type_plugin(self, training_type: TrainingTypePlugin) -> TrainingTypePlugin:
         # necessary for when the user has passed in a plugin
-        if hasattr(training_type, 'parallel_devices') and not getattr(training_type, 'parallel_devices'):
+        if hasattr(training_type, 'parallel_devices') and getattr(training_type, 'parallel_devices') is None:
             training_type.parallel_devices = self.parallel_devices
             if hasattr(training_type, 'num_processes'):
                 training_type.num_processes = len(self.parallel_devices)
@@ -451,12 +454,12 @@ class AcceleratorConnector(object):
         if hasattr(training_type, 'cluster_environment') and getattr(training_type, 'cluster_environment') is None:
             training_type.cluster_environment = self.select_cluster_environment()
 
-        if hasattr(training_type, 'num_nodes') and getattr(training_type, 'num_nodes') is None:
+        if hasattr(training_type, 'num_nodes'):
+            # set num_nodes for training_type from trainer setting
             training_type.num_nodes = self.num_nodes
 
-        # Automatically set sync_batchnorm if None.
-        # Useful for custom plugins.
-        if hasattr(training_type, 'sync_batchnorm') and getattr(training_type, 'sync_batchnorm') is None:
+        if hasattr(training_type, 'sync_batchnorm'):
+            # set sync_batchnorm for training_type from trainer setting
             training_type.sync_batchnorm = self.sync_batchnorm
 
         return training_type
@@ -491,6 +494,8 @@ class AcceleratorConnector(object):
             env = SLURMEnvironment()
         elif TorchElasticEnvironment.is_using_torchelastic():
             env = TorchElasticEnvironment()
+        elif KubeflowEnvironment.is_using_kubeflow():
+            env = KubeflowEnvironment()
         else:
             env = LightningEnvironment()
         return env
@@ -522,7 +527,7 @@ class AcceleratorConnector(object):
 
         # special case with DDP on CPUs
         if self.distributed_backend == "ddp_cpu":
-            self._distrib_type = DistributedType.DDP
+            self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'

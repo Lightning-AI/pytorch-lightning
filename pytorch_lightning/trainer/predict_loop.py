@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 from typing import Any, List, Optional
 
 import torch
@@ -60,6 +61,7 @@ class PredictLoop(object):
 
     def on_trainer_init(self):
         self.trainer.num_predict_batches = []
+        self.trainer.predicted_ckpt_path = None
 
     def get_predict_dataloaders(self):
         self.trainer.reset_predict_dataloader(self.trainer.lightning_module)
@@ -94,11 +96,15 @@ class PredictLoop(object):
             length = len(dataloaders[0])
         return length
 
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        # configure args
-        args = [batch, batch_idx]
+    def _build_kwargs(self, batch, batch_idx, dataloader_idx):
+        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
         if self.num_dataloaders:
-            args.append(dataloader_idx)
+            step_kwargs['dataloader_idx'] = dataloader_idx
+        return step_kwargs
+
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        # configure step_kwargs
+        step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
         # extract batch_indices and store them
         self._store_batch_indices(dataloader_idx)
@@ -107,8 +113,8 @@ class PredictLoop(object):
 
         self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
 
-        model_ref._current_fx_name = "predict"
-        predictions = self.trainer.accelerator.predict_step(args)
+        model_ref._current_fx_name = "predict_step"
+        predictions = self.trainer.accelerator.predict_step(step_kwargs)
 
         if predictions is None:
             self.warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")

@@ -67,7 +67,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def world_size(self) -> int:
-        return self.num_processes
+        return xm.xrt_world_size()
 
     @property
     def root_device(self) -> torch.device:
@@ -168,7 +168,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.barrier("end-process")
 
         # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if self.global_rank == 0:
+        if self.local_rank == 0:
             time.sleep(2)
 
     def model_to_device(self) -> None:
@@ -185,7 +185,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
 
         if self.mp_queue is not None:
-            rank_zero_warn("cleaning up ddp environment...")
+            rank_zero_warn("cleaning up tpu spawn environment...")
 
             # save the last weights
             last_path = None
@@ -196,7 +196,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
                 last_path = re.sub(".ckpt", ".tmp_end.ckpt", best_model_path)
                 self.save(self.lightning_module.state_dict(), last_path)
 
-            if self.global_rank == 0:
+            if self.local_rank == 0:
                 # todo, pass complete checkpoint as state dictionary
                 self.mp_queue.put(best_model_path)
                 self.mp_queue.put(last_path)

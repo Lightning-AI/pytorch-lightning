@@ -77,7 +77,13 @@ def test_trainer_reset_correctly(tmpdir):
     )
 
     changed_attributes = [
-        'callbacks', 'logger', 'max_steps', 'auto_lr_find', 'accumulate_grad_batches', 'checkpoint_callback'
+        'accumulate_grad_batches',
+        'auto_lr_find',
+        'callbacks',
+        'checkpoint_callback',
+        'current_epoch',
+        'logger',
+        'max_steps',
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
     trainer.tuner.lr_find(model, num_training=5)

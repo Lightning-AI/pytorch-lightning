@@ -1,4 +1,4 @@
-sphinx>=3.0, !=3.5  # fails with sphinx.ext.viewcode
+sphinx>=3.0, <3.5  # fails with sphinx.ext.viewcode  # fails with sphinx_paramlinks with 4.0.0
 recommonmark  # fails with badges
 m2r  # fails with multi-line text
 nbsphinx>=0.8

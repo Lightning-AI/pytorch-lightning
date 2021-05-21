@@ -43,8 +43,11 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.warnings import WarningCache
 
+warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 
@@ -101,9 +104,8 @@ class LightningModule(
         self._example_input_array = None
         self._datamodule = None
         self._results: Optional[Result] = None
-        self._current_fx_name: str = ''
+        self._current_fx_name: Optional[str] = None
         self._running_manual_backward: bool = False
-        self._current_hook_fx_name: Optional[str] = None
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
@@ -211,9 +213,22 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def _apply_batch_transfer_handler(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0):
+    def _apply_batch_transfer_handler(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ) -> Any:
+        device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
-        batch = self.transfer_batch_to_device(batch, device)
+
+        if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
+            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
+        else:
+            warning_cache.warn(
+                "`transfer_batch_to_device` hook signature has changed in v1.4."
+                " `dataloader_idx` parameter has been added to it. Support for"
+                " the old signature will be removed in v1.6", DeprecationWarning
+            )
+            batch = self.transfer_batch_to_device(batch, device)
+
         batch = self.on_after_batch_transfer(batch, dataloader_idx)
         return batch
 
@@ -254,7 +269,7 @@ class LightningModule(
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+    ) -> None:
         """
         Log a key, value
 
@@ -294,26 +309,16 @@ class LightningModule(
                 each dataloader to not mix values
         """
         if self._results is not None:
-            # in any epoch end can't log step metrics (only epoch metric)
-            if 'epoch_end' in self._current_fx_name and on_step:
-                m = f'on_step=True cannot be used on {self._current_fx_name} method'
-                raise MisconfigurationException(m)
-
-            if 'epoch_end' in self._current_fx_name and on_epoch is False:
-                m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
-                raise MisconfigurationException(m)
-
-            # add log_dict
             # TODO: if logged twice fail with crash
 
             # set the default depending on the fx_name
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-            if self._current_hook_fx_name is not None:
-                self.trainer.logger_connector.check_logging_in_callbacks(
-                    self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
-                )
+            assert self._current_fx_name is not None
+            self.trainer.logger_connector.check_logging_in_callbacks(
+                self._current_fx_name, on_step=on_step, on_epoch=on_epoch
+            )
 
             # make sure user doesn't introduce logic for multi-dataloaders
             if "/dataloader_idx_" in name:
@@ -321,28 +326,23 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
-            training_type_plugin = self.trainer.training_type_plugin
-
-            # Determine if dataloader index should be added
-            dataloader_idx = self._current_dataloader_idx if add_dataloader_idx else None
-
             self._results.log(
                 name,
                 value,
-                prog_bar,
-                logger,
-                on_step,
-                on_epoch,
-                reduce_fx,
-                tbptt_reduce_fx,
-                tbptt_pad_token,
-                enable_graph,
-                sync_dist,
-                sync_dist_op,
-                sync_dist_group,
-                training_type_plugin.reduce,
-                dataloader_idx,
-                self.device,
+                prog_bar=prog_bar,
+                logger=logger,
+                on_step=on_step,
+                on_epoch=on_epoch,
+                reduce_fx=reduce_fx,
+                tbptt_reduce_fx=tbptt_reduce_fx,
+                tbptt_pad_token=tbptt_pad_token,
+                enable_graph=enable_graph,
+                sync_dist=sync_dist,
+                sync_dist_op=sync_dist_op,
+                sync_dist_group=sync_dist_group,
+                sync_fn=self.trainer.training_type_plugin.reduce,
+                dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
+                device=self.device,
             )
 
     def log_dict(
@@ -360,7 +360,7 @@ class LightningModule(
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+    ) -> None:
         """
         Log a dictonary of values at once
 
@@ -461,30 +461,16 @@ class LightningModule(
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 
-    def __auto_choose_log_on_step(self, on_step):
+    def __auto_choose_log_on_step(self, on_step: Optional[bool]) -> bool:
         if on_step is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_step = True
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_step = False
-            else:
-                on_step = False
-
+            on_step = False
+            on_step |= self._current_fx_name in ('training_step', 'training_step_end')
         return on_step
 
-    def __auto_choose_log_on_epoch(self, on_epoch):
+    def __auto_choose_log_on_epoch(self, on_epoch: Optional[bool]) -> bool:
         if on_epoch is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_epoch = False
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_epoch = True
-            else:
-                on_epoch = True
-
+            on_epoch = True
+            on_epoch &= self._current_fx_name not in ('training_step', 'training_step_end')
         return on_epoch
 
     def all_gather(
@@ -1116,30 +1102,77 @@ class LightningModule(
 
             - **Single optimizer**.
             - **List or Tuple** of optimizers.
-            - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers (or
-              multiple lr_dict).
+            - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers
+                (or multiple ``lr_dict``).
             - **Dictionary**, with an ``"optimizer"`` key, and (optionally) a ``"lr_scheduler"``
-              key whose value is a single LR scheduler or lr_dict.
+                key whose value is a single LR scheduler or ``lr_dict``.
             - **Tuple of dictionaries** as described above, with an optional ``"frequency"`` key.
             - **None** - Fit will run without any optimizer.
 
-        Note:
-            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
-            The default configuration is shown below.
+        The ``lr_dict`` is a dictionary which contains the scheduler and its associated configuration.
+        The default configuration is shown below.
 
-            .. code-block:: python
+        .. code-block:: python
 
-                lr_dict = {
-                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
-                    # The unit of the scheduler's step size, could also be 'step'
-                    'interval': 'epoch',
-                    'frequency': 1, # The frequency of the scheduler
-                    'monitor': 'val_loss', # Metric for `ReduceLROnPlateau` to monitor
-                    'strict': True, # Whether to crash the training if `monitor` is not found
-                    'name': None, # Custom name for `LearningRateMonitor` to use
+            lr_dict = {
+                # REQUIRED: The scheduler instance
+                'scheduler': lr_scheduler,
+                # The unit of the scheduler's step size, could also be 'step'.
+                # 'epoch' updates the scheduler on epoch end whereas 'step'
+                # updates it after a optimizer update.
+                'interval': 'epoch',
+                # How many epochs/steps should pass between calls to
+                # `scheduler.step()`. 1 corresponds to updating the learning
+                # rate after every epoch/step.
+                'frequency': 1,
+                # Metric to to monitor for schedulers like `ReduceLROnPlateau`
+                'monitor': 'val_loss',
+                # If set to `True`, will enforce that the value specified 'monitor'
+                # is available when the scheduler is updated, thus stopping
+                # training if not found. If set to `False`, it will only produce a warning
+                'strict': True,
+                # If using the `LearningRateMonitor` callback to monitor the
+                # learning rate progress, this keyword can be used to specify
+                # a custom logged name
+                'name': None,
+            }
+
+        When there are schedulers in which the ``.step()`` method is conditioned on a value, such as the
+        :class:`torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler, Lightning requires that the ``lr_dict``
+        contains the keyword ``"monitor"`` set to the metric name that the scheduler should be conditioned on.
+
+        .. testcode::
+
+            # The ReduceLROnPlateau scheduler requires a monitor
+            def configure_optimizers(self):
+                optimizer = Adam(...)
+                return {
+                    'optimizer': optimizer,
+                    'lr_scheduler': {
+                        'scheduler': ReduceLROnPlateau(optimizer, ...),
+                        'monitor': 'metric_to_track',
+                    }
                 }
 
-            Only the ``"scheduler"`` key is required, the rest will be set to the defaults above.
+            # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
+            def configure_optimizers(self):
+                optimizer1 = Adam(...)
+                optimizer2 = SGD(...)
+                scheduler1 = ReduceLROnPlateau(optimizer1, ...)
+                scheduler2 = LambdaLR(optimizer2, ...)
+                return (
+                    {
+                        'optimizer': optimizer1,
+                        'lr_scheduler': {
+                            'scheduler': scheduler1,
+                            'monitor': 'metric_to_track',
+                        }
+                    },
+                    {'optimizer': optimizer2, 'lr_scheduler': scheduler2}
+                )
+
+        Metrics can be made available to monitor by simply logging it using
+        ``self.log('metric_to_track', metric_val)`` in your :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
         Note:
             The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
@@ -1147,9 +1180,11 @@ class LightningModule(
             It should be given to none or to all of the optimizers.
             There is a difference between passing multiple optimizers in a list,
             and passing multiple optimizers in dictionaries with a frequency of 1:
-            In the former case, all optimizers will operate on the given batch in each optimization step.
-            In the latter, only one optimizer will operate on the given batch at every step.
-            This is different from the ``frequency`` value specified in the lr_dict mentioned below.
+
+                - In the former case, all optimizers will operate on the given batch in each optimization step.
+                - In the latter, only one optimizer will operate on the given batch at every step.
+
+            This is different from the ``frequency`` value specified in the ``lr_dict`` mentioned above.
 
             .. code-block:: python
 
@@ -1168,7 +1203,7 @@ class LightningModule(
 
         Examples::
 
-            # most cases
+            # most cases. no learning rate scheduler
             def configure_optimizers(self):
                 return Adam(self.parameters(), lr=1e-3)
 
@@ -1186,11 +1221,14 @@ class LightningModule(
                 return [gen_opt, dis_opt], [dis_sch]
 
             # example with step-based learning rate schedulers
+            # each optimizer has its own scheduler
             def configure_optimizers(self):
                 gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
                 dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
-                gen_sch = {'scheduler': ExponentialLR(gen_opt, 0.99),
-                           'interval': 'step'}  # called after each training step
+                gen_sch = {
+                    'scheduler': ExponentialLR(gen_opt, 0.99),
+                    'interval': 'step'  # called after each training step
+                }
                 dis_sch = CosineAnnealing(dis_opt, T_max=10) # called every epoch
                 return [gen_opt, dis_opt], [gen_sch, dis_sch]
 
@@ -1567,7 +1605,7 @@ class LightningModule(
         module_tbptt_enabled = self.truncated_bptt_steps > 0
         trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
         if module_tbptt_enabled or trainer_tbptt_enabled:
-            tqdm_dict["split_idx"] = self.trainer.split_idx
+            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version

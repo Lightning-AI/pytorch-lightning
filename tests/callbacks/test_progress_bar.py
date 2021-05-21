@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import pickle
 import sys
 from typing import Optional, Union
 from unittest import mock
@@ -191,11 +192,11 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             super().on_train_batch_start(trainer, pl_module, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.batch_idx
+            assert self.train_batch_idx == trainer.train_loop.batch_idx
 
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-            assert self.train_batch_idx == trainer.batch_idx + 1
+            assert self.train_batch_idx == trainer.train_loop.batch_idx + 1
             if not self.is_disabled and self.train_batch_idx % self.refresh_rate == 0:
                 assert self.main_progress_bar.n == self.train_batch_idx
             self.train_batches_seen += 1
@@ -482,3 +483,17 @@ def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
         call("test_step"),
     ])
     tqdm_write.assert_not_called()
+
+
+def test_progress_bar_can_be_pickled():
+    bar = ProgressBar()
+    trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
+    model = BoringModel()
+
+    pickle.dumps(bar)
+    trainer.fit(model)
+    pickle.dumps(bar)
+    trainer.test(model)
+    pickle.dumps(bar)
+    trainer.predict(model)
+    pickle.dumps(bar)
