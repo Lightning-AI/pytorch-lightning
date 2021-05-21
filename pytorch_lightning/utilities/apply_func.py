@@ -21,6 +21,7 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
 
 if _TORCHTEXT_AVAILABLE:
@@ -35,12 +36,16 @@ else:
 def to_dtype_tensor(
     value: Union[int, float, List[Union[int, float]]],
     dtype: Optional[torch.dtype] = None,
-    device: Optional[Union[str, torch.device]] = None,
+    device: Union[str, torch.device] = None,
 ) -> torch.Tensor:
+    if device is None:
+        raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.tensor(value, dtype=dtype, device=device)
 
 
-def from_numpy(value: np.ndarray, device: Optional[Union[str, torch.device]] = None) -> torch.Tensor:
+def from_numpy(value: np.ndarray, device: Union[str, torch.device] = None) -> torch.Tensor:
+    if device is None:
+        raise MisconfigurationException("device (torch.device) should be provided.")
     return torch.from_numpy(value).to(device)
 
 
@@ -167,7 +172,9 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
-def convert_to_tensors(data: Any, device: Optional[Union[str, torch.device]] = None) -> Any:
+def convert_to_tensors(data: Any, device: Union[str, torch.device] = None) -> Any:
+    if device is None:
+        raise MisconfigurationException("device (torch.device) should be provided.")
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
 
