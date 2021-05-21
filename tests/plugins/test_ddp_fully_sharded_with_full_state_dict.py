@@ -140,7 +140,7 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
         precision=16,
         max_epochs=1,
     )
-    _run_multiple_stages(trainer, model, tmpdir)
+    _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
 @RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
@@ -152,7 +152,7 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
     trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins="fsdp", precision=16, max_epochs=1, callbacks=[ck])
-    _run_multiple_stages(trainer, model, ck)
+    _run_multiple_stages(trainer, model, ck.last_model_path)
 
 
 def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
@@ -167,7 +167,7 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
             assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
-def _run_multiple_stages(trainer, model, ck):
+def _run_multiple_stages(trainer, model, model_path):
     trainer.fit(model)
 
     model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
@@ -175,12 +175,12 @@ def _run_multiple_stages(trainer, model, ck):
 
     assert model_call_configure_sharded_model_hook
     assert not trainer_accelerator_call_configure_sharded_model_hook
-    trainer.save_checkpoint(ck.last_model_path, weights_only=True)
+    trainer.save_checkpoint(model_path, weights_only=True)
 
-    _assert_save_equality(trainer, ck.last_model_path, cls=TestFSDPModel)
+    _assert_save_equality(trainer, model_path, cls=TestFSDPModel)
 
     # Test entry point
     trainer.test(model)  # model is wrapped, will not call configure_shared_model
 
     # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
-    trainer.test(ckpt_path=ck.last_model_path)
+    trainer.test(ckpt_path=model_path)
