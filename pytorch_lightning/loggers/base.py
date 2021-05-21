@@ -191,8 +191,6 @@ class LightningLoggerBase(ABC):
             step: step number at which the figure should be recorded
             close: close figure after logging
         """
-        import matplotlib.pyplot as plt
-
         # Default is silent and not NotImplementedError because we want to support LoggerCollection
         # where some loggers might others might not have implemented this method.
         if close:
@@ -403,7 +401,6 @@ class LoggerCollection(LightningLoggerBase):
             logger.log_metrics(metrics, step)
 
     def log_figure(self, name: str, figure, step: Optional[int] = None, close: bool = True) -> None:
-        import matplotlib.pyplot as plt
 
         for logger in self._logger_iterable:
             # don't close in the individual loggers, but once at the end
