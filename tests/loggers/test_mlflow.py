@@ -247,7 +247,8 @@ def test_mlflow_log_figure(client, mlflow, step_idx, figure_format, tmpdir):
         f = plotting.dummy_figure()
         logger.log_figure('dummy', f, step_idx, close=True)
 
-    artifact_expect = 'figure_dummy'
-
     mock_log.assert_called_once()
-    mock_log.call_args_list[0][1]['artifact_path'] == artifact_expect
+    if step_idx is not None:
+        assert mock_log.call_args_list[0][0][1].stem == 'figure_dummy_step_10'
+    else:
+        assert mock_log.call_args_list[0][0][1].stem == 'figure_dummy'

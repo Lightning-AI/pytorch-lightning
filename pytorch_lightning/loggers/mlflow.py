@@ -222,12 +222,20 @@ class MLFlowLogger(LightningLoggerBase):
     @rank_zero_only
     def log_figure(self, name: str, figure: plt.figure, step: Optional[int] = None, close: bool = True) -> None:
 
-        with tempfile.NamedTemporaryFile(suffix=self._figure_file_extension) as tmp_file:
-            figure.savefig(tmp_file)
+        if step is not None:
+            figure_fname = f"figure_{name}_step_{step}{self._figure_file_extension}"
+        else:
+            figure_fname = f"figure_{name}{self._figure_file_extension}"
+
+        # create tmp directory and semantically named filebecause
+        # apparently one should not write to artifact location directly
+        # ToDo: Once its stable, use ml_flow.log_figure
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            figure_path = Path(tmp_dir) / figure_fname
+            figure.savefig(figure_path)
             self.experiment.log_artifact(
                 self.run_id,
-                tmp_file.name,
-                artifact_path=Path(self.save_dir) / f"figure_{name}{self._figure_file_extension}"
+                figure_path,
             )
 
         if close:
