@@ -26,14 +26,8 @@ from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_d
 
 class Result(Dict):
 
-    def __init__(self, minimize: Optional[Tensor] = None):
+    def __init__(self) -> None:
         super().__init__()
-
-        if minimize is not None:
-            err = 'Minimize can only be used in training_step, training_step_end, training_epoch_end'
-            self._assert_grad_tensor_metric('minimize', minimize, err)
-            self.minimize = minimize
-
         self['meta'] = {'_internal': {'_reduce_on_epoch': False, 'batch_sizes': []}}
 
     def __getitem__(self, key: Union[str, Any]) -> Any:
@@ -69,16 +63,18 @@ class Result(Dict):
     def __setstate__(self, d):
         self.update(d)
 
-    def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ''):
-        if x is not None:
-            if not isinstance(x, Tensor):
-                raise TypeError(f'{name} must be a torch.Tensor')
+    @property
+    def minimize(self) -> Optional[Tensor]:
+        return self.get('minimize', None)
 
-            m = f'{name} must have a computational graph.'
-
-            if additional_err:
-                m += f' {additional_err}'
-            assert x.grad_fn is not None, m
+    @minimize.setter
+    def minimize(self, val: Optional[torch.Tensor]) -> None:
+        if val is not None:
+            if not isinstance(val, Tensor):
+                raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {val}")
+            if val.grad_fn is None:
+                raise RuntimeError("`Result.minimize` must have a `grad_fn`")
+        self['minimize'] = val
 
     def log(
         self,
