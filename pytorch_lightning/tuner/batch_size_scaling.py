@@ -162,7 +162,7 @@ def _run_power_scaling(
 
         if changed:
             # Force the train dataloader to reset as the batch size has changed
-            trainer.train_dataloader = None
+            trainer.reset_train_dataloader(model)
         else:
             break
     return new_size
@@ -197,7 +197,7 @@ def _run_binsearch_scaling(
 
             if changed:
                 # Force the train dataloader to reset as the batch size has changed
-                trainer.train_dataloader = None
+                trainer.reset_train_dataloader(model)
             else:
                 break
 
