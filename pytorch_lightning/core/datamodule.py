@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation
 
 
 class LightningDataModule(CheckpointHooks, DataHooks):
@@ -160,7 +161,14 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.prepare_data()`` has been called. False by default.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_prepared_data` was deprecated in v1.4'
+            ' and will be removed in v1.6.'
+        )
         return self._has_prepared_data
 
     @property
@@ -169,7 +177,14 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True ``if datamodule.setup(stage='fit')`` has been called. False by default.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_setup_fit` was deprecated in v1.4'
+            ' and will be removed in v1.6.'
+        )
         return self._has_setup_fit
 
     @property
@@ -178,7 +193,14 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.setup(stage='validate')`` has been called. False by default.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_setup_validate` was deprecated in v1.4'
+            ' and will be removed in v1.6.'
+        )
         return self._has_setup_validate
 
     @property
@@ -187,7 +209,14 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.setup(stage='test')`` has been called. False by default.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_setup_test` was deprecated in v1.4'
+            ' and will be removed in v1.6.'
+        )
         return self._has_setup_test
 
     @property
@@ -196,7 +225,14 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.setup(stage='predict')`` has been called. False by default.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_setup_predict` was deprecated in v1.4'
+            ' and will be removed in v1.6.'
+        )
         return self._has_setup_predict
 
     @property
@@ -205,7 +241,14 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True ``if datamodule.teardown(stage='fit')`` has been called. False by default.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_teardown_fit` was deprecated in v1.4'
+            ' and will be removed in v1.6.'
+        )
         return self._has_teardown_fit
 
     @property
@@ -214,7 +257,14 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.teardown(stage='validate')`` has been called. False by default.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_teardown_validate` was deprecated in v1.4'
+            ' and will be removed in v1.6.'
+        )
         return self._has_teardown_validate
 
     @property
@@ -223,7 +273,14 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.teardown(stage='test')`` has been called. False by default.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_teardown_test` was deprecated in v1.4'
+            ' and will be removed in v1.6.'
+        )
         return self._has_teardown_test
 
     @property
@@ -232,7 +289,14 @@ class LightningDataModule(CheckpointHooks, DataHooks):
 
         Returns:
             bool: True if ``datamodule.teardown(stage='predict')`` has been called. False by default.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
+        rank_zero_deprecation(
+            'DataModule property `has_teardown_predict` was deprecated in v1.4'
+            ' and will be removed in v1.6.'
+        )
         return self._has_teardown_predict
 
     @classmethod

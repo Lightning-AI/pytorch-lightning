@@ -16,7 +16,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.training_type import DDPPlugin, DDPSpawnPlugin
-from tests.helpers import BoringModel
+from tests.helpers import BoringDataModule, BoringModel
 
 
 def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
@@ -86,3 +86,25 @@ def test_v1_6_0_tbptt_pad_token(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.deprecated_call(match=r"tbptt_pad_token=...\)` is no longer supported"):
         trainer.fit(TestModel())
+
+
+def test_v1_6_0_datamodule_lifecycle_properties(tmpdir):
+    dm = BoringDataModule()
+    with pytest.deprecated_call(match=r"DataModule property `has_prepared_data` was deprecated in v1.4"):
+        dm.has_prepared_data
+    with pytest.deprecated_call(match=r"DataModule property `has_setup_fit` was deprecated in v1.4"):
+        dm.has_setup_fit
+    with pytest.deprecated_call(match=r"DataModule property `has_setup_validate` was deprecated in v1.4"):
+        dm.has_setup_validate
+    with pytest.deprecated_call(match=r"DataModule property `has_setup_test` was deprecated in v1.4"):
+        dm.has_setup_test
+    with pytest.deprecated_call(match=r"DataModule property `has_setup_predict` was deprecated in v1.4"):
+        dm.has_setup_predict
+    with pytest.deprecated_call(match=r"DataModule property `has_teardown_fit` was deprecated in v1.4"):
+        dm.has_teardown_fit
+    with pytest.deprecated_call(match=r"DataModule property `has_teardown_validate` was deprecated in v1.4"):
+        dm.has_teardown_validate
+    with pytest.deprecated_call(match=r"DataModule property `has_teardown_test` was deprecated in v1.4"):
+        dm.has_teardown_test
+    with pytest.deprecated_call(match=r"DataModule property `has_teardown_predict` was deprecated in v1.4"):
+        dm.has_teardown_predict
