@@ -1269,12 +1269,13 @@ class Trainer(
                 "advanced": AdvancedProfiler,
                 "pytorch": PyTorchProfiler,
             }
-            if profiler.lower() not in PROFILERS:
+            profiler = profiler.lower()
+            if profiler not in PROFILERS:
                 raise MisconfigurationException(
                     "When passing string value for the `profiler` parameter of `Trainer, "
                     f" it can only be one of {list(PROFILERS.keys())}"
                 )
-            profiler_class = PROFILERS[profiler.lower()]
+            profiler_class = PROFILERS[profiler]
             profiler = profiler_class()
         self.profiler: BaseProfiler = profiler or PassThroughProfiler()
 
