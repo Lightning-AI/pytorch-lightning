@@ -327,7 +327,7 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
-            value = self._sync(
+            value = self.__sync(
                 value,
                 sync_fn=self.trainer.training_type_plugin.reduce,
                 sync_dist=sync_dist,
