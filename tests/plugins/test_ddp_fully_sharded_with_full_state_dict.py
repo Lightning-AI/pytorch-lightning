@@ -4,12 +4,10 @@ from unittest import mock
 
 import pytest
 import torch
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import (
-    DDPFullyShardedPlugin,
-    FullyShardedNativeMixedPrecisionPlugin,
-)
+from pytorch_lightning.plugins import DDPFullyShardedPlugin, FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -32,9 +30,7 @@ def test_invalid_on_cpu(tmpdir):
             fast_dev_run=True,
             plugins="fsdp",
         )
-        assert isinstance(
-            trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin
-        )
+        assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
         trainer.accelerator.setup_environment()
 
 
@@ -76,12 +72,11 @@ def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
         precision=16,
     )
     assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
-    assert isinstance(
-        trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin
-    )
+    assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 
 class TestFSDPModel(BoringModel):
+
     def setup(self, stage: str) -> None:
         if stage != "fit":
             # when running stages like test, validate, and predict, we will skip setting up,
@@ -190,25 +185,17 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
         saved_model = cls.load_from_checkpoint(ckpt_path)
 
         # Assert model parameters are identical after loading
-        for ddp_param, shard_param in zip(
-            model_state_dict.values(), saved_model.state_dict().values()
-        ):
+        for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
             assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
 
-    model_call_configure_sharded_model_hook = getattr(
-        model, "call_configure_sharded_model_hook", False
-    )
-    trainer_accelerator_call_configure_sharded_model_hook = (
-        trainer.accelerator.call_configure_sharded_model_hook
-    )
+    model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
+    trainer_accelerator_call_configure_sharded_model_hook = (trainer.accelerator.call_configure_sharded_model_hook)
 
-    model_path = (
-        model_path if model_path else trainer.checkpoint_callback.last_model_path
-    )
+    model_path = (model_path if model_path else trainer.checkpoint_callback.last_model_path)
 
     assert model_call_configure_sharded_model_hook
     assert not trainer_accelerator_call_configure_sharded_model_hook
