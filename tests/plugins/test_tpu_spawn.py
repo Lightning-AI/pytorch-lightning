@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+import torch
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.plugins.training_type import TPUSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -97,6 +100,6 @@ def test_model_tpu_one_core():
     assert not trainer.training_type_plugin.on_gpu
     assert trainer.training_type_plugin.on_tpu
     assert trainer.training_type_plugin.root_device == torch.device("xla")
-    model = BoringModelTPUTearDown()
+    model = BoringModelTPU()
     trainer.fit(model)
     assert "PT_XLA_DEBUG" not in os.environ

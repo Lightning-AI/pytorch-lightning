@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import torch
 
 from pytorch_lightning import Trainer
@@ -25,7 +23,7 @@ class BoringModelGPU(BoringModel):
 
     def on_train_start(self) -> None:
         # make sure that the model is on GPU when training
-        assert self.device == torch.device(f"cuda:{trainer.training_type_plugin.local_rank}")
+        assert self.device == torch.device(f"cuda:{self.trainer.training_type_plugin.local_rank}")
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
