@@ -19,7 +19,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 @mock.patch("torch.cuda.is_available", return_value=False)
 @RunIf(fairscale_fully_sharded=True)
-def test_ddp_fully_sharded_no_gpu(tmpdir):
+def test_ddp_fully_sharded_no_gpu(device_count_mock, mock_cuda_available, tmpdir):
     """
     Test to ensure that to raise Misconfiguration for FSDP on CPU.
     """
@@ -39,7 +39,7 @@ def test_ddp_fully_sharded_no_gpu(tmpdir):
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @RunIf(fairscale_fully_sharded=True)
-def test_fsdp_plugin_choice(tmpdir):
+def test_fsdp_plugin_choice(device_count_mock, mock_cuda_available, tmpdir):
     """
     Test to ensure that plugin is correctly chosen.
     """
@@ -57,7 +57,7 @@ def test_fsdp_plugin_choice(tmpdir):
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @RunIf(amp_apex=True, fairscale_fully_sharded=True)
-def test_invalid_apex_sharded(tmpdir):
+def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
     """
     Test to ensure that we raise an error when we try to use apex and fully sharded
     """
