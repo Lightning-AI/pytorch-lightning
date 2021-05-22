@@ -4,10 +4,12 @@ from unittest import mock
 
 import pytest
 import torch
-
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import DDPFullyShardedPlugin, FullyShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import (
+    DDPFullyShardedPlugin,
+    FullyShardedNativeMixedPrecisionPlugin,
+)
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
@@ -17,9 +19,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import FullyShardedDataParallel, wrap
 
 
-@mock.patch("torch.cuda.is_available", return_value=False)
-@RunIf(fairscale_fully_sharded=True)
-def test_ddp_fully_sharded_no_gpu(mock_cuda_available, tmpdir):
+def test_invalid_on_cpu(tmpdir):
     """
     Test to ensure that to raise Misconfiguration for FSDP on CPU.
     """
@@ -30,27 +30,12 @@ def test_ddp_fully_sharded_no_gpu(mock_cuda_available, tmpdir):
         trainer = Trainer(
             default_root_dir=tmpdir,
             fast_dev_run=True,
-            accelerator="ddp_fully_sharded",
+            plugins="fsdp",
+        )
+        assert isinstance(
+            trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin
         )
         trainer.accelerator.setup_environment()
-
-
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
-@mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@RunIf(fairscale_fully_sharded=True)
-def test_fsdp_plugin_choice(device_count_mock, mock_cuda_available, tmpdir):
-    """
-    Test to ensure that plugin is correctly chosen.
-    """
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        plugins="fsdp",
-        gpus=1,
-    )
-    trainer.accelerator.setup_environment()
-    assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
@@ -90,13 +75,13 @@ def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
         gpus=1,
         precision=16,
     )
-    trainer.accelerator.setup_environment()
     assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
-    assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
+    assert isinstance(
+        trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin
+    )
 
 
 class TestFSDPModel(BoringModel):
-
     def setup(self, stage: str) -> None:
         if stage != "fit":
             # when running stages like test, validate, and predict, we will skip setting up,
@@ -149,7 +134,13 @@ class TestFSDPModel(BoringModel):
         assert self.layer.module[2].reshard_after_forward is True
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, special=True)
+@RunIf(
+    min_gpus=1,
+    skip_windows=True,
+    fairscale_fully_sharded=True,
+    amp_native=True,
+    special=True,
+)
 def test_fully_sharded_plugin_checkpoint(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run.
@@ -166,7 +157,13 @@ def test_fully_sharded_plugin_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, special=True)
+@RunIf(
+    min_gpus=2,
+    skip_windows=True,
+    fairscale_fully_sharded=True,
+    amp_native=True,
+    special=True,
+)
 def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
     """
     Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run.
@@ -193,17 +190,25 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
         saved_model = cls.load_from_checkpoint(ckpt_path)
 
         # Assert model parameters are identical after loading
-        for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
+        for ddp_param, shard_param in zip(
+            model_state_dict.values(), saved_model.state_dict().values()
+        ):
             assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
 
-    model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
-    trainer_accelerator_call_configure_sharded_model_hook = (trainer.accelerator.call_configure_sharded_model_hook)
+    model_call_configure_sharded_model_hook = getattr(
+        model, "call_configure_sharded_model_hook", False
+    )
+    trainer_accelerator_call_configure_sharded_model_hook = (
+        trainer.accelerator.call_configure_sharded_model_hook
+    )
 
-    model_path = (model_path if model_path else trainer.checkpoint_callback.last_model_path)
+    model_path = (
+        model_path if model_path else trainer.checkpoint_callback.last_model_path
+    )
 
     assert model_call_configure_sharded_model_hook
     assert not trainer_accelerator_call_configure_sharded_model_hook
