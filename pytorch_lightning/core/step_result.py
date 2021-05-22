@@ -11,16 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import numbers
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Optional
 
 import torch
 from torch import Tensor
 from torchmetrics import Metric
 
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC
@@ -138,31 +136,6 @@ class ResultCollection(dict):
     def metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
         return self.get_epoch_metrics() if self.on_epoch_end_reached else self.get_batch_metrics()
 
-    @staticmethod
-    def _sync(
-        value,
-        sync_fn: Optional[Callable] = None,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-        device: torch.device = None,
-    ):
-        """Sync across workers when using distributed training"""
-        if not isinstance(value, (torch.Tensor, numbers.Number)):
-            return value
-
-        sync_fn = sync_fn or sync_ddp_if_available
-        dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
-        if not sync_dist or not dist_available:
-            return value
-
-        # TODO: Find a way to make the reduction only once, so we don't need to clone.
-        if isinstance(value, torch.Tensor):
-            value = value.clone()
-        else:
-            value = torch.tensor(value, device=device, dtype=torch.float)
-        return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
-
     @property
     def minimize(self) -> Optional[Tensor]:
         return self.get('minimize', None)
@@ -187,28 +160,13 @@ class ResultCollection(dict):
         on_epoch: bool = True,
         reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-        sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
-        device: torch.device = None,
         batch_size: Optional[int] = None,
     ):
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
-
-        # TODO: should this be in the caller?
-        value = self._sync(
-            value,
-            sync_fn=sync_fn,
-            sync_dist=sync_dist,
-            sync_dist_op=sync_dist_op,
-            sync_dist_group=sync_dist_group,
-            device=device,
-        )
 
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
