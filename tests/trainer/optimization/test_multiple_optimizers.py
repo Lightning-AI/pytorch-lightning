@@ -207,9 +207,7 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
             optimizer,
             optimizer_idx,
             optimizer_closure,
-            on_tpu=False,
-            using_native_amp=False,
-            using_lbfgs=False,
+            *_,
         ):
             # update first optimizer every step
             if optimizer_idx == 0:
