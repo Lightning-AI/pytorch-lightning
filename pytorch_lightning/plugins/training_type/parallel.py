@@ -135,4 +135,3 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
             # clean up memory
             with torch.cuda.device(self.root_device):
                 torch.cuda.empty_cache()
-        self.barrier("teardown")
