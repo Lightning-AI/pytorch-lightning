@@ -19,7 +19,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
 @mock.patch("torch.cuda.is_available", return_value=False)
 @RunIf(fairscale_fully_sharded=True)
-def test_ddp_fully_sharded_no_gpu(device_count_mock, mock_cuda_available, tmpdir):
+def test_ddp_fully_sharded_no_gpu(mock_cuda_available, tmpdir):
     """
     Test to ensure that to raise Misconfiguration for FSDP on CPU.
     """
@@ -65,7 +65,7 @@ def test_invalid_apex_sharded(device_count_mock, mock_cuda_available, tmpdir):
         MisconfigurationException,
         match="Sharded Plugin is not supported with Apex AMP",
     ):
-        trainer = Trainer(
+        Trainer(
             default_root_dir=tmpdir,
             fast_dev_run=True,
             plugins="fsdp",
