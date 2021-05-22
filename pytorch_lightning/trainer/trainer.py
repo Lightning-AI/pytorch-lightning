@@ -1276,7 +1276,7 @@ class Trainer(
                 )
             profiler_class = PROFILERS[profiler.lower()]
             profiler = profiler_class()
-        self.profiler = profiler or PassThroughProfiler()
+        self.profiler: BaseProfiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
         local_rank = self.local_rank if self.world_size > 1 else None
