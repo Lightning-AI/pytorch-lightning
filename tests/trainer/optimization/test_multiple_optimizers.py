@@ -233,5 +233,5 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model)
-    assert all([a == b for a, b in zip(model.training_step_called, [4, 2])])
-    assert all([a == b for a, b in zip(model.optimizer_step_called, [4, 2])])
+    assert model.training_step_called == [4, 2]
+    assert model.optimizer_step_called == [4, 2]
