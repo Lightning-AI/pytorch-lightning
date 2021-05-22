@@ -170,7 +170,7 @@ def test_multiple_optimizers_no_opt_idx_argument(tmpdir):
         trainer.fit(TestModel())
 
 
-def test_csutom_optimizer_step_with_multiple_optimizers(tmpdir):
+def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
     """
     This tests ensures custom optimizer_step works,
     even when optimizer.step is not called for a particular optimizer
