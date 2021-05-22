@@ -21,7 +21,7 @@ import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.step_result import Result
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
@@ -36,14 +36,11 @@ def _setup_ddp(rank, worldsize):
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
-def _ddp_test_fn(rank, worldsize, result_cls: Result):
+def _ddp_test_fn(rank, worldsize):
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.0])
-
-    res = result_cls()
-    res.log("test_tensor", tensor, sync_dist=True, sync_dist_op=torch.distributed.ReduceOp.SUM)
-
-    assert res["test_tensor"].item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
+    actual = LightningModule._LightningModule__sync(tensor, sync_dist=True, sync_dist_op=torch.distributed.ReduceOp.SUM)
+    assert actual.item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
 
 @RunIf(skip_windows=True)
@@ -51,9 +48,8 @@ def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
     tutils.reset_seed()
     tutils.set_random_master_port()
-
     worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize, Result), nprocs=worldsize)
+    mp.spawn(_ddp_test_fn, args=(worldsize, ), nprocs=worldsize)
 
 
 @pytest.mark.parametrize(
