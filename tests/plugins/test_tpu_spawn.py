@@ -22,6 +22,8 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.dataloaders import CustomNotImplementedErrorDataloader
+from tests.helpers.runif import RunIf
+from tests.helpers.utils import pl_multi_process_test
 
 
 class BoringModelNoDataloaders(BoringModel):
@@ -76,3 +78,25 @@ def test_error_patched_iterable_dataloaders(
 def test_error_process_iterable_dataloader(_):
     with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
         TPUSpawnPlugin(MagicMock()).process_dataloader(_loader_no_len)
+
+
+class BoringModelTPU(BoringModel):
+
+    def on_train_start(self) -> None:
+        assert self.device == torch.device("xla")
+        assert os.environ.get("PT_XLA_DEBUG") == "1"
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_model_tpu_one_core():
+    """Tests if device/debug flag is set correctely when training and after teardown for TPUSpawnPlugin."""
+    trainer = Trainer(tpu_cores=1, fast_dev_run=True, plugin=TPUSpawnPlugin(debug=True))
+    # assert training type plugin attributes for device setting
+    assert isinstance(trainer.training_type_plugin, TPUSpawnPlugin)
+    assert not trainer.training_type_plugin.on_gpu
+    assert trainer.training_type_plugin.on_tpu
+    assert trainer.training_type_plugin.root_device == torch.device("xla")
+    model = BoringModelTPUTearDown()
+    trainer.fit(model)
+    assert "PT_XLA_DEBUG" not in os.environ
