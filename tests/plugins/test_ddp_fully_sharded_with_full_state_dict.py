@@ -17,26 +17,50 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import FullyShardedDataParallel, wrap
 
 
+@mock.patch("torch.cuda.is_available", return_value=False)
 @RunIf(fairscale_fully_sharded=True)
-def test_sharded_ddp_choice(tmpdir):
+def test_ddp_fully_sharded_no_gpu(tmpdir):
     """
-    Test to ensure that plugin is correctly chosen
+    Test to ensure that to raise Misconfiguration for FSDP on CPU.
+    """
+    with pytest.raises(
+        MisconfigurationException,
+        match="You selected accelerator to be `ddp_fully_sharded`, but GPU is not available.",
+    ):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
+            accelerator="ddp_fully_sharded",
+        )
+        trainer.accelerator.setup_environment()
+
+
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
+@mock.patch("torch.cuda.device_count", return_value=1)
+@mock.patch("torch.cuda.is_available", return_value=True)
+@RunIf(fairscale_fully_sharded=True)
+def test_fsdp_plugin_choice(tmpdir):
+    """
+    Test to ensure that plugin is correctly chosen.
     """
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
         plugins="fsdp",
+        gpus=1,
     )
+    trainer.accelerator.setup_environment()
     assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
 
 
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
+@mock.patch("torch.cuda.device_count", return_value=1)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @RunIf(amp_apex=True, fairscale_fully_sharded=True)
 def test_invalid_apex_sharded(tmpdir):
     """
-    Test to ensure that we raise an error when we try to use apex and sharded
+    Test to ensure that we raise an error when we try to use apex and fully sharded
     """
-
-    model = BoringModel()
     with pytest.raises(
         MisconfigurationException,
         match="Sharded Plugin is not supported with Apex AMP",
@@ -45,29 +69,28 @@ def test_invalid_apex_sharded(tmpdir):
             default_root_dir=tmpdir,
             fast_dev_run=True,
             plugins="fsdp",
+            gpus=1,
             precision=16,
             amp_backend="apex",
         )
-
-        trainer.fit(model)
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @RunIf(amp_native=True, fairscale_fully_sharded=True)
-def test_ddp_choice_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
+def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """
     Test to ensure that plugin native amp plugin is correctly chosen when using sharded
     """
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
+        plugins="fsdp",
         gpus=1,
         precision=16,
-        plugins="fsdp",
     )
-
+    trainer.accelerator.setup_environment()
     assert isinstance(trainer.accelerator.training_type_plugin, DDPFullyShardedPlugin)
     assert isinstance(trainer.accelerator.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
@@ -151,7 +174,14 @@ def test_fully_sharded_plugin_checkpoint_multi_gpus(tmpdir):
 
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, plugins="fsdp", precision=16, max_epochs=1, callbacks=[ck])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        gpus=2,
+        plugins="fsdp",
+        precision=16,
+        max_epochs=1,
+        callbacks=[ck],
+    )
     _run_multiple_stages(trainer, model)
 
 
@@ -173,7 +203,7 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     model_call_configure_sharded_model_hook = getattr(model, "call_configure_sharded_model_hook", False)
     trainer_accelerator_call_configure_sharded_model_hook = (trainer.accelerator.call_configure_sharded_model_hook)
 
-    model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
+    model_path = (model_path if model_path else trainer.checkpoint_callback.last_model_path)
 
     assert model_call_configure_sharded_model_hook
     assert not trainer_accelerator_call_configure_sharded_model_hook

@@ -39,11 +39,9 @@ class DDPFullyShardedPlugin(DDPPlugin):
         fp32_reduce_scatter: Optional[bool] = None,
         compute_dtype: Optional[torch.dtype] = None,
         bucket_cap_mb: int = 25,
-        # pyre-ignore[9]
         min_num_params: int = 1e8,
         state_dict_to_cpu: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
-        # pyre-ignore[9]
         cluster_environment: ClusterEnvironment = None,
     ):
         """
