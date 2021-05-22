@@ -96,7 +96,7 @@ class DDPPlugin(ParallelPlugin):
         self.set_world_ranks()
 
     @property
-    def root_device(self):
+    def root_device(self) -> torch.device:
         return self.parallel_devices[self.local_rank]
 
     @property
@@ -126,7 +126,7 @@ class DDPPlugin(ParallelPlugin):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def setup_environment(self):
+    def setup_environment(self) -> None:
         # start the other scripts
         if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
             self._call_children_scripts()
