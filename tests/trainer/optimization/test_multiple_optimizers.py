@@ -169,11 +169,13 @@ def test_multiple_optimizers_no_opt_idx_argument(tmpdir):
     with pytest.raises(ValueError, match='`training_step` is missing the `optimizer_idx`'):
         trainer.fit(TestModel())
 
+
 def test_csutom_optimizer_step_with_multiple_optimizers(tmpdir):
     """
     This tests ensures custom optimizer_step works,
     even when optimizer.step is not called for a particular optimizer
     """
+
     class TestModel(BoringModel):
         training_step_called = [0, 0]
         optimizer_step_called = [0, 0]
@@ -189,7 +191,7 @@ def test_csutom_optimizer_step_with_multiple_optimizers(tmpdir):
             return opt_a, opt_b
 
         def training_step(self, batch, batch_idx, optimizer_idx):
-            self.training_step_called[optimizer_idx] += 1 
+            self.training_step_called[optimizer_idx] += 1
             x = self.layer_a(batch[0]) if (optimizer_idx == 0) else self.layer_b(batch[0])
             loss = torch.nn.functional.mse_loss(x, torch.ones_like(x))
             return loss
@@ -199,18 +201,25 @@ def test_csutom_optimizer_step_with_multiple_optimizers(tmpdir):
             assert len(outputs) == 2
 
         def optimizer_step(
-            self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure,
-            on_tpu=False, using_native_amp=False, using_lbfgs=False,
+            self,
+            epoch,
+            batch_idx,
+            optimizer,
+            optimizer_idx,
+            optimizer_closure,
+            on_tpu=False,
+            using_native_amp=False,
+            using_lbfgs=False,
         ):
             # update first optimizer every step
             if optimizer_idx == 0:
-                self.optimizer_step_called[optimizer_idx] += 1 
+                self.optimizer_step_called[optimizer_idx] += 1
                 optimizer.step(closure=optimizer_closure)
 
             # update second optimizer every 2 steps
             if optimizer_idx == 1:
                 if batch_idx % 2 == 0:
-                    self.optimizer_step_called[optimizer_idx] += 1 
+                    self.optimizer_step_called[optimizer_idx] += 1
                     optimizer.step(closure=optimizer_closure)
 
     model = TestModel()
