@@ -207,7 +207,7 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
             optimizer,
             optimizer_idx,
             optimizer_closure,
-            *_,
+            **_,
         ):
             # update first optimizer every step
             if optimizer_idx == 0:
