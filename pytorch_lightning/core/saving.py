@@ -235,6 +235,9 @@ class ModelIO(object):
         Args:
             checkpoint: A dictionary in which you can save variables to save in a checkpoint.
                 Contents need to be pickleable.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
 
     def on_hpc_load(self, checkpoint: Dict[str, Any]) -> None:
@@ -243,6 +246,9 @@ class ModelIO(object):
 
         Args:
             checkpoint: A dictionary with variables from the checkpoint.
+
+        .. deprecated::v1.4
+            Will be removed in v1.6.0.
         """
 
 

@@ -21,17 +21,12 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
-    _OMEGACONF_AVAILABLE,
-    AMPType,
-    DeviceType,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _OMEGACONF_AVAILABLE, AMPType, DeviceType
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _APEX_AVAILABLE:
@@ -216,7 +211,9 @@ class CheckpointConnector:
         model = self.trainer.lightning_module
         checkpoint = self.dump_checkpoint()
 
-        model.on_hpc_save(checkpoint)
+        if is_overridden("on_hpc_save", model):
+            rank_zero_deprecation("ModelIO.on_hpc_save was deprecated in v1.4 and will be removed in v1.6")
+            model.on_hpc_save(checkpoint)
 
         checkpoint = self.trainer.accelerator.on_save(checkpoint)
 
@@ -343,7 +340,11 @@ class CheckpointConnector:
         self.restore_training_state(checkpoint)
 
         # call hpc specific hook
-        model.on_hpc_load(checkpoint)
+        if is_overridden("on_hpc_load", model):
+            rank_zero_deprecation("ModelIO.on_hpc_load was deprecated in v1.4 and will be removed in v1.6")
+            model.on_hpc_load(checkpoint)
+        else:
+            model.on_load_checkpoint(checkpoint)
 
     def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
