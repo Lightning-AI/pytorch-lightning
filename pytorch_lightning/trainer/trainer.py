@@ -1271,7 +1271,8 @@ class Trainer(
             }
             if profiler.lower() not in PROFILERS:
                 raise MisconfigurationException(
-                    f"When passing string value for the `profiler` parameter of `Trainer, it can only be one of {list(PROFILERS.keys())}"
+                    "When passing string value for the `profiler` parameter of `Trainer, "
+                    f" it can only be one of {list(PROFILERS.keys())}"
                 )
             profiler_class = PROFILERS[profiler.lower()]
             profiler = profiler_class()
