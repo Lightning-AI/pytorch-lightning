@@ -95,12 +95,9 @@ PyTorch Lightning Documentation
 
    clouds/cloud_training
    clouds/cluster
-   advanced/amp
    common/child_modules
    common/debugging
    common/loggers
-   common/early_stopping
-   common/fast_training
    common/hyperparameters
    common/lightning_cli
    advanced/lr_finder
