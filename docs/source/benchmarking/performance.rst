@@ -111,27 +111,6 @@ This by default comes with a performance hit, and can be disabled in most cases.
 
 ----------
 
-16-bit precision
-----------------
-Use 16-bit to decrease the memory consumption (and thus increase your batch size). On certain GPUs (V100s, 2080tis), 16-bit calculations are also faster.
-However, know that 16-bit and multi-processing (any DDP) can have issues. Here are some common problems.
-
-1. `CUDA error: an illegal memory access was encountered <https://github.com/pytorch/pytorch/issues/21819>`_.
-    The solution is likely setting a specific CUDA, CUDNN, PyTorch version combination.
-2. ``CUDA error: device-side assert triggered``. This is a general catch-all error. To see the actual error run your script like so:
-
-.. code-block:: bash
-
-    # won't see what the error is
-    python main.py
-
-    # will see what the error is
-    CUDA_LAUNCH_BLOCKING=1 python main.py
-
-.. tip:: We also recommend using 16-bit native found in PyTorch 1.6. Just install this version and Lightning will automatically use it.
-
-----------
-
 Advanced GPU Optimizations
 --------------------------
 
