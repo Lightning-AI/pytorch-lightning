@@ -120,7 +120,7 @@ Mixed precision (16-bit) training
 
 Mixed precision is the combined use of both 32 and 16 bit floating points during model training, which reduced memory requirements and improves performance significantly, achiving over 3X speedups on modern GPUs.
 
-Lightning offers mixed precision or 16-bit training for CPUs, GPUs, and TPUs. 
+Lightning offers mixed precision or 16-bit training for CPUs, GPUs, and TPUs.
 
 .. raw:: html
 
@@ -410,5 +410,3 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
             h_cls = h[:, 0]
             logits = self.W(h_cls)
             return logits, attn
-
-
