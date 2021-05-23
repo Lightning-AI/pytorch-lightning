@@ -277,4 +277,3 @@ If you also pass ``shuffle=True`` to the dataloader, a different random subset o
 .. note:: ``limit_train_batches``, ``limit_val_batches`` and ``limit_test_batches`` will be overwritten by ``overfit_batches`` if ``overfit_batches`` > 0. ``limit_val_batches`` will be ignored if ``fast_dev_run=True``.
 
 .. note:: If you set ``limit_val_batches=0``, validation will be disabled.
-
