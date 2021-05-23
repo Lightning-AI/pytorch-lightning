@@ -168,3 +168,68 @@ def test_multiple_optimizers_no_opt_idx_argument(tmpdir):
 
     with pytest.raises(ValueError, match='`training_step` is missing the `optimizer_idx`'):
         trainer.fit(TestModel())
+
+
+def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
+    """
+    This tests ensures custom optimizer_step works,
+    even when optimizer.step is not called for a particular optimizer
+    """
+
+    class TestModel(BoringModel):
+        training_step_called = [0, 0]
+        optimizer_step_called = [0, 0]
+
+        def __init__(self):
+            super().__init__()
+            self.layer_a = torch.nn.Linear(32, 2)
+            self.layer_b = torch.nn.Linear(32, 2)
+
+        def configure_optimizers(self):
+            opt_a = torch.optim.SGD(self.layer_a.parameters(), lr=0.001)
+            opt_b = torch.optim.SGD(self.layer_b.parameters(), lr=0.001)
+            return opt_a, opt_b
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            self.training_step_called[optimizer_idx] += 1
+            x = self.layer_a(batch[0]) if (optimizer_idx == 0) else self.layer_b(batch[0])
+            loss = torch.nn.functional.mse_loss(x, torch.ones_like(x))
+            return loss
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+        def optimizer_step(
+            self,
+            epoch,
+            batch_idx,
+            optimizer,
+            optimizer_idx,
+            optimizer_closure,
+            **_,
+        ):
+            # update first optimizer every step
+            if optimizer_idx == 0:
+                self.optimizer_step_called[optimizer_idx] += 1
+                optimizer.step(closure=optimizer_closure)
+
+            # update second optimizer every 2 steps
+            if optimizer_idx == 1:
+                if batch_idx % 2 == 0:
+                    self.optimizer_step_called[optimizer_idx] += 1
+                    optimizer.step(closure=optimizer_closure)
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    trainer = pl.Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=4,
+        max_epochs=1,
+        log_every_n_steps=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+    assert model.training_step_called == [4, 2]
+    assert model.optimizer_step_called == [4, 2]
