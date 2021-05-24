@@ -393,7 +393,6 @@ class HookedModel(BoringModel):
 
 
 def test_trainer_model_hook_system_fit(tmpdir):
-    """Test the LightningModule hook system."""
     model = HookedModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
