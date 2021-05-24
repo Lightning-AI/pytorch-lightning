@@ -71,12 +71,11 @@ def auto_move_data(fn: Callable) -> Callable:
 
 def parameter_validation(fn: Callable) -> Callable:
     """
-    Decorator for :meth:`~pytorch_lightning.core.LightningModule.to` method.
     Validates that the module parameter lengths match after moving to the device. It is useful
     when tying weights on TPU's.
 
     Args:
-        fn: ``.to`` method
+        fn: ``model_to_device`` method
 
     Note:
         TPU's require weights to be tied/shared after moving the module to the device.
@@ -90,10 +89,10 @@ def parameter_validation(fn: Callable) -> Callable:
 
     @wraps(fn)
     def inner_fn(self, *args, **kwargs):
-        pre_layer_count = len(list(self.parameters()))
+        pre_layer_count = len(list(self.model.parameters()))
         module = fn(self, *args, **kwargs)
-        self.on_post_move_to_device()
-        post_layer_count = len(list(self.parameters()))
+        self.model.on_post_move_to_device()
+        post_layer_count = len(list(self.model.parameters()))
 
         if not pre_layer_count == post_layer_count:
             rank_zero_warn(
