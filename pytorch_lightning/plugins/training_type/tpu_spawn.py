@@ -23,6 +23,7 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -171,6 +172,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.global_rank == 0:
             time.sleep(2)
 
+    @parameter_validation
     def model_to_device(self) -> None:
         self.device = xm.xla_device()
         self.model = self.wrapped_model.to(self.device)
