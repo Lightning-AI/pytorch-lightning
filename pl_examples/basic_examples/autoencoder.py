@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader, random_split
 
 import pytorch_lightning as pl
 from pl_examples import _DATASETS_PATH, _TORCHVISION_MNIST_AVAILABLE, cli_lightning_logo
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.utilities.cli import LightningCLI, SaveConfigCallback
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
@@ -113,9 +113,24 @@ class MyDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
+class WandBandSafeConfigCallBackFixCLI(LightningCLI):
+    def add_arguments_to_parser(self, parser):
+        parser.add_argument('save_config_callback_filename', default='',
+                help='Change config filename in order to avoid clashes with wandb.'
+                     'TODO submit PR for setting this in LightningCLI constructor/self.config')
+
+    def before_fit(self):
+        save_config_cb = [c for c in self.trainer.callbacks if isinstance(c, SaveConfigCallback)]
+        if save_config_cb:
+            config_filename = self.config.get('save_config_callback_filename', '')
+            if config_filename:
+                save_config_cb[0].config_filename = config_filename
+
 
 def cli_main():
-    cli = LightningCLI(LitAutoEncoder, MyDataModule, seed_everything_default=1234)
+    # cli = LightningCLI(LitAutoEncoder, MyDataModule, seed_everything_default=1234)
+    cli = WandBandSafeConfigCallBackFixCLI(LitAutoEncoder, MyDataModule, seed_everything_default=1234)
+
     cli.trainer.test(cli.model, datamodule=cli.datamodule)
 
 

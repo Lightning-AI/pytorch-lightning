@@ -1,0 +1,14 @@
+# See SaveConfigCallback config_filename: str = 'config.yaml'
+# This breaks the example
+save_config_callback_filename: ''   # Keeps the LightningCLI intact - do not apply workaround
+# 
+# Workaround - UNCOMMENT TO MAKE THE EXAMPLE WORKING or specify as CLI option
+# save_config_callback_filename: 'another-name-config.yaml  # See WandBandSafeConfigCallBackFixCLI
+
+
+trainer:
+  max_epochs: 3
+  logger:
+    class_path: pytorch_lightning.loggers.WandbLogger 
+    init_args:
+      name: oplatek-pl-documenting-wandb-lightningCLI-clash
