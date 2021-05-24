@@ -73,7 +73,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     @property
     def root_device(self) -> torch.device:
         return xm.xla_device()
-    
+
     @property
     def is_local_zero(self) -> bool:
         return self.local_rank == 0
@@ -312,7 +312,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
         self.barrier("teardown")
-        
+
     @property
     def should_save_checkpoint(self) -> bool:
         return self.is_local_zero
