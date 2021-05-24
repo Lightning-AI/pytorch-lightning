@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from contextlib import contextmanager, suppress
-from copy import copy, deepcopy
+from copy import copy
 from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -478,7 +478,6 @@ class TrainLoop:
 
         train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         dataloader_idx = 0
-
         batch_idx = None
         is_last_batch = None
 
@@ -525,8 +524,7 @@ class TrainLoop:
             self.save_loggers_on_train_batch_end()
 
             # update LR schedulers
-            monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
-            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            self.update_lr_schedulers('step')
             self.trainer.checkpoint_connector.has_trained = True
 
             # max steps reached, end training
@@ -567,7 +565,7 @@ class TrainLoop:
 
         # update epoch level lr_schedulers if no val loop outside train loop is triggered
         if not should_check_val or should_train_only:
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+            self.update_lr_schedulers('epoch')
 
         if should_train_only:
             self.check_checkpoint_callback(True)
@@ -864,17 +862,16 @@ class TrainLoop:
             # track gradients
             result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
 
-    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
-        num_accumulated_batches_reached = self._accumulated_batches_reached()
-        num_training_batches_reached = self._num_training_batches_reached()
-
-        if num_accumulated_batches_reached or num_training_batches_reached:
-            # update lr
-            self.trainer.optimizer_connector.update_learning_rates(
-                interval="step",
-                monitor_metrics=monitor_metrics,
-                opt_indices=[opt_idx for opt_idx, _ in self.get_active_optimizers()],
-            )
+    def update_lr_schedulers(self, interval: str) -> None:
+        if interval == "step":
+            finished_accumulation = self._accumulated_batches_reached()
+            finished_epoch = self._num_training_batches_reached()
+            if not finished_accumulation and not finished_epoch:
+                return
+        self.trainer.optimizer_connector.update_learning_rates(
+            interval=interval,
+            opt_indices=[opt_idx for opt_idx, _ in self.get_active_optimizers()],
+        )
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
@@ -898,13 +895,19 @@ class TrainLoop:
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
         """ Decide if we should run validation. """
-
         if not self.trainer.enable_validation:
             return False
 
-        # check if this epoch is eligible to run validation
-        if (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
+        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        if not is_val_check_epoch:
             return False
+
+        is_infinite_dataset = self.trainer.val_check_batch == float('inf')
+        if is_last_batch and is_infinite_dataset:
+            return True
+
+        if self.trainer.should_stop:
+            return True
 
         # val_check_batch is inf for iterable datasets with no length defined
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
@@ -916,12 +919,9 @@ class TrainLoop:
 
         # Note: num_training_batches is also inf for iterable datasets with no length defined
         epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
-        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
 
         if on_epoch:
-            return (
-                is_val_check_batch and epoch_end_val_check
-            ) or self.trainer.should_stop or is_last_batch_for_infinite_dataset
+            return is_val_check_batch and epoch_end_val_check
         else:
             return is_val_check_batch and not epoch_end_val_check
 
