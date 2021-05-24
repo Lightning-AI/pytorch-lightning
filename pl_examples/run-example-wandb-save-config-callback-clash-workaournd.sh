@@ -4,7 +4,7 @@
 ARGS_EXTRA_DDP=" --trainer.gpus 2 --trainer.accelerator ddp"
 ARGS_EXTRA_AMP=" --trainer.precision 16"
 
-# conda created with the following command in the git root directory 
+# conda created with the following command in the git root directory
 #   conda env create --file environment.yml --prefix $PWD/env
 #   conda activate $PWD/env
 #   pip install pytorch-lightning==1.3.2

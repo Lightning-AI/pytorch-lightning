@@ -113,11 +113,16 @@ class MyDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size)
 
+
 class WandBandSafeConfigCallBackFixCLI(LightningCLI):
+
     def add_arguments_to_parser(self, parser):
-        parser.add_argument('save_config_callback_filename', default='',
-                help='Change config filename in order to avoid clashes with wandb.'
-                     'TODO submit PR for setting this in LightningCLI constructor/self.config')
+        parser.add_argument(
+            'save_config_callback_filename',
+            default='',
+            help='Change config filename in order to avoid clashes with wandb.'
+            'TODO submit PR for setting this in LightningCLI constructor/self.config'
+        )
 
     def before_fit(self):
         save_config_cb = [c for c in self.trainer.callbacks if isinstance(c, SaveConfigCallback)]
