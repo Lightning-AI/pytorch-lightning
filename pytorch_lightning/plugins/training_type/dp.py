@@ -63,16 +63,12 @@ class DataParallelPlugin(ParallelPlugin):
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
-        if isinstance(tensor, Result):
-            tensor.dp_reduce()
 
-        else:
+        def _reduce(t: torch.Tensor):
+            dtype_tensor = t.dtype
+            return t.float().mean().type(dtype_tensor)
 
-            def _reduce(t: torch.Tensor):
-                dtype_tensor = t.dtype
-                return t.float().mean().type(dtype_tensor)
-
-            tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
+        tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
 
         return tensor
 

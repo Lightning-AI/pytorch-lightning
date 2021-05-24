@@ -18,6 +18,7 @@ import torch.multiprocessing as mp
 from torchmetrics import Metric
 
 import tests.helpers.utils as tutils
+from pytorch_lightning.core.step_result import DefaultMetricsKeys, ResultCollection
 from tests.helpers.runif import RunIf
 
 
@@ -52,7 +53,7 @@ def _ddp_test_fn(rank, worldsize):
     metric_c = DummyMetric()
 
     # dist_sync_on_step is False by default
-    result = Result()
+    result = ResultCollection()
 
     for epoch in range(3):
         cumulative_sum = 0
@@ -74,7 +75,7 @@ def _ddp_test_fn(rank, worldsize):
             for k in batch_expected.keys():
                 assert batch_expected[k] == batch_log[k]
 
-        epoch_log = result.get_epoch_log_metrics()
+        epoch_log = result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
         result.reset()
 
         # assert metric state reset to default values
@@ -103,7 +104,7 @@ def test_result_metric_integration():
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    result = Result()
+    result = ResultCollection()
 
     for epoch in range(3):
         cumulative_sum = 0
@@ -119,13 +120,13 @@ def test_result_metric_integration():
             result.log('b', metric_b, on_step=False, on_epoch=True)
             result.log('c', metric_c, on_step=True, on_epoch=False)
 
-            batch_log = result.get_batch_log_metrics()
+            batch_log = result.get_batch_metrics()[DefaultMetricsKeys.LOG]
             batch_expected = {"a_step": i, "a": i, "c": i}
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
                 assert batch_expected[k] == batch_log[k]
 
-        epoch_log = result.get_epoch_log_metrics()
+        epoch_log = result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
         result.reset()
 
         # assert metric state reset to default values

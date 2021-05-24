@@ -15,8 +15,6 @@
 Tests to ensure that the training loop works with a dict (1.0)
 """
 import os
-from copy import deepcopy
-from typing import Any, Callable
 from unittest import mock
 
 import pytest
@@ -422,7 +420,7 @@ def test_metrics_reset(tmpdir):
         limit_test_batches=2,
         max_epochs=1,
         progress_bar_refresh_rate=0,
-        num_sanity_val_steps=0,
+        num_sanity_val_steps=2,
     )
 
     trainer.fit(model)

@@ -24,6 +24,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.core.step_result import ResultCollection
 from pytorch_lightning.plugins import TPUSpawnPlugin
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
@@ -427,7 +428,7 @@ def test_tpu_sync_dist():
         tensor = torch.tensor([1.0])
         training_type_plugin = TPUSpawnPlugin()
 
-        res = Result()
+        res = ResultCollection()
         res.log(
             "test_tensor",
             tensor,

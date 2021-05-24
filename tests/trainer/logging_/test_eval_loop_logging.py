@@ -28,7 +28,6 @@ from pytorch_lightning import callbacks, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities import exceptions
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
 
@@ -773,8 +772,6 @@ def test_log_works_in_test_callback(tmpdir):
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
-    #assert "debug_epoch" in trainer.callback_metrics
-    #trainer.callback_metrics.pop("debug_epoch")
 
     for dl_idx in range(num_dataloaders):
         key = f"test_loss/dataloader_idx_{dl_idx}"

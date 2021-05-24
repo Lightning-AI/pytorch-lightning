@@ -226,7 +226,7 @@ class LoggerConnector:
         # increment the step even if nothing was logged
         self.increment_evaluation_log_step()
 
-    ############## TRAIN METRICS UPDATES START ##############
+    ############## TRAIN METRICS UPDATES START ##############   # noqa E266
 
     def on_train_split_start(self, split_batch: Any) -> None:
         self.trainer.result_collections.extract_batch_size(split_batch)
@@ -281,9 +281,9 @@ class LoggerConnector:
         # reset result collection for next epoch
         self.trainer.result_collections.reset()
 
-    ############## TRAIN METRICS UPDATES END ##############
+    ############## TRAIN METRICS UPDATES END ##############     # noqa E266
 
-    ############## UTILS START ##############
+    ############## UTILS START ##############       # noqa E266
 
     @property
     def callback_metrics(self) -> Dict:
@@ -322,4 +322,4 @@ class LoggerConnector:
     def check_logging(self, fx_name: str, on_step: bool, on_epoch: bool) -> None:
         self._fx_validator.check_logging(fx_name=fx_name, on_step=on_step, on_epoch=on_epoch)
 
-    ############## UTILS END ##############
+    ############## UTILS END ##############     # noqa E266

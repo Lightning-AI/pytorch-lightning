@@ -14,6 +14,7 @@
 import torch
 
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 class DDP2Plugin(DDPPlugin):
@@ -46,11 +47,12 @@ class DDP2Plugin(DDPPlugin):
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
-        if isinstance(tensor, Result):
-            tensor.dp_reduce()
 
-        elif isinstance(tensor, torch.Tensor):
-            tensor = tensor.mean()
+        def _reduce(t: torch.Tensor):
+            dtype_tensor = t.dtype
+            return t.float().mean().type(dtype_tensor)
+
+        tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
 
         return tensor
 

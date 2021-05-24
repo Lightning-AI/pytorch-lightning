@@ -174,11 +174,3 @@ def test_result_obj_predictions(tmpdir, test_option: int, do_train: bool, gpus: 
     assert prediction_file.exists()
     predictions = torch.load(prediction_file)
     assert len(predictions) == len(dm.random_test)
-
-
-def test_result_retrieve_last_logged_item():
-    result = Result()
-    result.log('a', 5., on_step=True, on_epoch=True)
-    assert result['a_epoch'] == 5.
-    assert result['a_step'] == 5.
-    assert result['a'] == 5.
