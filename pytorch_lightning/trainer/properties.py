@@ -98,8 +98,8 @@ class TrainerProperties(ABC):
         return getattr(self.accelerator.training_type_plugin, "world_size", 1)
 
     @property
-    def should_save_checkpoint(self) -> bool:
-        return self.accelerator.training_type_plugin.should_save_checkpoint
+    def should_rank_save_checkpoint(self) -> bool:
+        return self.accelerator.training_type_plugin.should_rank_save_checkpoint
 
     @property
     def _distrib_type(self) -> DistributedType:

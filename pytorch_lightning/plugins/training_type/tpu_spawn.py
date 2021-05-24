@@ -74,10 +74,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def root_device(self) -> torch.device:
         return xm.xla_device()
 
-    @property
-    def is_local_zero(self) -> bool:
-        return self.local_rank == 0
-
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
         if not isinstance(dataloaders, list):
@@ -314,5 +310,5 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         self.barrier("teardown")
 
     @property
-    def should_save_checkpoint(self) -> bool:
-        return self.is_local_zero
+    def should_rank_save_checkpoint(self) -> bool:
+        return self.local_rank == 0

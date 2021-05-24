@@ -492,7 +492,7 @@ class ModelCheckpoint(Callback):
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
         # make paths
-        if trainer.should_save_checkpoint:
+        if trainer.should_rank_save_checkpoint:
             self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the trainer
@@ -630,7 +630,7 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        if not trainer.fast_dev_run and trainer.should_save_checkpoint:
+        if not trainer.fast_dev_run and trainer.should_rank_save_checkpoint:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer: 'pl.Trainer') -> None:
@@ -693,7 +693,7 @@ class ModelCheckpoint(Callback):
 
         self._save_model(trainer, filepath)
 
-        if self.last_model_path and self.last_model_path != filepath and trainer.should_save_checkpoint:
+        if self.last_model_path and self.last_model_path != filepath and trainer.should_rank_save_checkpoint:
             self._del_model(self.last_model_path)
 
         self.last_model_path = filepath
@@ -720,7 +720,7 @@ class ModelCheckpoint(Callback):
 
         if (
             self.save_top_k is None and self.best_model_path and self.best_model_path != filepath
-            and trainer.should_save_checkpoint
+            and trainer.should_rank_save_checkpoint
         ):
             self._del_model(self.best_model_path)
 
