@@ -539,9 +539,6 @@ class TrainLoop:
             # dataloader/iterator did not produce a batch
             return
 
-        # TODO
-        # self.global_step -= 1
-
         # handle epoch_output on epoch end
         self.on_train_epoch_end(epoch_output)
 
@@ -555,9 +552,6 @@ class TrainLoop:
         if should_train_only:
             # if validation has run, this should have been called already
             self.check_checkpoint_callback(True)
-
-        # TODO
-        # self.global_step += 1
 
     def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
         # inform logger the batch loop has finished
