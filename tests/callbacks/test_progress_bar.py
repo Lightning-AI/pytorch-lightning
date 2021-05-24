@@ -465,6 +465,32 @@ def test_progress_bar_print(tqdm_write, tmpdir):
     ]
 
 
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+def test_progress_bar_print_no_train(tqdm_write, tmpdir):
+    """ Test that printing in the LightningModule redirects arguments to the progress bar without training. """
+    model = PrintModel()
+    bar = ProgressBar()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        max_steps=1,
+        callbacks=[bar],
+    )
+
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
+    assert tqdm_write.call_count == 3
+    assert tqdm_write.call_args_list == [
+        call("validation_step", end=os.linesep, file=sys.stderr, nolock=False),
+        call("test_step", end=os.linesep, file=None, nolock=False),
+        call("predict_step", end=os.linesep, file=None, nolock=False),
+    ]
+
+
 @mock.patch('builtins.print')
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
 def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
