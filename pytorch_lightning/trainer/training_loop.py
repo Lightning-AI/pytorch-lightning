@@ -575,9 +575,8 @@ class TrainLoop:
             self.trainer._run_evaluation(on_epoch=True)
             self.trainer.training = True
 
-        # increment the global step once
-        # progress global step according to grads progress
-        self.increment_accumulated_grad_global_step()
+        if batch_output.signal != -1:
+            self.increment_accumulated_grad_global_step()
 
     def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
         # inform logger the batch loop has finished
