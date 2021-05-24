@@ -495,3 +495,22 @@ def test_tpu_host_world_size(tmpdir):
 
     model = DebugModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_predict_tpu_multi_cores(tmpdir):
+    """Test if predict works for Multi TPU cores"""
+
+    tutils.reset_seed()
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        tpu_cores=8,
+    )
+    trainer.fit(model)
+    trainer.predict(model, DataLoader(RandomDataset(32, 2000), batch_size=32))
