@@ -34,6 +34,7 @@ from pytorch_lightning.utilities.grads import grad_norm
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.types import _METRIC
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -523,11 +524,10 @@ class TrainLoop:
             self.save_loggers_on_train_batch_end()
 
             # update LR schedulers
-            monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
-            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            self.update_lr_schedulers('step')
             self.trainer.checkpoint_connector.has_trained = True
 
-            self.trainer.total_batch_idx += 1
+            self.total_batch_idx += 1
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
@@ -550,7 +550,7 @@ class TrainLoop:
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
 
-        self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+        self.update_lr_schedulers('epoch')
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
@@ -843,17 +843,16 @@ class TrainLoop:
             # track gradients
             result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
 
-    def update_train_loop_lr_schedulers(self, interval: str, monitor_metrics: Dict[str, _METRIC] = None) -> None:
-        num_accumulated_batches_reached = self._accumulated_batches_reached()
-        num_training_batches_reached = self._num_training_batches_reached()
-
-        if num_accumulated_batches_reached or num_training_batches_reached:
-            # update lr
-            self.trainer.optimizer_connector.update_learning_rates(
-                interval="step",
-                monitor_metrics=monitor_metrics,
-                opt_indices=[opt_idx for opt_idx, _ in self.get_active_optimizers()],
-            )
+    def update_lr_schedulers(self, interval: str) -> None:
+        if interval == "step":
+            finished_accumulation = self._accumulated_batches_reached()
+            finished_epoch = self._num_training_batches_reached()
+            if not finished_accumulation and not finished_epoch:
+                return
+        self.trainer.optimizer_connector.update_learning_rates(
+            interval=interval,
+            opt_indices=[opt_idx for opt_idx, _ in self.get_active_optimizers()],
+        )
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self._accumulated_batches_reached()
