@@ -259,10 +259,6 @@ class HookedModel(BoringModel):
         self.called.append("training_step")
         return super().training_step(*args, **kwargs)
 
-    def on_before_zero_grad(self, *args, **kwargs):
-        self.called.append("on_before_zero_grad")
-        super().on_before_zero_grad(*args, **kwargs)
-
     def optimizer_zero_grad(self, *args, **kwargs):
         self.called.append("optimizer_zero_grad")
         super().optimizer_zero_grad(*args, **kwargs)
@@ -286,6 +282,10 @@ class HookedModel(BoringModel):
     def validation_epoch_end(self, *args, **kwargs):
         self.called.append("validation_epoch_end")
         super().validation_epoch_end(*args, **kwargs)
+
+    def on_before_zero_grad(self, *args, **kwargs):
+        self.called.append("on_before_zero_grad")
+        super().on_before_zero_grad(*args, **kwargs)
 
     def on_epoch_start(self):
         self.called.append("on_epoch_start")
