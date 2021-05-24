@@ -36,10 +36,6 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.tpu_global_core_rank = 0
 
     @property
-    def on_tpu(self) -> bool:
-        return True
-
-    @property
     def is_distributed(self) -> bool:
         return False
 
@@ -63,3 +59,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
+
+    def teardown(self) -> None:
+        # TPU teardown
+        os.environ.pop("PT_XLA_DEBUG", None)

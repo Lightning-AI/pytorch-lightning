@@ -76,8 +76,7 @@ def test__validation_step__log(tmpdir):
         'a2',
         'a_step',
         'a_epoch',
-        'b_step/epoch_0',
-        'b_step/epoch_1',
+        'b_step',
         'b_epoch',
         'epoch',
     }
@@ -85,7 +84,7 @@ def test__validation_step__log(tmpdir):
     assert expected_logged_metrics == logged_metrics
 
     # we don't want to enable val metrics during steps because it is not something that users should do
-    # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
+    # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
     callback_metrics = set(trainer.callback_metrics.keys())
     expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
     assert expected_cb_metrics == callback_metrics
@@ -145,8 +144,7 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
         'b_step',
         'b_epoch',
         'c',
-        'd_step/epoch_0',
-        'd_step/epoch_1',
+        'd_step',
         'd_epoch',
         'g',
     }
@@ -294,15 +292,15 @@ def test_eval_logging_auto_reduce(tmpdir):
 
     # make sure values are correct
     assert trainer.logged_metrics['val_loss_epoch'] == manual_mean
-    assert trainer.callback_metrics['val_loss'] == trainer.logged_metrics['val_loss_step/epoch_0']
+    assert trainer.callback_metrics['val_loss'] == trainer.logged_metrics['val_loss_step']
 
     # make sure correct values were logged
     logged_val = trainer.dev_debugger.logged_metrics
 
     # 3 val batches
-    assert logged_val[0]['val_loss_step/epoch_0'] == model.seen_vals[0]
-    assert logged_val[1]['val_loss_step/epoch_0'] == model.seen_vals[1]
-    assert logged_val[2]['val_loss_step/epoch_0'] == model.seen_vals[2]
+    assert logged_val[0]['val_loss_step'] == model.seen_vals[0]
+    assert logged_val[1]['val_loss_step'] == model.seen_vals[1]
+    assert logged_val[2]['val_loss_step'] == model.seen_vals[2]
 
     # epoch mean
     assert logged_val[3]['val_loss_epoch'] == model.manual_epoch_end_mean
@@ -872,29 +870,29 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         else:
             return mock_calls[idx][2]["metrics"]
 
-    expected = ['valid_loss_0_step/epoch_0', 'valid_loss_2/epoch_0', 'global_step']
+    expected = ['valid_loss_0_step', 'valid_loss_2', 'global_step']
     assert sorted(get_metrics_at_idx(1)) == sorted(expected)
     assert sorted(get_metrics_at_idx(2)) == sorted(expected)
 
     expected = model.val_losses[2]
-    assert get_metrics_at_idx(1)["valid_loss_0_step/epoch_0"] == expected
+    assert get_metrics_at_idx(1)["valid_loss_0_step"] == expected
     expected = model.val_losses[3]
-    assert get_metrics_at_idx(2)["valid_loss_0_step/epoch_0"] == expected
+    assert get_metrics_at_idx(2)["valid_loss_0_step"] == expected
 
     expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
     assert sorted(get_metrics_at_idx(3)) == sorted(expected)
 
     expected = torch.stack(model.val_losses[2:4]).mean()
     assert get_metrics_at_idx(3)["valid_loss_1"] == expected
-    expected = ['valid_loss_0_step/epoch_1', 'valid_loss_2/epoch_1', 'global_step']
+    expected = ['valid_loss_0_step', 'valid_loss_2', 'global_step']
 
     assert sorted(get_metrics_at_idx(4)) == sorted(expected)
     assert sorted(get_metrics_at_idx(5)) == sorted(expected)
 
     expected = model.val_losses[4]
-    assert get_metrics_at_idx(4)["valid_loss_0_step/epoch_1"] == expected
+    assert get_metrics_at_idx(4)["valid_loss_0_step"] == expected
     expected = model.val_losses[5]
-    assert get_metrics_at_idx(5)["valid_loss_0_step/epoch_1"] == expected
+    assert get_metrics_at_idx(5)["valid_loss_0_step"] == expected
 
     expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
     assert sorted(get_metrics_at_idx(6)) == sorted(expected)

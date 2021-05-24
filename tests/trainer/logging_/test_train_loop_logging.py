@@ -401,7 +401,7 @@ def test_different_batch_types_for_sizing(tmpdir):
     trainer.fit(model)
 
     generated = set(trainer.logger_connector.logged_metrics)
-    expected = {'a_step', 'a_epoch', 'n_step/epoch_0', 'n_epoch', 'epoch'}
+    expected = {'a_step', 'a_epoch', 'n_step', 'n_epoch', 'epoch'}
 
     assert generated == expected
 
@@ -599,7 +599,7 @@ def test_log_works_in_train_callback(tmpdir):
             # with func = np.mean if on_epoch else func = np.max
             self.count += 1
 
-        def on_train_epoch_end(self, trainer, pl_module, outputs):
+        def on_train_epoch_end(self, trainer, pl_module):
             self.make_logging(
                 pl_module, 'on_train_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
             )

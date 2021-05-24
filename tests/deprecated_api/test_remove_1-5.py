@@ -196,7 +196,7 @@ def test_old_training_step_signature_with_opt_idx_manual_opt(tmpdir):
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx, optimizer_idx):
-            assert optimizer_idx is not None
+            assert optimizer_idx == 0
             return super().training_step(batch, batch_idx)
 
         def configure_optimizers(self):
@@ -216,12 +216,17 @@ def test_v1_5_0_model_checkpoint_period(tmpdir):
         ModelCheckpoint(dirpath=tmpdir, period=1)
 
 
-def test_v1_5_0_old_on_validation_epoch_end(tmpdir):
+def test_v1_5_0_old_on_train_epoch_end(tmpdir):
     callback_warning_cache.clear()
 
     class OldSignature(Callback):
 
-        def on_validation_epoch_end(self, trainer, pl_module):  # noqa
+        def on_train_epoch_end(self, trainer, pl_module, outputs):  # noqa
+            ...
+
+    class OldSignatureModel(BoringModel):
+
+        def on_train_epoch_end(self, outputs):  # noqa
             ...
 
     model = BoringModel()
@@ -230,80 +235,32 @@ def test_v1_5_0_old_on_validation_epoch_end(tmpdir):
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
-    class OldSignatureModel(BoringModel):
-
-        def on_validation_epoch_end(self):  # noqa
-            ...
+    callback_warning_cache.clear()
 
     model = OldSignatureModel()
 
     with pytest.deprecated_call(match="old signature will be removed in v1.5"):
         trainer.fit(model)
 
-    callback_warning_cache.clear()
+    trainer.train_loop.warning_cache.clear()
 
     class NewSignature(Callback):
 
-        def on_validation_epoch_end(self, trainer, pl_module, outputs):
+        def on_train_epoch_end(self, trainer, pl_module):
             ...
 
     trainer.callbacks = [NewSignature()]
-    with no_deprecated_call(match="`Callback.on_validation_epoch_end` signature has changed in v1.3."):
+    with no_deprecated_call(match="`Callback.on_train_epoch_end` signature has changed in v1.3."):
         trainer.fit(model)
 
     class NewSignatureModel(BoringModel):
 
-        def on_validation_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             ...
 
     model = NewSignatureModel()
-    with no_deprecated_call(match="`ModelHooks.on_validation_epoch_end` signature has changed in v1.3."):
+    with no_deprecated_call(match="`ModelHooks.on_train_epoch_end` signature has changed in v1.3."):
         trainer.fit(model)
-
-
-def test_v1_5_0_old_on_test_epoch_end(tmpdir):
-    callback_warning_cache.clear()
-
-    class OldSignature(Callback):
-
-        def on_test_epoch_end(self, trainer, pl_module):  # noqa
-            ...
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.test(model)
-
-    class OldSignatureModel(BoringModel):
-
-        def on_test_epoch_end(self):  # noqa
-            ...
-
-    model = OldSignatureModel()
-
-    with pytest.deprecated_call(match="old signature will be removed in v1.5"):
-        trainer.test(model)
-
-    callback_warning_cache.clear()
-
-    class NewSignature(Callback):
-
-        def on_test_epoch_end(self, trainer, pl_module, outputs):
-            ...
-
-    trainer.callbacks = [NewSignature()]
-    with no_deprecated_call(match="`Callback.on_test_epoch_end` signature has changed in v1.3."):
-        trainer.test(model)
-
-    class NewSignatureModel(BoringModel):
-
-        def on_test_epoch_end(self, outputs):
-            ...
-
-    model = NewSignatureModel()
-    with no_deprecated_call(match="`ModelHooks.on_test_epoch_end` signature has changed in v1.3."):
-        trainer.test(model)
 
 
 @pytest.mark.parametrize("cls", (BaseProfiler, SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
@@ -412,3 +369,8 @@ def test_v1_5_0_datamodule_setter():
         model.datamodule = datamodule
     with pytest.deprecated_call(match="The `LightningModule.datamodule`"):
         _ = model.datamodule
+
+
+def test_v1_5_0_trainer_tbptt_steps(tmpdir):
+    with pytest.deprecated_call(match="is deprecated in v1.3 and will be removed in v1.5"):
+        _ = Trainer(truncated_bptt_steps=1)

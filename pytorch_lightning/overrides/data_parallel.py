@@ -16,35 +16,20 @@ import warnings
 from typing import Any
 
 import torch
-from torch.nn import DataParallel
-from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
-class LightningDataParallel(DataParallel):
-
-    def __init__(self, module: LightningModule, *args, **kwargs):
-        warnings.warn(
-            "The usage of `LightningDataParallel` is deprecated since v1.2 and will be removed in v1.4."
-            " From now on we recommend to directly subclass `torch.nn.parallel.DataParallel`.", DeprecationWarning
-        )
-        super().__init__(LightningParallelModule(module), *args, **kwargs)
-
-
-class LightningDistributedDataParallel(DistributedDataParallel):
-
-    def __init__(self, module: LightningModule, *args, **kwargs):
-        warnings.warn(
-            "The usage of `LightningDistributedDataParallel` is deprecated since v1.2 and will be removed in v1.4."
-            " From now on we recommend to directly subclass `torch.nn.parallel.DistributedDataParallel`.",
-            DeprecationWarning
-        )
-        super().__init__(LightningDistributedModule(module), *args, **kwargs)
+def _ignore_scalar_return_in_dp():
+    # Users get confused by this warning so we silence it
+    warnings.filterwarnings(
+        'ignore',
+        message='Was asked to gather along dimension 0, but all input tensors were scalars;'
+        ' will instead unsqueeze and return a vector.'
+    )
 
 
 class LightningParallelModule(_LightningModuleWrapperBase):
@@ -70,6 +55,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
     def __init__(self, pl_module: LightningModule):
         super().__init__(pl_module)
+        _ignore_scalar_return_in_dp()
 
     def forward(self, *inputs, **kwargs):
         self.update_replica_device_attributes(inputs)

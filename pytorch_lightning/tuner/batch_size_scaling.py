@@ -115,8 +115,8 @@ def __scale_batch_dump_params(trainer: 'pl.Trainer') -> None:
 def __scale_batch_reset_params(trainer: 'pl.Trainer', model: 'pl.LightningModule', steps_per_trial: int) -> None:
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
-    trainer.current_epoch = 0
-    trainer.max_steps = steps_per_trial  # take few steps
+    trainer.train_loop.current_epoch = 0
+    trainer.train_loop.max_steps = steps_per_trial  # take few steps
     trainer.weights_summary = None  # not needed before full run
     trainer.logger = DummyLogger()
     trainer.callbacks = []  # not needed before full run
@@ -127,8 +127,8 @@ def __scale_batch_reset_params(trainer: 'pl.Trainer', model: 'pl.LightningModule
 
 def __scale_batch_restore_params(trainer: 'pl.Trainer') -> None:
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
-    trainer.current_epoch = trainer.__dumped_params['current_epoch']
-    trainer.max_steps = trainer.__dumped_params['max_steps']
+    trainer.train_loop.current_epoch = trainer.__dumped_params['current_epoch']
+    trainer.train_loop.max_steps = trainer.__dumped_params['max_steps']
     trainer.weights_summary = trainer.__dumped_params['weights_summary']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
@@ -144,7 +144,7 @@ def _run_power_scaling(
     """ Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered. """
     for _ in range(max_trials):
         garbage_collection_cuda()
-        trainer.global_step = 0  # reset after each try
+        trainer.train_loop.global_step = 0  # reset after each try
         try:
             # Try fit
             trainer.tuner._run(model)
@@ -160,7 +160,10 @@ def _run_power_scaling(
             else:
                 raise  # some other error not memory related
 
-        if not changed:
+        if changed:
+            # Force the train dataloader to reset as the batch size has changed
+            trainer.reset_train_dataloader(model)
+        else:
             break
     return new_size
 
@@ -175,7 +178,7 @@ def _run_binsearch_scaling(
     count = 0
     while True:
         garbage_collection_cuda()
-        trainer.global_step = 0  # reset after each try
+        trainer.train_loop.global_step = 0  # reset after each try
         try:
             # Try fit
             trainer.tuner._run(model)
@@ -192,7 +195,10 @@ def _run_binsearch_scaling(
             else:
                 new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
 
-            if not changed:
+            if changed:
+                # Force the train dataloader to reset as the batch size has changed
+                trainer.reset_train_dataloader(model)
+            else:
                 break
 
         except RuntimeError as exception:

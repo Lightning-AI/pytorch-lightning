@@ -26,7 +26,6 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel-ubuntu18.04
 # FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.7
-ARG PYTORCH_VERSION=1.6
 ARG CONDA_VERSION=4.9.2
 
 SHELL ["/bin/bash", "-c"]
@@ -69,12 +68,14 @@ ENV \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
     HOROVOD_WITHOUT_MPI=1 \
-    # MAKEFLAGS="-j$(nproc)" \
-    MAKEFLAGS="-j1" \
+    MAKEFLAGS="-j$(nproc)" \
+    # MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
     CONDA_ENV=lightning
 
 COPY environment.yml environment.yml
+
+ARG PYTORCH_VERSION=1.6
 
 # conda init
 RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c pytorch -c pytorch-test -c pytorch-nightly && \

@@ -77,8 +77,7 @@ class LitClassifier(pl.LightningModule):
 
 def cli_main():
     cli = LightningCLI(LitClassifier, MNISTDataModule, seed_everything_default=1234)
-    result = cli.trainer.test(cli.model, datamodule=cli.datamodule)
-    print(result)
+    cli.trainer.test(cli.model, datamodule=cli.datamodule)
 
 
 if __name__ == '__main__':

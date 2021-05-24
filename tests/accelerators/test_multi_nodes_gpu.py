@@ -121,8 +121,7 @@ def test__validation_step__log(tmpdir):
         'a2',
         'a_step',
         'a_epoch',
-        'b_step/epoch_0',
-        'b_step/epoch_1',
+        'b_step',
         'b_epoch',
         'epoch',
     }
