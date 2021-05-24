@@ -36,7 +36,6 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -624,9 +623,8 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
         def test_step(self, *args):
             return self.validation_step(*args)
 
-        def predict_step(self, *args):
-            args = args[:-1]  # remove `dataloader_idx`
-            return self.validation_step(*args)
+        def predict_step(self, batch, *_):
+            return self(batch)
 
     model = TestModel()
     model.test_epoch_end = None
@@ -1132,7 +1130,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=None),
@@ -1152,7 +1150,7 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         ),
         (
             dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
-            dict(_distrib_type=DistributedType.DDP, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
+            dict(_distrib_type=DistributedType.DDP_SPAWN, _device_type=DeviceType.CPU, num_gpus=0, num_processes=2),
         ),
         (
             dict(accelerator="ddp2", gpus=1),
@@ -1304,42 +1302,6 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
     log_metrics_mock.assert_has_calls(expected_calls)
-
-
-@pytest.mark.parametrize(['profiler', 'expected'], [
-    (None, PassThroughProfiler),
-    (SimpleProfiler(), SimpleProfiler),
-    (AdvancedProfiler(), AdvancedProfiler),
-    ('simple', SimpleProfiler),
-    ('Simple', SimpleProfiler),
-    ('advanced', AdvancedProfiler),
-    ('pytorch', PyTorchProfiler),
-])
-def test_trainer_profiler_correct_args(profiler, expected):
-    kwargs = {'profiler': profiler} if profiler is not None else {}
-    trainer = Trainer(**kwargs)
-    assert isinstance(trainer.profiler, expected)
-
-
-def test_trainer_profiler_incorrect_str_arg():
-    with pytest.raises(ValueError, match=r".*can only be 'simple', 'advanced' or 'pytorch'"):
-        Trainer(profiler="unknown_profiler")
-
-
-@pytest.mark.parametrize('profiler', (
-    42,
-    [42],
-    dict(a=42),
-    torch.tensor(42),
-    Trainer(),
-))
-def test_trainer_profiler_incorrect_arg_type(profiler):
-    with pytest.raises(
-        MisconfigurationException,
-        match="Only None, str and subclasses of `BaseProfiler`"
-        r" are valid values for `Trainer`'s `profiler` parameter. *"
-    ):
-        Trainer(profiler=profiler)
 
 
 class TestLightningDataModule(LightningDataModule):
@@ -1912,30 +1874,30 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
 
 
 def test_module_current_fx_attributes_reset(tmpdir):
-    """ Ensure that lightning module's attributes related to current hook fx are reset at the end of execution. """
+    """ Ensure that lightning module's attributes related to current fx are reset at the end of execution. """
     model = BoringModel()
-    model.validation_step = None
-    model.training_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        fast_dev_run=1,
         checkpoint_callback=False,
         logger=False,
-        limit_val_batches=0,
     )
+
     trainer.fit(model)
-    assert model._current_fx_name == "", f"_current_fx_name not reset after fit: {model._current_fx_name}"
-    assert (
-        model._current_hook_fx_name is None
-    ), f"_current_hook_fx_name not reset after fit: {model._current_hook_fx_name}"
-    assert (
-        model._current_dataloader_idx is None
-    ), f"_current_dataloader_idx not reset after fit: {model._current_dataloader_idx}"
+    assert model._current_fx_name is None
+    assert model._current_dataloader_idx is None
+
     trainer.test(model)
-    assert model._current_fx_name == "", f"_current_fx_name not reset after test: {model._current_fx_name}"
-    assert (
-        model._current_hook_fx_name is None
-    ), f"_current_hook_fx_name not reset after test: {model._current_hook_fx_name}"
-    assert (
-        model._current_dataloader_idx is None
-    ), f"_current_dataloader_idx not reset after test: {model._current_dataloader_idx}"
+    assert model._current_fx_name is None
+    assert model._current_dataloader_idx is None
+
+
+def test_exception_when_lightning_module_is_not_set_on_trainer():
+    trainer = Trainer()
+
+    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*validate"):
+        trainer.validate()
+    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*test"):
+        trainer.test()
+    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
+        trainer.predict()

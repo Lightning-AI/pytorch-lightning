@@ -74,8 +74,8 @@ ENV \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
     HOROVOD_WITHOUT_MPI=1 \
-    # MAKEFLAGS="-j$(nproc)" \
-    MAKEFLAGS="-j1" \
+    MAKEFLAGS="-j$(nproc)" \
+    # MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5"
 
 COPY ./requirements.txt requirements.txt

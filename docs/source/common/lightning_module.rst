@@ -54,7 +54,7 @@ Notice a few things.
         new_x = torch.Tensor(2, 3)
         new_x = new_x.type_as(x)
 
-5.  There are no samplers for distributed, Lightning also does this for you.
+5.  Lightning by default handles the distributed sampler for you.
 
 |
 

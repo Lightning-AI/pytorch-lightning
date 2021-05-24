@@ -15,6 +15,7 @@ import os
 
 import torch
 
+from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -36,13 +37,10 @@ class SingleTPUPlugin(SingleDevicePlugin):
         self.tpu_global_core_rank = 0
 
     @property
-    def on_tpu(self) -> bool:
-        return True
-
-    @property
     def is_distributed(self) -> bool:
         return False
 
+    @parameter_validation
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
@@ -63,3 +61,7 @@ class SingleTPUPlugin(SingleDevicePlugin):
         https://github.com/pytorch/xla/blob/master/API_GUIDE.md#saving-and-loading-xla-tensors
         """
         return move_data_to_device(checkpoint, torch.device("cpu"))
+
+    def teardown(self) -> None:
+        # TPU teardown
+        os.environ.pop("PT_XLA_DEBUG", None)

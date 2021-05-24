@@ -125,6 +125,7 @@ Cluster Environments
     ClusterEnvironment
     LightningEnvironment
     TorchElasticEnvironment
+    KubeflowEnvironment
     SLURMEnvironment
 
 
