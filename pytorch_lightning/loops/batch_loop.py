@@ -271,7 +271,7 @@ class BatchLoop(Loop):
 
         # map to results under the hood
         result.minimize = loss
-        self.trainer.hiddens = hiddens
+        self._hiddens = hiddens
 
         # track batch for manual reduction with result
         result.track_batch_size(len(split_batch))
