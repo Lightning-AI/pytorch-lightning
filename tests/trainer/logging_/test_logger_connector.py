@@ -28,7 +28,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -271,8 +271,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
         torch.testing.assert_allclose(generated, expected)
 
 
-def test_call_back_validator(tmpdir):
-
+def test_fx_validator(tmpdir):
     funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
 
     callbacks_func = [
@@ -352,10 +351,10 @@ def test_call_back_validator(tmpdir):
 
     assert funcs_name == sorted(callbacks_func), (
         "Detected new callback function. Need to add its logging"
-        " permission to CallbackHookNameValidator and update this test"
+        " permission to FxValidator and update this test"
     )
 
-    validator = CallbackHookNameValidator()
+    validator = FxValidator()
 
     for func_name in funcs_name:
         # This summarizes where and what is currently possible to log using `self.log`
@@ -372,19 +371,17 @@ def test_call_back_validator(tmpdir):
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
-            validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+            validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
-                with pytest.raises(MisconfigurationException, match="function supports only"):
-                    validator.check_logging_in_callbacks(
-                        current_hook_fx_name=func_name, on_step=True, on_epoch=on_epoch
-                    )
+                with pytest.raises(MisconfigurationException, match="You can't"):
+                    validator.check_logging(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="function doesn't support"):
-                validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+                validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
 
-        # should not fail
-        validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
+    with pytest.raises(RuntimeError, match="`foo` but it is not implemented"):
+        validator.check_logging("foo", False, False)
 
 
 @RunIf(min_gpus=2)

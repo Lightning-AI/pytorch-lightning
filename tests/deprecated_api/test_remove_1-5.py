@@ -196,7 +196,7 @@ def test_old_training_step_signature_with_opt_idx_manual_opt(tmpdir):
             self.automatic_optimization = False
 
         def training_step(self, batch, batch_idx, optimizer_idx):
-            assert optimizer_idx is not None
+            assert optimizer_idx == 0
             return super().training_step(batch, batch_idx)
 
         def configure_optimizers(self):

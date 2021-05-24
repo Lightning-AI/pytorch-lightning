@@ -16,7 +16,9 @@ import math
 import os
 import pickle
 import re
+import time
 from argparse import Namespace
+from datetime import timedelta
 from logging import INFO
 from pathlib import Path
 from typing import Union
@@ -564,16 +566,24 @@ def test_invalid_every_n_train_steps(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, every_n_val_epochs=2)
 
 
-def test_invalid_every_n_train_steps_val_epochs_combination(tmpdir):
+def test_invalid_trigger_combination(tmpdir):
     """
-    Test that a MisconfigurationException is raised if both
-    every_n_val_epochs and every_n_train_steps are enabled together.
+    Test that a MisconfigurationException is raised if more than one of
+    every_n_val_epochs, every_n_train_steps, and train_time_interval are enabled together.
     """
-    with pytest.raises(MisconfigurationException, match=r'.*Both cannot be enabled at the same time'):
+    with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
         ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_val_epochs=2)
+    with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
+        ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_val_epochs=2)
+    with pytest.raises(MisconfigurationException, match=r'.*Combination of parameters every_n_train_steps'):
+        ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_train_steps=2)
+
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_val_epochs=3)
     ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=4, every_n_val_epochs=0)
+    ModelCheckpoint(
+        dirpath=tmpdir, every_n_train_steps=0, every_n_val_epochs=0, train_time_interval=timedelta(minutes=1)
+    )
 
 
 def test_none_every_n_train_steps_val_epochs(tmpdir):
@@ -716,6 +726,41 @@ def test_ckpt_every_n_train_steps(tmpdir):
         f"step={i}.ckpt" for i in range(every_n_train_steps - 1, max_epochs * epoch_length, every_n_train_steps)
     ]
     assert set(os.listdir(tmpdir)) == set(expected)
+
+
+@mock.patch("pytorch_lightning.callbacks.model_checkpoint.time")
+def test_model_checkpoint_train_time_interval(mock_datetime, tmpdir) -> None:
+    """Tests that the checkpoints are saved at the specified time interval."""
+    seconds_per_batch = 7
+    start_time = time.monotonic()
+    batches_per_epoch = 64
+    num_epochs = 2
+    max_batches = batches_per_epoch * num_epochs + 1
+    mock_datetime.monotonic.side_effect = [start_time + seconds_per_batch * i for i in range(max_batches)]
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        min_epochs=num_epochs,
+        max_epochs=num_epochs,
+        progress_bar_refresh_rate=0,
+        callbacks=[
+            ModelCheckpoint(
+                filename="{epoch}-{step}",
+                dirpath=tmpdir,
+                train_time_interval=timedelta(minutes=1),
+                save_top_k=-1,
+                save_last=False,
+            )
+        ],
+        logger=False,
+    )
+
+    trainer.fit(model)
+    # Each batch takes 7 sec and we checkpoint every minute. There are 64
+    # batches per epoch, so total time to run is 7*64*2 = 896 sec < 14.96 minutes,
+    # so we should have 14 checkpoints.
+    assert len(os.listdir(tmpdir)) == 14
 
 
 def test_model_checkpoint_topk_zero(tmpdir):
@@ -1258,3 +1303,9 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
 def test_model_checkpoint_mode_options():
     with pytest.raises(MisconfigurationException, match="`mode` can be .* but got unknown_option"):
         ModelCheckpoint(mode="unknown_option")
+
+
+def test_trainer_checkpoint_callback_bool(tmpdir):
+    mc = ModelCheckpoint(dirpath=tmpdir)
+    with pytest.raises(MisconfigurationException, match="Invalid type provided for checkpoint_callback"):
+        Trainer(checkpoint_callback=mc)
