@@ -902,7 +902,7 @@ class TrainLoop:
             return False
 
         is_infinite_dataset = self.trainer.val_check_batch == float('inf')
-        if is_last_batch and is_infinite_dataset:
+        if on_epoch and is_last_batch and is_infinite_dataset:
             return True
 
         if self.trainer.should_stop:
