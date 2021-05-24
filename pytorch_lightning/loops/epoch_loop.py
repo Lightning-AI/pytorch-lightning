@@ -32,9 +32,15 @@ class EpochLoop(Loop):
         # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
 
-        self.current_epoch = 0
-
         self.training_loop = TrainingLoop(min_steps, max_steps)
+
+    @property
+    def current_epoch(self) -> int:
+        return self.iteration_count
+
+    @current_epoch.setter
+    def current_epoch(self, value: int):
+        self.iteration_count = value
 
     @property
     def global_step(self):
@@ -102,23 +108,17 @@ class EpochLoop(Loop):
         # hook
         self.trainer.call_hook("on_train_start")
 
-    def on_advance_start(self):  # equal to on train epoch start
-        # implemented here since this code has to be run always no matter the actual epoch implementation
-        epoch = self.iteration_count + 1
-
-        # update training progress in trainer
-        self.current_epoch = epoch
-
+    def on_advance_start(self):  # equal to old on_train_epoch_start
         model = self.trainer.lightning_module
 
         # reset train dataloader
-        if epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
+        if self.current_epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
         # todo: specify the possible exception
         with suppress(Exception):
             # set seed for distributed sampler (enables shuffling for each epoch)
-            self.trainer.train_dataloader.sampler.set_epoch(epoch)
+            self.trainer.train_dataloader.sampler.set_epoch(self.current_epoch)
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
@@ -211,4 +211,3 @@ class EpochLoop(Loop):
 
             for cb in callbacks:
                 cb.on_validation_end(self.trainer, model)
-
