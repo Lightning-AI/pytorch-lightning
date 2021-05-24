@@ -514,3 +514,5 @@ def test_predict_tpu_multi_cores(tmpdir):
     )
     trainer.fit(model)
     trainer.predict(model, DataLoader(RandomDataset(32, 2000), batch_size=32))
+
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
