@@ -14,19 +14,16 @@
 import os
 from copy import deepcopy
 from pprint import pprint
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, Optional
 
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.core.step_result import DefaultMetricsKeys, Result, ResultCollection
+from pytorch_lightning.core.step_result import DefaultMetricsKeys
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
-from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
@@ -206,6 +203,11 @@ class LoggerConnector:
             return
 
         metrics = self.trainer.result_collections.metrics
+
+        # update metrics
+        self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
+        self.add_callback_metrics(metrics[DefaultMetricsKeys.CALLBACK])
+
         batch_log_metrics = metrics[DefaultMetricsKeys.LOG]
 
         # logs user requested information to logger
@@ -263,11 +265,11 @@ class LoggerConnector:
         self._callback_metrics.update(callback_metrics)
 
         epoch_log_metrics = metrics[DefaultMetricsKeys.LOG]
-        epoch_log_metrics["epoch"] = self.trainer.current_epoch
-        self._logged_metrics.update(epoch_log_metrics)
 
         # add the metrics to the loggers
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
+            epoch_log_metrics["epoch"] = self.trainer.current_epoch
+            self._logged_metrics.update(epoch_log_metrics)
             self.log_metrics(epoch_log_metrics, {})
 
         # reset result collection for next epoch

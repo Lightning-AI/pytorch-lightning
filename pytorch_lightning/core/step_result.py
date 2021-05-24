@@ -123,8 +123,9 @@ class ResultMetric(Metric):
 
 class ResultCollection(dict):
 
-    def __init__(self) -> None:
+    def __init__(self, is_train: bool) -> None:
         super().__init__()
+        self.is_train = is_train
         self.reset()
 
     @property
@@ -278,7 +279,9 @@ class ResultCollection(dict):
             if logger:
                 metrics[DefaultMetricsKeys.LOG][name_forked] = value
             metrics[DefaultMetricsKeys.CALLBACK][name] = value
-            metrics[DefaultMetricsKeys.CALLBACK][name_forked] = value
+
+            if self.is_train or (not self.is_train and not on_step):
+                metrics[DefaultMetricsKeys.CALLBACK][name_forked] = value
 
             if prog_bar:
                 value = apply_to_collection(value, torch.Tensor, self._to_item, remove_none=True)
