@@ -158,9 +158,8 @@ class EpochLoop(Loop):
             self.trainer._run_evaluation(on_epoch=True)
             self.trainer.training = True
 
-        # increment the global step once
-        # progress global step according to grads progress
         # TODO: move inside training_loop.on_run_end? equivalent? order?
+        #   Needs to check batch_output signal -1, see #7677
         self.training_loop.increment_accumulated_grad_global_step()
 
     # why is this not the same as the old on_train_epoch_end?
