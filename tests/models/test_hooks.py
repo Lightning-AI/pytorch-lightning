@@ -437,7 +437,6 @@ class HookedModel(BoringModel):
 
 
 def test_trainer_model_hook_system_fit(tmpdir):
-    """Test the LightningModule hook system."""
     model = HookedModel()
     train_batches = 2
     val_batches = 2
