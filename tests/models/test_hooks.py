@@ -502,7 +502,6 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         weights_summary=None,
     )
     assert model.called == []
-
     trainer.fit(model)
     expected = [
         'setup_fit',
