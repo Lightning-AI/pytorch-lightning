@@ -104,6 +104,61 @@ def apply_to_collection(
     return data
 
 
+def apply_to_collections(
+    data1: Any,
+    data2: Any,
+    dtype: Union[type, tuple],
+    function: Callable,
+    *args,
+    wrong_dtype: Optional[Union[type, tuple]] = None,
+    **kwargs
+) -> Any:
+    """
+    Recursively applies a function to all elements of a certain dtype.
+
+    Args:
+        data: the collection to apply the function to
+        dtype: the given function will be applied to all elements of this dtype
+        function: the function to apply
+        *args: positional arguments (will be forwarded to calls of ``function``)
+        wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
+            the :attr:`wrong_type` even if it is of type :attr`dtype`
+        **kwargs: keyword arguments (will be forwarded to calls of ``function``)
+
+    Returns:
+        the resulting collection
+    """
+    elem_type_1 = type(data1)
+
+    # Breaking condition
+    if isinstance(data1, dtype) and (wrong_dtype is None or not isinstance(data1, wrong_dtype)):
+        return function(data1, data2, *args, **kwargs)
+
+    # Recursively apply to collection items
+    if isinstance(data1, Mapping):
+        return elem_type_1({
+            k1: apply_to_collections(v1, v2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            for (k1, v1), (k1, v2) in zip(data1.items(), data2.items())
+        })
+
+    if isinstance(data1, tuple) and hasattr(data1, '_fields'):  # named tuple
+        return elem_type_1(
+            *(
+                apply_to_collections(d1, d2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+                for d1, d2 in zip(data1, data2)
+            )
+        )
+
+    if isinstance(data1, Sequence) and not isinstance(data1, str):
+        return elem_type_1([
+            apply_to_collections(d1, d2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            for d1, d2 in zip(data1, data2)
+        ])
+
+    # data is neither of dtype, nor a collection
+    return data1
+
+
 class TransferableDataType(ABC):
     """
     A custom type for data that can be moved to a torch device via `.to(...)`.

@@ -23,7 +23,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.core.step_result import Result, ResultCollection
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
@@ -82,6 +82,8 @@ class TrainLoop:
             self.trainer.num_sanity_val_steps = float("inf")
         else:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
+
+        self.train_results = ResultCollection()
 
     @property
     def num_active_optimizers(self) -> int:
@@ -256,8 +258,6 @@ class TrainLoop:
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
-        training_step_output.detach()
-
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
 
@@ -279,12 +279,9 @@ class TrainLoop:
 
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
-            model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
-
-            self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)
 
@@ -345,12 +342,7 @@ class TrainLoop:
         result.minimize = loss
         self._hiddens = hiddens
 
-        # track batch for manual reduction with result
-        result.track_batch_size(len(split_batch))
-
-        # track metrics without grads for epoch reduction
         training_step_output_for_epoch_end = copy(result)
-        training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
         if self.trainer.move_metrics_to_cpu:
             training_step_output_for_epoch_end = training_step_output_for_epoch_end.cpu()
 
@@ -387,6 +379,9 @@ class TrainLoop:
 
             for batch_outputs in opt_outputs:
                 processed_tbptt_outputs = []
+
+                if isinstance(batch_outputs, ResultCollection):
+                    batch_outputs = [batch_outputs]
 
                 for tbptt_output in batch_outputs:
                     out = tbptt_output.extra
@@ -495,6 +490,11 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
+            # -----------------------------------------
+            # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
+            # -----------------------------------------
+            self.trainer.logger_connector.update_train_step_metrics(batch_output)
+
             # hook
             # TODO: add outputs to batches
             self.on_train_batch_end(
@@ -504,11 +504,6 @@ class TrainLoop:
                 batch_idx,
                 dataloader_idx,
             )
-
-            # -----------------------------------------
-            # SAVE METRICS TO LOGGERS
-            # -----------------------------------------
-            self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
             # -----------------------------------------
             # VALIDATE IF NEEDED
@@ -559,7 +554,7 @@ class TrainLoop:
         self.on_train_epoch_end(epoch_output)
 
         # log epoch metrics
-        self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
+        self.trainer.logger_connector.update_train_epoch_metrics()
 
         should_check_val = self._should_check_val_fx(batch_idx, is_last_batch, on_epoch=True)
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
@@ -603,9 +598,6 @@ class TrainLoop:
                     'HINT: remove the return statement in training_epoch_end'
                 )
 
-            # capture logging
-            self.trainer.logger_connector.cache_logged_metrics()
-
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_epoch_output)
         self.trainer.call_hook('on_epoch_end')
@@ -617,9 +609,7 @@ class TrainLoop:
 
         # This implementation is copied from Trainer.call_hook
         hook_name = "on_train_epoch_end"
-
-        # set hook_name to model + reset Result obj
-        skip = self.trainer._reset_result_and_set_fx_name(hook_name)
+        self.trainer.lightning_module._current_fx_name = hook_name
 
         # always profile hooks
         with self.trainer.profiler.profile(hook_name):
@@ -649,8 +639,7 @@ class TrainLoop:
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
 
-        if not skip:
-            self.trainer._cache_logged_metrics()
+        self.trainer.lightning_module._current_fx_name = None
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
@@ -797,9 +786,6 @@ class TrainLoop:
     def _process_closure_result(self, opt_closure_result: Optional[AttributeDict]) -> None:
         if not opt_closure_result:
             return
-
-        # cache metrics
-        self.trainer.logger_connector.cache_training_step_metrics(opt_closure_result)
 
         # check if loss or model weights are nan
         if self.trainer.terminate_on_nan:
@@ -981,7 +967,7 @@ class TrainLoop:
             model.toggle_optimizer(optimizer, opt_idx)
 
         # use to track metrics internally
-        self.trainer.logger_connector.on_train_split_start(split_idx, opt_idx, split_batch)
+        self.trainer.logger_connector.on_train_split_start(split_batch)
 
     def update_running_loss(self, current_loss: torch.Tensor) -> None:
         if self.trainer.lightning_module.automatic_optimization:

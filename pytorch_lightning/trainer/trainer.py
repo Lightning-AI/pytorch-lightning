@@ -1201,32 +1201,13 @@ class Trainer(
         model._current_fx_name = None
         model._current_dataloader_idx = None
 
-    def _reset_result_and_set_fx_name(self, hook_name: str) -> bool:
-        # on_before_zero_grad is called within training_step
-        # TODO(@carmocca): Result should handle this logic
-        if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
-            return True
-        model_ref = self.lightning_module
-        if model_ref is not None:
-            # used to track current hook name called
-            model_ref._results = Result()
-            model_ref._current_fx_name = hook_name
-        return False
-
-    def _cache_logged_metrics(self):
-        model_ref = self.lightning_module
-        if model_ref is not None:
-            # capture logging for this hook
-            self.logger_connector.cache_logged_metrics()
-
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         # Note this implementation is copy/pasted into the TrainLoop class in TrainLoop._on_train_epoch_end_hook
         # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
         # If making changes to this function, ensure that those changes are also made to
         # TrainLoop._on_train_epoch_end_hook
-
-        # set hook_name to model + reset Result obj
-        skip = self._reset_result_and_set_fx_name(hook_name)
+        if self.lightning_module:
+            self.lightning_module._current_fx_name = hook_name
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -1249,8 +1230,9 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-        if not skip:
-            self._cache_logged_metrics()
+        if self.lightning_module:
+            self.lightning_module._current_fx_name = None
+
         return output
 
     @staticmethod

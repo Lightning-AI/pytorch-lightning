@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.core.step_result import Result, ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -34,6 +34,8 @@ class EvaluationLoop(object):
         self.max_batches: Optional[List[Union[int, float]]] = None
         self.warning_cache = WarningCache()
         self.num_dataloaders: Optional[int] = None
+        self.validation_results = ResultCollection()
+        self.test_results = ResultCollection()
 
     def on_trainer_init(self) -> None:
         self.trainer.num_sanity_val_batches = []
@@ -162,23 +164,14 @@ class EvaluationLoop(object):
         # configure step_kwargs
         step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
-        model_ref = self.trainer.lightning_module
-        model_ref._results = Result()
-
         if self.trainer.testing:
-            model_ref._current_fx_name = "test_step"
+            self.trainer.lightning_module._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
                 output = self.trainer.accelerator.test_step(step_kwargs)
         else:
-            model_ref._current_fx_name = "validation_step"
+            self.trainer.lightning_module._current_fx_name = "validation_step"
             with self.trainer.profiler.profile("validation_step"):
                 output = self.trainer.accelerator.validation_step(step_kwargs)
-
-        # capture any logged information
-        self.trainer.logger_connector.cache_logged_metrics()
-        # track batch size for weighted average
-        if isinstance(output, Result):
-            output.track_batch_size(batch)
 
         return output
 
@@ -212,9 +205,6 @@ class EvaluationLoop(object):
             if is_overridden('validation_epoch_end', model=model):
                 model._current_fx_name = 'validation_epoch_end'
                 model.validation_epoch_end(outputs)
-
-        # capture logging
-        self.trainer.logger_connector.cache_logged_metrics()
 
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         # set dataloader_idx to model and track batch_size

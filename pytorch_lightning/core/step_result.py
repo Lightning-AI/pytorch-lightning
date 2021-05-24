@@ -11,17 +11,76 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
 from torchmetrics import Metric
 
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC
+
+
+def apply_to_metrics_collection(
+    data: Any,
+    dtype: Union[type, tuple],
+    function: Callable,
+    *args,
+    wrong_dtype: Optional[Union[type, tuple]] = None,
+    **kwargs
+) -> Any:
+    """
+    Recursively applies a function to all elements of a certain dtype.
+
+    Args:
+        data: the collection to apply the function to
+        dtype: the given function will be applied to all elements of this dtype
+        function: the function to apply
+        *args: positional arguments (will be forwarded to calls of ``function``)
+        wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
+            the :attr:`wrong_type` even if it is of type :attr`dtype`
+        **kwargs: keyword arguments (will be forwarded to calls of ``function``)
+
+    Returns:
+        the resulting collection
+    """
+    elem_type = type(data)
+
+    # Breaking condition
+    if isinstance(data, dtype) and (wrong_dtype is None or not isinstance(data, wrong_dtype)):
+        return function(data, *args, **kwargs)
+
+    # Recursively apply to collection items
+    if isinstance(data, Mapping):
+        _out = {}
+        for k, v in data.items():
+            v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            if v is not None:
+                _out[k] = v
+        return elem_type(_out)
+
+    if isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
+        _out = []
+        for d in data:
+            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            if v is not None:
+                _out.append(v)
+        return elem_type(*_out)
+
+    if isinstance(data, Sequence) and not isinstance(data, str):
+        _out = []
+        for d in data:
+            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            if v is not None:
+                _out.append(v)
+        return elem_type(_out)
+
+    # data is neither of dtype, nor a collection
+    return data
 
 
 class DefaultMetricsKeys(LightningEnum):
@@ -63,6 +122,18 @@ class Metadata:
             return self.name + "_epoch"
         return self.name
 
+    @property
+    def is_tensor_and_mean_reduction(self) -> bool:
+        return self.is_tensor and self.reduce_fx == torch.mean
+
+    @property
+    def is_tensor_and_max_reduction(self) -> bool:
+        return self.is_tensor and (self.reduce_fx in (torch.max, max))
+
+    @property
+    def is_tensor_and_min_reduction(self) -> bool:
+        return self.is_tensor and (self.reduce_fx in (torch.min, min))
+
 
 class ResultMetric(Metric):
 
@@ -70,67 +141,49 @@ class ResultMetric(Metric):
         super().__init__()
         self.meta = metadata
         if self.meta.is_tensor:
-            # TODO: dist_reduce_fx?
-            self.add_state("values", [])
-            self.add_state("batch_sizes", [])
+            self.add_state("value", torch.tensor(.0))
+            if self.meta.is_tensor_and_mean_reduction:
+                self.add_state("cumulated_batch_size", torch.tensor(.0))
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
-        if self.meta.is_tensor:
-            self.values.append(value)
-            if batch_size is None:
-                batch_size = self.extract_batch_size(value)
-            self.batch_sizes.append(batch_size)
+        if self.meta.is_tensor_and_mean_reduction:
+            self.value += value.float().mean() * batch_size
+            self.cumulated_batch_size += batch_size
+
+        elif self.meta.is_tensor_and_max_reduction:
+            self.value = max(self.value, value.float().mean())
+
+        elif self.meta.is_tensor_and_min_reduction:
+            self.value = min(self.value, value.float().mean())
+
         else:
             self.value = value
 
     def compute(self) -> torch.Tensor:
         if self.meta.is_tensor:
-            if self.reduce_fx == torch.mean:
-                return (torch.tensor(self.values) * torch.tensor(self.batch_sizes)).sum() / sum(self.batch_sizes)
-            elif self.reduce_fx == torch.max:
-                return max(self.values)
+            if self.meta.is_tensor_and_mean_reduction:
+                return self.value / self.cumulated_batch_size
+            elif self.meta.is_tensor_and_max_reduction or self.meta.is_tensor_and_min_reduction:
+                return self.value
             else:
                 raise MisconfigurationException("Only mean, max are supported.")
         else:
             return self.value.compute()
-
-    @staticmethod
-    def extract_batch_size(batch: Any) -> int:
-        try:
-            return ResultMetric._extract_batch_size(batch)
-        except RecursionError:
-            return 1
-
-    @staticmethod
-    def _extract_batch_size(batch: Any) -> int:
-        """
-        Recursively unpack a batch to find a torch.Tensor.
-
-        Returns:
-            ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
-        """
-        if isinstance(batch, torch.Tensor):
-            size = batch.size(0)
-        elif isinstance(batch, str):
-            return len(batch)
-        elif isinstance(batch, dict):
-            sample = next(iter(batch.values()), 1)
-            size = ResultMetric._extract_batch_size(sample)
-        elif isinstance(batch, Iterable):
-            sample = next(iter(batch), 1)
-            size = ResultMetric._extract_batch_size(sample)
-        else:
-            size = 1
-        return size
 
 
 class ResultCollection(dict):
 
     def __init__(self) -> None:
         super().__init__()
-        self.minimize: Optional[Tensor] = None
-        self.on_epoch_end_reached: bool = False
-        self.default_metrics = {k: {} for k in DefaultMetricsKeys}
+        self.reset()
+
+    @property
+    def batch_size(self) -> int:
+        return self._batch_size
+
+    @batch_size.setter
+    def batch_size(self, batch_size: int) -> None:
+        self._batch_size = batch_size
 
     @property
     def metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
@@ -138,16 +191,24 @@ class ResultCollection(dict):
 
     @property
     def minimize(self) -> Optional[Tensor]:
-        return self.get('minimize', None)
+        return self._minimize
 
     @minimize.setter
-    def minimize(self, val: Optional[torch.Tensor]) -> None:
-        if val is not None:
-            if not isinstance(val, Tensor):
-                raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {val}")
-            if val.grad_fn is None:
+    def minimize(self, loss: Optional[torch.Tensor]) -> None:
+        if loss is not None:
+            if not isinstance(loss, Tensor):
+                raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
+            if loss.grad_fn is None:
                 raise RuntimeError("`Result.minimize` must have a `grad_fn`")
-        self['minimize'] = val
+        self._minimize = loss
+
+    @property
+    def extra(self) -> Dict:
+        return self.get('extra', {})
+
+    @extra.setter
+    def extra(self, extra: Dict) -> None:
+        self['extra'] = extra
 
     def log(
         self,
@@ -165,6 +226,12 @@ class ResultCollection(dict):
     ):
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
+
+        batch_size = batch_size or self._batch_size
+
+        if not batch_size:
+            raise MisconfigurationException("batch_size should be provided to ResultCollection.log function.")
+
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
@@ -174,86 +241,105 @@ class ResultCollection(dict):
         key = f"{hook_name}.{name}"
 
         if key not in self:
-            result = ResultMetric(
-                Metadata(
-                    fx=hook_name,
-                    name=name,
-                    prog_bar=prog_bar,
-                    logger=logger,
-                    on_step=on_step,
-                    on_epoch=on_epoch,
-                    reduce_fx=reduce_fx,
-                    dataloader_idx=dataloader_idx,
-                )
+            meta = Metadata(
+                fx=hook_name,
+                name=name,
+                prog_bar=prog_bar,
+                logger=logger,
+                on_step=on_step,
+                on_epoch=on_epoch,
+                reduce_fx=reduce_fx,
+                dataloader_idx=dataloader_idx,
             )
-            self[key] = result
+            self.instance_result_metric(key, meta, value)
 
-        self[key](value, batch_size)
+        self.update_metrics(key, value, batch_size)
 
-    def get_batch_metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
-        # TODO: do we need deepcopy?
-        metrics = deepcopy(self.default_metrics)
+    def instance_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
 
-        for result_metric in self.values():
-            if not result_metric.meta.on_step:
+        def fn(*_):
+            return ResultMetric(meta)
+
+        self[key] = apply_to_collection(value, torch.Tensor, fn)
+        self[key + '.forked'] = meta.forked
+        self[key + '.logger'] = meta.logger
+        self[key + '.prog_bar'] = meta.prog_bar
+
+    def update_metrics(self, key: str, value: Union[Dict, torch.Tensor], batch_size) -> None:
+
+        def fn(result_metric, v):
+            assert torch.is_tensor(v)
+            result_metric(v, batch_size)
+
+        apply_to_collections(self[key], value, ResultMetric, fn)
+
+    @staticmethod
+    def _get_forward_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
+        if not result_metric.meta.on_step:
+            return
+
+        return result_metric._forward_cache.detach()
+
+    @staticmethod
+    def _to_item(forward_cache: torch.Tensor) -> float:
+        return forward_cache.item()
+
+    def valid_metrics(self) -> Tuple[str, Any]:
+        for key, result_metric in self.items():
+            if isinstance(result_metric, bool) or key == "extra":
+                continue
+            yield (key, result_metric)
+
+    def _extract_metadata(self, key: str, result_metric, on_step: bool, suffix: str) -> Tuple:
+        if isinstance(result_metric, ResultMetric):
+            name = result_metric.meta.name
+            name_forked = result_metric.meta.forked_step_name if on_step else result_metric.meta.forked_epoch_name
+            logger = result_metric.meta.logger
+            prog_bar = result_metric.meta.prog_bar
+        else:
+            name = key.split('.')[-1]
+            name_forked = name + suffix if self[key + '.forked'] else name
+            logger = self[key + '.logger']
+            prog_bar = self[key + '.prog_bar']
+        return name, name_forked, logger, prog_bar
+
+    def get_metrics(self, on_step: bool) -> Dict[str, Dict[str, torch.Tensor]]:
+        metrics = {k: {} for k in DefaultMetricsKeys}
+        fn = self._get_forward_cache if on_step else self._get_computed_cache
+        suffix = "_step" if on_step else "_epoch"
+
+        for key, result_metric in self.valid_metrics():
+            value = apply_to_metrics_collection(result_metric, ResultMetric, fn)
+            if value is None:
                 continue
 
-            foward_cache: torch.Tensor = result_metric._forward_cache.detach()
+            name, name_forked, logger, prog_bar = self._extract_metadata(key, result_metric, on_step, suffix)
 
-            name_forked = result_metric.meta.forked_step_name
-            if result_metric.meta.prog_bar:
-                metrics[DefaultMetricsKeys.PBAR][name_forked] = foward_cache
-            if result_metric.meta.logger:
-                metrics[DefaultMetricsKeys.LOG][name_forked] = foward_cache
-            metrics[DefaultMetricsKeys.CALLBACK][result_metric.meta.name] = foward_cache
+            if logger:
+                metrics[DefaultMetricsKeys.LOG][name_forked] = value
+            metrics[DefaultMetricsKeys.CALLBACK][name] = value
+            metrics[DefaultMetricsKeys.CALLBACK][name_forked] = value
 
+            if prog_bar:
+                value = apply_to_metrics_collection(result_metric, torch.Tensor, self._to_item)
+                metrics[DefaultMetricsKeys.PBAR][name_forked] = value
         return metrics
 
-    # TODO: add_dataloader_idx?
-    def get_batch_log_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, torch.Tensor]:
-        """Gets the metrics to log at the end of the batch"""
-        return self.get_batch_metrics()[DefaultMetricsKeys.LOG]
+    def get_batch_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, Dict[str, torch.Tensor]]:
+        return self.get_metrics(on_step=True)
 
-    def get_batch_pbar_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, torch.Tensor]:
-        """Gets the metrics to include in the progress_bar at the end of the batch"""
-        return self.get_batch_metrics()[DefaultMetricsKeys.PBAR]
+    @staticmethod
+    def _get_computed_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
+        if not result_metric.meta.on_epoch:
+            return
 
-    def get_batch_callback_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, torch.Tensor]:
-        """Gets the metrics for the callbacks at the end of the batch"""
-        return self.get_batch_metrics()[DefaultMetricsKeys.CALLBACK]
+        if not result_metric._computed:
+            result_metric.compute()
 
-    def get_epoch_metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
-        metrics = deepcopy(self.default_metrics)
+        return result_metric._computed.detach()
 
-        for result_metric in self.values():
-            if not result_metric.meta.on_epoch:
-                continue
-
-            if not result_metric._computed:
-                result_metric.compute()
-
-            computed: torch.Tensor = result_metric._computed.detach()
-
-            name_forked: str = result_metric.meta.forked_epoch_name
-            if result_metric.meta.prog_bar:
-                metrics[DefaultMetricsKeys.PBAR][name_forked] = computed
-            if result_metric.meta.logger:
-                metrics[DefaultMetricsKeys.LOG][name_forked] = computed
-            metrics[DefaultMetricsKeys.CALLBACK][result_metric.meta.name] = computed
-
-        return metrics
-
-    def get_epoch_log_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, torch.Tensor]:
-        """Gets the metrics to log at the end of the epoch"""
-        return self.get_epoch_metrics()[DefaultMetricsKeys.LOG]
-
-    def get_epoch_pbar_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, torch.Tensor]:
-        """Gets the metrics to include in the progress_bar at the end of the epoch"""
-        return self.get_epoch_metrics()[DefaultMetricsKeys.PBAR]
-
-    def get_epoch_callback_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, torch.Tensor]:
-        """Gets the metrics for the callbacks at the end of the epoch"""
-        return self.get_epoch_metrics()[DefaultMetricsKeys.CALLBACK]
+    def get_epoch_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, Dict[str, torch.Tensor]]:
+        return self.get_metrics(on_step=False)
 
     def to(self, *args, **kwargs) -> 'ResultCollection':
         """Move all data to the given device."""
@@ -271,3 +357,33 @@ class ResultCollection(dict):
         for item in self.values():
             if isinstance(item, Metric):
                 item.reset()
+        self._batch_size: int = 1
+        self.on_epoch_end_reached: bool = False
+        self._minimize: Optional[Tensor] = None
+
+    def extract_batch_size(self, batch: Any) -> None:
+        try:
+            self._batch_size = self._extract_batch_size(batch)
+        except RecursionError:
+            self._batch_size = 1
+
+    def _extract_batch_size(self, batch: Any) -> int:
+        """
+        Recursively unpack a batch to find a torch.Tensor.
+
+        Returns:
+            ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
+        """
+        if isinstance(batch, torch.Tensor):
+            size = batch.size(0)
+        elif isinstance(batch, str):
+            return len(batch)
+        elif isinstance(batch, dict):
+            sample = next(iter(batch.values()), 1)
+            size = self._extract_batch_size(sample)
+        elif isinstance(batch, Iterable):
+            sample = next(iter(batch), 1)
+            size = self._extract_batch_size(sample)
+        else:
+            size = 1
+        return size

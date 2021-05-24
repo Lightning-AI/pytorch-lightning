@@ -38,7 +38,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.core.step_result import Result, ResultCollection
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -80,6 +80,7 @@ class LightningModule(
         "model_size",
         "automatic_optimization",
         "truncated_bptt_steps",
+        "_results",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -106,7 +107,6 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results: Optional[Result] = None
         self._current_fx_name: Optional[str] = None
         self._running_manual_backward: bool = False
         self._current_dataloader_idx: Optional[int] = None
@@ -216,6 +216,11 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
+    @property
+    def _results(self) -> 'Optional[ResultCollection]':
+        if hasattr(self, "trainer"):
+            return self.trainer.result_collections
+
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
     ) -> Any:
@@ -272,6 +277,7 @@ class LightningModule(
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
+        batch_size: Optional[int] = None,
     ) -> None:
         """
         Log a key, value
@@ -308,6 +314,8 @@ class LightningModule(
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
+            batch_size: Current batch_size. This will be directly inferred from the loaded batch,
+                but some esoteric data type such as graph might need to explicitly provide the batch_size.
         """
         if tbptt_reduce_fx is not None:
             rank_zero_deprecation(
@@ -338,8 +346,8 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
-            value = self.__sync(
-                value,
+            sync_fn = partial(
+                self.__sync,
                 sync_fn=self.trainer.training_type_plugin.reduce,
                 sync_dist=sync_dist,
                 sync_dist_op=sync_dist_op,
@@ -347,7 +355,14 @@ class LightningModule(
                 device=self.device,
             )
 
+            value = apply_to_collection(value, (
+                torch.Tensor,
+                float,
+                int,
+            ), sync_fn)
+
             self._results.log(
+                self._current_fx_name,
                 name,
                 value,
                 prog_bar=prog_bar,
@@ -357,6 +372,7 @@ class LightningModule(
                 reduce_fx=reduce_fx,
                 enable_graph=enable_graph,
                 dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
+                batch_size=batch_size
             )
 
     def log_dict(
@@ -429,16 +445,17 @@ class LightningModule(
         if not isinstance(value, (torch.Tensor, numbers.Number)):
             return value
 
+        # TODO: Find a way to make the reduction only once, so we don't need to clone.
+        if isinstance(value, torch.Tensor):
+            value = value.clone()
+        else:
+            return torch.tensor(value, device=device, dtype=torch.float)
+
         sync_fn = sync_fn or sync_ddp_if_available
         dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
         if not sync_dist or not dist_available:
             return value
 
-        # TODO: Find a way to make the reduction only once, so we don't need to clone.
-        if isinstance(value, torch.Tensor):
-            value = value.clone()
-        else:
-            value = torch.tensor(value, device=device, dtype=torch.float)
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
     def write_prediction(

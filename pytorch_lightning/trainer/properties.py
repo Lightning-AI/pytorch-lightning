@@ -26,6 +26,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.core.step_result import ResultCollection
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
@@ -42,6 +43,7 @@ from pytorch_lightning.utilities.argparse import (
     parse_env_variables,
 )
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
@@ -510,6 +512,16 @@ class TrainerProperties(ABC):
     @property
     def min_steps(self) -> Optional[int]:
         return self.train_loop.min_steps
+
+    @property
+    def result_collections(self) -> Optional[ResultCollection]:
+        if self.training:
+            return self.train_loop.train_results
+        elif self.validating:
+            return self.evaluation_loop.validation_results
+        elif self.testing:
+            return self.evaluation_loop.test_results
+        return None
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

@@ -175,7 +175,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
     # make sure all the metrics are available for callbacks
     logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {'epoch', 'a_step', 'a_epoch', 'b', 'b1', 'a1', 'a2'}
+    expected_logged_metrics = {'a1', 'b', 'epoch', 'a_step', 'b1', 'a_epoch', 'a2'}
     assert logged_metrics == expected_logged_metrics
 
     pbar_metrics = set(trainer.progress_bar_metrics.keys())
@@ -397,6 +397,7 @@ def test_different_batch_types_for_sizing(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         weights_summary=None,
+        fast_dev_run=True,
     )
     trainer.fit(model)
 
