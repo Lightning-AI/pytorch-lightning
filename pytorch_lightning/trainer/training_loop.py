@@ -550,12 +550,12 @@ class TrainLoop:
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
 
-        # TODO: make sure we don't update these again if already updated inside the batch loop
         self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
 
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
         if should_train_only:
+            # if validation has run, this should have been called already
             self.check_checkpoint_callback(True)
 
         #self.trainer.global_step += 1
@@ -843,7 +843,7 @@ class TrainLoop:
             # track gradients
             result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
 
-    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
+    def update_train_loop_lr_schedulers(self, interval: str, monitor_metrics: Dict[str, _METRIC] = None) -> None:
         num_accumulated_batches_reached = self._accumulated_batches_reached()
         num_training_batches_reached = self._num_training_batches_reached()
 
