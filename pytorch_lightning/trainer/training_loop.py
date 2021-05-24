@@ -532,9 +532,7 @@ class TrainLoop:
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
 
-            max_steps_reached = (
-                self.trainer.max_steps is not None and self.trainer.max_steps <= self.trainer.global_step
-            )
+            max_steps_reached = (self.max_steps is not None and self.max_steps <= self.global_step)
             if max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(is_last_batch):
                 break
 
@@ -542,7 +540,8 @@ class TrainLoop:
             # dataloader/iterator did not produce a batch
             return
 
-        #self.trainer.global_step -= 1
+        # TODO
+        # self.global_step -= 1
 
         # handle epoch_output on epoch end
         self.on_train_epoch_end(epoch_output)
@@ -558,7 +557,8 @@ class TrainLoop:
             # if validation has run, this should have been called already
             self.check_checkpoint_callback(True)
 
-        #self.trainer.global_step += 1
+        # TODO
+        # self.global_step += 1
 
     def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
         # inform logger the batch loop has finished

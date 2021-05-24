@@ -258,6 +258,26 @@ def test_trainer_model_hook_system(tmpdir):
             super().__init__()
             self.called = []
 
+        def training_step(self, *args, **kwargs):
+            self.called.append("training_step")
+            return super().training_step(*args, **kwargs)
+
+        def optimizer_zero_grad(self, *args, **kwargs):
+            self.called.append("optimizer_zero_grad")
+            super().optimizer_zero_grad(*args, **kwargs)
+
+        def backward(self, *args, **kwargs):
+            self.called.append("backward")
+            super().backward(*args, **kwargs)
+
+        def optimizer_step(self, *args, **kwargs):
+            super().optimizer_step(*args, **kwargs)
+            self.called.append("optimizer_step")  # append after as closure calls other methods
+
+        def training_epoch_end(self, *args, **kwargs):
+            self.called.append("training_epoch_end")
+            super().training_epoch_end(*args, **kwargs)
+
         def on_after_backward(self):
             self.called.append("on_after_backward")
             super().on_after_backward()
@@ -455,18 +475,24 @@ def test_trainer_model_hook_system(tmpdir):
         'on_before_batch_transfer',
         'transfer_batch_to_device',
         'on_after_batch_transfer',
+        'training_step',
         'on_before_zero_grad',
+        'optimizer_zero_grad',
+        'backward',
         'on_after_backward',
+        'optimizer_step',
         'on_train_batch_end',
         'on_train_batch_start',
         'on_before_batch_transfer',
         'transfer_batch_to_device',
         'on_after_batch_transfer',
+        'training_step',
         'on_before_zero_grad',
+        'optimizer_zero_grad',
+        'backward',
         'on_after_backward',
+        'optimizer_step',
         'on_train_batch_end',
-        'on_train_epoch_end',
-        'on_epoch_end',
         'on_validation_model_eval',
         'on_validation_start',
         'on_epoch_start',
@@ -481,6 +507,9 @@ def test_trainer_model_hook_system(tmpdir):
         'on_save_checkpoint',
         'on_validation_end',
         'on_validation_model_train',
+        'training_epoch_end',
+        'on_train_epoch_end',
+        'on_epoch_end',
         'on_train_end',
         'on_fit_end',
         'teardown_fit',
