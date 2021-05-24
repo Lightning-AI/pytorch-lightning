@@ -131,7 +131,7 @@ class IndexBatchSamplerWrapper:
         for batch in self._sampler:
             self.batch_indices = batch
             yield batch
-            
+
     def __len__(self) -> int:
         return len(self._sampler)
 
