@@ -121,7 +121,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed a potential confusion about which of overfit or shuffle is being disabled in the UserWarning message when both overfit and training dataloader shuffling are enabled.
+- Fixed a potential confusion about which of overfit or shuffle is being disabled in the UserWarning message when both overfit and training dataloader shuffling are enabled ([#7685](https://github.com/PyTorchLightning/pytorch-lightning/pull/7685))
 
 - Fixed dataloaders are not reset when tuning the model ([#7566](https://github.com/PyTorchLightning/pytorch-lightning/pull/7566))
 
