@@ -16,6 +16,7 @@ from typing import Any, Optional, Union
 import torch
 
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.utilities import _XLA_AVAILABLE
 
 
 class SingleDevicePlugin(TrainingTypePlugin):
@@ -30,11 +31,11 @@ class SingleDevicePlugin(TrainingTypePlugin):
 
     @property
     def on_tpu(self) -> bool:
-        return False
+        return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
     def on_gpu(self) -> bool:
-        return self.device.type == "cuda" and torch.cuda.is_available()
+        return self.root_device.type == "cuda" and torch.cuda.is_available()
 
     def reduce(self, tensor: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
         """
@@ -78,3 +79,11 @@ class SingleDevicePlugin(TrainingTypePlugin):
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
+
+    def teardown(self) -> None:
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            with torch.cuda.device(self.root_device):
+                torch.cuda.empty_cache()

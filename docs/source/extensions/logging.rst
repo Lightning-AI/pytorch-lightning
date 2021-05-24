@@ -208,8 +208,8 @@ To change this behaviour, set the `log_every_n_steps` :class:`~pytorch_lightning
 Log writing frequency
 =====================
 
-Writing to a logger can be expensive, so by default Lightning write logs to disc or to the given logger every 100 training steps.
-To change this behaviour, set the interval at which you wish to flush logs to the filesystem using `log_every_n_steps` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
+Writing to a logger can be expensive, so by default Lightning writes logs to disk or to the given logger every 100 training steps.
+To change this behaviour, set the interval at which you wish to flush logs to the filesystem using the `flush_logs_every_n_steps` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
 
 .. testcode::
 

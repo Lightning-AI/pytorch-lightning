@@ -544,6 +544,10 @@ class Trainer(
 
         model_provided = model is not None
         model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.validate()` when it hasn't been passed in a previous run"
+            )
 
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=val_dataloaders, datamodule=datamodule)
@@ -604,6 +608,10 @@ class Trainer(
 
         model_provided = model is not None
         model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
+            )
 
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=test_dataloaders, datamodule=datamodule)
@@ -666,6 +674,10 @@ class Trainer(
 
         model_provided = model is not None
         model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.predict()` when it hasn't been passed in a previous run"
+            )
 
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
@@ -1298,6 +1310,7 @@ class Trainer(
 
     def _reset_result_and_set_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step
+        # TODO(@carmocca): Result should handle this logic
         if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
             return True
         model_ref = self.lightning_module

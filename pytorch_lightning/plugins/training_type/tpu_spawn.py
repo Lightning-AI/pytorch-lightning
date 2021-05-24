@@ -71,7 +71,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def root_device(self) -> torch.device:
-        return self.device
+        return xm.xla_device()
 
     @staticmethod
     def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
@@ -129,7 +129,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnPlugin._validate_dataloader(dataloader)
-        return MpDeviceLoader(dataloader, self.device)
+        return MpDeviceLoader(dataloader, self.root_device)
 
     def configure_ddp(self) -> None:
         pass
@@ -172,8 +172,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             time.sleep(2)
 
     def model_to_device(self) -> None:
-        self.device = xm.xla_device()
-        self.model = self.wrapped_model.to(self.device)
+        self.model = self.wrapped_model.to(self.root_device)
 
     def barrier(self, name: Optional[str] = None) -> None:
         # HOST_WORLD_SIZE is None outside the xmp.spawn process
@@ -209,7 +208,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         buffer = io.BytesIO()
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
-        data_tensor = torch.tensor(data, device=self.device, dtype=torch.float)
+        data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
@@ -302,3 +301,8 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
+
+    def teardown(self) -> None:
+        # TPU teardown
+        os.environ.pop("PT_XLA_DEBUG", None)
+        self.barrier("teardown")

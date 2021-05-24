@@ -624,9 +624,8 @@ def test_tested_checkpoint_path(tmpdir, ckpt_path, save_top_k, fn):
         def test_step(self, *args):
             return self.validation_step(*args)
 
-        def predict_step(self, *args):
-            args = args[:-1]  # remove `dataloader_idx`
-            return self.validation_step(*args)
+        def predict_step(self, batch, *_):
+            return self(batch)
 
     model = TestModel()
     model.test_epoch_end = None
@@ -1928,3 +1927,14 @@ def test_module_current_fx_attributes_reset(tmpdir):
     trainer.test(model)
     assert model._current_fx_name is None
     assert model._current_dataloader_idx is None
+
+
+def test_exception_when_lightning_module_is_not_set_on_trainer():
+    trainer = Trainer()
+
+    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*validate"):
+        trainer.validate()
+    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*test"):
+        trainer.test()
+    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
+        trainer.predict()

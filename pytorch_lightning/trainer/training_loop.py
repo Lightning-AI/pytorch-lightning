@@ -724,7 +724,6 @@ class TrainLoop:
             # -------------------
             # calculate loss (train step + train step end)
             # -------------------
-
             # automatic_optimization=True: perform ddp sync only when performing optimizer_step
             # automatic_optimization=False: don't block synchronization here
             with self.block_ddp_sync_behaviour():
@@ -737,6 +736,9 @@ class TrainLoop:
         else:
             if self.trainer.lightning_module.automatic_optimization:
                 self.optimizer_step(optimizer, opt_idx, batch_idx, closure)
+                if len(self.trainer.optimizers) > 1:
+                    # revert back to previous state
+                    self.trainer.lightning_module.untoggle_optimizer(opt_idx)
             else:
                 result = self.training_step(split_batch, batch_idx, opt_idx, self._hiddens)
 
@@ -836,10 +838,6 @@ class TrainLoop:
                     self.warning_cache.warn(
                         "training_step returned None. If this was on purpose, ignore this warning..."
                     )
-
-                if len(self.trainer.optimizers) > 1:
-                    # revert back to previous state
-                    self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
         return result
 

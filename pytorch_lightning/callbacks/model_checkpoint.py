@@ -420,14 +420,16 @@ class ModelCheckpoint(Callback):
         # Default to running once after each validation epoch if neither
         # every_n_train_steps nor every_n_val_epochs is set
         if every_n_train_steps is None and every_n_val_epochs is None and train_time_interval is None:
-            self._every_n_val_epochs = 1
-            self._every_n_train_steps = 0
+            every_n_val_epochs = 1
+            every_n_train_steps = 0
             log.debug("Both every_n_train_steps and every_n_val_epochs are not set. Setting every_n_val_epochs=1")
         else:
-            self._every_n_val_epochs = every_n_val_epochs or 0
-            self._every_n_train_steps = every_n_train_steps or 0
+            every_n_val_epochs = every_n_val_epochs or 0
+            every_n_train_steps = every_n_train_steps or 0
 
         self._train_time_interval: Optional[timedelta] = train_time_interval
+        self._every_n_val_epochs: int = every_n_val_epochs
+        self._every_n_train_steps: int = every_n_train_steps
 
         # period takes precedence over every_n_val_epochs for backwards compatibility
         if period is not None:
