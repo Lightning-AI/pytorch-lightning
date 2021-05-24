@@ -312,4 +312,5 @@ class TrainingTypePlugin(Plugin, ABC):
 
     @property
     def should_save_checkpoint(self) -> bool:
+        """Returns whether the checkpoint should be saved (rank based)"""
         return self.is_global_zero
