@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
@@ -201,3 +202,23 @@ def test_training_starts_with_seed(tmpdir):
         num_sanity_val_steps=2,
     )
     assert torch.allclose(sequence0, sequence1)
+
+
+@pytest.mark.parametrize(['max_epochs', 'batch_idx_'], [(2, 5), (3, 8), (4, 12)])
+def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
+
+    class CurrentModel(BoringModel):
+
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
+            if batch_idx == batch_idx_:
+                return -1
+
+    model = CurrentModel()
+    trainer = Trainer(max_epochs=max_epochs, limit_train_batches=10)
+    trainer.fit(model)
+    if batch_idx_ > trainer.num_training_batches - 1:
+        assert trainer.train_loop.batch_idx == trainer.num_training_batches - 1
+        assert trainer.global_step == trainer.num_training_batches * max_epochs
+    else:
+        assert trainer.train_loop.batch_idx == batch_idx_
+        assert trainer.global_step == batch_idx_ * max_epochs
