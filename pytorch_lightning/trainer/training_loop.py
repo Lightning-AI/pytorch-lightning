@@ -878,7 +878,7 @@ class TrainLoop:
         if not self.trainer.enable_validation:
             return False
 
-        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 1
+        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         if not is_val_check_epoch:
             return False
 
