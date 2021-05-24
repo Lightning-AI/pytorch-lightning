@@ -229,7 +229,7 @@ def test_transfer_batch_hook_ddp(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize('max_epochs,batch_idx_', [(2, 5), (3, 8), (4, 12)])
+@pytest.mark.parametrize('max_epochs,batch_idx_', [(2, 5), (3, 8), (4, 70)])
 def test_on_train_batch_start_hook(max_epochs, batch_idx_):
 
     class CurrentModel(BoringModel):
@@ -241,12 +241,13 @@ def test_on_train_batch_start_hook(max_epochs, batch_idx_):
     model = CurrentModel()
     trainer = Trainer(max_epochs=max_epochs)
     trainer.fit(model)
+    assert len(model.val_dataloader()) < 70
     if batch_idx_ > len(model.val_dataloader()) - 1:
         assert trainer.train_loop.batch_idx == len(model.val_dataloader()) - 1
         assert trainer.global_step == len(model.val_dataloader()) * max_epochs
     else:
         assert trainer.train_loop.batch_idx == batch_idx_
-        assert trainer.global_step == (batch_idx_ + 1) * max_epochs
+        assert trainer.global_step == batch_idx_ * max_epochs
 
 
 class HookedModel(BoringModel):

@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from contextlib import contextmanager, suppress
-from copy import copy, deepcopy
+from copy import copy
 from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -34,7 +34,6 @@ from pytorch_lightning.utilities.grads import grad_norm
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
@@ -874,30 +873,30 @@ class TrainLoop:
         is_final_batch = self._num_training_batches_reached()
         return not (accumulation_done or is_final_batch)
 
-    def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
+    def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """ Decide if we should run validation. """
-
         if not self.trainer.enable_validation:
             return False
 
-        # check if this epoch is eligible to run validation
-        if (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
+        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 1
+        if not is_val_check_epoch:
             return False
+
+        is_infinite_dataset = self.trainer.val_check_batch == float('inf')
+        if is_last_batch and is_infinite_dataset:
+            return True
+
+        if self.trainer.should_stop:
+            return True
 
         # val_check_batch is inf for iterable datasets with no length defined
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
-        is_val_check_batch = False
-        if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
+        is_val_check_batch = is_last_batch
+        if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float('inf'):
             is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
-
-        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
-
-        if on_epoch:
-            return is_val_check_batch or self.trainer.should_stop or is_last_batch_for_infinite_dataset
-        else:
-            return is_val_check_batch
+        return is_val_check_batch
 
     def _build_kwargs(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
