@@ -229,27 +229,6 @@ def test_transfer_batch_hook_ddp(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize('max_epochs,batch_idx_', [(2, 5), (3, 8), (4, 70)])
-def test_on_train_batch_start_hook(max_epochs, batch_idx_):
-
-    class CurrentModel(BoringModel):
-
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
-            if batch_idx == batch_idx_:
-                return -1
-
-    model = CurrentModel()
-    trainer = Trainer(max_epochs=max_epochs)
-    trainer.fit(model)
-    assert len(model.val_dataloader()) < 70
-    if batch_idx_ > len(model.val_dataloader()) - 1:
-        assert trainer.train_loop.batch_idx == len(model.val_dataloader()) - 1
-        assert trainer.global_step == len(model.val_dataloader()) * max_epochs
-    else:
-        assert trainer.train_loop.batch_idx == batch_idx_
-        assert trainer.global_step == batch_idx_ * max_epochs
-
-
 class HookedModel(BoringModel):
 
     def __init__(self):
@@ -458,7 +437,6 @@ class HookedModel(BoringModel):
 
 
 def test_trainer_model_hook_system_fit(tmpdir):
-    """Test the LightningModule hook system."""
     model = HookedModel()
     train_batches = 2
     val_batches = 2
