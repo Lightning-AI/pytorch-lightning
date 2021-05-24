@@ -47,13 +47,6 @@ class GPUAccelerator(Accelerator):
         with torch.cuda.device(self.root_device):
             torch.cuda.empty_cache()
 
-    def teardown(self) -> None:
-        self.lightning_module.cpu()
-
-        # clean up memory
-        with torch.cuda.device(self.root_device):
-            torch.cuda.empty_cache()
-
     @staticmethod
     def set_nvidia_flags(local_rank: int) -> None:
         # set the correct cuda visible devices (using pci order)

@@ -568,6 +568,7 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
     """
     Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works.
     """
+    os.environ['MASTER_PORT'] = "29500"
     seed_everything(42)
 
     class VerificationCallback(Callback):
