@@ -309,3 +309,7 @@ class TrainingTypePlugin(Plugin, ABC):
     @classmethod
     def register_plugins(cls, plugin_registry):
         pass
+
+    @property
+    def should_save_checkpoint(self) -> bool:
+        return self.is_global_zero
