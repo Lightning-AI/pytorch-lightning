@@ -33,7 +33,7 @@ import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC, STEP_OUTPUT
@@ -472,9 +472,8 @@ class ModelCheckpoint(Callback):
         )
         self._save_function = value
 
-    @rank_zero_only
-    def _del_model(self, filepath: str) -> None:
-        if self._fs.exists(filepath):
+    def _del_model(self, trainer: 'pl.Trainer', filepath: str) -> None:
+        if self._fs.exists(filepath) and trainer.should_rank_save_checkpoint:
             self._fs.rm(filepath)
             log.debug(f"Removed checkpoint: {filepath}")
 
@@ -694,7 +693,7 @@ class ModelCheckpoint(Callback):
         self._save_model(trainer, filepath)
 
         if self.last_model_path and self.last_model_path != filepath and trainer.should_rank_save_checkpoint:
-            self._del_model(self.last_model_path)
+            self._del_model(trainer, self.last_model_path)
 
         self.last_model_path = filepath
 
@@ -722,7 +721,7 @@ class ModelCheckpoint(Callback):
             self.save_top_k is None and self.best_model_path and self.best_model_path != filepath
             and trainer.should_rank_save_checkpoint
         ):
-            self._del_model(self.best_model_path)
+            self._del_model(trainer, self.best_model_path)
 
         self.best_model_path = filepath
 
@@ -769,7 +768,7 @@ class ModelCheckpoint(Callback):
         self._save_model(trainer, filepath)
 
         if del_filepath is not None and filepath != del_filepath:
-            self._del_model(del_filepath)
+            self._del_model(trainer, del_filepath)
 
     def to_yaml(self, filepath: Optional[Union[str, Path]] = None) -> None:
         """
