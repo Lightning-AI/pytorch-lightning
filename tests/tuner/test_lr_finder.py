@@ -212,7 +212,7 @@ def test_accumulation_and_early_stopping(tmpdir):
     )
     lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
 
-    assert 1e-3 != lrfinder.suggestion()
+    assert lrfinder.suggestion() != 1e-3
     assert len(lrfinder.results['lr']) == 100
     assert lrfinder._total_batch_idx == 200
 
