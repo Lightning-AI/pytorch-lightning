@@ -354,7 +354,6 @@ class LightningModule(
                 sync_dist_group=sync_dist_group,
                 device=self.device,
             )
-
             value = apply_to_collection(value, (
                 torch.Tensor,
                 float,
@@ -455,7 +454,6 @@ class LightningModule(
         dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
         if not sync_dist or not dist_available:
             return value
-
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
     def write_prediction(
