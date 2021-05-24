@@ -207,7 +207,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert callback_metrics == expected_callback_metrics
 
     # assert the loggers received the expected number
-    assert len(trainer.dev_debugger.logged_metrics) == max_epochs
+    assert len(trainer.dev_debugger.logged_metrics) == max_epochs * 2
 
 
 def test_eval_float_logging(tmpdir):
@@ -264,7 +264,7 @@ def test_eval_logging_auto_reduce(tmpdir):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.seen_vals.append(loss)
-            self.log('val_loss', loss, on_epoch=True, on_step=True, prog_bar=True)
+            self.log('val_loss', loss, on_epoch=True, on_step=True, prog_bar=True, logger=True)
             return {"x": loss}
 
         def validation_epoch_end(self, outputs) -> None:
@@ -292,21 +292,24 @@ def test_eval_logging_auto_reduce(tmpdir):
 
     # make sure values are correct
     assert trainer.logged_metrics['val_loss_epoch'] == manual_mean
-    assert trainer.callback_metrics['val_loss'] == trainer.logged_metrics['val_loss_step']
+    assert trainer.callback_metrics['val_loss_epoch'] == manual_mean
+    assert trainer.callback_metrics['val_loss'] == manual_mean
+    assert trainer.logged_metrics["val_loss_step"] == model.seen_vals[-1]
 
     # make sure correct values were logged
     logged_val = trainer.dev_debugger.logged_metrics
+    assert trainer.logged_metrics["val_loss_step"] == model.seen_vals[-1]
 
     # 3 val batches
-    assert logged_val[0]['val_loss_step'] == model.seen_vals[0]
-    assert logged_val[1]['val_loss_step'] == model.seen_vals[1]
-    assert logged_val[2]['val_loss_step'] == model.seen_vals[2]
+    assert logged_val[1]['val_loss_step'] == model.seen_vals[0]
+    assert logged_val[2]['val_loss_step'] == model.seen_vals[1]
+    assert logged_val[3]['val_loss_step'] == model.seen_vals[2]
 
     # epoch mean
-    assert logged_val[3]['val_loss_epoch'] == model.manual_epoch_end_mean
+    assert logged_val[4]['val_loss_epoch'] == model.manual_epoch_end_mean
 
     # only those logged
-    assert len(logged_val) == 4
+    assert len(logged_val) == 5
 
 
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])

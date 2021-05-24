@@ -60,6 +60,7 @@ def apply_to_collection(
     function: Callable,
     *args,
     wrong_dtype: Optional[Union[type, tuple]] = None,
+    remove_none: bool = False,
     **kwargs
 ) -> Any:
     """
@@ -72,6 +73,7 @@ def apply_to_collection(
         *args: positional arguments (will be forwarded to calls of ``function``)
         wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
             the :attr:`wrong_type` even if it is of type :attr`dtype`
+        remove_none: Whether to skip an element if the output of function is ``None`` while applying onto the collection.
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
     Returns:
@@ -85,20 +87,31 @@ def apply_to_collection(
 
     # Recursively apply to collection items
     if isinstance(data, Mapping):
-        return elem_type({
-            k: apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            for k, v in data.items()
-        })
+        _out = {}
+        for k, v in data.items():
+            v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            if remove_none and v is None:
+                continue
+            _out[k] = v
+        return elem_type(_out)
 
     if isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
-        return elem_type(
-            *(apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs) for d in data)
-        )
+        _out = []
+        for d in data:
+            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            if remove_none and v is None:
+                continue
+            _out.append(v)
+        return elem_type(*_out)
 
     if isinstance(data, Sequence) and not isinstance(data, str):
-        return elem_type([
-            apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs) for d in data
-        ])
+        _out = []
+        for d in data:
+            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            if remove_none and v is None:
+                continue
+            _out.append(v)
+        return elem_type(_out)
 
     # data is neither of dtype, nor a collection
     return data

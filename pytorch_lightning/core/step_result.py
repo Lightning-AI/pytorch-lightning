@@ -25,64 +25,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC
 
 
-def apply_to_metrics_collection(
-    data: Any,
-    dtype: Union[type, tuple],
-    function: Callable,
-    *args,
-    wrong_dtype: Optional[Union[type, tuple]] = None,
-    **kwargs
-) -> Any:
-    """
-    Recursively applies a function to all elements of a certain dtype.
-
-    Args:
-        data: the collection to apply the function to
-        dtype: the given function will be applied to all elements of this dtype
-        function: the function to apply
-        *args: positional arguments (will be forwarded to calls of ``function``)
-        wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
-            the :attr:`wrong_type` even if it is of type :attr`dtype`
-        **kwargs: keyword arguments (will be forwarded to calls of ``function``)
-
-    Returns:
-        the resulting collection
-    """
-    elem_type = type(data)
-
-    # Breaking condition
-    if isinstance(data, dtype) and (wrong_dtype is None or not isinstance(data, wrong_dtype)):
-        return function(data, *args, **kwargs)
-
-    # Recursively apply to collection items
-    if isinstance(data, Mapping):
-        _out = {}
-        for k, v in data.items():
-            v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            if v is not None:
-                _out[k] = v
-        return elem_type(_out)
-
-    if isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
-        _out = []
-        for d in data:
-            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            if v is not None:
-                _out.append(v)
-        return elem_type(*_out)
-
-    if isinstance(data, Sequence) and not isinstance(data, str):
-        _out = []
-        for d in data:
-            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            if v is not None:
-                _out.append(v)
-        return elem_type(_out)
-
-    # data is neither of dtype, nor a collection
-    return data
-
-
 class DefaultMetricsKeys(LightningEnum):
     CALLBACK = "callback"
     PBAR = "pbar"
@@ -105,6 +47,7 @@ class Metadata:
     reduce_fx: Callable = torch.mean
     dataloader_idx: Optional[int] = None
     is_tensor: bool = True
+    should_reset: bool = True
 
     @property
     def forked(self) -> bool:
@@ -170,6 +113,13 @@ class ResultMetric(Metric):
         else:
             return self.value.compute()
 
+    def __repr__(self) -> str:
+        if self.meta.is_tensor_and_mean_reduction:
+            attr = f"value={self.value}, cumulated_batch_size={self.cumulated_batch_size}"
+        else:
+            attr = f"value={self.value}"
+        return f"{self.__class__.__name__}({attr})"
+
 
 class ResultCollection(dict):
 
@@ -184,6 +134,15 @@ class ResultCollection(dict):
     @batch_size.setter
     def batch_size(self, batch_size: int) -> None:
         self._batch_size = batch_size
+
+    @property
+    def on_epoch_end_reached(self) -> bool:
+        return self._on_epoch_end_reached
+
+    @on_epoch_end_reached.setter
+    def on_epoch_end_reached(self, on_epoch_end_reached):
+        self._on_epoch_end_reached = on_epoch_end_reached
+        self._batch_size = None
 
     @property
     def metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
@@ -210,6 +169,9 @@ class ResultCollection(dict):
     def extra(self, extra: Dict) -> None:
         self['extra'] = extra
 
+    def should_reset(self, hook_name):
+        return hook_name not in ("on_train_start")
+
     def log(
         self,
         hook_name: str,
@@ -226,11 +188,6 @@ class ResultCollection(dict):
     ):
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
-
-        batch_size = batch_size or self._batch_size
-
-        if not batch_size:
-            raise MisconfigurationException("batch_size should be provided to ResultCollection.log function.")
 
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
@@ -250,10 +207,11 @@ class ResultCollection(dict):
                 on_epoch=on_epoch,
                 reduce_fx=reduce_fx,
                 dataloader_idx=dataloader_idx,
+                should_reset=self.should_reset(hook_name),
             )
             self.instance_result_metric(key, meta, value)
 
-        self.update_metrics(key, value, batch_size)
+        self.update_metrics(key, value, batch_size or torch.tensor(1.))
 
     def instance_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
 
@@ -261,9 +219,11 @@ class ResultCollection(dict):
             return ResultMetric(meta)
 
         self[key] = apply_to_collection(value, torch.Tensor, fn)
-        self[key + '.forked'] = meta.forked
-        self[key + '.logger'] = meta.logger
-        self[key + '.prog_bar'] = meta.prog_bar
+        # cache the meta for reduction
+        if not isinstance(self[key], ResultMetric):
+            self[key + '.forked'] = meta.forked
+            self[key + '.logger'] = meta.logger
+            self[key + '.prog_bar'] = meta.prog_bar
 
     def update_metrics(self, key: str, value: Union[Dict, torch.Tensor], batch_size) -> None:
 
@@ -309,7 +269,7 @@ class ResultCollection(dict):
         suffix = "_step" if on_step else "_epoch"
 
         for key, result_metric in self.valid_metrics():
-            value = apply_to_metrics_collection(result_metric, ResultMetric, fn)
+            value = apply_to_collection(result_metric, ResultMetric, fn, remove_none=True)
             if value is None:
                 continue
 
@@ -321,7 +281,7 @@ class ResultCollection(dict):
             metrics[DefaultMetricsKeys.CALLBACK][name_forked] = value
 
             if prog_bar:
-                value = apply_to_metrics_collection(result_metric, torch.Tensor, self._to_item)
+                value = apply_to_collection(value, torch.Tensor, self._to_item, remove_none=True)
                 metrics[DefaultMetricsKeys.PBAR][name_forked] = value
         return metrics
 
@@ -355,10 +315,10 @@ class ResultCollection(dict):
     def reset(self) -> None:
         """Call at the end of epoch to reset all metric objects"""
         for item in self.values():
-            if isinstance(item, Metric):
+            if isinstance(item, ResultMetric) and item.meta.should_reset:
                 item.reset()
-        self._batch_size: int = 1
-        self.on_epoch_end_reached: bool = False
+        self._batch_size: Optional[int] = None
+        self._on_epoch_end_reached: bool = False
         self._minimize: Optional[Tensor] = None
 
     def extract_batch_size(self, batch: Any) -> None:
@@ -387,3 +347,10 @@ class ResultCollection(dict):
         else:
             size = 1
         return size
+
+    def __repr__(self) -> str:
+        repr = f'{self.__class__.__name__}' + '{\n'
+        for k in sorted(self.keys()):
+            v = self[k]
+            repr += f"  {k}: {v},\n"
+        return repr[:-1] + '\n}'

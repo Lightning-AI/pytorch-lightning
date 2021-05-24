@@ -618,7 +618,7 @@ def test_log_works_in_train_callback(tmpdir):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.manual_loss.append(loss)
-            self.log('train_loss', loss)
+            self.log('train_loss', loss, prog_bar=True)
             return {"loss": loss}
 
     max_epochs = 2
@@ -669,7 +669,7 @@ def test_log_works_in_train_callback(tmpdir):
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
     trainer.callback_metrics.pop("debug_epoch")
-    assert trainer.logged_metrics["train_loss"] == model.manual_loss[-1]
+    assert trainer.progress_bar_dict["train_loss"] == model.manual_loss[-1]
     assert trainer.callback_metrics["train_loss"] == model.manual_loss[-1]
     trainer.callback_metrics.pop("train_loss")
 

@@ -279,14 +279,23 @@ class LoggerConnector:
 
     @property
     def callback_metrics(self) -> Dict:
+        if self.trainer.result_collections:
+            metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.CALLBACK]
+            self._callback_metrics.update(metrics)
         return self._callback_metrics
 
     @property
     def logged_metrics(self) -> Dict:
+        if self.trainer.result_collections:
+            metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.LOG]
+            self._logged_metrics.update(metrics)
         return self._logged_metrics
 
     @property
     def progress_bar_metrics(self) -> Dict:
+        if self.trainer.result_collections:
+            metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.PBAR]
+            self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
 
     def add_progress_bar_metrics(self, metrics):
