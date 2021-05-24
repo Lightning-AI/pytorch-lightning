@@ -23,7 +23,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.step_result import Result, ResultCollection
+from pytorch_lightning.core.step_result import ResultCollection
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
@@ -206,17 +206,14 @@ class TrainLoop:
 
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(batch_end_outputs):
-            sample_output = opt_outputs[-1]
-
-            # decide if we need to reduce at the end of the epoch automatically
-            auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
 
             # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
-            if not (hook_overridden or auto_reduce_tng_result):
+            if not hook_overridden:
                 continue
 
             # with 1 step (no tbptt) don't use a sequence at epoch end
-            if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
+            if isinstance(opt_outputs,
+                          list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], ResultCollection):
                 opt_outputs = opt_outputs[0]
 
             epoch_output[opt_idx].append(opt_outputs)
@@ -350,7 +347,7 @@ class TrainLoop:
 
     @staticmethod
     def _prepare_outputs(
-        outputs: List[List[List[Result]]],
+        outputs: List[List[List['ResultCollection']]],
         batch_mode: bool,
     ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
         """
@@ -576,7 +573,7 @@ class TrainLoop:
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
 
-    def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
+    def on_train_epoch_end(self, epoch_output: List[List[List['ResultCollection']]]) -> None:
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 

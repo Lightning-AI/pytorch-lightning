@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.step_result import Result, ResultCollection
+from pytorch_lightning.core.step_result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -99,6 +99,9 @@ class EvaluationLoop(object):
             model_ref.on_validation_model_train()
 
     def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
+        if self.trainer.result_collections:
+            self.trainer.result_collections.reset()
+
         if self.trainer.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
@@ -233,7 +236,7 @@ class EvaluationLoop(object):
     def store_predictions(self, output: Optional[STEP_OUTPUT], batch_idx: int, dataloader_idx: int) -> None:
         # Add step predictions to prediction collection to write later
         if output is not None and self.predictions is not None:
-            if isinstance(output, Result) and self.trainer.testing:
+            if isinstance(output, ResultCollection) and self.trainer.testing:
                 self.predictions.add(output.pop('predictions', None))
 
         # track debug metrics

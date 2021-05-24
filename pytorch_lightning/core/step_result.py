@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
@@ -29,11 +30,6 @@ class DefaultMetricsKeys(LightningEnum):
     CALLBACK = "callback"
     PBAR = "pbar"
     LOG = "log"
-
-
-# TODO: remove
-class Result:
-    pass
 
 
 @dataclass
@@ -81,7 +77,7 @@ class Metadata:
 class ResultMetric(Metric):
 
     def __init__(self, metadata: Metadata) -> None:
-        super().__init__()
+        super().__init__(compute_on_step=metadata.is_tensor)
         self.meta = metadata
         if self.meta.is_tensor:
             self.add_state("value", torch.tensor(.0))
@@ -101,6 +97,7 @@ class ResultMetric(Metric):
 
         else:
             self.value = value
+            self._forward_cache = value._forward_cache
 
     def compute(self) -> torch.Tensor:
         if self.meta.is_tensor:
@@ -111,7 +108,10 @@ class ResultMetric(Metric):
             else:
                 raise MisconfigurationException("Only mean, max are supported.")
         else:
-            return self.value.compute()
+            try:
+                return self.value.compute()
+            except RuntimeError:
+                return torch.tensor(0.)
 
     def __repr__(self) -> str:
         if self.meta.is_tensor_and_mean_reduction:
@@ -120,8 +120,46 @@ class ResultMetric(Metric):
             attr = f"value={self.value}"
         return f"{self.__class__.__name__}({attr})"
 
+    def reset(self):
+        if self.meta.is_tensor:
+            super().reset()
+        else:
+            print(self.meta.fx, self.meta.name)
+            self.value.reset()
+
+    def forward(self, *args, **kwargs):
+        """
+        Automatically calls ``update()``. Returns the metric value over inputs if ``compute_on_step`` is True.
+        """
+        # add current step
+        with torch.no_grad():
+            self.update(*args, **kwargs)
+
+        if self.compute_on_step:
+            self._to_sync = self.dist_sync_on_step
+
+            # save context before switch
+            cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}
+
+            # call reset, update, compute, on single batch
+            self.reset()
+            self.update(*args, **kwargs)
+            self._forward_cache = self.compute()
+
+            # restore context
+            for attr, val in cache.items():
+                setattr(self, attr, val)
+            self._to_sync = True
+            self._computed = None
+
+            return self._forward_cache
+
 
 class ResultCollection(dict):
+
+    STEP_SUFFIX = "_step"
+    EPOCH_SUFFIX = "_epoch"
+    DATALOADER_SUFFIX = "/dataloader_idx_{}"
 
     def __init__(self, is_train: bool) -> None:
         super().__init__()
@@ -198,6 +236,9 @@ class ResultCollection(dict):
 
         key = f"{hook_name}.{name}"
 
+        if dataloader_idx:
+            key += f'.{dataloader_idx}'
+
         if key not in self:
             meta = Metadata(
                 fx=hook_name,
@@ -208,7 +249,7 @@ class ResultCollection(dict):
                 on_epoch=on_epoch,
                 reduce_fx=reduce_fx,
                 dataloader_idx=dataloader_idx,
-                should_reset=self.should_reset(hook_name),
+                should_reset=self.should_reset(hook_name)
             )
             self.instance_result_metric(key, meta, value)
 
@@ -216,20 +257,25 @@ class ResultCollection(dict):
 
     def instance_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
 
-        def fn(*_):
+        def fn(v):
+            nonlocal meta
+            meta = deepcopy(meta)
+            meta.is_tensor = torch.is_tensor(v)
             return ResultMetric(meta)
 
-        self[key] = apply_to_collection(value, torch.Tensor, fn)
+        self[key] = apply_to_collection(value, (torch.Tensor, Metric), fn)
         # cache the meta for reduction
         if not isinstance(self[key], ResultMetric):
             self[key + '.forked'] = meta.forked
             self[key + '.logger'] = meta.logger
             self[key + '.prog_bar'] = meta.prog_bar
+            self[key + '.on_epoch'] = meta.on_epoch
+            self[key + '.dataloader_idx'] = meta.dataloader_idx
 
     def update_metrics(self, key: str, value: Union[Dict, torch.Tensor], batch_size) -> None:
 
         def fn(result_metric, v):
-            assert torch.is_tensor(v)
+            assert isinstance(v, (torch.Tensor, Metric))
             result_metric(v, batch_size)
 
         apply_to_collections(self[key], value, ResultMetric, fn)
@@ -257,38 +303,53 @@ class ResultCollection(dict):
             name_forked = result_metric.meta.forked_step_name if on_step else result_metric.meta.forked_epoch_name
             logger = result_metric.meta.logger
             prog_bar = result_metric.meta.prog_bar
+            metric_on_epoch = result_metric.meta.on_epoch
+            dataloader_idx = result_metric.meta.dataloader_idx
         else:
             name = key.split('.')[-1]
             name_forked = name + suffix if self[key + '.forked'] else name
             logger = self[key + '.logger']
             prog_bar = self[key + '.prog_bar']
-        return name, name_forked, logger, prog_bar
+            metric_on_epoch = self[key + '.on_epoch']
+            dataloader_idx = self[key + '.dataloader_idx']
+
+        if dataloader_idx is not None:
+            dataloader_suffix = self.DATALOADER_SUFFIX.format(dataloader_idx)
+            name += dataloader_suffix
+            name_forked += dataloader_suffix
+
+        return name, name_forked, logger, prog_bar, metric_on_epoch
 
     def get_metrics(self, on_step: bool) -> Dict[str, Dict[str, torch.Tensor]]:
         metrics = {k: {} for k in DefaultMetricsKeys}
         fn = self._get_forward_cache if on_step else self._get_computed_cache
-        suffix = "_step" if on_step else "_epoch"
+        suffix = self.STEP_SUFFIX if on_step else self.EPOCH_SUFFIX
 
         for key, result_metric in self.valid_metrics():
             value = apply_to_collection(result_metric, ResultMetric, fn, remove_none=True)
             if value is None:
                 continue
 
-            name, name_forked, logger, prog_bar = self._extract_metadata(key, result_metric, on_step, suffix)
+            name, name_forked, logger, prog_bar, metric_on_epoch = self._extract_metadata(
+                key, result_metric, on_step, suffix
+            )
 
             if logger:
                 metrics[DefaultMetricsKeys.LOG][name_forked] = value
-            metrics[DefaultMetricsKeys.CALLBACK][name] = value
 
-            if self.is_train or (not self.is_train and not on_step):
+            if not self.is_train and (not metric_on_epoch or on_step):
+                pass
+            else:
+                metrics[DefaultMetricsKeys.CALLBACK][name] = value
                 metrics[DefaultMetricsKeys.CALLBACK][name_forked] = value
 
             if prog_bar:
                 value = apply_to_collection(value, torch.Tensor, self._to_item, remove_none=True)
                 metrics[DefaultMetricsKeys.PBAR][name_forked] = value
+
         return metrics
 
-    def get_batch_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, Dict[str, torch.Tensor]]:
+    def get_batch_metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
         return self.get_metrics(on_step=True)
 
     @staticmethod
@@ -301,7 +362,7 @@ class ResultCollection(dict):
 
         return result_metric._computed.detach()
 
-    def get_epoch_metrics(self, add_dataloader_idx: bool = False) -> Dict[str, Dict[str, torch.Tensor]]:
+    def get_epoch_metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
         return self.get_metrics(on_step=False)
 
     def to(self, *args, **kwargs) -> 'ResultCollection':

@@ -22,13 +22,14 @@ from weakref import proxy
 
 import torch
 from torch.utils.data import DataLoader
+from torchmetrics.metric import Metric
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.core.step_result import ResultCollection
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -986,7 +987,7 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # log batch metrics
-                self.logger_connector.log_evaluation_step_metrics()
+                self.logger_connector.update_evaluation_step_metrics()
 
                 # track epoch level outputs
                 dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
@@ -1033,16 +1034,13 @@ class Trainer(
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
 
-        # reset cached results
-        self.logger_connector.reset()
-
         torch.set_grad_enabled(True)
 
         return eval_loop_results
 
     def _track_output_for_epoch_end(self, outputs, output):
         if output is not None:
-            if isinstance(output, Result):
+            if isinstance(output, ResultCollection):
                 output = output.detach()
                 if self.move_metrics_to_cpu:
                     output = output.cpu()
@@ -1129,9 +1127,17 @@ class Trainer(
 
             self.state.stage = stage
 
+            # reset metrics
+            self._reset_metrics(ref_model)
+
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
             reset_seed()
+
+    def _reset_metrics(self, ref_model):
+        for module in ref_model.modules():
+            if isinstance(module, Metric):
+                module.reset()
 
     def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:
         if ckpt_path is None:

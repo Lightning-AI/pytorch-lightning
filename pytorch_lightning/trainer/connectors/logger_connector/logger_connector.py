@@ -137,6 +137,8 @@ class LoggerConnector:
             return
 
         callback_metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.CALLBACK]
+        if os.getenv("PL_DEV_DEBUG", '0') == '1':
+            callback_metrics["debug_epoch"] = self.trainer.current_epoch
         callback_metrics = deepcopy(callback_metrics)
         for key in list(callback_metrics.keys()):
             if "dataloader_idx" in key:
@@ -156,8 +158,14 @@ class LoggerConnector:
 
     def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
         if not self.trainer.sanity_checking:
+
+            metrics = self.trainer.result_collections.metrics
+            # update metrics
+            self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
+            self.add_callback_metrics(metrics[DefaultMetricsKeys.CALLBACK])
+
             # log all the metrics as a single dict
-            metrics_to_log = self.trainer.result_collections.metrics[DefaultMetricsKeys.LOG]
+            metrics_to_log = metrics[DefaultMetricsKeys.LOG]
             if len(metrics_to_log) > 0:
                 self.log_metrics(metrics_to_log, {})
 
@@ -198,7 +206,7 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
-    def log_evaluation_step_metrics(self) -> None:
+    def update_evaluation_step_metrics(self) -> None:
         if self.trainer.sanity_checking:
             return
 
@@ -259,8 +267,6 @@ class LoggerConnector:
         self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
 
         callback_metrics = metrics[DefaultMetricsKeys.CALLBACK]
-        if os.getenv("PL_DEV_DEBUG", '0') == '1':
-            callback_metrics["debug_epoch"] = self.trainer.current_epoch
 
         self._callback_metrics.update(callback_metrics)
 
@@ -284,6 +290,8 @@ class LoggerConnector:
         if self.trainer.result_collections:
             metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.CALLBACK]
             self._callback_metrics.update(metrics)
+            if os.getenv("PL_DEV_DEBUG", '0') == '1':
+                self._callback_metrics["debug_epoch"] = self.trainer.current_epoch
         return self._callback_metrics
 
     @property
@@ -313,9 +321,5 @@ class LoggerConnector:
 
     def check_logging(self, fx_name: str, on_step: bool, on_epoch: bool) -> None:
         self._fx_validator.check_logging(fx_name=fx_name, on_step=on_step, on_epoch=on_epoch)
-
-    def reset(self):
-        if self.trainer.result_collections:
-            self.trainer.result_collections.reset()
 
     ############## UTILS END ##############

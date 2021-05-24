@@ -18,7 +18,6 @@ import torch.multiprocessing as mp
 from torchmetrics import Metric
 
 import tests.helpers.utils as tutils
-from pytorch_lightning.core.step_result import Result
 from tests.helpers.runif import RunIf
 
 

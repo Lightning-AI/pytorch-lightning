@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.core.step_result import Result
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 

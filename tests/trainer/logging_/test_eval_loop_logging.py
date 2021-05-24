@@ -28,6 +28,7 @@ from pytorch_lightning import callbacks, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.utilities import exceptions
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
 
@@ -503,11 +504,6 @@ def test_log_works_in_val_callback(tmpdir):
                 prob_bars=self.choices
             )
 
-        def on_batch_end(self, trainer, pl_module):
-            self.make_logging(
-                pl_module, 'on_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
-
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
             self.make_logging(
                 pl_module,
@@ -567,7 +563,6 @@ def test_log_works_in_val_callback(tmpdir):
 
     assert test_callback.funcs_called_count["on_epoch_start"] == 1
     # assert test_callback.funcs_called_count["on_batch_start"] == 1
-    assert test_callback.funcs_called_count["on_batch_end"] == 1
     assert test_callback.funcs_called_count["on_validation_start"] == 1
     assert test_callback.funcs_called_count["on_validation_epoch_start"] == 1
     # assert test_callback.funcs_called_count["on_validation_batch_start"] == 4
@@ -617,14 +612,8 @@ def test_log_works_in_val_callback(tmpdir):
         assert float(output_value) == float(expected_output)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
-        if "on_batch_end" in func_name:
-            continue
-        if func_attr["prog_bar"] and (func_attr["on_epoch"] or func_attr["on_step"]):
-            try:
-                assert func_name in trainer.progress_bar_metrics
-            except:
-                import pdb
-                pdb.set_trace()
+        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
+            assert func_name in trainer.progress_bar_metrics
         else:
             assert func_name not in trainer.progress_bar_metrics
 
@@ -776,17 +765,16 @@ def test_log_works_in_test_callback(tmpdir):
 
     # function used to describe expected return logic
     def get_expected_output(func_attr, original_values):
-        # Apply mean on values
-        if func_attr["on_epoch"] and not func_attr["on_step"]:
-            expected_output = np.mean(original_values)
-        else:
+        if func_attr["on_step"] and not func_attr["on_epoch"]:
             expected_output = np.max(original_values)
+        else:
+            expected_output = np.mean(original_values)
         return expected_output
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
-    assert "debug_epoch" in trainer.callback_metrics
-    trainer.callback_metrics.pop("debug_epoch")
+    #assert "debug_epoch" in trainer.callback_metrics
+    #trainer.callback_metrics.pop("debug_epoch")
 
     for dl_idx in range(num_dataloaders):
         key = f"test_loss/dataloader_idx_{dl_idx}"
@@ -915,13 +903,13 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert get_metrics_at_idx(6)["valid_loss_1"] == expected
 
     results = trainer.test(model)
-    expected_callback_metrics = {
+    expected_callback_metrics = set({
         'train_loss',
         'valid_loss_0_epoch',
         'valid_loss_0',
         'debug_epoch',
         'valid_loss_1',
         'test_loss',
-    }
-    assert set(trainer.callback_metrics) == expected_callback_metrics
+    })
+    assert sorted(trainer.callback_metrics) == sorted(expected_callback_metrics)
     assert set(results[0]) == {'test_loss', 'debug_epoch'}
