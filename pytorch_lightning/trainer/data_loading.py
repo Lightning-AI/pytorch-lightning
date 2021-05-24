@@ -238,7 +238,7 @@ class TrainerDataLoadingMixin(ABC):
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
                 rank_zero_warn(
                     'You requested to overfit but enabled training dataloader shuffling.'
-                    ' We are turning the training dataloader shuffling off for you.'
+                    ' We are turning off the training dataloader shufling for you.'
                 )
                 self.train_dataloader = self.replace_sampler(
                     self.train_dataloader, SequentialSampler(self.train_dataloader.dataset)
