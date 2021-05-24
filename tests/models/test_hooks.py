@@ -229,58 +229,123 @@ def test_transfer_batch_hook_ddp(tmpdir):
     trainer.fit(model)
 
 
-def test_trainer_model_hook_system(tmpdir):
-    """Test the LightningModule hook system."""
+class HookedModel(BoringModel):
 
-    class HookedModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.called = []
+        self.train_batch = [
+            'on_train_batch_start',
+            'on_before_batch_transfer',
+            'transfer_batch_to_device',
+            'on_after_batch_transfer',
+            'training_step',
+            'on_before_zero_grad',
+            'optimizer_zero_grad',
+            'backward',
+            'on_after_backward',
+            'optimizer_step',
+            'on_train_batch_end',
+        ]
+        self.val_batch = [
+            'on_validation_batch_start',
+            'on_before_batch_transfer',
+            'transfer_batch_to_device',
+            'on_after_batch_transfer',
+            'on_validation_batch_end',
+        ]
 
-        def __init__(self):
-            super().__init__()
-            self.called = []
+    def training_step(self, *args, **kwargs):
+        self.called.append("training_step")
+        return super().training_step(*args, **kwargs)
 
-        def on_after_backward(self):
-            self.called.append("on_after_backward")
-            super().on_after_backward()
+    def on_before_zero_grad(self, *args, **kwargs):
+        self.called.append("on_before_zero_grad")
+        super().on_before_zero_grad(*args, **kwargs)
 
-        def on_before_zero_grad(self, *args, **kwargs):
-            self.called.append("on_before_zero_grad")
-            super().on_before_zero_grad(*args, **kwargs)
+    def optimizer_zero_grad(self, *args, **kwargs):
+        self.called.append("optimizer_zero_grad")
+        super().optimizer_zero_grad(*args, **kwargs)
 
-        def on_epoch_start(self):
-            self.called.append("on_epoch_start")
-            super().on_epoch_start()
+    def training_epoch_end(self, *args, **kwargs):
+        self.called.append("training_epoch_end")
+        super().training_epoch_end(*args, **kwargs)
 
-        def on_epoch_end(self):
-            self.called.append("on_epoch_end")
-            super().on_epoch_end()
+    def backward(self, *args, **kwargs):
+        self.called.append("backward")
+        super().backward(*args, **kwargs)
 
-        def on_fit_start(self):
-            self.called.append("on_fit_start")
-            super().on_fit_start()
+    def on_after_backward(self):
+        self.called.append("on_after_backward")
+        super().on_after_backward()
 
-        def on_fit_end(self):
-            self.called.append("on_fit_end")
-            super().on_fit_end()
+    def optimizer_step(self, *args, **kwargs):
+        super().optimizer_step(*args, **kwargs)
+        self.called.append("optimizer_step")  # append after as closure calls other methods
 
-        def on_hpc_load(self, *args, **kwargs):
-            self.called.append("on_hpc_load")
-            super().on_hpc_load(*args, **kwargs)
+    def validation_epoch_end(self, *args, **kwargs):
+        self.called.append("validation_epoch_end")
+        super().validation_epoch_end(*args, **kwargs)
 
-        def on_hpc_save(self, *args, **kwargs):
-            self.called.append("on_hpc_save")
-            super().on_hpc_save(*args, **kwargs)
+    def on_epoch_start(self):
+        self.called.append("on_epoch_start")
+        super().on_epoch_start()
 
-        def on_load_checkpoint(self, *args, **kwargs):
-            self.called.append("on_load_checkpoint")
-            super().on_load_checkpoint(*args, **kwargs)
+    def on_epoch_end(self):
+        self.called.append("on_epoch_end")
+        super().on_epoch_end()
 
-        def on_save_checkpoint(self, *args, **kwargs):
-            self.called.append("on_save_checkpoint")
-            super().on_save_checkpoint(*args, **kwargs)
+    def on_fit_start(self):
+        self.called.append("on_fit_start")
+        super().on_fit_start()
 
-        def on_pretrain_routine_start(self):
-            self.called.append("on_pretrain_routine_start")
-            super().on_pretrain_routine_start()
+    def on_fit_end(self):
+        self.called.append("on_fit_end")
+        super().on_fit_end()
+
+    def on_hpc_load(self, *args, **kwargs):
+        self.called.append("on_hpc_load")
+        super().on_hpc_load(*args, **kwargs)
+
+    def on_hpc_save(self, *args, **kwargs):
+        self.called.append("on_hpc_save")
+        super().on_hpc_save(*args, **kwargs)
+
+    def on_load_checkpoint(self, *args, **kwargs):
+        self.called.append("on_load_checkpoint")
+        super().on_load_checkpoint(*args, **kwargs)
+
+    def on_save_checkpoint(self, *args, **kwargs):
+        self.called.append("on_save_checkpoint")
+        super().on_save_checkpoint(*args, **kwargs)
+
+    def on_pretrain_routine_start(self):
+        self.called.append("on_pretrain_routine_start")
+        super().on_pretrain_routine_start()
+
+    def on_pretrain_routine_end(self):
+        self.called.append("on_pretrain_routine_end")
+        super().on_pretrain_routine_end()
+
+    def on_train_start(self):
+        self.called.append("on_train_start")
+        super().on_train_start()
+
+    def on_train_end(self):
+        self.called.append("on_train_end")
+        super().on_train_end()
+
+    def on_before_batch_transfer(self, *args, **kwargs):
+        self.called.append("on_before_batch_transfer")
+        return super().on_before_batch_transfer(*args, **kwargs)
+
+    def transfer_batch_to_device(self, *args, **kwargs):
+        self.called.append("transfer_batch_to_device")
+        return super().transfer_batch_to_device(*args, **kwargs)
+
+    def on_after_batch_transfer(self, *args, **kwargs):
+        self.called.append("on_after_batch_transfer")
+        return super().on_after_batch_transfer(*args, **kwargs)
 
     def on_train_batch_start(self, *args, **kwargs):
         self.called.append("on_train_batch_start")
