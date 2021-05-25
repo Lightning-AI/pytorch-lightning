@@ -62,9 +62,8 @@ class BatchLoop(Loop):
 
         output = AttributeDict(
             signal=0,
-            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
-            # grad_norm_dict=grad_norm_dict,
-            grad_norm_dict={},
+            # TODO: Properly aggregate grad_norm accross opt_idx and split_idx
+            grad_norm_dict=self.grad_norm_dicts[-1],
             training_step_output_for_epoch_end=self.batch_outputs,
         )
         return output
@@ -75,6 +74,7 @@ class BatchLoop(Loop):
 
         # TODO: let loops track individual outputs
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
+        self.grad_norm_dicts = []
 
     def advance(self, batch, batch_idx, dataloader_idx):
         split_idx, split_batch = self._remaining_splits.pop(0)
@@ -82,6 +82,7 @@ class BatchLoop(Loop):
 
         # TODO: this list needs to go outside this loop
         # batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
+        grad_norm_dict = {}
 
         if self.trainer.lightning_module.automatic_optimization:
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
@@ -94,6 +95,9 @@ class BatchLoop(Loop):
             result = self._run_optimization(batch_idx, split_idx, split_batch)
             if result:
                 self.batch_outputs[0].append(result.training_step_output_for_epoch_end)
+
+        # TODO: Properly aggregate grad_norm accross opt_idx and split_idx
+        self.grad_norm_dicts.append(grad_norm_dict)
 
 
 # ------------------------------------------------------------------------------------------------------------
