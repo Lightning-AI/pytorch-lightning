@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import pytest
 from copy import deepcopy
 import torch
 import torch.distributed as dist
@@ -79,11 +79,6 @@ def _ddp_test_fn(rank, worldsize):
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
                 assert batch_expected[k] == batch_log[k]
-
-            state_dict = result.state_dict()
-            result = ResultCollection(True)
-            result.load_from_state_dict(state_dict)
-            
 
         epoch_log = result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
         result.reset()
@@ -164,23 +159,27 @@ def test_result_collection_restoration():
         
         cumulative_sum = 0
 
+        result.on_epoch_end_reached = False
+
         for i in range(3):
+            
             a = metric_a(i)
             b = metric_b(i)
             c = metric_c(i)
 
             cumulative_sum += i
 
-            result.log('h', 'a', metric_a, on_step=True, on_epoch=True)
-            result.log('h', 'b', metric_b, on_step=False, on_epoch=True)
-            result.log('h', 'c', metric_c, on_step=True, on_epoch=False)
+            result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True)
+            result.log('training_step', 'b', metric_b, on_step=False, on_epoch=True)
+            result.log('training_step', 'c', metric_c, on_step=True, on_epoch=False)
 
-            result.log('m', 'a_1', a, on_step=True, on_epoch=True)
-            result.log('m', 'b_1', b, on_step=False, on_epoch=True)
-            result.log('m', 'c_1', [c, c], on_step=True, on_epoch=False)
+            result.log('training_step', 'a_1', a, on_step=True, on_epoch=True)
+            result.log('training_step', 'b_1', b, on_step=False, on_epoch=True)
+            result.log('training_step', 'c_1', [c, c], on_step=True, on_epoch=False)
 
-            batch_log = result.get_batch_metrics()[DefaultMetricsKeys.LOG]
+            batch_log = result.metrics[DefaultMetricsKeys.LOG]
             batch_expected = {"a_step": i, "c": i, "a_1_step": i, "c_1": [i, i]}
+            
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
                 assert batch_expected[k] == batch_log[k]
@@ -193,14 +192,17 @@ def test_result_collection_restoration():
 
             # the metric reference are lost during serialization.
             # they will be restored with the LightningModule state on the next step.
-            result.log('h', 'a', metric_a, on_step=True, on_epoch=True)
-            result.log('h', 'b', metric_b, on_step=False, on_epoch=True)
-            result.log('h', 'c', metric_c, on_step=True, on_epoch=False)
+            result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True)
+            result.log('training_step', 'b', metric_b, on_step=False, on_epoch=True)
+            result.log('training_step', 'c', metric_c, on_step=True, on_epoch=False)
 
             assert _result.items() == result.items()
 
-        epoch_log = result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
-        _epoch_log = _result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
+        result.on_epoch_end_reached = True
+        _result.on_epoch_end_reached = True
+
+        epoch_log = result.metrics[DefaultMetricsKeys.LOG]
+        _epoch_log = _result.metrics[DefaultMetricsKeys.LOG]
 
         assert epoch_log == _epoch_log
 
@@ -213,10 +215,61 @@ def test_result_collection_restoration():
             else:
                 assert epoch_log[k] == 1
 
-        _result.reset()
-        result.reset()
+        _result.log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True)
+        result.log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True)
+
+        _result.reset_metrics()
+        result.reset_metrics()
 
         # assert metric state reset to default values
         assert metric_a.x == metric_a._defaults['x'], (metric_a.x, metric_a._defaults['x'])
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
+        
+
+def test_simple_loop():
+
+    result = ResultCollection(True)
+
+    result.log('a0', 'a', torch.tensor(0.), on_step=True, on_epoch=True)
+    result.log('a1', 'a', torch.tensor(0.), on_step=True, on_epoch=True)
+
+    for epoch in range(2):
+
+        result.log('b0', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
+        result.log('b1', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
+
+        for batch_idx, batch_size in enumerate(range(2)):
+
+            result.batch_idx = batch_idx
+
+            result.log('c0', 'a', torch.tensor(2.) + epoch, on_step=True, on_epoch=True)
+            result.log('c1', 'a', torch.tensor(2.) + epoch, on_step=True, on_epoch=True)
+            result.log('c2', 'a', torch.tensor(2.) + epoch, on_step=True, on_epoch=True)
+
+        result.on_epoch_end_reached = True
+
+        result.log('d0', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
+        result.log('d1', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
+
+        assert result['a0.a'].value == torch.tensor(0.)
+        assert result['a0.a'].cumulated_batch_size == torch.tensor(1.)
+        assert result['a1.a'].value == torch.tensor(0.)
+        assert result['a1.a'].cumulated_batch_size == torch.tensor(1.)
+
+        assert result['b0.a'].value == torch.tensor(1.) + epoch
+        assert result['b0.a'].cumulated_batch_size == torch.tensor(1.)
+        assert result['b1.a'].value == torch.tensor(1.) + epoch
+        assert result['b1.a'].cumulated_batch_size == torch.tensor(1.)
+
+        assert result['c0.a'].value == torch.tensor(4.) + epoch * (batch_size + 1)
+        assert result['c0.a'].cumulated_batch_size == torch.tensor(2.)
+        assert result['c1.a'].value == torch.tensor(4.) + epoch * (batch_size + 1)
+        assert result['c1.a'].cumulated_batch_size == torch.tensor(2.)
+        assert result['c2.a'].value == torch.tensor(4.) + epoch * (batch_size + 1)
+        assert result['c2.a'].cumulated_batch_size == torch.tensor(2.)
+
+        assert result['d0.a'].value == torch.tensor(3.) + epoch
+        assert result['d0.a'].cumulated_batch_size == torch.tensor(1.)
+        assert result['d1.a'].value == torch.tensor(3.) + epoch
+        assert result['d1.a'].cumulated_batch_size == torch.tensor(1.)

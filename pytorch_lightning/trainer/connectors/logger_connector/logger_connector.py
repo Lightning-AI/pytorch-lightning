@@ -64,7 +64,7 @@ class LoggerConnector:
             else:
                 self.trainer.logger = logger
 
-    def on_evaluation_batch_start(self, batch, dataloader_idx, num_dataloaders):
+    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
         if self.trainer.sanity_checking:
             return
 
@@ -74,6 +74,7 @@ class LoggerConnector:
 
         # track batch_size
         self.trainer.result_collections.extract_batch_size(batch)
+        self.trainer.result_collections.batch_idx = batch_idx
 
     @property
     def should_flush_logs(self):
@@ -229,8 +230,9 @@ class LoggerConnector:
 
     ############## TRAIN METRICS UPDATES START ##############   # noqa E266
 
-    def on_train_split_start(self, split_batch: Any) -> None:
+    def on_train_split_start(self, batch_idx: int, split_batch: Any) -> None:
         self.trainer.result_collections.extract_batch_size(split_batch)
+        self.trainer.result_collections.batch_idx = batch_idx
 
     def on_train_batch_end(self) -> None:
         self.trainer.result_collections.batch_size = 1

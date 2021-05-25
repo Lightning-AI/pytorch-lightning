@@ -14,7 +14,6 @@
 from collections.abc import Generator, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
-from weakref import proxy
 from typing import Any, Callable, Dict, Iterable, NamedTuple, Optional, Tuple, Union
 
 import torch
@@ -44,7 +43,6 @@ class Metadata:
     reduce_fx: Callable = torch.mean
     dataloader_idx: Optional[int] = None
     is_tensor: bool = True
-    should_reset: bool = True
 
     @property
     def forked(self) -> bool:
@@ -99,7 +97,7 @@ class ResultMetric(Metric):
             self.value = min(self.value, value.float().mean())
 
         else:
-            self.value = proxy(value)
+            self.value = value
             self._forward_cache = value._forward_cache
 
     def compute(self) -> torch.Tensor:
@@ -111,10 +109,7 @@ class ResultMetric(Metric):
             else:
                 raise MisconfigurationException("Only mean, max are supported.")
         else:
-            try:
-                return self.value.compute()
-            except RuntimeError:
-                return torch.tensor(0.)
+            return self.value.compute()
 
     def __repr__(self) -> str:
         if self.meta.is_tensor_and_mean_reduction:
@@ -170,7 +165,10 @@ class ResultCollection(dict):
     def __init__(self, is_train: bool) -> None:
         super().__init__()
         self.is_train = is_train
-        self.reset()
+        self._on_epoch_end_reached = False
+        self._minimize = None
+        self._current_hook_name: Optional[str] = None
+        self._batch_idx: Optional[int] = None
 
     @property
     def batch_size(self) -> int:
@@ -181,13 +179,22 @@ class ResultCollection(dict):
         self._batch_size = batch_size
 
     @property
+    def batch_idx(self) -> int:
+        return self._batch_idx
+
+    @batch_idx.setter
+    def batch_idx(self, batch_idx: int) -> None:
+        self._batch_idx = batch_idx
+
+    @property
     def on_epoch_end_reached(self) -> bool:
         return self._on_epoch_end_reached
 
     @on_epoch_end_reached.setter
     def on_epoch_end_reached(self, on_epoch_end_reached):
         self._on_epoch_end_reached = on_epoch_end_reached
-        self._batch_size = None
+        self._minimize = None
+        self._batch_idx = None
 
     @property
     def metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
@@ -218,9 +225,6 @@ class ResultCollection(dict):
 
         extra = apply_to_collection(extra, torch.Tensor, detach_fn)
         self['extra'] = extra
-
-    def should_reset(self, hook_name: str) -> bool:
-        return hook_name not in ("on_train_start")
 
     def log(
         self,
@@ -260,11 +264,12 @@ class ResultCollection(dict):
                 on_epoch=on_epoch,
                 reduce_fx=reduce_fx,
                 dataloader_idx=dataloader_idx,
-                should_reset=self.should_reset(hook_name)
             )
             self.instance_result_metric(key, meta, value)
 
-        self.update_metrics(key, value, batch_size or torch.tensor(1.))
+        self.update_metrics(hook_name, key, value, batch_size or torch.tensor(1.))
+
+        self._current_hook_name = hook_name
 
     def instance_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
 
@@ -285,7 +290,11 @@ class ResultCollection(dict):
             self[key + '.on_epoch'] = meta.on_epoch
             self[key + '.dataloader_idx'] = meta.dataloader_idx
 
-    def update_metrics(self, key: str, value: Union[Dict, torch.Tensor], batch_size) -> None:
+    def update_metrics(self, hook_name: str, key: str, value: Union[Dict, torch.Tensor], batch_size) -> None:
+
+        if isinstance(self._current_hook_name, str) and self._current_hook_name != hook_name and self.batch_idx in (None, 0):
+            # when restarting an new epoch, reset the tensor hooks dynamically.
+            self.reset_metrics(hook_name, is_tensor=True)
 
         def fn(result_metric, v):
             assert isinstance(v, (torch.Tensor, Metric))
@@ -415,17 +424,20 @@ class ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
-    def reset(self) -> None:
-        """Call at the end of epoch to reset all metric objects"""
-
+    def reset_metrics(self, hook_name: str = None, is_tensor: bool = False) -> None:
+        """Call at the end of epoch to reset all results provided as `Metric` or `tensor`"""
         def reset_fn(item: ResultMetric) -> None:
-            if item.meta.should_reset:
+            nonlocal hook_name
+            nonlocal is_tensor
+            if item.meta.is_tensor == is_tensor:
+                if isinstance(hook_name, str) and hook_name != item.meta.fx:
+                    return
                 item.reset()
 
         apply_to_collection(dict(self.items()), ResultMetric, reset_fn)
-        self._batch_size: Optional[int] = None
-        self._on_epoch_end_reached: bool = False
-        self._minimize: Optional[Tensor] = None
+
+    def reset(self):
+        self.reset_metrics()
 
     def extract_batch_size(self, batch: Any) -> None:
         try:

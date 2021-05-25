@@ -962,7 +962,7 @@ class TrainLoop:
             model.toggle_optimizer(optimizer, opt_idx)
 
         # use to track metrics internally
-        self.trainer.logger_connector.on_train_split_start(split_batch)
+        self.trainer.logger_connector.on_train_split_start(split_idx, split_batch)
 
     def update_running_loss(self, current_loss: torch.Tensor) -> None:
         if self.trainer.lightning_module.automatic_optimization:
