@@ -308,3 +308,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
         self.barrier("teardown")
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        return self.local_rank == 0
