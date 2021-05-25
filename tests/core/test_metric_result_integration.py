@@ -96,7 +96,7 @@ def _ddp_test_fn(rank, worldsize):
             assert epoch_expected[k] == epoch_log[k]
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, min_gpus=2)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
     tutils.set_random_master_port()
@@ -159,9 +159,7 @@ def test_result_collection_restoration():
     for _ in range(2):
 
         cumulative_sum = 0
-
-        result.on_epoch_end_reached = False
-
+        
         for i in range(3):
             
             a = metric_a(i)
@@ -170,7 +168,10 @@ def test_result_collection_restoration():
 
             cumulative_sum += i
 
+            import pdb; pdb.set_trace()
             result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True)
+            import pdb; pdb.set_trace()
+            
             result.log('training_step', 'b', metric_b, on_step=False, on_epoch=True)
             result.log('training_step', 'c', metric_c, on_step=True, on_epoch=False)
 
@@ -219,8 +220,10 @@ def test_result_collection_restoration():
         _result.log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True)
         result.log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True)
 
-        _result.reset_metrics()
-        result.reset_metrics()
+        _result.reset()
+        result.reset()
+
+        print(result)
 
         # assert metric state reset to default values
         assert metric_a.x == metric_a._defaults['x'], (metric_a.x, metric_a._defaults['x'])
@@ -228,7 +231,7 @@ def test_result_collection_restoration():
         assert metric_c.x == metric_c._defaults['x']
         
 
-def test_simple_loop():
+def test_result_collection_simple_loop():
 
     result = ResultCollection(True)
 
@@ -274,3 +277,5 @@ def test_simple_loop():
         assert result['d0.a'].cumulated_batch_size == torch.tensor(1.)
         assert result['d1.a'].value == torch.tensor(3.) + epoch
         assert result['d1.a'].cumulated_batch_size == torch.tensor(1.)
+        
+        result.reset()

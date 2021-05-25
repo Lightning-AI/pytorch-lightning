@@ -364,11 +364,8 @@ class ResultCollection(dict):
                     is_empty = False
 
             # apply detection.
-            apply_to_collection(value, object, is_empty_fn, wrong_dtype=(
-                Mapping,
-                Sequence,
-                NamedTuple,
-            ))
+            wrong_dtype = (Mapping, Sequence, NamedTuple,)
+            apply_to_collection(value, object, is_empty_fn, wrong_dtype=wrong_dtype)
 
             # skip is the value was actually empty.
             if is_empty:
@@ -439,6 +436,7 @@ class ResultCollection(dict):
 
     def reset(self):
         self.reset_metrics()
+        self.on_epoch_end_reached = False
 
     def extract_batch_size(self, batch: Any) -> None:
         try:
