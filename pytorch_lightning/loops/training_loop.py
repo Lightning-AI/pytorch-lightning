@@ -130,9 +130,6 @@ class TrainingLoop(Loop):
         self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
     def on_advance_end(self):
-        # TODO: where is the right place update this !!!!?????
-        self.total_batch_idx += 1
-
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
@@ -151,6 +148,8 @@ class TrainingLoop(Loop):
         monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
         self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
         self.trainer.checkpoint_connector.has_trained = True
+
+        self.total_batch_idx += 1
 
         if self.done:
             raise StopIteration
