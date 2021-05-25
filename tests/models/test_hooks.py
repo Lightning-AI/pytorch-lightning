@@ -255,6 +255,18 @@ class HookedModel(BoringModel):
             'on_validation_batch_end',
         ]
 
+    def prepare_data(self):
+        self.called.append("prepare_data")
+        return super().prepare_data()
+
+    def configure_callbacks(self):
+        self.called.append("configure_callbacks")
+        return super().configure_callbacks()
+
+    def configure_optimizers(self):
+        self.called.append("configure_optimizers")
+        return super().configure_optimizers()
+
     def training_step(self, *args, **kwargs):
         self.called.append("training_step")
         return super().training_step(*args, **kwargs)
@@ -451,7 +463,10 @@ def test_trainer_model_hook_system_fit(tmpdir):
     assert model.called == []
     trainer.fit(model)
     expected = [
+        'prepare_data',
+        'configure_callbacks',
         'setup_fit',
+        'configure_optimizers',
         'on_fit_start',
         'on_pretrain_routine_start',
         'on_pretrain_routine_end',
@@ -504,7 +519,10 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
     assert model.called == []
     trainer.fit(model)
     expected = [
+        'prepare_data',
+        'configure_callbacks',
         'setup_fit',
+        'configure_optimizers',
         'on_fit_start',
         'on_pretrain_routine_start',
         'on_pretrain_routine_end',
@@ -535,6 +553,8 @@ def test_trainer_model_hook_system_validate(tmpdir):
     assert model.called == []
     trainer.validate(model, verbose=False)
     expected = [
+        'prepare_data',
+        'configure_callbacks',
         'setup_validate',
         'on_validation_model_eval',
         'on_validation_start',
@@ -567,6 +587,8 @@ def test_trainer_model_hook_system_test(tmpdir):
     assert model.called == []
     trainer.test(model, verbose=False)
     expected = [
+        'prepare_data',
+        'configure_callbacks',
         'setup_test',
         'on_test_model_eval',
         'on_test_start',
