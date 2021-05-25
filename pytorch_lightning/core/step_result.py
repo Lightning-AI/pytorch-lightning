@@ -158,7 +158,6 @@ class ResultMetric(Metric):
     def state_dict(self):
         return {
             "meta": self.meta,
-
         }
 
 
@@ -354,8 +353,12 @@ class ResultCollection(dict):
                 if v is not None:
                     is_empty = False
 
-            # apply detection. 
-            apply_to_collection(value, object, is_empty_fn, wrong_dtype=(Mapping, Sequence, NamedTuple,))
+            # apply detection.
+            apply_to_collection(value, object, is_empty_fn, wrong_dtype=(
+                Mapping,
+                Sequence,
+                NamedTuple,
+            ))
 
             # skip is the value was actually empty.
             if is_empty:
@@ -459,11 +462,8 @@ class ResultCollection(dict):
         return repr[:-1] + '\n}'
 
     def state_dict(self):
+
         def get_state_dict(item: ResultMetric) -> Dict[str, Any]:
             return item.state_dict()
 
-        return {
-            k: apply_to_collection(v, ResultMetric, get_state_dict)
-            for k, v in self.items()
-        }
-        
+        return {k: apply_to_collection(v, ResultMetric, get_state_dict) for k, v in self.items()}
