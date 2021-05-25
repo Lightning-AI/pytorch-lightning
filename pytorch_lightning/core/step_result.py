@@ -79,9 +79,9 @@ class ResultMetric(Metric):
         super().__init__(compute_on_step=metadata.is_tensor)
         self.meta = metadata
         if self.meta.is_tensor:
-            self.add_state("value", torch.tensor(.0))
+            self.add_state("value", torch.tensor(.0, dtype=torch.float64))
             if self.meta.is_tensor_and_mean_reduction:
-                self.add_state("cumulated_batch_size", torch.tensor(.0))
+                self.add_state("cumulated_batch_size", torch.tensor(.0, dtype=torch.float64))
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
         if self.meta.is_tensor_and_mean_reduction:
@@ -101,9 +101,9 @@ class ResultMetric(Metric):
     def compute(self) -> torch.Tensor:
         if self.meta.is_tensor:
             if self.meta.is_tensor_and_mean_reduction:
-                return self.value / self.cumulated_batch_size
+                return torch.sum(self.value) / torch.sum(self.cumulated_batch_size)
             elif self.meta.is_tensor_and_max_reduction or self.meta.is_tensor_and_min_reduction:
-                return self.value
+                return self.meta.fx(self.value)
             else:
                 raise MisconfigurationException("Only mean, max are supported.")
         else:
@@ -123,7 +123,6 @@ class ResultMetric(Metric):
         if self.meta.is_tensor:
             super().reset()
         else:
-            print(self.meta.fx, self.meta.name)
             self.value.reset()
 
     def forward(self, *args, **kwargs):
@@ -260,7 +259,8 @@ class ResultCollection(dict):
             nonlocal meta
             meta = deepcopy(meta)
             meta.is_tensor = torch.is_tensor(v)
-            return ResultMetric(meta)
+            metric = ResultMetric(meta)
+            return metric.to(v.device)
 
         self[key] = apply_to_collection(value, (torch.Tensor, Metric), fn)
         # cache the meta for reduction

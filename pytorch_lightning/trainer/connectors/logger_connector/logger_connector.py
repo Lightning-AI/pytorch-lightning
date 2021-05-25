@@ -160,6 +160,7 @@ class LoggerConnector:
         if not self.trainer.sanity_checking:
 
             metrics = self.trainer.result_collections.metrics
+
             # update metrics
             self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
             self.add_callback_metrics(metrics[DefaultMetricsKeys.CALLBACK])
