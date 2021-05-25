@@ -70,7 +70,8 @@ def test_training_epoch_end_metrics_collection(tmpdir):
                 logger=False,
                 prog_bar=True,
             )
-            import pdb; pdb.set_trace()
+            import pdb
+            pdb.set_trace()
 
     model = CurrentModel()
     trainer = Trainer(
@@ -82,8 +83,8 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     metrics = trainer.progress_bar_dict
 
-    import pdb; pdb.set_trace()
-
+    import pdb
+    pdb.set_trace()
     # metrics added in training step should be unchanged by epoch end method
     assert metrics['step_metric'] == -1
     # a metric shared in both methods gets overwritten by epoch_end
