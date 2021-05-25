@@ -31,8 +31,9 @@ warning_cache = WarningCache()
 _WANDB_AVAILABLE = _module_available("wandb")
 
 try:
-    import wandb
     from wandb.wandb_run import Run
+
+    import wandb
 except ImportError:
     # needed for test mocks, these tests shall be updated
     wandb, Run = None, None
