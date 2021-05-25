@@ -293,7 +293,8 @@ class ResultCollection(dict):
 
     def update_metrics(self, hook_name: str, key: str, value: Union[Dict, torch.Tensor], batch_size) -> None:
 
-        if isinstance(self._current_hook_name, str) and self._current_hook_name != hook_name and self.batch_idx in (None, 0):
+        if isinstance(self._current_hook_name,
+                      str) and self._current_hook_name != hook_name and self.batch_idx in (None, 0):
             # when restarting an new epoch, reset the tensor hooks dynamically.
             self.reset_metrics(hook_name, is_tensor=True)
 
@@ -427,6 +428,7 @@ class ResultCollection(dict):
 
     def reset_metrics(self, hook_name: str = None, is_tensor: bool = False) -> None:
         """Call at the end of epoch to reset all results provided as `Metric` or `tensor`"""
+
         def reset_fn(item: ResultMetric) -> None:
             nonlocal hook_name
             nonlocal is_tensor

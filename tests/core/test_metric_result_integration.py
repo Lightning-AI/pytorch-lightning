@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 from copy import deepcopy
 
+import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -163,7 +163,7 @@ def test_result_collection_restoration():
         result.on_epoch_end_reached = False
 
         for i in range(3):
-            
+
             a = metric_a(i)
             b = metric_b(i)
             c = metric_c(i)
@@ -180,7 +180,7 @@ def test_result_collection_restoration():
 
             batch_log = result.metrics[DefaultMetricsKeys.LOG]
             batch_expected = {"a_step": i, "c": i, "a_1_step": i, "c_1": [i, i]}
-            
+
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
                 assert batch_expected[k] == batch_log[k]
@@ -226,7 +226,7 @@ def test_result_collection_restoration():
         assert metric_a.x == metric_a._defaults['x'], (metric_a.x, metric_a._defaults['x'])
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
-        
+
 
 def test_simple_loop():
 
