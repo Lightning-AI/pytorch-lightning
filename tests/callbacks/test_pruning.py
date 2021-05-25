@@ -22,7 +22,7 @@ import torch.nn.utils.prune as pytorch_prune
 from torch import nn
 from torch.nn import Sequential
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ModelPruning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
@@ -225,7 +225,6 @@ def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
 
 @pytest.mark.parametrize("make_pruning_permanent", (False, True))
 def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool):
-    seed_everything(0)
     model = TestModel()
     pruning_kwargs = {
         'parameters_to_prune': [(model.layer.mlp_1, "weight"), (model.layer.mlp_3, "weight")],
@@ -281,7 +280,6 @@ def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog, on_train_e
     make sure a copy is pruned and not the trained model if we want to continue
     with the same pruning buffers.
     """
-    seed_everything(0)
 
     class TestPruning(ModelPruning):
 
