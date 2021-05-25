@@ -19,10 +19,10 @@ class Loop(ABC):
 
     @property
     @abstractmethod
-    def done(self):
+    def done(self) -> bool:
         """Property indicating when loop is finished"""
 
-    def run(self, *args: Any, **kwargs: Any):
+    def run(self, *args: Any, **kwargs: Any) -> Any:
         self.on_run_start(*args, **kwargs)
 
         while not self.done:
@@ -41,7 +41,7 @@ class Loop(ABC):
         pass
 
     @abstractmethod
-    def advance(self, *args: Any, **kwargs: Any):
+    def advance(self, *args: Any, **kwargs: Any) -> None:
         """What to do within a single step"""
 
     def on_advance_end(self) -> None:
