@@ -2,7 +2,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
 from functools import partial, update_wrapper
-from typing import List, Any, Optional, Callable, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -12,8 +12,8 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.supporters import TensorRunningAccum, prefetch_iterator
-from pytorch_lightning.utilities import AttributeDict, DeviceType, AMPType, grad_norm
+from pytorch_lightning.trainer.supporters import prefetch_iterator, TensorRunningAccum
+from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
@@ -94,6 +94,7 @@ class BatchLoop(Loop):
             result = self._run_optimization(batch_idx, split_idx, split_batch)
             if result:
                 self.batch_outputs[0].append(result.training_step_output_for_epoch_end)
+
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
@@ -369,7 +370,9 @@ class BatchLoop(Loop):
                         " the old signature will be removed in v1.5", DeprecationWarning
                     )
                 args.append(opt_idx)
-            elif not self.trainer.has_arg("training_step", "optimizer_idx") and self.trainer.lightning_module.automatic_optimization:
+            elif not self.trainer.has_arg(
+                "training_step", "optimizer_idx"
+            ) and self.trainer.lightning_module.automatic_optimization:
                 raise ValueError(
                     f"Your LightningModule defines {len(self.trainer.optimizers)} optimizers but"
                     ' `training_step` is missing the `optimizer_idx` argument.'

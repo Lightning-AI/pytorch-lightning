@@ -124,7 +124,9 @@ class EpochLoop(Loop):
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
-        self.training_loop.batch_loop.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
+        self.training_loop.batch_loop.accumulated_loss = TensorRunningAccum(
+            window_length=self.trainer.accumulate_grad_batches
+        )
 
         # hook
         self.trainer.call_hook("on_epoch_start")
@@ -149,7 +151,9 @@ class EpochLoop(Loop):
         if self.training_loop.batch_idx is None:
             return
 
-        should_check_val = self.training_loop.should_check_val_fx(self.batch_idx, self.training_loop.is_last_batch, on_epoch=True)
+        should_check_val = self.training_loop.should_check_val_fx(
+            self.batch_idx, self.training_loop.is_last_batch, on_epoch=True
+        )
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
         should_train_only = self.trainer.disable_validation or should_skip_eval
 

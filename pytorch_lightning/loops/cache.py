@@ -22,5 +22,3 @@ self.cache.add("abc", result, batch_idx=, opt_idx=..)
 self.cache.add("abc", result, batch_idx=)
 
 self.cache.group_by("abc", ("batch_idx", "opt_idx"))
-
-

@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List, Dict, Union
+from typing import Dict, List, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.step_result import Result
@@ -193,6 +193,7 @@ class TrainingLoop(Loop):
         self.trainer.call_hook('on_epoch_end')
         return self.epoch_output
 
+
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
 # ------------------------------------------------------------------------------------------------------------
@@ -287,8 +288,8 @@ class TrainingLoop(Loop):
 
     @staticmethod
     def _prepare_outputs(
-            outputs: List[List[List[Result]]],
-            batch_mode: bool,
+        outputs: List[List[List[Result]]],
+        batch_mode: bool,
     ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
         """
         Extract required information from batch or epoch end results.
