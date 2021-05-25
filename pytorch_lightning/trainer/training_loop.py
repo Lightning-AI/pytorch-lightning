@@ -901,6 +901,7 @@ class TrainLoop:
         if not is_val_check_epoch:
             return False
 
+        # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float('inf')
         if on_epoch and is_last_batch and is_infinite_dataset:
             return True
@@ -908,7 +909,6 @@ class TrainLoop:
         if on_epoch and self.trainer.should_stop:
             return True
 
-        # val_check_batch is inf for iterable datasets with no length defined
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = False
         if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
