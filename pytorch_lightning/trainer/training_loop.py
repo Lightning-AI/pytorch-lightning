@@ -529,21 +529,11 @@ class TrainLoop:
 
             self.total_batch_idx += 1
 
-            # max steps reached, end training
-            if (
+            max_steps_reached = (
                 self.max_steps is not None and self.max_steps <= self.global_step + 1
                 and self._accumulated_batches_reached()
-            ):
-                break
-
-            # end epoch early
-            # stop when the flag is changed or we've gone past the amount
-            # requested in the batches
-            if self.trainer.should_stop:
-                break
-
-            # stop epoch if we limited the number of training batches
-            if self._num_training_batches_reached(is_last_batch):
+            )
+            if max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(is_last_batch):
                 break
 
             # progress global step according to grads progress
@@ -906,7 +896,7 @@ class TrainLoop:
         if on_epoch and is_last_batch and is_infinite_dataset:
             return True
 
-        if on_epoch and self.trainer.should_stop:
+        if self.trainer.should_stop:
             return True
 
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch

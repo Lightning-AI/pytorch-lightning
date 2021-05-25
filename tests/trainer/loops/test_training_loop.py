@@ -110,3 +110,35 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
     else:
         assert trainer.train_loop.batch_idx == batch_idx_
         assert trainer.global_step == batch_idx_ * max_epochs
+
+
+def test_should_stop_mid_epoch(tmpdir):
+    """Test that training correctly stops mid epoch and that validation is still called at the right time"""
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.validation_called_at = None
+
+        def training_step(self, batch, batch_idx):
+            if batch_idx == 4:
+                self.trainer.should_stop = True
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, *args):
+            self.validation_called_at = (self.trainer.current_epoch, self.trainer.global_step)
+            return super().validation_step(*args)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=10,
+        limit_val_batches=1,
+    )
+    trainer.fit(model)
+
+    assert trainer.current_epoch == 0
+    assert trainer.global_step == 5
+    assert model.validation_called_at == (0, 4)  # TODO(@carmocca): should be 5 - will be fixed in next PR
