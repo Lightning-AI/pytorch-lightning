@@ -283,6 +283,7 @@ class ProgressBar(ProgressBarBase):
         self.main_progress_bar = None
         self.val_progress_bar = None
         self.test_progress_bar = None
+        self.predict_progress_bar = None
 
     def __getstate__(self):
         # can't pickle the tqdm objects
@@ -290,6 +291,7 @@ class ProgressBar(ProgressBarBase):
         state['main_progress_bar'] = None
         state['val_progress_bar'] = None
         state['test_progress_bar'] = None
+        state['predict_progress_bar'] = None
         return state
 
     @property
