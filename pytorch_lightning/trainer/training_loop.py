@@ -542,8 +542,14 @@ class TrainLoop:
         # handle epoch_output on epoch end
         self.on_train_epoch_end(epoch_output)
 
+        # the global step is manually decreased here due to backwards compatibility with existing loggers
+        # as they expect that the same step is used for the following epoch_end calls even when the batch loop has
+        # finished. this means the attribute does not exactly track the number of optimizer steps applied.
+        # TODO(@carmocca): deprecate and rename so users don't get confused
+        self.global_step -= 1
         # log epoch metrics
         self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
+        self.global_step += 1
 
         self.update_lr_schedulers('epoch')
 
