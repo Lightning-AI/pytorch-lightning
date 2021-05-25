@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from copy import deepcopy
-from pathlib import Path
 
 import pytest
 import torch
