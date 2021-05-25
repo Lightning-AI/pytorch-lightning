@@ -185,8 +185,11 @@ class EpochLoop(Loop):
         # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
         # when a checkpoint was saved at the last step
         self.training_loop.global_step -= 1
+        # the iteration_count/current_epoch is already incremented
+        self.current_epoch -= 1
         # TODO: see discussion/rework https://github.com/PyTorchLightning/pytorch-lightning/issues/7406
         self.check_checkpoint_callback(should_update=True, is_last=True)
+        self.current_epoch += 1
         self.training_loop.global_step += 1
 
         # hook
