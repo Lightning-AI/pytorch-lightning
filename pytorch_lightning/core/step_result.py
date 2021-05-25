@@ -107,9 +107,9 @@ class ResultMetric(Metric):
             if self.meta.is_tensor_and_mean_reduction:
                 return torch.sum(self.value) / torch.sum(self.cumulated_batch_size)
             elif self.meta.is_tensor_and_max_reduction or self.meta.is_tensor_and_min_reduction:
-                return self.meta.fx(self.value)
+                return self.value
             else:
-                raise MisconfigurationException("Only mean, max are supported.")
+                raise MisconfigurationException("Only min, mean, max reduction are supported.")
         else:
             return self.value.compute()
 
@@ -170,12 +170,13 @@ class ResultCollection(dict):
         self._on_epoch_end_reached = False
         self._minimize = None
         self._current_hook_name: Optional[str] = None
+        self._batch_size: Optional[int] = None
         self._batch_idx: Optional[int] = None
         self._root_device: Optional[torch.device] = None
 
     @property
-    def batch_size(self) -> int:
-        return self._batch_size
+    def batch_size(self) -> 1:
+        return self._batch_size or 1
 
     @batch_size.setter
     def batch_size(self, batch_size: int) -> None:
@@ -190,7 +191,7 @@ class ResultCollection(dict):
         self._root_device = root_device
 
     @property
-    def batch_idx(self) -> int:
+    def batch_idx(self) -> Optional[int]:
         return self._batch_idx
 
     @batch_idx.setter
@@ -282,7 +283,9 @@ class ResultCollection(dict):
             )
             self.instance_result_metric(key, meta, value)
 
-        self.update_metrics(hook_name, key, value, batch_size or torch.tensor(1.))
+        batch_size = torch.tensor(batch_size or self.batch_size, device=self.root_device)
+
+        self.update_metrics(hook_name, key, value, batch_size)
 
         self._current_hook_name = hook_name
 
@@ -314,7 +317,7 @@ class ResultCollection(dict):
 
         def fn(result_metric, v):
             assert isinstance(v, (torch.Tensor, Metric))
-            result_metric(v.to(self.root_device), batch_size)
+            result_metric(v.to(self.root_device), batch_size.to(self.root_device))
 
         apply_to_collections(self[key], value, ResultMetric, fn)
 

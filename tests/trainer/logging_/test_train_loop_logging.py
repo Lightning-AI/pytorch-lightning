@@ -508,7 +508,7 @@ def test_log_works_in_train_callback(tmpdir):
         count = 1
         choices = [False, True]
         # used to compute expected values
-        callback_funcs_called = collections.defaultdict(list)
+        callback_funcs_called = collections.defaultdict(dict)
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
@@ -517,22 +517,18 @@ def test_log_works_in_train_callback(tmpdir):
         ):
             self.funcs_called_count[func_name] += 1
             iterate = list(itertools.product(*[on_steps, on_epochs, prob_bars]))
+            value = self.count * func_idx
+
+            current_epoch = pl_module.trainer.current_epoch
+
             for idx, (on_step, on_epoch, prog_bar) in enumerate(iterate):
                 # run logging
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
-                pl_module.log(
-                    custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar
-                )
+                pl_module.log(custom_func_name, value, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
-                # catch information for verification
-
-                # on on_train_start is outside the main loop. Won't be called
-                if func_name == "on_train_start":
-                    self.callback_funcs_called[func_name].append([self.count * func_idx])
-
-                # Saved only values from second epoch, so we can compute its mean or latest.
-                if pl_module.trainer.current_epoch == 1:
-                    self.callback_funcs_called[func_name].append([self.count * func_idx])
+                if current_epoch not in self.callback_funcs_called[custom_func_name]:
+                    self.callback_funcs_called[custom_func_name][current_epoch] = []
+                self.callback_funcs_called[custom_func_name][current_epoch].append(value)
 
                 forked = on_step and on_epoch
 
@@ -560,6 +556,8 @@ def test_log_works_in_train_callback(tmpdir):
                         "forked": False,
                         "func_name": func_name
                     }
+
+                self.count += 1
 
         def on_train_start(self, trainer, pl_module):
             self.make_logging(
@@ -595,10 +593,6 @@ def test_log_works_in_train_callback(tmpdir):
                 on_epochs=self.choices,
                 prob_bars=self.choices
             )
-            # used to make sure aggregation works fine.
-            # we should obtain func[value * c for c in range(1, max_epochs * limit_train_batches)])
-            # with func = np.mean if on_epoch else func = np.max
-            self.count += 1
 
         def on_train_epoch_end(self, trainer, pl_module):
             self.make_logging(
@@ -647,15 +641,6 @@ def test_log_works_in_train_callback(tmpdir):
     assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_train_epoch_end"] == 2
 
-    # Make sure the func_name exists within callback_metrics. If not, we missed some
-    callback_metrics_keys = [*trainer.callback_metrics.keys()]
-    for func_name in test_callback.callback_funcs_called.keys():
-        is_in = False
-        for callback_metrics_key in callback_metrics_keys:
-            if func_name in callback_metrics_key:
-                is_in = True
-        assert is_in, (func_name, callback_metrics_keys)
-
     # function used to describe expected return logic
     def get_expected_output(func_attr, original_values):
         if func_attr["on_epoch"] and not func_attr["on_step"]:
@@ -680,11 +665,16 @@ def test_log_works_in_train_callback(tmpdir):
         func_attr = test_callback.funcs_attr[func_name]
 
         # retrived orginal logged values
-        original_values = test_callback.callback_funcs_called[func_attr["func_name"]]
-
-        # compute expected output and compare to actual one
-        expected_output = get_expected_output(func_attr, original_values)
-        assert float(output_value) == float(expected_output)
+        values = test_callback.callback_funcs_called[func_name]
+        if len(values) > 0:
+            original_values = values[len(values) - 1]
+            # compute expected output and compare to actual one
+            expected_output = get_expected_output(func_attr, original_values)
+            try:
+                assert float(output_value) == float(expected_output)
+            except:
+                import pdb
+                pdb.set_trace()
 
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:

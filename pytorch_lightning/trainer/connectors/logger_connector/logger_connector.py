@@ -64,18 +64,6 @@ class LoggerConnector:
             else:
                 self.trainer.logger = logger
 
-    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
-        if self.trainer.sanity_checking:
-            return
-
-        model = self.trainer.lightning_module
-        # set dataloader_idx only if multiple ones
-        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
-
-        # track batch_size
-        self.trainer.result_collections.extract_batch_size(batch)
-        self.trainer.result_collections.batch_idx = batch_idx
-
     @property
     def should_flush_logs(self):
         should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
@@ -205,6 +193,19 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
+    def on_evaluation_start(self):
+        root_device = self.trainer.lightning_module.device
+        self.trainer.result_collections.root_device = root_device
+
+    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
+        model = self.trainer.lightning_module
+        # set dataloader_idx only if multiple ones
+        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
+
+        # track batch_size
+        self.trainer.result_collections.extract_batch_size(batch)
+        self.trainer.result_collections.batch_idx = batch_idx
+
     def update_evaluation_step_metrics(self) -> None:
         metrics = self.trainer.result_collections.metrics
 
@@ -224,10 +225,6 @@ class LoggerConnector:
 
         # increment the step even if nothing was logged
         self.increment_evaluation_log_step()
-
-    def on_evaluation_start(self):
-        root_device = self.trainer.lightning_module.device
-        self.trainer.result_collections.root_device = root_device
 
     ############## TRAIN METRICS UPDATES START ##############   # noqa E266
 
