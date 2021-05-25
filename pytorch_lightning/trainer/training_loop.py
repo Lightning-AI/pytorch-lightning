@@ -494,6 +494,9 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
+            # update LR schedulers
+            self.update_lr_schedulers('step')
+
             # hook
             # TODO: add outputs to batches
             self.on_train_batch_end(
@@ -523,8 +526,6 @@ class TrainLoop:
             # -----------------------------------------
             self.save_loggers_on_train_batch_end()
 
-            # update LR schedulers
-            self.update_lr_schedulers('step')
             self.trainer.checkpoint_connector.has_trained = True
 
             self.total_batch_idx += 1
