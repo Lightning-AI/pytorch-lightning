@@ -727,7 +727,9 @@ class TrainLoop:
 
                         # optimizer step
                         self.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
-
+                        if len(self.trainer.optimizers) > 1:
+                            # revert back to previous state
+                            self.trainer.lightning_module.untoggle_optimizer(opt_idx)
                     else:
                         self._curr_step_result = self.training_step(
                             split_batch, batch_idx, opt_idx, self.trainer.hiddens
@@ -837,10 +839,6 @@ class TrainLoop:
                     self.warning_cache.warn(
                         "training_step returned None. If this was on purpose, ignore this warning..."
                     )
-
-                if len(self.trainer.optimizers) > 1:
-                    # revert back to previous state
-                    self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
         return result
 
