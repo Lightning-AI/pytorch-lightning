@@ -60,9 +60,8 @@ class LogInTwoMethods(BoringModel):
     "validation_step_none,val_dataloaders_none,monitor",
     [
         (False, False, 'val_log'),
-        (False, False, 'train_log_epoch'),
         (True, False, 'train_log_epoch'),
-        (False, True, 'train_log_epoch'),
+        (False, True, 'val_log'),
     ],
 )
 @pytest.mark.parametrize('reduce_lr_on_plateau', [False, True])
@@ -76,7 +75,7 @@ def test_model_checkpoint_score_and_ckpt(
     max_epochs = 3
     limit_train_batches = 5
     limit_val_batches = 7
-    lr = 1e-1
+    lr, gamma = 1e-1, 2
 
     class CustomBoringModel(BoringModel):
 
@@ -106,7 +105,7 @@ def test_model_checkpoint_score_and_ckpt(
                     'strict': True,
                 }
             else:
-                lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1)
+                lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=gamma)
 
             return [optimizer], [lr_scheduler]
 
@@ -153,9 +152,12 @@ def test_model_checkpoint_score_and_ckpt(
         assert mc_specific_data['current_score'] == score
 
         if not reduce_lr_on_plateau:
-            lr_scheduler_specific_data = chk['lr_schedulers'][0]
-            assert lr_scheduler_specific_data['_step_count'] == epoch + 2
-            assert lr_scheduler_specific_data['_last_lr'][0] == lr * (lr**(epoch + 1))
+            actual_step_count = chk['lr_schedulers'][0]['_step_count']
+            actual_lr = chk['lr_schedulers'][0]['_last_lr'][0]
+            # if validation_step_none, the checkpoint gets saved after the learning rate update
+            # so we need to increase the count by one
+            assert actual_step_count == epoch + 1 + validation_step_none
+            assert actual_lr == lr * gamma**(epoch + validation_step_none)
 
         assert lr_scheduler_debug[epoch]['monitor_val'] == (score if reduce_lr_on_plateau else None)
         assert lr_scheduler_debug[epoch]['monitor_key'] == (monitor if reduce_lr_on_plateau else None)

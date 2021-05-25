@@ -553,11 +553,13 @@ class TrainLoop:
 
         self.update_lr_schedulers('epoch')
 
-        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
-        should_train_only = self.trainer.disable_validation or should_skip_eval
-        if should_train_only:
-            # if validation has run, this should have been called already
+        did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.should_skip_evaluation(
+            self.trainer.num_val_batches
+        )
+        if did_train_only:
+            self.global_step -= 1
             self.check_checkpoint_callback(True)
+            self.global_step += 1
 
     def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
         # inform logger the batch loop has finished
