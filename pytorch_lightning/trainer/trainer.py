@@ -1125,14 +1125,14 @@ class Trainer(
 
             self.on_sanity_check_end()
 
-            self.state.stage = stage
-
-            # reset metrics
+            # reset validation metrics
             self.result_collections.reset()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
             reset_seed()
+
+            self.state.stage = stage
 
     def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:
         if ckpt_path is None:

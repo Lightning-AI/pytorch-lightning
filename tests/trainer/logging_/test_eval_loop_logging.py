@@ -292,8 +292,6 @@ def test_eval_logging_auto_reduce(tmpdir):
     assert callback_metrics == {'debug_epoch', 'val_loss', 'val_loss_epoch'}
 
     # make sure values are correct
-    import pdb
-    pdb.set_trace()
     assert trainer.logged_metrics['val_loss_epoch'] == manual_mean
     assert trainer.callback_metrics['val_loss_epoch'] == manual_mean
     assert trainer.callback_metrics['val_loss'] == manual_mean
@@ -853,6 +851,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         limit_test_batches=2,
         max_epochs=2,
         progress_bar_refresh_rate=1,
+        num_sanity_val_steps=2,
     )
 
     # Train the model ⚡

@@ -154,6 +154,7 @@ class ResultMetric(Metric):
             return self._forward_cache
 
 
+# placeholder for apply_to_collection
 class ResultMeta(Dict):
     pass
 
@@ -263,8 +264,9 @@ class ResultCollection(dict):
 
         key = f"{hook_name}.{name}"
 
-        if dataloader_idx:
+        if dataloader_idx is not None:
             key += f'.{dataloader_idx}'
+            hook_name += f'.{dataloader_idx}'
 
         if on_step and self.on_epoch_end_reached:
             raise MisconfigurationException("Logging `on_step` after `on_epoch_end_reached` isn't authorized.")
@@ -308,12 +310,16 @@ class ResultCollection(dict):
             self[key + '.on_epoch'] = meta.on_epoch
             self[key + '.dataloader_idx'] = meta.dataloader_idx
 
-    def update_metrics(self, hook_name: str, key: str, value: Union[Dict, torch.Tensor], batch_size) -> None:
+    def should_reset_tensors(self, hook_name: str) -> bool:
+        return (self._current_hook_name != hook_name and self._batch_idx in (None, 0))
 
-        if isinstance(self._current_hook_name,
-                      str) and self._current_hook_name != hook_name and self.batch_idx in (None, 0):
+    def update_metrics(
+        self, hook_name: str, key: str, value: Union[Dict, torch.Tensor], batch_size: torch.Tensor
+    ) -> None:
+
+        if self.should_reset_tensors(hook_name):
             # when restarting an new epoch, reset the tensor hooks dynamically.
-            self.reset_metrics(hook_name, is_tensor=True)
+            self._reset_metrics(hook_name, is_tensor=True)
 
         def fn(result_metric, v):
             assert isinstance(v, (torch.Tensor, Metric))
@@ -444,7 +450,7 @@ class ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
-    def reset_metrics(self, hook_name: str = None, is_tensor: Optional[bool] = None) -> None:
+    def _reset_metrics(self, hook_name: str = None, is_tensor: Optional[bool] = None) -> None:
         """Call at the end of epoch to reset all results provided as `Metric` or `tensor`"""
 
         def reset_fn(item: ResultMetric) -> None:
@@ -457,9 +463,15 @@ class ResultCollection(dict):
 
         apply_to_collection(dict(self.items()), ResultMetric, reset_fn)
 
-    def reset(self):
-        self.reset_metrics()
+    def reset_metrics(self):
+        self._reset_metrics(is_tensor=False)
         self.on_epoch_end_reached = False
+        self._current_hook_name = None
+
+    def reset(self):
+        self._reset_metrics()
+        self.on_epoch_end_reached = False
+        self._current_hook_name = None
 
     def extract_batch_size(self, batch: Any) -> None:
         try:

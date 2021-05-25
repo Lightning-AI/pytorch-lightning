@@ -670,11 +670,7 @@ def test_log_works_in_train_callback(tmpdir):
             original_values = values[len(values) - 1]
             # compute expected output and compare to actual one
             expected_output = get_expected_output(func_attr, original_values)
-            try:
-                assert float(output_value) == float(expected_output)
-            except:
-                import pdb
-                pdb.set_trace()
+            assert float(output_value) == float(expected_output)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:

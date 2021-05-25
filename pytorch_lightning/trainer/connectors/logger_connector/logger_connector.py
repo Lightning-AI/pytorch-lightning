@@ -284,7 +284,7 @@ class LoggerConnector:
             self.log_metrics(epoch_log_metrics, {})
 
         # reset result collection for next epoch
-        self.trainer.result_collections.reset()
+        self.trainer.result_collections.reset_metrics()
 
     ############## TRAIN METRICS UPDATES END ##############     # noqa E266
 
