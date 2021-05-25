@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 from copy import deepcopy
+
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -156,7 +157,7 @@ def test_result_collection_restoration():
     result = ResultCollection(True)
 
     for _ in range(2):
-        
+
         cumulative_sum = 0
 
         result.on_epoch_end_reached = False

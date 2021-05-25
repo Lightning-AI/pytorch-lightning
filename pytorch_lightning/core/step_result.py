@@ -15,6 +15,7 @@ from collections.abc import Generator, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, NamedTuple, Optional, Tuple, Union
+from weakref import proxy
 
 import torch
 from torch import Tensor
@@ -483,23 +484,16 @@ class ResultCollection(dict):
                 del state['_modules']["value"]
             return ResultMeta(**state)
 
-        return {
-            k: apply_to_collection(v, ResultMetric, get_state_dict)
-            for k, v in self.items()
-        }
+        return {k: apply_to_collection(v, ResultMetric, get_state_dict) for k, v in self.items()}
 
     def load_from_state_dict(self, state_dict: Dict[str, Any]):
+
         def to_result_metric(item: ResultMeta) -> Dict[str, Any]:
             result_metric = ResultMetric(item["meta"])
             result_metric.__dict__.update(item)
             return result_metric
 
-        state_dict = {
-            k: apply_to_collection(v, ResultMeta, to_result_metric)
-            for k, v in state_dict.items()
-        }
+        state_dict = {k: apply_to_collection(v, ResultMeta, to_result_metric) for k, v in state_dict.items()}
 
         for k, v in state_dict.items():
             self[k] = v
-
-        
