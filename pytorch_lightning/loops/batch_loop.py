@@ -338,9 +338,11 @@ class BatchLoop(Loop):
         return grad_norm_dict
 
     def _accumulated_batches_reached(self):
+        # TODO: use progress tracking of batches instead of iteration count, because iteration count may reset
         return (self.iteration_count + 1) % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch=False):
+        # TODO: use progress tracking of batches instead of iteration count, because iteration count may reset
         return (self.iteration_count + 1) == self.trainer.num_training_batches or is_last_batch
 
     def should_accumulate(self):
