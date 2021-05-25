@@ -517,7 +517,6 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         'on_train_epoch_end',
         'on_epoch_end',
         'on_save_checkpoint',  # from train epoch end
-        'on_save_checkpoint',  # from on train end
         'on_train_end',
         'on_fit_end',
         'teardown_fit',
