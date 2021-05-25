@@ -251,17 +251,17 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
 
     actual = [m.strip() for m in caplog.messages]
     actual = [m for m in actual if m.startswith("Applied")]
-    percentage = r"\d+(?:\.\d+)?%"
+    percentage = r"\(\d+(?:\.\d+)?%\)"
     expected = [
-        rf"Applied `L1Unstructured`. Pruned: \d+\/1122 \({percentage}\) -> \d+\/1122 \({percentage}\)",
-        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=32, bias=True\).weight` with amount=0.5. Pruned: 0 \(0.00%\) -> \d+ \({percentage}\)",  # noqa: E501
-        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=2, bias=True\).weight` with amount=0.5. Pruned: 0 \(0.00%\) -> \d+ \({percentage}\)",  # noqa: E501
-        rf"Applied `RandomUnstructured`. Pruned: \d+\/1122 \({percentage}\) -> \d+\/1122 \({percentage}\)",
-        rf"Applied `RandomUnstructured` to `Linear\(in_features=32, out_features=32, bias=True\).weight` with amount=0.25. Pruned: \d+ \({percentage}\) -> \d+ \({percentage}\)",  # noqa: E501
-        rf"Applied `RandomUnstructured` to `Linear\(in_features=32, out_features=2, bias=True\).weight` with amount=0.25. Pruned: \d+ \({percentage}\) -> \d+ \({percentage}\)",  # noqa: E501
-        rf"Applied `L1Unstructured`. Pruned: \d+\/1122 \({percentage}\) -> \d+\/1122 \({percentage}\)",
-        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=32, bias=True\).weight` with amount=0.5. Pruned: \d+ \({percentage}\) -> \d+ \({percentage}\)",  # noqa: E501
-        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=2, bias=True\).weight` with amount=0.5. Pruned: \d+ \({percentage}\) -> \d+ \({percentage}\)",  # noqa: E501
+        rf"Applied `L1Unstructured`. Pruned: \d+\/1122 {percentage} -> \d+\/1122 {percentage}",
+        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=32, bias=True\).weight` with amount=0.5. Pruned: 0 \(0.00%\) -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=2, bias=True\).weight` with amount=0.5. Pruned: 0 \(0.00%\) -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `RandomUnstructured`. Pruned: \d+\/1122 {percentage} -> \d+\/1122 {percentage}",
+        rf"Applied `RandomUnstructured` to `Linear\(in_features=32, out_features=32, bias=True\).weight` with amount=0.25. Pruned: \d+ {percentage} -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `RandomUnstructured` to `Linear\(in_features=32, out_features=2, bias=True\).weight` with amount=0.25. Pruned: \d+ {percentage} -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `L1Unstructured`. Pruned: \d+\/1122 {percentage} -> \d+\/1122 {percentage}",
+        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=32, bias=True\).weight` with amount=0.5. Pruned: \d+ {percentage} -> \d+ {percentage}",  # noqa: E501
+        rf"Applied `L1Unstructured` to `Linear\(in_features=32, out_features=2, bias=True\).weight` with amount=0.5. Pruned: \d+ {percentage} -> \d+ {percentage}",  # noqa: E501
     ]
     expected = [re.compile(s) for s in expected]
     assert all(regex.match(s) for s, regex in zip(actual, expected))
@@ -308,11 +308,11 @@ def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog, on_train_e
 
     actual = [m.strip() for m in caplog.messages]
     actual = [m for m in actual if m.startswith("Applied")]
-    percentage = r"\d+(?:\.\d+)?%"
+    percentage = r"\(\d+(?:\.\d+)?%\)"
     expected = [
-        rf"Applied `RandomUnstructured`. Pruned: \d+\/66 \({percentage}\) -> \d+\/66 \({percentage}\)",
-        rf"Applied `RandomUnstructured`. Pruned: \d+\/66 \({percentage}\) -> \d+\/66 \({percentage}\)",
-        rf"Applied `RandomUnstructured`. Pruned: \d+\/66 \({percentage}\) -> \d+\/66 \({percentage}\)",
+        rf"Applied `RandomUnstructured`. Pruned: \d+\/66 {percentage} -> \d+\/66 {percentage}",
+        rf"Applied `RandomUnstructured`. Pruned: \d+\/66 {percentage} -> \d+\/66 {percentage}",
+        rf"Applied `RandomUnstructured`. Pruned: \d+\/66 {percentage} -> \d+\/66 {percentage}",
     ]
     expected = [re.compile(s) for s in expected]
     assert all(regex.match(s) for s, regex in zip(actual, expected))
