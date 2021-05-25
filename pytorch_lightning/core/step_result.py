@@ -353,8 +353,12 @@ class ResultCollection(dict):
                 if v is not None:
                     is_empty = False
 
-            # apply detection. 
-            apply_to_collection(value, object, is_empty_fn, wrong_dtype=(Mapping, Sequence, NamedTuple,))
+            # apply detection.
+            apply_to_collection(value, object, is_empty_fn, wrong_dtype=(
+                Mapping,
+                Sequence,
+                NamedTuple,
+            ))
 
             # skip is the value was actually empty.
             if is_empty:
@@ -458,6 +462,7 @@ class ResultCollection(dict):
         return repr[:-1] + '\n}'
 
     def state_dict(self):
+
         def get_state_dict(item: ResultMetric) -> Dict[str, Any]:
             state = item.__getstate__()
             # delete reference to TorchMetrics Metric
