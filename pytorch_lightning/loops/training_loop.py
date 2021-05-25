@@ -59,9 +59,6 @@ class TrainingLoop(Loop):
         if self.trainer.should_stop:
             return True
 
-        # TODO: moved to on_advance_end, check if correct?
-        # self.total_batch_idx += 1
-
         # stop epoch if we limited the number of training batches
         if self._num_training_batches_reached(self.is_last_batch):
             return True
