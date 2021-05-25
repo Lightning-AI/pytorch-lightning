@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from copy import deepcopy
+
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -83,7 +84,6 @@ def _ddp_test_fn(rank, worldsize):
             state_dict = result.state_dict()
             result = ResultCollection(True)
             result.load_from_state_dict(state_dict)
-            
 
         epoch_log = result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
         result.reset()
@@ -161,7 +161,7 @@ def test_result_collection_restoration():
     result = ResultCollection(True)
 
     for _ in range(2):
-        
+
         cumulative_sum = 0
 
         for i in range(3):
