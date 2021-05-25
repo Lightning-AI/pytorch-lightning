@@ -14,6 +14,7 @@
 from collections.abc import Generator, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
+from weakref import proxy
 from typing import Any, Callable, Dict, Iterable, NamedTuple, Optional, Tuple, Union
 
 import torch
@@ -98,7 +99,7 @@ class ResultMetric(Metric):
             self.value = min(self.value, value.float().mean())
 
         else:
-            self.value = value
+            self.value = proxy(value)
             self._forward_cache = value._forward_cache
 
     def compute(self) -> torch.Tensor:
@@ -119,7 +120,7 @@ class ResultMetric(Metric):
         if self.meta.is_tensor_and_mean_reduction:
             attr = f"value={self.value}, cumulated_batch_size={self.cumulated_batch_size}"
         else:
-            attr = f"value={self.value}"
+            attr = f"value={getattr(self, 'value', None)}"
         return f"{self.__class__.__name__}({attr})"
 
     def reset(self):
@@ -155,11 +156,9 @@ class ResultMetric(Metric):
 
             return self._forward_cache
 
-    def state_dict(self):
-        return {
-            "meta": self.meta,
 
-        }
+class ResultMeta(Dict):
+    pass
 
 
 class ResultCollection(dict):
@@ -460,10 +459,30 @@ class ResultCollection(dict):
 
     def state_dict(self):
         def get_state_dict(item: ResultMetric) -> Dict[str, Any]:
-            return item.state_dict()
+            state = item.__getstate__()
+            # delete reference to TorchMetrics Metric
+            state = deepcopy(state)
+            if 'value' in state['_modules'] and isinstance(state['_modules']["value"], Metric):
+                del state['_modules']["value"]
+            return ResultMeta(**state)
 
         return {
             k: apply_to_collection(v, ResultMetric, get_state_dict)
             for k, v in self.items()
         }
+
+    def load_from_state_dict(self, state_dict: Dict[str, Any]):
+        def to_result_metric(item: ResultMeta) -> Dict[str, Any]:
+            result_metric = ResultMetric(item["meta"])
+            result_metric.__dict__.update(item)
+            return result_metric
+
+        state_dict = {
+            k: apply_to_collection(v, ResultMeta, to_result_metric)
+            for k, v in state_dict.items()
+        }
+
+        for k, v in state_dict.items():
+            self[k] = v
+
         
