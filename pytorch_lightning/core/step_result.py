@@ -448,7 +448,6 @@ class ResultCollection(dict):
     def reset(self):
         self.reset_metrics()
         self.on_epoch_end_reached = False
-        self._minimize = None
 
     def extract_batch_size(self, batch: Any) -> None:
         try:
@@ -496,7 +495,7 @@ class ResultCollection(dict):
 
         return {k: apply_to_collection(v, ResultMetric, get_state_dict) for k, v in self.items()}
 
-    def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Dict[str, Metric] = None):
+    def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Dict[str, Metric]):
 
         def to_result_metric(item: ResultMeta) -> Dict[str, Any]:
             result_metric = ResultMetric(item["meta"])
@@ -508,7 +507,9 @@ class ResultCollection(dict):
         for k, v in state_dict.items():
             self[k] = v
 
-        if metrics is not None:
+        if metrics:
+            # the metric reference are lost during serialization and
+            # they need to be set back during loading
 
             def re_assign_metric(item):
                 nonlocal metrics

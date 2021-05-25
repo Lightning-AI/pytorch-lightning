@@ -191,8 +191,7 @@ def test_result_collection_restoration():
 
             result = ResultCollection(True)
             result.load_from_state_dict(
-                state_dict,
-                metrics={
+                state_dict, {
                     "metric_a": metric_a,
                     "metric_b": metric_b,
                     "metric_c": metric_c,

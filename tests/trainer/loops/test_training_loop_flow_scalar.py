@@ -22,6 +22,7 @@ from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.deterministic_model import DeterministicModel
 from tests.helpers.utils import no_warning_call
@@ -149,6 +150,8 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert len(trainer.logger_connector.callback_metrics) == 0
     assert len(trainer.logger_connector.progress_bar_metrics) == 0
 
+    trainer.state.stage = RunningStage.TRAINING
+
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
@@ -160,8 +163,8 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out['minimize'], torch.Tensor)
-    assert train_step_out['minimize'].item() == 171
+    assert isinstance(train_step_out.minimize, torch.Tensor)
+    assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
@@ -229,6 +232,8 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert len(trainer.logger_connector.callback_metrics) == 0
     assert len(trainer.logger_connector.progress_bar_metrics) == 0
 
+    trainer.state.stage = RunningStage.TRAINING
+
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
@@ -240,8 +245,8 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out['minimize'], torch.Tensor)
-    assert train_step_out['minimize'].item() == 171
+    assert isinstance(train_step_out.minimize, torch.Tensor)
+    assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
@@ -316,6 +321,8 @@ def test_training_step_no_return_when_even(tmpdir):
     with pytest.warns(UserWarning, match=r'.*training_step returned None.*'):
         trainer.fit(model)
 
+    trainer.state.stage = RunningStage.TRAINING
+
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
         out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
@@ -358,6 +365,8 @@ def test_training_step_none_batches(tmpdir):
 
     with pytest.warns(UserWarning, match=r'.*train_dataloader yielded None.*'):
         trainer.fit(model)
+
+    trainer.state.stage = RunningStage.TRAINING
 
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
