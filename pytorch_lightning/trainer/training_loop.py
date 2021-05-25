@@ -905,7 +905,7 @@ class TrainLoop:
         if on_epoch and is_last_batch and is_infinite_dataset:
             return True
 
-        if self.trainer.should_stop:
+        if on_epoch and self.trainer.should_stop:
             return True
 
         # val_check_batch is inf for iterable datasets with no length defined
