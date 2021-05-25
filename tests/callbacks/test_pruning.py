@@ -270,7 +270,8 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     assert not has_pruning if make_pruning_permanent else has_pruning
 
 
-def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog):
+@pytest.mark.parametrize("on_train_epoch_end", (False, True))
+def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog, on_train_epoch_end):
     """
     When a model is saved multiple times and make_permanent=True, we need to
     make sure a copy is pruned and not the trained model if we want to continue
@@ -282,15 +283,19 @@ def test_permanent_when_model_is_saved_multiple_times(tmpdir, caplog):
 
         def on_save_checkpoint(self, trainer, pl_module, checkpoint):
             super().on_save_checkpoint(trainer, pl_module, checkpoint)
-            assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]
-            assert hasattr(pl_module.layer.mlp_3, "weight_orig")
+            if not on_train_epoch_end:
+                # these checks only work if pruning on `validation_epoch_end`
+                # because `on_save_checkpoint` is called before `on_train_epoch_end`
+                assert "layer.mlp_3.weight_orig" not in checkpoint["state_dict"]
+                assert hasattr(pl_module.layer.mlp_3, "weight_orig")
 
     model = TestModel()
     pruning_callback = TestPruning(
         "random_unstructured",
         parameters_to_prune=[(model.layer.mlp_3, "weight")],
         verbose=1,
-        make_pruning_permanent=True
+        make_pruning_permanent=True,
+        prune_on_train_epoch_end=on_train_epoch_end,
     )
     ckpt_callback = ModelCheckpoint(monitor="test", save_top_k=2, save_last=True)
     trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, progress_bar_refresh_rate=0)
