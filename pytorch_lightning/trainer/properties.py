@@ -516,7 +516,7 @@ class TrainerProperties(ABC):
     def result_collections(self) -> Optional[ResultCollection]:
         if self.training:
             return self.train_loop.train_results
-        elif self.validating:
+        elif self.validating or self.sanity_checking:
             return self.evaluation_loop.validation_results
         elif self.testing:
             return self.evaluation_loop.test_results

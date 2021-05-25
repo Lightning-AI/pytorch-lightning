@@ -19,6 +19,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.deterministic_model import DeterministicModel
 
 
@@ -65,6 +66,8 @@ def test__eval_step__flow(tmpdir):
     assert not model.validation_step_end_called
     assert not model.validation_epoch_end_called
 
+    trainer.state.stage = RunningStage.TRAINING
+
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
@@ -76,8 +79,8 @@ def test__eval_step__flow(tmpdir):
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out['minimize'], torch.Tensor)
-    assert train_step_out['minimize'].item() == 171
+    assert isinstance(train_step_out.minimize, torch.Tensor)
+    assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
@@ -138,6 +141,8 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     assert model.validation_step_end_called
     assert not model.validation_epoch_end_called
 
+    trainer.state.stage = RunningStage.TRAINING
+
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
@@ -149,8 +154,8 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out['minimize'], torch.Tensor)
-    assert train_step_out['minimize'].item() == 171
+    assert isinstance(train_step_out.minimize, torch.Tensor)
+    assert train_step_out.minimize.item() == 171
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(

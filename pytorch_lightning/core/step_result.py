@@ -171,6 +171,7 @@ class ResultCollection(dict):
         self._minimize = None
         self._current_hook_name: Optional[str] = None
         self._batch_idx: Optional[int] = None
+        self._root_device: Optional[torch.device] = None
 
     @property
     def batch_size(self) -> int:
@@ -179,6 +180,14 @@ class ResultCollection(dict):
     @batch_size.setter
     def batch_size(self, batch_size: int) -> None:
         self._batch_size = batch_size
+
+    @property
+    def root_device(self) -> Optional[torch.device]:
+        return self._root_device
+
+    @root_device.setter
+    def root_device(self, root_device: torch.device) -> None:
+        self._root_device = root_device
 
     @property
     def batch_idx(self) -> int:
@@ -280,12 +289,12 @@ class ResultCollection(dict):
     def instance_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
 
         def fn(v):
+            assert self.root_device is not None
             nonlocal meta
             meta = deepcopy(meta)
             meta.is_tensor = torch.is_tensor(v)
             metric = ResultMetric(meta)
-            device = getattr(v, "device", torch.device("cpu"))
-            return metric.to(device)
+            return metric.to(self.root_device)
 
         self[key] = apply_to_collection(value, (torch.Tensor, Metric), fn)
         # cache the meta for reduction
@@ -305,7 +314,7 @@ class ResultCollection(dict):
 
         def fn(result_metric, v):
             assert isinstance(v, (torch.Tensor, Metric))
-            result_metric(v, batch_size)
+            result_metric(v.to(self.root_device), batch_size)
 
         apply_to_collections(self[key], value, ResultMetric, fn)
 

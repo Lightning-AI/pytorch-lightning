@@ -102,6 +102,7 @@ class TrainLoop:
 
     def on_train_start(self):
         # hook
+        self.trainer.logger_connector.on_train_start()
         self.trainer.call_hook("on_train_start")
 
     def on_train_end(self):

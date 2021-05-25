@@ -125,9 +125,6 @@ class LoggerConnector:
             self.add_logged_metrics(scalar_metrics)
 
     def evaluation_epoch_end(self):
-        if self.trainer.sanity_checking:
-            return
-
         # reset dataloader idx
         model_ref = self.trainer.lightning_module
         model_ref._current_dataloader_idx = None
@@ -158,13 +155,13 @@ class LoggerConnector:
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
     def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
+        metrics = self.trainer.result_collections.metrics
+
+        # update metrics
+        self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
+        self.add_callback_metrics(metrics[DefaultMetricsKeys.CALLBACK])
+
         if not self.trainer.sanity_checking:
-
-            metrics = self.trainer.result_collections.metrics
-
-            # update metrics
-            self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
-            self.add_callback_metrics(metrics[DefaultMetricsKeys.CALLBACK])
 
             # log all the metrics as a single dict
             metrics_to_log = metrics[DefaultMetricsKeys.LOG]
@@ -209,14 +206,14 @@ class LoggerConnector:
             self._test_log_step += 1
 
     def update_evaluation_step_metrics(self) -> None:
-        if self.trainer.sanity_checking:
-            return
-
         metrics = self.trainer.result_collections.metrics
 
         # update metrics
         self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
         self.add_callback_metrics(metrics[DefaultMetricsKeys.CALLBACK])
+
+        if self.trainer.sanity_checking:
+            return
 
         batch_log_metrics = metrics[DefaultMetricsKeys.LOG]
 
@@ -228,7 +225,15 @@ class LoggerConnector:
         # increment the step even if nothing was logged
         self.increment_evaluation_log_step()
 
+    def on_evaluation_start(self):
+        root_device = self.trainer.lightning_module.device
+        self.trainer.result_collections.root_device = root_device
+
     ############## TRAIN METRICS UPDATES START ##############   # noqa E266
+
+    def on_train_start(self):
+        root_device = self.trainer.lightning_module.device
+        self.trainer.result_collections.root_device = root_device
 
     def on_train_split_start(self, batch_idx: int, split_batch: Any) -> None:
         self.trainer.result_collections.extract_batch_size(split_batch)

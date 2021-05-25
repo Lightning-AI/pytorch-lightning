@@ -79,6 +79,9 @@ class EvaluationLoop(object):
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
+
+        self.trainer.logger_connector.on_evaluation_start()
+
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
         else:
