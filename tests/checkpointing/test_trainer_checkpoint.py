@@ -13,13 +13,17 @@
 # limitations under the License.
 import os
 from copy import deepcopy
+from pathlib import Path
 
+import pytest
 import torch
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.helpers import BoringModel
+from pytorch_lightning.utilities.cloud_io import load as pl_load
+from tests.helpers import BoringModel, RandomDataset
 
 
 def test_finetuning_with_resume_from_checkpoint(tmpdir):
@@ -84,3 +88,40 @@ def test_finetuning_with_resume_from_checkpoint(tmpdir):
             assert best_model_path.endswith(f"epoch=0{idx}.ckpt")
         else:
             assert f"epoch={idx + 1}" in best_model_path
+
+
+@pytest.mark.parametrize(['max_epochs', 'data_length'], [(1, 64), (2, 64), (3, 32)])
+def test_lr_schedulers_step_count(tmpdir, max_epochs, data_length):
+    """
+    This test validates that checkpoint is always saved after lr_scheduler beeing updated during training
+    """
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.001)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            lr_scheduler_dict = {'scheduler': lr_scheduler, 'interval': 'step'}
+            return [optimizer], [lr_scheduler_dict]
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, data_length))
+
+    train_step_checkpoint_callback = ModelCheckpoint(dirpath=f"{tmpdir}/every_train_step", every_n_train_steps=1)
+    val_epoch_checkpoint_callback = ModelCheckpoint(dirpath=f"{tmpdir}/every_val_epoch", every_n_val_epochs=1)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=max_epochs,
+        callbacks=[train_step_checkpoint_callback, val_epoch_checkpoint_callback]
+    )
+    trainer.fit(model)
+    step_idx = data_length * max_epochs - 1
+    train_step_lr_scheduler = pl_load(f"{tmpdir}/every_train_step/epoch={max_epochs-1}-step={step_idx}.ckpt"
+                                      )['lr_schedulers'][0]
+    val_epoch_lr_scheduler = pl_load(f"{tmpdir}/every_val_epoch/epoch={max_epochs-1}-step={step_idx}.ckpt"
+                                     )['lr_schedulers'][0]
+    #
+    assert train_step_lr_scheduler['last_epoch'] == val_epoch_lr_scheduler['last_epoch'] == step_idx + 1
+    assert train_step_lr_scheduler['_step_count'] == val_epoch_lr_scheduler['_step_count'] == step_idx + 2
