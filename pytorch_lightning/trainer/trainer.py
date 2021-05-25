@@ -1128,16 +1128,11 @@ class Trainer(
             self.state.stage = stage
 
             # reset metrics
-            self._reset_metrics(ref_model)
+            self.result_collections.reset()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
             reset_seed()
-
-    def _reset_metrics(self, ref_model):
-        for module in ref_model.modules():
-            if isinstance(module, Metric):
-                module.reset()
 
     def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:
         if ckpt_path is None:

@@ -282,6 +282,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         log_every_n_steps=1,
         weights_summary=None,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
+        num_sanity_val_steps=2,
     )
     trainer.fit(model)
 
@@ -291,6 +292,8 @@ def test_eval_logging_auto_reduce(tmpdir):
     assert callback_metrics == {'debug_epoch', 'val_loss', 'val_loss_epoch'}
 
     # make sure values are correct
+    import pdb
+    pdb.set_trace()
     assert trainer.logged_metrics['val_loss_epoch'] == manual_mean
     assert trainer.callback_metrics['val_loss_epoch'] == manual_mean
     assert trainer.callback_metrics['val_loss'] == manual_mean

@@ -444,13 +444,13 @@ class ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
-    def reset_metrics(self, hook_name: str = None, is_tensor: bool = False) -> None:
+    def reset_metrics(self, hook_name: str = None, is_tensor: Optional[bool] = None) -> None:
         """Call at the end of epoch to reset all results provided as `Metric` or `tensor`"""
 
         def reset_fn(item: ResultMetric) -> None:
             nonlocal hook_name
             nonlocal is_tensor
-            if item.meta.is_tensor == is_tensor:
+            if is_tensor is None or item.meta.is_tensor == is_tensor:
                 if isinstance(hook_name, str) and hook_name != item.meta.fx:
                     return
                 item.reset()
