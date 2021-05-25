@@ -136,11 +136,18 @@ class EpochLoop(Loop):
             # run train epoch
             epoch_output = self.training_loop.run()
             # log epoch metrics
+
+            if epoch_output is None:
+                return
+
             self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
 
     def on_advance_end(self):
         # # handle epoch_output on epoch end
         # self.on_train_epoch_end(outputs)  # Handled in on_run_end of training_loop now
+
+        if self.training_loop.batch_idx is None:
+            return
 
         should_check_val = self.training_loop.should_check_val_fx(self.batch_idx, self.training_loop.is_last_batch, on_epoch=True)
         should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)

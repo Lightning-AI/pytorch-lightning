@@ -90,7 +90,7 @@ class TrainingLoop(Loop):
         self._train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         self._dataloader_idx = 0
         self._should_stop = False
-        self.batch_idx = 0
+        self.batch_idx = None
         self.batches_seen = 0
         self.is_last_batch = False
 
@@ -107,7 +107,6 @@ class TrainingLoop(Loop):
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
         with self.trainer.profiler.profile("run_training_batch"):
-            # batch_output = self.run_training_batch(batch, batch_idx, self._dataloader_idx)
             batch_output = self.batch_loop.run(batch, batch_idx, self._dataloader_idx)
             self.batches_seen += 1
 
@@ -159,6 +158,10 @@ class TrainingLoop(Loop):
 
     # this is the old on train_epoch_end?
     def on_run_end(self):
+        if self.batch_idx is None:
+            # dataloader/iterator did not produce a batch
+            return
+
         # inform logger the batch loop has finished
         self.trainer.logger_connector.on_train_epoch_end()
 
