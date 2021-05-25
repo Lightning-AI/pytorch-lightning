@@ -184,14 +184,14 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
     limit_val_batches = 7
     lr, gamma = 1e-1, 2
     monitor = 'val_log'
-    per_epoch_val_checks = int(limit_train_batches * val_check_interval)
-    per_val_check_steps, leftover_steps = divmod(limit_train_batches, per_epoch_val_checks)
+    per_val_train_batches = int(limit_train_batches * val_check_interval)
+    per_epoch_val_checks, leftover_train_batches = divmod(limit_train_batches, per_val_train_batches)
 
     class CustomBoringModel(BoringModel):
 
         def __init__(self):
             super().__init__()
-            self.val_logs = torch.randn(per_val_check_steps * max_epochs, limit_val_batches)
+            self.val_logs = torch.randn(per_epoch_val_checks * max_epochs, limit_val_batches)
             self.val_loop_count = 0
 
         def validation_step(self, batch, batch_idx):
@@ -246,11 +246,11 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         additional_ckpt_path = [f for f in ckpt_files if 'v1' in f.stem][0]
         additional_ckpt = True
 
-    assert len(ckpt_files) == len(scores) + additional_ckpt == per_val_check_steps * max_epochs + additional_ckpt
+    assert len(ckpt_files) == len(scores) + additional_ckpt == per_epoch_val_checks * max_epochs + additional_ckpt
     assert len(lr_scheduler_debug) == max_epochs
 
     def _make_assertions(epoch, ix, version=''):
-        global_ix = ix + per_val_check_steps * epoch
+        global_ix = ix + per_epoch_val_checks * epoch
         duplicated = bool(version)
 
         score = scores[global_ix]
@@ -261,7 +261,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
         assert chk['epoch'] == epoch + 1
         epoch_num = epoch + duplicated
-        expected_global_step = per_epoch_val_checks * (global_ix + 1) + (leftover_steps * epoch_num)
+        expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch_num)
         assert chk['global_step'] == expected_global_step
 
         mc_specific_data = chk['callbacks'][type(checkpoint)]
@@ -278,7 +278,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         return score
 
     for epoch in range(max_epochs):
-        for i in range(per_val_check_steps):
+        for i in range(per_epoch_val_checks):
             score = _make_assertions(epoch, i)
 
         assert lr_scheduler_debug[epoch]['monitor_val'] == (score if reduce_lr_on_plateau else None)
@@ -286,7 +286,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
     # check the ckpt file saved on_train_end
     if additional_ckpt_path:
-        _make_assertions(max_epochs - 1, per_val_check_steps - 1, version='-v1')
+        _make_assertions(max_epochs - 1, per_epoch_val_checks - 1, version='-v1')
 
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
