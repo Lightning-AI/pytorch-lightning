@@ -382,7 +382,7 @@ class TrainLoop:
 
                 for tbptt_output in batch_outputs:
                     out = tbptt_output.extra
-                    out['loss'] = tbptt_output.minimize
+                    out['loss'] = tbptt_output.minimize.detach()
                     processed_tbptt_outputs.append(out)
 
                 # if there was only one tbptt step then we can collapse that dimension

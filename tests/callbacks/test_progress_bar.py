@@ -388,6 +388,9 @@ def test_tensor_to_float_conversion(tmpdir):
             self.log('bar', {"baz": torch.tensor([1])}, prog_bar=True)
             return super().training_step(batch, batch_idx)
 
+        def on_train_end(self) -> None:
+            print(self.trainer.result_collections)
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -399,7 +402,7 @@ def test_tensor_to_float_conversion(tmpdir):
 
     pbar = trainer.progress_bar_callback.main_progress_bar
     actual = str(pbar.postfix)
-    assert actual.endswith("foo=0.123, bar={'baz': tensor([1])}")
+    assert actual.endswith("foo=0.123, bar={'baz': 1.0}")
 
 
 @pytest.mark.parametrize(

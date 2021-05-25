@@ -13,7 +13,8 @@
 # limitations under the License.
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
+from collections.abc import Mapping, Sequence, Generator
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union, NamedTuple
 
 import torch
 from torch import Tensor
@@ -75,13 +76,15 @@ class Metadata:
 
 class ResultMetric(Metric):
 
+    DTYPE = torch.float32
+
     def __init__(self, metadata: Metadata) -> None:
         super().__init__(compute_on_step=metadata.is_tensor)
         self.meta = metadata
         if self.meta.is_tensor:
-            self.add_state("value", torch.tensor(.0, dtype=torch.float64))
+            self.add_state("value", torch.tensor(.0, dtype=self.DTYPE))
             if self.meta.is_tensor_and_mean_reduction:
-                self.add_state("cumulated_batch_size", torch.tensor(.0, dtype=torch.float64))
+                self.add_state("cumulated_batch_size", torch.tensor(.0, dtype=self.DTYPE))
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
         if self.meta.is_tensor_and_mean_reduction:
@@ -204,9 +207,12 @@ class ResultCollection(dict):
 
     @extra.setter
     def extra(self, extra: Dict) -> None:
+        def detach_fn(v):
+            return v.detach()
+        extra = apply_to_collection(extra, torch.Tensor, detach_fn)
         self['extra'] = extra
 
-    def should_reset(self, hook_name):
+    def should_reset(self, hook_name: str) -> bool:
         return hook_name not in ("on_train_start")
 
     def log(
@@ -260,7 +266,8 @@ class ResultCollection(dict):
             meta = deepcopy(meta)
             meta.is_tensor = torch.is_tensor(v)
             metric = ResultMetric(meta)
-            return metric.to(v.device)
+            device = getattr(v, "device", torch.device("cpu"))
+            return metric.to(device)
 
         self[key] = apply_to_collection(value, (torch.Tensor, Metric), fn)
         # cache the meta for reduction
@@ -290,11 +297,11 @@ class ResultCollection(dict):
     def _to_item(forward_cache: torch.Tensor) -> float:
         return forward_cache.item()
 
-    def valid_metrics(self) -> Tuple[str, Any]:
-        for key, result_metric in self.items():
-            if isinstance(result_metric, bool) or key == "extra":
+    def valid_metrics(self) -> Generator:
+        for key, item in self.items():
+            if item is None or isinstance(item, bool) or key == "extra":
                 continue
-            yield (key, result_metric)
+            yield (key, item)
 
     def _extract_metadata(self, key: str, result_metric, on_step: bool, suffix: str) -> Tuple:
         if isinstance(result_metric, ResultMetric):
@@ -324,24 +331,46 @@ class ResultCollection(dict):
         fn = self._get_forward_cache if on_step else self._get_computed_cache
         suffix = self.STEP_SUFFIX if on_step else self.EPOCH_SUFFIX
 
+        # iterate over all stored metrics.
         for key, result_metric in self.valid_metrics():
+            
+            # extract forward_cache or computed from the ResultMetric
+            # ignore when the output of fn is None
             value = apply_to_collection(result_metric, ResultMetric, fn, remove_none=True)
-            if value is None:
+            
+            # detect if the value is None. This can be nested.
+            is_empty = True
+            
+            def is_empty_fn(v):
+                nonlocal is_empty
+                if v is not None:
+                    is_empty = False
+
+            # apply detection. 
+            apply_to_collection(value, object, is_empty_fn, wrong_dtype=(Mapping, Sequence, NamedTuple))
+
+            # skip is the value was actually empty.
+            if is_empty:
                 continue
 
+            # extract metadata
             name, name_forked, logger, prog_bar, metric_on_epoch = self._extract_metadata(
                 key, result_metric, on_step, suffix
             )
 
+            # populate logging metrics
             if logger:
                 metrics[DefaultMetricsKeys.LOG][name_forked] = value
 
+            # populate callback metrics
+            # callback metrics don't take `_step` forked metrics.
             if not self.is_train and (not metric_on_epoch or on_step):
                 pass
             else:
                 metrics[DefaultMetricsKeys.CALLBACK][name] = value
                 metrics[DefaultMetricsKeys.CALLBACK][name_forked] = value
 
+            # populate progress_bar metrics. By default, the value should be converted to a float.
             if prog_bar:
                 value = apply_to_collection(value, torch.Tensor, self._to_item, remove_none=True)
                 metrics[DefaultMetricsKeys.PBAR][name_forked] = value
@@ -377,9 +406,10 @@ class ResultCollection(dict):
 
     def reset(self) -> None:
         """Call at the end of epoch to reset all metric objects"""
-        for item in self.values():
-            if isinstance(item, ResultMetric) and item.meta.should_reset:
+        def reset_fn(item: ResultMetric) -> None:
+            if item.meta.should_reset:
                 item.reset()
+        apply_to_collection(dict(self.items()), ResultMetric, reset_fn)
         self._batch_size: Optional[int] = None
         self._on_epoch_end_reached: bool = False
         self._minimize: Optional[Tensor] = None

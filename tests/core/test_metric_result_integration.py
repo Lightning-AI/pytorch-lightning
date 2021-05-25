@@ -52,10 +52,14 @@ def _ddp_test_fn(rank, worldsize):
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    # dist_sync_on_step is False by default
-    result = ResultCollection()
+    metric_a = metric_a.to(f"cuda:{rank}")
+    metric_b = metric_b.to(f"cuda:{rank}")
+    metric_c = metric_c.to(f"cuda:{rank}")
 
-    for epoch in range(3):
+    # dist_sync_on_step is False by default
+    result = ResultCollection(True)
+
+    for _ in range(3):
         cumulative_sum = 0
 
         for i in range(5):
@@ -65,12 +69,12 @@ def _ddp_test_fn(rank, worldsize):
 
             cumulative_sum += i
 
-            result.log('a', metric_a, on_step=True, on_epoch=True)
-            result.log('b', metric_b, on_step=False, on_epoch=True)
-            result.log('c', metric_c, on_step=True, on_epoch=False)
+            result.log('h', 'a', metric_a, on_step=True, on_epoch=True)
+            result.log('h', 'b', metric_b, on_step=False, on_epoch=True)
+            result.log('h', 'c', metric_c, on_step=True, on_epoch=False)
 
-            batch_log = result.get_batch_log_metrics()
-            batch_expected = {"a_step": i, "a": i, "c": i}
+            batch_log = result.get_batch_metrics()[DefaultMetricsKeys.LOG]
+            batch_expected = {"a_step": i, "c": i}
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
                 assert batch_expected[k] == batch_log[k]
@@ -79,7 +83,7 @@ def _ddp_test_fn(rank, worldsize):
         result.reset()
 
         # assert metric state reset to default values
-        assert metric_a.x == metric_a._defaults['x']
+        assert metric_a.x == metric_a._defaults['x'], (metric_a.x, metric_a._defaults['x'])
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
 
@@ -104,9 +108,9 @@ def test_result_metric_integration():
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    result = ResultCollection()
+    result = ResultCollection(True)
 
-    for epoch in range(3):
+    for _ in range(3):
         cumulative_sum = 0
 
         for i in range(5):
@@ -116,12 +120,12 @@ def test_result_metric_integration():
 
             cumulative_sum += i
 
-            result.log('a', metric_a, on_step=True, on_epoch=True)
-            result.log('b', metric_b, on_step=False, on_epoch=True)
-            result.log('c', metric_c, on_step=True, on_epoch=False)
+            result.log('h', 'a', metric_a, on_step=True, on_epoch=True)
+            result.log('h', 'b', metric_b, on_step=False, on_epoch=True)
+            result.log('h', 'c', metric_c, on_step=True, on_epoch=False)
 
             batch_log = result.get_batch_metrics()[DefaultMetricsKeys.LOG]
-            batch_expected = {"a_step": i, "a": i, "c": i}
+            batch_expected = {"a_step": i, "c": i}
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
                 assert batch_expected[k] == batch_log[k]
