@@ -131,3 +131,10 @@ def test_result_collection_on_tensor_with_mean_reduction():
         'loss_2_1_1': mean
     }
     assert epoch_metrics[DefaultMetricsKeys.CALLBACK] == excepted
+
+
+def test_result_collection_restoration():
+
+    result_collection = ResultCollection(True)
+
+    result_collection
