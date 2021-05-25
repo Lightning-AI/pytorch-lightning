@@ -31,10 +31,10 @@ if torch.distributed.is_available():
 
 else:
 
-    class ReduceOp:
+    class ReduceOp:  # type: ignore # (see https://github.com/python/mypy/issues/1153)
         SUM = None
 
-    class group:
+    class group:  # type: ignore
         WORLD = None
 
 

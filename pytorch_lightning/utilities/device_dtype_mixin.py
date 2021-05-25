@@ -45,7 +45,7 @@ class DeviceDtypeModuleMixin(Module):
 
         return device
 
-    def to(self, *args: Any, **kwargs: Any) -> Module:
+    def to(self, *args: Any, **kwargs: Any) -> 'DeviceDtypeModuleMixin':
         """Moves and/or casts the parameters and buffers.
 
         This can be called as

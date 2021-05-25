@@ -63,7 +63,7 @@ def apply_to_collection(
     dtype: Union[type, Tuple[type]],
     function: Callable,
     *args: Any,
-    wrong_dtype: Optional[Union[torch.dtype, Tuple[torch.dtype]]] = None,
+    wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
     **kwargs: Any,
 ) -> Any:
     """
