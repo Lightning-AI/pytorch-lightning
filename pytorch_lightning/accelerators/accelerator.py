@@ -22,6 +22,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins import DataParallelPlugin
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
 from pytorch_lightning.plugins.training_type import TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
@@ -174,7 +175,9 @@ class Accelerator:
         """
         model = self.lightning_module
 
-        if model is not None:
+        # TODO: Add support to allow batch transfer to device in Lightning for DP mode.
+        if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
+            # no need to transfer batch to device in DP mode
             return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
 
         return move_data_to_device(batch, device)

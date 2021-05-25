@@ -54,11 +54,3 @@ class GPUAccelerator(Accelerator):
         all_gpu_ids = ",".join([str(x) for x in range(torch.cuda.device_count())])
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
-
-    def to_device(self, step_kwargs: Dict[str, Union[Any, int]]) -> Dict[str, Union[Any, int]]:
-        # no need to transfer batch to device in DP mode
-        # TODO: Add support to allow batch transfer to device in Lightning for DP mode.
-        if not isinstance(self.training_type_plugin, DataParallelPlugin):
-            step_kwargs = super().to_device(step_kwargs)
-
-        return step_kwargs
