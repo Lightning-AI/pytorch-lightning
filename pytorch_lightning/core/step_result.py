@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Generator, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
-from collections.abc import Mapping, Sequence, Generator
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union, NamedTuple
+from typing import Any, Callable, Dict, Iterable, NamedTuple, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -213,8 +213,10 @@ class ResultCollection(dict):
 
     @extra.setter
     def extra(self, extra: Dict) -> None:
+
         def detach_fn(v):
             return v.detach()
+
         extra = apply_to_collection(extra, torch.Tensor, detach_fn)
         self['extra'] = extra
 
@@ -339,14 +341,14 @@ class ResultCollection(dict):
 
         # iterate over all stored metrics.
         for key, result_metric in self.valid_metrics():
-            
+
             # extract forward_cache or computed from the ResultMetric
             # ignore when the output of fn is None
             value = apply_to_collection(result_metric, ResultMetric, fn, remove_none=True)
-            
+
             # detect if the value is None. This can be nested.
             is_empty = True
-            
+
             def is_empty_fn(v):
                 nonlocal is_empty
                 if v is not None:
@@ -412,9 +414,11 @@ class ResultCollection(dict):
 
     def reset(self) -> None:
         """Call at the end of epoch to reset all metric objects"""
+
         def reset_fn(item: ResultMetric) -> None:
             if item.meta.should_reset:
                 item.reset()
+
         apply_to_collection(dict(self.items()), ResultMetric, reset_fn)
         self._batch_size: Optional[int] = None
         self._on_epoch_end_reached: bool = False
