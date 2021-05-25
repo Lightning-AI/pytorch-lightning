@@ -1,9 +1,10 @@
 import logging
 from contextlib import suppress
 from copy import deepcopy
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 import torch
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -215,7 +216,7 @@ class EpochLoop(Loop):
     def should_accumulate(self):
         return self.training_loop.batch_loop.should_accumulate()
 
-    def get_active_optimizers(self, batch_idx):
+    def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
         return self.training_loop.batch_loop.get_active_optimizers(batch_idx)
 
     def check_checkpoint_callback(self, should_update, is_last=False):
