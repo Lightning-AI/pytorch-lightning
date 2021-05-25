@@ -529,7 +529,9 @@ class TrainLoop:
 
             self.total_batch_idx += 1
 
-            max_steps_reached = self.max_steps is not None and self.max_steps <= self.global_step + 1 and self._accumulated_batches_reached(
+            max_steps_reached = (
+                self.max_steps is not None and self.max_steps <= self.global_step + 1
+                and self._accumulated_batches_reached()
             )
             if max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(is_last_batch):
                 break
