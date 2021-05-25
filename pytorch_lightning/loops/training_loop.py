@@ -78,7 +78,7 @@ class TrainingLoop(Loop):
             except StopIteration:
                 break
 
-            self.iteration_count += 1
+            self.iteration_count = self.increment_iteration(self.iteration_count)
 
         return self.on_run_end()
 

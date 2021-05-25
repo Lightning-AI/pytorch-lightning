@@ -30,7 +30,7 @@ class Loop(ABC):
             self.on_advance_start(*args, **kwargs)
             self.advance(*args, **kwargs)
             self.on_advance_end()
-            self.iteration_count += 1
+            self.iteration_count = self.increment_iteration(self.iteration_count)
 
         return self.on_run_end()
 
@@ -50,5 +50,8 @@ class Loop(ABC):
     def on_run_end(self) -> Any:
         pass
 
-    def state_dict(self):
+    def increment_iteration(self, iteration: int) -> int:
+        return iteration + 1
+
+    def state_dict(self) -> dict:
         return dict()
