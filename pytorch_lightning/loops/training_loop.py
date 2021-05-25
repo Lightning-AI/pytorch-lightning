@@ -1,4 +1,3 @@
-from copy import deepcopy
 from typing import Dict, List, Union
 
 import pytorch_lightning as pl
@@ -144,8 +143,7 @@ class TrainingLoop(Loop):
         self.save_loggers_on_train_batch_end()
 
         # update LR schedulers
-        monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
-        self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+        self.update_lr_schedulers('step')
         self.trainer.checkpoint_connector.has_trained = True
 
         self.total_batch_idx += 1
@@ -338,17 +336,16 @@ class TrainingLoop(Loop):
             processed_outputs = processed_outputs[0]
         return processed_outputs
 
-    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
-        num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
-        num_training_batches_reached = self._num_training_batches_reached()
-
-        if num_accumulated_batches_reached or num_training_batches_reached:
-            # update lr
-            self.trainer.optimizer_connector.update_learning_rates(
-                interval="step",
-                monitor_metrics=monitor_metrics,
-                opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
-            )
+    def update_lr_schedulers(self, interval: str) -> None:
+        if interval == "step":
+            finished_accumulation = self.batch_loop._accumulated_batches_reached()
+            finished_epoch = self._num_training_batches_reached()
+            if not finished_accumulation and not finished_epoch:
+                return
+        self.trainer.optimizer_connector.update_learning_rates(
+            interval=interval,
+            opt_indices=[opt_idx for opt_idx, _ in self.batch_loop.get_active_optimizers(self.total_batch_idx)],
+        )
 
     def increment_accumulated_grad_global_step(self):
         num_accumulated_batches_reached = self.batch_loop._accumulated_batches_reached()
@@ -362,15 +359,21 @@ class TrainingLoop(Loop):
 
     def should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
         """ Decide if we should run validation. """
-
         if not self.trainer.enable_validation:
             return False
 
-        # check if this epoch is eligible to run validation
-        if (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch != 0:
+        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        if not is_val_check_epoch:
             return False
 
         # val_check_batch is inf for iterable datasets with no length defined
+        is_infinite_dataset = self.trainer.val_check_batch == float('inf')
+        if on_epoch and is_last_batch and is_infinite_dataset:
+            return True
+
+        if on_epoch and self.trainer.should_stop:
+            return True
+
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = False
         if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
@@ -380,12 +383,9 @@ class TrainingLoop(Loop):
 
         # Note: num_training_batches is also inf for iterable datasets with no length defined
         epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
-        is_last_batch_for_infinite_dataset = is_last_batch and self.trainer.val_check_batch == float("inf")
 
         if on_epoch:
-            return (
-                is_val_check_batch and epoch_end_val_check
-            ) or self.trainer.should_stop or is_last_batch_for_infinite_dataset
+            return is_val_check_batch and epoch_end_val_check
         else:
             return is_val_check_batch and not epoch_end_val_check
 

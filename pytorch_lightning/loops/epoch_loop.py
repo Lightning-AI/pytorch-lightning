@@ -159,7 +159,7 @@ class EpochLoop(Loop):
 
         # update epoch level lr_schedulers if no val loop outside train loop is triggered
         if not should_check_val or should_train_only:
-            self.trainer.optimizer_connector.update_learning_rates(interval='epoch')
+            self.training_loop.update_lr_schedulers("epoch")
 
         if should_train_only:
             self.check_checkpoint_callback(True)
