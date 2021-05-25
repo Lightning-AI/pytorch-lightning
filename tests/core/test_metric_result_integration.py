@@ -159,7 +159,7 @@ def test_result_collection_restoration():
     for _ in range(2):
 
         cumulative_sum = 0
-        
+
         for i in range(3):
 
             a = metric_a(i)
@@ -168,10 +168,12 @@ def test_result_collection_restoration():
 
             cumulative_sum += i
 
-            import pdb; pdb.set_trace()
+            import pdb
+            pdb.set_trace()
             result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True)
-            import pdb; pdb.set_trace()
-            
+            import pdb
+            pdb.set_trace()
+
             result.log('training_step', 'b', metric_b, on_step=False, on_epoch=True)
             result.log('training_step', 'c', metric_c, on_step=True, on_epoch=False)
 
@@ -277,5 +279,5 @@ def test_result_collection_simple_loop():
         assert result['d0.a'].cumulated_batch_size == torch.tensor(1.)
         assert result['d1.a'].value == torch.tensor(3.) + epoch
         assert result['d1.a'].cumulated_batch_size == torch.tensor(1.)
-        
+
         result.reset()

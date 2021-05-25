@@ -365,7 +365,11 @@ class ResultCollection(dict):
                     is_empty = False
 
             # apply detection.
-            wrong_dtype = (Mapping, Sequence, NamedTuple,)
+            wrong_dtype = (
+                Mapping,
+                Sequence,
+                NamedTuple,
+            )
             apply_to_collection(value, object, is_empty_fn, wrong_dtype=wrong_dtype)
 
             # skip is the value was actually empty.
