@@ -21,8 +21,8 @@ import torch
 from pytorch_lightning.core import memory
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
-from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
@@ -42,7 +42,7 @@ class LoggerConnector:
         self.eval_loop_results = []
         self._cached_results = {stage: EpochResultStore(trainer) for stage in RunningStage}
         self._cached_results[None] = EpochResultStore(trainer)
-        self._callback_hook_validator = CallbackHookNameValidator()
+        self._fx_validator = FxValidator()
         self._val_log_step: int = 0
         self._test_log_step: int = 0
 
@@ -95,10 +95,8 @@ class LoggerConnector:
     def reset(self) -> None:
         self.cached_results.reset()
 
-    def check_logging_in_callbacks(self, hook_fx_name, on_step: bool = None, on_epoch: bool = None) -> None:
-        self._callback_hook_validator.check_logging_in_callbacks(
-            current_hook_fx_name=hook_fx_name, on_step=on_step, on_epoch=on_epoch
-        )
+    def check_logging(self, fx_name: str, on_step: bool, on_epoch: bool) -> None:
+        self._fx_validator.check_logging(fx_name=fx_name, on_step=on_step, on_epoch=on_epoch)
 
     def on_evaluation_batch_start(self, batch, dataloader_idx, num_dataloaders):
         model = self.trainer.lightning_module

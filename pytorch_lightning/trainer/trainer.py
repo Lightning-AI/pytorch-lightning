@@ -18,6 +18,7 @@ from datetime import timedelta
 from itertools import count
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
+from weakref import proxy
 
 import torch
 from torch.utils.data import DataLoader
@@ -31,7 +32,13 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
-from pytorch_lightning.profiler import BaseProfiler
+from pytorch_lightning.profiler import (
+    AdvancedProfiler,
+    BaseProfiler,
+    PassThroughProfiler,
+    PyTorchProfiler,
+    SimpleProfiler,
+)
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -43,7 +50,6 @@ from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_fr
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
-from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
@@ -325,7 +331,6 @@ class Trainer(
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
-        self.profile_connector = ProfilerConnector(self)
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
@@ -382,7 +387,7 @@ class Trainer(
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
 
         # configure profiler
-        self.profile_connector.on_trainer_init(profiler)
+        self.__init_profiler(profiler)
 
         # init logger flags
         self.logger_connector.on_trainer_init(
@@ -502,6 +507,10 @@ class Trainer(
 
         model_provided = model is not None
         model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.validate()` when it hasn't been passed in a previous run"
+            )
 
         # links data to the trainer
         self.data_connector.attach_data(model, val_dataloaders=val_dataloaders, datamodule=datamodule)
@@ -562,6 +571,10 @@ class Trainer(
 
         model_provided = model is not None
         model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
+            )
 
         # links data to the trainer
         self.data_connector.attach_data(model, test_dataloaders=test_dataloaders, datamodule=datamodule)
@@ -624,6 +637,10 @@ class Trainer(
 
         model_provided = model is not None
         model = model or self.lightning_module
+        if model is None:
+            raise MisconfigurationException(
+                "`model` must be provided to `trainer.predict()` when it hasn't been passed in a previous run"
+            )
 
         # links data to the trainer
         self.data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
@@ -801,7 +818,7 @@ class Trainer(
 
     def run_stage(self):
         self.accelerator.dispatch(self)
-        self.profile_connector.setup()
+        self.__setup_profiler()
 
         if self.evaluating:
             return self._run_evaluate()
@@ -1186,19 +1203,19 @@ class Trainer(
         self.teardown(stage=fn)
         model.teardown(stage=fn)
 
-        model._current_fx_name = ""
-        model._current_hook_fx_name = None
+        model._current_fx_name = None
         model._current_dataloader_idx = None
 
-    def _reset_result_and_set_hook_fx_name(self, hook_name: str) -> bool:
+    def _reset_result_and_set_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step
+        # TODO(@carmocca): Result should handle this logic
         if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
             return True
         model_ref = self.lightning_module
         if model_ref is not None:
             # used to track current hook name called
             model_ref._results = Result()
-            model_ref._current_hook_fx_name = hook_name
+            model_ref._current_fx_name = hook_name
         return False
 
     def _cache_logged_metrics(self):
@@ -1214,7 +1231,7 @@ class Trainer(
         # TrainLoop._on_train_epoch_end_hook
 
         # set hook_name to model + reset Result obj
-        skip = self._reset_result_and_set_hook_fx_name(hook_name)
+        skip = self._reset_result_and_set_fx_name(hook_name)
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -1244,3 +1261,25 @@ class Trainer(
     @staticmethod
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
+
+    def __init_profiler(self, profiler: Optional[Union[BaseProfiler, str]]) -> None:
+        if isinstance(profiler, str):
+            PROFILERS = {
+                "simple": SimpleProfiler,
+                "advanced": AdvancedProfiler,
+                "pytorch": PyTorchProfiler,
+            }
+            profiler = profiler.lower()
+            if profiler not in PROFILERS:
+                raise MisconfigurationException(
+                    "When passing string value for the `profiler` parameter of `Trainer`,"
+                    f" it can only be one of {list(PROFILERS.keys())}"
+                )
+            profiler_class = PROFILERS[profiler]
+            profiler = profiler_class()
+        self.profiler: BaseProfiler = profiler or PassThroughProfiler()
+
+    def __setup_profiler(self) -> None:
+        local_rank = self.local_rank if self.world_size > 1 else None
+        self.profiler._lightning_module = proxy(self.lightning_module)
+        self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)

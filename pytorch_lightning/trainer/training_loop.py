@@ -577,9 +577,8 @@ class TrainLoop:
             self.trainer._run_evaluation(on_epoch=True)
             self.trainer.training = True
 
-        # increment the global step once
-        # progress global step according to grads progress
-        self.increment_accumulated_grad_global_step()
+        if batch_output.signal != -1:
+            self.increment_accumulated_grad_global_step()
 
     def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
         # inform logger the batch loop has finished
@@ -595,8 +594,6 @@ class TrainLoop:
             # run training_epoch_end
             # refresh the result for custom logging at the epoch level
             model._current_fx_name = 'training_epoch_end'
-
-            # lightningmodule hook
             training_epoch_end_output = model.training_epoch_end(processed_epoch_output)
 
             if training_epoch_end_output is not None:
@@ -621,7 +618,7 @@ class TrainLoop:
         hook_name = "on_train_epoch_end"
 
         # set hook_name to model + reset Result obj
-        skip = self.trainer._reset_result_and_set_hook_fx_name(hook_name)
+        skip = self.trainer._reset_result_and_set_fx_name(hook_name)
 
         # always profile hooks
         with self.trainer.profiler.profile(hook_name):
@@ -726,7 +723,6 @@ class TrainLoop:
             # -------------------
             # calculate loss (train step + train step end)
             # -------------------
-
             # automatic_optimization=True: perform ddp sync only when performing optimizer_step
             # automatic_optimization=False: don't block synchronization here
             with self.block_ddp_sync_behaviour():
@@ -739,6 +735,9 @@ class TrainLoop:
         else:
             if self.trainer.lightning_module.automatic_optimization:
                 self.optimizer_step(optimizer, opt_idx, batch_idx, closure)
+                if len(self.trainer.optimizers) > 1:
+                    # revert back to previous state
+                    self.trainer.lightning_module.untoggle_optimizer(opt_idx)
             else:
                 result = self.training_step(split_batch, batch_idx, opt_idx, self._hiddens)
 
@@ -838,10 +837,6 @@ class TrainLoop:
                     self.warning_cache.warn(
                         "training_step returned None. If this was on purpose, ignore this warning..."
                     )
-
-                if len(self.trainer.optimizers) > 1:
-                    # revert back to previous state
-                    self.trainer.lightning_module.untoggle_optimizer(opt_idx)
 
         return result
 
