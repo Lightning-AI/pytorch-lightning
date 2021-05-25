@@ -156,7 +156,7 @@ def test_result_collection_restoration():
 
     result = ResultCollection(True)
 
-    for _ in range(2):
+    for epoch in range(2):
 
         cumulative_sum = 0
 
@@ -168,15 +168,13 @@ def test_result_collection_restoration():
 
             cumulative_sum += i
 
-            import pdb
-            pdb.set_trace()
-            result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True)
-            import pdb
-            pdb.set_trace()
-
-            result.log('training_step', 'b', metric_b, on_step=False, on_epoch=True)
-            result.log('training_step', 'c', metric_c, on_step=True, on_epoch=False)
-
+            result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True, lightning_attribute_name="metric_a")
+            result.log(
+                'training_step', 'b', metric_b, on_step=False, on_epoch=True, lightning_attribute_name="metric_b"
+            )
+            result.log(
+                'training_step', 'c', metric_c, on_step=True, on_epoch=False, lightning_attribute_name="metric_c"
+            )
             result.log('training_step', 'a_1', a, on_step=True, on_epoch=True)
             result.log('training_step', 'b_1', b, on_step=False, on_epoch=True)
             result.log('training_step', 'c_1', [c, c], on_step=True, on_epoch=False)
@@ -192,13 +190,15 @@ def test_result_collection_restoration():
             state_dict = result.state_dict()
 
             result = ResultCollection(True)
-            result.load_from_state_dict(state_dict)
-
-            # the metric reference are lost during serialization.
-            # they will be restored with the LightningModule state on the next step.
-            result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True)
-            result.log('training_step', 'b', metric_b, on_step=False, on_epoch=True)
-            result.log('training_step', 'c', metric_c, on_step=True, on_epoch=False)
+            result.load_from_state_dict(
+                state_dict,
+                metrics={
+                    "metric_a": metric_a,
+                    "metric_b": metric_b,
+                    "metric_c": metric_c,
+                    "metric_a_end": metric_a
+                }
+            )
 
             assert _result.items() == result.items()
 
@@ -210,22 +210,24 @@ def test_result_collection_restoration():
 
         assert epoch_log == _epoch_log
 
-        epoch_expected = {'a_epoch', 'b', 'b_1', 'a_1_epoch'}
+        if epoch == 0:
+            epoch_expected = {'a_epoch', 'b', 'b_1', 'a_1_epoch'}
+        else:
+            epoch_expected = {'a_epoch', 'b', 'b_1', 'a_1_epoch', 'a'}
 
         assert set(epoch_log.keys()) == epoch_expected
         for k in list(epoch_expected):
-            if k in {'a_epoch', 'b'}:
+            if k in {'a_epoch', 'b', 'a'}:
                 assert epoch_log[k] == cumulative_sum
             else:
                 assert epoch_log[k] == 1
 
-        _result.log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True)
-        result.log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True)
+        result.log(
+            'train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True, lightning_attribute_name="metric_a_end"
+        )
 
         _result.reset()
         result.reset()
-
-        print(result)
 
         # assert metric state reset to default values
         assert metric_a.x == metric_a._defaults['x'], (metric_a.x, metric_a._defaults['x'])

@@ -44,6 +44,7 @@ class Metadata:
     reduce_fx: Callable = torch.mean
     dataloader_idx: Optional[int] = None
     is_tensor: bool = True
+    lightning_attribute_name: Optional[str] = None
 
     @property
     def forked(self) -> bool:
@@ -239,6 +240,7 @@ class ResultCollection(dict):
         enable_graph: bool = False,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
+        lightning_attribute_name: Optional[str] = None,
     ):
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -254,6 +256,9 @@ class ResultCollection(dict):
         if dataloader_idx:
             key += f'.{dataloader_idx}'
 
+        if on_step and self.on_epoch_end_reached:
+            raise MisconfigurationException("Logging `on_step` after `on_epoch_end_reached` isn't authorized.")
+
         if key not in self:
             meta = Metadata(
                 fx=hook_name,
@@ -264,6 +269,7 @@ class ResultCollection(dict):
                 on_epoch=on_epoch,
                 reduce_fx=reduce_fx,
                 dataloader_idx=dataloader_idx,
+                lightning_attribute_name=lightning_attribute_name,
             )
             self.instance_result_metric(key, meta, value)
 
@@ -490,7 +496,7 @@ class ResultCollection(dict):
 
         return {k: apply_to_collection(v, ResultMetric, get_state_dict) for k, v in self.items()}
 
-    def load_from_state_dict(self, state_dict: Dict[str, Any]):
+    def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Dict[str, Metric] = None):
 
         def to_result_metric(item: ResultMeta) -> Dict[str, Any]:
             result_metric = ResultMetric(item["meta"])
@@ -501,3 +507,13 @@ class ResultCollection(dict):
 
         for k, v in state_dict.items():
             self[k] = v
+
+        if metrics is not None:
+
+            def re_assign_metric(item):
+                nonlocal metrics
+                lightning_attribute_name = item.meta.lightning_attribute_name
+                if isinstance(lightning_attribute_name, str) and lightning_attribute_name in metrics:
+                    item.value = metrics[lightning_attribute_name]
+
+            apply_to_collection(dict(self.items()), ResultMetric, re_assign_metric)
