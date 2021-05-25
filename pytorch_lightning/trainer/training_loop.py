@@ -892,12 +892,18 @@ class TrainLoop:
             return True
 
         # val_check_batch is inf for iterable datasets with no length defined
+        is_infinite_dataset = self.trainer.val_check_batch == float('inf')
+        if on_epoch and is_last_batch and is_infinite_dataset:
+            return True
+
+        if on_epoch and self.trainer.should_stop:
+            return True
+
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float('inf'):
-            is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
         return is_val_check_batch
 
     def _build_kwargs(self, batch, batch_idx, opt_idx, hiddens):

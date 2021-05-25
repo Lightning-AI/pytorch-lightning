@@ -259,10 +259,6 @@ class HookedModel(BoringModel):
         self.called.append("training_step")
         return super().training_step(*args, **kwargs)
 
-    def on_before_zero_grad(self, *args, **kwargs):
-        self.called.append("on_before_zero_grad")
-        super().on_before_zero_grad(*args, **kwargs)
-
     def optimizer_zero_grad(self, *args, **kwargs):
         self.called.append("optimizer_zero_grad")
         super().optimizer_zero_grad(*args, **kwargs)
@@ -503,6 +499,39 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
     )
     assert model.called == []
 
+    trainer.fit(model)
+    expected = [
+        'setup_fit',
+        'on_fit_start',
+        'on_pretrain_routine_start',
+        'on_pretrain_routine_end',
+        'on_train_start',
+        'on_epoch_start',
+        'on_train_epoch_start',
+        *(model.train_batch * train_batches),
+        'training_epoch_end',
+        'on_train_epoch_end',
+        'on_epoch_end',
+        'on_save_checkpoint',  # from train epoch end
+        'on_train_end',
+        'on_fit_end',
+        'teardown_fit',
+    ]
+    assert model.called == expected
+
+
+def test_trainer_model_hook_system_fit_no_val(tmpdir):
+    model = HookedModel()
+    train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0,
+        limit_train_batches=train_batches,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+    assert model.called == []
     trainer.fit(model)
     expected = [
         'setup_fit',
