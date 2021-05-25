@@ -12,7 +12,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.supporters import prefetch_iterator, TensorRunningAccum
+from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
@@ -26,16 +26,24 @@ class BatchLoop(Loop):
 
     def __init__(self):
         super().__init__()
-        # self.accumulated_loss = None  # TODO: needs to be done over epoch
-        self.warning_cache = WarningCache()
-        # self._teardown_already_run = False
-        self.running_loss = TensorRunningAccum(window_length=20)
         self.accumulated_loss = None
-        self._skip_backward = False
+        self.running_loss = TensorRunningAccum(window_length=20)
+        self.split_idx = None
+        self.warning_cache = WarningCache()
+
         self._hiddens = None
         self._optimizer_freq_cumsum = None
+        self._skip_backward = False
 
-        self.split_idx = None
+    @property
+    def skip_backward(self) -> bool:
+        """ Determines whether the loop will skip backward during automatic optimization. """
+        return self._skip_backward
+
+    @skip_backward.setter
+    def skip_backward(self, value: bool):
+        """ Determines whether the loop will skip backward during automatic optimization. """
+        self._skip_backward = value
 
     def connect(self, trainer, *args, **kwargs):
         self.trainer = trainer
@@ -433,7 +441,7 @@ class BatchLoop(Loop):
             # lightning module hook
             result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
 
-            if not self._skip_backward and self.trainer.lightning_module.automatic_optimization:
+            if not self.skip_backward and self.trainer.lightning_module.automatic_optimization:
                 is_first_batch_to_accumulate = batch_idx % self.trainer.accumulate_grad_batches == 0
 
                 if is_first_batch_to_accumulate:

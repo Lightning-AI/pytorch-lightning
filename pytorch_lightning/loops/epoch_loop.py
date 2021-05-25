@@ -79,6 +79,16 @@ class EpochLoop(Loop):
     def running_loss(self):
         return self.training_loop.batch_loop.running_loss
 
+    @property
+    def skip_backward(self) -> bool:
+        """ Determines whether the loop will skip backward during automatic optimization. """
+        return self.training_loop.batch_loop.skip_backward
+
+    @skip_backward.setter
+    def skip_backward(self, value: bool):
+        """ Determines whether the loop will skip backward during automatic optimization. """
+        self.training_loop.batch_loop.skip_backward = value
+
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
         self.training_loop.connect(trainer)
