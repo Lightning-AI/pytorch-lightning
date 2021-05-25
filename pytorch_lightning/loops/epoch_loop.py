@@ -24,7 +24,6 @@ class EpochLoop(Loop):
 
     def __init__(self, min_epochs, max_epochs, min_steps, max_steps):
         super().__init__()
-        self.running_loss = torch.tensor(0.0)  # dummy TODO:
         self._teardown_already_run = False
 
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
@@ -74,6 +73,10 @@ class EpochLoop(Loop):
     def max_steps(self, value):
         # TODO: This setter is required by debugging connector (fast dev run)
         self.training_loop.max_steps = value
+
+    @property
+    def running_loss(self):
+        return self.training_loop.batch_loop.running_loss
 
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
