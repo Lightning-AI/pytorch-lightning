@@ -194,7 +194,6 @@ class ResultCollection(dict):
     @on_epoch_end_reached.setter
     def on_epoch_end_reached(self, on_epoch_end_reached):
         self._on_epoch_end_reached = on_epoch_end_reached
-        self._minimize = None
         self._batch_idx = None
 
     @property
@@ -439,6 +438,7 @@ class ResultCollection(dict):
     def reset(self):
         self.reset_metrics()
         self.on_epoch_end_reached = False
+        self._minimize = None
 
     def extract_batch_size(self, batch: Any) -> None:
         try:
