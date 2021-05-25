@@ -46,22 +46,11 @@ class TrainingLoop(Loop):
 
     @property
     def done(self):
-        # max steps reached, end training
-        if (
-            self.max_steps is not None and self.max_steps <= self.global_step + 1
-            and self.batch_loop._accumulated_batches_reached()
-        ):
-            return True
-
-        # end epoch early
-        # stop when the flag is changed or we've gone past the amount
-        # requested in the batches
-        if self.trainer.should_stop:
-            return True
-
-        # stop epoch if we limited the number of training batches
-        if self._num_training_batches_reached(self.is_last_batch):
-            return True
+        max_steps_reached = (
+                self.max_steps is not None and self.max_steps <= self.global_step + 1
+                and self.batch_loop._accumulated_batches_reached()
+        )
+        return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
     def run(self, *args, **kwargs):
         self.on_run_start()
@@ -368,7 +357,7 @@ class TrainingLoop(Loop):
         if on_epoch and is_last_batch and is_infinite_dataset:
             return True
 
-        if on_epoch and self.trainer.should_stop:
+        if self.trainer.should_stop:
             return True
 
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
