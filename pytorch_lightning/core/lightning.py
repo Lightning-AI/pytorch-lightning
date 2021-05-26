@@ -346,11 +346,13 @@ class LightningModule(
                 )
 
             if lightning_attribute_name is None and isinstance(value, Metric):
-                # todo (tchaton): find a more optimized way to find associated metrics.
-                for module_name, module in self.named_children():
-                    if isinstance(module, Metric) and hash(module) == hash(value):
-                        lightning_attribute_name = module_name
-                        break
+                # used to find this Metric associated LightningModule attribute name.
+                if not hasattr(self, "_map_metric_id_name"):
+                    self._map_metric_id_name = {
+                        id(module): module_name
+                        for module_name, module in self.named_children() if isinstance(module, Metric)
+                    }
+                lightning_attribute_name = self._map_metric_id_name[id(value)]
 
             sync_fn = partial(
                 self.__sync,
