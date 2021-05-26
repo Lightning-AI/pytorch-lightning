@@ -703,6 +703,10 @@ class LightningModule(
         Note:
             If this method is not overridden, this won't be called.
 
+        Note:
+            If you are using `ddp*` accelerators, each process will only see its own data.
+                To collect data across all processes, use :meth:`all_gather` on outputs.
+
         Example::
 
             def training_epoch_end(self, training_step_outputs):
@@ -881,11 +885,12 @@ class LightningModule(
         Return:
             None
 
-        .. warning:: If you are using `ddp*` accelerators, each process will only see its own data.
-                To collect data across all processes, use :meth:`all_gather` on outputs.
-
         Note:
             If you didn't define a :meth:`validation_step`, this won't be called.
+
+        Note:
+            If you are using `ddp*` accelerators, each process will only see its own data.
+                To collect data across all processes, use :meth:`all_gather` on outputs.
 
         Examples:
             With a single dataloader:
@@ -1059,11 +1064,12 @@ class LightningModule(
         Return:
             None
 
-        .. warning:: If you are using `ddp*` accelerators, each process will only see its own data.
-                To collect data across all processes, use :meth:`all_gather` on outputs.
-
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
+
+        Note:
+            If you are using `ddp*` accelerators, each process will only see its own data.
+                To collect data across all processes, use :meth:`all_gather` on outputs.
 
         Examples:
             With a single dataloader:
