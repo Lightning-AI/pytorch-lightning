@@ -411,4 +411,3 @@ Here's a model that uses `Huggingface transformers <https://github.com/huggingfa
             h_cls = h[:, 0]
             logits = self.W(h_cls)
             return logits, attn
-
