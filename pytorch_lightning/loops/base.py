@@ -22,6 +22,10 @@ class Loop(ABC):
     def done(self) -> bool:
         """Property indicating when loop is finished"""
 
+    @abstractmethod
+    def reset(self) -> None:
+        pass
+
     def run(self, *args: Any, **kwargs: Any) -> Any:
         self.reset()
         self.on_run_start(*args, **kwargs)
@@ -50,9 +54,6 @@ class Loop(ABC):
 
     def on_run_end(self) -> Any:
         pass
-
-    def reset(self) -> None:
-        self.iteration_count = 0
 
     def increment_iteration(self, iteration: int) -> int:
         return iteration + 1

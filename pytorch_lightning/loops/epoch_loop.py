@@ -21,6 +21,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 log = logging.getLogger(__name__)
 
 
+# TODO: typing
 class EpochLoop(Loop):
 
     def __init__(self, min_epochs, max_epochs, min_steps, max_steps):
@@ -117,6 +118,9 @@ class EpochLoop(Loop):
 
         stop_epochs = self.current_epoch >= self.max_epochs if self.max_epochs is not None else False
         return stop_steps or should_stop or stop_epochs
+
+    def reset(self) -> None:
+        self.iteration_count = 0
 
     def on_run_start(self):
         # hook

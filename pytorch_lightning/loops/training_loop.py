@@ -10,6 +10,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
+# TODO: typing
 class TrainingLoop(Loop):
     """ Runs over all batches in a dataloader (one epoch). """
 
@@ -72,7 +73,9 @@ class TrainingLoop(Loop):
 
         return self.on_run_end()
 
-    def on_run_start(self):
+    def reset(self) -> None:
+        self.iteration_count = 0
+
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
 

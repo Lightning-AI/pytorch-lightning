@@ -21,6 +21,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.warnings import WarningCache
 
 
+# TODO: typing
 class BatchLoop(Loop):
     """ Runs over a single batch of data. """
 
@@ -76,13 +77,16 @@ class BatchLoop(Loop):
         )
         return output
 
-    def on_run_start(self, batch, batch_idx, dataloader_idx):
-        self._hiddens = None
-        self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
+    def reset(self) -> None:
+        self.iteration_count = 0
 
+        self._hiddens = None
         # TODO: let loops track individual outputs
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
         self.grad_norm_dicts = []
+
+    def on_run_start(self, batch, batch_idx, dataloader_idx):
+        self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
 
     def advance(self, batch, batch_idx, dataloader_idx):
         split_idx, split_batch = self._remaining_splits.pop(0)
