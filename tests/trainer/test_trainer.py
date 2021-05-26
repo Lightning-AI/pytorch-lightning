@@ -341,7 +341,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     for i, loss in enumerate(losses):
         trainer.train_loop.current_epoch = i
         trainer.train_loop.global_step = i
-        trainer.logger_connector.callback_metrics = {"checkpoint_on": torch.tensor(loss)}
+        trainer.logger_connector._callback_metrics = {"checkpoint_on": torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
 
     file_lists = set(os.listdir(tmpdir))

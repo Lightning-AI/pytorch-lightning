@@ -45,6 +45,7 @@ class Metadata:
     dataloader_idx: Optional[int] = None
     is_tensor: bool = True
     lightning_attribute_name: Optional[str] = None
+    has_reset: bool = False
 
     @property
     def forked(self) -> bool:
@@ -126,6 +127,8 @@ class ResultMetric(Metric):
         else:
             self.value.reset()
 
+        self.meta.has_reset = True
+
     def forward(self, *args, **kwargs):
         """
         Automatically calls ``update()``. Returns the metric value over inputs if ``compute_on_step`` is True.
@@ -165,7 +168,7 @@ class ResultCollection(dict):
     EPOCH_SUFFIX = "_epoch"
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
 
-    def __init__(self, is_train: bool) -> None:
+    def __init__(self, is_train: bool, root_device: Optional[torch.device] = None) -> None:
         super().__init__()
         self.is_train = is_train
         self._on_epoch_end_reached = False
@@ -173,10 +176,10 @@ class ResultCollection(dict):
         self._current_hook_name: Optional[str] = None
         self._batch_size: Optional[int] = None
         self._batch_idx: Optional[int] = None
-        self._root_device: Optional[torch.device] = None
+        self._root_device: Optional[torch.device] = root_device
 
     @property
-    def batch_size(self) -> 1:
+    def batch_size(self) -> int:
         return self._batch_size or 1
 
     @batch_size.setter
@@ -324,6 +327,7 @@ class ResultCollection(dict):
         def fn(result_metric, v):
             assert isinstance(v, (torch.Tensor, Metric))
             result_metric(v.to(self.root_device), batch_size.to(self.root_device))
+            result_metric.meta.has_reset = False
 
         apply_to_collections(self[key], value, ResultMetric, fn)
 
@@ -341,6 +345,9 @@ class ResultCollection(dict):
     def valid_metrics(self) -> Generator:
         for key, item in self.items():
             if item is None or isinstance(item, bool) or key == "extra":
+                continue
+            elif isinstance(item, ResultMetric) and item.meta.has_reset:
+                # skip the metric which have been reset.
                 continue
             yield (key, item)
 

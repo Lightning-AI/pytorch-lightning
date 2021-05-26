@@ -110,12 +110,18 @@ def test_result_metric_integration():
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    result = ResultCollection(True)
+    result = ResultCollection(True, torch.device("cpu"))
 
     for _ in range(3):
         cumulative_sum = 0
 
+        result.on_epoch_end_reached = False
+
         for i in range(5):
+
+            # need to set batch_idx
+            result.batch_idx = i
+
             metric_a(i)
             metric_b(i)
             metric_c(i)
@@ -131,6 +137,8 @@ def test_result_metric_integration():
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
                 assert batch_expected[k] == batch_log[k]
+
+        result.on_epoch_end_reached = True
 
         epoch_log = result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
         result.reset()
@@ -154,13 +162,16 @@ def test_result_collection_restoration():
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    result = ResultCollection(True)
+    result = ResultCollection(True, torch.device("cpu"))
 
     for epoch in range(2):
 
+        result.on_epoch_end_reached = False
         cumulative_sum = 0
 
         for i in range(3):
+
+            result.batch_idx = i
 
             a = metric_a(i)
             b = metric_b(i)
@@ -189,7 +200,7 @@ def test_result_collection_restoration():
             _result = deepcopy(result)
             state_dict = result.state_dict()
 
-            result = ResultCollection(True)
+            result = ResultCollection(True, torch.device("cpu"))
             result.load_from_state_dict(
                 state_dict, {
                     "metric_a": metric_a,
@@ -236,12 +247,14 @@ def test_result_collection_restoration():
 
 def test_result_collection_simple_loop():
 
-    result = ResultCollection(True)
+    result = ResultCollection(True, torch.device("cpu"))
 
     result.log('a0', 'a', torch.tensor(0.), on_step=True, on_epoch=True)
     result.log('a1', 'a', torch.tensor(0.), on_step=True, on_epoch=True)
 
     for epoch in range(2):
+
+        result.on_epoch_end_reached = False
 
         result.log('b0', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
         result.log('b1', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
@@ -280,5 +293,3 @@ def test_result_collection_simple_loop():
         assert result['d0.a'].cumulated_batch_size == torch.tensor(1.)
         assert result['d1.a'].value == torch.tensor(3.) + epoch
         assert result['d1.a'].cumulated_batch_size == torch.tensor(1.)
-
-        result.reset()

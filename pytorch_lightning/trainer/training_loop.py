@@ -299,6 +299,9 @@ class TrainLoop:
             # accumulate loss. if accumulate_grad_batches==1, no effect
             closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
 
+            # detach the loss
+            training_step_output._minimize = training_step_output.minimize.detach()
+
             # the loss will get scaled for amp. avoid any modifications to it
             untouched_loss = closure_loss.detach().clone()
 
@@ -340,11 +343,10 @@ class TrainLoop:
         result.minimize = loss
         self._hiddens = hiddens
 
-        training_step_output_for_epoch_end = copy(result)
         if self.trainer.move_metrics_to_cpu:
-            training_step_output_for_epoch_end = training_step_output_for_epoch_end.cpu()
+            result = result.cpu()
 
-        return training_step_output_for_epoch_end, result
+        return result, result
 
     @staticmethod
     def _prepare_outputs(

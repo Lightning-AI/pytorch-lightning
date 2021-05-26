@@ -22,11 +22,16 @@ def test_result_collection_on_tensor_with_mean_reduction():
 
     seed_everything(42)
 
-    result_collection = ResultCollection()
+    result_collection = ResultCollection(True, torch.device("cpu"))
 
     for i in range(1, 10):
+
+        result_collection.batch_idx = i
+
         for prob_bar in [False, True]:
+
             for logger in [False, True]:
+
                 result_collection.log(
                     "training_step",
                     f"loss_1_{int(prob_bar)}_{int(logger)}",
@@ -99,16 +104,22 @@ def test_result_collection_on_tensor_with_mean_reduction():
     assert batch_metrics[DefaultMetricsKeys.LOG] == excepted
 
     excepted = {
-        'loss_1_0_0': tensor([9.]),
-        'loss_3_0_0': tensor([9.]),
-        'loss_1_0_1': tensor([9.]),
-        'loss_3_0_1': tensor([9.]),
-        'loss_1_1_0': tensor([9.]),
-        'loss_3_1_0': tensor([9.]),
-        'loss_1_1_1': tensor([9.]),
-        'loss_3_1_1': tensor([9.])
+        'loss_1_0_0': tensor(9.),
+        'loss_1_0_0_step': tensor(9.),
+        'loss_3_0_0': tensor(9.),
+        'loss_1_0_1': tensor(9.),
+        'loss_1_0_1_step': tensor(9.),
+        'loss_3_0_1': tensor(9.),
+        'loss_1_1_0': tensor(9.),
+        'loss_1_1_0_step': tensor(9.),
+        'loss_3_1_0': tensor(9.),
+        'loss_1_1_1': tensor(9.),
+        'loss_1_1_1_step': tensor(9.),
+        'loss_3_1_1': tensor(9.)
     }
     assert batch_metrics[DefaultMetricsKeys.CALLBACK] == excepted
+
+    result_collection.on_epoch_end_reached = True
 
     epoch_metrics = result_collection.get_epoch_metrics()
 
@@ -122,12 +133,16 @@ def test_result_collection_on_tensor_with_mean_reduction():
 
     excepted = {
         'loss_1_0_0': mean,
+        'loss_1_0_0_epoch': mean,
         'loss_2_0_0': mean,
         'loss_1_0_1': mean,
+        'loss_1_0_1_epoch': mean,
         'loss_2_0_1': mean,
         'loss_1_1_0': mean,
+        'loss_1_1_0_epoch': mean,
         'loss_2_1_0': mean,
         'loss_1_1_1': mean,
-        'loss_2_1_1': mean
+        'loss_1_1_1_epoch': mean,
+        'loss_2_1_1': mean,
     }
     assert epoch_metrics[DefaultMetricsKeys.CALLBACK] == excepted
