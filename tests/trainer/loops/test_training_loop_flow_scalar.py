@@ -153,7 +153,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.training_loop.batch_loop.run(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
@@ -164,7 +164,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert train_step_out['minimize'].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.train_loop.training_step_and_backward(
+    opt_closure_result = trainer.train_loop.training_loop.batch_loop.training_step_and_backward(
         batch,
         batch_idx,
         0,
@@ -233,7 +233,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.training_loop.batch_loop.run(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
@@ -244,7 +244,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert train_step_out['minimize'].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.train_loop.training_step_and_backward(
+    opt_closure_result = trainer.train_loop.training_loop.batch_loop.training_step_and_backward(
         batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
     assert opt_closure_result['loss'].item() == 171
@@ -318,7 +318,7 @@ def test_training_step_no_return_when_even(tmpdir):
 
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
-        out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+        out = trainer.train_loop.training_loop.batch_loop.run(batch, batch_idx, 0)
         if not batch_idx % 2:
             assert out.training_step_output_for_epoch_end == [[]]
         assert out.signal == 0
@@ -361,7 +361,7 @@ def test_training_step_none_batches(tmpdir):
 
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
-        out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+        out = trainer.train_loop.training_loop.batch_loop.run(batch, batch_idx, 0)
         if not batch_idx % 2:
             assert out.training_step_output_for_epoch_end == [[]]
         assert out.signal == 0
