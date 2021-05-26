@@ -53,7 +53,6 @@ class IPUPlugin(ParallelPlugin):
         self,
         half: bool = False,
         device_iterations: int = 1,
-        replication_factor: int = 1,
         autoround_num_ipus: bool = True,
         autoreport: bool = True,
         autoreport_dir: Optional[str] = None,
