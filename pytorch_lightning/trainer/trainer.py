@@ -83,7 +83,7 @@ warnings.filterwarnings(
 NEW_LOOP = True
 
 if NEW_LOOP:
-    from pytorch_lightning.loops.evaluation_loop import EvaluationLoop
+    from pytorch_lightning.loops.evaluation_dataloader_loop import EvaluationDataLoaderLoop
 else:
     from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 
@@ -344,7 +344,7 @@ class Trainer(
 
         if NEW_LOOP:
             self.train_loop = EpochLoop(min_epochs, max_epochs, min_steps, max_steps)
-            self.evaluation_loop = EvaluationLoop()
+            self.evaluation_loop = EvaluationDataLoaderLoop()
             self.train_loop.connect(self)
             self.evaluation_loop.connect(self)
         else:
