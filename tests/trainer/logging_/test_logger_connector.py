@@ -356,8 +356,8 @@ def test_metrics_reset(tmpdir):
             acc.reset.reset_mock()
             ap.reset.reset_mock()
 
-            self.log(f"{stage}/accuracy", acc)
-            self.log(f"{stage}/ap", ap)
+            self.log(f"{stage}/accuracy", acc, lightning_attribute_name=f"acc_{stage}")
+            self.log(f"{stage}/ap", ap, lightning_attribute_name=f"ap_{stage}")
 
             return loss
 
