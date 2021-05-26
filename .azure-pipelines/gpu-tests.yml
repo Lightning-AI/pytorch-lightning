@@ -55,13 +55,9 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
-        export GIT_TERMINAL_PROMPT=1
-        #sudo apt-get install -y cmake
-        # python -m pip install "pip==20.1"
-        pip install --requirement requirements.txt
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
-        pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
-        pip install fairscale>=0.3.4 --upgrade-strategy only-if-needed
+        pip install fairscale>=0.3.4
+        pip install . --requirement requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
 
@@ -114,15 +110,9 @@ jobs:
 
     - script: |
         set -e
-        python setup.py install --user
-        rm -rf pytorch_lightning
-        pip list
         python -m pytest pl_examples -v --maxfail=2 --durations=0
         bash pl_examples/run_examples-args.sh --trainer.gpus 1 --trainer.max_epochs 1 --data.batch_size 64 --trainer.limit_train_batches 5 --trainer.limit_val_batches 3
         bash pl_examples/run_ddp-examples.sh --trainer.max_epochs 1 --data.batch_size 32 --trainer.limit_train_batches 2 --trainer.limit_val_batches 2
-        # cd pl_examples/basic_examples
-        # bash submit_ddp_job.sh
-        # bash submit_ddp2_job.sh
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Examples'

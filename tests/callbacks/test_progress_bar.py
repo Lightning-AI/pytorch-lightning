@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import pickle
 import sys
 from typing import Optional, Union
 from unittest import mock
@@ -432,6 +433,10 @@ class PrintModel(BoringModel):
         self.print("test_step")
         return super().test_step(*args, **kwargs)
 
+    def predict_step(self, *args, **kwargs):
+        self.print("predict_step")
+        return super().predict_step(*args, **kwargs)
+
 
 @mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
 def test_progress_bar_print(tqdm_write, tmpdir):
@@ -444,16 +449,45 @@ def test_progress_bar_print(tqdm_write, tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         limit_test_batches=1,
+        limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
     )
     trainer.fit(model)
     trainer.test(model)
-    assert tqdm_write.call_count == 3
+    trainer.predict(model)
+    assert tqdm_write.call_count == 4
     assert tqdm_write.call_args_list == [
         call("training_step", end="", file=None, nolock=False),
         call("validation_step", end=os.linesep, file=sys.stderr, nolock=False),
         call("test_step", end=os.linesep, file=None, nolock=False),
+        call("predict_step", end=os.linesep, file=None, nolock=False),
+    ]
+
+
+@mock.patch("pytorch_lightning.callbacks.progress.tqdm.write")
+def test_progress_bar_print_no_train(tqdm_write, tmpdir):
+    """ Test that printing in the LightningModule redirects arguments to the progress bar without training. """
+    model = PrintModel()
+    bar = ProgressBar()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        max_steps=1,
+        callbacks=[bar],
+    )
+
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
+    assert tqdm_write.call_count == 3
+    assert tqdm_write.call_args_list == [
+        call("validation_step", end=os.linesep, file=sys.stderr, nolock=False),
+        call("test_step", end=os.linesep, file=None, nolock=False),
+        call("predict_step", end=os.linesep, file=None, nolock=False),
     ]
 
 
@@ -469,16 +503,33 @@ def test_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         limit_test_batches=1,
+        limit_predict_batches=1,
         max_steps=1,
         callbacks=[bar],
     )
     bar.disable()
     trainer.fit(model)
-    trainer.test(model)
+    trainer.test(model, verbose=False)
+    trainer.predict(model)
 
     mock_print.assert_has_calls([
         call("training_step", end=""),
         call("validation_step", file=ANY),
         call("test_step"),
+        call("predict_step"),
     ])
     tqdm_write.assert_not_called()
+
+
+def test_progress_bar_can_be_pickled():
+    bar = ProgressBar()
+    trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
+    model = BoringModel()
+
+    pickle.dumps(bar)
+    trainer.fit(model)
+    pickle.dumps(bar)
+    trainer.test(model)
+    pickle.dumps(bar)
+    trainer.predict(model)
+    pickle.dumps(bar)

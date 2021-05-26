@@ -23,6 +23,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
@@ -40,12 +41,16 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
 
     @property
     @abstractmethod
-    def root_device(self):
+    def root_device(self) -> torch.device:
         raise NotImplementedError
 
     @property
-    def on_gpu(self):
+    def on_gpu(self) -> bool:
         return self.root_device.type == "cuda" and torch.cuda.is_available()
+
+    @property
+    def on_tpu(self) -> bool:
+        return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
     def lightning_module(self):
@@ -122,3 +127,11 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
                 yield None
         else:
             yield None
+
+    def teardown(self) -> None:
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            with torch.cuda.device(self.root_device):
+                torch.cuda.empty_cache()
