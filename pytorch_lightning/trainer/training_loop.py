@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from contextlib import contextmanager, suppress
-from copy import copy, deepcopy
+from copy import deepcopy
 from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -321,7 +321,7 @@ class TrainLoop:
         if training_step_output_for_epoch_end is None:
             return None, None
 
-        result = self.trainer.lightning_module._results
+        result = self.trainer.result_collections
 
         loss = None
         hiddens = None

@@ -59,12 +59,17 @@ def _ddp_test_fn(rank, worldsize):
     metric_c = metric_c.to(f"cuda:{rank}")
 
     # dist_sync_on_step is False by default
-    result = ResultCollection(True)
+    result = ResultCollection(True, torch.device(f"cuda:{rank}"))
 
     for _ in range(3):
         cumulative_sum = 0
 
+        result.on_epoch_end_reached = False
+
         for i in range(5):
+
+            result.batch_idx = i
+
             metric_a(i)
             metric_b(i)
             metric_c(i)
@@ -80,6 +85,8 @@ def _ddp_test_fn(rank, worldsize):
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
                 assert batch_expected[k] == batch_log[k]
+
+        result.on_epoch_end_reached = True
 
         epoch_log = result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
         result.reset()

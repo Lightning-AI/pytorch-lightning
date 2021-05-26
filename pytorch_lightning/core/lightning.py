@@ -80,7 +80,6 @@ class LightningModule(
         "model_size",
         "automatic_optimization",
         "truncated_bptt_steps",
-        "_results",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -216,11 +215,6 @@ class LightningModule(
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    @property
-    def _results(self) -> 'Optional[ResultCollection]':
-        if hasattr(self, "trainer"):
-            return self.trainer.result_collections
-
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
     ) -> Any:
@@ -330,7 +324,9 @@ class LightningModule(
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
 
-        if self._results is not None:
+        result_collections: Optional[ResultCollection] = self.trainer.result_collections
+
+        if result_collections is not None:
             # TODO: if logged twice fail with crash
 
             # set the default depending on the fx_name
@@ -360,7 +356,7 @@ class LightningModule(
                 int,
             ), sync_fn)
 
-            self._results.log(
+            result_collections.log(
                 self._current_fx_name,
                 name,
                 value,

@@ -167,6 +167,42 @@ class ResultMeta(Dict):
 class ResultCollection(dict):
     """
     This class is used to capture all the logged values using LightningModule.log function.
+
+    Here is how to use the ResultCollection object.
+
+    Example:
+
+        # the root_device need to be provided before calling the ``log`` function
+        result = ResultCollection(True, torch.device("cpu"))
+
+        # arguments: hook_name, key, value, metadata
+        result.log('a0', 'a', torch.tensor(0.), on_step=True, on_epoch=True)
+        result.log('a1', 'a', torch.tensor(0.), on_step=True, on_epoch=True)
+
+        for epoch in range(2):
+
+            # reset on ``on_epoch_end_reached``
+            result.on_epoch_end_reached = False
+
+            result.log('b0', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
+            result.log('b1', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
+
+            for batch_idx, batch_size in enumerate(range(2)):
+
+                # the batch_idx is used to reset the tensor metrics
+                result.batch_idx = batch_idx
+
+                result.log('c0', 'a', torch.tensor(2.) + epoch, on_step=True, on_epoch=True)
+                result.log('c1', 'a', torch.tensor(2.) + epoch, on_step=True, on_epoch=True)
+
+            # used to indicate epoch end has been reached
+            result.on_epoch_end_reached = True
+
+            result.log('d0', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
+            result.log('d1', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
+
+            # result.reset_metrics() [Optional]: Reset only torchmetric.Metric object.
+            # result.reset() [Optional]: Reset the entire ResultCollection.
     """
 
     STEP_SUFFIX = "_step"
@@ -281,6 +317,25 @@ class ResultCollection(dict):
         """
         This function is used to log metrics from with
         :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
+
+        Args:
+
+            hook_name: Current hook name
+            name: Key provided by the user on logging
+            value: Either a number, tensor or a collection of the previous.
+            prog_bar: Whether to add this value to the progress bar.
+            logger: Whether to log this value to the loggers
+            on_step: Whether to use this value during batch iteration.
+            on_epoch: Whether to use this value at the end of the batch iteration.
+                Automatic reduction will be performed.
+            reduce_fx: Which function to use for reduction. Currently support min, max and mean.
+            enable_graph: Whether to keep autograd graph when storing the value.
+            dataloader_idx: The current dataloader idx. This will be used to automatically
+                add `/dataloader_idx_{}` on the metrics.
+            batch_size: Current batch size.
+            lightning_attribute_name: When providing `nn.Metric` as a value, the ``lightning_attribute_name``
+                need to be provided to enable automatic saving / re-loading.
+
         """
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -289,6 +344,11 @@ class ResultCollection(dict):
         # move metrics to cpu on TPU.
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
+
+        if isinstance(value, Metric) and lightning_attribute_name is None:
+            raise MisconfigurationException(
+                "The LightningModule attribute name should be provided when using torchmetrics.Metric"
+            )
 
         # storage key
         key = f"{hook_name}.{name}"
@@ -365,8 +425,8 @@ class ResultCollection(dict):
             # when restarting an new epoch, reset the tensor hooks dynamically.
             self._reset_metrics(hook_name, is_tensor=True)
 
+        # this function is used to call the forward function of ResultMetric object.
         def fn(result_metric, v):
-            # this function is used to call forward function of ResultMetric object.
             assert isinstance(v, (torch.Tensor, Metric))
             result_metric(v.to(self.root_device), batch_size.to(self.root_device))
             result_metric.meta.has_reset = False
@@ -391,11 +451,11 @@ class ResultCollection(dict):
         This function is used to iterate over current valid metrics.
         """
         for key, item in self.items():
-            # skip when item is None, bool or extra arguments from training_step.
+            # skip when item is None, bool or extra arguments from training_step.
             if item is None or isinstance(item, bool) or key == "extra":
                 continue
 
-            # skip when the metrics hasn't been updated.
+            # skip when the metrics hasn't been updated.
             elif isinstance(item, ResultMetric) and item.meta.has_reset:
                 continue
 
@@ -589,7 +649,7 @@ class ResultCollection(dict):
             if 'value' in state['_modules'] and isinstance(state['_modules']["value"], Metric):
                 del state['_modules']["value"]
 
-            # ResultMeta is used as a placeholder for making re-loading simpler
+            # ResultMeta is used as a placeholder for making re-loading simpler
             return ResultMeta(**state)
 
         return {k: apply_to_collection(v, ResultMetric, get_state_dict) for k, v in self.items()}
@@ -613,7 +673,7 @@ class ResultCollection(dict):
 
         if metrics:
 
-            # the metric reference are lost during serialization and
+            # the metric reference are lost during serialization and
             # they need to be set back during loading
 
             def re_assign_metric(item):

@@ -22,7 +22,6 @@ from weakref import proxy
 
 import torch
 from torch.utils.data import DataLoader
-from torchmetrics.metric import Metric
 
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import Callback
