@@ -881,6 +881,9 @@ class LightningModule(
         Return:
             None
 
+        .. warning:: If you are using `ddp*` accelerators, each process will only see it's own data.
+                To collect data across all processes, use :meth:`all_gather` on outputs.
+
         Note:
             If you didn't define a :meth:`validation_step`, this won't be called.
 
@@ -1055,6 +1058,9 @@ class LightningModule(
 
         Return:
             None
+
+        .. warning:: If you are using `ddp*` accelerators, each process will only see it's own data.
+                To collect data across all processes, use :meth:`all_gather` on outputs.
 
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
