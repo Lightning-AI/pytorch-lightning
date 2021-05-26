@@ -172,7 +172,7 @@ for the users. Hence, this architecture upgrade leads to cheaper and significant
 better performance and usability while working with TPUs.
 
 The TPUVMs come pre-installed with latest versions of PyTorch and PyTorch XLA.
-After connecting to the VM and before running your lightning code, you would need
+After connecting to the VM and before running your Lightning code, you would need
 to set the XRT TPU device configuration.
 
 .. code-block:: bash
