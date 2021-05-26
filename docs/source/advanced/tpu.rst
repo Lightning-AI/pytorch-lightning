@@ -168,7 +168,7 @@ TPU VM
 Lightning supports training on the new Cloud TPU VMs.
 Previously, we needed separate VMs to connect to the TPU machines, but as
 Cloud TPU VMs run on the TPU Host machines, it allows direct SSH access
-for the Users. Hence, this architecture upgrade leads to cheaper and significantly
+for the users. Hence, this architecture upgrade leads to cheaper and significantly
 better performance and usability while working with TPUs.
 
 The TPUVMs come pre-installed with latest versions of PyTorch and PyTorch XLA.
