@@ -1,7 +1,6 @@
-from weakref import proxy
 from abc import ABC, abstractmethod
 from typing import Any, Optional
-
+from weakref import proxy
 
 import pytorch_lightning as pl
 
