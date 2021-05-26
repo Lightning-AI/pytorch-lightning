@@ -13,7 +13,6 @@
 # limitations under the License.
 from copy import deepcopy
 
-import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
