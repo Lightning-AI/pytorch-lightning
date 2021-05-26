@@ -937,6 +937,7 @@ class Trainer(
         self.reset_train_val_dataloaders(model)
 
         try:
+            # TODO: move skip condition into EpochLoop.done()
             if self._should_skip_training():
                 return
             self.train_loop.run()

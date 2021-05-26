@@ -56,7 +56,7 @@ class EpochLoop(Loop):
 
     @property
     def batch_idx(self):
-        return self.training_loop.batch_idx
+        return self.training_loop.iteration_count
 
     @property
     def split_idx(self):
@@ -162,7 +162,7 @@ class EpochLoop(Loop):
         # # handle epoch_output on epoch end
         # self.on_train_epoch_end(outputs)  # Handled in on_run_end of training_loop now
 
-        if self.training_loop.batch_idx is None:
+        if self.training_loop.batches_seen == 0:
             return
 
         should_check_val = self.training_loop.should_check_val_fx(

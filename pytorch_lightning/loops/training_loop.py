@@ -25,7 +25,7 @@ class TrainingLoop(Loop):
         # the total batch index across all epochs
         self.total_batch_idx = 0
         # the current batch index in the loop that runs over the dataloader(s)
-        self.batch_idx = 0
+        self.iteration_count = 0
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx = None
 
@@ -38,6 +38,10 @@ class TrainingLoop(Loop):
         self.warning_cache = WarningCache()
 
         self.batch_loop = None
+
+    @property
+    def batch_idx(self) -> int:
+        return self.iteration_count
 
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
@@ -76,7 +80,6 @@ class TrainingLoop(Loop):
         self._train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
         self._dataloader_idx = 0
         self._should_stop = False
-        self.batch_idx = None
         self.batches_seen = 0
         self.is_last_batch = False
 
@@ -85,15 +88,14 @@ class TrainingLoop(Loop):
 
     def advance(self):
         # TODO: profiling is gone
-        batch_idx, (batch, is_last) = next(self._train_dataloader)
-        self.batch_idx = batch_idx
+        _, (batch, is_last) = next(self._train_dataloader)
         self.is_last_batch = is_last
 
         # ------------------------------------
         # TRAINING_STEP + TRAINING_STEP_END
         # ------------------------------------
         with self.trainer.profiler.profile("run_training_batch"):
-            batch_output = self.batch_loop.run(batch, batch_idx, self._dataloader_idx)
+            batch_output = self.batch_loop.run(batch, self.iteration_count, self._dataloader_idx)
             self.batches_seen += 1
 
         # when returning -1 from train_step, we end epoch early
@@ -105,7 +107,7 @@ class TrainingLoop(Loop):
             self.epoch_output,
             batch_output.training_step_output_for_epoch_end,
             batch,
-            batch_idx,
+            self.iteration_count,
             self._dataloader_idx,
         )
 
@@ -118,7 +120,7 @@ class TrainingLoop(Loop):
         # -----------------------------------------
         # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
         # -----------------------------------------
-        should_check_val = self.should_check_val_fx(self.batch_idx, self.is_last_batch)
+        should_check_val = self.should_check_val_fx(self.iteration_count, self.is_last_batch)
         if should_check_val:
             self.trainer.validating = True
             self.trainer._run_evaluation()
@@ -143,7 +145,7 @@ class TrainingLoop(Loop):
 
     # this is the old on train_epoch_end?
     def on_run_end(self):
-        if self.batch_idx is None:
+        if self.batches_seen == 0:
             # dataloader/iterator did not produce a batch
             return
 
