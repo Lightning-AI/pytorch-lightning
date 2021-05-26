@@ -14,8 +14,7 @@
 from collections.abc import Generator, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, NamedTuple, Optional, Tuple, Union
-from weakref import proxy
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -78,6 +77,9 @@ class Metadata:
 
 
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
+    """
+    This class is responsible to hold each single metric provided by ``LightningModule.log`` function.
+    """
 
     def __init__(self, metadata: Metadata) -> None:
         super().__init__(compute_on_step=metadata.is_tensor)
@@ -132,6 +134,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         """
         Automatically calls ``update()``. Returns the metric value over inputs if ``compute_on_step`` is True.
         """
+        # todo (tchaton) Remove this override when merged to TorchMetrics.
         # add current step
         with torch.no_grad():
             self.update(*args, **kwargs)
@@ -162,6 +165,9 @@ class ResultMeta(Dict):
 
 
 class ResultCollection(dict):
+    """
+    This class is used to capture all the logged values using LightningModule.log function.
+    """
 
     STEP_SUFFIX = "_step"
     EPOCH_SUFFIX = "_epoch"
@@ -212,6 +218,17 @@ class ResultCollection(dict):
 
     @property
     def metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
+        """
+        This function returns either batch or epoch metrics depending on `on_epoch_end_reached` attribute.
+        The metrics are returned as:
+
+
+        {
+            DefaultMetricsKeys.PBAR: {...},
+            DefaultMetricsKeys.LOG: {...},
+            DefaultMetricsKeys.CALLBACK: {...}
+        }
+        """
         return self.get_epoch_metrics() if self.on_epoch_end_reached else self.get_batch_metrics()
 
     @property
@@ -220,6 +237,9 @@ class ResultCollection(dict):
 
     @minimize.setter
     def minimize(self, loss: Optional[torch.Tensor]) -> None:
+        """
+        The `LightningModule.training_step` loss will be saved as the ResultCollection minimize attribute.
+        """
         if loss is not None:
             if not isinstance(loss, Tensor):
                 raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
@@ -233,6 +253,9 @@ class ResultCollection(dict):
 
     @extra.setter
     def extra(self, extra: Dict) -> None:
+        """
+        The `LightningModule.training_step` extras will be saved as the ResultCollection extra key.
+        """
 
         def detach_fn(v):
             return v.detach()
@@ -255,25 +278,33 @@ class ResultCollection(dict):
         batch_size: Optional[int] = None,
         lightning_attribute_name: Optional[str] = None,
     ):
-        """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
+        """
+        This function is used to log metrics from with
+        :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
+        """
         # no metrics should be logged with graphs
-
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
+        # move metrics to cpu on TPU.
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
 
+        # storage key
         key = f"{hook_name}.{name}"
 
+        # add dataloader_suffix  to both key and hook_name
         if dataloader_idx is not None:
+            # use as ResultCollection key
             key += f'.{dataloader_idx}'
+            # used to decide when to reset
             hook_name += f'.{dataloader_idx}'
 
         if on_step and self.on_epoch_end_reached:
             raise MisconfigurationException("Logging `on_step` after `on_epoch_end_reached` isn't authorized.")
 
         if key not in self:
+            # create metadata object if storage key doesn't exist in self
             meta = Metadata(
                 fx=hook_name,
                 name=name,
@@ -285,17 +316,24 @@ class ResultCollection(dict):
                 dataloader_idx=dataloader_idx,
                 lightning_attribute_name=lightning_attribute_name,
             )
+            # create one ResultMetric object per value.
+            # value can be provided as a nested collection.
             self.instance_result_metric(key, meta, value)
 
+        # compute batch_size
         batch_size = torch.tensor(batch_size or self.batch_size, device=self.root_device)
 
+        # update the ResultMetric
         self.update_metrics(hook_name, key, value, batch_size)
 
+        # save current_hook to know when to reset.
         self._current_hook_name = hook_name
 
     def instance_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
 
-        def fn(v):
+        def fn(v: Union[torch.Tensor, Metric]) -> ResultMetric:
+            # This local function is used to `ResultMetric`.
+            # The `Metadata` is_tensor is modified on the fly
             assert self.root_device is not None
             nonlocal meta
             meta = deepcopy(meta)
@@ -303,8 +341,11 @@ class ResultCollection(dict):
             metric = ResultMetric(meta)
             return metric.to(self.root_device)
 
+        # store a mapping between storage key and collection of `ResultMetric`
         self[key] = apply_to_collection(value, (torch.Tensor, Metric), fn)
-        # cache the meta for reduction
+
+        # when the value was a nested collection, store some metadata
+        # to facilate access for later metrics gathering
         if not isinstance(self[key], ResultMetric):
             self[key + '.forked'] = meta.forked
             self[key + '.logger'] = meta.logger
@@ -313,6 +354,7 @@ class ResultCollection(dict):
             self[key + '.dataloader_idx'] = meta.dataloader_idx
 
     def should_reset_tensors(self, hook_name: str) -> bool:
+        # reset tensor metrics only when hook_name changed and starting a new iteration over dataloader.
         return (self._current_hook_name != hook_name and self._batch_idx in (None, 0))
 
     def update_metrics(
@@ -324,6 +366,7 @@ class ResultCollection(dict):
             self._reset_metrics(hook_name, is_tensor=True)
 
         def fn(result_metric, v):
+            # this function is used to call forward function of ResultMetric object.
             assert isinstance(v, (torch.Tensor, Metric))
             result_metric(v.to(self.root_device), batch_size.to(self.root_device))
             result_metric.meta.has_reset = False
@@ -332,25 +375,37 @@ class ResultCollection(dict):
 
     @staticmethod
     def _get_forward_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
+        # skip if meta `on_step` is False
         if not result_metric.meta.on_step:
             return
 
+        # extract `ResultMetric` forward cache
         return result_metric._forward_cache.detach()
 
     @staticmethod
-    def _to_item(forward_cache: torch.Tensor) -> float:
-        return forward_cache.item()
+    def _to_item(t: torch.Tensor) -> float:
+        return t.item()
 
     def valid_metrics(self) -> Generator:
+        """
+        This function is used to iterate over current valid metrics.
+        """
         for key, item in self.items():
+            # skip when item is None, bool or extra arguments from training_step.
             if item is None or isinstance(item, bool) or key == "extra":
                 continue
+
+            # skip when the metrics hasn't been updated.
             elif isinstance(item, ResultMetric) and item.meta.has_reset:
-                # skip the metric which have been reset.
                 continue
+
             yield (key, item)
 
     def _extract_metadata(self, key: str, result_metric, on_step: bool, suffix: str) -> Tuple:
+        """
+        This function is used to extract the metadata for `ResultMetric` and `nested ResultMetrics`.
+        """
+
         if isinstance(result_metric, ResultMetric):
             name = result_metric.meta.name
             name_forked = result_metric.meta.forked_step_name if on_step else result_metric.meta.forked_epoch_name
@@ -366,6 +421,7 @@ class ResultCollection(dict):
             metric_on_epoch = self[key + '.on_epoch']
             dataloader_idx = self[key + '.dataloader_idx']
 
+        # add dataloader_suffix is provided.
         if dataloader_idx is not None:
             dataloader_suffix = self.DATALOADER_SUFFIX.format(dataloader_idx)
             name += dataloader_suffix
@@ -375,7 +431,11 @@ class ResultCollection(dict):
 
     def get_metrics(self, on_step: bool) -> Dict[str, Dict[str, torch.Tensor]]:
         metrics = {k: {} for k in DefaultMetricsKeys}
+
+        # either extract `forward_cache` or `computed` from `ResultMetric` objects
         fn = self._get_forward_cache if on_step else self._get_computed_cache
+
+        # select suffix
         suffix = self.STEP_SUFFIX if on_step else self.EPOCH_SUFFIX
 
         # iterate over all stored metrics.
@@ -390,14 +450,15 @@ class ResultCollection(dict):
 
             def is_empty_fn(v):
                 nonlocal is_empty
+                # update is_empty if any value is not None.
                 if v is not None:
                     is_empty = False
 
             # apply detection.
+            # todo: (tchaton) need to find a way to support NamedTuple
             wrong_dtype = (
                 Mapping,
                 Sequence,
-                NamedTuple,
             )
             apply_to_collection(value, object, is_empty_fn, wrong_dtype=wrong_dtype)
 
@@ -434,12 +495,15 @@ class ResultCollection(dict):
 
     @staticmethod
     def _get_computed_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
+        # skip if meta.on_epoch is False
         if not result_metric.meta.on_epoch:
             return
 
+        # perform reduction is not done alrady
         if not result_metric._computed:
             result_metric.compute()
 
+        # extract computed from ResultMetric.
         return result_metric._computed.detach()
 
     def get_epoch_metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
@@ -475,6 +539,9 @@ class ResultCollection(dict):
         self._current_hook_name = None
 
     def reset(self):
+        """
+        This function is used to reset entirely the ResultCollection
+        """
         self._reset_metrics()
         self.on_epoch_end_reached = False
         self._current_hook_name = None
@@ -521,6 +588,8 @@ class ResultCollection(dict):
             state = deepcopy(state)
             if 'value' in state['_modules'] and isinstance(state['_modules']["value"], Metric):
                 del state['_modules']["value"]
+
+            # ResultMeta is used as a placeholder for making re-loading simpler
             return ResultMeta(**state)
 
         return {k: apply_to_collection(v, ResultMetric, get_state_dict) for k, v in self.items()}
@@ -528,16 +597,22 @@ class ResultCollection(dict):
     def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Dict[str, Metric]):
 
         def to_result_metric(item: ResultMeta) -> Dict[str, Any]:
+            # create a new ResultMetric
             result_metric = ResultMetric(item["meta"])
+            # update its state
             result_metric.__dict__.update(item)
-            return result_metric
+            # move result_metric to root_device
+            return result_metric.to(self.root_device)
 
+        # transform ResultMeta into ResultMetric
         state_dict = {k: apply_to_collection(v, ResultMeta, to_result_metric) for k, v in state_dict.items()}
 
+        # add the state_dict as new key-value into self
         for k, v in state_dict.items():
             self[k] = v
 
         if metrics:
+
             # the metric reference are lost during serialization and
             # they need to be set back during loading
 
