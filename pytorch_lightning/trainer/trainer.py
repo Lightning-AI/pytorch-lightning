@@ -1119,17 +1119,6 @@ class Trainer(
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
-        # update epoch-level lr_schedulers
-        if on_epoch:
-            self.optimizer_connector.update_learning_rates(
-                interval='epoch',
-                opt_indices=[
-                    opt_idx for opt_idx, _ in self.train_loop.get_active_optimizers(
-                        batch_idx=(self.train_loop.total_batch_idx - 1)
-                    )  # Select the optimizers which were used in the last batch of the epoch
-                ],
-            )
-
         # log epoch metrics
         eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
 
