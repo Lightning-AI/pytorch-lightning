@@ -160,7 +160,14 @@ class EpochLoop(Loop):
             if epoch_output is None:
                 return
 
+            # the global step is manually decreased here due to backwards compatibility with existing loggers
+            # as they expect that the same step is used when logging epoch end metrics even when the batch loop has
+            # finished. this means the attribute does not exactly track the number of optimizer steps applied.
+            # TODO(@carmocca): deprecate and rename so users don't get confused
+            self.global_step -= 1
+            # log epoch metrics
             self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
+            self.global_step += 1
 
     def on_advance_end(self):
         # # handle epoch_output on epoch end
@@ -169,27 +176,15 @@ class EpochLoop(Loop):
         if self.training_loop.batches_seen == 0:
             return
 
-        should_check_val = self.training_loop.should_check_val_fx(
-            self.batch_idx, self.training_loop.is_last_batch, on_epoch=True
+        self.training_loop.update_lr_schedulers('epoch')
+
+        did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.should_skip_evaluation(
+            self.trainer.num_val_batches
         )
-        should_skip_eval = self.trainer.evaluation_loop.should_skip_evaluation(self.trainer.num_val_batches)
-        should_train_only = self.trainer.disable_validation or should_skip_eval
-
-        # update epoch level lr_schedulers if no val loop outside train loop is triggered
-        if not should_check_val or should_train_only:
-            self.training_loop.update_lr_schedulers("epoch")
-
-        if should_train_only:
+        if did_train_only:
+            self.global_step -= 1
             self.check_checkpoint_callback(True)
-
-        if should_check_val:
-            self.trainer.validating = True
-            self.trainer._run_evaluation(on_epoch=True)
-            self.trainer.training = True
-
-        # TODO: move inside training_loop.on_run_end? equivalent? order?
-        #   Needs to check batch_output signal -1, see #7677
-        self.training_loop.increment_accumulated_grad_global_step()
+            self.global_step += 1
 
     # why is this not the same as the old on_train_epoch_end?
     def on_run_end(self):

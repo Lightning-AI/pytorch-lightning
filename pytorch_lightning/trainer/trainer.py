@@ -1051,7 +1051,7 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _run_evaluatin_old_loop(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
+    def _run_evaluatin_old_loop(self) -> _EVALUATE_OUTPUT:
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
@@ -1127,7 +1127,7 @@ class Trainer(
 
         return eval_loop_results
 
-    def _run_evaluation(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
+    def _run_evaluation(self) -> _EVALUATE_OUTPUT:
         if not (self.evaluating or self.sanity_checking):
             rank_zero_warn(
                 f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
@@ -1154,7 +1154,7 @@ class Trainer(
         if NEW_LOOP:
             eval_loop_results = self.evaluation_loop.run()
         else:
-            eval_loop_results = self._run_evaluatin_old_loop(on_epoch)
+            eval_loop_results = self._run_evaluatin_old_loop()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()

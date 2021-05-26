@@ -51,10 +51,7 @@ class TrainingLoop(Loop):
 
     @property
     def done(self):
-        max_steps_reached = (
-            self.max_steps is not None and self.max_steps <= self.global_step + 1
-            and self.batch_loop._accumulated_batches_reached()
-        )
+        max_steps_reached = (self.max_steps is not None and self.max_steps <= self.global_step)
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
     def run(self, *args, **kwargs):
@@ -140,11 +137,11 @@ class TrainingLoop(Loop):
 
         self.total_batch_idx += 1
 
-        if self.done:
-            raise StopIteration
-
         # progress global step according to grads progress
         self.increment_accumulated_grad_global_step()
+
+        if self.done:
+            raise StopIteration
 
     # this is the old on train_epoch_end?
     def on_run_end(self):
@@ -354,7 +351,7 @@ class TrainingLoop(Loop):
                 self.total_batch_idx, self.trainer.global_step
             )
 
-    def should_check_val_fx(self, batch_idx: int, is_last_batch: bool, on_epoch: bool = False) -> bool:
+    def should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """ Decide if we should run validation. """
         if not self.trainer.enable_validation:
             return False
@@ -365,26 +362,19 @@ class TrainingLoop(Loop):
 
         # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float('inf')
-        if on_epoch and is_last_batch and is_infinite_dataset:
+        if is_last_batch and is_infinite_dataset:
             return True
 
         if self.trainer.should_stop:
             return True
 
         # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
-        is_val_check_batch = False
-        if isinstance(self.trainer.limit_train_batches, int) and self.trainer.val_check_batch == float('inf'):
+        is_val_check_batch = is_last_batch
+        if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float('inf'):
             is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
-
-        # Note: num_training_batches is also inf for iterable datasets with no length defined
-        epoch_end_val_check = (batch_idx + 1) % self.trainer.num_training_batches == 0
-
-        if on_epoch:
-            return is_val_check_batch and epoch_end_val_check
-        else:
-            return is_val_check_batch and not epoch_end_val_check
+        return is_val_check_batch
 
     def save_loggers_on_train_batch_end(self):
         # when loggers should save to disk
