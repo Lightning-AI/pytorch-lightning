@@ -168,7 +168,7 @@ TPU VM
 Lightning supports training on the new Cloud TPU VMs.
 Previously, we needed seperate VMs to connect to the TPU machines.
 Cloud TPU VMs run on the TPU Host machines, which allows direct SSH access
-to the Users. Hence, this architecture upgrade leads to cheaper and significantly
+for the Users. Hence, this architecture upgrade leads to cheaper and significantly
 better performance and usability while working with TPUs.
 
 The TPUVMs come pre-installed with latest versions of PyTorch and PyTorch XLA.
@@ -179,7 +179,7 @@ to set the XRT TPU device configuration.
 
     $ export XRT_TPU_CONFIG="localservice;0;localhost:51011"
 
-You could learn about the Cloud TPU VM architecture `here <https://cloud.google.com/tpu/docs/system-architecture-tpu-vm#tpu_vms_3>`_
+You could learn more about the Cloud TPU VM architecture `here <https://cloud.google.com/tpu/docs/system-architecture-tpu-vm#tpu_vms_3>`_
 
 ----------------
 
