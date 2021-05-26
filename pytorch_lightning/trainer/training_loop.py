@@ -311,8 +311,8 @@ class TrainLoop:
         result = AttributeDict(
             closure_loss=closure_loss,
             loss=untouched_loss,
-            training_step_output=training_step_output,  # Result object
-            training_step_output_for_epoch_end=training_step_output_for_epoch_end,  # Result object
+            training_step_output=training_step_output,
+            training_step_output_for_epoch_end=training_step_output_for_epoch_end,
         )
         return result
 
