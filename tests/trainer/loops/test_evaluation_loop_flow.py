@@ -69,7 +69,7 @@ def test__eval_step__flow(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.training_loop.batch_loop.run(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
@@ -80,7 +80,7 @@ def test__eval_step__flow(tmpdir):
     assert train_step_out['minimize'].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.train_loop.training_step_and_backward(
+    opt_closure_result = trainer.train_loop.training_loop.batch_loop.training_step_and_backward(
         batch,
         batch_idx,
         0,
@@ -142,7 +142,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.training_loop.batch_loop.run(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
@@ -153,7 +153,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     assert train_step_out['minimize'].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.train_loop.training_step_and_backward(
+    opt_closure_result = trainer.train_loop.training_loop.batch_loop.training_step_and_backward(
         batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
     assert opt_closure_result['loss'].item() == 171
