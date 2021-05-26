@@ -97,7 +97,7 @@ class EarlyStopping(Callback):
         check_finite: bool = True,
         stopping_threshold: Optional[float] = None,
         divergence_threshold: Optional[float] = None,
-        check_on_train_epoch_end: bool = False,
+        check_on_train_epoch_end: bool = True,
     ):
         super().__init__()
         self.monitor = monitor

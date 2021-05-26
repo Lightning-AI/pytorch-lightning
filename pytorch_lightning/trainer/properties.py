@@ -259,11 +259,6 @@ class TrainerProperties(ABC):
         return all_metrics
 
     @property
-    def disable_validation(self) -> bool:
-        """ Check if validation is disabled during training. """
-        return not self.enable_validation
-
-    @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
         model_ref = self.lightning_module

@@ -72,9 +72,6 @@ class EvaluationLoop(object):
             dataloaders = self.trainer.val_dataloaders
         return dataloaders, max_batches
 
-    def should_skip_evaluation(self, max_batches: List[Union[int, float]]) -> bool:
-        return sum(max_batches) == 0
-
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
         if self.trainer.testing:

@@ -27,7 +27,6 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType
-from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.grads import grad_norm
@@ -107,12 +106,6 @@ class TrainLoop:
             return
         self._teardown_already_run = True
 
-        # trigger checkpoint check. need to temporarily decrease the global step to avoid saving duplicates
-        # when a checkpoint was saved at the last step
-        self.global_step -= 1
-        self.check_checkpoint_callback(should_update=True, is_last=True)
-        self.global_step += 1
-
         # hook
         self.trainer.call_hook("on_train_end")
 
@@ -130,19 +123,6 @@ class TrainLoop:
 
         # reset bookkeeping
         self.trainer.state.stage = None
-
-    def check_checkpoint_callback(self, should_update, is_last=False):
-        # TODO bake this logic into the ModelCheckpoint callback
-        if should_update and self.trainer.checkpoint_connector.has_trained:
-            callbacks = self.trainer.checkpoint_callbacks
-
-            if is_last and any(cb.save_last and cb.verbose for cb in callbacks):
-                rank_zero_info("Saving latest checkpoint...")
-
-            model = self.trainer.lightning_module
-
-            for cb in callbacks:
-                cb.on_validation_end(self.trainer, model)
 
     def on_train_epoch_start(self, epoch):
 
@@ -540,6 +520,7 @@ class TrainLoop:
             return
 
         # handle epoch_output on epoch end
+        # TODO: this can log so ModelCheckpoint won't have access to them since the logger conector is updated after.
         self.on_train_epoch_end(epoch_output)
 
         # the global step is manually decreased here due to backwards compatibility with existing loggers
@@ -552,14 +533,6 @@ class TrainLoop:
         self.global_step += 1
 
         self.update_lr_schedulers('epoch')
-
-        did_train_only = self.trainer.disable_validation or self.trainer.evaluation_loop.should_skip_evaluation(
-            self.trainer.num_val_batches
-        )
-        if did_train_only:
-            self.global_step -= 1
-            self.check_checkpoint_callback(True)
-            self.global_step += 1
 
     def on_train_epoch_end(self, epoch_output: List[List[List[Result]]]) -> None:
         # inform logger the batch loop has finished

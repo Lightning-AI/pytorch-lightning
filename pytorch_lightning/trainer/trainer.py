@@ -940,7 +940,7 @@ class Trainer(
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
         # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(max_batches):
+        if sum(max_batches) == 0:
             return [], []
 
         # enable eval mode + no grads
