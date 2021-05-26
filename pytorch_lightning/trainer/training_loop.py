@@ -14,7 +14,6 @@
 
 from collections import OrderedDict
 from contextlib import contextmanager, suppress
-from copy import deepcopy
 from functools import partial, update_wrapper
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
