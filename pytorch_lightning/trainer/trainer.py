@@ -31,7 +31,6 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loops.epoch_loop import EpochLoop
-from pytorch_lightning.loops.training_loop import TrainingLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.profiler import (
@@ -56,7 +55,6 @@ from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import DeprecatedTrainerAttributes
-from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -83,6 +81,11 @@ warnings.filterwarnings(
 )
 
 NEW_LOOP = True
+
+if NEW_LOOP:
+    from pytorch_lightning.loops.evaluation_loop import EvaluationLoop
+else:
+    from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 
 
 class Trainer(
@@ -341,12 +344,14 @@ class Trainer(
 
         if NEW_LOOP:
             self.train_loop = EpochLoop(min_epochs, max_epochs, min_steps, max_steps)
+            self.evaluation_loop = EvaluationLoop()
             self.train_loop.connect(self)
+            self.evaluation_loop.connect(self)
         else:
             # old loops:
             self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
+            self.evaluation_loop = EvaluationLoop(self)
 
-        self.evaluation_loop = EvaluationLoop(self)
         self.predict_loop = PredictLoop(self)
 
         # training state
@@ -391,8 +396,7 @@ class Trainer(
             truncated_bptt_steps,
             terminate_on_nan,
         )
-        self._setup_on_init(num_sanity_val_steps, )
-        self.evaluation_loop.on_trainer_init()
+        self._setup_on_init(num_sanity_val_steps)
         self.predict_loop.on_trainer_init()
 
         # configure tuner
@@ -436,6 +440,19 @@ class Trainer(
             self.num_sanity_val_steps = float("inf")
         else:
             self.num_sanity_val_steps = num_sanity_val_steps
+
+        self.num_sanity_val_batches = []
+        self.num_test_batches = []
+        self.num_val_batches = []
+        self.test_dataloaders = None
+        self.val_dataloaders = None
+
+        # .validate() and .test() set this when they load a checkpoint
+        self.validated_ckpt_path = None
+        self.tested_ckpt_path = None
+
+        # when true, print evaluation results in .validate() and .test()
+        self.verbose_evaluate = True
 
     def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
@@ -1034,27 +1051,13 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _run_evaluation(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
-        if not (self.evaluating or self.sanity_checking):
-            rank_zero_warn(
-                f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
-                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
-            )
-            self.validating = True
-
+    def _run_evaluatin_old_loop(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
         # prepare dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
         # check if we want to skip this evaluation
         if self.evaluation_loop.should_skip_evaluation(max_batches):
             return [], []
-
-        # enable eval mode + no grads
-        self.evaluation_loop.on_evaluation_model_eval()
-        # ref model
-        model = self.lightning_module
-        model.zero_grad()
-        torch.set_grad_enabled(False)
 
         # hook
         self.evaluation_loop.on_evaluation_start()
@@ -1132,6 +1135,37 @@ class Trainer(
 
         # hook
         self.evaluation_loop.on_evaluation_end()
+
+        return eval_loop_results
+
+    def _run_evaluation(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
+        if not (self.evaluating or self.sanity_checking):
+            rank_zero_warn(
+                f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
+                " This should not happen normally. Setting it to `RunningStage.VALIDATING`", RuntimeWarning
+            )
+            self.validating = True
+
+        # TODO: move this check inside new loop
+        # prepare dataloaders
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
+
+        # TODO: move this check inside new loop
+        # check if we want to skip this evaluation
+        if self.evaluation_loop.should_skip_evaluation(max_batches):
+            return [], []
+
+        # enable eval mode + no grads
+        self.evaluation_loop.on_evaluation_model_eval()
+        # ref model
+        model = self.lightning_module
+        model.zero_grad()
+        torch.set_grad_enabled(False)
+
+        if NEW_LOOP:
+            eval_loop_results = self.evaluation_loop.run()
+        else:
+            eval_loop_results = self._run_evaluatin_old_loop(on_epoch)
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()

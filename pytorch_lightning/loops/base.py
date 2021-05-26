@@ -1,7 +1,7 @@
+from weakref import proxy
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from _weakref import proxy
 
 import pytorch_lightning as pl
 
@@ -57,6 +57,3 @@ class Loop(ABC):
 
     def increment_iteration(self, iteration: int) -> int:
         return iteration + 1
-
-    def state_dict(self) -> dict:
-        return dict()
