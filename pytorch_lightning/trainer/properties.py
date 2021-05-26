@@ -28,6 +28,9 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.loops.batch_loop import BatchLoop
+from pytorch_lightning.loops.epoch_loop import EpochLoop
+from pytorch_lightning.loops.training_loop import TrainingLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
@@ -490,6 +493,19 @@ class TrainerProperties(ABC):
             self.state.stage = RunningStage.SANITY_CHECKING
         elif self.sanity_checking:
             self.state.stage = None
+
+    @property
+    def epoch_loop(self) -> EpochLoop:
+        # TODO: the current train_loop should be renamed to epoch_loop
+        return self.train_loop
+
+    @property
+    def training_loop(self) -> TrainingLoop:
+        return self.epoch_loop.training_loop
+
+    @property
+    def batch_loop(self) -> BatchLoop:
+        return self.epoch_loop.training_loop.batch_loop
 
     @property
     def global_step(self) -> int:

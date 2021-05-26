@@ -1324,7 +1324,7 @@ class LightningModule(
 
         # backward
         self._running_manual_backward = True
-        self.trainer.train_loop.training_loop.batch_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
+        self.trainer.batch_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
         self._running_manual_backward = False
 
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:

@@ -894,7 +894,7 @@ def test_gradient_clipping(tmpdir):
         default_root_dir=tmpdir,
     )
 
-    old_training_step_and_backward = trainer.train_loop.training_loop.batch_loop.training_step_and_backward
+    old_training_step_and_backward = trainer.batch_loop.training_step_and_backward
 
     def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
@@ -908,7 +908,7 @@ def test_gradient_clipping(tmpdir):
 
         return ret_val
 
-    trainer.train_loop.training_loop.batch_loop.training_step_and_backward = training_step_and_backward
+    trainer.batch_loop.training_step_and_backward = training_step_and_backward
     # for the test
     model.prev_called_batch_idx = 0
 
@@ -932,7 +932,7 @@ def test_gradient_clipping_by_value(tmpdir):
         default_root_dir=tmpdir
     )
 
-    old_training_step_and_backward = trainer.train_loop.training_loop.batch_loop.training_step_and_backward
+    old_training_step_and_backward = trainer.batch_loop.training_step_and_backward
 
     def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
@@ -948,7 +948,7 @@ def test_gradient_clipping_by_value(tmpdir):
 
         return ret_val
 
-    trainer.train_loop.training_loop.batch_loop.training_step_and_backward = training_step_and_backward
+    trainer.batch_loop.training_step_and_backward = training_step_and_backward
     # for the test
     model.prev_called_batch_idx = 0
 
@@ -973,7 +973,7 @@ def test_gradient_clipping_fp16(tmpdir):
         default_root_dir=tmpdir,
     )
 
-    old_training_step_and_backward = trainer.train_loop.training_loop.batch_loop.training_step_and_backward
+    old_training_step_and_backward = trainer.batch_loop.training_step_and_backward
 
     def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
@@ -987,7 +987,7 @@ def test_gradient_clipping_fp16(tmpdir):
 
         return ret_val
 
-    trainer.train_loop.training_loop.batch_loop.training_step_and_backward = training_step_and_backward
+    trainer.batch_loop.training_step_and_backward = training_step_and_backward
     model.prev_called_batch_idx = 0
 
     trainer.fit(model)
@@ -1012,7 +1012,7 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
         default_root_dir=tmpdir,
     )
 
-    old_training_step_and_backward = trainer.train_loop.training_loop.batch_loop.training_step_and_backward
+    old_training_step_and_backward = trainer.batch_loop.training_step_and_backward
 
     def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
@@ -1028,7 +1028,7 @@ def test_gradient_clipping_by_value_fp16(tmpdir):
 
         return ret_val
 
-    trainer.train_loop.training_loop.batch_loop.training_step_and_backward = training_step_and_backward
+    trainer.batch_loop.training_step_and_backward = training_step_and_backward
     model.prev_called_batch_idx = 0
 
     trainer.fit(model)
