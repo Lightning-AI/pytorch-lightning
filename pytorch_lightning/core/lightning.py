@@ -113,6 +113,7 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
+        self._map_metric_id_name: Optional[Dict[int, str]] = None
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -347,7 +348,7 @@ class LightningModule(
 
             if lightning_attribute_name is None and isinstance(value, Metric):
                 # used to find this Metric associated LightningModule attribute name.
-                if not hasattr(self, "_map_metric_id_name"):
+                if self._map_metric_id_name is None:
                     self._map_metric_id_name = {
                         id(module): module_name
                         for module_name, module in self.named_children() if isinstance(module, Metric)
