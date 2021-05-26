@@ -169,7 +169,7 @@ def test_early_stopping_patience_train(
         model.validation_step = None
 
     early_stop_callback = EarlyStopping(
-        monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=validation_step_none
+        monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=True
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
