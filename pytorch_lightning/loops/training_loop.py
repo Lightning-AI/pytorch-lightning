@@ -53,6 +53,7 @@ class TrainingLoop(Loop):
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
 
     def run(self, *args, **kwargs):
+        self.reset()
         self.on_run_start()
 
         while True:

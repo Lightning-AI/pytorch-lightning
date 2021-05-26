@@ -23,6 +23,7 @@ class Loop(ABC):
         """Property indicating when loop is finished"""
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
+        self.reset()
         self.on_run_start(*args, **kwargs)
 
         while not self.done:
@@ -49,6 +50,9 @@ class Loop(ABC):
 
     def on_run_end(self) -> Any:
         pass
+
+    def reset(self) -> None:
+        self.iteration_count = 0
 
     def increment_iteration(self, iteration: int) -> int:
         return iteration + 1
