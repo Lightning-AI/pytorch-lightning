@@ -32,6 +32,8 @@ def test_result_collection_on_tensor_with_mean_reduction():
 
             for logger in [False, True]:
 
+                i = float(i)
+
                 result_collection.log(
                     "training_step",
                     f"loss_1_{int(prob_bar)}_{int(logger)}",
@@ -74,11 +76,15 @@ def test_result_collection_on_tensor_with_mean_reduction():
                 )
 
     excepted_values = [
-        tensor(1), tensor(2),
-        tensor(3), tensor(4),
-        tensor(5), tensor(6),
-        tensor(7), tensor(8),
-        tensor(9)
+        tensor(1.),
+        tensor(2.),
+        tensor(3.),
+        tensor(4.),
+        tensor(5.),
+        tensor(6.),
+        tensor(7.),
+        tensor(8.),
+        tensor(9.)
     ]
     excepted_batches = [1, 4, 9, 16, 25, 36, 49, 64, 81]
     total_value = tensor(excepted_values) * tensor(excepted_batches)
