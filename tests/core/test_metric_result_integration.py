@@ -220,14 +220,11 @@ def test_result_collection_restoration():
 
         assert epoch_log == _epoch_log
 
-        if epoch == 0:
-            epoch_expected = {'a_epoch', 'b', 'b_1', 'a_1_epoch'}
-        else:
-            epoch_expected = {'a_epoch', 'b', 'b_1', 'a_1_epoch', 'a'}
+        epoch_expected = {'a_1_epoch', 'a_epoch', 'b', 'b_1'}
 
-        assert set(epoch_log.keys()) == epoch_expected
+        assert set(epoch_log.keys()) == epoch_expected, epoch_log.keys()
         for k in list(epoch_expected):
-            if k in {'a_epoch', 'b', 'a'}:
+            if k in {'a_epoch', 'b'}:
                 assert epoch_log[k] == cumulative_sum
             else:
                 assert epoch_log[k] == 1

@@ -22,6 +22,7 @@ from torch import Tensor
 from torchmetrics import Metric
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC
@@ -76,17 +77,15 @@ class Metadata:
         return self.is_tensor and (self.reduce_fx in (torch.min, min))
 
 
-class ResultMetric(Metric):
-
-    DTYPE = torch.float32
+class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def __init__(self, metadata: Metadata) -> None:
         super().__init__(compute_on_step=metadata.is_tensor)
         self.meta = metadata
         if self.meta.is_tensor:
-            self.add_state("value", torch.tensor(.0, dtype=self.DTYPE))
+            self.add_state("value", torch.tensor(.0))
             if self.meta.is_tensor_and_mean_reduction:
-                self.add_state("cumulated_batch_size", torch.tensor(.0, dtype=self.DTYPE))
+                self.add_state("cumulated_batch_size", torch.tensor(.0))
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
         if self.meta.is_tensor_and_mean_reduction:
