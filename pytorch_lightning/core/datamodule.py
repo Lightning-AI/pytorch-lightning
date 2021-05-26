@@ -166,8 +166,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
-            'DataModule property `has_prepared_data` was deprecated in v1.4'
-            ' and will be removed in v1.6.'
+            'DataModule property `has_prepared_data` was deprecated in v1.4 and will be removed in v1.6.'
         )
         return self._has_prepared_data
 
@@ -182,8 +181,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
-            'DataModule property `has_setup_fit` was deprecated in v1.4'
-            ' and will be removed in v1.6.'
+            'DataModule property `has_setup_fit` was deprecated in v1.4 and will be removed in v1.6.'
         )
         return self._has_setup_fit
 
@@ -198,8 +196,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
-            'DataModule property `has_setup_validate` was deprecated in v1.4'
-            ' and will be removed in v1.6.'
+            'DataModule property `has_setup_validate` was deprecated in v1.4 and will be removed in v1.6.'
         )
         return self._has_setup_validate
 
@@ -214,8 +211,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
-            'DataModule property `has_setup_test` was deprecated in v1.4'
-            ' and will be removed in v1.6.'
+            'DataModule property `has_setup_test` was deprecated in v1.4 and will be removed in v1.6.'
         )
         return self._has_setup_test
 
@@ -230,8 +226,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
-            'DataModule property `has_setup_predict` was deprecated in v1.4'
-            ' and will be removed in v1.6.'
+            'DataModule property `has_setup_predict` was deprecated in v1.4 and will be removed in v1.6.'
         )
         return self._has_setup_predict
 
@@ -246,8 +241,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
-            'DataModule property `has_teardown_fit` was deprecated in v1.4'
-            ' and will be removed in v1.6.'
+            'DataModule property `has_teardown_fit` was deprecated in v1.4 and will be removed in v1.6.'
         )
         return self._has_teardown_fit
 
@@ -262,8 +256,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
-            'DataModule property `has_teardown_validate` was deprecated in v1.4'
-            ' and will be removed in v1.6.'
+            'DataModule property `has_teardown_validate` was deprecated in v1.4 and will be removed in v1.6.'
         )
         return self._has_teardown_validate
 
@@ -278,8 +271,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
-            'DataModule property `has_teardown_test` was deprecated in v1.4'
-            ' and will be removed in v1.6.'
+            'DataModule property `has_teardown_test` was deprecated in v1.4 and will be removed in v1.6.'
         )
         return self._has_teardown_test
 
@@ -294,8 +286,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
-            'DataModule property `has_teardown_predict` was deprecated in v1.4'
-            ' and will be removed in v1.6.'
+            'DataModule property `has_teardown_predict` was deprecated in v1.4 and will be removed in v1.6.'
         )
         return self._has_teardown_predict
 
