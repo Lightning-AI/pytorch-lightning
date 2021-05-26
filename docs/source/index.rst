@@ -22,6 +22,7 @@ PyTorch Lightning Documentation
    :caption: Best practices
 
    guides/speed
+   guides/data
    starter/style_guide
    benchmarking/performance
    Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
@@ -103,12 +104,10 @@ PyTorch Lightning Documentation
    advanced/lr_finder
    advanced/multi_gpu
    advanced/advanced_gpu
-   advanced/multiple_loaders
    common/weights_loading
    common/optimizers
    advanced/profiler
    common/single_gpu
-   advanced/sequences
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
