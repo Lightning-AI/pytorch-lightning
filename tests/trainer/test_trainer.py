@@ -973,21 +973,21 @@ def test_gradient_clipping_fp16(tmpdir):
         default_root_dir=tmpdir,
     )
 
-    trainer.train_loop.old_training_step_and_backward = trainer.train_loop.training_step_and_backward
+    old_training_step_and_backward = trainer.train_loop.training_loop.batch_loop.training_step_and_backward
 
     def training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
         wrap the forward step in a closure so second order methods work
         """
         # test that gradient is clipped correctly
-        ret_val = trainer.train_loop.old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        ret_val = old_training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
         parameters = model.parameters()
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
 
         return ret_val
 
-    trainer.train_loop.training_step_and_backward = training_step_and_backward
+    trainer.train_loop.training_loop.batch_loop.training_step_and_backward = training_step_and_backward
     model.prev_called_batch_idx = 0
 
     trainer.fit(model)
