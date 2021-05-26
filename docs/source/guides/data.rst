@@ -186,8 +186,8 @@ Using DataModules allows easier sharing of full :class:`~torch.utils.data.Datase
     model = LitModel(num_classes=imagenet_dm.num_classes)
     trainer.fit(model, imagenet_dm)
 
-.. note:: ``prepare_data()`` is called on only one GPU in distributed training (automatically)
-.. note:: ``setup()`` is called on every GPU (automatically)
+.. note:: :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.prepare_data` is called on only one GPU in distributed training (automatically)
+.. note:: :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.setup` is called on every GPU (automatically)
 
 Read :ref:`this <datamodules>` for more details on LightningDataModules.
 
@@ -210,10 +210,10 @@ When your models need to know about the data, it's best to process the data befo
     trainer.fit(model, dm)
 
 
-1. use ``prepare_data()`` to download and process the :class:`~torch.utils.data.Dataset`.
-2. use ``setup()`` to do splits, and build your model internals
+1. use :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.prepare_data` to download and process the :class:`~torch.utils.data.Dataset`.
+2. use :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.setup` to do splits, and build your model internals
 
-An alternative to using a DataModule is to defer initialization of the models modules to the ``setup`` method of your LightningModule as follows:
+An alternative to using a DataModule is to defer initialization of the models modules to the :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.setup` method of your LightningModule as follows:
 
 .. testcode::
 
@@ -423,7 +423,7 @@ needs to wrap the DataLoaders with `CombinedLoader`.
 
 Test with additional data loaders
 =================================
-You can run inference on a test set even if the :meth:`~pytorch_lightning.core.Lightning.LightningModule.test_dataloader` method hasn't been
+You can run inference on a test set even if the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_dataloader` method hasn't been
 defined within your :class:`~pytorch_lightning.core.Lightning.LightningModule` instance. For example, rhis would be the case if your test data
 set is not available at the time your model was declared. Simply pass the test set to the :meth:`~pytorch_lightning.trainer.trainer.Trainer.Trainer.test` method:
 
