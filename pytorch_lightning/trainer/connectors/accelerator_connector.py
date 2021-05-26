@@ -79,6 +79,7 @@ class AcceleratorConnector(object):
         self,
         num_processes,
         tpu_cores,
+        ipu_cores,
         distributed_backend,
         auto_select_gpus,
         gpus,
@@ -98,6 +99,7 @@ class AcceleratorConnector(object):
 
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
+        self.ipu_cores = ipu_cores
         self.distributed_backend = distributed_backend
         self.auto_select_gpus = auto_select_gpus
         self.gpus = gpus
@@ -250,7 +252,7 @@ class AcceleratorConnector(object):
 
     @property
     def on_ipu(self) -> bool:
-        return self._device_type == DeviceType.IPU
+        return self.ipu_cores is not None
 
     @property
     def tpu_id(self) -> Optional[int]:
@@ -314,6 +316,9 @@ class AcceleratorConnector(object):
             # https://github.com/PyTorchLightning/pytorch-lightning/issues/3169
             if isinstance(self.tpu_cores, int):
                 devices = list(range(self.tpu_cores))
+        elif self.on_ipu:
+            if isinstance(self.ipu_cores, int):
+                devices = list(range(self.ipu_cores))
         else:
             devices = [torch.device("cpu")] * self.num_processes
         return devices
@@ -446,7 +451,7 @@ class AcceleratorConnector(object):
         elif self.on_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
         elif self.on_ipu:
-            plugin = IPUPlugin()
+            plugin = IPUPlugin(parallel_devices=self.parallel_devices)
         else:
             single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.on_gpu else "cpu"))
