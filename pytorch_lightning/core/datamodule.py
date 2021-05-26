@@ -180,9 +180,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
-        rank_zero_deprecation(
-            'DataModule property `has_setup_fit` was deprecated in v1.4 and will be removed in v1.6.'
-        )
+        rank_zero_deprecation('DataModule property `has_setup_fit` was deprecated in v1.4 and will be removed in v1.6.')
         return self._has_setup_fit
 
     @property
