@@ -65,15 +65,19 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Weekly reset caching
+      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
+      id: times
+
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
     - name: Cache pip
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-multi-node
+        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-multi-node
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-
 
     - name: Install dependencies
       run: |
