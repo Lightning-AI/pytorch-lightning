@@ -162,7 +162,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         Returns:
             bool: True if ``datamodule.prepare_data()`` has been called. False by default.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
@@ -177,7 +177,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         Returns:
             bool: True ``if datamodule.setup(stage='fit')`` has been called. False by default.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
@@ -192,7 +192,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         Returns:
             bool: True if ``datamodule.setup(stage='validate')`` has been called. False by default.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
@@ -207,7 +207,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         Returns:
             bool: True if ``datamodule.setup(stage='test')`` has been called. False by default.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
@@ -222,7 +222,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         Returns:
             bool: True if ``datamodule.setup(stage='predict')`` has been called. False by default.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
@@ -237,7 +237,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         Returns:
             bool: True ``if datamodule.teardown(stage='fit')`` has been called. False by default.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
@@ -252,7 +252,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         Returns:
             bool: True if ``datamodule.teardown(stage='validate')`` has been called. False by default.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
@@ -267,7 +267,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         Returns:
             bool: True if ``datamodule.teardown(stage='test')`` has been called. False by default.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
@@ -282,7 +282,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         Returns:
             bool: True if ``datamodule.teardown(stage='predict')`` has been called. False by default.
 
-        .. deprecated::v1.4
+        .. deprecated:: v1.4
             Will be removed in v1.6.0.
         """
         rank_zero_deprecation(
