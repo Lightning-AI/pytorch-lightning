@@ -163,6 +163,26 @@ TPUs work in DDP mode by default (distributing over each core)
 
 ----------------
 
+TPU VM
+------
+Lightning supports training on the new Cloud TPU VMs.
+Previously, we needed seperate VMs to connect to the TPU machines.
+Cloud TPU VMs run on the TPU Host machines, which allows direct SSH access
+to the Users. Hence, this architecture upgrade leads to cheaper and significantly
+better performance and usability while working with TPUs.
+
+The TPUVMs come pre-installed with latest versions of PyTorch and PyTorch XLA.
+After connecting to the VM and before running your lightning code, you would need
+to set the XRT TPU device configuration.
+
+.. code-block:: bash
+
+    $ export XRT_TPU_CONFIG="localservice;0;localhost:51011"
+
+You could learn about the Cloud TPU VM architecture `here <https://cloud.google.com/tpu/docs/system-architecture-tpu-vm#tpu_vms_3>`_
+
+----------------
+
 TPU Pod
 -------
 To train on more than 8 cores, your code actually doesn't change!
