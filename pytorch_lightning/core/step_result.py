@@ -181,9 +181,6 @@ class ResultCollection(dict):
 
         for epoch in range(2):
 
-            # reset on ``on_epoch_end_reached``
-            result.on_epoch_end_reached = False
-
             result.log('b0', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
             result.log('b1', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
 
@@ -201,7 +198,8 @@ class ResultCollection(dict):
             result.log('d0', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
             result.log('d1', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
 
-            # result.reset_metrics() [Optional]: Reset only torchmetric.Metric object.
+            # used to reset torchmetrics.Metric and set `on_epoch_end_reached` to False
+            result.reset_metrics() [Optional]: Reset only torchmetric.Metric object.
             # result.reset() [Optional]: Reset the entire ResultCollection.
     """
 

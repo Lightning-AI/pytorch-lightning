@@ -32,6 +32,7 @@ import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from torchmetrics.metric import Metric
 
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -272,6 +273,7 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
+        lightning_attribute_name: Optional[str] = None,
     ) -> None:
         """
         Log a key, value
@@ -310,6 +312,7 @@ class LightningModule(
                 each dataloader to not mix values
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
                 but some esoteric data type such as graph might need to explicitly provide the batch_size.
+            lightning_attribute_name: The name of the Metric attribute name. This is used for fault tolerant logging.
         """
         if tbptt_reduce_fx is not None:
             rank_zero_deprecation(
@@ -342,6 +345,13 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
+            if lightning_attribute_name is None and isinstance(value, Metric):
+                # todo (tchaton): find a more optimized way to find associated metrics.
+                for module_name, module in self.named_children():
+                    if isinstance(module, Metric) and hash(module) == hash(value):
+                        lightning_attribute_name = module_name
+                        break
+
             sync_fn = partial(
                 self.__sync,
                 sync_fn=self.trainer.training_type_plugin.reduce,
@@ -367,7 +377,8 @@ class LightningModule(
                 reduce_fx=reduce_fx,
                 enable_graph=enable_graph,
                 dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
-                batch_size=batch_size
+                batch_size=batch_size,
+                lightning_attribute_name=lightning_attribute_name,
             )
 
     def log_dict(

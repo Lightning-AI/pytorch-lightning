@@ -92,7 +92,8 @@ def test_metric_lightning_log(tmpdir):
 
         def training_epoch_end(self, outs):
             total = torch.stack([o['data'] for o in outs]).sum()
-            self.log("sum_epoch", self.metric_epoch(total))
+            self.metric_epoch(total)
+            self.log("sum_epoch", self.metric_epoch)
             self.total_sum = total
 
     model = TestModel()

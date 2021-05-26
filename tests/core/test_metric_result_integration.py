@@ -75,9 +75,9 @@ def _ddp_test_fn(rank, worldsize):
 
             cumulative_sum += i
 
-            result.log('h', 'a', metric_a, on_step=True, on_epoch=True)
-            result.log('h', 'b', metric_b, on_step=False, on_epoch=True)
-            result.log('h', 'c', metric_c, on_step=True, on_epoch=False)
+            result.log('h', 'a', metric_a, on_step=True, on_epoch=True, lightning_attribute_name="metric_a")
+            result.log('h', 'b', metric_b, on_step=False, on_epoch=True, lightning_attribute_name="metric_b")
+            result.log('h', 'c', metric_c, on_step=True, on_epoch=False, lightning_attribute_name="metric_c")
 
             batch_log = result.get_batch_metrics()[DefaultMetricsKeys.LOG]
             batch_expected = {"a_step": i, "c": i}
@@ -134,9 +134,9 @@ def test_result_metric_integration():
 
             cumulative_sum += i
 
-            result.log('h', 'a', metric_a, on_step=True, on_epoch=True)
-            result.log('h', 'b', metric_b, on_step=False, on_epoch=True)
-            result.log('h', 'c', metric_c, on_step=True, on_epoch=False)
+            result.log('h', 'a', metric_a, on_step=True, on_epoch=True, lightning_attribute_name="metric_a")
+            result.log('h', 'b', metric_b, on_step=False, on_epoch=True, lightning_attribute_name="metric_b")
+            result.log('h', 'c', metric_c, on_step=True, on_epoch=False, lightning_attribute_name="metric_c")
 
             batch_log = result.get_batch_metrics()[DefaultMetricsKeys.LOG]
             batch_expected = {"a_step": i, "c": i}
@@ -170,7 +170,7 @@ def test_result_collection_restoration():
 
     result = ResultCollection(True, torch.device("cpu"))
 
-    for epoch in range(2):
+    for _ in range(2):
 
         result.on_epoch_end_reached = False
         cumulative_sum = 0
