@@ -22,7 +22,7 @@ from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
-#: define waiting time got checking TPU available in sec
+# define TPU availability timeout in seconds
 TPU_CHECK_TIMEOUT = 60
 
 
