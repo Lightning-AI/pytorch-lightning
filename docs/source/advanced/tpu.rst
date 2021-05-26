@@ -193,7 +193,7 @@ All you need to do is submit the following command:
     $ python -m torch_xla.distributed.xla_dist
     --tpu=$TPU_POD_NAME
     --conda-env=torch-xla-nightly
-    -- python /usr/share/torch-xla-0.5/pytorch/xla/test/test_train_imagenet.py --fake_data
+    -- python /usr/share/torch-xla-1.8.1/pytorch/xla/test/test_train_imagenet.py --fake_data
 
 See `this guide <https://cloud.google.com/tpu/docs/tutorials/pytorch-pod>`_
 on how to set up the instance groups and VMs needed to run TPU Pods.
