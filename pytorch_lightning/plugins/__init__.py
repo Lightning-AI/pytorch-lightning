@@ -6,6 +6,9 @@ from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin  # noqa: F401
+from pytorch_lightning.plugins.precision.fully_sharded_native_amp import (  # noqa: F401
+    FullyShardedNativeMixedPrecisionPlugin,
+)
 from pytorch_lightning.plugins.precision.ipu_precision import IPUPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin  # noqa: F401
@@ -16,6 +19,7 @@ from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin  # noqa: F40
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.ipu import IPUPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin  # noqa: F401
@@ -34,6 +38,7 @@ __all__ = [
     "DDP2Plugin",
     "DDPPlugin",
     "DDPSpawnPlugin",
+    "DDPFullyShardedPlugin",
     "DeepSpeedPlugin",
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
@@ -43,17 +48,18 @@ __all__ = [
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
+    "FullyShardedNativeMixedPrecisionPlugin"
     "SingleDevicePlugin",
     "SingleTPUPlugin",
     "TPUHalfPrecisionPlugin",
     "TPUSpawnPlugin",
-    'RPCPlugin',
-    'RPCSequentialPlugin',
-    'TrainingTypePlugin',
-    'ParallelPlugin',
-    'Plugin',
-    'DDPShardedPlugin',
-    'DDPSpawnShardedPlugin',
+    "RPCPlugin",
+    "RPCSequentialPlugin",
+    "TrainingTypePlugin",
+    "ParallelPlugin",
+    "Plugin",
+    "DDPShardedPlugin",
+    "DDPSpawnShardedPlugin",
 ]
 
 from pathlib import Path

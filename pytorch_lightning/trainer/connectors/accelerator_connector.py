@@ -27,6 +27,7 @@ from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DataParallelPlugin,
     DDP2Plugin,
+    DDPFullyShardedPlugin,
     DDPPlugin,
     DDPShardedPlugin,
     DDPSpawnPlugin,
@@ -34,6 +35,7 @@ from pytorch_lightning.plugins import (
     DeepSpeedPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
+    FullyShardedNativeMixedPrecisionPlugin,
     HorovodPlugin,
     IPUPlugin,
     IPUPrecisionPlugin,
@@ -49,6 +51,7 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
+    KubeflowEnvironment,
     LightningEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
@@ -273,8 +276,13 @@ class AcceleratorConnector(object):
     @property
     def use_ddp(self) -> bool:
         return self._distrib_type in (
-            DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED,
-            DistributedType.DDP_SHARDED_SPAWN, DistributedType.DEEPSPEED, DistributedType.TPU_SPAWN
+            DistributedType.DDP,
+            DistributedType.DDP_SPAWN,
+            DistributedType.DDP_SHARDED,
+            DistributedType.DDP_SHARDED_SPAWN,
+            DistributedType.DDP_FULLY_SHARDED,
+            DistributedType.DEEPSPEED,
+            DistributedType.TPU_SPAWN,
         )
 
     @property
@@ -288,6 +296,14 @@ class AcceleratorConnector(object):
     @property
     def use_deepspeed(self) -> bool:
         return self._distrib_type == DistributedType.DEEPSPEED
+
+    @property
+    def _is_sharded_training_type(self) -> bool:
+        return isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin))
+
+    @property
+    def _is_fully_sharded_training_type(self) -> bool:
+        return isinstance(self.training_type_plugin, DDPFullyShardedPlugin)
 
     @property
     def is_distributed(self) -> bool:
@@ -381,8 +397,10 @@ class AcceleratorConnector(object):
                         raise MisconfigurationException(msg)
                 else:
                     log.info("Using native 16bit precision.")
-                    if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                    if self._is_sharded_training_type:
                         return ShardedNativeMixedPrecisionPlugin()
+                    if self._is_fully_sharded_training_type:
+                        return FullyShardedNativeMixedPrecisionPlugin()
                     return NativeMixedPrecisionPlugin()
 
             if self.amp_type == AMPType.APEX:
@@ -391,7 +409,7 @@ class AcceleratorConnector(object):
                         "You have asked for Apex AMP but you have not installed it yet."
                         " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
                     )
-                if isinstance(self.training_type_plugin, (DDPShardedPlugin, DDPSpawnShardedPlugin)):
+                if self._is_sharded_training_type or self._is_fully_sharded_training_type:
                     raise MisconfigurationException(
                         "Sharded Plugin is not supported with Apex AMP,"
                         " please using native AMP for 16-bit precision."
@@ -414,13 +432,16 @@ class AcceleratorConnector(object):
         elif self.use_ddp:
             use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
             use_torchelastic_ddp = self.use_ddp and TorchElasticEnvironment.is_using_torchelastic()
+            use_kubeflow_ddp = self.use_ddp and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_spawn = self._distrib_type == DistributedType.DDP_SPAWN
             use_ddp_cpu_spawn = self.use_ddp and self.on_cpu
             use_tpu_spawn = self.on_tpu and self._distrib_type == DistributedType.TPU_SPAWN
             use_ddp_cpu_torch_elastic = use_ddp_cpu_spawn and TorchElasticEnvironment.is_using_torchelastic()
+            use_ddp_cpu_kubeflow = use_ddp_cpu_spawn and KubeflowEnvironment.is_using_kubeflow()
             use_ddp_cpu_slurm = use_ddp_cpu_spawn and self.is_slurm_managing_tasks
             use_ddp_sharded = self._distrib_type == DistributedType.DDP_SHARDED
             use_ddp_sharded_spawn = self._distrib_type == DistributedType.DDP_SHARDED_SPAWN
+            use_ddp_fully_sharded = self._distrib_type == DistributedType.DDP_FULLY_SHARDED
 
             # TODO: decouple from TE
             # ddp script mode uses the same flags as TE
@@ -433,10 +454,15 @@ class AcceleratorConnector(object):
                 ddp_plugin_cls = DDPShardedPlugin
             elif use_ddp_sharded_spawn:
                 ddp_plugin_cls = DDPSpawnShardedPlugin
-            elif use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp:
+            elif (
+                use_ddp_cpu_slurm or use_slurm_ddp or use_ddp_cpu_torch_elastic or use_torchelastic_ddp
+                or use_kubeflow_ddp or use_ddp_cpu_kubeflow
+            ):
                 ddp_plugin_cls = DDPPlugin
             elif use_ddp_spawn or use_ddp_cpu_spawn:
                 ddp_plugin_cls = DDPSpawnPlugin
+            elif use_ddp_fully_sharded:
+                ddp_plugin_cls = DDPFullyShardedPlugin
             else:
                 ddp_plugin_cls = DDPPlugin
 
@@ -496,10 +522,11 @@ class AcceleratorConnector(object):
             acc_cls = IPUAccelerator
         else:
             acc_cls = CPUAccelerator
-
+        # as precision_plugin is dependent on training_type_plugin, make sure
+        # that we first select training_type_plugin, then precision_plugin
         return acc_cls(
-            precision_plugin=self.precision_plugin,
             training_type_plugin=self.training_type_plugin,
+            precision_plugin=self.precision_plugin,
         )
 
     def select_cluster_environment(self) -> ClusterEnvironment:
@@ -509,6 +536,8 @@ class AcceleratorConnector(object):
             env = SLURMEnvironment()
         elif TorchElasticEnvironment.is_using_torchelastic():
             env = TorchElasticEnvironment()
+        elif KubeflowEnvironment.is_using_kubeflow():
+            env = KubeflowEnvironment()
         else:
             env = LightningEnvironment()
         return env
@@ -540,7 +569,7 @@ class AcceleratorConnector(object):
 
         # special case with DDP on CPUs
         if self.distributed_backend == "ddp_cpu":
-            self._distrib_type = DistributedType.DDP
+            self._distrib_type = DistributedType.DDP_SPAWN
             if self.num_gpus > 0:
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'

@@ -37,7 +37,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             def prepare_data(self):
                 # download, split, etc...
                 # only called on 1 GPU/TPU in distributed
-            def setup(self):
+            def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
             def train_dataloader(self):

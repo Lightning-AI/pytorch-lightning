@@ -15,7 +15,7 @@
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
 FROM nvcr.io/nvidia/pytorch:21.04-py3
 
-MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
 ARG LIGHTNING_VERSION=""
 

@@ -19,6 +19,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
+from pytorch_lightning.loggers.mlflow import MLFLOW_RUN_NAME, resolve_tags
 from tests.helpers import BoringModel
 
 
@@ -83,6 +84,33 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
     logger3 = MLFlowLogger('new', save_dir=tmpdir)
     assert logger3.experiment_id == "exp-id-3" != logger.experiment_id
     assert logger3.run_id == "run-id-3"
+
+
+@mock.patch('pytorch_lightning.loggers.mlflow.mlflow')
+@mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient')
+def test_mlflow_run_name_setting(client, mlflow, tmpdir):
+    """ Test that the run_name argument makes the MLFLOW_RUN_NAME tag. """
+
+    tags = resolve_tags({MLFLOW_RUN_NAME: 'run-name-1'})
+
+    # run_name is appended to tags
+    logger = MLFlowLogger('test', run_name='run-name-1', save_dir=tmpdir)
+    logger = mock_mlflow_run_creation(logger, experiment_id='exp-id')
+    _ = logger.experiment
+    client.return_value.create_run.assert_called_with(experiment_id='exp-id', tags=tags)
+
+    # run_name overrides tags[MLFLOW_RUN_NAME]
+    logger = MLFlowLogger('test', run_name='run-name-1', tags={MLFLOW_RUN_NAME: "run-name-2"}, save_dir=tmpdir)
+    logger = mock_mlflow_run_creation(logger, experiment_id='exp-id')
+    _ = logger.experiment
+    client.return_value.create_run.assert_called_with(experiment_id='exp-id', tags=tags)
+
+    # default run_name (= None) does not append new tag
+    logger = MLFlowLogger('test', save_dir=tmpdir)
+    logger = mock_mlflow_run_creation(logger, experiment_id='exp-id')
+    _ = logger.experiment
+    default_tags = resolve_tags(None)
+    client.return_value.create_run.assert_called_with(experiment_id='exp-id', tags=default_tags)
 
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")

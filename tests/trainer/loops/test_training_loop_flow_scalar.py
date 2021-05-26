@@ -155,7 +155,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
+    assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
@@ -165,7 +165,11 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+        batch,
+        batch_idx,
+        0,
+        trainer.optimizers[0],
+        hiddens=None,
     )
     assert opt_closure_result['loss'].item() == 171
 
@@ -231,7 +235,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
+    assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
@@ -241,7 +245,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.train_loop.training_step_and_backward(
-        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens
+        batch, batch_idx, 0, trainer.optimizers[0], hiddens=None
     )
     assert opt_closure_result['loss'].item() == 171
 
