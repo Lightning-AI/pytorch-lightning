@@ -1128,7 +1128,7 @@ for more information.
         # end training epoch
         training_epoch_end()
 
-        on_train_epoch_end(outs)
+        on_train_epoch_end()
         on_epoch_end()
 
     def val_loop():
