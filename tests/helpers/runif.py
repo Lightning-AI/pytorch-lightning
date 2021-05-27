@@ -28,6 +28,7 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_PIPE_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
+    _POPTORCH_AVAILABLE,
     _RPC_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
@@ -63,6 +64,7 @@ class RunIf:
         amp_apex: bool = False,
         amp_native: bool = False,
         tpu: bool = False,
+        ipu: bool = False,
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
@@ -85,6 +87,7 @@ class RunIf:
             amp_apex: NVIDIA Apex is installed
             amp_native: if native PyTorch native AMP is supported
             tpu: if TPU is available
+            ipu: if IPU is available
             horovod: if Horovod is installed
             horovod_nccl: if Horovod is installed with NCCL support
             skip_windows: skip test for Windows platform (typically fo some limited torch functionality)
@@ -138,6 +141,10 @@ class RunIf:
         if tpu:
             conditions.append(not _TPU_AVAILABLE)
             reasons.append("TPU")
+
+        if ipu:
+            conditions.append(not _POPTORCH_AVAILABLE)
+            reasons.append("IPU")
 
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)

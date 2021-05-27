@@ -107,25 +107,32 @@ class IPUPlugin(ParallelPlugin):
         return model.module if isinstance(model, LightningIPUModule) else model
 
     def pre_dispatch(self) -> None:
+        '''
+        The issue here is we assume we're training.
+        What if we're not training?
+        I say
+        '''
         if self.half:
-            log.info('Using 16bit precision, converting model to FP16.')
+            log.info('Using full 16bit precision, converting LightningModule weights to FP16.')
             self.model = self.model.half()
         precision = self.lightning_module.trainer.accelerator.precision_plugin.precision
         precision = 16 if self.half else precision
 
-        # Create model for training which will run training.
-        optimizer = self.lightning_module.trainer.optimizers[0]
         model = LightningIPUModule(self.lightning_module, precision)
-
-        self.model = poptorch.trainingModel(model=model, options=self._create_opts(training=True), optimizer=optimizer)
+        self.model = model
 
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, they sync weights first.
 
-        # todo: not sure this is the cleanest way to do this...
-        self.inference_models = {}
+        self.poptorch_wrapped_models = {}
+        if self.lightning_module.trainer.training:
+            # Create model for training which will run training.
+            optimizer = self.lightning_module.trainer.optimizers[0]
+            self.poptorch_wrapped_models['train'] = poptorch.trainingModel(
+                model=model, options=self._create_opts(training=True), optimizer=optimizer
+            )
         for x in ('val', 'test', 'predict'):
-            self.inference_models[x] = poptorch.inferenceModel(
+            self.poptorch_wrapped_models[x] = poptorch.inferenceModel(
                 model=model,
                 options=self._create_opts(training=False),
             )
@@ -141,6 +148,10 @@ class IPUPlugin(ParallelPlugin):
         gradient_accumulation = self.lightning_module.trainer.accumulate_grad_batches if training else 1
         opts.Training.gradientAccumulation(gradient_accumulation)
         opts.autoRoundNumIPUs(self.autoround_num_ipus)
+
+        # todo (sean): unsure if this is necessary but to be safe.
+        if os.environ.get("PL_GLOBAL_SEED"):
+            opts.randomSeed(int(os.environ["PL_GLOBAL_SEED"]))
         return opts
 
     def on_reset_train_dataloader(self, dataloader) -> Union[Iterable, DataLoader]:
@@ -197,28 +208,32 @@ class IPUPlugin(ParallelPlugin):
         return dataloader
 
     def training_step(self, *args, **kwargs):
-        args, batch_idx = self._prepare_input(args)
-        return self.model(args, batch_idx, **kwargs)
+        args = self._prepare_input(args)
+        return self.poptorch_wrapped_models['train'](*args, **kwargs)
 
     def _prepare_input(self, args):
-        args, batch_idx = args
-        # explicit conversion to tuple as Lists are not supported in jit as they are mutable
-        # todo: we probably want to apply this to all lists in the object
-        # todo: do we need to do additional checks for dicts?
-        args = tuple(args)
+        # Ensure we replicate primitives values to have enough dimensions to split across devices
         accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
         num_repeat = self.replication_factor * self.device_iterations * accumulate_grad_batches
-        batch_idx = torch.tensor(batch_idx, dtype=torch.int).unsqueeze(0).repeat(num_repeat)
-        return args, batch_idx
+
+        def to_tuple(x):
+            return tuple(x)
+
+        def to_tensor(x):
+            return torch.tensor(x).unsqueeze(0).repeat(num_repeat)
+
+        args = apply_to_collection(args, dtype=list, function=to_tuple)
+        args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
+        return args
 
     def validation_step(self, *args, **kwargs):
-        args, batch_idx = self._prepare_input(args)
-        return self.inference_models['val'](args, batch_idx, **kwargs)
+        args = self._prepare_input(args)
+        return self.poptorch_wrapped_models['val'](*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        args, batch_idx = self._prepare_input(args)
-        return self.inference_models['test'](args, batch_idx, **kwargs)
+        args = self._prepare_input(args)
+        return self.poptorch_wrapped_models['test'](*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        args, batch_idx = self._prepare_input(args)
-        return self.inference_models['predict'](args, batch_idx, **kwargs)
+        args = self._prepare_input(args)
+        return self.poptorch_wrapped_models['predict'](*args, **kwargs)

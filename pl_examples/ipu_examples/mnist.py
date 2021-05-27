@@ -48,21 +48,28 @@ class LitClassifier(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        return loss
+        logits = self(x)
+        acc = self.accuracy(logits, y)
+        return acc
 
     def test_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        return loss
+        logits = self(x)
+        acc = self.accuracy(logits, y)
+        return acc
 
-    def on_validation_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
-        self.log('val_loss', outputs.mean(), prog_bar=True)
+    def accuracy(self, logits, y):
+        # todo (sean): currently IPU poptorch doesn't implicit convert bools to tensor
+        # hence we use an explicit calculation for accuracy here. Once fixed in poptorch
+        # we can use the accuracy metric.
+        acc = torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
+        return acc
 
-    def on_test_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
-        self.log('test_loss', outputs.mean(), prog_bar=True)
+    def validation_epoch_end(self, outputs) -> None:
+        self.log('val_acc', torch.stack(outputs).mean(), prog_bar=True)
+
+    def test_epoch_end(self, outputs) -> None:
+        self.log('test_acc', torch.stack(outputs).mean())
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
@@ -73,7 +80,7 @@ if __name__ == '__main__':
 
     model = LitClassifier()
 
-    trainer = pl.Trainer(max_epochs=10, accelerator='ipu', ipu_cores=8)
+    trainer = pl.Trainer(max_epochs=2, ipu_cores=8)
 
     trainer.fit(model, datamodule=dm)
 

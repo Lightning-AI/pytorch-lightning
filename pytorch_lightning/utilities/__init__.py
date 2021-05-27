@@ -43,6 +43,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HOROVOD_AVAILABLE,
     _HYDRA_AVAILABLE,
     _HYDRA_EXPERIMENTAL_AVAILABLE,
+    _IPU_AVAILABLE,
     _IS_INTERACTIVE,
     _module_available,
     _NATIVE_AMP_AVAILABLE,

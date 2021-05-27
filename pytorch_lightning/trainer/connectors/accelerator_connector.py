@@ -60,6 +60,7 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -367,7 +368,7 @@ class AcceleratorConnector(object):
         # set precision type
         self.amp_type = AMPType.from_str(self.amp_type)
 
-        if self._device_type == DeviceType.IPU:
+        if self.on_ipu:
             return IPUPrecisionPlugin(self.precision)
 
         if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
@@ -632,8 +633,11 @@ class AcceleratorConnector(object):
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
-        num_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
+        num_tpu_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores')
+
+        num_ipu_cores = self.ipu_cores if self.ipu_cores is not None else 0
+        rank_zero_info(f'IPU available: {_IPU_AVAILABLE}, using: {num_ipu_cores} IPU cores')
 
         if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
             rank_zero_warn(

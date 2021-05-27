@@ -97,3 +97,9 @@ _XLA_AVAILABLE = _module_available("torch_xla")
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
 _TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+
+if _POPTORCH_AVAILABLE:
+    import poptorch
+    _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
+else:
+    _IPU_AVAILABLE = False
