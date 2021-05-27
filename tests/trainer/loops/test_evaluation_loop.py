@@ -85,12 +85,12 @@ def test_memory_consumption_validation(tmpdir):
             return num_params
 
         def train_dataloader(self):
-            # batch target memory >= 10x boring_model size
+            # batch target memory >= 100x boring_model size
             batch_size = self.num_params * 100 // 32 + 1
             return DataLoader(RandomDataset(32, 5000), batch_size=batch_size)
 
         def val_dataloader(self):
-            # batch target memory >= 10x boring_model size
+            # batch target memory >= 100x boring_model size
             batch_size = self.num_params * 100 // 32 + 1
             return DataLoader(RandomDataset(32, 5000), batch_size=batch_size)
 
