@@ -107,6 +107,7 @@ def test_memory_consumption_validation(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=2,
+        move_metrics_to_cpu=True,
         weights_summary=None,
     )
     trainer.fit(BoringLargeBatchModel())
