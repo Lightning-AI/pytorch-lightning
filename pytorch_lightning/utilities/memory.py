@@ -20,8 +20,10 @@ import torch
 RECURSIVE_DICT_WITH_TENSORS = Union[Dict[str, torch.Tensor], Dict[Any, Any]]
 
 
-def recursive_detach(in_dict: RECURSIVE_DICT_WITH_TENSORS,
-                     to_cpu: bool = False,) -> Dict[str, Union[Any, Dict[str, torch.Tensor], torch.Tensor]]:
+def recursive_detach(
+    in_dict: RECURSIVE_DICT_WITH_TENSORS,
+    to_cpu: bool = False,
+) -> Dict[str, Union[Any, Dict[str, torch.Tensor], torch.Tensor]]:
     """Detach all tensors in `in_dict`.
 
     May operate recursively if some of the values in `in_dict` are dictionaries
