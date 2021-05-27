@@ -16,9 +16,9 @@ from typing import List, Optional
 import torch
 from torch.nn import DataParallel
 
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
