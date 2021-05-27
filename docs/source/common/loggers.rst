@@ -221,7 +221,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
     trainer = Trainer(logger=wandb_logger)
 
     # log gradients and model topology
-    WandbLogger.watch(model)
+    wandb_logger.watch(model)
 
 The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
