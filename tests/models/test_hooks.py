@@ -18,7 +18,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Callback, Trainer
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -229,31 +229,174 @@ def test_transfer_batch_hook_ddp(tmpdir):
     trainer.fit(model)
 
 
+class HookedCallback(Callback):
+
+    def __init__(self, called):
+        super().__init__()
+        self.called = called
+
+    def on_init_start(self, *args, **kwargs):
+        self.called.append('Callback.on_init_start')
+
+    def on_init_end(self, *args, **kwargs):
+        self.called.append('Callback.on_init_end')
+
+    def on_before_accelerator_backend_setup(self, *args, **kwargs):
+        self.called.append('Callback.on_before_accelerator_backend_setup')
+
+    def on_configure_sharded_model(self, *args, **kwargs):
+        self.called.append('Callback.on_configure_sharded_model')
+
+    def on_fit_start(self, *args, **kwargs):
+        self.called.append('Callback.on_fit_start')
+
+    def on_fit_end(self, *args, **kwargs):
+        self.called.append('Callback.on_fit_end')
+
+    def on_pretrain_routine_start(self, *args, **kwargs):
+        self.called.append('Callback.on_pretrain_routine_start')
+
+    def on_pretrain_routine_end(self, *args, **kwargs):
+        self.called.append('Callback.on_pretrain_routine_end')
+
+    def on_sanity_check_start(self, *args, **kwargs):
+        self.called.append('Callback.on_sanity_check_start')
+
+    def on_sanity_check_end(self, *args, **kwargs):
+        self.called.append('Callback.on_sanity_check_end')
+
+    def on_validation_start(self, *args, **kwargs):
+        self.called.append('Callback.on_validation_start')
+
+    def on_validation_end(self, *args, **kwargs):
+        self.called.append('Callback.on_validation_end')
+
+    def on_epoch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_epoch_start')
+
+    def on_epoch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_epoch_end')
+
+    def on_validation_epoch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_validation_epoch_start')
+
+    def on_validation_epoch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_validation_epoch_end')
+
+    def on_validation_batch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_validation_batch_start')
+
+    def on_validation_batch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_validation_batch_end')
+
+    def on_train_start(self, *args, **kwargs):
+        self.called.append('Callback.on_train_start')
+
+    def on_train_end(self, *args, **kwargs):
+        self.called.append('Callback.on_train_end')
+
+    def on_train_epoch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_train_epoch_start')
+
+    def on_train_epoch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_train_epoch_end')
+
+    def on_train_batch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_train_batch_start')
+
+    def on_train_batch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_train_batch_end')
+
+    def on_batch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_batch_start')
+
+    def on_batch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_batch_end')
+
+    def on_before_zero_grad(self, *args, **kwargs):
+        self.called.append('Callback.on_before_zero_grad')
+
+    def on_after_backward(self, *args, **kwargs):
+        self.called.append('Callback.on_after_backward')
+
+    # def on_load_checkpoint(self, *args, **kwargs):
+    #     self.called.append('Callback.on_load_checkpoint')
+
+    def on_save_checkpoint(self, *args, **kwargs):
+        self.called.append('Callback.on_save_checkpoint')
+
+    def on_test_start(self, *args, **kwargs):
+        self.called.append('Callback.on_test_start')
+
+    def on_test_end(self, *args, **kwargs):
+        self.called.append('Callback.on_test_end')
+
+    def on_test_epoch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_test_epoch_start')
+
+    def on_test_epoch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_test_epoch_end')
+
+    def on_test_batch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_test_batch_start')
+
+    def on_test_batch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_test_batch_end')
+
+    def setup(self, *args, stage=None):
+        self.called.append(f"Callback.setup_{stage}")
+
+    def teardown(self, *args, stage=None):
+        self.called.append(f"Callback.teardown_{stage}")
+
+    def on_predict_start(self, *args, **kwargs):
+        self.called.append('Callback.on_predict_start')
+
+    def on_predict_end(self, *args, **kwargs):
+        self.called.append('Callback.on_predict_end')
+
+    def on_predict_epoch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_predict_epoch_start')
+
+    def on_predict_epoch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_predict_epoch_end')
+
+    def on_predict_batch_start(self, *args, **kwargs):
+        self.called.append('Callback.on_predict_batch_start')
+
+    def on_predict_batch_end(self, *args, **kwargs):
+        self.called.append('Callback.on_predict_batch_end')
+
+
 class HookedModel(BoringModel):
 
-    def __init__(self):
+    def __init__(self, called):
         super().__init__()
-        self.called = []
+        self.called = called
+        # yapf: disable
         self.train_batch = [
-            'on_train_batch_start',
+            'Callback.on_batch_start',
+            'Callback.on_train_batch_start', 'on_train_batch_start',
             'on_before_batch_transfer',
             'transfer_batch_to_device',
             'on_after_batch_transfer',
             'training_step',
-            'on_before_zero_grad',
+            'Callback.on_before_zero_grad', 'on_before_zero_grad',
             'optimizer_zero_grad',
             'backward',
-            'on_after_backward',
+            'Callback.on_after_backward', 'on_after_backward',
             'optimizer_step',
-            'on_train_batch_end',
+            'Callback.on_train_batch_end', 'on_train_batch_end',
+            'Callback.on_batch_end',
         ]
         self.val_batch = [
-            'on_validation_batch_start',
+            'Callback.on_validation_batch_start', 'on_validation_batch_start',
             'on_before_batch_transfer',
             'transfer_batch_to_device',
             'on_after_batch_transfer',
-            'on_validation_batch_end',
+            'Callback.on_validation_batch_end', 'on_validation_batch_end',
         ]
+        # yapf: enable
 
     def prepare_data(self):
         self.called.append("prepare_data")
@@ -285,7 +428,6 @@ class HookedModel(BoringModel):
 
     def on_after_backward(self):
         self.called.append("on_after_backward")
-        super().on_after_backward()
 
     def optimizer_step(self, *args, **kwargs):
         super().optimizer_step(*args, **kwargs)
@@ -297,55 +439,42 @@ class HookedModel(BoringModel):
 
     def on_before_zero_grad(self, *args, **kwargs):
         self.called.append("on_before_zero_grad")
-        super().on_before_zero_grad(*args, **kwargs)
 
     def on_epoch_start(self):
         self.called.append("on_epoch_start")
-        super().on_epoch_start()
 
     def on_epoch_end(self):
         self.called.append("on_epoch_end")
-        super().on_epoch_end()
 
     def on_fit_start(self):
         self.called.append("on_fit_start")
-        super().on_fit_start()
 
     def on_fit_end(self):
         self.called.append("on_fit_end")
-        super().on_fit_end()
 
-    def on_hpc_load(self, *args, **kwargs):
-        self.called.append("on_hpc_load")
-        super().on_hpc_load(*args, **kwargs)
+    # def on_hpc_load(self, *args, **kwargs):
+    #     self.called.append("on_hpc_load")
 
-    def on_hpc_save(self, *args, **kwargs):
-        self.called.append("on_hpc_save")
-        super().on_hpc_save(*args, **kwargs)
+    # def on_hpc_save(self, *args, **kwargs):
+    #     self.called.append("on_hpc_save")
 
     def on_load_checkpoint(self, *args, **kwargs):
         self.called.append("on_load_checkpoint")
-        super().on_load_checkpoint(*args, **kwargs)
 
     def on_save_checkpoint(self, *args, **kwargs):
         self.called.append("on_save_checkpoint")
-        super().on_save_checkpoint(*args, **kwargs)
 
     def on_pretrain_routine_start(self):
         self.called.append("on_pretrain_routine_start")
-        super().on_pretrain_routine_start()
 
     def on_pretrain_routine_end(self):
         self.called.append("on_pretrain_routine_end")
-        super().on_pretrain_routine_end()
 
     def on_train_start(self):
         self.called.append("on_train_start")
-        super().on_train_start()
 
     def on_train_end(self):
         self.called.append("on_train_end")
-        super().on_train_end()
 
     def on_before_batch_transfer(self, *args, **kwargs):
         self.called.append("on_before_batch_transfer")
@@ -361,63 +490,48 @@ class HookedModel(BoringModel):
 
     def on_train_batch_start(self, *args, **kwargs):
         self.called.append("on_train_batch_start")
-        super().on_train_batch_start(*args, **kwargs)
 
     def on_train_batch_end(self, *args, **kwargs):
         self.called.append("on_train_batch_end")
-        super().on_train_batch_end(*args, **kwargs)
 
     def on_train_epoch_start(self):
         self.called.append("on_train_epoch_start")
-        super().on_train_epoch_start()
 
     def on_train_epoch_end(self):
         self.called.append("on_train_epoch_end")
-        super().on_train_epoch_end()
 
     def on_validation_start(self):
         self.called.append("on_validation_start")
-        super().on_validation_start()
 
     def on_validation_end(self):
         self.called.append("on_validation_end")
-        super().on_validation_end()
 
     def on_validation_batch_start(self, *args, **kwargs):
         self.called.append("on_validation_batch_start")
-        super().on_validation_batch_start(*args, **kwargs)
 
     def on_validation_batch_end(self, *args, **kwargs):
         self.called.append("on_validation_batch_end")
-        super().on_validation_batch_end(*args, **kwargs)
 
     def on_validation_epoch_start(self):
         self.called.append("on_validation_epoch_start")
-        super().on_validation_epoch_start()
 
-    def on_validation_epoch_end(self, *args, **kwargs):
+    def on_validation_epoch_end(self):
         self.called.append("on_validation_epoch_end")
-        super().on_validation_epoch_end(*args, **kwargs)
 
     def on_test_start(self):
         self.called.append("on_test_start")
-        super().on_test_start()
 
     def on_test_batch_start(self, *args, **kwargs):
         self.called.append("on_test_batch_start")
-        super().on_test_batch_start(*args, **kwargs)
 
     def on_test_batch_end(self, *args, **kwargs):
         self.called.append("on_test_batch_end")
-        super().on_test_batch_end(*args, **kwargs)
 
     def on_test_epoch_start(self):
         self.called.append("on_test_epoch_start")
-        super().on_test_epoch_start()
 
-    def on_test_epoch_end(self, *args, **kwargs):
+    def on_test_epoch_end(self):
         self.called.append("on_test_epoch_end")
-        super().on_test_epoch_end(*args, **kwargs)
 
     def on_validation_model_eval(self):
         self.called.append("on_validation_model_eval")
@@ -437,7 +551,6 @@ class HookedModel(BoringModel):
 
     def on_test_end(self):
         self.called.append("on_test_end")
-        super().on_test_end()
 
     def setup(self, stage=None):
         self.called.append(f"setup_{stage}")
@@ -447,9 +560,37 @@ class HookedModel(BoringModel):
         self.called.append(f"teardown_{stage}")
         super().teardown(stage)
 
+    def test_epoch_end(self, *args, **kwargs) -> None:
+        self.called.append("test_epoch_end")
+        super().test_epoch_end(*args, **kwargs)
+
+    def on_predict_model_eval(self):
+        self.called.append('on_predict_model_eval')
+        super().on_predict_model_eval()
+
+    def on_predict_start(self):
+        self.called.append('on_predict_start')
+
+    def on_predict_end(self):
+        self.called.append('on_predict_end')
+
+    def on_predict_epoch_start(self):
+        self.called.append('on_predict_epoch_start')
+
+    def on_predict_epoch_end(self, *args, **kwargs):
+        self.called.append('on_predict_epoch_end')
+
+    def on_predict_batch_start(self, *args, **kwargs):
+        self.called.append('on_predict_batch_start')
+
+    def on_predict_batch_end(self, *args, **kwargs):
+        self.called.append('on_predict_batch_end')
+
 
 def test_trainer_model_hook_system_fit(tmpdir):
-    model = HookedModel()
+    called = []
+    model = HookedModel(called)
+    callback = HookedCallback(called)
     train_batches = 2
     val_batches = 2
     trainer = Trainer(
@@ -459,54 +600,66 @@ def test_trainer_model_hook_system_fit(tmpdir):
         limit_val_batches=val_batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
+        callbacks=[callback]
     )
-    assert model.called == []
+    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
     trainer.fit(model)
+    # yapf: disable
     expected = [
+        'Callback.on_init_start',
+        'Callback.on_init_end',
         'prepare_data',
         'configure_callbacks',
-        'setup_fit',
+        'Callback.on_before_accelerator_backend_setup',
+        'Callback.setup_fit', 'setup_fit',
+        'Callback.on_configure_sharded_model',
         'configure_optimizers',
-        'on_fit_start',
-        'on_pretrain_routine_start',
-        'on_pretrain_routine_end',
+        'Callback.on_fit_start', 'on_fit_start',
+        'Callback.on_pretrain_routine_start', 'on_pretrain_routine_start',
+        'Callback.on_pretrain_routine_end', 'on_pretrain_routine_end',
+        'Callback.on_sanity_check_start',
         'on_validation_model_eval',
-        'on_validation_start',
-        'on_epoch_start',
-        'on_validation_epoch_start',
+        'Callback.on_validation_start', 'on_validation_start',
+        'Callback.on_epoch_start', 'on_epoch_start',
+        'Callback.on_validation_epoch_start', 'on_validation_epoch_start',
         *(model.val_batch * val_batches),
         'validation_epoch_end',
-        'on_validation_epoch_end',
-        'on_epoch_end',
-        'on_validation_end',
+        'Callback.on_validation_epoch_end', 'on_validation_epoch_end',
+        'Callback.on_epoch_end', 'on_epoch_end',
+        'Callback.on_validation_end', 'on_validation_end',
         'on_validation_model_train',
-        'on_train_start',
-        'on_epoch_start',
-        'on_train_epoch_start',
+        'Callback.on_sanity_check_end',
+        'Callback.on_train_start', 'on_train_start',
+        'Callback.on_epoch_start', 'on_epoch_start',
+        'Callback.on_train_epoch_start', 'on_train_epoch_start',
         *(model.train_batch * train_batches),
         'on_validation_model_eval',
-        'on_validation_start',
-        'on_epoch_start',
-        'on_validation_epoch_start',
+        'Callback.on_validation_start', 'on_validation_start',
+        'Callback.on_epoch_start', 'on_epoch_start',
+        'Callback.on_validation_epoch_start', 'on_validation_epoch_start',
         *(model.val_batch * val_batches),
         'validation_epoch_end',
-        'on_validation_epoch_end',
-        'on_epoch_end',
-        'on_save_checkpoint',
+        'Callback.on_validation_epoch_end', 'on_validation_epoch_end',
+        'Callback.on_epoch_end', 'on_epoch_end',
+        'Callback.on_validation_end',
+        'Callback.on_save_checkpoint', 'on_save_checkpoint',
         'on_validation_end',
         'on_validation_model_train',
         'training_epoch_end',
-        'on_train_epoch_end',
-        'on_epoch_end',
-        'on_train_end',
-        'on_fit_end',
-        'teardown_fit',
+        'Callback.on_train_epoch_end', 'on_train_epoch_end',
+        'Callback.on_epoch_end', 'on_epoch_end',
+        'Callback.on_train_end', 'on_train_end',
+        'Callback.on_fit_end', 'on_fit_end',
+        'Callback.teardown_fit', 'teardown_fit',
     ]
+    # yapf: enable
     assert model.called == expected
 
 
 def test_trainer_model_hook_system_fit_no_val(tmpdir):
-    model = HookedModel()
+    called = []
+    model = HookedModel(called)
+    callback = HookedCallback(called)
     train_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -515,97 +668,162 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         limit_train_batches=train_batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
+        callbacks=[callback],
     )
-    assert model.called == []
+    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
     trainer.fit(model)
+    # yapf: disable
     expected = [
+        'Callback.on_init_start',
+        'Callback.on_init_end',
         'prepare_data',
         'configure_callbacks',
-        'setup_fit',
+        'Callback.on_before_accelerator_backend_setup',
+        'Callback.setup_fit', 'setup_fit',
+        'Callback.on_configure_sharded_model',
         'configure_optimizers',
-        'on_fit_start',
-        'on_pretrain_routine_start',
-        'on_pretrain_routine_end',
-        'on_train_start',
-        'on_epoch_start',
-        'on_train_epoch_start',
+        'Callback.on_fit_start', 'on_fit_start',
+        'Callback.on_pretrain_routine_start', 'on_pretrain_routine_start',
+        'Callback.on_pretrain_routine_end', 'on_pretrain_routine_end',
+        'Callback.on_train_start', 'on_train_start',
+        'Callback.on_epoch_start', 'on_epoch_start',
+        'Callback.on_train_epoch_start', 'on_train_epoch_start',
         *(model.train_batch * train_batches),
         'training_epoch_end',
-        'on_train_epoch_end',
-        'on_epoch_end',
-        'on_save_checkpoint',  # from train epoch end
-        'on_train_end',
-        'on_fit_end',
-        'teardown_fit',
+        'Callback.on_train_epoch_end', 'on_train_epoch_end',
+        'Callback.on_epoch_end', 'on_epoch_end',
+        'Callback.on_save_checkpoint', 'on_save_checkpoint',  # from train epoch end
+        'Callback.on_train_end', 'on_train_end',
+        'Callback.on_fit_end', 'on_fit_end',
+        'Callback.teardown_fit', 'teardown_fit',
     ]
+    # yapf: enable
     assert model.called == expected
 
 
 def test_trainer_model_hook_system_validate(tmpdir):
-    model = HookedModel()
+    called = []
+    model = HookedModel(called)
+    callback = HookedCallback(called)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=1,
         progress_bar_refresh_rate=0,
         weights_summary=None,
+        callbacks=[callback],
     )
-    assert model.called == []
+    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
     trainer.validate(model, verbose=False)
+    # yapf: disable
     expected = [
+        'Callback.on_init_start',
+        'Callback.on_init_end',
         'prepare_data',
         'configure_callbacks',
-        'setup_validate',
+        'Callback.on_before_accelerator_backend_setup',
+        'Callback.setup_validate', 'setup_validate',
+        'Callback.on_configure_sharded_model',
         'on_validation_model_eval',
-        'on_validation_start',
-        'on_epoch_start',
-        'on_validation_epoch_start',
-        'on_validation_batch_start',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'on_validation_batch_end',
+        'Callback.on_validation_start', 'on_validation_start',
+        'Callback.on_epoch_start', 'on_epoch_start',
+        'Callback.on_validation_epoch_start', 'on_validation_epoch_start',
+        *model.val_batch,
         'validation_epoch_end',
-        'on_validation_epoch_end',
-        'on_epoch_end',
-        'on_validation_end',
+        'Callback.on_validation_epoch_end', 'on_validation_epoch_end',
+        'Callback.on_epoch_end', 'on_epoch_end',
+        'Callback.on_validation_end', 'on_validation_end',
         'on_validation_model_train',
-        'teardown_validate',
+        'Callback.teardown_validate', 'teardown_validate',
     ]
+    # yapf: enable
     assert model.called == expected
 
 
 def test_trainer_model_hook_system_test(tmpdir):
-    model = HookedModel()
+    called = []
+    model = HookedModel(called)
+    callback = HookedCallback(called)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_test_batches=1,
         progress_bar_refresh_rate=0,
-        weights_summary=None,
+        callbacks=[callback],
     )
-    assert model.called == []
+    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
     trainer.test(model, verbose=False)
+    # yapf: disable
     expected = [
+        'Callback.on_init_start',
+        'Callback.on_init_end',
         'prepare_data',
         'configure_callbacks',
-        'setup_test',
+        'Callback.on_before_accelerator_backend_setup',
+        'Callback.setup_test', 'setup_test',
+        'Callback.on_configure_sharded_model',
         'on_test_model_eval',
-        'on_test_start',
-        'on_epoch_start',
-        'on_test_epoch_start',
-        'on_test_batch_start',
+        'Callback.on_test_start', 'on_test_start',
+        'Callback.on_epoch_start', 'on_epoch_start',
+        'Callback.on_test_epoch_start', 'on_test_epoch_start',
+        'Callback.on_test_batch_start', 'on_test_batch_start',
         'on_before_batch_transfer',
         'transfer_batch_to_device',
         'on_after_batch_transfer',
-        'on_test_batch_end',
-        'on_test_epoch_end',
-        'on_epoch_end',
-        'on_test_end',
+        'Callback.on_test_batch_end', 'on_test_batch_end',
+        'test_epoch_end',
+        'Callback.on_test_epoch_end', 'on_test_epoch_end',
+        'Callback.on_epoch_end', 'on_epoch_end',
+        'Callback.on_test_end', 'on_test_end',
         'on_test_model_train',
-        'teardown_test',
+        'Callback.teardown_test', 'teardown_test',
     ]
+    # yapf: enable
     assert model.called == expected
+
+
+def test_trainer_model_hook_system_predict(tmpdir):
+    called = []
+    model = HookedModel(called)
+    callback = HookedCallback(called)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_predict_batches=1,
+        progress_bar_refresh_rate=0,
+        callbacks=[callback],
+    )
+    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
+    trainer.predict(model)
+    # yapf: disable
+    expected = [
+        'Callback.on_init_start',
+        'Callback.on_init_end',
+        'prepare_data',
+        'configure_callbacks',
+        'Callback.on_before_accelerator_backend_setup',
+        'Callback.setup_predict', 'setup_predict',
+        'Callback.on_configure_sharded_model',
+        'on_predict_model_eval',
+        'Callback.on_predict_start', 'on_predict_start',
+        # 'Callback.on_epoch_start', 'on_epoch_start',  TODO: missing
+        'Callback.on_predict_epoch_start', 'on_predict_epoch_start',
+        'Callback.on_predict_batch_start', 'on_predict_batch_start',
+        'on_before_batch_transfer',
+        'transfer_batch_to_device',
+        'on_after_batch_transfer',
+        'Callback.on_predict_batch_end', 'on_predict_batch_end',
+        'Callback.on_predict_epoch_end', 'on_predict_epoch_end',
+        # 'Callback.on_epoch_end', 'on_epoch_end',  TODO: missing
+        'Callback.on_predict_end', 'on_predict_end',
+        # 'on_predict_model_train', TODO: missing
+        'Callback.teardown_predict', 'teardown_predict',
+    ]
+    # yapf: enable
+    assert model.called == expected
+
+
+# TODO: add test for tune
 
 
 def test_hooks_with_different_argument_names(tmpdir):
