@@ -26,6 +26,7 @@ from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
+from weakref import proxy
 
 import numpy as np
 import torch
@@ -329,6 +330,10 @@ class ModelCheckpoint(Callback):
         self._save_none_monitor_checkpoint(trainer, monitor_candidates)
         # Mode 3: save last checkpoints
         self._save_last_checkpoint(trainer, monitor_candidates)
+
+        # notify loggers
+        if trainer.is_global_zero and trainer.logger:
+            trainer.logger.after_save_checkpoint(proxy(self))
 
     def _should_skip_saving_checkpoint(self, trainer: 'pl.Trainer') -> bool:
         from pytorch_lightning.trainer.states import TrainerFn

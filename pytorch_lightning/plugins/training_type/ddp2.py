@@ -13,8 +13,8 @@
 # limitations under the License.
 import torch
 
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 
 
 class DDP2Plugin(DDPPlugin):

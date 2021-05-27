@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
