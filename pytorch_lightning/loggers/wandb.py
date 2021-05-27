@@ -275,8 +275,7 @@ class WandbLogger(LightningLoggerBase):
             } if _WANDB_GREATER_EQUAL_0_10_22 else None
             artifact = wandb.Artifact(name=f"model-{self.experiment.id}", type="model", metadata=metadata)
             artifact.add_file(p, name='model.ckpt')
-            self.experiment.log_artifact(
-                artifact, aliases=["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
-            )
+            aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
+            self.experiment.log_artifact(artifact, aliases=aliases)
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t
