@@ -112,6 +112,10 @@ class LoggerConnector:
 
             self.add_logged_metrics(scalar_metrics)
 
+    """
+    Evaluation metric updates
+    """
+
     def evaluation_epoch_end(self):
         # reset dataloader idx
         model_ref = self.trainer.lightning_module
@@ -226,7 +230,9 @@ class LoggerConnector:
         # increment the step even if nothing was logged
         self.increment_evaluation_log_step()
 
-    ############## TRAIN METRICS UPDATES START ##############   # noqa E266
+    """
+    Train metric updates
+    """
 
     def on_train_start(self):
         root_device = self.trainer.lightning_module.device
@@ -286,12 +292,12 @@ class LoggerConnector:
         # reset result collection for next epoch
         self.trainer.result_collections.reset_metrics()
 
-    ############## TRAIN METRICS UPDATES END ##############     # noqa E266
-
-    ############## UTILS START ##############       # noqa E266
+    """
+    Utilities and properties
+    """
 
     @property
-    def callback_metrics(self) -> Dict:
+    def callback_metrics(self) -> Dict[str, float]:
         if self.trainer.result_collections:
             metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.CALLBACK]
             self._callback_metrics.update(metrics)
@@ -300,31 +306,29 @@ class LoggerConnector:
         return self._callback_metrics
 
     @property
-    def logged_metrics(self) -> Dict:
+    def logged_metrics(self) -> Dict[str, float]:
         if self.trainer.result_collections:
             metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.LOG]
             self._logged_metrics.update(metrics)
         return self._logged_metrics
 
     @property
-    def progress_bar_metrics(self) -> Dict:
+    def progress_bar_metrics(self) -> Dict[str, float]:
         if self.trainer.result_collections:
             metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
 
-    def add_progress_bar_metrics(self, metrics):
+    def add_progress_bar_metrics(self, metrics: Dict[str, float]) -> None:
         self._progress_bar_metrics.update(metrics)
         self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
-    def add_logged_metrics(self, metrics):
+    def add_logged_metrics(self, metrics: Dict[str, float]) -> None:
         self._logged_metrics.update(metrics)
         self.trainer.dev_debugger.track_logged_metrics_history(metrics)
 
-    def add_callback_metrics(self, metrics):
+    def add_callback_metrics(self, metrics: Dict[str, float]) -> None:
         self._callback_metrics.update(metrics)
 
     def check_logging(self, fx_name: str, on_step: bool, on_epoch: bool) -> None:
         self._fx_validator.check_logging(fx_name=fx_name, on_step=on_step, on_epoch=on_epoch)
-
-    ############## UTILS END ##############     # noqa E266

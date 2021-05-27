@@ -545,7 +545,7 @@ class TrainLoop:
         # TODO(@carmocca): deprecate and rename so users don't get confused
         self.global_step -= 1
         # log epoch metrics
-        self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
+        self.trainer.logger_connector.update_train_epoch_metrics()
         self.global_step += 1
 
         self.update_lr_schedulers('epoch')
