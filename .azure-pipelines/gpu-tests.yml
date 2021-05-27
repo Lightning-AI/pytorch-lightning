@@ -73,7 +73,8 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+        py.test tests/trainer/loops/test_evaluation_loop.py -k 'test_memory_consumption_validation'
+        # python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
 
     - bash: |
