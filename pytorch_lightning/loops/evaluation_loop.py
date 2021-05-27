@@ -1,7 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Optional, Dict, Union
-
-from torch.utils.data import DataLoader
+from typing import Any, Optional, Dict, Union, Iterator
 
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
@@ -14,43 +12,40 @@ class EvaluationLoop(Loop):
     def __init__(self):
         super().__init__()
         self.predictions: Optional[PredictionCollection] = None
-        self.dataloader: Optional[DataLoader] = None
-        self.dl_max_batches: Optional[int]  = None
+        self.dataloader: Optional[Iterator] = None
+        self.dl_max_batches: Optional[int] = None
         self.dataloader_idx: Optional[int] = None
         self.num_dataloaders: Optional[int] = None
+        self.batch_idx: Optional[int] = None
         self.outputs = []
 
+    def connect(self, trainer, *args, **kwargs):
+        super().connect(trainer, *args, **kwargs)
 
     @property
     def done(self) -> bool:
-        return self.batch_idx >= self.dl_max_batches
+        return self.batch_idx is not None and self.batch_idx >= self.dl_max_batches
 
     def reset(self) -> None:
+        self.iteration_count = 0
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
-        self.dataloader = None
         self.dl_max_batches = None
         self.dataloader_idx = None
         self.num_dataloaders = None
         self.outputs = []
 
     def on_run_start(self, dataloader, dl_max_batches, dataloader_idx, num_dataloaders) -> None:
-        self.dataloader = dataloader
         self.dl_max_batches = dl_max_batches
         self.dataloader_idx = dataloader_idx
         self.num_dataloaders = num_dataloaders
-        self.dataloader_iter = enumerate(self.dataloader)
-
-        # fetch first batch
-        self.batch_idx, self.batch = next(self.dataloader_iter)
-
-    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
-        self.batch_idx, self.batch = next(self.dataloader_iter)
-
+        self.dataloader = enumerate(dataloader)
 
     def advance(self, dataloader, dl_max_batches, dataloader_idx, num_dataloaders) -> None:
+        batch_idx, batch = next(self.dataloader)
+        self.batch_idx = batch_idx
 
-        if self.batch is None:
-            return
+        if batch is None:
+            raise StopIteration
 
         # hook
         self.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
@@ -68,10 +63,6 @@ class EvaluationLoop(Loop):
 
         # track epoch level outputs
         self.outputs = self.trainer._track_output_for_epoch_end(self.outputs, output)
-
-    def on_advance_end(self) -> None:
-        # fetch next batch
-        self.batch_idx, self.batch = next(self.dataloader_iter)
 
     def on_run_end(self) -> Any:
         return self.outputs

@@ -1169,6 +1169,7 @@ class Trainer(
 
         return eval_loop_results
 
+    # TODO: move inside evaluation loop
     def _track_output_for_epoch_end(self, outputs, output):
         if output is not None:
             if isinstance(output, Result):

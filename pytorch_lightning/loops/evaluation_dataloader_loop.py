@@ -29,6 +29,14 @@ class EvaluationDataLoaderLoop(Loop):
     def num_dataloaders(self):
         return self._get_num_dataloaders(self._dataloaders)
 
+    def connect(self, trainer, *args, **kwargs):
+        super().connect(trainer, *args, **kwargs)
+        self.evaluation_loop.connect(trainer, *args, **kwargs)
+
+    @property
+    def done(self):
+        return (self.current_dataloader_idx >= len(self._dataloaders)) or self.should_skip_evaluation(self._max_batches)
+
     def reset(self):
         self.iteration_count = 0
 
@@ -42,8 +50,6 @@ class EvaluationDataLoaderLoop(Loop):
 
         self._max_batches = self._max_batches
 
-    def done(self):
-        return (self.current_dataloader_idx >= len(self._dataloaders)) or self.should_skip_evaluation(self._max_batches)
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         dataloader = self._dataloaders[self.current_dataloader_idx]
