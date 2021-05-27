@@ -21,7 +21,7 @@ RECURSIVE_DICT_WITH_TENSORS = Union[Dict[str, torch.Tensor], Dict[Any, Any]]
 
 
 def recursive_detach(in_dict: RECURSIVE_DICT_WITH_TENSORS,
-                     to_cpu: bool = False) -> Dict[str, Union[Any, Dict[str, torch.Tensor], torch.Tensor]]:
+                     to_cpu: bool = False,) -> Dict[str, Union[Any, Dict[str, torch.Tensor], torch.Tensor]]:
     """Detach all tensors in `in_dict`.
 
     May operate recursively if some of the values in `in_dict` are dictionaries
@@ -47,14 +47,14 @@ def recursive_detach(in_dict: RECURSIVE_DICT_WITH_TENSORS,
     return out_dict
 
 
-def is_oom_error(exception: Any) -> bool:
+def is_oom_error(exception: Exception) -> bool:
     return is_cuda_out_of_memory(exception) \
         or is_cudnn_snafu(exception) \
         or is_out_of_cpu_memory(exception)
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
-def is_cuda_out_of_memory(exception: Any) -> bool:
+def is_cuda_out_of_memory(exception: Exception) -> bool:
     return isinstance(exception, RuntimeError) \
         and len(exception.args) == 1 \
         and "CUDA" in exception.args[0] \
@@ -62,7 +62,7 @@ def is_cuda_out_of_memory(exception: Any) -> bool:
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/torch_cuda_memory.py
-def is_cudnn_snafu(exception: Any) -> bool:
+def is_cudnn_snafu(exception: Exception) -> bool:
     # For/because of https://github.com/pytorch/pytorch/issues/4107
     return isinstance(exception, RuntimeError) \
         and len(exception.args) == 1 \
@@ -70,7 +70,7 @@ def is_cudnn_snafu(exception: Any) -> bool:
 
 
 # based on https://github.com/BlackHC/toma/blob/master/toma/cpu_memory.py
-def is_out_of_cpu_memory(exception: Any) -> bool:
+def is_out_of_cpu_memory(exception: Exception) -> bool:
     return isinstance(exception, RuntimeError) \
         and len(exception.args) == 1 \
         and "DefaultCPUAllocator: can't allocate memory" in exception.args[0]

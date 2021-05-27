@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import operator
-from typing import Any, Iterable, List, MutableSequence, Optional, Set, Tuple, Union
+from typing import Any, Iterable, List, MutableSequence, Optional, Sequence, Set, Tuple, Union
 
 import torch
 
@@ -194,11 +194,11 @@ def _tpu_cores_valid(tpu_cores: Optional[Union[int, Iterable[int], List[int], Tu
 
     # First condition is necessary for mypy compatibility;
     # list_tpu_cores is required to declare for mypy compatiblity too
-    if (tpu_cores is not None) and (not isinstance(tpu_cores, int)):
+    if tpu_cores is not None and not isinstance(tpu_cores, int):
         list_tpu_cores: List[int] = list(tpu_cores)
 
     # allow picking 1 of 8 indexes
-    if isinstance(list_tpu_cores, List):
+    if isinstance(list_tpu_cores, Sequence):
         has_1_tpu_idx = len(list_tpu_cores) == 1
         is_valid_tpu_idx = list_tpu_cores[0] in range(1, 9)
 

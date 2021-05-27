@@ -166,6 +166,7 @@ def collect_init_args(frame: FrameType, path_args: List[Dict[str, Any]], inside:
           most specific class in the hierarchy.
     """
     _, _, _, local_vars = inspect.getargvalues(frame)
+    # frame.f_back must be of a type FrameType for get_init_args/collect_init_args due to mypy
     if isinstance(frame.f_back, FrameType):
         if '__class__' in local_vars:
             local_args = get_init_args(frame)
