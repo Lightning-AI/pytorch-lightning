@@ -8,7 +8,6 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.training_loop import TrainingLoop
 from pytorch_lightning.trainer.supporters import TensorRunningAccum

@@ -1,8 +1,8 @@
 from collections import OrderedDict
 from typing import Any, Optional, Dict, Union, Iterator
 
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 

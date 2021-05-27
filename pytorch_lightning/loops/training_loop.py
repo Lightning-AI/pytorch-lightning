@@ -1,9 +1,9 @@
 from typing import Dict, List, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.batch_loop import BatchLoop
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature

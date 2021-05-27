@@ -9,9 +9,9 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -179,9 +179,9 @@ class BatchLoop(Loop):
         return_result: AttributeDict,
     ) -> Optional[torch.Tensor]:
 
-        step_result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
-        if step_result is not None:
-            return_result.update(step_result)
+        result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        if result is not None:
+            return_result.update(result)
             return return_result.loss
 
     def make_closure(self, *closure_args, **closure_kwargs: Any) -> Callable:

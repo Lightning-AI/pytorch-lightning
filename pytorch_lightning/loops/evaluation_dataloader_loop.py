@@ -3,9 +3,9 @@ from collections import OrderedDict
 
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.evaluation_loop import EvaluationLoop
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
