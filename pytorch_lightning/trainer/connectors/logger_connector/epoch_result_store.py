@@ -18,7 +18,7 @@ from weakref import proxy
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import DistributedType, LightningEnum
 

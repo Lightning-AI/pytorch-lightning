@@ -234,10 +234,66 @@ class HookedModel(BoringModel):
     def __init__(self):
         super().__init__()
         self.called = []
+        self.train_batch = [
+            'on_train_batch_start',
+            'on_before_batch_transfer',
+            'transfer_batch_to_device',
+            'on_after_batch_transfer',
+            'training_step',
+            'on_before_zero_grad',
+            'optimizer_zero_grad',
+            'backward',
+            'on_after_backward',
+            'optimizer_step',
+            'on_train_batch_end',
+        ]
+        self.val_batch = [
+            'on_validation_batch_start',
+            'on_before_batch_transfer',
+            'transfer_batch_to_device',
+            'on_after_batch_transfer',
+            'on_validation_batch_end',
+        ]
+
+    def prepare_data(self):
+        self.called.append("prepare_data")
+        return super().prepare_data()
+
+    def configure_callbacks(self):
+        self.called.append("configure_callbacks")
+        return super().configure_callbacks()
+
+    def configure_optimizers(self):
+        self.called.append("configure_optimizers")
+        return super().configure_optimizers()
+
+    def training_step(self, *args, **kwargs):
+        self.called.append("training_step")
+        return super().training_step(*args, **kwargs)
+
+    def optimizer_zero_grad(self, *args, **kwargs):
+        self.called.append("optimizer_zero_grad")
+        super().optimizer_zero_grad(*args, **kwargs)
+
+    def training_epoch_end(self, *args, **kwargs):
+        self.called.append("training_epoch_end")
+        super().training_epoch_end(*args, **kwargs)
+
+    def backward(self, *args, **kwargs):
+        self.called.append("backward")
+        super().backward(*args, **kwargs)
 
     def on_after_backward(self):
         self.called.append("on_after_backward")
         super().on_after_backward()
+
+    def optimizer_step(self, *args, **kwargs):
+        super().optimizer_step(*args, **kwargs)
+        self.called.append("optimizer_step")  # append after as closure calls other methods
+
+    def validation_epoch_end(self, *args, **kwargs):
+        self.called.append("validation_epoch_end")
+        super().validation_epoch_end(*args, **kwargs)
 
     def on_before_zero_grad(self, *args, **kwargs):
         self.called.append("on_before_zero_grad")
@@ -394,19 +450,23 @@ class HookedModel(BoringModel):
 
 def test_trainer_model_hook_system_fit(tmpdir):
     model = HookedModel()
+    train_batches = 2
+    val_batches = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_val_batches=1,
-        limit_train_batches=2,
-        limit_test_batches=1,
+        limit_train_batches=train_batches,
+        limit_val_batches=val_batches,
         progress_bar_refresh_rate=0,
         weights_summary=None,
     )
     assert model.called == []
     trainer.fit(model)
     expected = [
+        'prepare_data',
+        'configure_callbacks',
         'setup_fit',
+        'configure_optimizers',
         'on_fit_start',
         'on_pretrain_routine_start',
         'on_pretrain_routine_end',
@@ -414,11 +474,8 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'on_validation_start',
         'on_epoch_start',
         'on_validation_epoch_start',
-        'on_validation_batch_start',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'on_validation_batch_end',
+        *(model.val_batch * val_batches),
+        'validation_epoch_end',
         'on_validation_epoch_end',
         'on_epoch_end',
         'on_validation_end',
@@ -426,36 +483,57 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'on_train_start',
         'on_epoch_start',
         'on_train_epoch_start',
-        'on_train_batch_start',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'on_before_zero_grad',
-        'on_after_backward',
-        'on_train_batch_end',
-        'on_train_batch_start',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'on_before_zero_grad',
-        'on_after_backward',
-        'on_train_batch_end',
-        'on_train_epoch_end',
-        'on_epoch_end',
+        *(model.train_batch * train_batches),
         'on_validation_model_eval',
         'on_validation_start',
         'on_epoch_start',
         'on_validation_epoch_start',
-        'on_validation_batch_start',
-        'on_before_batch_transfer',
-        'transfer_batch_to_device',
-        'on_after_batch_transfer',
-        'on_validation_batch_end',
+        *(model.val_batch * val_batches),
+        'validation_epoch_end',
         'on_validation_epoch_end',
         'on_epoch_end',
         'on_save_checkpoint',
         'on_validation_end',
         'on_validation_model_train',
+        'training_epoch_end',
+        'on_train_epoch_end',
+        'on_epoch_end',
+        'on_train_end',
+        'on_fit_end',
+        'teardown_fit',
+    ]
+    assert model.called == expected
+
+
+def test_trainer_model_hook_system_fit_no_val(tmpdir):
+    model = HookedModel()
+    train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0,
+        limit_train_batches=train_batches,
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+    assert model.called == []
+    trainer.fit(model)
+    expected = [
+        'prepare_data',
+        'configure_callbacks',
+        'setup_fit',
+        'configure_optimizers',
+        'on_fit_start',
+        'on_pretrain_routine_start',
+        'on_pretrain_routine_end',
+        'on_train_start',
+        'on_epoch_start',
+        'on_train_epoch_start',
+        *(model.train_batch * train_batches),
+        'training_epoch_end',
+        'on_train_epoch_end',
+        'on_epoch_end',
+        'on_save_checkpoint',  # from train epoch end
         'on_train_end',
         'on_fit_end',
         'teardown_fit',
@@ -469,14 +547,14 @@ def test_trainer_model_hook_system_validate(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=1,
-        limit_train_batches=2,
-        limit_test_batches=1,
         progress_bar_refresh_rate=0,
         weights_summary=None,
     )
     assert model.called == []
     trainer.validate(model, verbose=False)
     expected = [
+        'prepare_data',
+        'configure_callbacks',
         'setup_validate',
         'on_validation_model_eval',
         'on_validation_start',
@@ -487,6 +565,7 @@ def test_trainer_model_hook_system_validate(tmpdir):
         'transfer_batch_to_device',
         'on_after_batch_transfer',
         'on_validation_batch_end',
+        'validation_epoch_end',
         'on_validation_epoch_end',
         'on_epoch_end',
         'on_validation_end',
@@ -501,8 +580,6 @@ def test_trainer_model_hook_system_test(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        limit_val_batches=1,
-        limit_train_batches=2,
         limit_test_batches=1,
         progress_bar_refresh_rate=0,
         weights_summary=None,
@@ -510,6 +587,8 @@ def test_trainer_model_hook_system_test(tmpdir):
     assert model.called == []
     trainer.test(model, verbose=False)
     expected = [
+        'prepare_data',
+        'configure_callbacks',
         'setup_test',
         'on_test_model_eval',
         'on_test_start',
@@ -644,7 +723,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
         reload_dataloaders_every_epoch=True,
     )
     trainer.fit(model, datamodule=dm)
-
     expected = [
         'prepare_data',
         'setup_fit',
@@ -669,7 +747,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
 
     dm = HookedDataModule()
     trainer.validate(model, datamodule=dm, verbose=False)
-
     expected = [
         'prepare_data',
         'setup_validate',
@@ -683,7 +760,6 @@ def test_trainer_datamodule_hook_system(tmpdir):
 
     dm = HookedDataModule()
     trainer.test(model, datamodule=dm, verbose=False)
-
     expected = [
         'prepare_data',
         'setup_test',

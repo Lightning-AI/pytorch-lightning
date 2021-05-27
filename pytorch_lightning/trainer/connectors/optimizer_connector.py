@@ -11,30 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
+from weakref import proxy
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class OptimizerConnector:
 
-    def __init__(self, trainer):
-        self.trainer = trainer
+    def __init__(self, trainer: 'pl.Trainer') -> None:
+        self.trainer = proxy(trainer)
 
-    def on_trainer_init(self):
+    def on_trainer_init(self) -> None:
         self.trainer.lr_schedulers = []
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
 
-    def update_learning_rates(
-        self, interval: str, monitor_metrics: Optional[Dict[str, Any]] = None, opt_indices: Optional[List[int]] = None
-    ):
+    def update_learning_rates(self, interval: str, opt_indices: Optional[List[int]] = None) -> None:
         """Update learning rates.
 
         Args:
             interval: either 'epoch' or 'step'.
-            monitor_metrics: dict of possible values to monitor
+            opt_indices: indices of the optimizers to update.
         """
         if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
             return
@@ -55,10 +55,7 @@ class OptimizerConnector:
                 monitor_key, monitor_val = None, None
                 if lr_scheduler['reduce_on_plateau']:
                     monitor_key = lr_scheduler['monitor']
-                    monitor_val = (
-                        monitor_metrics.get(monitor_key) if monitor_metrics is not None else
-                        self.trainer.logger_connector.callback_metrics.get(monitor_key)
-                    )
+                    monitor_val = self.trainer.logger_connector.callback_metrics.get(monitor_key)
                     if monitor_val is None:
                         if lr_scheduler.get('strict', True):
                             avail_metrics = list(self.trainer.logger_connector.callback_metrics.keys())
