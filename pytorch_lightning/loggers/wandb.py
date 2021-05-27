@@ -91,7 +91,7 @@ class WandbLogger(LightningLoggerBase):
         trainer = Trainer(logger=wandb_logger)
 
         # log gradients and model topology
-        WandbLogger.watch(model)
+        wandb_logger.watch(model)
 
     See Also:
         - `Demo in Google Colab <http://wandb.me/lightning>`__ with model logging
