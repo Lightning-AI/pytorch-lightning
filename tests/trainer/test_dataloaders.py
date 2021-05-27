@@ -896,6 +896,7 @@ def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
 
 
 def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
+    """ Test that a warning message is shown if the dataloader length is too short for the chosen logging interval. """
     model = BoringModel()
     dataloader = DataLoader(RandomDataset(32, length=10))
     model.train_dataloader = lambda: dataloader
