@@ -4,6 +4,7 @@ import os
 from typing import Any, Iterable, List, Optional, Union
 
 import torch
+from torch.nn import Module
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
@@ -19,11 +20,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _POPTORCH_AVAILABLE:
     import poptorch
 
-    if not poptorch.ipuHardwareIsAvailable():
-        raise MisconfigurationException("IPU Accelerator requires IPUs to run.")
-
-# todo: No idea what's happening with grad accumulation, need to check since IPUs handle grad accum.
-# todo: or even lr scheduling...
+# todo: Check gradient accumulation to ensure this works, similar to DeepSpeed IPUs manage this.
+# todo: Check lr scheduling to ensure that when the LR is changed, we update the optimizer state.
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
@@ -65,6 +63,7 @@ class IPUPlugin(ParallelPlugin):
         self.autoround_num_ipus = autoround_num_ipus
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
+        self.poptorch_models = {}
 
         if self.autoreport:
             options = {"autoReport.all": self.autoreport}
@@ -74,44 +73,16 @@ class IPUPlugin(ParallelPlugin):
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
-    @property
-    def on_gpu(self) -> bool:
-        return False
-
-    @property
-    def root_device(self) -> torch.device:
-        pass
-
-    def model_to_device(self) -> None:
-        pass
-
-    @property
-    def is_global_zero(self) -> bool:
-        return True
-
-    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
-        return tensor
-
-    def barrier(self, name: Optional[str] = None) -> None:
-        pass
-
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
-        return tensor
-
-    def broadcast(self, obj: object, src: int = 0) -> object:
-        return obj
+    def setup(self, model: Module) -> None:
+        super().setup(model)
+        if not poptorch.ipuHardwareIsAvailable():
+            raise MisconfigurationException("IPU Accelerator requires IPUs to run.")
 
     @property
     def lightning_module(self) -> Optional[LightningModule]:
-        model = self.model.module if isinstance(self.model, poptorch.PoplarExecutor) else self.model
-        return model.module if isinstance(model, LightningIPUModule) else model
+        return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def pre_dispatch(self) -> None:
-        '''
-        The issue here is we assume we're training.
-        What if we're not training?
-        I say
-        '''
         if self.half:
             log.info('Using full 16bit precision, converting LightningModule weights to FP16.')
             self.model = self.model.half()
@@ -124,15 +95,14 @@ class IPUPlugin(ParallelPlugin):
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, they sync weights first.
 
-        self.poptorch_wrapped_models = {}
         if self.lightning_module.trainer.training:
             # Create model for training which will run training.
             optimizer = self.lightning_module.trainer.optimizers[0]
-            self.poptorch_wrapped_models['train'] = poptorch.trainingModel(
+            self.poptorch_models['train'] = poptorch.trainingModel(
                 model=model, options=self._create_opts(training=True), optimizer=optimizer
             )
         for x in ('val', 'test', 'predict'):
-            self.poptorch_wrapped_models[x] = poptorch.inferenceModel(
+            self.poptorch_models[x] = poptorch.inferenceModel(
                 model=model,
                 options=self._create_opts(training=False),
             )
@@ -209,7 +179,7 @@ class IPUPlugin(ParallelPlugin):
 
     def training_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        return self.poptorch_wrapped_models['train'](*args, **kwargs)
+        return self.poptorch_models['train'](*args, **kwargs)
 
     def _prepare_input(self, args):
         # Ensure we replicate primitives values to have enough dimensions to split across devices
@@ -228,12 +198,39 @@ class IPUPlugin(ParallelPlugin):
 
     def validation_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        return self.poptorch_wrapped_models['val'](*args, **kwargs)
+        return self.poptorch_models['val'](*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        return self.poptorch_wrapped_models['test'](*args, **kwargs)
+        return self.poptorch_models['test'](*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        return self.poptorch_wrapped_models['predict'](*args, **kwargs)
+        return self.poptorch_models['predict'](*args, **kwargs)
+
+    @property
+    def on_gpu(self) -> bool:
+        return False
+
+    @property
+    def root_device(self) -> torch.device:
+        pass
+
+    def model_to_device(self) -> None:
+        pass
+
+    @property
+    def is_global_zero(self) -> bool:
+        return True
+
+    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
+        return tensor
+
+    def barrier(self, name: Optional[str] = None) -> None:
+        pass
+
+    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+        return tensor
+
+    def broadcast(self, obj: object, src: int = 0) -> object:
+        return obj

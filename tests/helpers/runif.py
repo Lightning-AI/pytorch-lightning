@@ -27,8 +27,8 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _FAIRSCALE_PIPE_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _IPU_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
-    _POPTORCH_AVAILABLE,
     _RPC_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
@@ -143,7 +143,7 @@ class RunIf:
             reasons.append("TPU")
 
         if ipu:
-            conditions.append(not _POPTORCH_AVAILABLE)
+            conditions.append(not _IPU_AVAILABLE)
             reasons.append("IPU")
 
         if horovod:
