@@ -86,29 +86,29 @@ def test_memory_consumption_validation(tmpdir):
 
         def train_dataloader(self):
             # batch target memory >= 10x boring_model size
-            batch_size = self.num_params * 10 // 32 + 1
+            batch_size = self.num_params * 100 // 32 + 1
             return DataLoader(RandomDataset(32, 5000), batch_size=batch_size)
 
         def val_dataloader(self):
             # batch target memory >= 10x boring_model size
-            batch_size = self.num_params * 10 // 32 + 1
+            batch_size = self.num_params * 100 // 32 + 1
             return DataLoader(RandomDataset(32, 5000), batch_size=batch_size)
 
         def training_step(self, batch, batch_idx):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
-            assert 10 * self.num_params * 4 < torch.cuda.memory_allocated(
+            assert 101 * self.num_params * 4 < torch.cuda.memory_allocated(
                 0
-            ) < 20 * self.num_params * 4, 'Too much memory allocated during training'
+            ) < 201 * self.num_params * 4, 'Too much memory allocated during training'
             return super().training_step(batch, batch_idx)
 
         def validation_step(self, batch, batch_idx):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
-            assert 10 * self.num_params * 4 < torch.cuda.memory_allocated(
-                0
-            ) < 20 * self.num_params * 4, 'Too much memory allocated during validation'
+            assert 101 * self.num_params * 4 < torch.cuda.memory_allocated(0) < 201 * self.num_params * 4
             return super().validation_step(batch, batch_idx)
 
+    torch.cuda.empty_cache()
     trainer = Trainer(
+        gpus=1,
         default_root_dir=tmpdir,
         fast_dev_run=2,
         move_metrics_to_cpu=True,
