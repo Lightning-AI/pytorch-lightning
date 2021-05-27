@@ -141,4 +141,4 @@ def test_should_stop_mid_epoch(tmpdir):
 
     assert trainer.current_epoch == 0
     assert trainer.global_step == 5
-    assert model.validation_called_at == (0, 4)  # TODO(@carmocca): should be 5 - will be fixed in next PR
+    assert model.validation_called_at == (0, 4)

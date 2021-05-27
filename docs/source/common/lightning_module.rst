@@ -1064,7 +1064,9 @@ override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
 
 Hooks
 ^^^^^
-This is the pseudocode to describe how all the hooks are called during a call to ``.fit()``.
+This is the pseudocode to describe the structure of :meth:`~pytorch_lightning.trainer.Trainer.fit`.
+The inputs and outputs of each function are not represented for simplicity. Please check each function's API reference
+for more information.
 
 .. code-block:: python
 
@@ -1075,36 +1077,41 @@ This is the pseudocode to describe how all the hooks are called during a call to
 
         configure_callbacks()
 
-        on_fit_start()
-
-        for gpu/tpu in gpu/tpus:
-            train_on_device(model.copy())
-
-        on_fit_end()
+        with parallel(devices):
+            # devices can be GPUs, TPUs, ...
+            train_on_device(model)
 
     def train_on_device(model):
-        # setup is called PER DEVICE
-        setup()
+        # called PER DEVICE
+        on_fit_start()
+        setup('fit')
         configure_optimizers()
-        on_pretrain_routine_start()
 
+        on_pretrain_routine_start()
+        on_pretrain_routine_end()
+
+        # the sanity check runs here
+
+        on_train_start()
         for epoch in epochs:
             train_loop()
+        on_train_end()
 
-        teardown()
+        on_fit_end()
+        teardown('fit')
 
     def train_loop():
         on_epoch_start()
         on_train_epoch_start()
-        train_outs = []
-        for train_batch in train_dataloader():
+
+        for batch in train_dataloader():
             on_train_batch_start()
 
-            # ----- train_step methods -------
-            out = training_step(batch)
-            train_outs.append(out)
+            on_before_batch_transfer()
+            transfer_batch_to_device()
+            on_after_batch_transfer()
 
-            loss = out.loss
+            training_step()
 
             on_before_zero_grad()
             optimizer_zero_grad()
@@ -1114,38 +1121,42 @@ This is the pseudocode to describe how all the hooks are called during a call to
 
             optimizer_step()
 
-            on_train_batch_end(out)
+            on_train_batch_end()
 
             if should_check_val:
                 val_loop()
-
         # end training epoch
-        training_epoch_end(outs)
-        on_train_epoch_end(outs)
+        training_epoch_end()
+
+        on_train_epoch_end()
         on_epoch_end()
 
     def val_loop():
-        model.eval()
+        on_validation_model_eval()  # calls `model.eval()`
         torch.set_grad_enabled(False)
 
+        on_validation_start()
         on_epoch_start()
         on_validation_epoch_start()
-        val_outs = []
-        for val_batch in val_dataloader():
+
+        for batch in val_dataloader():
             on_validation_batch_start()
 
-            # -------- val step methods -------
-            out = validation_step(val_batch)
-            val_outs.append(out)
+            on_before_batch_transfer()
+            transfer_batch_to_device()
+            on_after_batch_transfer()
 
-            on_validation_batch_end(out)
+            validation_step()
 
-        validation_epoch_end(val_outs)
+            on_validation_batch_end()
+        validation_epoch_end()
+
         on_validation_epoch_end()
         on_epoch_end()
+        on_validation_end()
 
         # set up for train
-        model.train()
+        on_validation_model_train()  # calls `model.train()`
         torch.set_grad_enabled(True)
 
 backward
