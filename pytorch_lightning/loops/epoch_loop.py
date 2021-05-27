@@ -28,6 +28,7 @@ class EpochLoop(Loop):
         super().__init__()
         self._teardown_already_run = False
 
+        # TODO: Move this to trainer (it's a trainer default, loops shouldn't have to care about this
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
