@@ -20,9 +20,8 @@ from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
-from pytorch_lightning.utilities.distributed import rank_zero_deprecation
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 
 
 class LightningDataModule(CheckpointHooks, DataHooks):
@@ -434,8 +433,13 @@ class LightningDataModule(CheckpointHooks, DataHooks):
                 has_run = obj._has_prepared_data
                 obj._has_prepared_data = True
 
-            if not has_run:
-                return fn(*args, **kwargs)
+            if has_run:
+                rank_zero_warn(
+                    f"DataModule.{name} has already been called, so it will not be called again. "
+                    f"In v1.6 this behavior will change to always call DataModule.{name}."
+                )
+            else:
+                fn(*args, **kwargs)
 
         return wrapped_fn
 
