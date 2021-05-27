@@ -58,15 +58,16 @@ class TrainingLoop(Loop):
         self.reset()
         self.on_run_start()
 
+        # TODO: while condition is different from super.run(),
+        #   redesign the done conditions and use the base class run() implementation
         while True:
             try:
                 self.on_advance_start()
                 self.advance()
                 self.on_advance_end()
+                self.iteration_count = self.increment_iteration(self.iteration_count)
             except StopIteration:
                 break
-
-            self.iteration_count = self.increment_iteration(self.iteration_count)
 
         return self.on_run_end()
 

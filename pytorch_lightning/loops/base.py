@@ -30,11 +30,13 @@ class Loop(ABC):
         self.on_run_start(*args, **kwargs)
 
         while not self.done:
-
-            self.on_advance_start(*args, **kwargs)
-            self.advance(*args, **kwargs)
-            self.on_advance_end()
-            self.iteration_count = self.increment_iteration(self.iteration_count)
+            try:
+                self.on_advance_start(*args, **kwargs)
+                self.advance(*args, **kwargs)
+                self.on_advance_end()
+                self.iteration_count = self.increment_iteration(self.iteration_count)
+            except StopIteration:
+                break
 
         return self.on_run_end()
 
