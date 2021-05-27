@@ -95,13 +95,13 @@ def test_memory_consumption_validation(tmpdir):
             return DataLoader(RandomDataset(32, 5000), batch_size=batch_size)
 
         def training_step(self, batch, batch_idx):
-            # there is a batch and the boring model, but not two batches on gpu, assume 32 bit
-            assert 10 * self.num_params * 32 < torch.cuda.memory_allocated(0) < 20 * self.num_params * 32
+            # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
+            assert 10 * self.num_params * 4 < torch.cuda.memory_allocated(0) < 20 * self.num_params * 4
             return super().training_step(batch, batch_idx)
 
         def validation_step(self, batch, batch_idx):
-            # there is a batch and the boring model, but not two batches on gpu, assume 32 bit
-            assert 10 * self.num_params * 32 < torch.cuda.memory_allocated(0) < 20 * self.num_params * 32
+            # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
+            assert 10 * self.num_params * 4 < torch.cuda.memory_allocated(0) < 20 * self.num_params * 4
             return super().validation_step(batch, batch_idx)
 
     trainer = Trainer(
