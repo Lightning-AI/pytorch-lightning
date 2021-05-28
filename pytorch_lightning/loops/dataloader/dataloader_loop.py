@@ -22,7 +22,7 @@ class DataLoaderLoop(Loop):
         return self.iteration_count
 
     @property
-    def current_dataloader(self):
+    def current_dataloader(self) -> DataLoader:
         return self.dataloaders[self.current_dataloader_idx]
 
     @property
