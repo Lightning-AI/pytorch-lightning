@@ -27,6 +27,7 @@ class PredictionLoop(Loop):
         return self.iteration_count >= self.dl_max_batches
 
     def reset(self) -> None:
+        self.iteration_count = 0
         self.batch_indices: List[int] = []
         self.predictions: List[Any] = []
 
