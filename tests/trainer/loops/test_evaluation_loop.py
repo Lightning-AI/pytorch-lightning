@@ -87,9 +87,7 @@ def test_memory_consumption_validation(tmpdir):
             return DataLoader(RandomDataset(32, 5000), batch_size=batch_size)
 
         def val_dataloader(self):
-            # batch target memory >= 100x boring_model size
-            batch_size = self.num_params * 100 // 32 + 1
-            return DataLoader(RandomDataset(32, 5000), batch_size=batch_size)
+            return self.train_dataloader()
 
         def training_step(self, batch, batch_idx):
             # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
