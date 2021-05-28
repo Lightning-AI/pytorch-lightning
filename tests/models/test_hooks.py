@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import PropertyMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -770,3 +770,45 @@ def test_trainer_datamodule_hook_system(tmpdir):
         'teardown_test',
     ]
     assert dm.called == expected
+
+
+def test_kk():
+    trainer = Trainer(fast_dev_run=1)
+
+    model = BoringModel()
+    mock = MagicMock(spec=LightningModule, wraps=model)
+    mock.datamodule = None
+    mock.truncated_bptt_steps = 0
+
+    trainer.fit(mock)
+
+
+def test_kk2():
+    from unittest import mock
+
+    class Foo():
+
+        def bar(self, msg):
+            print(msg)
+            return "asd"
+
+    f = Foo()
+    spy = mock.MagicMock(spec=Foo, wraps=f)
+
+    x = spy.bar('baz')
+    print(x)
+
+
+def test_kk3():
+    from unittest import mock
+
+    class Foo():
+
+        @property
+        def asd(self):
+            return 5
+
+    f = Foo()
+    spy = mock.MagicMock(spec=Foo, wraps=f)
+
+    print(spy.asd)
