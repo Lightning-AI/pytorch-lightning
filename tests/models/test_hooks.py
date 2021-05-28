@@ -20,7 +20,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Callback, Trainer
+from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import LambdaCallback
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -254,7 +254,6 @@ class HookedModel(BoringModel):
 
     def __init__(self, called):
         super().__init__()
-        self.called = called
         # yapf: disable
         self.train_batch = [
             'Callback.on_batch_start',
@@ -263,6 +262,7 @@ class HookedModel(BoringModel):
             'transfer_batch_to_device',
             'on_after_batch_transfer',
             'training_step',
+            'training_step_end',
             'Callback.on_before_zero_grad', 'on_before_zero_grad',
             'optimizer_zero_grad',
             'backward',
@@ -276,197 +276,44 @@ class HookedModel(BoringModel):
             'on_before_batch_transfer',
             'transfer_batch_to_device',
             'on_after_batch_transfer',
+            'validation_step',
+            'validation_step_end',
             'Callback.on_validation_batch_end', 'on_validation_batch_end',
         ]
         # yapf: enable
 
-    def prepare_data(self):
-        self.called.append("prepare_data")
-        return super().prepare_data()
+        def get_members(cls):
+            return {h for h, _ in inspect.getmembers(cls, predicate=inspect.isfunction) if not h.startswith('_')}
 
-    def configure_callbacks(self):
-        self.called.append("configure_callbacks")
-        return super().configure_callbacks()
+        pl_module_hooks = get_members(LightningModule)
+        # Remove Module calls
+        module_hooks = get_members(torch.nn.Module)
+        pl_module_hooks.difference_update(module_hooks)
 
-    def configure_optimizers(self):
-        self.called.append("configure_optimizers")
-        return super().configure_optimizers()
+        def call(hook, fn):
 
-    def training_step(self, *args, **kwargs):
-        self.called.append("training_step")
-        return super().training_step(*args, **kwargs)
+            def add(*args, **kwargs):
+                out = fn(*args, **kwargs)
+                name = hook
+                if 'stage' in kwargs:
+                    name += f'_{kwargs["stage"]}'
+                called.append(name)
+                return out
 
-    def optimizer_zero_grad(self, *args, **kwargs):
-        self.called.append("optimizer_zero_grad")
-        super().optimizer_zero_grad(*args, **kwargs)
+            return add
 
-    def training_epoch_end(self, *args, **kwargs):
-        self.called.append("training_epoch_end")
-        super().training_epoch_end(*args, **kwargs)
-
-    def backward(self, *args, **kwargs):
-        self.called.append("backward")
-        super().backward(*args, **kwargs)
-
-    def on_after_backward(self):
-        self.called.append("on_after_backward")
-
-    def optimizer_step(self, *args, **kwargs):
-        super().optimizer_step(*args, **kwargs)
-        self.called.append("optimizer_step")  # append after as closure calls other methods
+        print(pl_module_hooks)
+        for h in pl_module_hooks:
+            attr = getattr(self, h)
+            setattr(self, h, call(h, attr))
 
     def validation_epoch_end(self, *args, **kwargs):
-        self.called.append("validation_epoch_end")
-        super().validation_epoch_end(*args, **kwargs)
+        # BoringModel does not have a return for `validation_step_end` so this would fail
+        pass
 
-    def on_before_zero_grad(self, *args, **kwargs):
-        self.called.append("on_before_zero_grad")
-
-    def on_epoch_start(self):
-        self.called.append("on_epoch_start")
-
-    def on_epoch_end(self):
-        self.called.append("on_epoch_end")
-
-    def on_fit_start(self):
-        self.called.append("on_fit_start")
-
-    def on_fit_end(self):
-        self.called.append("on_fit_end")
-
-    # def on_hpc_load(self, *args, **kwargs):
-    #     self.called.append("on_hpc_load")
-
-    # def on_hpc_save(self, *args, **kwargs):
-    #     self.called.append("on_hpc_save")
-
-    def on_load_checkpoint(self, *args, **kwargs):
-        self.called.append("on_load_checkpoint")
-
-    def on_save_checkpoint(self, *args, **kwargs):
-        self.called.append("on_save_checkpoint")
-
-    def on_pretrain_routine_start(self):
-        self.called.append("on_pretrain_routine_start")
-
-    def on_pretrain_routine_end(self):
-        self.called.append("on_pretrain_routine_end")
-
-    def on_train_start(self):
-        self.called.append("on_train_start")
-
-    def on_train_end(self):
-        self.called.append("on_train_end")
-
-    def on_before_batch_transfer(self, *args, **kwargs):
-        self.called.append("on_before_batch_transfer")
-        return super().on_before_batch_transfer(*args, **kwargs)
-
-    def transfer_batch_to_device(self, *args, **kwargs):
-        self.called.append("transfer_batch_to_device")
-        return super().transfer_batch_to_device(*args, **kwargs)
-
-    def on_after_batch_transfer(self, *args, **kwargs):
-        self.called.append("on_after_batch_transfer")
-        return super().on_after_batch_transfer(*args, **kwargs)
-
-    def on_train_batch_start(self, *args, **kwargs):
-        self.called.append("on_train_batch_start")
-
-    def on_train_batch_end(self, *args, **kwargs):
-        self.called.append("on_train_batch_end")
-
-    def on_train_epoch_start(self):
-        self.called.append("on_train_epoch_start")
-
-    def on_train_epoch_end(self):
-        self.called.append("on_train_epoch_end")
-
-    def on_validation_start(self):
-        self.called.append("on_validation_start")
-
-    def on_validation_end(self):
-        self.called.append("on_validation_end")
-
-    def on_validation_batch_start(self, *args, **kwargs):
-        self.called.append("on_validation_batch_start")
-
-    def on_validation_batch_end(self, *args, **kwargs):
-        self.called.append("on_validation_batch_end")
-
-    def on_validation_epoch_start(self):
-        self.called.append("on_validation_epoch_start")
-
-    def on_validation_epoch_end(self):
-        self.called.append("on_validation_epoch_end")
-
-    def on_test_start(self):
-        self.called.append("on_test_start")
-
-    def on_test_batch_start(self, *args, **kwargs):
-        self.called.append("on_test_batch_start")
-
-    def on_test_batch_end(self, *args, **kwargs):
-        self.called.append("on_test_batch_end")
-
-    def on_test_epoch_start(self):
-        self.called.append("on_test_epoch_start")
-
-    def on_test_epoch_end(self):
-        self.called.append("on_test_epoch_end")
-
-    def on_validation_model_eval(self):
-        self.called.append("on_validation_model_eval")
-        super().on_validation_model_eval()
-
-    def on_validation_model_train(self):
-        self.called.append("on_validation_model_train")
-        super().on_validation_model_train()
-
-    def on_test_model_eval(self):
-        self.called.append("on_test_model_eval")
-        super().on_test_model_eval()
-
-    def on_test_model_train(self):
-        self.called.append("on_test_model_train")
-        super().on_test_model_train()
-
-    def on_test_end(self):
-        self.called.append("on_test_end")
-
-    def setup(self, stage=None):
-        self.called.append(f"setup_{stage}")
-        super().setup(stage=stage)
-
-    def teardown(self, stage=None):
-        self.called.append(f"teardown_{stage}")
-        super().teardown(stage)
-
-    def test_epoch_end(self, *args, **kwargs) -> None:
-        self.called.append("test_epoch_end")
-        super().test_epoch_end(*args, **kwargs)
-
-    def on_predict_model_eval(self):
-        self.called.append('on_predict_model_eval')
-        super().on_predict_model_eval()
-
-    def on_predict_start(self):
-        self.called.append('on_predict_start')
-
-    def on_predict_end(self):
-        self.called.append('on_predict_end')
-
-    def on_predict_epoch_start(self):
-        self.called.append('on_predict_epoch_start')
-
-    def on_predict_epoch_end(self, *args, **kwargs):
-        self.called.append('on_predict_epoch_end')
-
-    def on_predict_batch_start(self, *args, **kwargs):
-        self.called.append('on_predict_batch_start')
-
-    def on_predict_batch_end(self, *args, **kwargs):
-        self.called.append('on_predict_batch_end')
+    def test_epoch_end(self, *args, **kwargs):
+        # BoringModel does not have a return for `test_step_end` so this would fail
+        pass
 
 
 def test_trainer_model_hook_system_fit(tmpdir):
@@ -494,12 +341,15 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'configure_callbacks',
         'Callback.on_before_accelerator_backend_setup',
         'Callback.setup_fit', 'setup_fit',
+        'configure_sharded_model',
         'Callback.on_configure_sharded_model',
         'configure_optimizers',
         'Callback.on_fit_start', 'on_fit_start',
         'Callback.on_pretrain_routine_start', 'on_pretrain_routine_start',
         'Callback.on_pretrain_routine_end', 'on_pretrain_routine_end',
         'Callback.on_sanity_check_start',
+        'on_val_dataloader',
+        'val_dataloader',
         'on_validation_model_eval',
         'Callback.on_validation_start', 'on_validation_start',
         'Callback.on_epoch_start', 'on_epoch_start',
@@ -511,6 +361,8 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'Callback.on_validation_end', 'on_validation_end',
         'on_validation_model_train',
         'Callback.on_sanity_check_end',
+        'on_train_dataloader',
+        'train_dataloader',
         'Callback.on_train_start', 'on_train_start',
         'Callback.on_epoch_start', 'on_epoch_start',
         'Callback.on_train_epoch_start', 'on_train_epoch_start',
@@ -562,11 +414,16 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         'configure_callbacks',
         'Callback.on_before_accelerator_backend_setup',
         'Callback.setup_fit', 'setup_fit',
+        'configure_sharded_model',
         'Callback.on_configure_sharded_model',
         'configure_optimizers',
         'Callback.on_fit_start', 'on_fit_start',
         'Callback.on_pretrain_routine_start', 'on_pretrain_routine_start',
         'Callback.on_pretrain_routine_end', 'on_pretrain_routine_end',
+        'on_train_dataloader',
+        'train_dataloader',
+        'on_val_dataloader',
+        'val_dataloader',
         'Callback.on_train_start', 'on_train_start',
         'Callback.on_epoch_start', 'on_epoch_start',
         'Callback.on_train_epoch_start', 'on_train_epoch_start',
@@ -605,7 +462,10 @@ def test_trainer_model_hook_system_validate(tmpdir):
         'configure_callbacks',
         'Callback.on_before_accelerator_backend_setup',
         'Callback.setup_validate', 'setup_validate',
+        'configure_sharded_model',
         'Callback.on_configure_sharded_model',
+        'on_val_dataloader',
+        'val_dataloader',
         'on_validation_model_eval',
         'Callback.on_validation_start', 'on_validation_start',
         'Callback.on_epoch_start', 'on_epoch_start',
@@ -643,7 +503,10 @@ def test_trainer_model_hook_system_test(tmpdir):
         'configure_callbacks',
         'Callback.on_before_accelerator_backend_setup',
         'Callback.setup_test', 'setup_test',
+        'configure_sharded_model',
         'Callback.on_configure_sharded_model',
+        'on_test_dataloader',
+        'test_dataloader',
         'on_test_model_eval',
         'Callback.on_test_start', 'on_test_start',
         'Callback.on_epoch_start', 'on_epoch_start',
@@ -652,6 +515,8 @@ def test_trainer_model_hook_system_test(tmpdir):
         'on_before_batch_transfer',
         'transfer_batch_to_device',
         'on_after_batch_transfer',
+        'test_step',
+        'test_step_end',
         'Callback.on_test_batch_end', 'on_test_batch_end',
         'test_epoch_end',
         'Callback.on_test_epoch_end', 'on_test_epoch_end',
@@ -685,7 +550,10 @@ def test_trainer_model_hook_system_predict(tmpdir):
         'configure_callbacks',
         'Callback.on_before_accelerator_backend_setup',
         'Callback.setup_predict', 'setup_predict',
+        'configure_sharded_model',
         'Callback.on_configure_sharded_model',
+        'on_predict_dataloader',
+        'predict_dataloader',
         'on_predict_model_eval',
         'Callback.on_predict_start', 'on_predict_start',
         # 'Callback.on_epoch_start', 'on_epoch_start',  TODO: missing
@@ -694,6 +562,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
         'on_before_batch_transfer',
         'transfer_batch_to_device',
         'on_after_batch_transfer',
+        'predict_step',
         'Callback.on_predict_batch_end', 'on_predict_batch_end',
         'Callback.on_predict_epoch_end', 'on_predict_epoch_end',
         # 'Callback.on_epoch_end', 'on_epoch_end',  TODO: missing
