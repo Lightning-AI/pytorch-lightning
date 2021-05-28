@@ -15,7 +15,8 @@ class PredictionLoop(Loop):
         self.num_dataloaders = None
         self.return_predictions = False
         self.predictions: List[Any] = []
-        self.batch_indices: [List[int]] = []
+        self.current_batch_indices: [List[int]] = []
+        self.all_batch_indices: [List[int]] = []
 
     @property
     def should_store_predictions(self) -> bool:
@@ -28,7 +29,7 @@ class PredictionLoop(Loop):
 
     def reset(self) -> None:
         self.iteration_count = 0
-        self.batch_indices: List[int] = []
+        self.all_batch_indices: List[int] = []
         self.predictions: List[Any] = []
 
     def on_run_start(self, dataloader, dataloader_idx, dl_max_batches, num_dataloaders, return_predictions=False) -> None:
@@ -51,7 +52,7 @@ class PredictionLoop(Loop):
             self.predict_step(batch, batch_idx, dataloader_idx)
 
     def on_run_end(self) -> Any:
-        return self.predictions, self.batch_indices
+        return self.predictions, self.all_batch_indices
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
@@ -88,7 +89,7 @@ class PredictionLoop(Loop):
     def _store_batch_indices(self, dataloader_idx: int) -> None:
         batch_sampler = self.trainer.predict_dataloaders[dataloader_idx].batch_sampler
         if isinstance(batch_sampler, IndexBatchSamplerWrapper):
-            self.batch_indices = batch_sampler.batch_indices
+            self.current_batch_indices = batch_sampler.batch_indices
             if self.should_store_predictions:
-                self.batch_indices.append(batch_sampler.batch_indices)
+                self.all_batch_indices.append(batch_sampler.batch_indices)
 
