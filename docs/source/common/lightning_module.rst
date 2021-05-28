@@ -597,18 +597,18 @@ For cases like production, you might want to iterate different models inside a L
             return loss
 
         def validation_step(self, batch, batch_idx):
-            loss, acc = self.shared_eval_step(batch, batch_idx)
+            loss, acc = self._shared_eval_step(batch, batch_idx)
             metrics = {'val_acc': acc, 'val_loss': loss}
             self.log_dict(metrics)
             return metrics
 
         def test_step(self, batch, batch_idx):
-            loss, acc = self.shared_eval_step(batch, batch_idx)
+            loss, acc = self._shared_eval_step(batch, batch_idx)
             metrics = {'test_acc': acc, 'test_loss': loss}
             self.log_dict(metrics)
             return metrics
 
-        def shared_eval_step(self, batch, batch_idx):
+        def _shared_eval_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
