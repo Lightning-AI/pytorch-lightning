@@ -337,14 +337,8 @@ def test_trainer_model_hook_system_fit(tmpdir):
         callbacks=[callback]
     )
     assert called == [
-        {
-            'name': 'Callback.on_init_start',
-            'args': (trainer, )
-        },
-        {
-            'name': 'Callback.on_init_end',
-            'args': (trainer, )
-        },
+        dict(name='Callback.on_init_start', args=(trainer, )),
+        dict(name='Callback.on_init_end', args=(trainer, )),
     ]
     trainer.fit(model)
     expected = [
