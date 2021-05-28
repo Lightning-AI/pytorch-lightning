@@ -21,7 +21,6 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Callback, LightningModule, Trainer
-from pytorch_lightning.callbacks import LambdaCallback
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -232,9 +231,7 @@ def test_transfer_batch_hook_ddp(tmpdir):
     trainer.fit(model)
 
 
-class HookedCallback(LambdaCallback):
-    # Use LambdaCallback so we don't have to manually do this for each hook.
-    # Additionally, we get the benefit that any new hook will break the test.
+class HookedCallback(Callback):
 
     def __init__(self, called):
 
@@ -245,9 +242,8 @@ class HookedCallback(LambdaCallback):
             called.append(name)
 
         hooks = [h for h, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
-        hooks_args = {h: partial(call, h) for h in hooks}
-
-        super().__init__(**hooks_args)
+        for h in hooks:
+            setattr(self, h, partial(call, h))
 
 
 class HookedModel(BoringModel):
@@ -286,12 +282,10 @@ class HookedModel(BoringModel):
             return {h for h, _ in inspect.getmembers(cls, predicate=inspect.isfunction) if not h.startswith('_')}
 
         pl_module_hooks = get_members(LightningModule)
-        # Remove Module calls
+        # remove `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
 
-        # can't use partial here because `is_overridden` fails with
-        # AttributeError: 'functools.partial' object has no attribute '__code__'
         def call(hook, fn):
 
             def add(*args, **kwargs):
@@ -306,14 +300,16 @@ class HookedModel(BoringModel):
 
         for h in pl_module_hooks:
             attr = getattr(self, h)
+            # can't use partial here because `is_overridden` fails with
+            # AttributeError: 'functools.partial' object has no attribute '__code__'
             setattr(self, h, call(h, attr))
 
     def validation_epoch_end(self, *args, **kwargs):
-        # BoringModel does not have a return for `validation_step_end` so this would fail
+        # `BoringModel` does not have a return for `validation_step_end` so this would fail
         pass
 
     def test_epoch_end(self, *args, **kwargs):
-        # BoringModel does not have a return for `test_step_end` so this would fail
+        # `BoringModel` does not have a return for `test_step_end` so this would fail
         pass
 
 
