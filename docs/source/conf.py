@@ -23,7 +23,12 @@ import pt_lightning_sphinx_theme
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
+PATH_RAW_NB = os.path.join(PATH_ROOT, 'notebooks')
+PATH_IPYNB = os.path.join(PATH_HERE, 'notebooks')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
+sys.path.append(os.path.join(PATH_RAW_NB, '.actions'))
+
+from helpers import HelperCLI  # noqa: E401 E402
 
 FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
@@ -37,21 +42,8 @@ spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 
-# # export the documentation
-# with open('intro.rst', 'w') as fp:
-#     intro = pytorch_lightning.__doc__.replace(os.linesep + ' ', '')
-#     fp.write(m2r.convert(intro))
-#     # fp.write(pytorch_lightning.__doc__)
 
-# # export the READme
-# with open(os.path.join(PATH_ROOT, 'README.md'), 'r') as fp:
-#     readme = fp.read()
-# # replace all paths to relative
-# for ndir in (os.path.basename(p) for p in glob.glob(os.path.join(PATH_ROOT, '*'))
-#              if os.path.isdir(p)):
-#     readme = readme.replace('](%s/' % ndir, '](%s/%s/' % (PATH_ROOT, ndir))
-# with open('readme.md', 'w') as fp:
-#     fp.write(readme)
+HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_IPYNB)
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
