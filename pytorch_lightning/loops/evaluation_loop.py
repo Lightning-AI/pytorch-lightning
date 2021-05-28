@@ -33,14 +33,13 @@ class EvaluationLoop(Loop):
         self.num_dataloaders = None
         self.outputs = []
 
-    def on_run_start(self, dataloader, dataloader_idx, dl_max_batches, num_dataloaders) -> None:
+    def on_run_start(self, dataloader_iter, dataloader_idx, dl_max_batches, num_dataloaders) -> None:
         self.dl_max_batches = dl_max_batches
         self.dataloader_idx = dataloader_idx
         self.num_dataloaders = num_dataloaders
-        self.dataloader = enumerate(dataloader)
 
-    def advance(self, dataloader, dataloader_idx, dl_max_batches, num_dataloaders) -> None:
-        batch_idx, batch = next(self.dataloader)
+    def advance(self, dataloader_iter, dataloader_idx, dl_max_batches, num_dataloaders) -> None:
+        batch_idx, batch = next(dataloader_iter)
 
         if batch is None:
             raise StopIteration
@@ -64,12 +63,6 @@ class EvaluationLoop(Loop):
 
     def on_run_end(self) -> Any:
         return self.outputs
-
-    def __getstate__(self):
-        # avoid pickling errors "cannot pickle generator object"
-        self.dataloader = None
-        return self.__dict__
-
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP

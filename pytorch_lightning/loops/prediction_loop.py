@@ -33,7 +33,7 @@ class PredictionLoop(Loop):
         self.predictions: List[Any] = []
 
     def on_run_start(
-        self, dataloader, dataloader_idx, dl_max_batches, num_dataloaders, return_predictions=False
+        self, dataloader_iter, dataloader_idx, dl_max_batches, num_dataloaders, return_predictions=False
     ) -> None:
         self.dl_max_batches = dl_max_batches
         self.num_dataloaders = num_dataloaders

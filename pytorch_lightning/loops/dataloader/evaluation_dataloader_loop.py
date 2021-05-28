@@ -53,10 +53,11 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
+        dataloader_iter = enumerate(dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
         dl_outputs = self.evaluation_loop.run(
-            dataloader, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
+            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
         )
 
         # store batch level output per dataloader
