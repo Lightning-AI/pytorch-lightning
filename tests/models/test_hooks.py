@@ -238,13 +238,13 @@ class HookedCallback(LambdaCallback):
 
     def __init__(self, called):
 
-        def call(h, *_, **kwargs):
-            name = f'Callback.{h}'
+        def call(hook, *_, **kwargs):
+            name = f'Callback.{hook}'
             if 'stage' in kwargs:
                 name += f'_{kwargs["stage"]}'
             called.append(name)
 
-        hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
+        hooks = [h for h, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
         hooks_args = {h: partial(call, h) for h in hooks}
 
         super().__init__(**hooks_args)
@@ -290,6 +290,8 @@ class HookedModel(BoringModel):
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
 
+        # can't use partial here because `is_overridden` fails with
+        # AttributeError: 'functools.partial' object has no attribute '__code__'
         def call(hook, fn):
 
             def add(*args, **kwargs):
