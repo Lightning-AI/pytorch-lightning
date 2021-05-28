@@ -11,12 +11,12 @@ class EvaluationLoop(Loop):
 
     def __init__(self):
         super().__init__()
+        self.batch_idx: Optional[int] = None
         self.predictions: Optional[PredictionCollection] = None
         self.dataloader: Optional[Iterator] = None
         self.dl_max_batches: Optional[int] = None
         self.dataloader_idx: Optional[int] = None
         self.num_dataloaders: Optional[int] = None
-        self.batch_idx: Optional[int] = None
         self.outputs = []
 
     def connect(self, trainer, *args, **kwargs):
@@ -28,23 +28,29 @@ class EvaluationLoop(Loop):
 
     def reset(self) -> None:
         self.iteration_count = 0
+        self.batch_idx = None
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
         self.dl_max_batches = None
         self.dataloader_idx = None
         self.num_dataloaders = None
         self.outputs = []
 
-    def on_run_start(self, dataloader, dl_max_batches, dataloader_idx, num_dataloaders) -> None:
+    def on_run_start(self, dataloader, dataloader_idx, dl_max_batches, num_dataloaders) -> None:
         self.dl_max_batches = dl_max_batches
         self.dataloader_idx = dataloader_idx
         self.num_dataloaders = num_dataloaders
         self.dataloader = enumerate(dataloader)
 
-    def advance(self, dataloader, dl_max_batches, dataloader_idx, num_dataloaders) -> None:
+    def advance(self, dataloader, dataloader_idx, dl_max_batches, num_dataloaders) -> None:
         batch_idx, batch = next(self.dataloader)
+
+        # TODO: is self.batch_idx needed or can it be set to iteration_count?
         self.batch_idx = batch_idx
 
         if batch is None:
+            raise StopIteration
+
+        if batch_idx >= dl_max_batches:
             raise StopIteration
 
         # hook
@@ -66,6 +72,10 @@ class EvaluationLoop(Loop):
 
     def on_run_end(self) -> Any:
         return self.outputs
+
+# ------------------------------------------------------------------------------------------------------------
+# HELPER --- TO BE CLEANED UP
+# ------------------------------------------------------------------------------------------------------------
 
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
         # configure step_kwargs

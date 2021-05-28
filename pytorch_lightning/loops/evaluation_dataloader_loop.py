@@ -92,9 +92,9 @@ class EvaluationDataLoaderLoop(Loop):
 
         return eval_loop_results
 
-
-
-# HELPERS
+# ------------------------------------------------------------------------------------------------------------
+# HELPER --- TO BE CLEANED UP
+# ------------------------------------------------------------------------------------------------------------
 
     def get_evaluation_dataloaders(self) -> Tuple[Optional[List[DataLoader]], List[Union[int, float]]]:
         model = self.trainer.lightning_module
