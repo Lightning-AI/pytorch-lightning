@@ -1,13 +1,13 @@
-from typing import Any, Sequence, List, Optional
+from typing import Any, List, Optional, Sequence
 
 import torch
 from torch.utils.data import DataLoader
 
+from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
+from pytorch_lightning.loops.prediction_loop import PredictionLoop
 from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
-from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.prediction_loop import PredictionLoop
 
 
 class PredictionDataLoaderLoop(DataLoaderLoop):
@@ -82,6 +82,7 @@ class PredictionDataLoaderLoop(DataLoaderLoop):
         results = self.on_predict_epoch_end()
         self.on_predict_end()
         return results
+
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
