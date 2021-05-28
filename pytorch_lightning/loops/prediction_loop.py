@@ -42,12 +42,6 @@ class PredictionLoop(Loop):
         if batch is None:
             raise StopIteration
 
-        # TODO: needed?
-        # stop short when running on limited batches
-        if batch_idx >= dl_max_batches:
-            raise StopIteration
-
-        # lightning module methods
         with self.trainer.profiler.profile("predict_step"):
             self.predict_step(batch, batch_idx, dataloader_idx)
 
