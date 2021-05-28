@@ -1,4 +1,4 @@
-from typing import Dict, List, Union, Iterator
+from typing import Dict, Iterator, List, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
