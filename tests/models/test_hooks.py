@@ -323,12 +323,8 @@ class HookedModel(BoringModel):
                     args=(0, i, ANY, 0, ANY),
                     kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=False)
                 ),
-                dict(name='Callback.on_train_batch_end', args=(trainer, model, {
-                    'loss': ANY
-                }, ANY, i, 0)),
-                dict(name='on_train_batch_end', args=({
-                    'loss': ANY
-                }, ANY, i, 0)),
+                dict(name='Callback.on_train_batch_end', args=(trainer, model, dict(loss=ANY), ANY, i, 0)),
+                dict(name='on_train_batch_end', args=(dict(loss=ANY), ANY, i, 0)),
                 dict(name='Callback.on_batch_end', args=(trainer, model)),
             ])
         return out
