@@ -51,8 +51,6 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self._dataloaders)
 
-        self._max_batches = self._max_batches
-
     def advance(self, *args: Any, **kwargs: Any) -> None:
         dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
