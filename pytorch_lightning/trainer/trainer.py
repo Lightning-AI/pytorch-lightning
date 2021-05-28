@@ -29,6 +29,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loops.dataloader.prediction_dataloader_loop import PredictionDataLoaderLoop
 from pytorch_lightning.loops.epoch_loop import EpochLoop
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
@@ -84,6 +85,7 @@ NEW_LOOP = True
 
 if NEW_LOOP:
     from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
+    from pytorch_lightning.loops.dataloader.prediction_dataloader_loop import PredictionDataLoaderLoop
 else:
     from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 
@@ -345,14 +347,15 @@ class Trainer(
         if NEW_LOOP:
             self.train_loop = EpochLoop(min_epochs, max_epochs, min_steps, max_steps)
             self.evaluation_loop = EvaluationDataLoaderLoop()
+            self.predict_loop = PredictionDataLoaderLoop()
             self.train_loop.connect(self)
             self.evaluation_loop.connect(self)
+            self.predict_loop.connect(self)
         else:
             # old loops:
             self.train_loop = TrainLoop(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
             self.evaluation_loop = EvaluationLoop(self)
-
-        self.predict_loop = PredictLoop(self)
+            self.predict_loop = PredictLoop(self)
 
         # training state
         if weights_summary is not None and weights_summary not in ModelSummary.MODES:
@@ -397,7 +400,6 @@ class Trainer(
             terminate_on_nan,
         )
         self._setup_on_init(num_sanity_val_steps)
-        self.predict_loop.on_trainer_init()
 
         # configure tuner
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
@@ -453,6 +455,9 @@ class Trainer(
 
         # when true, print evaluation results in .validate() and .test()
         self.verbose_evaluate = True
+
+        self.num_predict_batches = []
+        self.predicted_ckpt_path = None
 
     def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
@@ -1201,7 +1206,7 @@ class Trainer(
 
         return eval_loop_results
 
-    def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
+    def _run_predict_old_loop(self) -> Optional[_PREDICT_OUTPUT]:
         # prepare dataloaders
         dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
 
@@ -1238,6 +1243,12 @@ class Trainer(
         self.predict_loop.on_predict_end()
 
         return results
+
+    def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
+        if NEW_LOOP:
+            return self.predict_loop.run()
+        else:
+            return self._run_predict_old_loop()
 
     def _run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
