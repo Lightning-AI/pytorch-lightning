@@ -302,7 +302,6 @@ class HookedModel(BoringModel):
 
             return add
 
-        print(pl_module_hooks)
         for h in pl_module_hooks:
             attr = getattr(self, h)
             setattr(self, h, call(h, attr))
