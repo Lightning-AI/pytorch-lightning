@@ -83,7 +83,7 @@ warnings.filterwarnings(
 NEW_LOOP = True
 
 if NEW_LOOP:
-    from pytorch_lightning.loops.evaluation_dataloader_loop import EvaluationDataLoaderLoop
+    from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
 else:
     from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 
