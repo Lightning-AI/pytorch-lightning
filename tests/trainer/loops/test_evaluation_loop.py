@@ -79,10 +79,7 @@ def test_memory_consumption_validation(tmpdir):
 
         @property
         def num_params(self):
-            num_params = 0
-            for params in self.parameters():
-                num_params += params.numel()
-            return num_params
+            return sum(p.numel() for p in self.parameters())
 
         def train_dataloader(self):
             # batch target memory >= 100x boring_model size
