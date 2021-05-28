@@ -784,6 +784,8 @@ def test_kk():
 
     trainer.fit(mock)
 
+    mock.training_step.assert_called()
+
 
 def test_kk2():
     from unittest import mock
