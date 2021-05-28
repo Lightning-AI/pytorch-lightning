@@ -76,6 +76,9 @@ class EvaluationDataLoaderLoop(Loop):
     def on_run_end(self) -> Any:
         outputs = self.outputs
 
+        # free memory
+        self.outputs = []
+
         # with a single dataloader don't pass a 2D list
         if len(outputs) > 0 and self.num_dataloaders == 1:
             outputs = outputs[0]
