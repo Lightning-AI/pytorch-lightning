@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from functools import partial
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
@@ -28,9 +29,13 @@ def test_lambda_call(tmpdir):
                 raise KeyboardInterrupt
 
     checker = set()
+
+    def call(hook, *_, **__):
+        checker.add(hook)
+
     hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
-    hooks_args = {h: (lambda x: lambda *_, **__: checker.add(x))(h) for h in hooks}
-    hooks_args["on_save_checkpoint"] = (lambda x: lambda *_: [checker.add(x)])("on_save_checkpoint")
+    hooks_args = {h: partial(call, h) for h in hooks}
+    hooks_args["on_save_checkpoint"] = lambda *_: [checker.add('on_save_checkpoint')]
 
     model = CustomModel()
 
