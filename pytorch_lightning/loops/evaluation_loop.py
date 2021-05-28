@@ -73,6 +73,11 @@ class EvaluationLoop(Loop):
     def on_run_end(self) -> Any:
         return self.outputs
 
+    def __getstate__(self):
+        # avoid pickling errors "cannot pickle generator object"
+        self.dataloader = None
+        return self.__dict__
+
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
