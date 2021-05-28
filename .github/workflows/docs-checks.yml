@@ -11,20 +11,27 @@ jobs:
   sphinx-check:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
-    - uses: ammaraskar/sphinx-action@master
-      with:
-        # git is required to clone the docs theme
-        # before custom requirement are resolved https://github.com/ammaraskar/sphinx-action/issues/16
-        pre-build-command: "apt-get update -y && apt-get install -y git && pip install -r requirements/docs.txt"
-        docs-folder: "docs/"
-        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.PAT_GHOST }}
+          submodules: true
+          lfs: true
+      - uses: ammaraskar/sphinx-action@master
+        with:
+          # git is required to clone the docs theme
+          # before custom requirement are resolved https://github.com/ammaraskar/sphinx-action/issues/16
+          pre-build-command: "apt-get update -y && apt-get install -y git && pip install -r requirements/docs.txt"
+          docs-folder: "docs/"
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
   test-docs:
     runs-on: ubuntu-20.04
-
     steps:
       - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.PAT_GHOST }}
+          submodules: true
+          lfs: true
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -69,9 +76,12 @@ jobs:
 
   make-docs:
     runs-on: ubuntu-20.04
-
     steps:
       - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.PAT_GHOST }}
+          submodules: true
+          lfs: true
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
