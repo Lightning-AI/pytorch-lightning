@@ -42,7 +42,6 @@ spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 
-
 HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_IPYNB)
 
 
