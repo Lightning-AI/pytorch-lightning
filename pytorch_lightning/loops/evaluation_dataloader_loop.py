@@ -1,18 +1,16 @@
-from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 from torch.utils.data.dataloader import DataLoader
 
-from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
-class EvaluationDataLoaderLoop(Loop):
+class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     def __init__(self):
         super().__init__()
@@ -22,27 +20,27 @@ class EvaluationDataLoaderLoop(Loop):
         self.evaluation_loop = EvaluationLoop()
 
     @property
-    def current_dataloader_idx(self) -> int:
-        return self.iteration_count
+    def num_dataloaders(self) -> int:
+        return self._get_num_dataloaders(self.dataloaders)
 
     @property
-    def num_dataloaders(self):
-        return self._get_num_dataloaders(self._dataloaders)
+    def dataloaders(self) -> Sequence[DataLoader]:
+        return self._dataloaders
 
     @property
     def predictions(self):
         # TODO: fixme
         return self.evaluation_loop.predictions
 
-    def connect(self, trainer, *args, **kwargs):
+    def connect(self, trainer, *args, **kwargs) -> None:
         super().connect(trainer, *args, **kwargs)
         self.evaluation_loop.connect(trainer, *args, **kwargs)
 
     @property
-    def done(self):
-        return (self.current_dataloader_idx >= len(self._dataloaders)) or self.should_skip_evaluation(self._max_batches)
+    def done(self) -> bool:
+        return (self.current_dataloader_idx >= len(self.dataloaders)) or self.should_skip_evaluation(self._max_batches)
 
-    def reset(self):
+    def reset(self) -> None:
         self.iteration_count = 0
 
         # prepare dataloaders
@@ -56,8 +54,7 @@ class EvaluationDataLoaderLoop(Loop):
         self._max_batches = self._max_batches
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
-        dataloader = self._dataloaders[self.current_dataloader_idx]
-        dataloader = self.trainer.accelerator.process_dataloader(dataloader)
+        dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
         dl_outputs = self.evaluation_loop.run(
@@ -125,6 +122,7 @@ class EvaluationDataLoaderLoop(Loop):
             dataloaders = self.trainer.val_dataloaders
         return dataloaders, max_batches
 
+    # TODO: this is currently also used in the new and old TrainingLoop
     def should_skip_evaluation(self, max_batches: List[Union[int, float]]) -> bool:
         return sum(max_batches) == 0
 

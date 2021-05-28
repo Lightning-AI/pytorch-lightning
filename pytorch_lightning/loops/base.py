@@ -12,7 +12,7 @@ class Loop(ABC):
         self.trainer: Optional['pl.Trainer'] = None
 
     @abstractmethod
-    def connect(self, trainer, *args, **kwargs):
+    def connect(self, trainer, *args, **kwargs) -> None:
         """Connects Loop with all the necessary things like connectors and accelerators"""
         self.trainer = proxy(trainer)
 
