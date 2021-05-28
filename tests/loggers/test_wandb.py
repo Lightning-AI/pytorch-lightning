@@ -133,6 +133,7 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     # mock return values of experiment
     wandb.run = None
     logger.experiment.id = '1'
+    logger.experiment.dir = tmpdir
     logger.experiment.project_name.return_value = 'project'
 
     for _ in range(2):

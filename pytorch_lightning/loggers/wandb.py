@@ -221,11 +221,12 @@ class WandbLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
-        return self._save_dir
+        return self._experiment.dir if self._experiment else self._save_dir
 
     @property
     def experiment_dir(self) -> str:
-        return os.path.join(self.save_dir, self.name, self.version)
+        if all((self.save_dir, self.name, self.version)):
+            return os.path.join(self.save_dir, self.name, self.version)
 
     @property
     def name(self) -> Optional[str]:
