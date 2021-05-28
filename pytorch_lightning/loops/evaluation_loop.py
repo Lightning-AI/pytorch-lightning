@@ -11,7 +11,6 @@ class EvaluationLoop(Loop):
 
     def __init__(self):
         super().__init__()
-        self.batch_idx: Optional[int] = None
         self.predictions: Optional[PredictionCollection] = None
         self.dataloader: Optional[Iterator] = None
         self.dl_max_batches: Optional[int] = None
@@ -24,11 +23,10 @@ class EvaluationLoop(Loop):
 
     @property
     def done(self) -> bool:
-        return self.batch_idx is not None and self.batch_idx >= self.dl_max_batches
+        return self.iteration_count >= self.dl_max_batches
 
     def reset(self) -> None:
         self.iteration_count = 0
-        self.batch_idx = None
         self.predictions = PredictionCollection(self.trainer.global_rank, self.trainer.world_size)
         self.dl_max_batches = None
         self.dataloader_idx = None
@@ -44,13 +42,7 @@ class EvaluationLoop(Loop):
     def advance(self, dataloader, dataloader_idx, dl_max_batches, num_dataloaders) -> None:
         batch_idx, batch = next(self.dataloader)
 
-        # TODO: is self.batch_idx needed or can it be set to iteration_count?
-        self.batch_idx = batch_idx
-
         if batch is None:
-            raise StopIteration
-
-        if batch_idx >= dl_max_batches:
             raise StopIteration
 
         # hook
