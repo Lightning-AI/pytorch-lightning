@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
+from functools import partial
 from unittest import mock
 from unittest.mock import PropertyMock
 
@@ -19,6 +21,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import LambdaCallback
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -229,143 +232,22 @@ def test_transfer_batch_hook_ddp(tmpdir):
     trainer.fit(model)
 
 
-class HookedCallback(Callback):
+class HookedCallback(LambdaCallback):
+    # Use LambdaCallback so we don't have to manually do this for each hook.
+    # Additionally, we get the benefit that any new hook will break the test.
 
     def __init__(self, called):
-        super().__init__()
-        self.called = called
 
-    def on_init_start(self, *args, **kwargs):
-        self.called.append('Callback.on_init_start')
+        def call(h, *_, **kwargs):
+            name = f'Callback.{h}'
+            if 'stage' in kwargs:
+                name += f'_{kwargs["stage"]}'
+            called.append(name)
 
-    def on_init_end(self, *args, **kwargs):
-        self.called.append('Callback.on_init_end')
+        hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
+        hooks_args = {h: partial(call, h) for h in hooks}
 
-    def on_before_accelerator_backend_setup(self, *args, **kwargs):
-        self.called.append('Callback.on_before_accelerator_backend_setup')
-
-    def on_configure_sharded_model(self, *args, **kwargs):
-        self.called.append('Callback.on_configure_sharded_model')
-
-    def on_fit_start(self, *args, **kwargs):
-        self.called.append('Callback.on_fit_start')
-
-    def on_fit_end(self, *args, **kwargs):
-        self.called.append('Callback.on_fit_end')
-
-    def on_pretrain_routine_start(self, *args, **kwargs):
-        self.called.append('Callback.on_pretrain_routine_start')
-
-    def on_pretrain_routine_end(self, *args, **kwargs):
-        self.called.append('Callback.on_pretrain_routine_end')
-
-    def on_sanity_check_start(self, *args, **kwargs):
-        self.called.append('Callback.on_sanity_check_start')
-
-    def on_sanity_check_end(self, *args, **kwargs):
-        self.called.append('Callback.on_sanity_check_end')
-
-    def on_validation_start(self, *args, **kwargs):
-        self.called.append('Callback.on_validation_start')
-
-    def on_validation_end(self, *args, **kwargs):
-        self.called.append('Callback.on_validation_end')
-
-    def on_epoch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_epoch_start')
-
-    def on_epoch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_epoch_end')
-
-    def on_validation_epoch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_validation_epoch_start')
-
-    def on_validation_epoch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_validation_epoch_end')
-
-    def on_validation_batch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_validation_batch_start')
-
-    def on_validation_batch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_validation_batch_end')
-
-    def on_train_start(self, *args, **kwargs):
-        self.called.append('Callback.on_train_start')
-
-    def on_train_end(self, *args, **kwargs):
-        self.called.append('Callback.on_train_end')
-
-    def on_train_epoch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_train_epoch_start')
-
-    def on_train_epoch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_train_epoch_end')
-
-    def on_train_batch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_train_batch_start')
-
-    def on_train_batch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_train_batch_end')
-
-    def on_batch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_batch_start')
-
-    def on_batch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_batch_end')
-
-    def on_before_zero_grad(self, *args, **kwargs):
-        self.called.append('Callback.on_before_zero_grad')
-
-    def on_after_backward(self, *args, **kwargs):
-        self.called.append('Callback.on_after_backward')
-
-    # def on_load_checkpoint(self, *args, **kwargs):
-    #     self.called.append('Callback.on_load_checkpoint')
-
-    def on_save_checkpoint(self, *args, **kwargs):
-        self.called.append('Callback.on_save_checkpoint')
-
-    def on_test_start(self, *args, **kwargs):
-        self.called.append('Callback.on_test_start')
-
-    def on_test_end(self, *args, **kwargs):
-        self.called.append('Callback.on_test_end')
-
-    def on_test_epoch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_test_epoch_start')
-
-    def on_test_epoch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_test_epoch_end')
-
-    def on_test_batch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_test_batch_start')
-
-    def on_test_batch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_test_batch_end')
-
-    def setup(self, *args, stage=None):
-        self.called.append(f"Callback.setup_{stage}")
-
-    def teardown(self, *args, stage=None):
-        self.called.append(f"Callback.teardown_{stage}")
-
-    def on_predict_start(self, *args, **kwargs):
-        self.called.append('Callback.on_predict_start')
-
-    def on_predict_end(self, *args, **kwargs):
-        self.called.append('Callback.on_predict_end')
-
-    def on_predict_epoch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_predict_epoch_start')
-
-    def on_predict_epoch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_predict_epoch_end')
-
-    def on_predict_batch_start(self, *args, **kwargs):
-        self.called.append('Callback.on_predict_batch_start')
-
-    def on_predict_batch_end(self, *args, **kwargs):
-        self.called.append('Callback.on_predict_batch_end')
+        super().__init__(**hooks_args)
 
 
 class HookedModel(BoringModel):
@@ -602,7 +484,7 @@ def test_trainer_model_hook_system_fit(tmpdir):
         weights_summary=None,
         callbacks=[callback]
     )
-    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
+    assert called == ['Callback.on_init_start', 'Callback.on_init_end']
     trainer.fit(model)
     # yapf: disable
     expected = [
@@ -653,7 +535,7 @@ def test_trainer_model_hook_system_fit(tmpdir):
         'Callback.teardown_fit', 'teardown_fit',
     ]
     # yapf: enable
-    assert model.called == expected
+    assert called == expected
 
 
 def test_trainer_model_hook_system_fit_no_val(tmpdir):
@@ -670,7 +552,7 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         weights_summary=None,
         callbacks=[callback],
     )
-    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
+    assert called == ['Callback.on_init_start', 'Callback.on_init_end']
     trainer.fit(model)
     # yapf: disable
     expected = [
@@ -698,7 +580,7 @@ def test_trainer_model_hook_system_fit_no_val(tmpdir):
         'Callback.teardown_fit', 'teardown_fit',
     ]
     # yapf: enable
-    assert model.called == expected
+    assert called == expected
 
 
 def test_trainer_model_hook_system_validate(tmpdir):
@@ -713,7 +595,7 @@ def test_trainer_model_hook_system_validate(tmpdir):
         weights_summary=None,
         callbacks=[callback],
     )
-    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
+    assert called == ['Callback.on_init_start', 'Callback.on_init_end']
     trainer.validate(model, verbose=False)
     # yapf: disable
     expected = [
@@ -737,7 +619,7 @@ def test_trainer_model_hook_system_validate(tmpdir):
         'Callback.teardown_validate', 'teardown_validate',
     ]
     # yapf: enable
-    assert model.called == expected
+    assert called == expected
 
 
 def test_trainer_model_hook_system_test(tmpdir):
@@ -751,7 +633,7 @@ def test_trainer_model_hook_system_test(tmpdir):
         progress_bar_refresh_rate=0,
         callbacks=[callback],
     )
-    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
+    assert called == ['Callback.on_init_start', 'Callback.on_init_end']
     trainer.test(model, verbose=False)
     # yapf: disable
     expected = [
@@ -779,7 +661,7 @@ def test_trainer_model_hook_system_test(tmpdir):
         'Callback.teardown_test', 'teardown_test',
     ]
     # yapf: enable
-    assert model.called == expected
+    assert called == expected
 
 
 def test_trainer_model_hook_system_predict(tmpdir):
@@ -793,7 +675,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
         progress_bar_refresh_rate=0,
         callbacks=[callback],
     )
-    assert model.called == ['Callback.on_init_start', 'Callback.on_init_end']
+    assert called == ['Callback.on_init_start', 'Callback.on_init_end']
     trainer.predict(model)
     # yapf: disable
     expected = [
@@ -820,7 +702,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
         'Callback.teardown_predict', 'teardown_predict',
     ]
     # yapf: enable
-    assert model.called == expected
+    assert called == expected
 
 
 # TODO: add test for tune
