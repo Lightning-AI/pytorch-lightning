@@ -351,17 +351,13 @@ class Result(Dict):
         return self.to(torch.device("cpu"))
 
     def __repr__(self):
-        self_copy = self.copy()
-
-        if 'meta' in self_copy:
-            del self_copy['meta']
-
-        return str(self_copy)
+        copy = self.copy()
+        copy.pop('meta', None)
+        return repr(copy)
 
     def __str__(self):
         copy = self.copy()
-        del copy['meta']
-
+        copy.pop('meta', None)
         return str(copy)
 
     def __copy__(self):
