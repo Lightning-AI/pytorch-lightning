@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Optional, Dict, Union, Iterator
+from typing import Any, Dict, Iterator, Optional, Union
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.connectors.logger_connector.result import Result
@@ -73,6 +73,7 @@ class EvaluationLoop(Loop):
     def on_run_end(self) -> Any:
         return self.outputs
 
+
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
 # ------------------------------------------------------------------------------------------------------------
@@ -145,9 +146,7 @@ class EvaluationLoop(Loop):
         # make dataloader_idx arg in validation_step optional
         step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
 
-        multiple_val_loaders = (
-            not self.trainer.testing and self.num_dataloaders > 1
-        )
+        multiple_val_loaders = (not self.trainer.testing and self.num_dataloaders > 1)
         multiple_test_loaders = (self.trainer.testing and self.num_dataloaders > 1)
 
         if multiple_test_loaders or multiple_val_loaders:

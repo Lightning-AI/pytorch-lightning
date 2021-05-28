@@ -1,5 +1,5 @@
-from typing import Any, Optional, Sequence, Union, Tuple, List, Dict
 from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from torch.utils.data.dataloader import DataLoader
 
@@ -9,7 +9,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import STEP_OUTPUT, EPOCH_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
 class EvaluationDataLoaderLoop(Loop):
@@ -60,7 +60,9 @@ class EvaluationDataLoaderLoop(Loop):
         dataloader = self.trainer.accelerator.process_dataloader(dataloader)
         dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
-        dl_outputs = self.evaluation_loop.run(dataloader, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders)
+        dl_outputs = self.evaluation_loop.run(
+            dataloader, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
+        )
 
         # store batch level output per dataloader
         if self.should_track_batch_outputs_for_epoch_end:
@@ -91,6 +93,7 @@ class EvaluationDataLoaderLoop(Loop):
         self.on_evaluation_end()
 
         return eval_loop_results
+
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
