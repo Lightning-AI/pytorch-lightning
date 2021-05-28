@@ -59,14 +59,16 @@ exclude .yapfignore
 # Exclude pyright config
 exclude .pyrightconfig.json
 
+# Exclude submodules
 exclude .gitmodules
+exclude notebooks
+
 # Exclude Makefile
 exclude Makefile
 
 prune .git
 prune .github
 prune .circleci
-prune notebooks
 prune temp*
 prune test*
 prune benchmark*
