@@ -1,7 +1,6 @@
 sphinx>=4.0
-recommonmark  # fails with badges
-m2r  # fails with multi-line text
-nbsphinx>=0.8
+myst-parser
+nbsphinx>=0.8.5
 pandoc>=1.0
 docutils>=0.16
 sphinxcontrib-fulltoc>=1.0

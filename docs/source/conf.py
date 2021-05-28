@@ -103,10 +103,9 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.imgmath',
-    'recommonmark',
     'sphinx.ext.autosectionlabel',
-    # 'm2r',
-    # 'nbsphinx',  # it seems some sphinx issue
+    'myst_parser',
+    'nbsphinx',
     'sphinx_autodoc_typehints',
     'sphinx_copybutton',
     'sphinx_paramlinks',
@@ -127,9 +126,7 @@ nbsphinx_requirejs_path = ''
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-# source_suffix = ['.rst', '.md', '.ipynb']
-source_suffix = {
+source_parsers = {
     '.rst': 'restructuredtext',
     '.txt': 'markdown',
     '.md': 'markdown',
