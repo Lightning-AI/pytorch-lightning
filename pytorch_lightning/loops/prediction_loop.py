@@ -32,7 +32,9 @@ class PredictionLoop(Loop):
         self.all_batch_indices: List[int] = []
         self.predictions: List[Any] = []
 
-    def on_run_start(self, dataloader, dataloader_idx, dl_max_batches, num_dataloaders, return_predictions=False) -> None:
+    def on_run_start(
+        self, dataloader, dataloader_idx, dl_max_batches, num_dataloaders, return_predictions=False
+    ) -> None:
         self.dl_max_batches = dl_max_batches
         self.num_dataloaders = num_dataloaders
         self.return_predictions = return_predictions
@@ -47,6 +49,7 @@ class PredictionLoop(Loop):
 
     def on_run_end(self) -> Any:
         return self.predictions, self.all_batch_indices
+
 
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
@@ -86,4 +89,3 @@ class PredictionLoop(Loop):
             self.current_batch_indices = batch_sampler.batch_indices
             if self.should_store_predictions:
                 self.all_batch_indices.append(batch_sampler.batch_indices)
-
