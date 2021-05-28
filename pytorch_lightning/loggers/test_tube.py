@@ -17,7 +17,6 @@ Test Tube Logger
 """
 import os
 from argparse import Namespace
-from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.core.lightning import LightningModule
