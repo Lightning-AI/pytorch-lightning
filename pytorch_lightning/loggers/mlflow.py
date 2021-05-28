@@ -227,7 +227,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def experiment_dir(self) -> Optional[str]:
-        if self.save_dir is not None:
+        if all((self.save_dir, self.name, self.version)):
             return os.path.join(self.save_dir, self.name, self.version)
 
     @property
