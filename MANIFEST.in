@@ -59,6 +59,7 @@ exclude .yapfignore
 # Exclude pyright config
 exclude .pyrightconfig.json
 
+exclude .gitmodules
 # Exclude Makefile
 exclude Makefile
 
