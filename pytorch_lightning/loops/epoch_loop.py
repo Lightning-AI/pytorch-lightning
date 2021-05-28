@@ -151,10 +151,12 @@ class EpochLoop(Loop):
         self.trainer.call_hook("on_train_epoch_start")
 
     def advance(self):
+        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
+        train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
             # run train epoch
-            epoch_output = self.training_loop.run()
+            epoch_output = self.training_loop.run(train_dataloader)
             # log epoch metrics
 
             if epoch_output is None:

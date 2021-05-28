@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Iterator
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
@@ -30,7 +30,6 @@ class TrainingLoop(Loop):
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx = None
 
-        self._train_dataloader = None
         self._dataloader_idx = None
         self._should_stop = False
 
@@ -62,8 +61,8 @@ class TrainingLoop(Loop):
         #   redesign the done conditions and use the base class run() implementation
         while True:
             try:
-                self.on_advance_start()
-                self.advance()
+                self.on_advance_start(*args, **kwargs)
+                self.advance(*args, **kwargs)
                 self.on_advance_end()
                 self.iteration_count = self.increment_iteration(self.iteration_count)
             except StopIteration:
@@ -73,23 +72,17 @@ class TrainingLoop(Loop):
 
     def reset(self) -> None:
         self.iteration_count = 0
-
-        # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
-
-        # reset
-        self._train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
-        self._dataloader_idx = 0
-        self._should_stop = False
         self.batches_seen = 0
         self.is_last_batch = False
+        self._dataloader_idx = 0
+        self._should_stop = False
 
         # track epoch output
         self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
-    def advance(self):
+    def advance(self, dataloader_iter: Iterator, **kwargs):
         # TODO: profiling is gone
-        _, (batch, is_last) = next(self._train_dataloader)
+        _, (batch, is_last) = next(dataloader_iter)
         self.is_last_batch = is_last
 
         # ------------------------------------
