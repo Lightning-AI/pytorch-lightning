@@ -154,8 +154,8 @@ class WandbLogger(LightningLoggerBase):
         self._wandb_init = dict(
             name=name,
             project=project,
-            id=version or id,
-            dir=save_dir,
+            id=(version or id),
+            dir=(save_dir or './wandb'),
             resume='allow',
             anonymous=anonymous_lut.get(anonymous, anonymous)
         )
