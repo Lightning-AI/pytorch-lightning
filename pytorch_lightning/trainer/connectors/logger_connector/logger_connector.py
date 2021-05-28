@@ -19,11 +19,11 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars

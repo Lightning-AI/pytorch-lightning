@@ -13,15 +13,12 @@
 # limitations under the License.
 """Result class for easier logging and epoch-wise reduction."""
 
-import numbers
 from copy import copy
 from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
 from torchmetrics import Metric
-
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
 
 
 class Result(Dict):
@@ -85,31 +82,12 @@ class Result(Dict):
         on_step: bool = False,
         on_epoch: bool = True,
         reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
         enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-        sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
-        device: torch.device = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
-
-        # sync across workers when using distributed training
-        sync_fn = sync_fn or sync_ddp_if_available
-
-        if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
-            is_dist_initialized = torch.distributed.is_available() and torch.distributed.is_initialized()
-            # TODO: Find a way to make the reduction only once, so we don't need to clone.
-            if (is_dist_initialized or tpu_distributed()) and isinstance(value, torch.Tensor):
-                value = value.clone()
-            else:
-                value = torch.tensor(value, device=device, dtype=torch.float)
-            value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
@@ -134,8 +112,6 @@ class Result(Dict):
                 on_step=True,
                 on_epoch=False,
                 reduce_fx=reduce_fx,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-                tbptt_pad_token=tbptt_pad_token,
                 forked=False,
                 dataloader_idx=dataloader_idx,
             )
@@ -153,8 +129,6 @@ class Result(Dict):
                 on_step=False,
                 on_epoch=True,
                 reduce_fx=reduce_fx,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-                tbptt_pad_token=tbptt_pad_token,
                 forked=False,
                 dataloader_idx=dataloader_idx,
             )
@@ -169,8 +143,6 @@ class Result(Dict):
             on_step,
             on_epoch,
             reduce_fx,
-            tbptt_reduce_fx=tbptt_reduce_fx,
-            tbptt_pad_token=tbptt_pad_token,
             forked=was_forked,
             dataloader_idx=dataloader_idx,
         )
@@ -187,8 +159,6 @@ class Result(Dict):
         on_step: bool,
         on_epoch: bool,
         reduce_fx: Callable,
-        tbptt_pad_token: int,
-        tbptt_reduce_fx: Callable,
         forked: bool,
         dataloader_idx: Union[int, None],
     ):
@@ -201,8 +171,6 @@ class Result(Dict):
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
             value=meta_value,
-            tbptt_reduce_fx=tbptt_reduce_fx,
-            tbptt_pad_token=tbptt_pad_token,
             forked=forked,
             dataloader_idx=dataloader_idx,
         )
@@ -425,47 +393,6 @@ class Result(Dict):
         return size
 
     @classmethod
-    def gather(cls, outputs):
-        meta = outputs[0].get('meta')
-        result = cls()
-        result = recursive_gather(outputs, result)
-        recursive_stack(result)
-
-        if meta:
-            result['meta'] = meta
-        return result
-
-    @classmethod
-    def padded_gather(cls, outputs):
-        meta = outputs[0].get('meta')
-        result = cls()
-        result = recursive_gather(outputs, result)
-
-        # find the padding used for other values
-        default_padding_idx = 0
-        for name, value in result.items():
-            if (
-                name != 'minimize' and isinstance(value, list) and len(value) > 0
-                and isinstance(value[0], torch.Tensor)
-            ):
-                default_padding_idx = meta[name]['tbptt_pad_token']
-                break
-
-        # pad across each key individually
-        for name, value in result.items():
-            if (isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor)):
-                padding_key = default_padding_idx if name == 'minimize' else meta[name]['tbptt_pad_token']
-                padded = torch.nn.utils.rnn.pad_sequence(value, batch_first=True, padding_value=padding_key)
-                result[name] = padded
-
-                # also update the result
-                if meta and name != "minimize":
-                    meta[name]['value'] = padded
-        if meta:
-            result['meta'] = meta
-        return result
-
-    @classmethod
     def reduce_on_epoch_end(cls, outputs):
         # get the batch sizes for all outputs
         batch_sizes = []
@@ -522,17 +449,14 @@ class Result(Dict):
             if k in ['meta', 'extra'] or isinstance(value, Metric):
                 continue
 
-            # pick the reduce fx
-            tbptt_reduce_fx = torch.mean if k == "minimize" else meta[k]['tbptt_reduce_fx']
-
             if isinstance(value, list):
                 value = torch.tensor(value)
 
             if isinstance(value, dict):
                 # TODO: recursive reduce:
-                _recursive_fx_apply(value, tbptt_reduce_fx)
+                _recursive_fx_apply(value, torch.mean)
             else:
-                result[k] = tbptt_reduce_fx(value.float())
+                result[k] = torch.mean(value.float())
 
         result['meta'] = meta
         return result

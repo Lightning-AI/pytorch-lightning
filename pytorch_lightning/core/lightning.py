@@ -17,6 +17,7 @@ import collections
 import copy
 import inspect
 import logging
+import numbers
 import os
 import tempfile
 import types
@@ -25,7 +26,7 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -37,16 +38,19 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _METRIC, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -104,7 +108,7 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results: Optional[Result] = None
+        self._results: Optional['Result'] = None
         self._current_fx_name: Optional[str] = None
         self._running_manual_backward: bool = False
         self._current_dataloader_idx: Optional[int] = None
@@ -263,8 +267,8 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
+        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
@@ -299,8 +303,6 @@ class LightningModule(
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -309,6 +311,19 @@ class LightningModule(
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
         """
+        if tbptt_reduce_fx is not None:
+            rank_zero_deprecation(
+                '`self.log(tbptt_reduce_fx=...)` is no longer supported. The flag will be removed in v1.6.'
+                ' Please, open a discussion explaining your use-case in'
+                ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
+            )
+        if tbptt_pad_token is not None:
+            rank_zero_deprecation(
+                '`self.log(tbptt_pad_token=...)` is no longer supported. The flag will be removed in v1.6.'
+                ' Please, open a discussion explaining your use-case in'
+                ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
+            )
+
         if self._results is not None:
             # TODO: if logged twice fail with crash
 
@@ -325,6 +340,15 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
+            value = self.__sync(
+                value,
+                sync_fn=self.trainer.training_type_plugin.reduce,
+                sync_dist=sync_dist,
+                sync_dist_op=sync_dist_op,
+                sync_dist_group=sync_dist_group,
+                device=self.device,
+            )
+
             self._results.log(
                 name,
                 value,
@@ -333,15 +357,8 @@ class LightningModule(
                 on_step=on_step,
                 on_epoch=on_epoch,
                 reduce_fx=reduce_fx,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-                tbptt_pad_token=tbptt_pad_token,
                 enable_graph=enable_graph,
-                sync_dist=sync_dist,
-                sync_dist_op=sync_dist_op,
-                sync_dist_group=sync_dist_group,
-                sync_fn=self.trainer.training_type_plugin.reduce,
                 dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
-                device=self.device,
             )
 
     def log_dict(
@@ -352,8 +369,8 @@ class LightningModule(
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
+        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
@@ -375,8 +392,6 @@ class LightningModule(
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
             reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -402,6 +417,31 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 add_dataloader_idx=add_dataloader_idx
             )
+
+    @staticmethod
+    def __sync(
+        value: _METRIC,
+        sync_fn: Optional[Callable] = None,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
+        device: torch.device = None,
+    ) -> _METRIC:
+        """Sync across workers when using distributed training"""
+        if not isinstance(value, (torch.Tensor, numbers.Number)):
+            return value
+
+        sync_fn = sync_fn or sync_ddp_if_available
+        dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
+        if not sync_dist or not dist_available:
+            return value
+
+        # TODO: Find a way to make the reduction only once, so we don't need to clone.
+        if isinstance(value, torch.Tensor):
+            value = value.clone()
+        else:
+            value = torch.tensor(value, device=device, dtype=torch.float)
+        return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
     def write_prediction(
         self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'

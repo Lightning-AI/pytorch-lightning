@@ -197,31 +197,24 @@ def test_datamodule_parameter(tmpdir):
 
 
 def test_accumulation_and_early_stopping(tmpdir):
-    """ Test that early stopping of learning rate finder works, and that
-        accumulation also works for this feature """
+    """ Test that early stopping of learning rate finder works, and that accumulation also works for this feature """
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    class TestModel(BoringModel):
 
-    before_lr = hparams.get('learning_rate')
-    # logger file to get meta
+        def __init__(self):
+            super().__init__()
+            self.lr = 1e-3
+
+    model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         accumulate_grad_batches=2,
     )
-
     lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
-    after_lr = lrfinder.suggestion()
 
-    expected_num_lrs = 100
-    expected_batch_idx = 200 - 1
-
-    assert before_lr != after_lr, \
-        'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == expected_num_lrs, \
-        'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == expected_batch_idx, \
-        'Accumulation parameter did not work'
+    assert lrfinder.suggestion() != 1e-3
+    assert len(lrfinder.results['lr']) == 100
+    assert lrfinder._total_batch_idx == 200
 
 
 def test_suggestion_parameters_work(tmpdir):

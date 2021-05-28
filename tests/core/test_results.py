@@ -21,8 +21,8 @@ import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import Trainer
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
@@ -36,24 +36,19 @@ def _setup_ddp(rank, worldsize):
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
-def _ddp_test_fn(rank, worldsize, result_cls: Result):
+def _ddp_test_fn(rank, worldsize):
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.0])
-
-    res = result_cls()
-    res.log("test_tensor", tensor, sync_dist=True, sync_dist_op=torch.distributed.ReduceOp.SUM)
-
-    assert res["test_tensor"].item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
+    actual = LightningModule._LightningModule__sync(tensor, sync_dist=True, sync_dist_op=torch.distributed.ReduceOp.SUM)
+    assert actual.item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
 
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
-    tutils.reset_seed()
     tutils.set_random_master_port()
-
     worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize, Result), nprocs=worldsize)
+    mp.spawn(_ddp_test_fn, args=(worldsize, ), nprocs=worldsize)
 
 
 @pytest.mark.parametrize(
@@ -180,98 +175,6 @@ def test_result_obj_predictions(tmpdir, test_option: int, do_train: bool, gpus: 
     assert prediction_file.exists()
     predictions = torch.load(prediction_file)
     assert len(predictions) == len(dm.random_test)
-
-
-def test_result_gather_stack():
-    """ Test that tensors get concatenated when they all have the same shape. """
-    outputs = [
-        {
-            "foo": torch.zeros(4, 5)
-        },
-        {
-            "foo": torch.zeros(4, 5)
-        },
-        {
-            "foo": torch.zeros(4, 5)
-        },
-    ]
-    result = Result.gather(outputs)
-    assert isinstance(result["foo"], torch.Tensor)
-    assert list(result["foo"].shape) == [12, 5]
-
-
-def test_result_gather_concatenate():
-    """ Test that tensors get concatenated when they have varying size in first dimension. """
-    outputs = [
-        {
-            "foo": torch.zeros(4, 5)
-        },
-        {
-            "foo": torch.zeros(8, 5)
-        },
-        {
-            "foo": torch.zeros(3, 5)
-        },
-    ]
-    result = Result.gather(outputs)
-    assert isinstance(result["foo"], torch.Tensor)
-    assert list(result["foo"].shape) == [15, 5]
-
-
-def test_result_gather_scalar():
-    """ Test that 0-dim tensors get gathered and stacked correctly. """
-    outputs = [
-        {
-            "foo": torch.tensor(1)
-        },
-        {
-            "foo": torch.tensor(2)
-        },
-        {
-            "foo": torch.tensor(3)
-        },
-    ]
-    result = Result.gather(outputs)
-    assert isinstance(result["foo"], torch.Tensor)
-    assert list(result["foo"].shape) == [3]
-
-
-def test_result_gather_different_shapes():
-    """ Test that tensors of varying shape get gathered into a list. """
-    outputs = [
-        {
-            "foo": torch.tensor(1)
-        },
-        {
-            "foo": torch.zeros(2, 3)
-        },
-        {
-            "foo": torch.zeros(1, 2, 3)
-        },
-    ]
-    result = Result.gather(outputs)
-    expected = [torch.tensor(1), torch.zeros(2, 3), torch.zeros(1, 2, 3)]
-    assert isinstance(result["foo"], list)
-    assert all(torch.eq(r, e).all() for r, e in zip(result["foo"], expected))
-
-
-def test_result_gather_mixed_types():
-    """ Test that a collection of mixed types gets gathered into a list. """
-    outputs = [
-        {
-            "foo": 1.2
-        },
-        {
-            "foo": ["bar", None]
-        },
-        {
-            "foo": torch.tensor(1)
-        },
-    ]
-    result = Result.gather(outputs)
-    expected = [1.2, ["bar", None], torch.tensor(1)]
-    assert isinstance(result["foo"], list)
-    assert result["foo"] == expected
 
 
 def test_result_retrieve_last_logged_item():

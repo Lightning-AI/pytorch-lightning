@@ -71,6 +71,7 @@ class ModelPruning(Callback):
         pruning_dim: Optional[int] = None,
         pruning_norm: Optional[int] = None,
         verbose: int = 0,
+        prune_on_train_epoch_end: bool = True,
     ) -> None:
         """
         Model pruning Callback, using PyTorch's prune utilities.
@@ -141,6 +142,9 @@ class ModelPruning(Callback):
 
             verbose: Verbosity level. 0 to disable, 1 to log overall sparsity, 2 to log per-layer sparsity
 
+            prune_on_train_epoch_end: whether to apply pruning at the end of the training epoch.
+                If this is ``False``, then the check runs at the end of the validation epoch.
+
         Raises:
             MisconfigurationException:
                 If ``parameter_names`` is neither ``"weight"`` nor ``"bias"``,
@@ -155,6 +159,7 @@ class ModelPruning(Callback):
         self._parameters_to_prune = parameters_to_prune
         self._use_lottery_ticket_hypothesis = use_lottery_ticket_hypothesis
         self._resample_parameters = resample_parameters
+        self._prune_on_train_epoch_end = prune_on_train_epoch_end
         self._parameter_names = parameter_names or self.PARAMETER_NAMES
         self._global_kwargs: Dict[str, Any] = {}
         self._original_layers: Optional[Dict[int, _LayerRef]] = None
@@ -381,8 +386,7 @@ class ModelPruning(Callback):
                 self._original_layers.setdefault(id_, _LayerRef(data=deepcopy(module), names=[]))
                 self._original_layers[id_]["names"].append((i, name))
 
-    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: LightningModule) -> None:  # type: ignore
-        current_epoch = pl_module.current_epoch
+    def _run_pruning(self, current_epoch: int) -> None:
         prune = self._apply_pruning(current_epoch) if callable(self._apply_pruning) else self._apply_pruning
         amount = self.amount(current_epoch) if callable(self.amount) else self.amount
         if not prune or not amount:
@@ -395,9 +399,19 @@ class ModelPruning(Callback):
         ):
             self.apply_lottery_ticket_hypothesis()
 
+    def on_train_epoch_end(self, trainer: 'pl.Trainer', pl_module: LightningModule) -> None:  # type: ignore
+        if self._prune_on_train_epoch_end:
+            rank_zero_debug("`ModelPruning.on_train_epoch_end`. Applying pruning")
+            self._run_pruning(pl_module.current_epoch)
+
+    def on_validation_epoch_end(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+        if not trainer.sanity_checking and not self._prune_on_train_epoch_end:
+            rank_zero_debug("`ModelPruning.on_validation_epoch_end`. Applying pruning")
+            self._run_pruning(pl_module.current_epoch)
+
     def on_train_end(self, trainer: 'pl.Trainer', pl_module: LightningModule) -> None:
         if self._make_pruning_permanent:
-            rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint.")
+            rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint")
             self.make_pruning_permanent(pl_module)
 
     def on_save_checkpoint(
@@ -407,7 +421,7 @@ class ModelPruning(Callback):
         checkpoint: Dict[str, Any],
     ) -> Dict[str, Any]:
         if self._make_pruning_permanent:
-            rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint.")
+            rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
             prev_device = pl_module.device
             # prune a copy so training can continue with the same buffers
             copy = deepcopy(pl_module.to("cpu"))

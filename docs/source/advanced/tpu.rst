@@ -163,6 +163,26 @@ TPUs work in DDP mode by default (distributing over each core)
 
 ----------------
 
+TPU VM
+------
+Lightning supports training on the new Cloud TPU VMs.
+Previously, we needed separate VMs to connect to the TPU machines, but as
+Cloud TPU VMs run on the TPU Host machines, it allows direct SSH access
+for the users. Hence, this architecture upgrade leads to cheaper and significantly
+better performance and usability while working with TPUs.
+
+The TPUVMs come pre-installed with latest versions of PyTorch and PyTorch XLA.
+After connecting to the VM and before running your Lightning code, you would need
+to set the XRT TPU device configuration.
+
+.. code-block:: bash
+
+    $ export XRT_TPU_CONFIG="localservice;0;localhost:51011"
+
+You could learn more about the Cloud TPU VM architecture `here <https://cloud.google.com/tpu/docs/system-architecture-tpu-vm#tpu_vms_3>`_
+
+----------------
+
 TPU Pod
 -------
 To train on more than 8 cores, your code actually doesn't change!
@@ -173,7 +193,7 @@ All you need to do is submit the following command:
     $ python -m torch_xla.distributed.xla_dist
     --tpu=$TPU_POD_NAME
     --conda-env=torch-xla-nightly
-    -- python /usr/share/torch-xla-0.5/pytorch/xla/test/test_train_imagenet.py --fake_data
+    -- python /usr/share/torch-xla-1.8.1/pytorch/xla/test/test_train_imagenet.py --fake_data
 
 See `this guide <https://cloud.google.com/tpu/docs/tutorials/pytorch-pod>`_
 on how to set up the instance groups and VMs needed to run TPU Pods.

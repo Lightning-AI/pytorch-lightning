@@ -18,6 +18,7 @@ from datetime import timedelta
 from itertools import count
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
+from weakref import proxy
 
 import torch
 from torch.utils.data import DataLoader
@@ -27,11 +28,16 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment
-from pytorch_lightning.profiler import BaseProfiler
+from pytorch_lightning.profiler import (
+    AdvancedProfiler,
+    BaseProfiler,
+    PassThroughProfiler,
+    PyTorchProfiler,
+    SimpleProfiler,
+)
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -41,9 +47,9 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
-from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
@@ -325,7 +331,6 @@ class Trainer(
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
-        self.profile_connector = ProfilerConnector(self)
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
@@ -382,7 +387,7 @@ class Trainer(
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
 
         # configure profiler
-        self.profile_connector.on_trainer_init(profiler)
+        self.__init_profiler(profiler)
 
         # init logger flags
         self.logger_connector.on_trainer_init(
@@ -813,7 +818,7 @@ class Trainer(
 
     def run_stage(self):
         self.accelerator.dispatch(self)
-        self.profile_connector.setup()
+        self.__setup_profiler()
 
         if self.evaluating:
             return self._run_evaluate()
@@ -923,7 +928,7 @@ class Trainer(
             self.state.stage = None
             raise
 
-    def _run_evaluation(self, on_epoch: bool = False) -> _EVALUATE_OUTPUT:
+    def _run_evaluation(self) -> _EVALUATE_OUTPUT:
         if not (self.evaluating or self.sanity_checking):
             rank_zero_warn(
                 f"`trainer._run_evaluation()` was called but the running stage is set to {self.state.stage}."
@@ -1004,17 +1009,6 @@ class Trainer(
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
-
-        # update epoch-level lr_schedulers
-        if on_epoch:
-            self.optimizer_connector.update_learning_rates(
-                interval='epoch',
-                opt_indices=[
-                    opt_idx for opt_idx, _ in self.train_loop.get_active_optimizers(
-                        batch_idx=(self.train_loop.total_batch_idx - 1)
-                    )  # Select the optimizers which were used in the last batch of the epoch
-                ],
-            )
 
         # log epoch metrics
         eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
@@ -1256,3 +1250,25 @@ class Trainer(
     @staticmethod
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
+
+    def __init_profiler(self, profiler: Optional[Union[BaseProfiler, str]]) -> None:
+        if isinstance(profiler, str):
+            PROFILERS = {
+                "simple": SimpleProfiler,
+                "advanced": AdvancedProfiler,
+                "pytorch": PyTorchProfiler,
+            }
+            profiler = profiler.lower()
+            if profiler not in PROFILERS:
+                raise MisconfigurationException(
+                    "When passing string value for the `profiler` parameter of `Trainer`,"
+                    f" it can only be one of {list(PROFILERS.keys())}"
+                )
+            profiler_class = PROFILERS[profiler]
+            profiler = profiler_class()
+        self.profiler: BaseProfiler = profiler or PassThroughProfiler()
+
+    def __setup_profiler(self) -> None:
+        local_rank = self.local_rank if self.world_size > 1 else None
+        self.profiler._lightning_module = proxy(self.lightning_module)
+        self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
