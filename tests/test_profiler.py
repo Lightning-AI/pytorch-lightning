@@ -23,7 +23,7 @@ import torch
 from packaging.version import Version
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.profiler import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
+from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
@@ -512,3 +512,26 @@ def test_pytorch_profiler_deepcopy(tmpdir):
     torch.tensor(1)
     pytorch_profiler.describe()
     assert deepcopy(pytorch_profiler)
+
+
+@pytest.mark.parametrize(['profiler', 'expected'], [
+    (None, PassThroughProfiler),
+    (SimpleProfiler(), SimpleProfiler),
+    (AdvancedProfiler(), AdvancedProfiler),
+    ('simple', SimpleProfiler),
+    ('Simple', SimpleProfiler),
+    ('advanced', AdvancedProfiler),
+    ('pytorch', PyTorchProfiler),
+])
+def test_trainer_profiler_correct_args(profiler, expected):
+    kwargs = {'profiler': profiler} if profiler is not None else {}
+    trainer = Trainer(**kwargs)
+    assert isinstance(trainer.profiler, expected)
+
+
+def test_trainer_profiler_incorrect_str_arg():
+    with pytest.raises(
+        MisconfigurationException,
+        match=r"When passing string value for the `profiler` parameter of `Trainer`, it can only be one of.*"
+    ):
+        Trainer(profiler="unknown_profiler")

@@ -113,7 +113,7 @@ class PredictLoop(object):
 
         self.trainer.call_hook("on_predict_batch_start", batch, batch_idx, dataloader_idx)
 
-        model_ref._current_fx_name = "predict"
+        model_ref._current_fx_name = "predict_step"
         predictions = self.trainer.accelerator.predict_step(step_kwargs)
 
         if predictions is None:

@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -250,21 +250,6 @@ class EvaluationLoop(object):
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
     def on_evaluation_epoch_end(self) -> None:
-        model_ref = self.trainer.lightning_module
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
-
-        self.trainer._reset_result_and_set_hook_fx_name(hook_name)
-
-        with self.trainer.profiler.profile(hook_name):
-
-            if hasattr(self.trainer, hook_name):
-                on_evaluation_epoch_end_hook = getattr(self.trainer, hook_name)
-                on_evaluation_epoch_end_hook()
-
-            if is_overridden(hook_name, model_ref):
-                model_hook_fx = getattr(model_ref, hook_name)
-                model_hook_fx()
-
-        self.trainer._cache_logged_metrics()
-
+        self.trainer.call_hook(hook_name)
         self.trainer.call_hook('on_epoch_end')

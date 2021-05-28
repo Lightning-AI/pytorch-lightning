@@ -300,27 +300,4 @@ Set the ``NCCL_DEBUG=INFO`` environment variable to see the ACTUAL error.
 
 .. code-block:: bash
 
-    python NCCL_DEBUG=INFO train.py ...
-
-
-Distributed sampler
--------------------
-
-Normally now you would need to add a
-:class:`~torch.utils.data.distributed.DistributedSampler` to your dataset, however
-Lightning automates this for you. But if you still need to set a sampler set the Trainer flag
-:paramref:`~pytorch_lightning.Trainer.replace_sampler_ddp` to ``False``.
-
-Here's an example of how to add your own sampler (again, not needed with Lightning).
-
-.. testcode::
-
-    # in your LightningModule
-    def train_dataloader(self):
-        dataset = MyDataset()
-        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-        dataloader = Dataloader(dataset, sampler=dist_sampler)
-        return dataloader
-
-    # in your training script
-    trainer = Trainer(replace_sampler_ddp=False)
+    NCCL_DEBUG=INFO python train.py ...

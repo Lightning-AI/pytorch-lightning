@@ -62,6 +62,9 @@ class TensorBoardLogger(LightningLoggerBase):
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise ``'version_${version}'`` is used.
+        sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
+            then logs are saved in ``/save_dir/version/sub_dir/``. Defaults to ``None`` in which
+            logs are saved in ``/save_dir/version/``.
         log_graph: Adds the computational graph to tensorboard. This requires that
             the user has defined the `self.example_input_array` attribute in their
             model.
@@ -83,12 +86,14 @@ class TensorBoardLogger(LightningLoggerBase):
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = '',
+        sub_dir: Optional[str] = None,
         **kwargs
     ):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
         self._version = version
+        self._sub_dir = sub_dir
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
@@ -115,6 +120,10 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._save_dir
 
     @property
+    def sub_dir(self) -> Optional[str]:
+        return self._sub_dir
+
+    @property
     def experiment_dir(self) -> str:
         """
         The directory for this run's tensorboard checkpoint. By default, it is named
@@ -124,6 +133,10 @@ class TensorBoardLogger(LightningLoggerBase):
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         experiment_dir = os.path.join(self.root_dir, version)
+        if isinstance(self.sub_dir, str):
+            experiment_dir = os.path.join(experiment_dir, self.sub_dir)
+        experiment_dir = os.path.expandvars(experiment_dir)
+        experiment_dir = os.path.expanduser(experiment_dir)
         return experiment_dir
 
     @property

@@ -283,6 +283,7 @@ class ProgressBar(ProgressBarBase):
         self.main_progress_bar = None
         self.val_progress_bar = None
         self.test_progress_bar = None
+        self.predict_progress_bar = None
 
     def __getstate__(self):
         # can't pickle the tqdm objects
@@ -290,6 +291,7 @@ class ProgressBar(ProgressBarBase):
         state['main_progress_bar'] = None
         state['val_progress_bar'] = None
         state['test_progress_bar'] = None
+        state['predict_progress_bar'] = None
         return state
 
     @property
@@ -471,12 +473,14 @@ class ProgressBar(ProgressBarBase):
     ):
         active_progress_bar = None
 
-        if not self.main_progress_bar.disable:
+        if self.main_progress_bar is not None and not self.main_progress_bar.disable:
             active_progress_bar = self.main_progress_bar
-        elif not self.val_progress_bar.disable:
+        elif self.val_progress_bar is not None and not self.val_progress_bar.disable:
             active_progress_bar = self.val_progress_bar
-        elif not self.test_progress_bar.disable:
+        elif self.test_progress_bar is not None and not self.test_progress_bar.disable:
             active_progress_bar = self.test_progress_bar
+        elif self.predict_progress_bar is not None and not self.predict_progress_bar.disable:
+            active_progress_bar = self.predict_progress_bar
 
         if active_progress_bar is not None:
             s = sep.join(map(str, args))
