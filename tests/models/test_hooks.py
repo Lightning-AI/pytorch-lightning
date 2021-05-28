@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, Mock
 
 import pytest
 import torch
@@ -776,7 +776,9 @@ def test_kk():
     trainer = Trainer(fast_dev_run=1)
 
     model = BoringModel()
-    mock = MagicMock(spec=LightningModule, wraps=model)
+    model.trainer = trainer
+    mock = Mock(spec=BoringModel, wraps=model)
+    # mock.trainer = trainer
     mock.datamodule = None
     mock.truncated_bptt_steps = 0
 
@@ -793,7 +795,7 @@ def test_kk2():
             return "asd"
 
     f = Foo()
-    spy = mock.MagicMock(spec=Foo, wraps=f)
+    spy = mock.Mock(spec=Foo, wraps=f)
 
     x = spy.bar('baz')
     print(x)
@@ -809,6 +811,6 @@ def test_kk3():
             return 5
 
     f = Foo()
-    spy = mock.MagicMock(spec=Foo, wraps=f)
+    spy = mock.Mock(spec=Foo, wraps=f)
 
     print(spy.asd)
