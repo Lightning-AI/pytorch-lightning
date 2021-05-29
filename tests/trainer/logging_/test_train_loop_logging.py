@@ -17,8 +17,6 @@ Tests to ensure that the training loop works with a dict (1.0)
 
 import collections
 import itertools
-import os
-from unittest import mock
 
 import numpy as np
 import pytest
@@ -34,7 +32,6 @@ from tests.helpers.deterministic_model import DeterministicModel
 from tests.helpers.runif import RunIf
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__log(tmpdir):
     """
     Tests that only training_step can be used
@@ -122,7 +119,6 @@ def test__training_step__log(tmpdir):
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
-    callback_metrics.remove('debug_epoch')
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
@@ -131,7 +127,6 @@ def test__training_step__log(tmpdir):
     assert callback_metrics == expected_callback_metrics
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__epoch_end__log(tmpdir):
     """
     Tests that only training_step can be used
@@ -183,7 +178,6 @@ def test__training_step__epoch_end__log(tmpdir):
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
-    callback_metrics.remove('debug_epoch')
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
@@ -192,7 +186,6 @@ def test__training_step__epoch_end__log(tmpdir):
     assert callback_metrics == expected_callback_metrics
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
 def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval, max_epochs):
     """
@@ -245,16 +238,12 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
-    callback_metrics.remove('debug_epoch')
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
     expected_callback_metrics.update({'a', 'b'})
     expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
-
-    # assert the loggers received the expected number
-    assert len(trainer.dev_debugger.logged_metrics) == ((batches / log_interval) * max_epochs) + max_epochs
 
 
 @pytest.mark.parametrize(['batches', 'fx', 'result'], [(1, min, 0), (2, max, 1), (11, max, 10)])
@@ -496,7 +485,6 @@ def test_nested_datasouce_batch(tmpdir):
     trainer.fit(model, train_data, val_data)
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_log_works_in_train_callback(tmpdir):
     """
     Tests that log can be called within callback
@@ -653,7 +641,6 @@ def test_log_works_in_train_callback(tmpdir):
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
-    trainer.callback_metrics.pop("debug_epoch")
     assert trainer.progress_bar_dict["train_loss"] == model.manual_loss[-1]
     assert trainer.callback_metrics["train_loss"] == model.manual_loss[-1]
     trainer.callback_metrics.pop("train_loss")

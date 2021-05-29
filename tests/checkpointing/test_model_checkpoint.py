@@ -83,6 +83,7 @@ def test_model_checkpoint_score_and_ckpt(
             super().__init__()
             self.train_log_epochs = torch.randn(max_epochs, limit_train_batches)
             self.val_logs = torch.randn(max_epochs, limit_val_batches)
+            self.scores = []
 
         def training_step(self, batch, batch_idx):
             log_value = self.train_log_epochs[self.current_epoch, batch_idx]
@@ -109,6 +110,14 @@ def test_model_checkpoint_score_and_ckpt(
 
             return [optimizer], [lr_scheduler]
 
+        def on_train_epoch_end(self):
+            if 'train' in monitor:
+                self.scores.append(self.trainer.logged_metrics[monitor])
+
+        def on_validation_epoch_end(self):
+            if not self.trainer.sanity_checking and 'val' in monitor:
+                self.scores.append(self.trainer.logged_metrics[monitor])
+
     filename = '{' + f'{monitor}' + ':.4f}-{epoch}'
     checkpoint = ModelCheckpoint(dirpath=tmpdir, filename=filename, monitor=monitor, save_top_k=-1)
 
@@ -131,13 +140,12 @@ def test_model_checkpoint_score_and_ckpt(
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
-    scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
     lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
-    assert len(ckpt_files) == len(scores) == max_epochs
+    assert len(ckpt_files) == len(model.scores) == max_epochs
     assert len(lr_scheduler_debug) == max_epochs
 
     for epoch in range(max_epochs):
-        score = scores[epoch]
+        score = model.scores[epoch]
         expected_score = getattr(model, f'{monitor}s')[epoch].mean().item()
         expected_filename = f'{monitor}={score:.4f}-epoch={epoch}.ckpt'
         assert math.isclose(score, expected_score, rel_tol=1e-4)
@@ -193,6 +201,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
             super().__init__()
             self.val_logs = torch.randn(per_epoch_val_checks * max_epochs, limit_val_batches)
             self.val_loop_count = 0
+            self.scores = []
 
         def validation_step(self, batch, batch_idx):
             log_value = self.val_logs[self.val_loop_count, batch_idx]
@@ -202,6 +211,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         def validation_epoch_end(self, outputs):
             self.val_loop_count += 1
             super().validation_epoch_end(outputs)
+            self.scores.append(self.trainer.logged_metrics[monitor])
 
         def configure_optimizers(self):
             optimizer = optim.SGD(self.parameters(), lr=lr)
@@ -236,7 +246,6 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     ckpt_files = list(Path(tmpdir).glob('*.ckpt'))
-    scores = [metric[monitor] for metric in trainer.dev_debugger.logged_metrics if monitor in metric]
     lr_scheduler_debug = trainer.dev_debugger.saved_lr_scheduler_updates
 
     # on_train_end ckpt callback is called which creates an additional ckpt in case no ckpt is created at the
@@ -246,14 +255,14 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         additional_ckpt_path = [f for f in ckpt_files if 'v1' in f.stem][0]
         additional_ckpt = True
 
-    assert len(ckpt_files) == len(scores) + additional_ckpt == per_epoch_val_checks * max_epochs + additional_ckpt
+    assert len(ckpt_files) == len(model.scores) + additional_ckpt == per_epoch_val_checks * max_epochs + additional_ckpt
     assert len(lr_scheduler_debug) == max_epochs
 
     def _make_assertions(epoch, ix, version=''):
         global_ix = ix + per_epoch_val_checks * epoch
         duplicated = bool(version)
 
-        score = scores[global_ix]
+        score = model.scores[global_ix]
         expected_score = getattr(model, f'{monitor}s')[global_ix].mean().item()
         expected_filename = f'{monitor}={score:.4f}-epoch={epoch}{version}.ckpt'
         assert math.isclose(score, expected_score, rel_tol=1e-4)
