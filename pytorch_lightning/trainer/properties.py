@@ -60,9 +60,9 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     train_loop: TrainLoop
-    """
+    '''
     Accelerator properties
-    """
+    '''
 
     @property
     def accelerator(self) -> Accelerator:
