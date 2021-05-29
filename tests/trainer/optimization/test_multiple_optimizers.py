@@ -30,10 +30,7 @@ class MultiOptModel(BoringModel):
 
 
 def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
-    """
-    This tests ensures reduction works in unbalanced logging settings,
-    even when a Callback also logs.
-    """
+    """This tests ensures reduction works in unbalanced logging settings"""
 
     class TestModel(MultiOptModel):
 

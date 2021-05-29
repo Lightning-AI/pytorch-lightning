@@ -363,8 +363,7 @@ def test_log_works_in_train_callback(tmpdir):
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
                 pl_module.log(custom_func_name, value, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
-                if current_epoch not in self.callback_funcs_called[custom_func_name]:
-                    self.callback_funcs_called[custom_func_name][current_epoch] = []
+                self.callback_funcs_called[custom_func_name].setdefault(current_epoch, [])
                 self.callback_funcs_called[custom_func_name][current_epoch].append(value)
 
                 forked = on_step and on_epoch

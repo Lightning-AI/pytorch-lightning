@@ -725,7 +725,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         limit_test_batches=2,
         max_epochs=2,
         progress_bar_refresh_rate=1,
-        num_sanity_val_steps=2,
     )
 
     # Train the model ⚡
