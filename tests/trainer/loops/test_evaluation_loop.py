@@ -13,8 +13,12 @@
 # limitations under the License.
 from unittest import mock
 
+import torch
+from torch.utils.data import DataLoader
+
 from pytorch_lightning import Trainer
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @mock.patch("pytorch_lightning.trainer.evaluation_loop.EvaluationLoop.on_evaluation_epoch_end")
@@ -65,3 +69,46 @@ def test_log_epoch_metrics_before_on_evaluation_end(get_evaluate_epoch_results_m
     trainer.fit(LessBoringModel())
 
     assert order == ["log_epoch_metrics", "on_validation_end"]
+
+
+@RunIf(min_gpus=1)
+def test_memory_consumption_validation(tmpdir):
+    """Test that the training batch is no longer in GPU memory when running validation"""
+
+    class BoringLargeBatchModel(BoringModel):
+
+        @property
+        def num_params(self):
+            return sum(p.numel() for p in self.parameters())
+
+        def train_dataloader(self):
+            # batch target memory >= 100x boring_model size
+            batch_size = self.num_params * 100 // 32 + 1
+            return DataLoader(RandomDataset(32, 5000), batch_size=batch_size)
+
+        def val_dataloader(self):
+            return self.train_dataloader()
+
+        def training_step(self, batch, batch_idx):
+            # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
+            lower = 101 * self.num_params * 4
+            upper = 201 * self.num_params * 4
+            assert lower < torch.cuda.memory_allocated(0) < upper
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, batch, batch_idx):
+            # there is a batch and the boring model, but not two batches on gpu, assume 32 bit = 4 bytes
+            lower = 101 * self.num_params * 4
+            upper = 201 * self.num_params * 4
+            assert lower < torch.cuda.memory_allocated(0) < upper
+            return super().validation_step(batch, batch_idx)
+
+    torch.cuda.empty_cache()
+    trainer = Trainer(
+        gpus=1,
+        default_root_dir=tmpdir,
+        fast_dev_run=2,
+        move_metrics_to_cpu=True,
+        weights_summary=None,
+    )
+    trainer.fit(BoringLargeBatchModel())

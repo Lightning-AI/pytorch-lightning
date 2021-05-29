@@ -733,9 +733,9 @@ class TrainLoop:
         return_result: AttributeDict,
     ) -> Optional[torch.Tensor]:
 
-        step_result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
-        if step_result is not None:
-            return_result.update(step_result)
+        result = self.training_step_and_backward(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        if result is not None:
+            return_result.update(result)
             return return_result.loss
 
     def make_closure(self, *closure_args, **closure_kwargs: Any) -> Callable:
