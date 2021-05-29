@@ -17,8 +17,6 @@ Tests to ensure that the training loop works with a dict (1.0)
 
 import collections
 import itertools
-import os
-from unittest import mock
 
 import numpy as np
 import pytest
