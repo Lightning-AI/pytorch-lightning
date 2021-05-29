@@ -247,9 +247,6 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
 
-    # assert the loggers received the expected number
-    assert len(trainer.dev_debugger.logged_metrics) == ((batches / log_interval) * max_epochs) + max_epochs
-
 
 @pytest.mark.parametrize(['batches', 'fx', 'result'], [(1, min, 0), (2, max, 1), (11, max, 10)])
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
