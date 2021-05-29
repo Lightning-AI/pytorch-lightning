@@ -165,6 +165,7 @@ def test_wandb_log_model(wandb, tmpdir):
     # test log_model=True
     logger = WandbLogger(log_model=True)
     logger.experiment.id = '1'
+    logger.experiment.dir = 'save_dir'
     logger.experiment.project_name.return_value = 'project'
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
@@ -175,6 +176,7 @@ def test_wandb_log_model(wandb, tmpdir):
     wandb.init.reset_mock()
     logger = WandbLogger(log_model='all')
     logger.experiment.id = '1'
+    logger.experiment.dir = 'save_dir'
     logger.experiment.project_name.return_value = 'project'
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
@@ -185,6 +187,7 @@ def test_wandb_log_model(wandb, tmpdir):
     wandb.init.reset_mock()
     logger = WandbLogger(log_model=False)
     logger.experiment.id = '1'
+    logger.experiment.dir = 'save_dir'
     logger.experiment.project_name.return_value = 'project'
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
@@ -198,6 +201,7 @@ def test_wandb_log_model(wandb, tmpdir):
     wandb.Artifact.reset_mock()
     logger = pl_wandb.WandbLogger(log_model=True)
     logger.experiment.id = '1'
+    logger.experiment.dir = 'save_dir'
     logger.experiment.project_name.return_value = 'project'
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
