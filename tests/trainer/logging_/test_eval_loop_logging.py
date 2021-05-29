@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Tests to ensure that the training loop works with a dict (1.0)
+Test logging in the evaluation loop
 """
 import collections
 import itertools
