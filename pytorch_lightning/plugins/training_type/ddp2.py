@@ -48,7 +48,7 @@ class DDP2Plugin(DDPPlugin):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
 
-        def _reduce(t: torch.Tensor):
+        def _reduce(t: torch.Tensor) -> torch.Tensor:
             dtype_tensor = t.dtype
             return t.float().mean().type(dtype_tensor)
 

@@ -389,7 +389,7 @@ def test_tensor_to_float_conversion(tmpdir):
             return super().training_step(batch, batch_idx)
 
         def on_train_end(self) -> None:
-            print(self.trainer.result_collections)
+            print(self.trainer.result_collection)
 
     trainer = Trainer(
         default_root_dir=tmpdir,

@@ -542,7 +542,7 @@ def test_log_works_in_val_callback(tmpdir):
             self.log('val_loss', loss)
 
         def on_validation_end(self) -> None:
-            print(self.trainer.result_collections)
+            print(self.trainer.result_collection)
 
     max_epochs = 1
     model = TestModel()

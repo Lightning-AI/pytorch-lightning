@@ -18,7 +18,6 @@ from torch.nn import DataParallel
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
@@ -65,7 +64,7 @@ class DataParallelPlugin(ParallelPlugin):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
 
-        def _reduce(t: torch.Tensor):
+        def _reduce(t: torch.Tensor) -> torch.Tensor:
             dtype_tensor = t.dtype
             return t.float().mean().type(dtype_tensor)
 

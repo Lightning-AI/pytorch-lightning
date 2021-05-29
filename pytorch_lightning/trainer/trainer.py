@@ -1114,7 +1114,7 @@ class Trainer(
             self.on_sanity_check_end()
 
             # reset validation metrics
-            self.result_collections.reset()
+            self.result_collection.reset()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training

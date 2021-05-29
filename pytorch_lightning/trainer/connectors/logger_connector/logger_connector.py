@@ -120,13 +120,13 @@ class LoggerConnector:
         # reset dataloader idx
         model_ref = self.trainer.lightning_module
         model_ref._current_dataloader_idx = None
-        self.trainer.result_collections.on_epoch_end_reached = True
+        self.trainer.result_collection.on_epoch_end_reached = True
 
     def add_to_eval_loop_results(self, dl_idx, has_been_initialized):
         if self.trainer.sanity_checking:
             return
 
-        callback_metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.CALLBACK]
+        callback_metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.CALLBACK]
         if os.getenv("PL_DEV_DEBUG", '0') == '1':
             callback_metrics["debug_epoch"] = self.trainer.current_epoch
         callback_metrics = deepcopy(callback_metrics)
@@ -147,7 +147,7 @@ class LoggerConnector:
             self.add_to_eval_loop_results(dl_idx, has_been_initialized)
 
     def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
-        metrics = self.trainer.result_collections.metrics
+        metrics = self.trainer.result_collection.metrics
 
         # update metrics
         self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
@@ -199,7 +199,7 @@ class LoggerConnector:
 
     def on_evaluation_start(self):
         root_device = self.trainer.lightning_module.device
-        self.trainer.result_collections.root_device = root_device
+        self.trainer.result_collection.root_device = root_device
 
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
         model = self.trainer.lightning_module
@@ -207,11 +207,11 @@ class LoggerConnector:
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
 
         # track batch_size
-        self.trainer.result_collections.extract_batch_size(batch)
-        self.trainer.result_collections.batch_idx = batch_idx
+        self.trainer.result_collection.extract_batch_size(batch)
+        self.trainer.result_collection.batch_idx = batch_idx
 
     def update_evaluation_step_metrics(self) -> None:
-        metrics = self.trainer.result_collections.metrics
+        metrics = self.trainer.result_collection.metrics
 
         # update metrics
         self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
@@ -236,17 +236,17 @@ class LoggerConnector:
 
     def on_train_start(self):
         root_device = self.trainer.lightning_module.device
-        self.trainer.result_collections.root_device = root_device
+        self.trainer.result_collection.root_device = root_device
 
     def on_train_split_start(self, batch_idx: int, split_batch: Any) -> None:
-        self.trainer.result_collections.extract_batch_size(split_batch)
-        self.trainer.result_collections.batch_idx = batch_idx
+        self.trainer.result_collection.extract_batch_size(split_batch)
+        self.trainer.result_collection.batch_idx = batch_idx
 
     def on_train_batch_end(self) -> None:
-        self.trainer.result_collections.batch_size = 1
+        self.trainer.result_collection.batch_size = 1
 
     def update_train_step_metrics(self, batch_output):
-        metrics = self.trainer.result_collections.metrics
+        metrics = self.trainer.result_collection.metrics
 
         # update metrics
         self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
@@ -268,11 +268,11 @@ class LoggerConnector:
 
     def on_train_epoch_end(self):
         # inform cached logger connector epoch finished
-        self.trainer.result_collections.on_epoch_end_reached = True
+        self.trainer.result_collection.on_epoch_end_reached = True
 
     def update_train_epoch_metrics(self) -> None:
 
-        metrics = self.trainer.result_collections.metrics
+        metrics = self.trainer.result_collection.metrics
 
         # update metrics
         self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
@@ -290,7 +290,7 @@ class LoggerConnector:
             self.log_metrics(epoch_log_metrics, {})
 
         # reset result collection for next epoch
-        self.trainer.result_collections.reset_metrics()
+        self.trainer.result_collection.reset_metrics()
 
     """
     Utilities and properties
@@ -298,8 +298,8 @@ class LoggerConnector:
 
     @property
     def callback_metrics(self) -> Dict[str, float]:
-        if self.trainer.result_collections:
-            metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.CALLBACK]
+        if self.trainer.result_collection:
+            metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.CALLBACK]
             self._callback_metrics.update(metrics)
             if os.getenv("PL_DEV_DEBUG", '0') == '1':
                 self._callback_metrics["debug_epoch"] = self.trainer.current_epoch
@@ -307,15 +307,15 @@ class LoggerConnector:
 
     @property
     def logged_metrics(self) -> Dict[str, float]:
-        if self.trainer.result_collections:
-            metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.LOG]
+        if self.trainer.result_collection:
+            metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.LOG]
             self._logged_metrics.update(metrics)
         return self._logged_metrics
 
     @property
     def progress_bar_metrics(self) -> Dict[str, float]:
-        if self.trainer.result_collections:
-            metrics = self.trainer.result_collections.metrics[DefaultMetricsKeys.PBAR]
+        if self.trainer.result_collection:
+            metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
 

@@ -517,14 +517,13 @@ class TrainerProperties(ABC):
         return self.train_loop.min_steps
 
     @property
-    def result_collections(self) -> Optional[ResultCollection]:
+    def result_collection(self) -> Optional[ResultCollection]:
         if self.training:
             return self.train_loop.train_results
         elif self.validating or self.sanity_checking:
             return self.evaluation_loop.validation_results
         elif self.testing:
             return self.evaluation_loop.test_results
-        return None
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

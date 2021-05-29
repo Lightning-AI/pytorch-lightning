@@ -22,10 +22,11 @@ import torch
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning import LightningModule, seed_everything
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
+from pytorch_lightning.trainer.connectors.logger_connector.result import DefaultMetricsKeys, ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -432,3 +433,138 @@ def test_metrics_reset(tmpdir):
 
     trainer.test(model)
     _assert_called(model, 'test')
+
+
+def test_result_collection_on_tensor_with_mean_reduction():
+    seed_everything(42)
+
+    result_collection = ResultCollection(True, torch.device("cpu"))
+
+    for i in range(1, 10):
+
+        result_collection.batch_idx = i
+
+        for prob_bar in [False, True]:
+
+            for logger in [False, True]:
+
+                i = float(i)
+
+                result_collection.log(
+                    "training_step",
+                    f"loss_1_{int(prob_bar)}_{int(logger)}",
+                    torch.tensor(i),
+                    on_step=True,
+                    on_epoch=True,
+                    batch_size=i**2,
+                    prog_bar=prob_bar,
+                    logger=logger
+                )
+                result_collection.log(
+                    "training_step",
+                    f"loss_2_{int(prob_bar)}_{int(logger)}",
+                    torch.tensor(i),
+                    on_step=False,
+                    on_epoch=True,
+                    batch_size=i**2,
+                    prog_bar=prob_bar,
+                    logger=logger
+                )
+                result_collection.log(
+                    "training_step",
+                    f"loss_3_{int(prob_bar)}_{int(logger)}",
+                    torch.tensor(i),
+                    on_step=True,
+                    on_epoch=False,
+                    batch_size=i**2,
+                    prog_bar=prob_bar,
+                    logger=logger
+                )
+                result_collection.log(
+                    "training_step",
+                    f"loss_4_{int(prob_bar)}_{int(logger)}",
+                    torch.tensor(i),
+                    on_step=False,
+                    on_epoch=False,
+                    batch_size=i**2,
+                    prog_bar=prob_bar,
+                    logger=logger
+                )
+
+    excepted_values = [
+        torch.tensor(1.),
+        torch.tensor(2.),
+        torch.tensor(3.),
+        torch.tensor(4.),
+        torch.tensor(5.),
+        torch.tensor(6.),
+        torch.tensor(7.),
+        torch.tensor(8.),
+        torch.tensor(9.)
+    ]
+    excepted_batches = [1, 4, 9, 16, 25, 36, 49, 64, 81]
+    total_value = torch.tensor(excepted_values) * torch.tensor(excepted_batches)
+    assert result_collection["training_step.loss_1_0_0"].value == sum(total_value)
+    assert result_collection["training_step.loss_1_0_0"].cumulated_batch_size == sum(excepted_batches)
+
+    batch_metrics = result_collection.get_batch_metrics()
+
+    expected = {
+        'loss_1_1_0_step': torch.tensor([9.]),
+        'loss_3_1_0': torch.tensor([9.]),
+        'loss_1_1_1_step': torch.tensor([9.]),
+        'loss_3_1_1': torch.tensor([9.])
+    }
+    assert batch_metrics[DefaultMetricsKeys.PBAR] == expected
+
+    excepted = {
+        'loss_1_0_1_step': torch.tensor([9.]),
+        'loss_3_0_1': torch.tensor([9.]),
+        'loss_1_1_1_step': torch.tensor([9.]),
+        'loss_3_1_1': torch.tensor([9.])
+    }
+    assert batch_metrics[DefaultMetricsKeys.LOG] == excepted
+
+    excepted = {
+        'loss_1_0_0': torch.tensor(9.),
+        'loss_1_0_0_step': torch.tensor(9.),
+        'loss_3_0_0': torch.tensor(9.),
+        'loss_1_0_1': torch.tensor(9.),
+        'loss_1_0_1_step': torch.tensor(9.),
+        'loss_3_0_1': torch.tensor(9.),
+        'loss_1_1_0': torch.tensor(9.),
+        'loss_1_1_0_step': torch.tensor(9.),
+        'loss_3_1_0': torch.tensor(9.),
+        'loss_1_1_1': torch.tensor(9.),
+        'loss_1_1_1_step': torch.tensor(9.),
+        'loss_3_1_1': torch.tensor(9.)
+    }
+    assert batch_metrics[DefaultMetricsKeys.CALLBACK] == excepted
+
+    result_collection.on_epoch_end_reached = True
+
+    epoch_metrics = result_collection.get_epoch_metrics()
+
+    mean = (torch.tensor(excepted_values) * torch.tensor(excepted_batches)).sum() / sum(excepted_batches)
+
+    expected = {'loss_1_1_0_epoch': mean, 'loss_2_1_0': mean, 'loss_1_1_1_epoch': mean, 'loss_2_1_1': mean}
+    assert epoch_metrics[DefaultMetricsKeys.PBAR] == expected
+
+    excepted = {'loss_1_0_1_epoch': mean, 'loss_2_0_1': mean, 'loss_1_1_1_epoch': mean, 'loss_2_1_1': mean}
+    assert epoch_metrics[DefaultMetricsKeys.LOG] == excepted
+
+    excepted = {
+        'loss_1_0_0': mean,
+        'loss_1_0_0_epoch': mean,
+        'loss_2_0_0': mean,
+        'loss_1_0_1': mean,
+        'loss_1_0_1_epoch': mean,
+        'loss_2_0_1': mean,
+        'loss_1_1_0': mean,
+        'loss_1_1_0_epoch': mean,
+        'loss_2_1_0': mean,
+        'loss_1_1_1': mean,
+        'loss_1_1_1_epoch': mean,
+        'loss_2_1_1': mean,
+    }
+    assert epoch_metrics[DefaultMetricsKeys.CALLBACK] == excepted

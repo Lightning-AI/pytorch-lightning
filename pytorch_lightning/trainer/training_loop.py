@@ -320,7 +320,7 @@ class TrainLoop:
         if training_step_output_for_epoch_end is None:
             return None, None
 
-        result = self.trainer.result_collections
+        result = self.trainer.result_collection
 
         loss = None
         hiddens = None

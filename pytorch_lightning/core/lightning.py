@@ -330,7 +330,7 @@ class LightningModule(
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
 
-        result_collections: Optional['ResultCollection'] = self.trainer.result_collections
+        result_collections: Optional['ResultCollection'] = self.trainer.result_collection
 
         if result_collections is not None:
             # TODO: if logged twice fail with crash

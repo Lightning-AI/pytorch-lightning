@@ -102,7 +102,7 @@ class EvaluationLoop(object):
             model_ref.on_validation_model_train()
 
     def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
-        self.trainer.result_collections.reset_metrics()
+        self.trainer.result_collection.reset_metrics()
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
