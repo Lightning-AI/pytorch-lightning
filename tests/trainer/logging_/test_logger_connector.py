@@ -575,33 +575,6 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
         assert 'val_loss_custom_naming_1' in logged
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_logged_metrics_steps(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def validation_step(self, batch, batch_idx):
-            loss_val = torch.randn(1)
-            self.log('val_loss', loss_val)
-            return loss_val
-
-    model = TestModel()
-    model.validation_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
-        log_every_n_steps=1,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 1
-    assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 3
-
-
 def test_metrics_reset(tmpdir):
     """Tests that metrics are reset correctly after the end of the train/val/test epoch."""
 
