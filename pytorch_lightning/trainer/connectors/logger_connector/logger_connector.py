@@ -110,7 +110,7 @@ class LoggerConnector:
                 self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
                 self.trainer.logger.save()
 
-            self.add_logged_metrics(scalar_metrics)
+            self._logged_metrics.update(scalar_metrics)
 
     """
     Evaluation metric updates
@@ -127,8 +127,6 @@ class LoggerConnector:
             return
 
         callback_metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.CALLBACK]
-        if os.getenv("PL_DEV_DEBUG", '0') == '1':
-            callback_metrics["debug_epoch"] = self.trainer.current_epoch
         callback_metrics = deepcopy(callback_metrics)
         for key in list(callback_metrics.keys()):
             if "dataloader_idx" in key:
@@ -150,8 +148,8 @@ class LoggerConnector:
         metrics = self.trainer.result_collection.metrics
 
         # update metrics
-        self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
-        self.add_callback_metrics(metrics[DefaultMetricsKeys.CALLBACK])
+        self._progress_bar_metrics.update(metrics[DefaultMetricsKeys.PBAR])
+        self._callback_metrics.update(metrics[DefaultMetricsKeys.CALLBACK])
 
         if not self.trainer.sanity_checking:
 
@@ -214,15 +212,14 @@ class LoggerConnector:
         metrics = self.trainer.result_collection.metrics
 
         # update metrics
-        self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
-        self.add_callback_metrics(metrics[DefaultMetricsKeys.CALLBACK])
+        self._progress_bar_metrics.update(metrics[DefaultMetricsKeys.PBAR])
+        self._callback_metrics.update(metrics[DefaultMetricsKeys.CALLBACK])
 
         if self.trainer.sanity_checking:
             return
 
-        batch_log_metrics = metrics[DefaultMetricsKeys.LOG]
-
         # logs user requested information to logger
+        batch_log_metrics = metrics[DefaultMetricsKeys.LOG]
         if len(batch_log_metrics) > 0:
             kwargs = dict() if "step" in batch_log_metrics else dict(step=self.evaluation_log_step)
             self.log_metrics(batch_log_metrics, {}, **kwargs)
@@ -249,15 +246,14 @@ class LoggerConnector:
         metrics = self.trainer.result_collection.metrics
 
         # update metrics
-        self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
-        self.add_callback_metrics(metrics[DefaultMetricsKeys.CALLBACK])
+        self._progress_bar_metrics.update(metrics[DefaultMetricsKeys.PBAR])
+        self._callback_metrics.update(metrics[DefaultMetricsKeys.CALLBACK])
 
         if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
-        batch_log_metrics = metrics[DefaultMetricsKeys.LOG]
-
         # when metrics should be logged
+        batch_log_metrics = metrics[DefaultMetricsKeys.LOG]
         if self.should_update_logs or self.trainer.fast_dev_run is True:
             # logs user requested information to logger
             grad_norm_dict = batch_output.grad_norm_dict
@@ -274,16 +270,11 @@ class LoggerConnector:
 
         metrics = self.trainer.result_collection.metrics
 
-        # update metrics
-        self.add_progress_bar_metrics(metrics[DefaultMetricsKeys.PBAR])
-
-        callback_metrics = metrics[DefaultMetricsKeys.CALLBACK]
-
-        self._callback_metrics.update(callback_metrics)
-
-        epoch_log_metrics = metrics[DefaultMetricsKeys.LOG]
+        self._progress_bar_metrics.update(metrics[DefaultMetricsKeys.PBAR])
+        self._callback_metrics.update(metrics[DefaultMetricsKeys.CALLBACK])
 
         # add the metrics to the loggers
+        epoch_log_metrics = metrics[DefaultMetricsKeys.LOG]
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
             epoch_log_metrics["epoch"] = self.trainer.current_epoch
             self._logged_metrics.update(epoch_log_metrics)
@@ -301,8 +292,6 @@ class LoggerConnector:
         if self.trainer.result_collection:
             metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.CALLBACK]
             self._callback_metrics.update(metrics)
-            if os.getenv("PL_DEV_DEBUG", '0') == '1':
-                self._callback_metrics["debug_epoch"] = self.trainer.current_epoch
         return self._callback_metrics
 
     @property
@@ -318,17 +307,6 @@ class LoggerConnector:
             metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
-
-    def add_progress_bar_metrics(self, metrics: Dict[str, float]) -> None:
-        self._progress_bar_metrics.update(metrics)
-        self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
-
-    def add_logged_metrics(self, metrics: Dict[str, float]) -> None:
-        self._logged_metrics.update(metrics)
-        self.trainer.dev_debugger.track_logged_metrics_history(metrics)
-
-    def add_callback_metrics(self, metrics: Dict[str, float]) -> None:
-        self._callback_metrics.update(metrics)
 
     def check_logging(self, fx_name: str, on_step: bool, on_epoch: bool) -> None:
         self._fx_validator.check_logging(fx_name=fx_name, on_step=on_step, on_epoch=on_epoch)

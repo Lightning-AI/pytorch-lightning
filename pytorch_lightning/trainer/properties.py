@@ -63,9 +63,9 @@ class TrainerProperties(ABC):
     state: TrainerState
     train_loop: TrainLoop
     evaluation_loop: EvaluationLoop
-    '''
+    """
     Accelerator properties
-    '''
+    """
 
     @property
     def accelerator(self) -> Accelerator:
@@ -209,9 +209,9 @@ class TrainerProperties(ABC):
         """
         self.accelerator.model = model
 
-    '''
+    """
     General properties
-    '''
+    """
 
     @property
     def log_dir(self) -> Optional[str]:
@@ -364,9 +364,9 @@ class TrainerProperties(ABC):
     def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 
-    '''
+    """
     Parsing properties
-    '''
+    """
 
     @classmethod
     def default_attributes(cls) -> dict:
@@ -398,9 +398,9 @@ class TrainerProperties(ABC):
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
         return add_argparse_args(cls, parent_parser, **kwargs)
 
-    '''
+    """
     State properties
-    '''
+    """
 
     @property
     def interrupted(self) -> bool:
@@ -476,9 +476,9 @@ class TrainerProperties(ABC):
         elif self.sanity_checking:
             self.state.stage = None
 
-    '''
+    """
     Loop properties
-    '''
+    """
 
     @property
     def global_step(self) -> int:
@@ -504,9 +504,9 @@ class TrainerProperties(ABC):
     def min_steps(self) -> Optional[int]:
         return self.train_loop.min_steps
 
-    '''
+    """
     Logging properties
-    '''
+    """
 
     @property
     def callback_metrics(self) -> dict:
@@ -529,9 +529,9 @@ class TrainerProperties(ABC):
         elif self.testing:
             return self.evaluation_loop.test_results
 
-    '''
+    """
     Other
-    '''
+    """
 
     # TODO: refactor this so that it can be done in LightningOptimizer
     def __getstate__(self):
