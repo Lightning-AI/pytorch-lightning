@@ -19,9 +19,9 @@ from typing import Any, Dict, Iterable, Optional
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.core.result import DefaultMetricsKeys
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
+from pytorch_lightning.trainer.connectors.logger_connector.result import DefaultMetricsKeys
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars

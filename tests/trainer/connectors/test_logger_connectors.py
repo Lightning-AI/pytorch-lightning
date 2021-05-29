@@ -15,7 +15,7 @@ import torch
 from torch import tensor
 
 from pytorch_lightning import seed_everything
-from pytorch_lightning.core.result import DefaultMetricsKeys, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import DefaultMetricsKeys, ResultCollection
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
