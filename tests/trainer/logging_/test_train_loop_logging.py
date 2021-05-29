@@ -21,7 +21,6 @@ import itertools
 import numpy as np
 import pytest
 import torch
-from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
