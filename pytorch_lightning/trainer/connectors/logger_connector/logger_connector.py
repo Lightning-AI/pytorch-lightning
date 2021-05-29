@@ -19,7 +19,7 @@ from typing import Any, Dict, Iterable, Optional
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.core.step_result import DefaultMetricsKeys
+from pytorch_lightning.core.result import DefaultMetricsKeys
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn

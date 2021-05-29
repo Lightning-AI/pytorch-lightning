@@ -28,7 +28,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.step_result import ResultCollection
+from pytorch_lightning.core.result import ResultCollection
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.plugins import Plugin
 from pytorch_lightning.plugins.environments import ClusterEnvironment

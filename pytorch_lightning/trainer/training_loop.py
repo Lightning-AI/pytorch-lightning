@@ -22,7 +22,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.step_result import ResultCollection
+from pytorch_lightning.core.result import ResultCollection
 from pytorch_lightning.plugins import ParallelPlugin
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import _TPU_AVAILABLE, AMPType, DeviceType

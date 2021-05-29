@@ -26,7 +26,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.step_result import ResultCollection
+from pytorch_lightning.core.result import ResultCollection
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
