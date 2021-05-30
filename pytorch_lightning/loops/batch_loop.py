@@ -78,7 +78,7 @@ class BatchLoop(Loop):
         return output
 
     def reset(self) -> None:
-        self.iteration_count = 0
+        # self.iteration_count = 0
 
         self._hiddens = None
         # TODO: let loops track individual outputs
@@ -355,7 +355,8 @@ class BatchLoop(Loop):
 
     def _accumulated_batches_reached(self):
         # TODO: use progress tracking of batches instead of iteration count, because iteration count may reset
-        return (self.iteration_count + 1) % self.trainer.accumulate_grad_batches == 0
+        #   iteration count is required to be global here, not reset
+        return self.iteration_count % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch=False):
         # TODO: use progress tracking of batches instead of iteration count, because iteration count may reset
