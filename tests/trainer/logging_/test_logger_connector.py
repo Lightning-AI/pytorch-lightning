@@ -561,7 +561,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     model = TestModel()
     model.validation_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
     logged = trainer.logged_metrics
 
