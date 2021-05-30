@@ -747,39 +747,30 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert set(get_metrics_at_idx(1)) == expected
     assert set(get_metrics_at_idx(2)) == expected
 
-    expected = model.val_losses[2]
-    assert get_metrics_at_idx(1)["valid_loss_0_step"] == expected
-    expected = model.val_losses[3]
-    assert get_metrics_at_idx(2)["valid_loss_0_step"] == expected
+    assert get_metrics_at_idx(1)["valid_loss_0_step"] == model.val_losses[2]
+    assert get_metrics_at_idx(2)["valid_loss_0_step"] == model.val_losses[3]
 
-    expected = {'valid_loss_0_epoch', 'valid_loss_1', 'epoch'}
-    assert set(get_metrics_at_idx(3)) == expected
+    assert set(get_metrics_at_idx(3)) == {'valid_loss_0_epoch', 'valid_loss_1', 'epoch'}
 
-    expected = torch.stack(model.val_losses[2:4]).mean()
-    assert get_metrics_at_idx(3)["valid_loss_1"] == expected
+    assert get_metrics_at_idx(3)["valid_loss_1"] == torch.stack(model.val_losses[2:4]).mean()
 
     expected = {'valid_loss_0_step', 'valid_loss_2'}
     assert set(get_metrics_at_idx(4)) == expected
     assert set(get_metrics_at_idx(5)) == expected
 
-    expected = model.val_losses[4]
-    assert get_metrics_at_idx(4)["valid_loss_0_step"] == expected
-    expected = model.val_losses[5]
-    assert get_metrics_at_idx(5)["valid_loss_0_step"] == expected
+    assert get_metrics_at_idx(4)["valid_loss_0_step"] == model.val_losses[4]
+    assert get_metrics_at_idx(5)["valid_loss_0_step"] == model.val_losses[5]
 
-    expected = {'valid_loss_0_epoch', 'valid_loss_1', 'epoch'}
-    assert set(get_metrics_at_idx(6)) == expected
+    assert set(get_metrics_at_idx(6)) == {'valid_loss_0_epoch', 'valid_loss_1', 'epoch'}
 
-    expected = torch.stack(model.val_losses[4:]).mean()
-    assert get_metrics_at_idx(6)["valid_loss_1"] == expected
+    assert get_metrics_at_idx(6)["valid_loss_1"] == torch.stack(model.val_losses[4:]).mean()
 
     results = trainer.test(model)
-    expected = {
+    assert set(trainer.callback_metrics) == {
         'train_loss',
         'valid_loss_0_epoch',
         'valid_loss_0',
         'valid_loss_1',
         'test_loss',
     }
-    assert set(trainer.callback_metrics) == expected
     assert set(results[0]) == {'test_loss'}

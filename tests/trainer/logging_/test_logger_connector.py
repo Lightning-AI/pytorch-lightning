@@ -14,6 +14,8 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
+from copy import deepcopy
+from typing import Any, Callable
 from unittest import mock
 
 import pytest
@@ -272,13 +274,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     model = TestModel()
     model.validation_epoch_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        num_sanity_val_steps=0,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
     logged = trainer.logged_metrics
 
