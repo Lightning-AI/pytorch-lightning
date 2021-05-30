@@ -54,7 +54,7 @@ CONVERSION_DTYPES = [
 ]
 
 
-def _is_namedtuple(obj):
+def _is_namedtuple(obj: object) -> bool:
     # https://github.com/pytorch/pytorch/blob/v1.8.1/torch/nn/parallel/scatter_gather.py#L4-L8
     return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
 
@@ -82,7 +82,7 @@ def apply_to_collection(
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
     Returns:
-        the resulting collection
+        The resulting collection
     """
 
     # Breaking condition
@@ -123,7 +123,7 @@ def apply_to_collections(
     **kwargs
 ) -> Any:
     """
-    Recursively applies a function to all elements of a certain dtype.
+    Zips two collections and applies a function to their items of a certain dtype.
 
     Args:
         data: The first collection
@@ -136,7 +136,7 @@ def apply_to_collections(
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
     Returns:
-        the resulting collection
+        The resulting collection
     """
     if isinstance(data1, dtype) and data2 is not None and (wrong_dtype is None or not isinstance(data1, wrong_dtype)):
         return function(data1, data2, *args, **kwargs)
