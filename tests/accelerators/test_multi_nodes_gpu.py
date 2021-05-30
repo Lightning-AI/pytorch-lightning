@@ -115,7 +115,7 @@ def test__validation_step__log(tmpdir):
     trainer.fit(model)
 
     # make sure all the metrics are available for callbacks
-    expected_logged_metrics = {
+    assert set(trainer.logged_metrics) == {
         'a2',
         'a_step',
         'a_epoch',
@@ -123,11 +123,7 @@ def test__validation_step__log(tmpdir):
         'b_epoch',
         'epoch',
     }
-    logged_metrics = set(trainer.logged_metrics.keys())
-    assert expected_logged_metrics == logged_metrics
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
-    callback_metrics = set(trainer.callback_metrics.keys())
-    expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
-    assert expected_cb_metrics == callback_metrics
+    assert set(trainer.callback_metrics) == {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
