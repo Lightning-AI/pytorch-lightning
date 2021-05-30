@@ -361,7 +361,7 @@ class LightningModule(
                 sync_dist_group=sync_dist_group,
                 device=self.device,
             )
-            value = apply_to_collection(value, (torch.Tensor, float, int), sync_fn)
+            value = apply_to_collection(value, (torch.Tensor, numbers.Number), sync_fn)
 
             result_collection.log(
                 self._current_fx_name,
@@ -437,22 +437,16 @@ class LightningModule(
 
     @staticmethod
     def __sync(
-        value: _METRIC,
+        value: Union[torch.Tensor, numbers.Number],
         sync_fn: Optional[Callable] = None,
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         device: torch.device = None,
-    ) -> _METRIC:
+    ) -> torch.Tensor:
         """Sync across workers when using distributed training"""
-        if isinstance(value, torch.Tensor):
-            # TODO: Find a way to make the reduction only once, so we don't need to clone.
-            value = value.clone()
-        elif isinstance(value, numbers.Number):
+        if isinstance(value, numbers.Number):
             value = torch.tensor(value, device=device, dtype=torch.float)
-        else:
-            return value
-
         sync_fn = sync_fn or sync_ddp_if_available
         dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
         if not sync_dist or not dist_available:
