@@ -14,9 +14,6 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-import os
-from copy import deepcopy
-from typing import Any, Callable
 from unittest import mock
 
 import pytest
