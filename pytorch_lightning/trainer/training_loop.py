@@ -282,10 +282,8 @@ class TrainLoop:
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
-                training_step_output, split_batch
-            )
-            if training_step_output_for_epoch_end is None:
+            training_step_output = self._process_training_step_output(training_step_output)
+            if training_step_output is None:
                 return
 
         # enable empty loss when using manual opt
@@ -304,16 +302,12 @@ class TrainLoop:
             closure_loss=closure_loss,
             loss=untouched_loss,
             training_step_output=training_step_output,
-            training_step_output_for_epoch_end=training_step_output_for_epoch_end,
         )
         return result
 
-    def _process_training_step_output(self, training_step_output, split_batch):
-        training_step_output_for_epoch_end = training_step_output
-
-        # enable validation_step return None
-        if training_step_output_for_epoch_end is None:
-            return None, None
+    def _process_training_step_output(self, training_step_output):
+        if training_step_output is None:
+            return None
 
         result = self.trainer.result_collection
 
@@ -340,7 +334,7 @@ class TrainLoop:
         if self.trainer.move_metrics_to_cpu:
             result = result.cpu()
 
-        return result, result
+        return result
 
     @staticmethod
     def _prepare_outputs(
@@ -485,20 +479,19 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            # -----------------------------------------
-            # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
-            # -----------------------------------------
-            self.trainer.logger_connector.update_train_step_metrics(batch_output)
-
             # hook
-            # TODO: add outputs to batches
             self.on_train_batch_end(
                 epoch_output,
-                batch_output.training_step_output_for_epoch_end,
+                batch_output.training_step_output,
                 batch,
                 batch_idx,
                 dataloader_idx,
             )
+
+            # -----------------------------------------
+            # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
+            # -----------------------------------------
+            self.trainer.logger_connector.update_train_step_metrics(batch_output)
 
             # -----------------------------------------
             # VALIDATE IF NEEDED
@@ -635,7 +628,7 @@ class TrainLoop:
             return AttributeDict(
                 signal=0,
                 grad_norm_dict={},
-                training_step_output_for_epoch_end=batch_outputs,
+                training_step_output=batch_outputs,
             )
 
         # hook
@@ -658,20 +651,19 @@ class TrainLoop:
                 for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                     result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                     if result:
-                        batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
+                        batch_outputs[opt_idx].append(result.training_step_output)
                         grad_norm_dict = result.get("grad_norm_dict", {})
             else:
                 # in manual optimization, there is no looping over optimizers
                 result = self._run_optimization(batch_idx, split_batch)
                 if result:
-                    batch_outputs[0].append(result.training_step_output_for_epoch_end)
+                    batch_outputs[0].append(result.training_step_output)
 
-        output = AttributeDict(
+        return AttributeDict(
             signal=0,
             grad_norm_dict=grad_norm_dict,
-            training_step_output_for_epoch_end=batch_outputs,
+            training_step_output=batch_outputs,
         )
-        return output
 
     def _run_optimization(self, batch_idx, split_batch, opt_idx=0, optimizer=None):
         # TODO: In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change

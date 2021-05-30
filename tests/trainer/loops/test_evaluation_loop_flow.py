@@ -73,7 +73,7 @@ def test__eval_step__flow(tmpdir):
     assert out.signal == 0
     assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
-    train_step_out = out.training_step_output_for_epoch_end
+    train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out.minimize, torch.Tensor)
@@ -146,7 +146,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     assert out.signal == 0
     assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
-    train_step_out = out.training_step_output_for_epoch_end
+    train_step_out = out.training_step_output
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out.minimize, torch.Tensor)
