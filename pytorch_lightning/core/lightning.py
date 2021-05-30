@@ -15,6 +15,7 @@
 
 import collections
 import copy
+import functools
 import inspect
 import logging
 import numbers
@@ -47,7 +48,7 @@ from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_d
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -112,7 +113,6 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
-        self._metric_attributes: Optional[Dict[int, str]] = None
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -344,14 +344,8 @@ class LightningModule(
                 )
 
             if metric_attribute is None and isinstance(value, Metric):
-                if self._metric_attributes is None:
-                    # compute once
-                    self._metric_attributes = {
-                        module: name
-                        for name, module in self.named_children() if isinstance(module, Metric)
-                    }
                 # try to find the passed metric in the LightningModule
-                metric_attribute = self._metric_attributes.get(value, None)
+                metric_attribute = self.__metric_attributes.get(value, None)
 
             sync_fn = partial(
                 self.__sync,
@@ -377,6 +371,11 @@ class LightningModule(
                 batch_size=batch_size,
                 lightning_attribute_name=metric_attribute,
             )
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def __metric_attributes(self) -> Dict[Metric, str]:
+        return {module: name for name, module in self.named_children() if isinstance(module, Metric)}
 
     def log_dict(
         self,
