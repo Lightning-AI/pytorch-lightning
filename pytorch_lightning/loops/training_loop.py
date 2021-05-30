@@ -174,12 +174,6 @@ class TrainingLoop(Loop):
         self.trainer.call_hook('on_epoch_end')
         return self.epoch_output
 
-    def __getstate__(self):
-        # avoid pickling errors "cannot pickle generator object"
-        self._train_dataloader = None
-        return self.__dict__
-
-
 # ------------------------------------------------------------------------------------------------------------
 # HELPER --- TO BE CLEANED UP
 # ------------------------------------------------------------------------------------------------------------
