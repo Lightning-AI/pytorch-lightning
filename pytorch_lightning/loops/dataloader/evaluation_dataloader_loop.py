@@ -44,7 +44,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         self.iteration_count = 0
 
         # prepare dataloaders
-        self._dataloaders, self._max_batches = self.get_evaluation_dataloaders()
+        self._dataloaders, self._max_batches = self.get_eval_dataloaders(), self.get_max_batches()
         # bookkeeping
         self.outputs = []
 
@@ -98,6 +98,35 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 # HELPER --- TO BE CLEANED UP
 # ------------------------------------------------------------------------------------------------------------
 
+    def get_max_batches(self):
+        # select dataloaders
+        if self.trainer.testing:
+            max_batches = self.trainer.num_test_batches
+        else:
+            if self.trainer.sanity_checking:
+                self.trainer.num_sanity_val_batches = [
+                    min(self.trainer.num_sanity_val_steps, val_batches) for val_batches in self.trainer.num_val_batches
+                ]
+                max_batches = self.trainer.num_sanity_val_batches
+            else:
+                max_batches = self.trainer.num_val_batches
+        return max_batches
+
+    def get_eval_dataloaders(self):
+        model = self.trainer.lightning_module
+
+        # select dataloaders
+        if self.trainer.testing:
+            # self.trainer.reset_test_dataloader(model)
+            dataloaders = self.trainer.test_dataloaders
+        else:
+            # val
+            # if self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
+            #     self.trainer.reset_val_dataloader(model)
+            dataloaders = self.trainer.val_dataloaders
+        return dataloaders
+
+    # TODO: remove this method, got split into two above
     def get_evaluation_dataloaders(self) -> Tuple[Optional[List[DataLoader]], List[Union[int, float]]]:
         model = self.trainer.lightning_module
 

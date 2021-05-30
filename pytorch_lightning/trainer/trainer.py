@@ -1064,6 +1064,13 @@ class Trainer(
         if self.evaluation_loop.should_skip_evaluation(max_batches):
             return [], []
 
+        # enable eval mode + no grads
+        self.evaluation_loop.on_evaluation_model_eval()
+        # ref model
+        model = self.lightning_module
+        model.zero_grad()
+        torch.set_grad_enabled(False)
+
         # hook
         self.evaluation_loop.on_evaluation_start()
 
@@ -1140,23 +1147,26 @@ class Trainer(
             )
             self.validating = True
 
-        # TODO: move this check inside new loop
-        # prepare dataloaders
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
-
-        # TODO: move this check inside new loop
-        # check if we want to skip this evaluation
-        if self.evaluation_loop.should_skip_evaluation(max_batches):
-            return [], []
-
-        # enable eval mode + no grads
-        self.evaluation_loop.on_evaluation_model_eval()
-        # ref model
-        model = self.lightning_module
-        model.zero_grad()
-        torch.set_grad_enabled(False)
-
         if NEW_LOOP:
+            # # TODO: move this check inside new loop
+            # # prepare dataloaders
+
+            dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
+
+            # max_batches = self.evaluation_loop.get_max_batches()
+            #
+            # # TODO: move this check inside new loop
+            # # check if we want to skip this evaluation
+            if self.evaluation_loop.should_skip_evaluation(max_batches):
+                return [], []
+
+            # enable eval mode + no grads
+            self.evaluation_loop.on_evaluation_model_eval()
+            # ref model
+            model = self.lightning_module
+            model.zero_grad()
+            torch.set_grad_enabled(False)
+
             eval_loop_results = self.evaluation_loop.run()
         else:
             eval_loop_results = self._run_evaluatin_old_loop()
