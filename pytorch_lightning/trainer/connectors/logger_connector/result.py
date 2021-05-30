@@ -501,7 +501,7 @@ class ResultCollection(dict):
 
             # extract forward_cache or computed from the ResultMetric
             # ignore when the output of fn is None
-            value = apply_to_collection(result_metric, ResultMetric, fn, remove_none=True)
+            value = apply_to_collection(result_metric, ResultMetric, fn, include_none=False)
 
             # detect if the value is None. This can be nested.
             is_empty = True
@@ -513,12 +513,8 @@ class ResultCollection(dict):
                     is_empty = False
 
             # apply detection.
-            # todo: (tchaton) need to find a way to support NamedTuple
-            wrong_dtype = (
-                Mapping,
-                Sequence,
-            )
-            apply_to_collection(value, object, is_empty_fn, wrong_dtype=wrong_dtype)
+            # TODO(@tchaton): need to find a way to support NamedTuple
+            apply_to_collection(value, object, is_empty_fn, wrong_dtype=(Mapping, Sequence))
 
             # skip is the value was actually empty.
             if is_empty:
@@ -543,7 +539,7 @@ class ResultCollection(dict):
 
             # populate progress_bar metrics. By default, the value should be converted to a float.
             if prog_bar:
-                value = apply_to_collection(value, torch.Tensor, self._to_item, remove_none=True)
+                value = apply_to_collection(value, torch.Tensor, self._to_item, include_none=False)
                 metrics[DefaultMetricsKeys.PBAR][name_forked] = value
 
         return metrics
