@@ -15,9 +15,10 @@ import numbers
 from collections import namedtuple
 
 import numpy as np
+import pytest
 import torch
 
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 
 
 def test_recursive_application_to_collection():
@@ -76,3 +77,67 @@ def test_recursive_application_to_collection():
 
     assert isinstance(reduced['g'], numbers.Number), 'Reduction of a number should result in a tensor'
     assert reduced['g'] == expected_result['g'], 'Reduction of a number did not yield the desired result'
+
+
+def test_apply_to_collection_include_none():
+    to_reduce = [1, 2, 3.4, 5.6, 7]
+
+    def fn(x):
+        if isinstance(x, float):
+            return x
+
+    reduced = apply_to_collection(to_reduce, (int, float), fn)
+    assert reduced == [None, None, 3.4, 5.6, None]
+
+    reduced = apply_to_collection(to_reduce, (int, float), fn, include_none=False)
+    assert reduced == [3.4, 5.6]
+
+
+def test_apply_to_collections():
+    to_reduce_1 = {'a': {'b': [1, 2]}, 'c': 5}
+    to_reduce_2 = {'a': {'b': [3, 4]}, 'c': 6}
+
+    def fn(a, b):
+        return a + b
+
+    # basic test
+    reduced = apply_to_collections(to_reduce_1, to_reduce_2, int, fn)
+    assert reduced == {'a': {'b': [4, 6]}, 'c': 11}
+
+    with pytest.raises(KeyError):
+        # strict mode - if a key does not exist in both we fail
+        apply_to_collections({**to_reduce_2, 'd': 'foo'}, to_reduce_1, float, fn)
+
+    # multiple dtypes
+    reduced = apply_to_collections(to_reduce_1, to_reduce_2, (list, int), fn)
+    assert reduced == {'a': {'b': [1, 2, 3, 4]}, 'c': 11}
+
+    # wrong dtype
+    reduced = apply_to_collections(to_reduce_1, to_reduce_2, (list, int), fn, wrong_dtype=int)
+    assert reduced == {'a': {'b': [1, 2, 3, 4]}, 'c': 5}
+
+    # list takes precedence because it is the type of data1
+    reduced = apply_to_collections([1, 2, 3], [4], (int, list), fn)
+    assert reduced == [1, 2, 3, 4]
+
+    # different sizes
+    with pytest.raises(AssertionError, match='Sequence collections have different sizes'):
+        apply_to_collections([[1, 2], [3]], [4], int, fn)
+
+    def fn(a, b):
+        return a.keys() | b.keys()
+
+    # base case
+    reduced = apply_to_collections(to_reduce_1, to_reduce_2, dict, fn)
+    assert reduced == {'a', 'c'}
+
+    # type conversion
+    to_reduce = [(1, 2), (3, 4)]
+    reduced = apply_to_collections(to_reduce, to_reduce, int, lambda *x: sum(x))
+    assert reduced == [(2, 4), (6, 8)]
+
+    # named tuple
+    foo = namedtuple('Foo', ['bar'])
+    to_reduce = [foo(1), foo(2), foo(3)]
+    reduced = apply_to_collections(to_reduce, to_reduce, int, lambda *x: sum(x))
+    assert reduced == [foo(2), foo(4), foo(6)]
