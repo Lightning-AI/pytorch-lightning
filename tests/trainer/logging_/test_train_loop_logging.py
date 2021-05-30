@@ -503,6 +503,7 @@ def test_log_works_in_train_callback(tmpdir):
         return expected_output
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
+    # pop extra keys
     assert trainer.logged_metrics["train_loss"] == model.manual_loss[-1]
     assert trainer.callback_metrics["train_loss"] == model.manual_loss[-1]
     trainer.callback_metrics.pop("train_loss")

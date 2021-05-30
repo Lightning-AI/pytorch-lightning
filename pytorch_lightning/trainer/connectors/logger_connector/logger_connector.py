@@ -230,7 +230,6 @@ class LoggerConnector:
 
             # track the logged metrics
             self.logged_metrics.update(scalar_metrics)
-            self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
@@ -238,8 +237,6 @@ class LoggerConnector:
                 v = v.item()
 
             self._progress_bar_metrics.metrics[k] = v
-
-        self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
     def evaluation_epoch_end(self):
         # reset dataloader idx
