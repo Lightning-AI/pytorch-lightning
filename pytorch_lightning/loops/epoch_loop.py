@@ -102,7 +102,7 @@ class EpochLoop(Loop):
         should_stop = False
         if self.trainer.should_stop:
             # early stopping
-            met_min_epochs = (self.current_epoch >= self.min_epochs - 1) if self.min_epochs else True
+            met_min_epochs = self.current_epoch >= self.min_epochs if self.min_epochs else True
             met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 # TODO: THIS is now in on_run_end, always run?
