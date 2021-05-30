@@ -448,16 +448,17 @@ class LightningModule(
         if not isinstance(value, (torch.Tensor, numbers.Number)):
             return value
 
+        sync_fn = sync_fn or sync_ddp_if_available
+        dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
+        if not sync_dist or not dist_available:
+            return value
+
         # TODO: Find a way to make the reduction only once, so we don't need to clone.
         if isinstance(value, torch.Tensor):
             value = value.clone()
         else:
             value = torch.tensor(value, device=device, dtype=torch.float)
 
-        sync_fn = sync_fn or sync_ddp_if_available
-        dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
-        if not sync_dist or not dist_available:
-            return value
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
     def write_prediction(
