@@ -16,7 +16,6 @@ Tests to ensure that the training loop works with a dict (1.0)
 """
 import collections
 import itertools
-import os
 from unittest import mock
 from unittest.mock import call
 
@@ -160,7 +159,6 @@ def test__validation_step__step_end__epoch_end__log(tmpdir):
     assert expected_cb_metrics == callback_metrics
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     """
@@ -199,15 +197,11 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     assert pbar_metrics == expected_pbar_metrics
 
     callback_metrics = set(trainer.callback_metrics.keys())
-    callback_metrics.remove('debug_epoch')
     expected_callback_metrics = set()
     expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
     expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
     expected_callback_metrics.remove('epoch')
     assert callback_metrics == expected_callback_metrics
-
-    # assert the loggers received the expected number
-    assert len(trainer.dev_debugger.logged_metrics) == max_epochs
 
 
 def test_eval_float_logging(tmpdir):
@@ -244,7 +238,6 @@ def test_eval_float_logging(tmpdir):
     assert logged_metrics == expected_logged_metrics
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_eval_logging_auto_reduce(tmpdir):
     """
     Tests that only training_step can be used
@@ -288,25 +281,11 @@ def test_eval_logging_auto_reduce(tmpdir):
     # make sure all the metrics are available for callbacks
     manual_mean = model.manual_epoch_end_mean
     callback_metrics = set(trainer.callback_metrics.keys())
-    assert callback_metrics == {'debug_epoch', 'val_loss', 'val_loss_epoch'}
+    assert callback_metrics == {'val_loss', 'val_loss_epoch'}
 
     # make sure values are correct
     assert trainer.logged_metrics['val_loss_epoch'] == manual_mean
     assert trainer.callback_metrics['val_loss'] == trainer.logged_metrics['val_loss_step']
-
-    # make sure correct values were logged
-    logged_val = trainer.dev_debugger.logged_metrics
-
-    # 3 val batches
-    assert logged_val[0]['val_loss_step'] == model.seen_vals[0]
-    assert logged_val[1]['val_loss_step'] == model.seen_vals[1]
-    assert logged_val[2]['val_loss_step'] == model.seen_vals[2]
-
-    # epoch mean
-    assert logged_val[3]['val_loss_epoch'] == model.manual_epoch_end_mean
-
-    # only those logged
-    assert len(logged_val) == 4
 
 
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
@@ -414,7 +393,6 @@ def test_single_dataloader_no_suffix_added(tmpdir):
     assert {"test_loss", "test_loss_epoch"} == set(results[0])
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_log_works_in_val_callback(tmpdir):
     """
     Tests that log can be called within callback
@@ -588,7 +566,6 @@ def test_log_works_in_val_callback(tmpdir):
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
-    trainer.callback_metrics.pop("debug_epoch")
     trainer.callback_metrics.pop("val_loss")
     for func_name, output_value in trainer.callback_metrics.items():
         # not sure how to handle this now
@@ -615,7 +592,6 @@ def test_log_works_in_val_callback(tmpdir):
             assert func_name not in trainer.logger_connector.progress_bar_metrics
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_log_works_in_test_callback(tmpdir):
     """
     Tests that log can be called within callback
@@ -770,10 +746,6 @@ def test_log_works_in_test_callback(tmpdir):
         return expected_output
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
-    # pop extra keys
-    assert "debug_epoch" in trainer.callback_metrics
-    trainer.callback_metrics.pop("debug_epoch")
-
     for dl_idx in range(num_dataloaders):
         key = f"test_loss/dataloader_idx_{dl_idx}"
         assert key in trainer.callback_metrics
@@ -807,7 +779,6 @@ def test_log_works_in_test_callback(tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     """
     This tests make sure we properly log_metrics to loggers
@@ -870,7 +841,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         else:
             return mock_calls[idx][2]["metrics"]
 
-    expected = ['valid_loss_0_step', 'valid_loss_2', 'global_step']
+    expected = ['valid_loss_0_step', 'valid_loss_2']
     assert sorted(get_metrics_at_idx(1)) == sorted(expected)
     assert sorted(get_metrics_at_idx(2)) == sorted(expected)
 
@@ -879,12 +850,12 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     expected = model.val_losses[3]
     assert get_metrics_at_idx(2)["valid_loss_0_step"] == expected
 
-    expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
+    expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch']
     assert sorted(get_metrics_at_idx(3)) == sorted(expected)
 
     expected = torch.stack(model.val_losses[2:4]).mean()
     assert get_metrics_at_idx(3)["valid_loss_1"] == expected
-    expected = ['valid_loss_0_step', 'valid_loss_2', 'global_step']
+    expected = ['valid_loss_0_step', 'valid_loss_2']
 
     assert sorted(get_metrics_at_idx(4)) == sorted(expected)
     assert sorted(get_metrics_at_idx(5)) == sorted(expected)
@@ -894,7 +865,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     expected = model.val_losses[5]
     assert get_metrics_at_idx(5)["valid_loss_0_step"] == expected
 
-    expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch', 'global_step']
+    expected = ['valid_loss_0_epoch', 'valid_loss_1', 'epoch']
     assert sorted(get_metrics_at_idx(6)) == sorted(expected)
 
     expected = torch.stack(model.val_losses[4:]).mean()
@@ -905,9 +876,8 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         'train_loss',
         'valid_loss_0_epoch',
         'valid_loss_0',
-        'debug_epoch',
         'valid_loss_1',
         'test_loss',
     }
     assert set(trainer.callback_metrics) == expected_callback_metrics
-    assert set(results[0]) == {'test_loss', 'debug_epoch'}
+    assert set(results[0]) == {'test_loss'}
