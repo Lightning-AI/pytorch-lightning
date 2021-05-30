@@ -15,6 +15,7 @@ import torch
 
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class DDP2Plugin(DDPPlugin):
@@ -34,27 +35,25 @@ class DDP2Plugin(DDPPlugin):
         self.task_idx = self.cluster_environment.local_rank()
         # the difference to DDP is that we don't call children processes here
 
-    def reduce(self, tensor, *args, **kwargs):
+    def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
         """
-        Reduces a tensor from all processes to one aggregated tensor.
+        Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
         In DDP2, the reduction here is only across local devices within the node.
 
         Args:
-            tensor: the tensor to sync and reduce
+            collection: The collection of tensors to sync and reduce.
             *args: ignored for DDP2
             **kwargs: ignored for DDP2
 
         Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
+            Reduced tensor values or the same value if it was not or did not contain a tensor.
         """
 
-        def _reduce(t: torch.Tensor) -> torch.Tensor:
-            dtype_tensor = t.dtype
-            return t.float().mean().type(dtype_tensor)
+        def mean(t: torch.Tensor) -> torch.Tensor:
+            original_dtype = t.dtype
+            return t.float().mean().to(original_dtype)
 
-        tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
-
-        return tensor
+        return apply_to_collection(collection, torch.Tensor, mean)
 
     @property
     def root_device(self):

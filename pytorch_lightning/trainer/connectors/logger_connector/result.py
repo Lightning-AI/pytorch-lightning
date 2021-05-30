@@ -331,7 +331,7 @@ class ResultCollection(dict):
             dataloader_idx: The current dataloader idx. This will be used to automatically
                 add `/dataloader_idx_{}` on the metrics.
             batch_size: Current batch size.
-            lightning_attribute_name: When providing `nn.Metric` as a value, the ``lightning_attribute_name``
+            lightning_attribute_name: When providing `nn.Metric` as a value, the ``metric_attribute``
                 need to be provided to enable automatic saving / re-loading.
 
         """

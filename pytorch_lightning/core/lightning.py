@@ -26,7 +26,7 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -49,9 +49,6 @@ from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
-
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -115,7 +112,7 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
-        self._map_metric_id_name: Optional[Dict[int, str]] = None
+        self._metric_attributes: Optional[Dict[int, str]] = None
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -276,7 +273,7 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
-        lightning_attribute_name: Optional[str] = None,
+        metric_attribute: Optional[str] = None,
     ) -> None:
         """
         Log a key, value
@@ -314,8 +311,9 @@ class LightningModule(
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
-                but some esoteric data type such as graph might need to explicitly provide the batch_size.
-            lightning_attribute_name: The name of the Metric attribute name. This is used for fault tolerant logging.
+                but some some data structures might need to explicitly provide it.
+            metric_attribute: The attribute name for the metric in the LightningModule.
+                Necessary to save/restore its state.
         """
         if tbptt_reduce_fx is not None:
             rank_zero_deprecation(
@@ -330,11 +328,8 @@ class LightningModule(
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
 
-        result_collections: Optional['ResultCollection'] = self.trainer.result_collection
-
-        if result_collections is not None:
-            # TODO: if logged twice fail with crash
-
+        result_collection = self.trainer.result_collection
+        if result_collection is not None:
             # set the default depending on the fx_name
             on_step = self.__auto_choose_log_on_step(on_step)
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
@@ -348,14 +343,15 @@ class LightningModule(
                     f"Logged key: {name} should not contain information about dataloader_idx."
                 )
 
-            if lightning_attribute_name is None and isinstance(value, Metric):
-                # used to find this Metric associated LightningModule attribute name.
-                if self._map_metric_id_name is None:
-                    self._map_metric_id_name = {
-                        id(module): module_name
-                        for module_name, module in self.named_children() if isinstance(module, Metric)
+            if metric_attribute is None and isinstance(value, Metric):
+                if self._metric_attributes is None:
+                    # compute once
+                    self._metric_attributes = {
+                        module: name
+                        for name, module in self.named_children() if isinstance(module, Metric)
                     }
-                lightning_attribute_name = self._map_metric_id_name[id(value)]
+                # try to find the passed metric in the LightningModule
+                metric_attribute = self._metric_attributes.get(value, None)
 
             sync_fn = partial(
                 self.__sync,
@@ -365,13 +361,9 @@ class LightningModule(
                 sync_dist_group=sync_dist_group,
                 device=self.device,
             )
-            value = apply_to_collection(value, (
-                torch.Tensor,
-                float,
-                int,
-            ), sync_fn)
+            value = apply_to_collection(value, (torch.Tensor, float, int), sync_fn)
 
-            result_collections.log(
+            result_collection.log(
                 self._current_fx_name,
                 name,
                 value,
@@ -383,7 +375,7 @@ class LightningModule(
                 enable_graph=enable_graph,
                 dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
                 batch_size=batch_size,
-                lightning_attribute_name=lightning_attribute_name,
+                lightning_attribute_name=metric_attribute,
             )
 
     def log_dict(
@@ -403,7 +395,7 @@ class LightningModule(
         add_dataloader_idx: bool = True,
     ) -> None:
         """
-        Log a dictonary of values at once
+        Log a dictionary of values at once
 
         Example::
 
@@ -460,7 +452,7 @@ class LightningModule(
         if isinstance(value, torch.Tensor):
             value = value.clone()
         else:
-            return torch.tensor(value, device=device, dtype=torch.float)
+            value = torch.tensor(value, device=device, dtype=torch.float)
 
         sync_fn = sync_fn or sync_ddp_if_available
         dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()

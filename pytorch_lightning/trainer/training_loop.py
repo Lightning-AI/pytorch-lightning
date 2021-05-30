@@ -201,19 +201,17 @@ class TrainLoop:
             self.trainer.reset_val_dataloader(model)
 
     def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
-
         hook_overridden = self._should_add_batch_output_to_epoch_output()
+        if not hook_overridden:
+            return
 
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(batch_end_outputs):
-
-            # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
-            if not hook_overridden:
-                continue
-
             # with 1 step (no tbptt) don't use a sequence at epoch end
-            if isinstance(opt_outputs,
-                          list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], ResultCollection):
+            if (
+                isinstance(opt_outputs, list) and len(opt_outputs) == 1
+                and not isinstance(opt_outputs[0], ResultCollection)
+            ):
                 opt_outputs = opt_outputs[0]
 
             epoch_output[opt_idx].append(opt_outputs)
@@ -297,9 +295,6 @@ class TrainLoop:
         if self.trainer.lightning_module.automatic_optimization:
             # accumulate loss. if accumulate_grad_batches==1, no effect
             closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
-
-            # detach the loss
-            training_step_output._minimize = training_step_output.minimize.detach()
 
             # the loss will get scaled for amp. avoid any modifications to it
             untouched_loss = closure_loss.detach().clone()
@@ -661,30 +656,29 @@ class TrainLoop:
 
             if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
-                    result = self._run_optimization(batch_idx, split_idx, split_batch, opt_idx, optimizer)
+                    result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                     if result:
                         batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
                         grad_norm_dict = result.get("grad_norm_dict", {})
             else:
                 # in manual optimization, there is no looping over optimizers
-                result = self._run_optimization(batch_idx, split_idx, split_batch)
+                result = self._run_optimization(batch_idx, split_batch)
                 if result:
                     batch_outputs[0].append(result.training_step_output_for_epoch_end)
 
         output = AttributeDict(
             signal=0,
-            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
             grad_norm_dict=grad_norm_dict,
             training_step_output_for_epoch_end=batch_outputs,
         )
         return output
 
-    def _run_optimization(self, batch_idx, split_idx, split_batch, opt_idx=0, optimizer=None):
+    def _run_optimization(self, batch_idx, split_batch, opt_idx=0, optimizer=None):
         # TODO: In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
         #   opt_idx=0 to opt_idx=None in the signature here
 
         # toggle model params + set info to logger_connector
-        self.run_train_split_start(batch_idx, split_idx, split_batch, opt_idx, optimizer)
+        self.run_train_split_start(batch_idx, split_batch, opt_idx, optimizer)
 
         result = AttributeDict()
         closure = self.make_closure(split_batch, batch_idx, opt_idx, optimizer, self._hiddens, result)
@@ -934,7 +928,7 @@ class TrainLoop:
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def run_train_split_start(self, batch_idx: int, split_idx, split_batch, opt_idx, optimizer):
+    def run_train_split_start(self, batch_idx, split_batch, opt_idx, optimizer):
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
