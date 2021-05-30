@@ -18,11 +18,9 @@ import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
