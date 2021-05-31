@@ -335,14 +335,14 @@ class TrainLoop:
         Extract required information from batch or epoch end results.
 
         Args:
-            outputs: A 3-dimensional list of ``Result`` objects with dimensions:
-                [optimizer outs][batch outs][tbptt steps].
+            outputs: A 3-dimensional list of ``ResultCollection`` objects with dimensions:
+                ``[optimizer outs][batch outs][tbptt steps]``.
 
             batch_mode: If True, ignore the batch output dimension.
 
         Returns:
-            The cleaned outputs with ``Result`` objects converted to dictionaries. All list dimensions of size one will
-            be collapsed.
+            The cleaned outputs with ``ResultCollection`` objects converted to dictionaries.
+            All list dimensions of size one will be collapsed.
         """
         processed_outputs = []
         for opt_outputs in outputs:
@@ -363,7 +363,8 @@ class TrainLoop:
 
                 for tbptt_output in batch_outputs:
                     out = tbptt_output.extra
-                    out['loss'] = tbptt_output.minimize.detach()
+                    if tbptt_output.minimize is not None:
+                        out['loss'] = tbptt_output.minimize.detach()
                     processed_tbptt_outputs.append(out)
 
                 # if there was only one tbptt step then we can collapse that dimension
