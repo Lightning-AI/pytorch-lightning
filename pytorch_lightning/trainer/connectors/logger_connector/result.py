@@ -175,7 +175,7 @@ class ResultCollection(dict):
         self._minimize = None
         self._current_hook_name: Optional[str] = None
         self._batch_size: Optional[int] = None
-        self._batch_idx: Optional[int] = None
+        self.batch_idx: Optional[int] = None
         self.root_device: Optional[torch.device] = root_device
         self.fx_validator = FxValidator()
 
@@ -188,21 +188,13 @@ class ResultCollection(dict):
         self._batch_size = batch_size
 
     @property
-    def batch_idx(self) -> Optional[int]:
-        return self._batch_idx
-
-    @batch_idx.setter
-    def batch_idx(self, batch_idx: int) -> None:
-        self._batch_idx = batch_idx
-
-    @property
     def on_epoch_end_reached(self) -> bool:
         return self._on_epoch_end_reached
 
     @on_epoch_end_reached.setter
     def on_epoch_end_reached(self, on_epoch_end_reached):
         self._on_epoch_end_reached = on_epoch_end_reached
-        self._batch_idx = None
+        self.batch_idx = None
 
     @property
     def metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
