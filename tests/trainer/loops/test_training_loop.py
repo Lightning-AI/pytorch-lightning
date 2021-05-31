@@ -144,18 +144,20 @@ def test_should_stop_mid_epoch(tmpdir):
     assert trainer.global_step == 5
     assert model.validation_called_at == (0, 4)
 
+
 @pytest.mark.parametrize(['output'], [5., {'a': 5}])
 def test_warning_invalid_trainstep_output(tmpdir, output):
+
     class TestModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             return output
-        
+
     model = TestModel()
-    
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=1
-    )
-    with pytest.raises(MisconfigurationException, 
-                       match="In automatic optimization, `training_step` must either return a Tensor or a dict with key 'loss'"):
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    with pytest.raises(
+        MisconfigurationException,
+        match="In automatic optimization, `training_step` must either return a Tensor or a dict with key 'loss'"
+    ):
         trainer.fit(model)
