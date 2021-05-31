@@ -36,7 +36,7 @@ class MetricSource(LightningEnum):
 
 @dataclass
 class Metadata:
-    fx: str  # TODO: distinction?
+    fx: str
     name: str
     prog_bar: bool = False
     logger: bool = True
