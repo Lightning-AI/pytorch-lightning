@@ -170,6 +170,6 @@ class Timer(Callback):
         should_stop = trainer.accelerator.broadcast(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop and self._verbose:
+            elapsed = timedelta(seconds=int(self.time_elapsed(RunningStage.TRAINING)))
             rank_zero_info(
-                f"Time limit reached. Elapsed time is {self.time_elapsed(RunningStage.TRAINING)}."
-                f" Signaling Trainer to stop.")
+                f"Time limit reached. Elapsed time is {elapsed}. Signaling Trainer to stop.")
