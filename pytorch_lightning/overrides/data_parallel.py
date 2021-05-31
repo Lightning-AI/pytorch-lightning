@@ -17,7 +17,7 @@ from typing import Any
 
 import torch
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -53,7 +53,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
     """
 
-    def __init__(self, pl_module: LightningModule):
+    def __init__(self, pl_module: 'pl.LightningModule') -> None:
         super().__init__(pl_module)
         _ignore_scalar_return_in_dp()
 

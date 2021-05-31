@@ -125,5 +125,5 @@ def test__validation_step__log(tmpdir):
     }
 
     # we don't want to enable val metrics during steps because it is not something that users should do
-    # on purpose DO NOT allow step_b... it's silly to monitor val step metrics
+    # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
     assert set(trainer.callback_metrics) == {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
