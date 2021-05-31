@@ -112,8 +112,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         Return:
             LightningModule with batchnorm layers synchronized between process groups
         """
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        return model
+        return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     @contextmanager
     def block_backward_sync(self):

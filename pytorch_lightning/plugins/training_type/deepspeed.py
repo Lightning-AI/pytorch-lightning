@@ -51,7 +51,7 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
-    def __init__(self, pl_module: 'pl.LightningModule', precision: int):
+    def __init__(self, pl_module: 'pl.LightningModule', precision: int) -> None:
         super().__init__(pl_module)
         self.precision = precision
 
@@ -378,7 +378,7 @@ class DeepSpeedPlugin(DDPPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def init_optimizers(self, trainer, model: 'pl.LightningModule') -> Tuple[List, List, List]:
+    def init_optimizers(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> Tuple[List, List, List]:
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`

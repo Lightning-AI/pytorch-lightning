@@ -53,7 +53,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
     """
 
-    def __init__(self, pl_module: 'pl.LightningModule'):
+    def __init__(self, pl_module: 'pl.LightningModule') -> None:
         super().__init__(pl_module)
         _ignore_scalar_return_in_dp()
 

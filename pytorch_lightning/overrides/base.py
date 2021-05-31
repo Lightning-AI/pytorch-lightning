@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 
-    def __init__(self, pl_module: 'pl.LightningModule'):
+    def __init__(self, pl_module: 'pl.LightningModule') -> None:
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step`` or ``test_step``.

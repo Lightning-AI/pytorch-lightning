@@ -328,55 +328,52 @@ class LightningModule(
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
 
-        result_collection = self.trainer.result_collection
-        if result_collection is not None:
-            # set the default depending on the fx_name
-            on_step = self.__auto_choose_log_on_step(on_step)
-            on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+        # set the default depending on the fx_name
+        on_step = self.__auto_choose_log_on_step(on_step)
+        on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-            assert self._current_fx_name is not None
-            result_collection.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+        assert self._current_fx_name is not None
+        result_collection.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
-            # make sure user doesn't introduce logic for multi-dataloaders
-            if "/dataloader_idx_" in name:
-                raise MisconfigurationException(
-                    f"Logged key: {name} should not contain information about dataloader_idx."
-                )
+        # make sure user doesn't introduce logic for multi-dataloaders
+        if "/dataloader_idx_" in name:
+            raise MisconfigurationException(f"Logged key: {name} should not contain information about dataloader_idx.")
 
-            if metric_attribute is None and isinstance(value, Metric):
-                if self._metric_attributes is None:
-                    # compute once
-                    self._metric_attributes = {
-                        id(module): name
-                        for name, module in self.named_children() if isinstance(module, Metric)
-                    }
-                # try to find the passed metric in the LightningModule
-                metric_attribute = self._metric_attributes.get(id(value))
+        if metric_attribute is None and isinstance(value, Metric):
+            if self._metric_attributes is None:
+                # compute once
+                self._metric_attributes = {
+                    id(module): name
+                    for name, module in self.named_children() if isinstance(module, Metric)
+                }
+            # try to find the passed metric in the LightningModule
+            metric_attribute = self._metric_attributes.get(id(value))
 
-            sync_fn = partial(
-                self.__sync,
-                sync_fn=self.trainer.training_type_plugin.reduce,
-                sync_dist=sync_dist,
-                sync_dist_op=sync_dist_op,
-                sync_dist_group=sync_dist_group,
-                device=self.device,
-            )
-            value = apply_to_collection(value, (torch.Tensor, numbers.Number), sync_fn)
+        sync_fn = partial(
+            self.__sync,
+            sync_fn=self.trainer.training_type_plugin.reduce,
+            sync_dist=sync_dist,
+            sync_dist_op=sync_dist_op,
+            sync_dist_group=sync_dist_group,
+            device=self.device,
+        )
+        value = apply_to_collection(value, (torch.Tensor, numbers.Number), sync_fn)
 
-            result_collection.log(
-                self._current_fx_name,
-                name,
-                value,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
-                batch_size=batch_size,
-                lightning_attribute_name=metric_attribute,
-            )
+        assert self.trainer.result_collection is not None
+        self.trainer.result_collection.log(
+            self._current_fx_name,
+            name,
+            value,
+            prog_bar=prog_bar,
+            logger=logger,
+            on_step=on_step,
+            on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
+            enable_graph=enable_graph,
+            dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
+            batch_size=batch_size,
+            lightning_attribute_name=metric_attribute,
+        )
 
     def log_dict(
         self,
