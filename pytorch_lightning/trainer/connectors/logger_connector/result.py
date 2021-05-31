@@ -82,10 +82,10 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.add_state("value", torch.tensor(0, dtype=torch.float))
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
-        # TODO: self.value?
+        # TODO: self.value when not tensor?
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
-        # TODO: support for non-tensor, sync returns tensor always
+        # TODO: support for non-tensor. sync returns tensor always
         if self.meta.is_tensor:
             if self.meta.is_mean_reduction:
                 self.value += value.float().mean() * batch_size
@@ -122,36 +122,15 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             super().reset()
         else:
             self.value.reset()
-
         self.meta.has_reset = True
 
-    def forward(self, *args, **kwargs):
-        """
-        Automatically calls ``update()``. Returns the metric value over inputs if ``compute_on_step`` is True.
-        """
-        # todo (tchaton) Remove this override when merged to TorchMetrics.
-        # add current step
-        with torch.no_grad():
-            self.update(*args, **kwargs)
-
-        if self.compute_on_step:
-            self._to_sync = self.dist_sync_on_step
-
-            # save context before switch
-            cache = {attr: getattr(self, attr) for attr in self._defaults.keys()}
-
-            # call reset, update, compute, on single batch
-            self.reset()
-            self.update(*args, **kwargs)
-            self._forward_cache = self.compute()
-
-            # restore context
-            for attr, val in cache.items():
-                setattr(self, attr, val)
-            self._to_sync = True
-            self._computed = None
-
-            return self._forward_cache
+    def forward(self, value: _METRIC, *args, **kwargs) -> torch.Tensor:
+        """Overridden to avoid `self._forward_cache = None` after `update`"""
+        prev_fwd_cache = getattr(value, '_forward_cache', None)
+        out = super().forward(*args, **kwargs)
+        if out is None:
+            self._forward_cache = prev_fwd_cache
+        return out
 
 
 # placeholder for apply_to_collection
