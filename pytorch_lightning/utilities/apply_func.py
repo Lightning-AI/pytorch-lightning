@@ -114,7 +114,7 @@ def apply_to_collection(
 
 
 def apply_to_collections(
-    data1: Any,
+    data1: Optional[Any],
     data2: Optional[Any],
     dtype: Union[type, tuple],
     function: Callable,
@@ -126,7 +126,7 @@ def apply_to_collections(
     Zips two collections and applies a function to their items of a certain dtype.
 
     Args:
-        data: The first collection
+        data1: The first collection
         data2: The second collection
         dtype: the given function will be applied to all elements of this dtype
         function: the function to apply

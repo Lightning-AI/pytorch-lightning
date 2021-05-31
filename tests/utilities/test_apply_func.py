@@ -146,3 +146,5 @@ def test_apply_to_collections():
     reduced1 = apply_to_collections([1, 2, 3], None, int, lambda x: x * x)
     reduced2 = apply_to_collections(None, [1, 2, 3], int, lambda x: x * x)
     assert reduced1 == reduced2 == [1, 4, 9]
+    reduced = apply_to_collections(None, None, int, lambda x: x * x)
+    assert reduced is None
