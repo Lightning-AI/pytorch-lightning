@@ -55,7 +55,8 @@ class BatchLoop(Loop):
 
     def run(self, batch, batch_idx, dataloader_idx):
         if batch is None:
-            return AttributeDict(signal=0, grad_norm_dic={})
+            self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
+            return AttributeDict(signal=0, grad_norm_dic={}, training_step_output_for_epoch_end=[[]])
 
         # hook
         response = self.trainer.call_hook("on_batch_start")
