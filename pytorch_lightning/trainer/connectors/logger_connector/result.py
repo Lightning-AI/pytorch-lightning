@@ -168,9 +168,9 @@ class ResultCollection(dict):
     EPOCH_SUFFIX = "_epoch"
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
 
-    def __init__(self, is_train: bool, root_device: Optional[torch.device] = None) -> None:
+    def __init__(self, training: bool, root_device: Optional[torch.device] = None) -> None:
         super().__init__()
-        self.is_train = is_train
+        self.training = training
         self._on_epoch_end_reached = False
         self._minimize = None
         self._current_hook_name: Optional[str] = None
@@ -493,7 +493,7 @@ class ResultCollection(dict):
 
             # populate callback metrics
             # callback metrics don't take `_step` forked metrics.
-            if self.is_train or metric_on_epoch and not on_step:
+            if self.training or metric_on_epoch and not on_step:
                 metrics[MetricSource.CALLBACK][name] = value
                 metrics[MetricSource.CALLBACK][name_forked] = value
 
