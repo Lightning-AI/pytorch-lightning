@@ -113,18 +113,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         return max_batches
 
     def get_eval_dataloaders(self):
-        model = self.trainer.lightning_module
-
-        # select dataloaders
         if self.trainer.testing:
-            # self.trainer.reset_test_dataloader(model)
-            dataloaders = self.trainer.test_dataloaders
-        else:
-            # val
-            # if self.trainer.val_dataloaders is None or self.trainer.reload_dataloaders_every_epoch:
-            #     self.trainer.reset_val_dataloader(model)
-            dataloaders = self.trainer.val_dataloaders
-        return dataloaders
+            return self.trainer.test_dataloaders
+        return self.trainer.val_dataloaders
 
     # TODO: remove this method, got split into two above
     def get_evaluation_dataloaders(self) -> Tuple[Optional[List[DataLoader]], List[Union[int, float]]]:
