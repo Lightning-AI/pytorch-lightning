@@ -197,6 +197,11 @@ def test_multiple_optimizers_manual_apex_no_return(tmpdir):
             # avoid returning a value
             super().training_step(batch, batch_idx)
 
+        def training_epoch_end(self, outputs) -> None:
+            # outputs is empty as training_step does not return
+            # and it is not automatic optimization
+            assert len(outputs) == 0
+
     model = TestModel()
     model.val_dataloader = None
 
