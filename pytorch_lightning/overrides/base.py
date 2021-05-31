@@ -15,13 +15,13 @@ import torch
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 
-    def __init__(self, pl_module: LightningModule):
+    def __init__(self, pl_module: 'pl.LightningModule') -> None:
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step`` or ``test_step``.
@@ -66,7 +66,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         pass
 
 
-def unwrap_lightning_module(wrapped_model) -> LightningModule:
+def unwrap_lightning_module(wrapped_model) -> 'pl.LightningModule':
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
         model = model.module

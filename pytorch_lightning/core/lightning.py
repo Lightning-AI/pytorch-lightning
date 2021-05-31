@@ -26,7 +26,7 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -38,7 +38,6 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -49,6 +48,9 @@ from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
+
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -106,7 +108,7 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results: Optional[Result] = None
+        self._results: Optional['Result'] = None
         self._current_fx_name: Optional[str] = None
         self._running_manual_backward: bool = False
         self._current_dataloader_idx: Optional[int] = None
@@ -322,42 +324,38 @@ class LightningModule(
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
 
-        if self._results is not None:
-            # TODO: if logged twice fail with crash
+        # set the default depending on the fx_name
+        on_step = self.__auto_choose_log_on_step(on_step)
+        on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-            # set the default depending on the fx_name
-            on_step = self.__auto_choose_log_on_step(on_step)
-            on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+        assert self._current_fx_name is not None
+        self.trainer.logger_connector.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
-            assert self._current_fx_name is not None
-            self.trainer.logger_connector.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+        # make sure user doesn't introduce logic for multi-dataloaders
+        if "/dataloader_idx_" in name:
+            raise MisconfigurationException(f"Logged key: {name} should not contain information about dataloader_idx.")
 
-            # make sure user doesn't introduce logic for multi-dataloaders
-            if "/dataloader_idx_" in name:
-                raise MisconfigurationException(
-                    f"Logged key: {name} should not contain information about dataloader_idx."
-                )
+        value = self.__sync(
+            value,
+            sync_fn=self.trainer.training_type_plugin.reduce,
+            sync_dist=sync_dist,
+            sync_dist_op=sync_dist_op,
+            sync_dist_group=sync_dist_group,
+            device=self.device,
+        )
 
-            value = self.__sync(
-                value,
-                sync_fn=self.trainer.training_type_plugin.reduce,
-                sync_dist=sync_dist,
-                sync_dist_op=sync_dist_op,
-                sync_dist_group=sync_dist_group,
-                device=self.device,
-            )
-
-            self._results.log(
-                name,
-                value,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
-            )
+        assert self._results is not None
+        self._results.log(
+            name,
+            value,
+            prog_bar=prog_bar,
+            logger=logger,
+            on_step=on_step,
+            on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
+            enable_graph=enable_graph,
+            dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
+        )
 
     def log_dict(
         self,
@@ -376,7 +374,7 @@ class LightningModule(
         add_dataloader_idx: bool = True,
     ) -> None:
         """
-        Log a dictonary of values at once
+        Log a dictionary of values at once
 
         Example::
 

@@ -19,7 +19,7 @@ from typing import Any, List, Optional
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
@@ -99,7 +99,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return torch_backend
 
     @staticmethod
-    def configure_sync_batchnorm(model: LightningModule) -> LightningModule:
+    def configure_sync_batchnorm(model: 'pl.LightningModule') -> 'pl.LightningModule':
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
@@ -112,8 +112,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         Return:
             LightningModule with batchnorm layers synchronized between process groups
         """
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        return model
+        return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     @contextmanager
     def block_backward_sync(self):
