@@ -36,25 +36,22 @@ class ManualOptModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         opt_a, opt_b = self.optimizers()
-        loss_1 = self.step(batch[0])
 
         # make sure there are no grads
         if batch_idx > 0:
             assert torch.all(self.layer.weight.grad == 0)
 
+        loss_1 = self.step(batch[0])
         self.manual_backward(loss_1, opt_a)
         opt_a.step()
         opt_a.zero_grad()
         assert torch.all(self.layer.weight.grad == 0)
 
-        # fake discriminator
         loss_2 = self.step(batch[0])
-
         # ensure we forward the correct params to the optimizer
         # without retain_graph we can't do multiple backward passes
         self.manual_backward(loss_2, opt_b, retain_graph=True)
-        self.manual_backward(loss_2, opt_a, retain_graph=True)
-
+        self.manual_backward(loss_2, opt_a)
         assert self.layer.weight.grad is not None
         opt_b.step()
         opt_b.zero_grad()
