@@ -71,9 +71,7 @@ class Metadata:
 
 
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
-    """
-    This class is responsible to hold each single metric provided by ``LightningModule.log`` function.
-    """
+    """Wraps the value provided to `:meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
 
     def __init__(self, metadata: Metadata) -> None:
         super().__init__(compute_on_step=metadata.is_tensor)
@@ -140,41 +138,30 @@ class ResultMeta(Dict):
 
 class ResultCollection(dict):
     """
-    This class is used to capture all the logged values using LightningModule.log function.
-
-    Here is how to use the ResultCollection object.
+    Collection (dictionary) of :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric`
 
     Example:
 
-        # the root_device need to be provided before calling the ``log`` function
+        # `root_device` needs to be provided before logging
         result = ResultCollection(True, torch.device("cpu"))
 
+        # you can log to a specific collection.
         # arguments: hook_name, key, value, metadata
-        result.log('a0', 'a', torch.tensor(0.), on_step=True, on_epoch=True)
-        result.log('a1', 'a', torch.tensor(0.), on_step=True, on_epoch=True)
+        result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
+        result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
 
-        for epoch in range(2):
-
-            result.log('b0', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
-            result.log('b1', 'a', torch.tensor(1.) + epoch, on_step=True, on_epoch=True)
-
-            for batch_idx, batch_size in enumerate(range(2)):
-
+        for epoch in epochs:
+            for batch_idx, batch in enumerate(dataloader):
                 # the batch_idx is used to reset the tensor metrics
                 result.batch_idx = batch_idx
+                result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
 
-                result.log('c0', 'a', torch.tensor(2.) + epoch, on_step=True, on_epoch=True)
-                result.log('c1', 'a', torch.tensor(2.) + epoch, on_step=True, on_epoch=True)
+            result.on_epoch_end_reached = True  # indicate epoch end has been reached
+            result.log('training_epoch_end', 'acc', torch.tensor(...), on_step=False, on_epoch=True)
 
-            # used to indicate epoch end has been reached
-            result.on_epoch_end_reached = True
-
-            result.log('d0', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
-            result.log('d1', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
-
-            # used to reset torchmetrics.Metric and set `on_epoch_end_reached` to False
-            result.reset_metrics() [Optional]: Reset only torchmetric.Metric object.
-            # result.reset() [Optional]: Reset the entire ResultCollection.
+            # Optionally:
+            result.reset_metrics() # reset the `torchmetrics.Metric`
+            result.reset() # reset the entire `ResultCollection`
     """
 
     STEP_SUFFIX = "_step"
