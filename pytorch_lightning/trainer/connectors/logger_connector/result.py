@@ -198,28 +198,19 @@ class ResultCollection(dict):
 
     @property
     def metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
-        """
-        This function returns either batch or epoch metrics depending on `on_epoch_end_reached` attribute.
-        The metrics are returned as:
-
-
-        {
-            MetricSource.PBAR: {...},
-            MetricSource.LOG: {...},
-            MetricSource.CALLBACK: {...}
-        }
-        """
+        """This function returns either batch or epoch metrics depending on ``on_epoch_end_reached``."""
         return self.get_epoch_metrics() if self.on_epoch_end_reached else self.get_batch_metrics()
 
     @property
     def minimize(self) -> Optional[Tensor]:
+        """
+        The :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` loss
+        will be saved as the ``minimize`` attribute.
+        """
         return self._minimize
 
     @minimize.setter
     def minimize(self, loss: Optional[torch.Tensor]) -> None:
-        """
-        The `LightningModule.training_step` loss will be saved as the ResultCollection minimize attribute.
-        """
         if loss is not None:
             if not isinstance(loss, Tensor):
                 raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
