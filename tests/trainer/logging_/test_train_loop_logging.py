@@ -25,6 +25,8 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.metrics import Accuracy, Metric
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDictDataset
 from tests.helpers.runif import RunIf
 
@@ -755,3 +757,43 @@ def test_metric_are_properly_reduced(tmpdir):
 
     assert trainer.callback_metrics["val_acc"] == 8 / 32.
     assert "train_loss" in trainer.callback_metrics
+
+
+def test_logging_raises(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo/dataloader_idx_0', -1)
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match='`self.log` with the key `foo/dataloader_idx_0`'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match='fix this by setting an attribute for the metric in your'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.bar = Accuracy()
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(
+        MisconfigurationException,
+        match=r"`self.log\(foo, ..., metric_attribute=name\)` where `name` is one of \['bar'\]"
+    ):
+        trainer.fit(model)

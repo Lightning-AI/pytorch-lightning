@@ -339,7 +339,10 @@ class LightningModule(
 
         # make sure user doesn't introduce logic for multi-dataloaders
         if "/dataloader_idx_" in name:
-            raise MisconfigurationException(f"Logged key: {name} should not contain information about dataloader_idx.")
+            raise MisconfigurationException(
+                f"You called `self.log` with the key `{name}`"
+                " but it should not contain information about `dataloader_idx`"
+            )
 
         if metric_attribute is None and isinstance(value, Metric):
             if self._metric_attributes is None:
@@ -348,8 +351,19 @@ class LightningModule(
                     id(module): name
                     for name, module in self.named_children() if isinstance(module, Metric)
                 }
+                if not self._metric_attributes:
+                    raise MisconfigurationException(
+                        "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
+                        " You can fix this by setting an attribute for the metric in your `LightningModule`."
+                    )
             # try to find the passed metric in the LightningModule
             metric_attribute = self._metric_attributes.get(id(value))
+            if metric_attribute is None:
+                raise MisconfigurationException(
+                    "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
+                    f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
+                    f" of {list(self._metric_attributes.values())}"
+                )
 
         sync_fn = partial(
             self.__sync,

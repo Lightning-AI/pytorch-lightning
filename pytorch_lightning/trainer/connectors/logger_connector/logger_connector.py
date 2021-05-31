@@ -228,7 +228,7 @@ class LoggerConnector:
     """
 
     def on_train_start(self) -> None:
-        self.trainer.result_collection.device = self.trainer.lightning_module.device_device
+        self.trainer.result_collection.device = self.trainer.lightning_module.device
 
     def on_train_split_start(self, batch_idx: int, split_batch: Any) -> None:
         self.trainer.result_collection.extract_batch_size(split_batch)

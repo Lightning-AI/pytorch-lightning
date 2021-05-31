@@ -80,10 +80,10 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.add_state("value", torch.tensor(0, dtype=torch.float))
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
-        # TODO: self.value when not tensor?
+        # FIXME: self.value when not tensor?
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
-        # TODO: support for non-tensor. sync returns tensor always
+        # FIXME: support for non-tensor. sync returns tensor always
         if self.meta.is_tensor:
             if self.meta.is_mean_reduction:
                 self.value += value.float().mean() * batch_size
@@ -164,6 +164,7 @@ class ResultCollection(dict):
             result.reset() # reset the entire `ResultCollection`
     """
 
+    # FIXME
     STEP_SUFFIX = "_step"
     EPOCH_SUFFIX = "_epoch"
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
@@ -181,6 +182,7 @@ class ResultCollection(dict):
 
     @property
     def batch_size(self) -> int:
+        # FIXME
         return self._batch_size or 1
 
     @batch_size.setter
@@ -220,14 +222,15 @@ class ResultCollection(dict):
 
     @property
     def extra(self) -> Dict:
+        """
+        Extras are any keys other than the loss returned by
+        :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
+        """
         return self.get('extra', {})
 
     @extra.setter
     def extra(self, extra: Dict) -> None:
-        """
-        The `LightningModule.training_step` extras will be saved as the ResultCollection extra key.
-        """
-
+        # FIXME: Should probably fail instead of detaching
         def detach_fn(v):
             return v.detach()
 
@@ -247,31 +250,9 @@ class ResultCollection(dict):
         enable_graph: bool = False,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
-        lightning_attribute_name: Optional[str] = None,
+        lightning_attribute_name: str = None,
     ):
-        """
-        This function is used to log metrics from with
-        :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
-
-        Args:
-
-            hook_name: Current hook name
-            name: Key provided by the user on logging
-            value: Either a number, tensor or a collection of the previous.
-            prog_bar: Whether to add this value to the progress bar.
-            logger: Whether to log this value to the loggers
-            on_step: Whether to use this value during batch iteration.
-            on_epoch: Whether to use this value at the end of the batch iteration.
-                Automatic reduction will be performed.
-            reduce_fx: Which function to use for reduction. Currently support min, max and mean.
-            enable_graph: Whether to keep autograd graph when storing the value.
-            dataloader_idx: The current dataloader idx. This will be used to automatically
-                add `/dataloader_idx_{}` on the metrics.
-            batch_size: Current batch size.
-            lightning_attribute_name: When providing `nn.Metric` as a value, the ``metric_attribute``
-                need to be provided to enable automatic saving / re-loading.
-
-        """
+        """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
@@ -280,23 +261,19 @@ class ResultCollection(dict):
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
 
-        if isinstance(value, Metric) and lightning_attribute_name is None:
-            raise MisconfigurationException(
-                "The LightningModule attribute name should be provided when using torchmetrics.Metric"
+        if on_step and self.on_epoch_end_reached:
+            raise RuntimeError(
+                "Logging `on_step` when `on_epoch_end_reached` isn't allowed. This shouldn't have happened."
             )
 
         # storage key
         key = f"{hook_name}.{name}"
-
         # add dataloader_suffix  to both key and hook_name
         if dataloader_idx is not None:
             # use as ResultCollection key
             key += f'.{dataloader_idx}'
             # used to decide when to reset
             hook_name += f'.{dataloader_idx}'
-
-        if on_step and self.on_epoch_end_reached:
-            raise MisconfigurationException("Logging `on_step` after `on_epoch_end_reached` isn't authorized.")
 
         if key not in self:
             # create metadata object if storage key doesn't exist in self
