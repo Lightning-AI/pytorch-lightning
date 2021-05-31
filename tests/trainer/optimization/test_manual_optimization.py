@@ -190,7 +190,14 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1, amp_apex=True)
 def test_multiple_optimizers_manual_apex_no_return(tmpdir):
-    model = ManualOptModel()
+
+    class TestModel(ManualOptModel):
+
+        def training_step(self, batch, batch_idx):
+            # avoid returning a value
+            super().training_step(batch, batch_idx)
+
+    model = TestModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
