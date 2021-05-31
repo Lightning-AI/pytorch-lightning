@@ -20,7 +20,6 @@ import torch
 
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import DefaultMetricsKeys
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
@@ -34,7 +33,6 @@ class LoggerConnector:
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self.eval_loop_results = []
-        self._fx_validator = FxValidator()
         self._val_log_step: int = 0
         self._test_log_step: int = 0
         self._progress_bar_metrics: Dict[str, float] = {}
@@ -129,10 +127,9 @@ class LoggerConnector:
         callback_metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.CALLBACK]
         callback_metrics = deepcopy(callback_metrics)
         for key in list(callback_metrics.keys()):
-            if "dataloader_idx" in key:
-                if f"dataloader_idx_{dl_idx}" not in key:
-                    # remove dl_idx from self.callback_metrics not belonging to this dataset.
-                    del callback_metrics[key]
+            if "dataloader_idx" in key and f"dataloader_idx_{dl_idx}" not in key:
+                # remove callback metrics that don't belong to this dataloader
+                del callback_metrics[key]
         if has_been_initialized:
             self.eval_loop_results[dl_idx].update(callback_metrics)
         else:
@@ -240,6 +237,7 @@ class LoggerConnector:
         self.trainer.result_collection.batch_idx = batch_idx
 
     def on_train_batch_end(self) -> None:
+        # TODO: why
         self.trainer.result_collection.batch_size = 1
 
     def update_train_step_metrics(self, batch_output):
@@ -307,6 +305,3 @@ class LoggerConnector:
             metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
-
-    def check_logging(self, fx_name: str, on_step: bool, on_epoch: bool) -> None:
-        self._fx_validator.check_logging(fx_name=fx_name, on_step=on_step, on_epoch=on_epoch)

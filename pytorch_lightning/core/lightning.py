@@ -335,7 +335,7 @@ class LightningModule(
             on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
             assert self._current_fx_name is not None
-            self.trainer.logger_connector.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+            result_collection.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
             # make sure user doesn't introduce logic for multi-dataloaders
             if "/dataloader_idx_" in name:

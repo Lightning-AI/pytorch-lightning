@@ -20,6 +20,7 @@ import torch
 from torch import Tensor
 from torchmetrics import Metric
 
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.enums import LightningEnum
@@ -172,7 +173,7 @@ class ResultCollection(dict):
 
     Example:
 
-        # the root_device need to be provided before calling the ``log`` function
+        # the root_device need to be provided before calling the ``log`` function
         result = ResultCollection(True, torch.device("cpu"))
 
         # arguments: hook_name, key, value, metadata
@@ -216,6 +217,7 @@ class ResultCollection(dict):
         self._batch_size: Optional[int] = None
         self._batch_idx: Optional[int] = None
         self._root_device: Optional[torch.device] = root_device
+        self.fx_validator = FxValidator()
 
     @property
     def batch_size(self) -> int:
