@@ -286,24 +286,14 @@ class TrainLoop:
             if training_step_output is None:
                 return
 
-        # enable empty loss when using manual opt
         closure_loss = None
-        untouched_loss = None
-
+        loss = None
         if self.trainer.lightning_module.automatic_optimization:
             # accumulate loss. if accumulate_grad_batches==1, no effect
             closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
-
             # the loss will get scaled for amp. avoid any modifications to it
-            untouched_loss = closure_loss.detach().clone()
-
-        # result
-        result = AttributeDict(
-            closure_loss=closure_loss,
-            loss=untouched_loss,
-            training_step_output=training_step_output,
-        )
-        return result
+            loss = closure_loss.detach().clone()
+        return AttributeDict(closure_loss=closure_loss, loss=loss, training_step_output=training_step_output)
 
     def _process_training_step_output(self, training_step_output):
         if training_step_output is None:
@@ -373,10 +363,7 @@ class TrainLoop:
 
                 for tbptt_output in batch_outputs:
                     out = tbptt_output.extra
-                    loss = tbptt_output.minimize
-                    if isinstance(loss, torch.Tensor):
-                        loss = loss.detach()
-                    out['loss'] = loss
+                    out['loss'] = tbptt_output.minimize.detach()
                     processed_tbptt_outputs.append(out)
 
                 # if there was only one tbptt step then we can collapse that dimension

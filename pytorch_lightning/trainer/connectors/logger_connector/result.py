@@ -677,3 +677,11 @@ class ResultCollection(dict):
                     item.value = metrics[lightning_attribute_name]
 
             apply_to_collection(dict(self.items()), ResultMetric, re_assign_metric)
+
+    def __getstate__(self) -> dict:
+        d = self.__dict__.copy()
+        # can't deepcopy tensors with grad_fn
+        minimize = d.get('_minimize')
+        if minimize is not None:
+            d['_minimize'] = minimize.detach()
+        return d
