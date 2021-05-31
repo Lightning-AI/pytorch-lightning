@@ -142,7 +142,7 @@ class ResultCollection(dict):
 
     Example:
 
-        # `root_device` needs to be provided before logging
+        # `device` needs to be provided before logging
         result = ResultCollection(True, torch.device("cpu"))
 
         # you can log to a specific collection.
@@ -176,7 +176,7 @@ class ResultCollection(dict):
         self._current_hook_name: Optional[str] = None
         self._batch_size: Optional[int] = None
         self._batch_idx: Optional[int] = None
-        self._root_device: Optional[torch.device] = root_device
+        self.root_device: Optional[torch.device] = root_device
         self.fx_validator = FxValidator()
 
     @property
@@ -186,14 +186,6 @@ class ResultCollection(dict):
     @batch_size.setter
     def batch_size(self, batch_size: int) -> None:
         self._batch_size = batch_size
-
-    @property
-    def root_device(self) -> Optional[torch.device]:
-        return self._root_device
-
-    @root_device.setter
-    def root_device(self, root_device: torch.device) -> None:
-        self._root_device = root_device
 
     @property
     def batch_idx(self) -> Optional[int]:
