@@ -268,7 +268,7 @@ class ResultCollection(dict):
 
         # storage key
         key = f"{hook_name}.{name}"
-        # add dataloader_suffix  to both key and hook_name
+        # add dataloader_suffix to both key and hook_name
         if dataloader_idx is not None:
             # use as ResultCollection key
             key += f'.{dataloader_idx}'

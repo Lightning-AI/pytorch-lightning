@@ -102,6 +102,7 @@ class EvaluationLoop(object):
             model_ref.on_validation_model_train()
 
     def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
+        assert self.trainer.result_collection is not None
         self.trainer.result_collection.reset_metrics()
 
         if self.trainer.testing:
@@ -213,6 +214,7 @@ class EvaluationLoop(object):
 
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         # set dataloader_idx to model and track batch_size
+        assert self.num_dataloaders is not None
         self.trainer.logger_connector.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, self.num_dataloaders)
 
         if self.trainer.testing:
