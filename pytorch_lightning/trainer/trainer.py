@@ -999,7 +999,7 @@ class Trainer(
         self.train_loop.reset_train_val_dataloaders(model)
 
         # hook
-        self.train_loop.on_train_start()
+        self.call_hook("on_train_start")
 
         try:
             if self._should_skip_training():
