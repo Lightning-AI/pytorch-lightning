@@ -141,3 +141,8 @@ def test_apply_to_collections():
     to_reduce = [foo(1), foo(2), foo(3)]
     reduced = apply_to_collections(to_reduce, to_reduce, int, lambda *x: sum(x))
     assert reduced == [foo(2), foo(4), foo(6)]
+
+    # passing none
+    reduced1 = apply_to_collections([1, 2, 3], None, int, lambda x: x * x)
+    reduced2 = apply_to_collections(None, [1, 2, 3], int, lambda x: x * x)
+    assert reduced1 == reduced2 == [1, 4, 9]

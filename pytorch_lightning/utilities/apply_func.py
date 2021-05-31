@@ -138,6 +138,10 @@ def apply_to_collections(
     Returns:
         The resulting collection
     """
+    if data1 is None and data2 is not None:
+        # in case they were passed reversed
+        data1, data2 = data2, None
+
     if isinstance(data1, dtype) and data2 is not None and (wrong_dtype is None or not isinstance(data1, wrong_dtype)):
         return function(data1, data2, *args, **kwargs)
 
