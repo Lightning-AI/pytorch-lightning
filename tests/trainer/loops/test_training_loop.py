@@ -145,7 +145,7 @@ def test_should_stop_mid_epoch(tmpdir):
     assert model.validation_called_at == (0, 4)
 
 
-@pytest.mark.parametrize(['output'], [(5.,), ({'a': 5},)])
+@pytest.mark.parametrize(['output'], [(5., ), ({'a': 5}, )])
 def test_warning_invalid_trainstep_output(tmpdir, output):
 
     class TestModel(BoringModel):
