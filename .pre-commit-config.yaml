@@ -22,23 +22,25 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-yaml
-      #- id: pretty-format-json
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-toml
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.8.0
     hooks:
       - id: isort
-        name: imports
+        name: Format imports
 
   - repo: https://github.com/pre-commit/mirrors-yapf
     rev: v0.31.0
     hooks:
       - id: yapf
-        name: formatting
+        name: Format code
         language: python
 
   - repo: https://github.com/PyCQA/flake8
     rev: 3.9.2
     hooks:
       - id: flake8
-        name: PEP8
+        name: Check PEP8
