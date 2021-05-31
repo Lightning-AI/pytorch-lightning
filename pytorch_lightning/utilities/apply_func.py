@@ -77,7 +77,7 @@ def apply_to_collection(
         function: the function to apply
         *args: positional arguments (will be forwarded to calls of ``function``)
         wrong_dtype: the given function won't be applied if this type is specified and the given collections
-            is of the :attr:`wrong_type` even if it is of type :attr`dtype`
+            is of the ``wrong_dtype`` even if it is of type ``dtype``
         include_none: Whether to include an element if the output of ``function`` is ``None``.
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
@@ -132,7 +132,7 @@ def apply_to_collections(
         function: the function to apply
         *args: positional arguments (will be forwarded to calls of ``function``)
         wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
-            the :attr:`wrong_type` even if it is of type :attr`dtype`
+            is of the ``wrong_dtype`` even if it is of type ``dtype``
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
     Returns:
