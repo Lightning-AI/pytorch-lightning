@@ -16,7 +16,7 @@ from collections import OrderedDict
 from contextlib import contextmanager, suppress
 from copy import copy
 from functools import partial, update_wrapper
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Mapping
 
 import numpy as np
 import torch
@@ -269,6 +269,10 @@ class TrainLoop:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
+            elif self.trainer.automatic_optimization:
+                if not (isinstance(training_step_output, torch.Tensor) or (isinstance(training_step_output, Mapping) and 'loss' in training_step_output)):
+                    raise MisconfigurationException("In automatic optimization, `training_step` must either return a Tensor or a dict with key 'loss'")
+            
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
