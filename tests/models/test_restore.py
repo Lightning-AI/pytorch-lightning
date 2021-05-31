@@ -143,7 +143,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
 class CaptureCallbacksBeforeTraining(Callback):
     callbacks = []
 
-    def on_train_start(self, trainer, pl_module):
+    def on_pretrain_routine_end(self, trainer, pl_module):
         self.callbacks = deepcopy(trainer.callbacks)
 
 

@@ -934,6 +934,7 @@ class Trainer(
         else:
             self._run_train_old_loop()
 
+    # TODO: remove together with old loop
     def _should_skip_training(self) -> bool:
         should_by_max_steps = self.max_steps is not None and self.global_step >= self.max_steps
         should_by_epoch = self.max_epochs is not None and self.current_epoch >= self.max_epochs
@@ -959,14 +960,7 @@ class Trainer(
         # TODO: This might move somewhere else
         self.reset_train_val_dataloaders(model)
 
-        # hook
-        # TODO: move this inside loop together with skip condition below
-        self.call_hook("on_train_start")
-
         try:
-            # TODO: move skip condition into EpochLoop.done()
-            if self._should_skip_training():
-                return
             self.train_loop.run()
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')

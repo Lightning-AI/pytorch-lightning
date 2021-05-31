@@ -97,7 +97,8 @@ class EpochLoop(Loop):
     @property
     def done(self) -> bool:
         # TODO: Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.max_steps and self.global_step >= self.max_steps
+        stop_steps = self.max_steps is not None and self.global_step >= self.max_steps
+        stop_epochs = self.max_epochs is not None and self.current_epoch >= self.max_epochs
 
         should_stop = False
         if self.trainer.should_stop:
@@ -116,17 +117,17 @@ class EpochLoop(Loop):
                 )
                 self.trainer.should_stop = False
 
-        stop_epochs = self.current_epoch >= self.max_epochs if self.max_epochs is not None else False
         return stop_steps or should_stop or stop_epochs
 
     def reset(self) -> None:
         self.iteration_count = 0
 
+    def run(self):
+        if not self._should_skip_training():
+            return super().run()
+
     def on_run_start(self):
-        # hook
-        # TODO: move it here, currently in Trainer._run_train_new_loop
-        # self.trainer.call_hook("on_train_start")
-        pass
+        self.trainer.call_hook("on_train_start")
 
     def on_advance_start(self):  # equal to old on_train_epoch_start
         model = self.trainer.lightning_module
@@ -225,6 +226,9 @@ class EpochLoop(Loop):
 
         # reset bookkeeping
         self.trainer._running_stage = None
+
+    def _should_skip_training(self) -> bool:
+        return self.done or self.trainer.num_training_batches == 0
 
     def should_accumulate(self):
         return self.training_loop.batch_loop.should_accumulate()
