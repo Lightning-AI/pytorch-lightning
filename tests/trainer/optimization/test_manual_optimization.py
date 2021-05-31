@@ -28,7 +28,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-class AutomaticOptModel(BoringModel):
+class ManualOptModel(BoringModel):
 
     def __init__(self):
         super().__init__()
@@ -71,7 +71,7 @@ class AutomaticOptModel(BoringModel):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_no_return(tmpdir):
 
-    class TestModel(AutomaticOptModel):
+    class TestModel(ManualOptModel):
 
         def training_step(self, batch, batch_idx):
             # avoid returning a value
@@ -104,7 +104,7 @@ def test_multiple_optimizers_manual_no_return(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_return(tmpdir):
 
-    class TestModel(AutomaticOptModel):
+    class TestModel(ManualOptModel):
 
         def training_step(self, batch, batch_idx):
             super().training_step(batch, batch_idx)
@@ -136,7 +136,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_log(tmpdir):
 
-    class TestModel(AutomaticOptModel):
+    class TestModel(ManualOptModel):
 
         def training_step(self, batch, batch_idx):
             loss_2 = super().training_step(batch, batch_idx)
@@ -169,7 +169,7 @@ def test_multiple_optimizers_manual_log(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1)
 def test_multiple_optimizers_manual_native_amp(tmpdir):
-    model = AutomaticOptModel()
+    model = ManualOptModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
@@ -193,7 +193,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1, amp_apex=True)
 def test_multiple_optimizers_manual_apex_no_return(tmpdir):
-    model = AutomaticOptModel()
+    model = ManualOptModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
@@ -428,7 +428,7 @@ def test_multiple_optimizers_step(tmpdir):
     Tests that `step` works with several optimizers
     """
 
-    class TestModel(AutomaticOptModel):
+    class TestModel(ManualOptModel):
 
         called = False
 
