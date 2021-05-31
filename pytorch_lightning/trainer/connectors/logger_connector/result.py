@@ -127,7 +127,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
     def forward(self, value: _METRIC, *args, **kwargs) -> torch.Tensor:
         """Overridden to avoid `self._forward_cache = None` after `update`"""
         prev_fwd_cache = getattr(value, '_forward_cache', None)
-        out = super().forward(*args, **kwargs)
+        out = super().forward(value, *args, **kwargs)
         if out is None:
             self._forward_cache = prev_fwd_cache
         return out
