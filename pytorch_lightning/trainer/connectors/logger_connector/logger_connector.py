@@ -48,6 +48,16 @@ class LoggerConnector:
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
 
+    @property
+    def should_flush_logs(self):
+        should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
+        return should_flush or self.trainer.should_stop
+
+    @property
+    def should_update_logs(self):
+        should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
+        return should_log_every_n_steps or self.trainer.should_stop
+
     def configure_logger(self, logger):
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
@@ -63,16 +73,6 @@ class LoggerConnector:
                 self.trainer.logger = LoggerCollection(logger)
             else:
                 self.trainer.logger = logger
-
-    @property
-    def should_flush_logs(self):
-        should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
-        return should_flush or self.trainer.should_stop
-
-    @property
-    def should_update_logs(self):
-        should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
-        return should_log_every_n_steps or self.trainer.should_stop
 
     def log_metrics(self, metrics, grad_norm_dict, step=None):
         """Logs the metric dict passed in.
