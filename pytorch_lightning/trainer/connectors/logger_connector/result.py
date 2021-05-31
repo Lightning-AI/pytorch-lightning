@@ -52,16 +52,9 @@ class Metadata:
     def forked(self) -> bool:
         return self.on_step and self.on_epoch
 
-    @property
-    def forked_step_name(self) -> str:
+    def forked_name(self, on_step: bool) -> str:
         if self.forked:
-            return self.name + "_step"
-        return self.name
-
-    @property
-    def forked_epoch_name(self) -> str:
-        if self.forked:
-            return self.name + "_epoch"
+            return f'{self.name}_{"step" if on_step else "epoch"}'
         return self.name
 
     @property
@@ -468,7 +461,7 @@ class ResultCollection(dict):
 
         if isinstance(result_metric, ResultMetric):
             name = result_metric.meta.name
-            name_forked = result_metric.meta.forked_step_name if on_step else result_metric.meta.forked_epoch_name
+            name_forked = result_metric.meta.forked_name(on_step)
             logger = result_metric.meta.logger
             prog_bar = result_metric.meta.prog_bar
             metric_on_epoch = result_metric.meta.on_epoch
