@@ -58,16 +58,16 @@ class Metadata:
         return self.name
 
     @property
-    def is_tensor_and_mean_reduction(self) -> bool:
-        return self.is_tensor and self.reduce_fx == torch.mean
+    def is_mean_reduction(self) -> bool:
+        return self.reduce_fx == torch.mean
 
     @property
-    def is_tensor_and_max_reduction(self) -> bool:
-        return self.is_tensor and (self.reduce_fx in (torch.max, max))
+    def is_max_reduction(self) -> bool:
+        return self.reduce_fx in (torch.max, max)
 
     @property
-    def is_tensor_and_min_reduction(self) -> bool:
-        return self.is_tensor and (self.reduce_fx in (torch.min, min))
+    def is_min_reduction(self) -> bool:
+        return self.reduce_fx in (torch.min, min)
 
 
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
@@ -79,44 +79,45 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         super().__init__(compute_on_step=metadata.is_tensor)
         self.meta = metadata
         if self.meta.is_tensor:
-            self.add_state("value", torch.tensor(.0))
-            if self.meta.is_tensor_and_mean_reduction:
-                self.add_state("cumulated_batch_size", torch.tensor(.0))
+            self.add_state("value", torch.tensor(0, dtype=torch.float))
+            if self.meta.is_mean_reduction:
+                self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
+        # TODO: self.value?
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
-        if self.meta.is_tensor_and_mean_reduction:
-            self.value += value.float().mean() * batch_size
-            self.cumulated_batch_size += batch_size
+        # TODO: support for non-tensor, sync returns tensor always
+        if self.meta.is_tensor:
+            if self.meta.is_mean_reduction:
+                self.value += value.float().mean() * batch_size
+                self.cumulated_batch_size += batch_size
 
-        elif self.meta.is_tensor_and_max_reduction:
-            self.value = max(self.value, value.float().mean())
+            elif self.meta.is_max_reduction:
+                self.value = max(self.value, value.float().mean())
 
-        elif self.meta.is_tensor_and_min_reduction:
-            self.value = min(self.value, value.float().mean())
-
+            elif self.meta.is_min_reduction:
+                self.value = min(self.value, value.float().mean())
         else:
-            self.value = value
+            self.value = value  # noqa: attribute-defined-outside-init
             self._forward_cache = value._forward_cache
 
     def compute(self) -> torch.Tensor:
         if self.meta.is_tensor:
-            if self.meta.is_tensor_and_mean_reduction:
+            if self.meta.is_mean_reduction:
                 return torch.sum(self.value) / torch.sum(self.cumulated_batch_size)
-            elif self.meta.is_tensor_and_max_reduction or self.meta.is_tensor_and_min_reduction:
+            elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 return self.value
-            else:
-                raise MisconfigurationException("Only min, mean, max reduction are supported.")
-        else:
-            return self.value.compute()
+            raise MisconfigurationException(
+                f"Only [min, max, mean] reductions are supported. Found {self.meta.reduce_fx}"
+            )
+        return self.value.compute()
 
     def __repr__(self) -> str:
-        if self.meta.is_tensor_and_mean_reduction:
-            attr = f"value={self.value}, cumulated_batch_size={self.cumulated_batch_size}"
-        else:
-            attr = f"value={getattr(self, 'value', None)}"
-        return f"{self.__class__.__name__}({attr})"
+        state = f"value={self.value}"
+        if self.meta.is_tensor and self.meta.is_mean_reduction:
+            state += f", cumulated_batch_size={self.cumulated_batch_size}"
+        return f"{self.__class__.__name__}({state})"
 
-    def reset(self):
+    def reset(self) -> None:
         if self.meta.is_tensor:
             super().reset()
         else:
