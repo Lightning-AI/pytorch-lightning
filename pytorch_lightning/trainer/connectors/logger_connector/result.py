@@ -493,9 +493,7 @@ class ResultCollection(dict):
 
             # populate callback metrics
             # callback metrics don't take `_step` forked metrics.
-            if not self.is_train and (not metric_on_epoch or on_step):
-                pass
-            else:
+            if self.is_train or metric_on_epoch and not on_step:
                 metrics[MetricSource.CALLBACK][name] = value
                 metrics[MetricSource.CALLBACK][name_forked] = value
 
