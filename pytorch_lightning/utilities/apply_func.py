@@ -131,7 +131,7 @@ def apply_to_collections(
         dtype: the given function will be applied to all elements of this dtype
         function: the function to apply
         *args: positional arguments (will be forwarded to calls of ``function``)
-        wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
+        wrong_dtype: the given function won't be applied if this type is specified and the given collections
             is of the ``wrong_dtype`` even if it is of type ``dtype``
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
