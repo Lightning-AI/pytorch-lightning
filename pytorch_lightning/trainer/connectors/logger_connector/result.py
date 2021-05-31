@@ -359,7 +359,7 @@ class ResultCollection(dict):
 
     def should_reset_tensors(self, hook_name: str) -> bool:
         # reset tensor metrics only when hook_name changed and starting a new iteration over dataloader.
-        return (self._current_hook_name != hook_name and self._batch_idx in (None, 0))
+        return self._current_hook_name != hook_name and self.batch_idx in (None, 0)
 
     def update_metrics(
         self, hook_name: str, key: str, value: Union[Dict, torch.Tensor], batch_size: torch.Tensor
