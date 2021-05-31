@@ -19,7 +19,7 @@ import torch.multiprocessing as mp
 from torchmetrics import Metric
 
 import tests.helpers.utils as tutils
-from pytorch_lightning.trainer.connectors.logger_connector.result import DefaultMetricsKeys, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
 from tests.helpers.runif import RunIf
 
 
@@ -79,7 +79,7 @@ def _ddp_test_fn(rank, worldsize):
             result.log('h', 'b', metric_b, on_step=False, on_epoch=True, lightning_attribute_name="metric_b")
             result.log('h', 'c', metric_c, on_step=True, on_epoch=False, lightning_attribute_name="metric_c")
 
-            batch_log = result.get_batch_metrics()[DefaultMetricsKeys.LOG]
+            batch_log = result.get_batch_metrics()[MetricSource.LOG]
             batch_expected = {"a_step": i, "c": i}
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
@@ -87,7 +87,7 @@ def _ddp_test_fn(rank, worldsize):
 
         result.on_epoch_end_reached = True
 
-        epoch_log = result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
+        epoch_log = result.get_epoch_metrics()[MetricSource.LOG]
         result.reset()
 
         # assert metric state reset to default values
@@ -138,7 +138,7 @@ def test_result_metric_integration():
             result.log('h', 'b', metric_b, on_step=False, on_epoch=True, lightning_attribute_name="metric_b")
             result.log('h', 'c', metric_c, on_step=True, on_epoch=False, lightning_attribute_name="metric_c")
 
-            batch_log = result.get_batch_metrics()[DefaultMetricsKeys.LOG]
+            batch_log = result.get_batch_metrics()[MetricSource.LOG]
             batch_expected = {"a_step": i, "c": i}
             assert set(batch_log.keys()) == set(batch_expected.keys())
             for k in batch_expected.keys():
@@ -146,7 +146,7 @@ def test_result_metric_integration():
 
         result.on_epoch_end_reached = True
 
-        epoch_log = result.get_epoch_metrics()[DefaultMetricsKeys.LOG]
+        epoch_log = result.get_epoch_metrics()[MetricSource.LOG]
         result.reset()
 
         # assert metric state reset to default values
@@ -196,7 +196,7 @@ def test_result_collection_restoration():
             result.log('training_step', 'b_1', b, on_step=False, on_epoch=True)
             result.log('training_step', 'c_1', [c, c], on_step=True, on_epoch=False)
 
-            batch_log = result.metrics[DefaultMetricsKeys.LOG]
+            batch_log = result.metrics[MetricSource.LOG]
             batch_expected = {"a_step": i, "c": i, "a_1_step": i, "c_1": [i, i]}
 
             assert set(batch_log.keys()) == set(batch_expected.keys())
@@ -221,8 +221,8 @@ def test_result_collection_restoration():
         result.on_epoch_end_reached = True
         _result.on_epoch_end_reached = True
 
-        epoch_log = result.metrics[DefaultMetricsKeys.LOG]
-        _epoch_log = _result.metrics[DefaultMetricsKeys.LOG]
+        epoch_log = result.metrics[MetricSource.LOG]
+        _epoch_log = _result.metrics[MetricSource.LOG]
 
         assert epoch_log == _epoch_log
 

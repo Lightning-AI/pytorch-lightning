@@ -20,7 +20,7 @@ import torch
 
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
-from pytorch_lightning.trainer.connectors.logger_connector.result import DefaultMetricsKeys
+from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -124,7 +124,7 @@ class LoggerConnector:
         if self.trainer.sanity_checking:
             return
 
-        callback_metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.CALLBACK]
+        callback_metrics = self.trainer.result_collection.metrics[MetricSource.CALLBACK]
         callback_metrics = deepcopy(callback_metrics)
         for key in list(callback_metrics.keys()):
             if "dataloader_idx" in key and f"dataloader_idx_{dl_idx}" not in key:
@@ -145,13 +145,13 @@ class LoggerConnector:
         metrics = self.trainer.result_collection.metrics
 
         # update metrics
-        self._progress_bar_metrics.update(metrics[DefaultMetricsKeys.PBAR])
-        self._callback_metrics.update(metrics[DefaultMetricsKeys.CALLBACK])
+        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
+        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
 
         if not self.trainer.sanity_checking:
 
             # log all the metrics as a single dict
-            metrics_to_log = metrics[DefaultMetricsKeys.LOG]
+            metrics_to_log = metrics[MetricSource.LOG]
             if len(metrics_to_log) > 0:
                 self.log_metrics(metrics_to_log, {})
 
@@ -209,14 +209,14 @@ class LoggerConnector:
         metrics = self.trainer.result_collection.metrics
 
         # update metrics
-        self._progress_bar_metrics.update(metrics[DefaultMetricsKeys.PBAR])
-        self._callback_metrics.update(metrics[DefaultMetricsKeys.CALLBACK])
+        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
+        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
 
         if self.trainer.sanity_checking:
             return
 
         # logs user requested information to logger
-        batch_log_metrics = metrics[DefaultMetricsKeys.LOG]
+        batch_log_metrics = metrics[MetricSource.LOG]
         if len(batch_log_metrics) > 0:
             kwargs = dict() if "step" in batch_log_metrics else dict(step=self.evaluation_log_step)
             self.log_metrics(batch_log_metrics, {}, **kwargs)
@@ -244,14 +244,14 @@ class LoggerConnector:
         metrics = self.trainer.result_collection.metrics
 
         # update metrics
-        self._progress_bar_metrics.update(metrics[DefaultMetricsKeys.PBAR])
-        self._callback_metrics.update(metrics[DefaultMetricsKeys.CALLBACK])
+        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
+        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
 
         if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
         # when metrics should be logged
-        batch_log_metrics = metrics[DefaultMetricsKeys.LOG]
+        batch_log_metrics = metrics[MetricSource.LOG]
         if self.should_update_logs or self.trainer.fast_dev_run is True:
             # logs user requested information to logger
             grad_norm_dict = batch_output.grad_norm_dict
@@ -268,11 +268,11 @@ class LoggerConnector:
 
         metrics = self.trainer.result_collection.metrics
 
-        self._progress_bar_metrics.update(metrics[DefaultMetricsKeys.PBAR])
-        self._callback_metrics.update(metrics[DefaultMetricsKeys.CALLBACK])
+        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
+        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
 
         # add the metrics to the loggers
-        epoch_log_metrics = metrics[DefaultMetricsKeys.LOG]
+        epoch_log_metrics = metrics[MetricSource.LOG]
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
             epoch_log_metrics["epoch"] = self.trainer.current_epoch
             self._logged_metrics.update(epoch_log_metrics)
@@ -288,20 +288,20 @@ class LoggerConnector:
     @property
     def callback_metrics(self) -> Dict[str, float]:
         if self.trainer.result_collection:
-            metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.CALLBACK]
+            metrics = self.trainer.result_collection.metrics[MetricSource.CALLBACK]
             self._callback_metrics.update(metrics)
         return self._callback_metrics
 
     @property
     def logged_metrics(self) -> Dict[str, float]:
         if self.trainer.result_collection:
-            metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.LOG]
+            metrics = self.trainer.result_collection.metrics[MetricSource.LOG]
             self._logged_metrics.update(metrics)
         return self._logged_metrics
 
     @property
     def progress_bar_metrics(self) -> Dict[str, float]:
         if self.trainer.result_collection:
-            metrics = self.trainer.result_collection.metrics[DefaultMetricsKeys.PBAR]
+            metrics = self.trainer.result_collection.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics

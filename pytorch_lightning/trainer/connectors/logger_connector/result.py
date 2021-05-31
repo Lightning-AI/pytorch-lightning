@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC
 
 
-class DefaultMetricsKeys(LightningEnum):
+class MetricSource(LightningEnum):
     CALLBACK = "callback"
     PBAR = "pbar"
     LOG = "log"
@@ -260,9 +260,9 @@ class ResultCollection(dict):
 
 
         {
-            DefaultMetricsKeys.PBAR: {...},
-            DefaultMetricsKeys.LOG: {...},
-            DefaultMetricsKeys.CALLBACK: {...}
+            MetricSource.PBAR: {...},
+            MetricSource.LOG: {...},
+            MetricSource.CALLBACK: {...}
         }
         """
         return self.get_epoch_metrics() if self.on_epoch_end_reached else self.get_batch_metrics()
@@ -490,7 +490,7 @@ class ResultCollection(dict):
         return name, name_forked, logger, prog_bar, metric_on_epoch
 
     def get_metrics(self, on_step: bool) -> Dict[str, Dict[str, torch.Tensor]]:
-        metrics = {k: {} for k in DefaultMetricsKeys}
+        metrics = {k: {} for k in MetricSource}
 
         # either extract `forward_cache` or `computed` from `ResultMetric` objects
         fn = self._get_forward_cache if on_step else self._get_computed_cache
@@ -529,20 +529,20 @@ class ResultCollection(dict):
 
             # populate logging metrics
             if logger:
-                metrics[DefaultMetricsKeys.LOG][name_forked] = value
+                metrics[MetricSource.LOG][name_forked] = value
 
             # populate callback metrics
             # callback metrics don't take `_step` forked metrics.
             if not self.is_train and (not metric_on_epoch or on_step):
                 pass
             else:
-                metrics[DefaultMetricsKeys.CALLBACK][name] = value
-                metrics[DefaultMetricsKeys.CALLBACK][name_forked] = value
+                metrics[MetricSource.CALLBACK][name] = value
+                metrics[MetricSource.CALLBACK][name_forked] = value
 
             # populate progress_bar metrics. By default, the value should be converted to a float.
             if prog_bar:
                 value = apply_to_collection(value, torch.Tensor, self._to_item, include_none=False)
-                metrics[DefaultMetricsKeys.PBAR][name_forked] = value
+                metrics[MetricSource.PBAR][name_forked] = value
 
         return metrics
 

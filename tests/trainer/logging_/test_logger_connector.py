@@ -22,7 +22,7 @@ from pytorch_lightning import LightningModule, seed_everything
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import DefaultMetricsKeys, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -478,7 +478,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
         'loss_1_1_1_step': torch.tensor([9.]),
         'loss_3_1_1': torch.tensor([9.])
     }
-    assert batch_metrics[DefaultMetricsKeys.PBAR] == expected
+    assert batch_metrics[MetricSource.PBAR] == expected
 
     excepted = {
         'loss_1_0_1_step': torch.tensor([9.]),
@@ -486,7 +486,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
         'loss_1_1_1_step': torch.tensor([9.]),
         'loss_3_1_1': torch.tensor([9.])
     }
-    assert batch_metrics[DefaultMetricsKeys.LOG] == excepted
+    assert batch_metrics[MetricSource.LOG] == excepted
 
     excepted = {
         'loss_1_0_0': torch.tensor(9.),
@@ -502,7 +502,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
         'loss_1_1_1_step': torch.tensor(9.),
         'loss_3_1_1': torch.tensor(9.)
     }
-    assert batch_metrics[DefaultMetricsKeys.CALLBACK] == excepted
+    assert batch_metrics[MetricSource.CALLBACK] == excepted
 
     result_collection.on_epoch_end_reached = True
 
@@ -511,10 +511,10 @@ def test_result_collection_on_tensor_with_mean_reduction():
     mean = (torch.tensor(excepted_values) * torch.tensor(excepted_batches)).sum() / sum(excepted_batches)
 
     expected = {'loss_1_1_0_epoch': mean, 'loss_2_1_0': mean, 'loss_1_1_1_epoch': mean, 'loss_2_1_1': mean}
-    assert epoch_metrics[DefaultMetricsKeys.PBAR] == expected
+    assert epoch_metrics[MetricSource.PBAR] == expected
 
     excepted = {'loss_1_0_1_epoch': mean, 'loss_2_0_1': mean, 'loss_1_1_1_epoch': mean, 'loss_2_1_1': mean}
-    assert epoch_metrics[DefaultMetricsKeys.LOG] == excepted
+    assert epoch_metrics[MetricSource.LOG] == excepted
 
     excepted = {
         'loss_1_0_0': mean,
@@ -530,4 +530,4 @@ def test_result_collection_on_tensor_with_mean_reduction():
         'loss_1_1_1_epoch': mean,
         'loss_2_1_1': mean,
     }
-    assert epoch_metrics[DefaultMetricsKeys.CALLBACK] == excepted
+    assert epoch_metrics[MetricSource.CALLBACK] == excepted
