@@ -344,7 +344,6 @@ class LightningModule(
             device=self.device,
         )
 
-        # TODO: if logged twice fail with crash
         assert self._results is not None
         self._results.log(
             name,
