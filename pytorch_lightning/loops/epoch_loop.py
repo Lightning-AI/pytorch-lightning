@@ -97,7 +97,7 @@ class EpochLoop(Loop):
     @property
     def done(self) -> bool:
         # TODO: Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = self.max_steps and self.max_steps <= self.global_step
+        stop_steps = self.max_steps and self.global_step >= self.max_steps
 
         should_stop = False
         if self.trainer.should_stop:
@@ -124,7 +124,9 @@ class EpochLoop(Loop):
 
     def on_run_start(self):
         # hook
-        self.trainer.call_hook("on_train_start")
+        # TODO: move it here, currently in Trainer._run_train_new_loop
+        # self.trainer.call_hook("on_train_start")
+        pass
 
     def on_advance_start(self):  # equal to old on_train_epoch_start
         model = self.trainer.lightning_module

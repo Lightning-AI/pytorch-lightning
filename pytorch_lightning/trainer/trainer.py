@@ -941,6 +941,7 @@ class Trainer(
 
     def _run_train_new_loop(self) -> None:
         self._pre_training_routine()
+
         if not self.is_global_zero and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
@@ -955,8 +956,12 @@ class Trainer(
         # reload data when needed
         model = self.lightning_module
 
-        # This might move somewhere else
+        # TODO: This might move somewhere else
         self.reset_train_val_dataloaders(model)
+
+        # hook
+        # TODO: move this inside loop together with skip condition below
+        self.call_hook("on_train_start")
 
         try:
             # TODO: move skip condition into EpochLoop.done()

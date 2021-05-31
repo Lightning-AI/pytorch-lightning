@@ -98,10 +98,6 @@ class TrainLoop:
         should_by_epoch = self.max_epochs is not None and self.current_epoch >= self.max_epochs
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
-    def on_train_start(self):
-        # hook
-        self.trainer.call_hook("on_train_start")
-
     def on_train_end(self):
         if self._teardown_already_run:
             return
