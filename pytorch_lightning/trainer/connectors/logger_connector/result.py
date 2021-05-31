@@ -168,7 +168,7 @@ class ResultCollection(dict):
     EPOCH_SUFFIX = "_epoch"
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
 
-    def __init__(self, training: bool, root_device: Optional[torch.device] = None) -> None:
+    def __init__(self, training: bool, device: Optional[torch.device] = None) -> None:
         super().__init__()
         self.training = training
         self._on_epoch_end_reached = False
@@ -176,7 +176,7 @@ class ResultCollection(dict):
         self._current_hook_name: Optional[str] = None
         self._batch_size: Optional[int] = None
         self.batch_idx: Optional[int] = None
-        self.root_device: Optional[torch.device] = root_device
+        self.device: Optional[torch.device] = device
         self.fx_validator = FxValidator()
 
     @property
@@ -325,7 +325,7 @@ class ResultCollection(dict):
             self.instance_result_metric(key, meta, value)
 
         # compute batch_size
-        batch_size = torch.tensor(batch_size or self.batch_size, device=self.root_device)
+        batch_size = torch.tensor(batch_size or self.batch_size, device=self.device)
 
         # update the ResultMetric
         self.update_metrics(hook_name, key, value, batch_size)
@@ -338,12 +338,12 @@ class ResultCollection(dict):
         def fn(v: Union[torch.Tensor, Metric]) -> ResultMetric:
             # This local function is used to `ResultMetric`.
             # The `Metadata` is_tensor is modified on the fly
-            assert self.root_device is not None
+            assert self.device is not None
             nonlocal meta
             meta = deepcopy(meta)
             meta.is_tensor = torch.is_tensor(v)
             metric = ResultMetric(meta)
-            return metric.to(self.root_device)
+            return metric.to(self.device)
 
         # store a mapping between storage key and collection of `ResultMetric`
         self[key] = apply_to_collection(value, (torch.Tensor, Metric), fn)
@@ -372,7 +372,7 @@ class ResultCollection(dict):
         # this function is used to call the forward function of ResultMetric object.
         def fn(result_metric, v):
             assert isinstance(v, (torch.Tensor, Metric))
-            result_metric(v.to(self.root_device), batch_size.to(self.root_device))
+            result_metric(v.to(self.device), batch_size.to(self.device))
             result_metric.meta.has_reset = False
 
         apply_to_collections(self[key], value, ResultMetric, fn)
@@ -599,8 +599,8 @@ class ResultCollection(dict):
             result_metric = ResultMetric(item["meta"])
             # update its state
             result_metric.__dict__.update(item)
-            # move result_metric to root_device
-            return result_metric.to(self.root_device)
+            # move result_metric to device
+            return result_metric.to(self.device)
 
         # transform ResultMeta into ResultMetric
         state_dict = {k: apply_to_collection(v, ResultMeta, to_result_metric) for k, v in state_dict.items()}

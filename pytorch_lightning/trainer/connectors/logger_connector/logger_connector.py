@@ -192,9 +192,8 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
-    def on_evaluation_start(self):
-        root_device = self.trainer.lightning_module.device
-        self.trainer.result_collection.root_device = root_device
+    def on_evaluation_start(self) -> None:
+        self.trainer.result_collection.device = self.trainer.lightning_module.device
 
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
         model = self.trainer.lightning_module
@@ -228,9 +227,8 @@ class LoggerConnector:
     Train metric updates
     """
 
-    def on_train_start(self):
-        root_device = self.trainer.lightning_module.device
-        self.trainer.result_collection.root_device = root_device
+    def on_train_start(self) -> None:
+        self.trainer.result_collection.device = self.trainer.lightning_module.device_device
 
     def on_train_split_start(self, batch_idx: int, split_batch: Any) -> None:
         self.trainer.result_collection.extract_batch_size(split_batch)
