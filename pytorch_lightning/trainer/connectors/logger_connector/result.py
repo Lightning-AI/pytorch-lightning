@@ -130,17 +130,24 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return f"{self.__class__.__name__}({state})"
 
 
+class ResultMetricCollection(dict):
+    """
+    Dict wrapper for easy access to metadata.
 
-class _SerializationHelper(dict):
+    All of the leaf items should be instances of
+    :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric`
+    with the same metadata.
     """
-    Since ``ResultCollection`` can hold ``ResultMetric`` values or dictionaries of them, we need
-    a class to differentiate between the cases after converting to state dict when saving its state.
-    """
+
+    def __init__(self, metadata: Metadata) -> None:
+        super().__init__()
+        self.meta = metadata
 
 
 class ResultCollection(dict):
     """
-    Collection (dictionary) of :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric`
+    Collection (dictionary) of :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric` or
+    :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetricCollection`
 
     Example:
 
@@ -162,9 +169,6 @@ class ResultCollection(dict):
             result.log('training_epoch_end', 'acc', torch.tensor(...), on_step=False, on_epoch=True)`
     """
 
-    # FIXME
-    STEP_SUFFIX = "_step"
-    EPOCH_SUFFIX = "_epoch"
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
 
     def __init__(self, training: bool, device: Optional[torch.device] = None) -> None:
@@ -215,6 +219,7 @@ class ResultCollection(dict):
         Extras are any keys other than the loss returned by
         :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
         """
+        # FIXME: add underscore to key
         return self.get('extra', {})
 
     @extra.setter
@@ -293,18 +298,15 @@ class ResultCollection(dict):
             metric = ResultMetric(meta, isinstance(v, torch.Tensor))
             return metric.to(self.device)
 
-        # store a mapping between storage key and collection of `ResultMetric`
-        self[key] = apply_to_collection(value, (torch.Tensor, Metric), fn)
+        if isinstance(value, dict):
+            rmc = ResultMetricCollection(meta)
+            rmc.update(value)
+            apply_to_collection(rmc, (torch.Tensor, Metric), fn)
+            value = rmc
+        else:
+            value = fn(value)
 
-        # FIXME
-        # when the value was a nested collection, store some metadata
-        # to facilate access for later metrics gathering
-        if not isinstance(self[key], ResultMetric):
-            self[key + '.forked'] = meta.forked
-            self[key + '.logger'] = meta.logger
-            self[key + '.prog_bar'] = meta.prog_bar
-            self[key + '.on_epoch'] = meta.on_epoch
-            self[key + '.dataloader_idx'] = meta.dataloader_idx
+        self[key] = value
 
     def should_reset_tensors(self, fx: str) -> bool:
         # reset tensor metrics only when the hook changed and reloading the dataloader
@@ -331,47 +333,24 @@ class ResultCollection(dict):
 
     def valid_items(self) -> Generator:
         """This function is used to iterate over current valid metrics."""
-        return ((k, v) for k, v in self.items() if (
-            v is not None and not isinstance(v, bool) and not k == "extra"
-            and not (isinstance(v, ResultMetric) and v.meta.has_reset)
-        ))
+        return ((k, v) for k, v in self.items()
+                if (not k == "extra" and not (isinstance(v, ResultMetric) and v.meta.has_reset)))
 
-    def _extract_metadata(self, key: str, result_metric, on_step: bool, suffix: str) -> Tuple:
-        """
-        This function is used to extract the metadata for `ResultMetric` and `nested ResultMetrics`.
-        """
-
-        if isinstance(result_metric, ResultMetric):
-            name = result_metric.meta.name
-            name_forked = result_metric.meta.forked_name(on_step)
-            logger = result_metric.meta.logger
-            prog_bar = result_metric.meta.prog_bar
-            metric_on_epoch = result_metric.meta.on_epoch
-            dataloader_idx = result_metric.meta.dataloader_idx
-        else:
-            name = key.split('.')[-1]
-            name_forked = name + suffix if self[key + '.forked'] else name
-            logger = self[key + '.logger']
-            prog_bar = self[key + '.prog_bar']
-            metric_on_epoch = self[key + '.on_epoch']
-            dataloader_idx = self[key + '.dataloader_idx']
-
-        # add dataloader_suffix is provided.
-        if dataloader_idx is not None:
-            dataloader_suffix = self.DATALOADER_SUFFIX.format(dataloader_idx)
+    def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
+        name = result_metric.meta.name
+        forked_name = result_metric.meta.forked_name(on_step)
+        dl_idx = result_metric.meta.dataloader_idx
+        if dl_idx is not None:
+            dataloader_suffix = self.DATALOADER_SUFFIX.format(dl_idx)
             name += dataloader_suffix
-            name_forked += dataloader_suffix
-
-        return name, name_forked, logger, prog_bar, metric_on_epoch
+            forked_name += dataloader_suffix
+        return name, forked_name
 
     def get_metrics(self, on_step: bool) -> Dict[str, Dict[str, torch.Tensor]]:
         metrics = {k: {} for k in MetricSource}
 
         # either extract `forward_cache` or `computed` from `ResultMetric` objects
         fn = self._get_forward_cache if on_step else self._get_computed_cache
-
-        # select suffix
-        suffix = self.STEP_SUFFIX if on_step else self.EPOCH_SUFFIX
 
         # iterate over all stored metrics.
         for key, result_metric in self.valid_items():
@@ -391,25 +370,21 @@ class ResultCollection(dict):
             if is_none:
                 continue
 
-            # extract metadata
-            name, name_forked, logger, prog_bar, metric_on_epoch = self._extract_metadata(
-                key, result_metric, on_step, suffix
-            )
+            name, forked_name = self._forked_name(result_metric, on_step)
 
             # populate logging metrics
-            if logger:
-                metrics[MetricSource.LOG][name_forked] = value
+            if result_metric.meta.logger:
+                metrics[MetricSource.LOG][forked_name] = value
 
-            # populate callback metrics
-            # callback metrics don't take `_step` forked metrics.
-            if self.training or metric_on_epoch and not on_step:
+            # populate callback metrics. callback metrics don't take `_step` forked metrics
+            if self.training or result_metric.meta.on_epoch and not on_step:
                 metrics[MetricSource.CALLBACK][name] = value
-                metrics[MetricSource.CALLBACK][name_forked] = value
+                metrics[MetricSource.CALLBACK][forked_name] = value
 
-            # populate progress_bar metrics. By default, the value should be converted to a float.
-            if prog_bar:
+            # populate progress_bar metrics. values should be converted to float
+            if result_metric.meta.prog_bar:
                 value = apply_to_collection(value, torch.Tensor, self._to_item, include_none=False)
-                metrics[MetricSource.PBAR][name_forked] = value
+                metrics[MetricSource.PBAR][forked_name] = value
 
         return metrics
 
