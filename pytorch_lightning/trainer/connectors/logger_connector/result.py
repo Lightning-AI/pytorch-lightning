@@ -530,12 +530,8 @@ class ResultCollection(dict):
             size = 1
         return size
 
-    def __repr__(self) -> str:
-        repr = f'{self.__class__.__name__}' + '{\n'
-        for k in sorted(self.keys()):
-            v = self[k]
-            repr += f"  {k}: {v},\n"
-        return repr[:-1] + '\n}'
+    def __str__(self) -> str:
+        return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
     def state_dict(self):
 

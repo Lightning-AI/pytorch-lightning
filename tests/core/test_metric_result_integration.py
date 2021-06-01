@@ -160,6 +160,14 @@ def test_result_metric_integration():
         for k in epoch_expected.keys():
             assert epoch_expected[k] == epoch_log[k]
 
+    assert str(result) == (
+        "ResultCollection(True, cpu, {"
+        "'h.a': ResultMetric(value=DummyMetric()), "
+        "'h.b': ResultMetric(value=DummyMetric()), "
+        "'h.c': ResultMetric(value=DummyMetric())"
+        "})"
+    )
+
 
 def test_result_collection_restoration():
 
