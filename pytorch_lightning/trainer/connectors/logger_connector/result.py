@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator, Mapping, Sequence
-from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
@@ -129,6 +128,14 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         if self.is_tensor and self.meta.is_mean_reduction:
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
+
+    # FIXME: necessary? tests pass?
+    # def __getstate__(self) -> dict:
+    #    d = super().__getstate__()
+    #    # delete reference to TorchMetrics Metric
+    #    d['_modules'].pop('value', None)
+    #    return d
+
 
 class _SerializationHelper(dict):
     """
@@ -496,10 +503,7 @@ class ResultCollection(dict):
     def state_dict(self):
 
         def to_state_dict(item: ResultMetric) -> _SerializationHelper:
-            state = deepcopy(item.__getstate__())
-            # delete reference to TorchMetrics Metric
-            state['_modules'].pop('value', None)
-            return _SerializationHelper(**state)
+            return _SerializationHelper(**item.__getstate__())
 
         return {k: apply_to_collection(v, ResultMetric, to_state_dict) for k, v in self.items()}
 
