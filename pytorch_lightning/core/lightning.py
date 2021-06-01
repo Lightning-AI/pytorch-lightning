@@ -390,7 +390,7 @@ class LightningModule(
             enable_graph=enable_graph,
             dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
             batch_size=batch_size,
-            lightning_attribute_name=metric_attribute,
+            metric_attribute=metric_attribute,
         )
 
     def log_dict(

@@ -75,9 +75,9 @@ def _ddp_test_fn(rank, worldsize):
 
             cumulative_sum += i
 
-            result.log('h', 'a', metric_a, on_step=True, on_epoch=True, lightning_attribute_name="metric_a")
-            result.log('h', 'b', metric_b, on_step=False, on_epoch=True, lightning_attribute_name="metric_b")
-            result.log('h', 'c', metric_c, on_step=True, on_epoch=False, lightning_attribute_name="metric_c")
+            result.log('h', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
+            result.log('h', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
+            result.log('h', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
 
             batch_log = result.get_batch_metrics()[MetricSource.LOG]
             batch_expected = {"a_step": i, "c": i}
@@ -134,9 +134,9 @@ def test_result_metric_integration():
 
             cumulative_sum += i
 
-            result.log('h', 'a', metric_a, on_step=True, on_epoch=True, lightning_attribute_name="metric_a")
-            result.log('h', 'b', metric_b, on_step=False, on_epoch=True, lightning_attribute_name="metric_b")
-            result.log('h', 'c', metric_c, on_step=True, on_epoch=False, lightning_attribute_name="metric_c")
+            result.log('h', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
+            result.log('h', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
+            result.log('h', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
 
             batch_log = result.get_batch_metrics()[MetricSource.LOG]
             batch_expected = {"a_step": i, "c": i}
@@ -193,12 +193,12 @@ def test_result_collection_restoration():
 
             cumulative_sum += i
 
-            result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True, lightning_attribute_name="metric_a")
+            result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
             result.log(
-                'training_step', 'b', metric_b, on_step=False, on_epoch=True, lightning_attribute_name="metric_b"
+                'training_step', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b"
             )
             result.log(
-                'training_step', 'c', metric_c, on_step=True, on_epoch=False, lightning_attribute_name="metric_c"
+                'training_step', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c"
             )
             result.log('training_step', 'a_1', a, on_step=True, on_epoch=True)
             result.log('training_step', 'b_1', b, on_step=False, on_epoch=True)
@@ -238,7 +238,7 @@ def test_result_collection_restoration():
                 assert epoch_log[k] == 1
 
         result.log(
-            'train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True, lightning_attribute_name="metric_a_end"
+            'train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True, metric_attribute="metric_a_end"
         )
 
         _result.reset()

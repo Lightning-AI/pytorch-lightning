@@ -44,7 +44,7 @@ class Metadata:
     on_epoch: bool = True
     reduce_fx: Callable = torch.mean
     dataloader_idx: Optional[int] = None
-    lightning_attribute_name: Optional[str] = None
+    metric_attribute: Optional[str] = None
     has_reset: bool = False
 
     @property
@@ -109,12 +109,6 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             )
         return self.value.compute()
 
-    def __repr__(self) -> str:
-        state = f"value={self.value}"
-        if self.is_tensor and self.meta.is_mean_reduction:
-            state += f", cumulated_batch_size={self.cumulated_batch_size}"
-        return f"{self.__class__.__name__}({state})"
-
     def reset(self) -> None:
         if self.is_tensor:
             super().reset()
@@ -130,6 +124,11 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self._forward_cache = prev_fwd_cache
         return out
 
+    def __repr__(self) -> str:
+        state = f"value={self.value}"
+        if self.is_tensor and self.meta.is_mean_reduction:
+            state += f", cumulated_batch_size={self.cumulated_batch_size}"
+        return f"{self.__class__.__name__}({state})"
 
 class _SerializationHelper(dict):
     """
@@ -239,7 +238,7 @@ class ResultCollection(dict):
         enable_graph: bool = False,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
-        lightning_attribute_name: Optional[str] = None,
+        metric_attribute: Optional[str] = None,
     ):
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -275,7 +274,7 @@ class ResultCollection(dict):
                 on_epoch=on_epoch,
                 reduce_fx=reduce_fx,
                 dataloader_idx=dataloader_idx,
-                lightning_attribute_name=lightning_attribute_name,
+                metric_attribute=metric_attribute,
             )
             # create one ResultMetric object per value.
             # value can be provided as a nested collection.
@@ -519,7 +518,7 @@ class ResultCollection(dict):
 
             def re_assign_metric(item: ResultMetric) -> None:
                 # metric references are lost during serialization and need to be set back during loading
-                name = item.meta.lightning_attribute_name
+                name = item.meta.metric_attribute
                 if isinstance(name, str) and name in metrics:
                     item.value = metrics[name]
 
