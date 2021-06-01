@@ -235,10 +235,10 @@ class HookedModel(BoringModel):
         super().__init__()
         self.called = []
         self.train_batch = [
-            'on_train_batch_start',
             'on_before_batch_transfer',
             'transfer_batch_to_device',
             'on_after_batch_transfer',
+            'on_train_batch_start',
             'training_step',
             'on_before_zero_grad',
             'optimizer_zero_grad',
@@ -248,10 +248,10 @@ class HookedModel(BoringModel):
             'on_train_batch_end',
         ]
         self.val_batch = [
-            'on_validation_batch_start',
             'on_before_batch_transfer',
             'transfer_batch_to_device',
             'on_after_batch_transfer',
+            'on_validation_batch_start',
             'on_validation_batch_end',
         ]
 
@@ -560,10 +560,10 @@ def test_trainer_model_hook_system_validate(tmpdir):
         'on_validation_start',
         'on_epoch_start',
         'on_validation_epoch_start',
-        'on_validation_batch_start',
         'on_before_batch_transfer',
         'transfer_batch_to_device',
         'on_after_batch_transfer',
+        'on_validation_batch_start',
         'on_validation_batch_end',
         'validation_epoch_end',
         'on_validation_epoch_end',
@@ -594,10 +594,10 @@ def test_trainer_model_hook_system_test(tmpdir):
         'on_test_start',
         'on_epoch_start',
         'on_test_epoch_start',
-        'on_test_batch_start',
         'on_before_batch_transfer',
         'transfer_batch_to_device',
         'on_after_batch_transfer',
+        'on_test_batch_start',
         'on_test_batch_end',
         'on_test_epoch_end',
         'on_epoch_end',
