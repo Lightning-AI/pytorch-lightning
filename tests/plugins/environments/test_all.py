@@ -2,6 +2,7 @@ import os
 from unittest import mock
 
 import pytest
+
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -74,9 +75,7 @@ def test_with_user_defined_environ_parameters(cluster_environment_class):
     """
     Test for overriding environ parameters when user provide `envrion_settings`.
     """
-    _instantiate_cluster_environment(
-        cluster_environment_class, environ_settings={"NCCL_NSOCKS_PERTHREAD": "1"}
-    )
+    _instantiate_cluster_environment(cluster_environment_class, environ_settings={"NCCL_NSOCKS_PERTHREAD": "1"})
     assert os.environ.get("NCCL_NSOCKS_PERTHREAD") is not None
     assert os.environ.get("NCCL_NSOCKS_PERTHREAD") == "1"
     assert os.environ.get("NCCL_SOCKET_NTHREADS") is not None
