@@ -85,6 +85,8 @@ Fully Sharded Training
 
 `Fully Sharded <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ shards optimizer state, gradients and parameters across data parallel workers. This allows you to fit much larger models onto multiple GPUs into memory.
 
+Fully Sharded Training alleviates the need to worry about balancing layers onto specific devices using some form of pipe parallelism, and optimizes for distributed communication with minimal effort.
+
 By default, Fully Sharded acts similar to :ref:`sharded` which shards optimizer states and gradients. If you can train with default Fully Sharded, it is recommended to just use :ref:`sharded`.
 
 Shard Parameters to Reach 10+ Billion Parameters
