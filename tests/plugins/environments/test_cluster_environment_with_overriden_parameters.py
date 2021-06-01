@@ -4,10 +4,16 @@ from unittest import mock
 
 import pytest
 
-from pytorch_lightning.plugins.environments import KubeflowEnvironment, SLURMEnvironment, TorchElasticEnvironment, LightningEnvironment
+from pytorch_lightning.plugins.environments import (
+    KubeflowEnvironment,
+    LightningEnvironment,
+    SLURMEnvironment,
+    TorchElasticEnvironment,
+)
 
 
-@pytest.mark.parametrize(["cluster_environment_type"], [("kubeflow", ), ("lightning", ), ("slurm", ), ("torchelastic", )])
+@pytest.mark.parametrize(["cluster_environment_type"], [("kubeflow", ), ("lightning", ), ("slurm", ),
+                                                        ("torchelastic", )])
 def test_default_environ_parameters(cluster_environment_type: str):
     """
     Test for setting default environ parameters.
@@ -25,12 +31,12 @@ def test_default_environ_parameters(cluster_environment_type: str):
     assert os.environ.get("NCCL_SOCKET_NTHREADS") is not None
     assert os.environ.get("NCCL_SOCKET_NTHREADS") == "2"
 
-@mock.patch.dict(
-    os.environ, {
-        "NCCL_NSOCKS_PERTHREA": "3",
-    }
-)
-@pytest.mark.parametrize(["cluster_environment_type"], [("kubeflow", ), ("lightning", ), ("slurm", ), ("torchelastic", )])
+
+@mock.patch.dict(os.environ, {
+    "NCCL_NSOCKS_PERTHREA": "3",
+})
+@pytest.mark.parametrize(["cluster_environment_type"], [("kubeflow", ), ("lightning", ), ("slurm", ),
+                                                        ("torchelastic", )])
 def test_with_not_overriden_default_environ_parameters(cluster_environment_type: str):
     """
     Test for not setting default environ parameters when parameter is already set in `os.environ`.
@@ -49,8 +55,8 @@ def test_with_not_overriden_default_environ_parameters(cluster_environment_type:
     assert os.environ.get("NCCL_SOCKET_NTHREADS") == "2"
 
 
-
-@pytest.mark.parametrize(["cluster_environment_type"], [("kubeflow", ), ("lightning", ), ("slurm", ), ("torchelastic", )])
+@pytest.mark.parametrize(["cluster_environment_type"], [("kubeflow", ), ("lightning", ), ("slurm", ),
+                                                        ("torchelastic", )])
 def test_with_user_defined_environ_parameters(cluster_environment_type: str):
     """
     Test for overriding environ parameters when user provide `envrion_settings`.
