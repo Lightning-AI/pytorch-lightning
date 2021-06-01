@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -76,6 +76,7 @@ class EvaluationLoop(object):
         return sum(max_batches) == 0
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
+        self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
         else:
@@ -101,7 +102,7 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
-        if self.trainer.state != TrainerState.FITTING:
+        if self.trainer.state.fn != TrainerFn.FITTING:
             # summarize profile results
             self.trainer.profiler.describe()
 
@@ -132,9 +133,9 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
 
-    def _build_args(self, batch: Any, batch_idx: int, dataloader_idx: int) -> List[Union[Any, int]]:
+    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Union[Any, int]]:
         # make dataloader_idx arg in validation_step optional
-        args = [batch, batch_idx]
+        step_kwargs = OrderedDict([('batch', batch), ('batch_idx', batch_idx)])
 
         multiple_val_loaders = (
             not self.trainer.testing and self._get_num_dataloaders(self.trainer.val_dataloaders) > 1
@@ -142,9 +143,9 @@ class EvaluationLoop(object):
         multiple_test_loaders = (self.trainer.testing and self._get_num_dataloaders(self.trainer.test_dataloaders) > 1)
 
         if multiple_test_loaders or multiple_val_loaders:
-            args.append(dataloader_idx)
+            step_kwargs['dataloader_idx'] = dataloader_idx
 
-        return args
+        return step_kwargs
 
     def _get_num_dataloaders(self, dataloaders: Optional[List[DataLoader]]) -> int:
         # case where user does:
@@ -158,8 +159,8 @@ class EvaluationLoop(object):
             return 0
 
     def evaluation_step(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Optional[STEP_OUTPUT]:
-        # configure args
-        args = self._build_args(batch, batch_idx, dataloader_idx)
+        # configure step_kwargs
+        step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
         model_ref = self.trainer.lightning_module
         model_ref._results = Result()
@@ -167,11 +168,11 @@ class EvaluationLoop(object):
         if self.trainer.testing:
             model_ref._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
-                output = self.trainer.accelerator.test_step(args)
+                output = self.trainer.accelerator.test_step(step_kwargs)
         else:
             model_ref._current_fx_name = "validation_step"
             with self.trainer.profiler.profile("validation_step"):
-                output = self.trainer.accelerator.validation_step(args)
+                output = self.trainer.accelerator.validation_step(step_kwargs)
 
         # capture any logged information
         self.trainer.logger_connector.cache_logged_metrics()
@@ -187,6 +188,13 @@ class EvaluationLoop(object):
         else:
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
+
+    def _should_track_batch_outputs_for_epoch_end(self) -> bool:
+        model = self.trainer.lightning_module
+        if self.trainer.testing:
+            return is_overridden('test_epoch_end', model=model)
+        else:
+            return is_overridden('validation_epoch_end', model=model)
 
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         # unset dataloder_idx in model
@@ -241,48 +249,7 @@ class EvaluationLoop(object):
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(batch_idx, dataloader_idx, output)
 
-    def on_evaluation_epoch_end(self, outputs: Union[List[List[Dict]], List[Dict]]) -> None:
-        model_ref = self.trainer.lightning_module
+    def on_evaluation_epoch_end(self) -> None:
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
-
-        self.trainer._reset_result_and_set_hook_fx_name(hook_name)
-
-        with self.trainer.profiler.profile(hook_name):
-
-            if hasattr(self.trainer, hook_name):
-                on_evaluation_epoch_end_hook = getattr(self.trainer, hook_name)
-                on_evaluation_epoch_end_hook(outputs)
-
-            if is_overridden(hook_name, model_ref):
-                model_hook_fx = getattr(model_ref, hook_name)
-                if is_param_in_hook_signature(model_hook_fx, "outputs"):
-                    model_hook_fx(outputs)
-                else:
-                    self.warning_cache.warn(
-                        f"`ModelHooks.{hook_name}` signature has changed in v1.3. `outputs` parameter has been added."
-                        " Support for the old signature will be removed in v1.5", DeprecationWarning
-                    )
-                    model_hook_fx()
-
-        self.trainer._cache_logged_metrics()
-
+        self.trainer.call_hook(hook_name)
         self.trainer.call_hook('on_epoch_end')
-
-    def log_evaluation_step_metrics(self, batch_idx: int) -> None:
-        if self.trainer.sanity_checking:
-            return
-
-        cached_results = self.trainer.logger_connector.cached_results
-        if cached_results is not None:
-            cached_batch_pbar_metrics, cached_batch_log_metrics = cached_results.update_logger_connector()
-
-            if len(cached_batch_log_metrics) > 0:
-                # make the metrics appear as a different line in the same graph
-                metrics_by_epoch = {}
-                for k, v in cached_batch_log_metrics.items():
-                    metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
-
-                self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
-
-            if len(cached_batch_pbar_metrics) > 0:
-                self.trainer.logger_connector.add_progress_bar_metrics(cached_batch_pbar_metrics)

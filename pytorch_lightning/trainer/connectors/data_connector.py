@@ -17,7 +17,6 @@ from typing import List, Optional, Union
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.supporters import prefetch_iterator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -25,8 +24,9 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 
 class DataConnector(object):
 
-    def __init__(self, trainer):
+    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
+        self.multiple_trainloader_mode = multiple_trainloader_mode
 
     def on_trainer_init(
         self, check_val_every_n_epoch: int, reload_dataloaders_every_epoch: bool, prepare_data_per_node: bool
@@ -68,24 +68,26 @@ class DataConnector(object):
         else:
             return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
 
-    def attach_data(self, model, train_dataloader, val_dataloaders, datamodule):
-        # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloader, LightningDataModule):
-            datamodule = train_dataloader
-            train_dataloader = None
-
-        self.__enforce_datamodule_dataloader_override(train_dataloader, val_dataloaders, datamodule)
-
+    def attach_data(
+        self,
+        model: 'pl.LightningModule',
+        train_dataloader: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        predict_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional['pl.LightningDataModule'] = None
+    ) -> None:
         # set up the passed in dataloaders (if needed)
-        self.attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.attach_datamodule(model, datamodule)
-
-    def __enforce_datamodule_dataloader_override(self, train_dataloader, val_dataloaders, datamodule):
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloader is not None or val_dataloaders is not None) and datamodule is not None:
-            raise MisconfigurationException(
-                'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
-            )
+        self.attach_dataloaders(
+            model,
+            train_dataloader=train_dataloader,
+            val_dataloaders=val_dataloaders,
+            test_dataloaders=test_dataloaders,
+            predict_dataloaders=predict_dataloaders,
+        )
+        self.attach_datamodule(model, datamodule=datamodule)
+        # set local properties on the model
+        self.trainer.model_connector.copy_trainer_model_properties(model)
 
     def attach_dataloaders(
         self,

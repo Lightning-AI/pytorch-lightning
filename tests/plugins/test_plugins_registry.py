@@ -14,14 +14,15 @@
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins import TrainingTypePluginsRegistry
-from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin
+from pytorch_lightning.plugins import DDPPlugin, DeepSpeedPlugin, TrainingTypePluginsRegistry
 from tests.helpers.runif import RunIf
 
 
 def test_training_type_plugins_registry_with_new_plugin():
 
     class TestPlugin:
+
+        distributed_backend = "test_plugin"
 
         def __init__(self, param1, param2):
             self.param1 = param1
@@ -37,6 +38,7 @@ def test_training_type_plugins_registry_with_new_plugin():
     assert plugin_name in TrainingTypePluginsRegistry
     assert TrainingTypePluginsRegistry[plugin_name]["description"] == plugin_description
     assert TrainingTypePluginsRegistry[plugin_name]["init_params"] == {"param1": "abc", "param2": 123}
+    assert TrainingTypePluginsRegistry[plugin_name]["distributed_backend"] == "test_plugin"
     assert isinstance(TrainingTypePluginsRegistry.get(plugin_name), TestPlugin)
 
     TrainingTypePluginsRegistry.remove(plugin_name)
@@ -72,7 +74,7 @@ def test_training_type_plugins_registry_with_deepspeed_plugins(plugin_name, init
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("plugin", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
-def test_training_type_plugins_registry_with_trainer(tmpdir, plugin):
+def test_deepspeed_training_type_plugins_registry_with_trainer(tmpdir, plugin):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -81,3 +83,13 @@ def test_training_type_plugins_registry_with_trainer(tmpdir, plugin):
     )
 
     assert isinstance(trainer.training_type_plugin, DeepSpeedPlugin)
+
+
+def test_ddp_training_type_plugins_registry_with_trainer(tmpdir):
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        plugins="ddp_find_unused_parameters_false",
+    )
+
+    assert isinstance(trainer.training_type_plugin, DDPPlugin)

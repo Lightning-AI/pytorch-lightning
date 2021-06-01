@@ -176,12 +176,14 @@ def test_argparse_args_parsing(cli_args, expected):
 
 
 @RunIf(min_python="3.7.0")
-@pytest.mark.parametrize('cli_args,expected', [
-    ('', False),
-    ('--fast_dev_run=0', False),
-    ('--fast_dev_run=True', True),
-    ('--fast_dev_run 2', 2),
-])
+@pytest.mark.parametrize(
+    'cli_args,expected', [
+        ('', False),
+        ('--fast_dev_run=0', False),
+        ('--fast_dev_run=True', True),
+        ('--fast_dev_run 2', 2),
+    ]
+)
 def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
     """Test multi type argument with bool."""
     cli_args = cli_args.split(' ') if cli_args else []

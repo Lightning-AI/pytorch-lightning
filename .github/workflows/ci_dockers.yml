@@ -10,7 +10,7 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     paths:
       - "dockers/**"
       - "!dockers/README.md"
-      - "requirements/*.txt"
+      - "requirements/*"
       - "environment.yml"
       - "requirements.txt"
       - ".github/workflows/*docker*.yml"
@@ -23,8 +23,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.6]
-        pytorch_version: [1.4, 1.7]
+        python_version: [3.7]
+        pytorch_version: [1.4, 1.8]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -46,7 +46,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: [3.7]
-        xla_version: [1.6, 1.7, "nightly"]
+        xla_version: [1.6, 1.8, "nightly"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -72,11 +72,11 @@ jobs:
           - python_version: 3.6
             pytorch_version: 1.4
           - python_version: 3.7
-            pytorch_version: 1.6
-          - python_version: 3.8
             pytorch_version: 1.7
-          #  - python_version: 3.9
-          #    pytorch_version: 1.7
+          - python_version: 3.8
+            pytorch_version: 1.8
+          # - python_version: 3.9
+          #   pytorch_version: 1.9
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -111,8 +111,8 @@ jobs:
             pytorch_version: 1.7
           - python_version: 3.8
             pytorch_version: 1.8
-          #  - python_version: 3.9
-          #    pytorch_version: 1.8
+          - python_version: 3.9
+            pytorch_version: 1.9
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -137,6 +137,8 @@ jobs:
 
   build-nvidia:
     runs-on: ubuntu-20.04
+    # todo: temporarily skip as the base container does not fit to agent
+    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -145,5 +147,38 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           file: dockers/nvidia/Dockerfile
+          push: false
+        timeout-minutes: 50
+
+  build-ipu:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python_version: 3.8
+            pytorch_version: 1.7
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build IPU Docker
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          file: dockers/base-ipu/Dockerfile
+          push: false
+          tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+        timeout-minutes: 50
+
+      - name: Build IPU CI runner Docker
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          file: dockers/ipu-ci-runner/Dockerfile
           push: false
         timeout-minutes: 50

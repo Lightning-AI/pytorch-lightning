@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TypeVar, Union
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -59,11 +60,19 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def on_gpu(self) -> bool:
         """Returns whether the current process is done on GPU"""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def on_tpu(self) -> bool:
+        """Returns whether the current process is done on TPU"""
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device"""
+        raise NotImplementedError
 
     @abstractmethod
     def model_to_device(self) -> None:
@@ -241,6 +250,11 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return current_global_step + 1
 
+    def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
+        """Returns model state."""
+        model = self.lightning_module
+        return model.state_dict()
+
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: str) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -284,6 +298,19 @@ class TrainingTypePlugin(Plugin, ABC):
     def call_configure_sharded_model_hook(self, mode: bool) -> None:
         self._call_configure_sharded_model_hook = mode
 
+    @abstractmethod
+    def teardown(self) -> None:
+        """
+        This method is called to teardown the training process.
+        It is the right place to release memory and free other resources.
+        """
+        raise NotImplementedError
+
     @classmethod
     def register_plugins(cls, plugin_registry):
         pass
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        """Returns whether the checkpoint should be saved (rank based)"""
+        return self.is_global_zero

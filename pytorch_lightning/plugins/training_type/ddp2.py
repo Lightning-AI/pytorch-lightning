@@ -13,8 +13,8 @@
 # limitations under the License.
 import torch
 
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 
 
 class DDP2Plugin(DDPPlugin):
@@ -72,6 +72,8 @@ class DDP2Plugin(DDPPlugin):
     def _is_single_process_single_device(self) -> bool:
         return False
 
-    def set_world_ranks(self):
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
         self.cluster_environment.set_global_rank(self.node_rank)
         self.cluster_environment.set_world_size(self.num_nodes)

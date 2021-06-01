@@ -24,7 +24,6 @@ import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -158,7 +157,7 @@ def test_early_stopping_patience_train(
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 
     class ModelOverrideTrainReturn(BoringModel):
-        train_return_values = torch.Tensor(loss_values)
+        train_return_values = torch.tensor(loss_values)
 
         def training_epoch_end(self, outputs):
             loss = self.train_return_values[self.current_epoch]
@@ -170,7 +169,7 @@ def test_early_stopping_patience_train(
         model.validation_step = None
 
     early_stop_callback = EarlyStopping(
-        monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=validation_step_none
+        monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=True
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -211,7 +210,7 @@ def test_early_stopping_no_val_step(tmpdir):
     )
     trainer.fit(model, datamodule=dm)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.current_epoch < trainer.max_epochs - 1
 
 

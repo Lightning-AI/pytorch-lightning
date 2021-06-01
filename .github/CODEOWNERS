@@ -8,15 +8,15 @@
 * @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
 
 # CI/CD and configs
-/.github/       @borda @tchaton
-/dockers/       @borda @tchaton
-*.yml           @borda @tchaton
+/.github/       @borda @tchaton @carmocca
+/dockers/       @borda @tchaton @carmocca
+*.yml           @borda @tchaton @carmocca
 
 # Docs
 /docs/                      @edenlightning @tchaton @borda @awaelchli
 /.github/*.md               @edenlightning @williamfalcon @borda
 /.github/ISSUE_TEMPLATE/    @edenlightning @borda @tchaton
-/docs/source/conf.py        @borda @awaelchli
+/docs/source/conf.py        @borda @awaelchli @carmocca
 
 # Packages
 /pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
@@ -39,11 +39,11 @@
 /docs/source/metrics.rst                @SkafteNicki @ananyahjha93 @justusschock
 
 # API
-/pytorch_lightning/callbacks/base.py    @williamfalcon
-/pytorch_lightning/core/datamodule.py   @williamFalcon
-/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton
-/pytorch_lightning/core/hooks.py        @williamfalcon
-/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton
+/pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @ananthsub @carmocca
+/pytorch_lightning/core/datamodule.py   @williamFalcon @awaelchli @ananthsub @carmocca
+/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton @awaelchli
+/pytorch_lightning/core/hooks.py        @williamfalcon @tchaton @awaelchli @ananthsub @carmocca
+/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton @awaelchli
 
 # Testing
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda

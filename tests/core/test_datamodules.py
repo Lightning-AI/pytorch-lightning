@@ -22,7 +22,6 @@ import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -91,7 +90,7 @@ def test_can_prepare_data(local_rank, node_rank):
     assert trainer.data_connector.can_prepare_data()
 
 
-def test_hooks_no_recursion_error(tmpdir):
+def test_hooks_no_recursion_error():
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
     # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
     class DummyDM(LightningDataModule):
@@ -108,20 +107,20 @@ def test_hooks_no_recursion_error(tmpdir):
         dm.prepare_data()
 
 
-def test_helper_boringdatamodule(tmpdir):
+def test_helper_boringdatamodule():
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup()
 
 
-def test_helper_boringdatamodule_with_verbose_setup(tmpdir):
+def test_helper_boringdatamodule_with_verbose_setup():
     dm = BoringDataModule()
     dm.prepare_data()
     dm.setup('fit')
     dm.setup('test')
 
 
-def test_data_hooks_called(tmpdir):
+def test_data_hooks_called():
     dm = BoringDataModule()
     assert not dm.has_prepared_data
     assert not dm.has_setup_fit
@@ -168,7 +167,7 @@ def test_data_hooks_called(tmpdir):
 
 
 @pytest.mark.parametrize("use_kwarg", (False, True))
-def test_data_hooks_called_verbose(tmpdir, use_kwarg):
+def test_data_hooks_called_verbose(use_kwarg):
     dm = BoringDataModule()
     dm.prepare_data()
     assert not dm.has_setup_fit
@@ -246,7 +245,7 @@ def test_dm_init_from_argparse_args(tmpdir):
     assert dm.data_dir == args.data_dir == str(tmpdir)
 
 
-def test_dm_pickle_after_init(tmpdir):
+def test_dm_pickle_after_init():
     dm = BoringDataModule()
     pickle.dumps(dm)
 
@@ -272,7 +271,7 @@ def test_train_loop_only(tmpdir):
 
     # fit model
     trainer.fit(model, datamodule=dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -294,7 +293,7 @@ def test_train_val_loop_only(tmpdir):
 
     # fit model
     trainer.fit(model, datamodule=dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.callback_metrics['train_loss'] < 1.0
 
 
@@ -330,7 +329,7 @@ def test_dm_checkpoint_save(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
     assert dm.__class__.__name__ in checkpoint
@@ -352,7 +351,7 @@ def test_full_loop(tmpdir):
 
     # fit model
     trainer.fit(model, dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert dm.trainer is not None
 
     # validate
@@ -384,19 +383,22 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
         on_after_batch_transfer_hook_rank = None
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
+            assert dataloader_idx is None
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
             return batch
 
         def on_after_batch_transfer(self, batch, dataloader_idx):
+            assert dataloader_idx is None
             assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.targets *= 2
             return batch
 
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
+            assert dataloader_idx is None
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
             batch.samples = batch.samples.to(device)
@@ -522,3 +524,46 @@ def test_dm_init_from_datasets_dataloaders(iterable):
             call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
             call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True)
         ])
+
+
+def test_datamodule_hooks_calls(tmpdir):
+    """Test that repeated calls to DataHooks' hooks have no effect"""
+
+    class TestDataModule(BoringDataModule):
+        setup_calls = []
+        teardown_calls = []
+        prepare_data_calls = 0
+
+        def setup(self, stage=None):
+            super().setup(stage=stage)
+            self.setup_calls.append(stage)
+
+        def teardown(self, stage=None):
+            super().teardown(stage=stage)
+            self.teardown_calls.append(stage)
+
+        def prepare_data(self):
+            super().prepare_data()
+            self.prepare_data_calls += 1
+
+    dm = TestDataModule()
+    dm.prepare_data()
+    dm.prepare_data()
+    dm.setup('fit')
+    dm.setup('fit')
+    dm.setup()
+    dm.setup()
+    dm.teardown('validate')
+    dm.teardown('validate')
+
+    assert dm.prepare_data_calls == 1
+    assert dm.setup_calls == ['fit', None]
+    assert dm.teardown_calls == ['validate']
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer.test(BoringModel(), datamodule=dm)
+
+    # same number of calls
+    assert dm.prepare_data_calls == 1
+    assert dm.setup_calls == ['fit', None]
+    assert dm.teardown_calls == ['validate', 'test']

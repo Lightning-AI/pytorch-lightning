@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import operator
 from collections import namedtuple
 from unittest.mock import patch
 
@@ -22,12 +23,14 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _compare_version
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.imports import Batch, Dataset, Example, Field, LabelField
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
+PL_VERSION_LT_1_5 = _compare_version("pytorch_lightning", operator.lt, "1.5")
 PRETEND_N_OF_GPUS = 16
 
 
@@ -171,8 +174,8 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
     pytest.param([0], [0]),
     pytest.param([1, 3], [1, 3]),
     pytest.param((1, 3), [1, 3]),
-    pytest.param('0', [0]),
-    pytest.param('3', [3]),
+    pytest.param('0', None, marks=pytest.mark.skipif(PL_VERSION_LT_1_5, reason="available from v1.5")),
+    pytest.param('3', [0, 1, 2], marks=pytest.mark.skipif(PL_VERSION_LT_1_5, reason="available from v1.5")),
     pytest.param('1, 3', [1, 3]),
     pytest.param('2,', [2]),
     pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),

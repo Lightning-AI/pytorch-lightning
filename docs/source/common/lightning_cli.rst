@@ -14,18 +14,14 @@
         def __init__(
             self,
             encoder_layers: int = 12,
-            decoder_layers: List[int] = [2, 4]
+            decoder_layers: List[int] = [2, 4],
+            batch_size: int = 8,
         ):
-            """Example encoder-decoder model
-
-            Args:
-                encoder_layers: Number of layers for the encoder
-                decoder_layers: Number of layers for each decoder block
-            """
             pass
 
     class MyDataModule(LightningDataModule):
-        pass
+        def __init__(self, batch_size: int = 8):
+            pass
 
     def send_email(address, message):
         pass
@@ -68,7 +64,7 @@ LightningCLI
 ^^^^^^^^^^^^
 
 The implementation of training command line tools is done via the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
-class. The minimal installation of pytorch-lightning does not include this support. To enable it either install
+class. The minimal installation of pytorch-lightning does not include this support. To enable it, either install
 lightning with the :code:`all` extras require or install the package :code:`jsonargparse[signatures]`.
 
 The case in which the user's :class:`~pytorch_lightning.core.lightning.LightningModule` class implements all required
@@ -95,8 +91,8 @@ practice to create a configuration file and provide this to the tool. A way to d
 
 The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class takes care of parsing command line
 and config file options, instantiating the classes, setting up a callback to save the config in the log directory and
-finally running :func:`trainer.fit`. The resulting object :code:`cli` can be used for instance to get the result of fit,
-i.e., :code:`cli.fit_result`.
+finally running the trainer. The resulting object :code:`cli` can be used for example to get the instance of the
+model, (:code:`cli.model`).
 
 After multiple trainings with different configurations, each run will have in its respective log directory a
 :code:`config.yaml` file. This file can be used for reference to know in detail all the settings that were used for each
@@ -119,7 +115,7 @@ The start of a possible implementation of :class:`MyModel` including the recomme
 docstring could be the one below. Note that by using type hints and docstrings there is no need to duplicate this
 information to define its configurable arguments.
 
-.. testcode::
+.. testcode:: mymodel
 
     class MyModel(LightningModule):
 
@@ -373,8 +369,46 @@ before and after the execution of fit. The code would be something like:
     cli = MyLightningCLI(MyModel)
 
 Note that the config object :code:`self.config` is a dictionary whose keys are global options or groups of options. It
-has the same structure as the yaml format as described previously. This means for instance that the parameters used for
+has the same structure as the yaml format described previously. This means for instance that the parameters used for
 instantiating the trainer class can be found in :code:`self.config['trainer']`.
 
-For more advanced use cases, other methods of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class could be
-extended. For further information have a look at the corresponding API reference.
+Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
+model and data module depend on a common parameter. For example in some cases both classes require to know the
+:code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
+parser can be configured so that a value is only given once and then propagated accordingly. With a tool implemented
+like shown below, the :code:`batch_size` only has to be provided in the :code:`data` section of the config.
+
+.. testcode::
+
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments('data.batch_size', 'model.batch_size')
+
+    cli = MyLightningCLI(MyModel, MyDataModule)
+
+The linking of arguments is observed in the help of the tool, which for this example would look like:
+
+.. code-block:: bash
+
+    $ python trainer.py --help
+      ...
+        --data.batch_size BATCH_SIZE
+                              Number of samples in a batch (type: int, default: 8)
+
+      Linked arguments:
+        model.batch_size <-- data.batch_size
+                              Number of samples in a batch (type: int)
+
+.. tip::
+
+    The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
+    multiple settings as input. For more details have a look at the API of `link_arguments
+    <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
+
+.. tip::
+
+    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
+    methods that can be extended to customize a CLI.

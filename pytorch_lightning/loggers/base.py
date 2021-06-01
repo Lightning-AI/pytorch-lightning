@@ -20,10 +20,12 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from weakref import ReferenceType
 
 import numpy as np
 import torch
 
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
 
@@ -70,6 +72,15 @@ class LightningLoggerBase(ABC):
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
+
+    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
+        """
+        Called after model checkpoint callback saves a new checkpoint
+
+        Args:
+            model_checkpoint: the model checkpoint callback instance
+        """
+        pass
 
     def update_agg_funcs(
         self,
@@ -356,6 +367,10 @@ class LoggerCollection(LightningLoggerBase):
 
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
+
+    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
+        for logger in self._logger_iterable:
+            logger.after_save_checkpoint(checkpoint_callback)
 
     def update_agg_funcs(
         self,

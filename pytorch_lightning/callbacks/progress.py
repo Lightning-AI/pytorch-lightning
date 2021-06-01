@@ -20,6 +20,7 @@ Use or override one of the progress bar callbacks.
 """
 import importlib
 import io
+import math
 import os
 import sys
 
@@ -199,7 +200,7 @@ class ProgressBarBase(Callback):
         self._trainer = trainer
 
     def on_train_start(self, trainer, pl_module):
-        self._train_batch_idx = trainer.batch_idx
+        self._train_batch_idx = trainer.train_loop.batch_idx
 
     def on_train_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0
@@ -282,6 +283,7 @@ class ProgressBar(ProgressBarBase):
         self.main_progress_bar = None
         self.val_progress_bar = None
         self.test_progress_bar = None
+        self.predict_progress_bar = None
 
     def __getstate__(self):
         # can't pickle the tqdm objects
@@ -289,6 +291,7 @@ class ProgressBar(ProgressBarBase):
         state['main_progress_bar'] = None
         state['val_progress_bar'] = None
         state['test_progress_bar'] = None
+        state['predict_progress_bar'] = None
         return state
 
     @property
@@ -397,7 +400,7 @@ class ProgressBar(ProgressBarBase):
         super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
-        if total_train_batches != float('inf'):
+        if total_train_batches != float('inf') and total_val_batches != float('inf'):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
@@ -407,7 +410,9 @@ class ProgressBar(ProgressBarBase):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
+        total_batches = self.total_train_batches + self.total_val_batches
+        total_batches = convert_inf(total_batches)
+        if self._should_update(self.train_batch_idx, total_batches):
             self._update_bar(self.main_progress_bar)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
 
@@ -422,7 +427,7 @@ class ProgressBar(ProgressBarBase):
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self._should_update(self.val_batch_idx, self.total_val_batches):
+        if self._should_update(self.val_batch_idx, convert_inf(self.total_val_batches)):
             self._update_bar(self.val_progress_bar)
             self._update_bar(self.main_progress_bar)
 
@@ -468,18 +473,20 @@ class ProgressBar(ProgressBarBase):
     ):
         active_progress_bar = None
 
-        if not self.main_progress_bar.disable:
+        if self.main_progress_bar is not None and not self.main_progress_bar.disable:
             active_progress_bar = self.main_progress_bar
-        elif not self.val_progress_bar.disable:
+        elif self.val_progress_bar is not None and not self.val_progress_bar.disable:
             active_progress_bar = self.val_progress_bar
-        elif not self.test_progress_bar.disable:
+        elif self.test_progress_bar is not None and not self.test_progress_bar.disable:
             active_progress_bar = self.test_progress_bar
+        elif self.predict_progress_bar is not None and not self.predict_progress_bar.disable:
+            active_progress_bar = self.predict_progress_bar
 
         if active_progress_bar is not None:
             s = sep.join(map(str, args))
             active_progress_bar.write(s, end=end, file=file, nolock=nolock)
 
-    def _should_update(self, current, total):
+    def _should_update(self, current, total) -> bool:
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
     def _update_bar(self, bar: Optional[tqdm]) -> None:
@@ -496,8 +503,8 @@ class ProgressBar(ProgressBarBase):
 
 
 def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
-    """ The tqdm doesn't support inf values. We have to convert it to None. """
-    if x == float('inf'):
+    """ The tqdm doesn't support inf/nan values. We have to convert it to None. """
+    if x is None or math.isinf(x) or math.isnan(x):
         return None
     return x
 

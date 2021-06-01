@@ -54,7 +54,7 @@ def test_model_reset_correctly(tmpdir):
 
     before_state_dict = deepcopy(model.state_dict())
 
-    _ = trainer.tuner.lr_find(model, num_training=5)
+    trainer.tuner.lr_find(model, num_training=5)
 
     after_state_dict = model.state_dict()
 
@@ -77,10 +77,16 @@ def test_trainer_reset_correctly(tmpdir):
     )
 
     changed_attributes = [
-        'callbacks', 'logger', 'max_steps', 'auto_lr_find', 'accumulate_grad_batches', 'checkpoint_callback'
+        'accumulate_grad_batches',
+        'auto_lr_find',
+        'callbacks',
+        'checkpoint_callback',
+        'current_epoch',
+        'logger',
+        'max_steps',
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
-    _ = trainer.tuner.lr_find(model, num_training=5)
+    trainer.tuner.lr_find(model, num_training=5)
     actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
     assert actual == expected
@@ -191,31 +197,24 @@ def test_datamodule_parameter(tmpdir):
 
 
 def test_accumulation_and_early_stopping(tmpdir):
-    """ Test that early stopping of learning rate finder works, and that
-        accumulation also works for this feature """
+    """ Test that early stopping of learning rate finder works, and that accumulation also works for this feature """
 
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    class TestModel(BoringModel):
 
-    before_lr = hparams.get('learning_rate')
-    # logger file to get meta
+        def __init__(self):
+            super().__init__()
+            self.lr = 1e-3
+
+    model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         accumulate_grad_batches=2,
     )
-
     lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
-    after_lr = lrfinder.suggestion()
 
-    expected_num_lrs = 100
-    expected_batch_idx = 200 - 1
-
-    assert before_lr != after_lr, \
-        'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == expected_num_lrs, \
-        'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == expected_batch_idx, \
-        'Accumulation parameter did not work'
+    assert lrfinder.suggestion() != 1e-3
+    assert len(lrfinder.results['lr']) == 100
+    assert lrfinder._total_batch_idx == 200
 
 
 def test_suggestion_parameters_work(tmpdir):
@@ -278,12 +277,10 @@ def test_lr_find_with_bs_scale(tmpdir):
     before_lr = model.hparams.learning_rate
 
     # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-    )
-    bs = trainer.tuner.scale_batch_size(model)
-    lr = trainer.tuner.lr_find(model).suggestion()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, auto_lr_find=True, auto_scale_batch_size=True)
+    result = trainer.tune(model)
+    bs = result['scale_batch_size']
+    lr = result['lr_find'].suggestion()
 
     assert lr != before_lr
     assert isinstance(bs, int)
@@ -329,7 +326,7 @@ def test_lr_finder_ends_before_num_training(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir)
     num_training = 3
-    _ = trainer.tuner.lr_find(
+    trainer.tuner.lr_find(
         model=model,
         num_training=num_training,
     )

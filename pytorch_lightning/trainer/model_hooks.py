@@ -12,18 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
 from abc import ABC
 from typing import Optional
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 
 class TrainerModelHooksMixin(ABC):
+    """
+    TODO: Remove this class in v1.6.
+
+    Use the utilities from ``pytorch_lightning.utilities.signature_utils`` instead.
+    """
 
     lightning_module: LightningModule
 
     def is_function_implemented(self, f_name: str, model: Optional[LightningModule] = None) -> bool:
+        rank_zero_deprecation(
+            "Internal: TrainerModelHooksMixin.is_function_implemented is deprecated in v1.4"
+            " and will be removed in v1.6."
+        )
         # note: currently unused - kept as it is public
         if model is None:
             model = self.lightning_module
@@ -31,6 +41,13 @@ class TrainerModelHooksMixin(ABC):
         return callable(f_op)
 
     def has_arg(self, f_name: str, arg_name: str) -> bool:
+        rank_zero_deprecation(
+            "Internal: TrainerModelHooksMixin.is_function_implemented is deprecated in v1.4"
+            " and will be removed in v1.6."
+            " Use `pytorch_lightning.utilities.signature_utils.is_param_in_hook_signature` instead."
+        )
         model = self.lightning_module
         f_op = getattr(model, f_name, None)
-        return arg_name in inspect.signature(f_op).parameters
+        if not f_op:
+            return False
+        return is_param_in_hook_signature(f_op, arg_name)

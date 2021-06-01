@@ -30,13 +30,15 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
     GradClipAlgorithmType,
     LightningEnum,
 )
+from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
     _BOLTS_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
-    _FAIRSCALE_PIPE_AVAILABLE,
+    _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE,
+    _FAIRSCALE_PIPE_AVAILABLE,
     _GROUP_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HYDRA_AVAILABLE,
@@ -46,6 +48,7 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _NATIVE_AMP_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _RPC_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_5,
     _TORCH_GREATER_EQUAL_1_6,
     _TORCH_GREATER_EQUAL_1_7,
     _TORCH_GREATER_EQUAL_1_8,

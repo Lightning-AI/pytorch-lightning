@@ -15,13 +15,12 @@ import importlib
 import logging
 import os
 from functools import wraps
-from typing import Callable, List, Optional, Sequence, Union
+from typing import Callable, Optional, Sequence
 
 import numpy as np
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
-from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -62,7 +61,7 @@ def _determine_lr_attr_name(trainer: 'pl.Trainer', model: 'pl.LightningModule') 
 
 
 class _LRFinder(object):
-    """ LR finder object. This object stores the results of Trainer.lr_find().
+    """ LR finder object. This object stores the results of lr_find().
 
     Args:
         mode: either `linear` or `exponential`, how to increase lr after each step
@@ -198,77 +197,14 @@ class _LRFinder(object):
 def lr_find(
     trainer: 'pl.Trainer',
     model: 'pl.LightningModule',
-    train_dataloader: Optional[DataLoader] = None,
-    val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
     min_lr: float = 1e-8,
     max_lr: float = 1,
     num_training: int = 100,
     mode: str = 'exponential',
     early_stop_threshold: float = 4.0,
-    datamodule: Optional['pl.LightningDataModule'] = None,
     update_attr: bool = False,
 ) -> Optional[_LRFinder]:
-    r"""
-    ``lr_find`` enables the user to do a range test of good initial learning rates,
-    to reduce the amount of guesswork in picking a good starting learning rate.
-
-    Args:
-        trainer: The Trainer
-
-        model: Model to do range testing for
-
-        train_dataloader: A PyTorch
-            ``DataLoader`` with training samples. If the model has
-            a predefined train_dataloader method, this will be skipped.
-
-        min_lr: minimum learning rate to investigate
-
-        max_lr: maximum learning rate to investigate
-
-        num_training: number of learning rates to test
-
-        mode: Search strategy to update learning rate after each batch:
-
-            - ``'exponential'`` (default): Will increase the learning rate exponentially.
-            - ``'linear'``: Will increase the learning rate linearly.
-
-        early_stop_threshold: threshold for stopping the search. If the
-            loss at any point is larger than early_stop_threshold*best_loss
-            then the search is stopped. To disable, set to None.
-
-        datamodule: An optional ``LightningDataModule`` which holds the training
-            and validation dataloader(s). Note that the ``train_dataloader`` and
-            ``val_dataloaders`` parameters cannot be used at the same time as
-            this parameter, or a ``MisconfigurationException`` will be raised.
-
-        update_attr: Whether to update the learning rate attribute or not.
-
-    Raises:
-        MisconfigurationException:
-            If learning rate/lr in ``model`` or ``model.hparams`` isn't overriden when ``auto_lr_find=True``, or
-            if you are using `more than one optimizer` with learning rate finder.
-
-    Example::
-
-        # Setup model and trainer
-        model = MyModelClass(hparams)
-        trainer = pl.Trainer()
-
-        # Run lr finder
-        lr_finder = trainer.tuner.lr_find(model, ...)
-
-        # Inspect results
-        fig = lr_finder.plot(); fig.show()
-        suggested_lr = lr_finder.suggestion()
-
-        # Overwrite lr and create new model
-        hparams.lr = suggested_lr
-        model = MyModelClass(hparams)
-
-        # Ready to train with new learning rate
-        trainer.fit(model)
-
-    """
+    """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping learning rate finder since fast_dev_run is enabled.', UserWarning)
         return
@@ -294,7 +230,7 @@ def lr_find(
     trainer.logger = DummyLogger()
 
     # Max step set to number of iterations
-    trainer.max_steps = num_training
+    trainer.train_loop.max_steps = num_training
 
     # Disable standard progress bar for fit
     if trainer.progress_bar_callback:
@@ -311,7 +247,7 @@ def lr_find(
     model.configure_optimizers = lr_finder._exchange_scheduler(model.configure_optimizers)
 
     # Fit, lr & loss logged in callback
-    trainer.tuner._run(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders, datamodule=datamodule)
+    trainer.tuner._run(model)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
@@ -319,7 +255,7 @@ def lr_find(
 
     # Transfer results from callback to lr finder object
     lr_finder.results.update({'lr': trainer.callbacks[0].lrs, 'loss': trainer.callbacks[0].losses})
-    lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
+    lr_finder._total_batch_idx = trainer.train_loop.total_batch_idx  # for debug purpose
 
     # Reset model state
     if trainer.is_global_zero:
@@ -352,6 +288,7 @@ def __lr_finder_dump_params(trainer, model):
         'logger': trainer.logger,
         'max_steps': trainer.max_steps,
         'checkpoint_callback': trainer.checkpoint_callback,
+        'current_epoch': trainer.current_epoch,
         'configure_optimizers': model.configure_optimizers,
     }
 
@@ -360,7 +297,8 @@ def __lr_finder_restore_params(trainer, model):
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
-    trainer.max_steps = trainer.__dumped_params['max_steps']
+    trainer.train_loop.max_steps = trainer.__dumped_params['max_steps']
+    trainer.train_loop.current_epoch = trainer.__dumped_params['current_epoch']
     model.configure_optimizers = trainer.__dumped_params['configure_optimizers']
     del trainer.__dumped_params
 
@@ -402,7 +340,7 @@ class _LRCallback(Callback):
 
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
-        if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if (trainer.train_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
 
         if self.progress_bar_refresh_rate and self.progress_bar is None:
@@ -412,7 +350,7 @@ class _LRCallback(Callback):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         """ Called when the training batch ends, logs the calculated loss """
-        if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
+        if (trainer.train_loop.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
 
         if self.progress_bar:
@@ -428,7 +366,7 @@ class _LRCallback(Callback):
         # Check if we diverging
         if self.early_stop_threshold is not None:
             if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
-                trainer.max_steps = current_step  # stop signal
+                trainer.train_loop.max_steps = current_step  # stop signal
                 if self.progress_bar:
                     self.progress_bar.close()
 

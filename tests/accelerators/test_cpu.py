@@ -18,7 +18,7 @@ def test_unsupported_precision_plugins():
     accelerator = CPUAccelerator(
         training_type_plugin=SingleDevicePlugin(torch.device("cpu")), precision_plugin=MixedPrecisionPlugin()
     )
-    with pytest.raises(MisconfigurationException, match=r"amp \+ cpu is not supported."):
+    with pytest.raises(MisconfigurationException, match=r"AMP \+ CPU is not supported"):
         accelerator.setup(trainer=trainer, model=model)
 
 

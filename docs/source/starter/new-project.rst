@@ -658,10 +658,10 @@ Make your data code reusable by organizing it into a :class:`~pytorch_lightning.
                 transforms.Normalize((0.1307,), (0.3081,))
             ])
             # split dataset
-            if stage == 'fit':
+            if stage in (None, 'fit'):
                 mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
-            if stage == 'test':
+            if stage == (None, 'test'):
                 self.mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
 
         # return the dataloader for each split
@@ -771,7 +771,7 @@ Grid AI is our native solution for large scale training and tuning on the cloud.
 Community
 **********
 Our community of core maintainers and thousands of expert researchers is active on our
-`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A>`_
+`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ>`_
 and `GitHub Discussions <https://github.com/PyTorchLightning/pytorch-lightning/discussions>`_. Drop by
 to hang out, ask Lightning questions or even discuss research!
 

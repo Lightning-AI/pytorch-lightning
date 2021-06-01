@@ -14,7 +14,6 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-import os
 from copy import deepcopy
 from typing import Any, Callable
 from unittest import mock
@@ -26,10 +25,10 @@ from torchmetrics import Accuracy, AveragePrecision
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -271,8 +270,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
         torch.testing.assert_allclose(generated, expected)
 
 
-def test_call_back_validator(tmpdir):
-
+def test_fx_validator(tmpdir):
     funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
 
     callbacks_func = [
@@ -352,10 +350,10 @@ def test_call_back_validator(tmpdir):
 
     assert funcs_name == sorted(callbacks_func), (
         "Detected new callback function. Need to add its logging"
-        " permission to CallbackHookNameValidator and update this test"
+        " permission to FxValidator and update this test"
     )
 
-    validator = CallbackHookNameValidator()
+    validator = FxValidator()
 
     for func_name in funcs_name:
         # This summarizes where and what is currently possible to log using `self.log`
@@ -372,19 +370,17 @@ def test_call_back_validator(tmpdir):
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
-            validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+            validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
-                with pytest.raises(MisconfigurationException, match="function supports only"):
-                    validator.check_logging_in_callbacks(
-                        current_hook_fx_name=func_name, on_step=True, on_epoch=on_epoch
-                    )
+                with pytest.raises(MisconfigurationException, match="You can't"):
+                    validator.check_logging(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="function doesn't support"):
-                validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+                validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
 
-        # should not fail
-        validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
+    with pytest.raises(RuntimeError, match="`foo` but it is not implemented"):
+        validator.check_logging("foo", False, False)
 
 
 @RunIf(min_gpus=2)
@@ -565,7 +561,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     model = TestModel()
     model.validation_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
     logged = trainer.logged_metrics
 
@@ -576,33 +572,6 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     else:
         assert 'val_loss_custom_naming_0' in logged
         assert 'val_loss_custom_naming_1' in logged
-
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_logged_metrics_steps(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def validation_step(self, batch, batch_idx):
-            loss_val = torch.randn(1)
-            self.log('val_loss', loss_val)
-            return loss_val
-
-    model = TestModel()
-    model.validation_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
-        log_every_n_steps=1,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 1
-    assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 3
 
 
 def test_metrics_reset(tmpdir):
@@ -678,13 +647,13 @@ def test_metrics_reset(tmpdir):
             acc.reset.asset_not_called()
             ap.reset.assert_not_called()
 
-        def on_train_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             self._assert_epoch_end('train')
 
-        def on_validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             self._assert_epoch_end('val')
 
-        def on_test_epoch_end(self, outputs):
+        def on_test_epoch_end(self):
             self._assert_epoch_end('test')
 
     def _assert_called(model, stage):

@@ -870,7 +870,7 @@ logger
 
 |
 
-:doc:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking.
+:doc:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
 
 .. testcode::
 
@@ -1156,7 +1156,7 @@ precision
 |
 
 Double precision (64), full precision (32) or half precision (16).
-Can be used on CPU, GPU or TPUs.
+Can all be used on GPU or TPUs. Only double (64) and full precision (32) available on CPU.
 
 If used on TPU will use torch.bfloat16 but tensor printing
 will still show torch.float32.
@@ -1278,6 +1278,8 @@ Set to True to reload dataloaders every epoch.
         train_loader = model.train_dataloader()
         for batch in train_loader:
 
+.. _replace-sampler-ddp:
+
 replace_sampler_ddp
 ^^^^^^^^^^^^^^^^^^^
 
@@ -1289,9 +1291,10 @@ replace_sampler_ddp
 
 |
 
-Enables auto adding of distributed sampler. By default it will add ``shuffle=True``
-for train sampler and ``shuffle=False`` for val/test sampler. If you want to customize
-it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
+Enables auto adding of :class:`~torch.utils.data.distributed.DistributedSampler`. In PyTorch, you must use it in
+distributed settings such as TPUs or multi-node. The sampler makes sure each GPU sees the appropriate part of your data.
+By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
+If you want to customize it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 If ``replace_sampler_ddp=True`` and a distributed sampler was already added,
 Lightning will not replace the existing one.
 
@@ -1304,9 +1307,15 @@ By setting to False, you have to add your own distributed sampler:
 
 .. code-block:: python
 
-    # default used by the Trainer
-    sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
-    dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
+
+    # in your LightningModule or LightningDataModule
+    def train_dataloader(self):
+        # default used by the Trainer
+        sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
+        dataloader = DataLoader(dataset, batch_size=32, sampler=sampler)
+        return dataloader
+
+.. note:: For iterable datasets, we don't do this automatically.
 
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -1388,10 +1397,6 @@ up to 2048 cores. A slice of a POD means you get as many cores
 as you request.
 
 Your effective batch size is batch_size * total tpu cores.
-
-.. note::
-    No need to add a :class:`~torch.utils.data.distributed.DistributedSampler`,
-    Lightning automatically does it for you.
 
 This parameter can be either 1 or 8.
 

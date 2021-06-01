@@ -243,7 +243,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
             ...
 
         def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **_):
-            assert optimizer_closure.__name__ == "train_step_and_backward_closure"
+            assert optimizer_closure.__name__ == "training_step_and_backward_closure"
             # not passing the closure to the optimizer because step is mocked
             # zero_grad is called inside the closure
             if isinstance(optimizer, SGD) and batch_idx % 2 == 0:

@@ -17,15 +17,15 @@ Finetuning Callback
 Freeze and unfreeze models for finetuning purposes
 """
 import logging
-from typing import Callable, Generator, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
 from torch.nn import Module
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.optim.optimizer import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -38,7 +38,6 @@ def multiplicative(epoch):
 
 class BaseFinetuning(Callback):
     r"""
-
     This class implements the base logic for writing your own Finetuning Callback.
 
     Override ``freeze_before_training`` and ``finetune_function`` methods with your own logic.
@@ -68,7 +67,7 @@ class BaseFinetuning(Callback):
                 self._unfreeze_at_epoch = unfreeze_at_epoch
 
             def freeze_before_training(self, pl_module):
-                # freeze any module you want
+                # freeze any module you want
                 # Here, we are freezing ``feature_extractor``
                 self.freeze(pl_module.feature_extractor)
 
@@ -81,6 +80,27 @@ class BaseFinetuning(Callback):
                         train_bn=True,
                     )
     """
+
+    def __init__(self):
+        self._internal_state: Dict[int, List[Dict[str, Any]]] = {}
+
+    def on_save_checkpoint(
+        self,
+        trainer: 'pl.Trainer',
+        pl_module: 'pl.LightningModule',
+        checkpoint: Dict[str, Any],
+    ) -> Dict[int, List[Dict[str, Any]]]:
+        return self._internal_state
+
+    def on_load_checkpoint(
+        self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', callback_state: Dict[int, List[Dict[str, Any]]]
+    ) -> None:
+        self._internal_state = callback_state
+        # restore the param_groups created during the previous training.
+        named_parameters = dict(pl_module.named_parameters())
+        for opt_idx, optimizer in enumerate(trainer.optimizers):
+            param_groups = self.__apply_mapping_to_param_groups(self._internal_state[opt_idx], named_parameters)
+            optimizer.param_groups = param_groups
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
@@ -234,18 +254,47 @@ class BaseFinetuning(Callback):
     def on_before_accelerator_backend_setup(self, trainer, pl_module):
         self.freeze_before_training(pl_module)
 
+    @staticmethod
+    def __apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
+        output = []
+        for g in param_groups:
+            # skip params to save memory
+            group_state = {k: v for k, v in g.items() if k != 'params'}
+            group_state['params'] = [mapping[p] for p in g['params']]
+            output.append(group_state)
+        return output
+
+    def _store(
+        self,
+        pl_module: 'pl.LightningModule',
+        opt_idx: int,
+        num_param_groups: int,
+        current_param_groups: List[Dict[str, Any]],
+    ) -> None:
+        mapping = {p: n for n, p in pl_module.named_parameters()}
+        if opt_idx not in self._internal_state:
+            self._internal_state[opt_idx] = self.__apply_mapping_to_param_groups(current_param_groups, mapping)
+        elif num_param_groups != len(current_param_groups):
+            # save new param_groups possibly created by the users.
+            self._internal_state[opt_idx].extend(
+                self.__apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
+            )
+
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the epoch begins."""
-        for opt_idx, optimizer in trainer.train_loop.prepare_optimizers():
+        for opt_idx, optimizer in trainer.train_loop.get_active_optimizers():
+            num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
+            current_param_groups = optimizer.param_groups
+            self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
 
-    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: 'pl.LightningModule', epoch: int, optimizer: Optimizer, opt_idx: int):
         """
         Override to add your unfreeze logic
         """
         raise NotImplementedError
 
-    def freeze_before_training(self, pl_module: LightningModule):
+    def freeze_before_training(self, pl_module: 'pl.LightningModule'):
         """
         Override to add your freeze logic
         """
@@ -305,6 +354,8 @@ class BackboneFinetuning(BaseFinetuning):
         verbose: bool = False,
         round: int = 12,
     ):
+        super().__init__()
+
         self.unfreeze_backbone_at_epoch = unfreeze_backbone_at_epoch
         self.backbone_initial_lr = backbone_initial_lr
         self.lambda_func = lambda_func
@@ -325,12 +376,11 @@ class BackboneFinetuning(BaseFinetuning):
             return
         raise MisconfigurationException("The LightningModule should have a nn.Module `backbone` attribute")
 
-    def freeze_before_training(self, pl_module: LightningModule):
+    def freeze_before_training(self, pl_module: 'pl.LightningModule'):
         self.freeze(pl_module.backbone)
 
-    def finetune_function(self, pl_module: LightningModule, epoch: int, optimizer: Optimizer, opt_idx: int):
+    def finetune_function(self, pl_module: 'pl.LightningModule', epoch: int, optimizer: Optimizer, opt_idx: int):
         """Called when the epoch begins."""
-
         if epoch == self.unfreeze_backbone_at_epoch:
             current_lr = optimizer.param_groups[0]['lr']
             initial_backbone_lr = self.backbone_initial_lr if self.backbone_initial_lr is not None \

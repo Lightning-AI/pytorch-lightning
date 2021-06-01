@@ -17,20 +17,20 @@ import torch
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
 
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-    """
-    Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can safely
-    be wrapped by a ``_LightningModuleWrapperBase`` and a ``*DataParallel``.
 
-    Args:
-        pl_module: the model to wrap
-    """
+    def __init__(self, pl_module: 'pl.LightningModule') -> None:
+        """
+        Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it can
+        safely be wrapped by a ``_LightningModuleWrapperBase`` and a ``*DataParallel``.
 
-    def __init__(self, pl_module: LightningModule):
+        Args:
+            pl_module: the model to wrap
+        """
         super().__init__()
         self.module = pl_module
 
@@ -57,19 +57,19 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-    """
-    Wraps the user's LightningModule and redirects the forward call to the appropriate
-    method, either ``training_step``, ``validation_step`` or ``test_step``.
-    If the LightningModule is in none of the states `training`, `testing` or `validation`,
-    the inputs will be redirected to the
-    :meth:`~pytorch_lightning.core.lightning.LightningModule.predict` method.
-    Inheriting classes may also modify the inputs or outputs of forward.
 
-    Args:
-        pl_module: the model to wrap
-    """
+    def __init__(self, pl_module: Union['pl.LightningModule', _LightningPrecisionModuleWrapperBase]):
+        """
+        Wraps the user's LightningModule and redirects the forward call to the appropriate
+        method, either ``training_step``, ``validation_step`` or ``test_step``.
+        If the LightningModule is in none of the states `training`, `testing` or `validation`,
+        the inputs will be redirected to the
+        :meth:`~pytorch_lightning.core.lightning.LightningModule.predict` method.
+        Inheriting classes may also modify the inputs or outputs of forward.
 
-    def __init__(self, pl_module: Union[LightningModule, _LightningPrecisionModuleWrapperBase]):
+        Args:
+            pl_module: the model to wrap
+        """
         super().__init__()
         self.module = pl_module
 
@@ -104,7 +104,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         pass
 
 
-def unwrap_lightning_module(wrapped_model) -> LightningModule:
+def unwrap_lightning_module(wrapped_model) -> 'pl.LightningModule':
     model = wrapped_model
     if isinstance(model, (DistributedDataParallel, DataParallel)):
         model = unwrap_lightning_module(model.module)

@@ -17,7 +17,7 @@ import os
 from abc import ABC
 from copy import deepcopy
 from functools import partial
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -56,6 +56,7 @@ class TrainerDataLoadingMixin(ABC):
     accelerator: Accelerator
     accelerator_connector: AcceleratorConnector
     dev_debugger: InternalDebugger
+    call_hook: Callable
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
@@ -237,7 +238,7 @@ class TrainerDataLoadingMixin(ABC):
             if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
                 rank_zero_warn(
                     'You requested to overfit but enabled training dataloader shuffling.'
-                    ' We are turning it off for you.'
+                    ' We are turning off the training dataloader shuffling for you.'
                 )
                 self.train_dataloader = self.replace_sampler(
                     self.train_dataloader, SequentialSampler(self.train_dataloader.dataset)
@@ -258,7 +259,7 @@ class TrainerDataLoadingMixin(ABC):
         apply_to_collection(self.train_dataloader, DataLoader, self.auto_add_worker_init_fn)
 
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
-        self.train_dataloader = CombinedLoader(self.train_dataloader, self._multiple_trainloader_mode)
+        self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
 
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
 
@@ -354,7 +355,7 @@ class TrainerDataLoadingMixin(ABC):
 
         # add samplers
         dataloaders = [
-            self.auto_add_sampler(dl, shuffle=False, mode=self._running_stage) for dl in dataloaders if dl is not None
+            self.auto_add_sampler(dl, shuffle=False, mode=self.state.stage) for dl in dataloaders if dl is not None
         ]
 
         # add worker_init_fn for correct seeding in worker processes
@@ -437,8 +438,7 @@ class TrainerDataLoadingMixin(ABC):
         Returns:
             The dataloader
         """
-        if model.trainer is not None:
-            model.trainer.call_hook(f"on_{stage}_dataloader")
+        self.call_hook(f"on_{stage}_dataloader")
         dataloader: DataLoader = getattr(model, f'{stage}_dataloader')()
         dataloader = self._flatten_dl_only(dataloader)
         self.accelerator.barrier('get_dataloaders')

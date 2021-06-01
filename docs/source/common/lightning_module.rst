@@ -54,7 +54,7 @@ Notice a few things.
         new_x = torch.Tensor(2, 3)
         new_x = new_x.type_as(x)
 
-5.  There are no samplers for distributed, Lightning also does this for you.
+5.  Lightning by default handles the distributed sampler for you.
 
 |
 
@@ -994,7 +994,7 @@ Set or access your datamodule.
 .. code-block:: python
 
     def configure_optimizers(self):
-        num_training_samples = len(self.datamodule.train_dataloader())
+        num_training_samples = len(self.trainer.datamodule.train_dataloader())
         ...
 
 --------------
@@ -1005,9 +1005,68 @@ Get the model file size (in megabytes) using ``self.model_size`` inside Lightnin
 
 --------------
 
+truncated_bptt_steps
+^^^^^^^^^^^^^^^^^^^^
+
+Truncated back prop breaks performs backprop every k steps of
+a much longer sequence.
+
+If this is enabled, your batches will automatically get truncated
+and the trainer will apply Truncated Backprop to it.
+
+(`Williams et al. "An efficient gradient-based algorithm for on-line training of
+recurrent network trajectories."
+<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
+
+`Tutorial <https://d2l.ai/chapter_recurrent-neural-networks/bptt.html>`_
+
+.. testcode:: python
+
+    from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            # Important: This property activates truncated backpropagation through time
+            # Setting this value to 2 splits the batch into sequences of size 2
+            self.truncated_bptt_steps = 2
+
+        # Truncated back-propagation through time
+        def training_step(self, batch, batch_idx, hiddens):
+            # the training step must be updated to accept a ``hiddens`` argument
+            # hiddens are the hiddens from the previous truncated backprop step
+            out, hiddens = self.lstm(data, hiddens)
+            return {
+                "loss": ...,
+                "hiddens": hiddens
+            }
+
+Lightning takes care to split your batch along the time-dimension.
+
+.. code-block:: python
+
+    # we use the second as the time dimension
+    # (batch, time, ...)
+    sub_batch = batch[0, 0:t, ...]
+
+To modify how the batch is split,
+override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
+
+.. testcode:: python
+
+    class LitMNIST(LightningModule):
+        def tbptt_split_batch(self, batch, split_size):
+            # do your own splitting on the batch
+            return splits
+
+--------------
+
 Hooks
 ^^^^^
-This is the pseudocode to describe how all the hooks are called during a call to ``.fit()``.
+This is the pseudocode to describe the structure of :meth:`~pytorch_lightning.trainer.Trainer.fit`.
+The inputs and outputs of each function are not represented for simplicity. Please check each function's API reference
+for more information.
 
 .. code-block:: python
 
@@ -1018,36 +1077,41 @@ This is the pseudocode to describe how all the hooks are called during a call to
 
         configure_callbacks()
 
-        on_fit_start()
-
-        for gpu/tpu in gpu/tpus:
-            train_on_device(model.copy())
-
-        on_fit_end()
+        with parallel(devices):
+            # devices can be GPUs, TPUs, ...
+            train_on_device(model)
 
     def train_on_device(model):
-        # setup is called PER DEVICE
-        setup()
+        # called PER DEVICE
+        on_fit_start()
+        setup('fit')
         configure_optimizers()
-        on_pretrain_routine_start()
 
+        on_pretrain_routine_start()
+        on_pretrain_routine_end()
+
+        # the sanity check runs here
+
+        on_train_start()
         for epoch in epochs:
             train_loop()
+        on_train_end()
 
-        teardown()
+        on_fit_end()
+        teardown('fit')
 
     def train_loop():
         on_epoch_start()
         on_train_epoch_start()
-        train_outs = []
-        for train_batch in train_dataloader():
+
+        for batch in train_dataloader():
             on_train_batch_start()
 
-            # ----- train_step methods -------
-            out = training_step(batch)
-            train_outs.append(out)
+            on_before_batch_transfer()
+            transfer_batch_to_device()
+            on_after_batch_transfer()
 
-            loss = out.loss
+            training_step()
 
             on_before_zero_grad()
             optimizer_zero_grad()
@@ -1057,38 +1121,42 @@ This is the pseudocode to describe how all the hooks are called during a call to
 
             optimizer_step()
 
-            on_train_batch_end(out)
+            on_train_batch_end()
 
             if should_check_val:
                 val_loop()
-
         # end training epoch
-        training_epoch_end(outs)
-        on_train_epoch_end(outs)
+        training_epoch_end()
+
+        on_train_epoch_end()
         on_epoch_end()
 
     def val_loop():
-        model.eval()
+        on_validation_model_eval()  # calls `model.eval()`
         torch.set_grad_enabled(False)
 
+        on_validation_start()
         on_epoch_start()
         on_validation_epoch_start()
-        val_outs = []
-        for val_batch in val_dataloader():
+
+        for batch in val_dataloader():
             on_validation_batch_start()
 
-            # -------- val step methods -------
-            out = validation_step(val_batch)
-            val_outs.append(out)
+            on_before_batch_transfer()
+            transfer_batch_to_device()
+            on_after_batch_transfer()
 
-            on_validation_batch_end(out)
+            validation_step()
 
-        validation_epoch_end(val_outs)
+            on_validation_batch_end()
+        validation_epoch_end()
+
         on_validation_epoch_end()
         on_epoch_end()
+        on_validation_end()
 
         # set up for train
-        model.train()
+        on_validation_model_train()  # calls `model.train()`
         torch.set_grad_enabled(True)
 
 backward

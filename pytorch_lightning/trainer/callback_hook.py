@@ -96,51 +96,35 @@ class TrainerCallbackHookMixin(ABC):
             outputs: List of outputs on each ``train`` epoch
         """
         for callback in self.callbacks:
-            callback.on_train_epoch_end(self, self.lightning_module, outputs)
+            if is_param_in_hook_signature(callback.on_train_epoch_end, "outputs"):
+                warning_cache.warn(
+                    "The signature of `Callback.on_train_epoch_end` has changed in v1.3."
+                    " `outputs` parameter has been removed."
+                    " Support for the old signature will be removed in v1.5", DeprecationWarning
+                )
+                callback.on_train_epoch_end(self, self.lightning_module, outputs)
+            else:
+                callback.on_train_epoch_end(self, self.lightning_module)
 
     def on_validation_epoch_start(self):
         """Called when the epoch begins."""
         for callback in self.callbacks:
             callback.on_validation_epoch_start(self, self.lightning_module)
 
-    def on_validation_epoch_end(self, outputs: EPOCH_OUTPUT):
-        """Called when the epoch ends.
-
-        Args:
-            outputs: List of outputs on each ``validation`` epoch
-        """
+    def on_validation_epoch_end(self):
+        """Called when the validation epoch ends."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_validation_epoch_end, "outputs"):
-                callback.on_validation_epoch_end(self, self.lightning_module, outputs)
-            else:
-                warning_cache.warn(
-                    "`Callback.on_validation_epoch_end` signature has changed in v1.3."
-                    " `outputs` parameter has been added."
-                    " Support for the old signature will be removed in v1.5", DeprecationWarning
-                )
-                callback.on_validation_epoch_end(self, self.lightning_module)
+            callback.on_validation_epoch_end(self, self.lightning_module)
 
     def on_test_epoch_start(self):
         """Called when the epoch begins."""
         for callback in self.callbacks:
             callback.on_test_epoch_start(self, self.lightning_module)
 
-    def on_test_epoch_end(self, outputs: EPOCH_OUTPUT):
-        """Called when the epoch ends.
-
-        Args:
-            outputs: List of outputs on each ``test`` epoch
-        """
+    def on_test_epoch_end(self):
+        """Called when the test epoch ends."""
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_test_epoch_end, "outputs"):
-                callback.on_test_epoch_end(self, self.lightning_module, outputs)
-            else:
-                warning_cache.warn(
-                    "`Callback.on_test_epoch_end` signature has changed in v1.3."
-                    " `outputs` parameter has been added."
-                    " Support for the old signature will be removed in v1.5", DeprecationWarning
-                )
-                callback.on_test_epoch_end(self, self.lightning_module)
+            callback.on_test_epoch_end(self, self.lightning_module)
 
     def on_predict_epoch_start(self) -> None:
         """Called when the epoch begins."""
@@ -268,17 +252,20 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_keyboard_interrupt(self, self.lightning_module)
 
     @staticmethod
-    def __is_old_signature(fn: Callable) -> bool:
+    def __is_old_signature_on_save_checkpoint(fn: Callable) -> bool:
         parameters = list(signature(fn).parameters)
-        if len(parameters) == 2 and parameters[1] != "args":
-            return True
-        return False
+        return len(parameters) == 2 and parameters[1] != "args"
+
+    @staticmethod
+    def __is_old_signature_on_load_checkpoint(fn: Callable) -> bool:
+        parameters = list(signature(fn).parameters)
+        return len(parameters) == 1 and parameters[0] != "args"
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[Type, dict]:
         """Called when saving a model checkpoint."""
         callback_states = {}
         for callback in self.callbacks:
-            if self.__is_old_signature(callback.on_save_checkpoint):
+            if self.__is_old_signature_on_save_checkpoint(callback.on_save_checkpoint):
                 rank_zero_deprecation(
                     "`Callback.on_save_checkpoint` signature has changed in v1.3."
                     " A `checkpoint` parameter has been added."
@@ -316,7 +303,15 @@ class TrainerCallbackHookMixin(ABC):
             state = callback_states.get(type(callback))
             if state:
                 state = deepcopy(state)
-                callback.on_load_checkpoint(state)
+                if self.__is_old_signature_on_load_checkpoint(callback.on_load_checkpoint):
+                    rank_zero_deprecation(
+                        "`Callback.on_load_checkpoint` signature has changed in v1.3."
+                        " `trainer` and `pl_module` parameters have been added."
+                        " Support for the old signature will be removed in v1.5"
+                    )
+                    callback.on_load_checkpoint(state)  # noqa: parameter-unfilled
+                else:
+                    callback.on_load_checkpoint(self, self.lightning_module, state)
 
     def on_after_backward(self):
         """

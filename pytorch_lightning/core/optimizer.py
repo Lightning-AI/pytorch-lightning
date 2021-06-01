@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import types
 from contextlib import contextmanager
 from typing import Callable, Optional
 from weakref import proxy
@@ -207,7 +206,7 @@ class LightningOptimizer:
             profiler_name = "closure_{self._optimizer_idx}"
             closure = do_nothing_closure
         else:
-            if not isinstance(closure, types.FunctionType):
+            if not callable(closure):
                 raise MisconfigurationException("When closure is provided, it should be a function")
             profiler_name = f"optimizer_step_and_closure_{self._optimizer_idx}"
 

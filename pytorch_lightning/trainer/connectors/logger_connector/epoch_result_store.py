@@ -18,8 +18,8 @@ from weakref import proxy
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import DistributedType, LightningEnum
 
 
@@ -56,18 +56,13 @@ class HookResultStore:
         self._fx_name = fx_name
         self._internals = {}
         self._internals_reduced = {}
-        self._internal_type = None
+        self._internal_type: Optional[ResultStoreType] = None
         self.has_reduced = False
         self._latest_ref = {}
 
     @property
-    def has_several_dataloaders(self) -> bool:
-        return self.num_dataloaders > 1
-
-    @property
     def num_dataloaders(self) -> int:
-        inter = self._internals_reduced if self.has_reduced else self._internals
-        return len(inter)
+        return len(self._internals_reduced if self.has_reduced else self._internals)
 
     def check_dataloader_idx(self, result: Result) -> bool:
         random_key = list(result.keys())[-1]
@@ -108,7 +103,7 @@ class HookResultStore:
             raise Exception("The provided opt_metric should be a Result Object. Something is wrong")
 
         func = getattr(opt_metric, func_name)
-        metrics_to_log = func(*args, add_dataloader_idx=self.has_several_dataloaders, **kwargs)
+        metrics_to_log = func(*args, add_dataloader_idx=self.num_dataloaders > 1, **kwargs)
 
         results.append(metrics_to_log)
 
@@ -226,16 +221,17 @@ class HookResultStore:
 class EpochResultStore:
     """
     This class is defined for internal usage.
-    It holds all metrics logged using the self.log function using `HookResultStore` object.
-    The internal datastructure is as follow:
+    It holds all metrics logged using the self.log function inside `HookResultStore` objects.
+
+    The internal data-structure is as follow:
     self._internals = {"fx_name_0": HookResultStore(), ..., "fx_name_n": HookResultStore()}
-    Pseudo Code Example:
-    ```
-    model._current_fx_name = 'something'
-    model._results = Result()
-    model.log('a', ...)
-    epoch_result_store.cache_result()
-    ```
+
+    ..example::
+
+        model._results = Result()
+        model._current_fx_name = 'something'
+        model.log('a', ...)
+        epoch_result_store.cache_result()
     """
 
     def __init__(self, trainer: 'pl.Trainer') -> None:
@@ -253,8 +249,8 @@ class EpochResultStore:
         """
         model_ref = self.trainer.lightning_module
         return {
-            "batch_idx": self.trainer.batch_idx,
-            "fx_name": model_ref._current_hook_fx_name or model_ref._current_fx_name,
+            "batch_idx": self.trainer.train_loop.batch_idx,
+            "fx_name": model_ref._current_fx_name,
             "dataloader_idx": model_ref._current_dataloader_idx or 0,
             "opt_idx": self._opt_idx or 0,
             "split_idx": self._split_idx or 0,
@@ -270,13 +266,11 @@ class EpochResultStore:
         """
         model_ref = self.trainer.lightning_module
         model_ref._results = Result()
-        model_ref._current_hook_fx_name = None
-        model_ref._current_fx_name = ''
+        model_ref._current_fx_name = None
 
     def cache_result(self) -> None:
         """
-        This function is called after every hook
-        and store the result object
+        This function is called after every hook and stores the result object
         """
         with self.trainer.profiler.profile("cache_result"):
             model_ref = self.trainer.lightning_module
@@ -285,8 +279,7 @@ class EpochResultStore:
             hook_result = model_ref._results
 
             if len(hook_result) == 1:
-                model_ref._current_hook_fx_name = None
-                model_ref._current_fx_name = ''
+                model_ref._current_fx_name = None
                 return
 
             info = self.info
@@ -355,7 +348,7 @@ class EpochResultStore:
 
         # TODO(carmocca): when we implement flushing the logger connector metrics after
         # the trainer.state changes, this should check trainer.evaluating instead
-        if self.trainer.state in (TrainerState.TESTING, TrainerState.VALIDATING):
+        if self.trainer.state.fn in (TrainerFn.TESTING, TrainerFn.VALIDATING):
             logger_connector.evaluation_callback_metrics.update(callback_metrics)
 
         # update callback_metrics
@@ -420,7 +413,7 @@ class EpochResultStore:
         return self.run_epoch_by_func_name("get_forked_metrics")
 
     def reset(self) -> None:
-        for k, value in self._internals.items():
+        for value in self._internals.values():
             value.reset()
         self._internals = {}
         self._dataloader_idx: Optional[int] = None
@@ -439,7 +432,7 @@ class EpochResultStore:
         reduced: bool = False,
     ):
         """
-        This function is an helper to access stored data
+        This function is a helper to access stored data
 
         It access data from the HookResultStore. Please,
         check its data structure for better understanding
@@ -474,7 +467,7 @@ class EpochResultStore:
             batch_idx: Batch index seen during batch training or evaluation.
                 Works only with ``reduced=False``
 
-            split_idx: Index of split idx in training loop when ttbt is used.
+            split_idx: Index of split idx in training loop when tbptt is used.
 
             reduced: Data are being aggregated on on_epoch_end.
                 Indicates if we want to access the aggregated Result or not.

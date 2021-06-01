@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
 import pytest
 import torch
 from torch import nn
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
@@ -67,7 +65,7 @@ def test_resume_training_on_cpu(tmpdir):
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @RunIf(tpu=True)
@@ -97,25 +95,21 @@ def test_weight_tying_warning(tmpdir, capsys=None):
         trainer.fit(model)
 
 
-# @RunIf(tpu=True)
-# @pl_multi_process_test
-# def test_if_weights_tied(tmpdir, capsys=None):
-#     """
-#     Test if weights are properly tied on `on_post_move_to_device`.
-#     Ensure no warning for parameter mismatch is thrown.
-#     """
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_if_weights_tied(tmpdir, capsys=None):
+    """
+    Test if weights are properly tied on `on_post_move_to_device`.
+    Ensure no warning for parameter mismatch is thrown.
+    """
 
-#     # TODO (kaushikb11): Add `parameter_validation` specific to TPU Accelerators
-#     class Model(WeightSharingModule):
+    class Model(WeightSharingModule):
 
-#         def on_post_move_to_device(self):
-#             self.layer_3.weight = self.layer_1.weight
+        def on_post_move_to_device(self):
+            self.layer_3.weight = self.layer_1.weight
 
-#     model = Model()
-#     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
+    model = Model()
+    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
 
-#     with pytest.warns(UserWarning) as warnings:
-#         trainer.fit(model)
-
-#     assert not list(filter(lambda x: 'The model layers do not match' in str(x), warnings.list))
-#     assert len(trainer.test(model)) == 1
+    with pytest.warns(UserWarning, match="The model layers do not match"):
+        trainer.fit(model)
