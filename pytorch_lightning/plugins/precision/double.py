@@ -75,7 +75,7 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
         )
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        return self.module.forward(
+        return self.module(
             *LightningDoublePrecisionModule._move_float_tensors_to_double(args),
             **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
         )
