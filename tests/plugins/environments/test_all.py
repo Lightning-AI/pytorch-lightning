@@ -72,7 +72,7 @@ def test_not_overriden_environ_parameters(cluster_environment_class):
 )
 def test_with_user_defined_environ_parameters(cluster_environment_class):
     """
-    Test for not setting default environ parameters when parameter is already set in `os.environ`.
+    Test for overriding environ parameters when user provide `envrion_settings`.
     """
     _instantiate_cluster_environment(
         cluster_environment_class, environ_settings={"NCCL_NSOCKS_PERTHREAD": "1"}
