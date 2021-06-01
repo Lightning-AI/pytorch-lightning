@@ -99,6 +99,7 @@ class AcceleratorConnector(object):
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         self.distributed_backend = distributed_backend
+        self.gpus = gpus
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
@@ -125,9 +126,9 @@ class AcceleratorConnector(object):
 
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
-            gpus = pick_multiple_gpus(gpus)
+            self.gpus = pick_multiple_gpus(gpus)
 
-        self.gpu_device_ids = device_parser.parse_gpu_ids(gpus)
+        self.gpu_device_ids = device_parser.parse_gpu_ids(self.gpus)
 
         self.set_distributed_mode()
         self.configure_slurm_ddp()
