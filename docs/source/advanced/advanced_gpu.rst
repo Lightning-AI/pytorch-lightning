@@ -80,7 +80,7 @@ Internally we re-initialize your optimizers and shard them across your machines 
 Fully Sharded Training
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. note::
+.. warning::
     Fully Sharded Training is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
 
 `Fully Sharded <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ shards optimizer state, gradients and parameters across data parallel workers. This allows you to fit much larger models onto multiple GPUs into memory.
@@ -94,7 +94,7 @@ To reach larger parameter sizes and be memory efficient, we have to shard parame
 
 .. note::
     Currently Fully Sharded Training relies on the user to wrap the model with Fully Sharded within the ``LightningModule``.
-    This means you must create a single model that is treated as a ``nn.Module`` within the ``LightningModule``.
+    This means you must create a single model that is treated as a ``torch.nn.Module`` within the ``LightningModule``.
     This is a limitation of Fully Sharded Training that will be resolved in the future.
 
 Wrap the Model
@@ -106,7 +106,7 @@ When not using Fully Sharded these wrap functions are a no-op. This means once t
 
 This is a requirement for really large models and also saves on instantiation time as modules are sharded instantly, rather than after the entire model is created in memory.
 
-``auto_wrap`` will recursively wrap modules within the ``LightningModule`` with nested Fully Sharded Wrappers,
+``auto_wrap`` will recursively wrap `torch.nn.Modules` within the ``LightningModule`` with nested Fully Sharded Wrappers,
 signalling that we'd like to partition these modules across data parallel devices, discarding the full weights when not required (information `here <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp_tips.html>`__).
 
 Enabling ``auto_wrap`` can have varying level of success based on the complexity of your model. **Auto Wrap does not support models with shared parameters**, use :ref:`manual-wrap` instead.
