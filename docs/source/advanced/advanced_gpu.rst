@@ -121,6 +121,7 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
 
     import torch
     import torch.nn as nn
+    import pytorch_lightning as pl
     from pytorch_lightning import Trainer
     from fairscale.nn import checkpoint_wrapper, auto_wrap, wrap
 
