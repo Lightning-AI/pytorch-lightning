@@ -273,7 +273,7 @@ class LoggerConnector:
             self.log_metrics(epoch_log_metrics, {})
 
         # reset result collection for next epoch
-        self.trainer.result_collection.reset_metrics()
+        self.trainer.result_collection.reset(metrics=True)
 
     """
     Utilities and properties

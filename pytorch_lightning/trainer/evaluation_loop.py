@@ -103,7 +103,7 @@ class EvaluationLoop(object):
 
     def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         assert self.trainer.result_collection is not None
-        self.trainer.result_collection.reset_metrics()
+        self.trainer.result_collection.reset(metrics=True)
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)

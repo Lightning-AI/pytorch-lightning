@@ -326,7 +326,7 @@ class ResultCollection(dict):
 
         if self.should_reset_tensors(hook_name):
             # when restarting an new epoch, reset the tensor hooks dynamically.
-            self._reset_metrics(hook_name, is_tensor=True)
+            self._reset(hook_name, metrics=False)
 
         # this function is used to call the forward function of ResultMetric object.
         def fn(result_metric, v):
@@ -362,7 +362,7 @@ class ResultCollection(dict):
             elif isinstance(item, ResultMetric) and item.meta.has_reset:
                 continue
 
-            yield (key, item)
+            yield key, item
 
     def _extract_metadata(self, key: str, result_metric, on_step: bool, suffix: str) -> Tuple:
         """
@@ -477,29 +477,24 @@ class ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
-    def _reset_metrics(self, hook_name: str = None, is_tensor: Optional[bool] = None) -> None:
-        """Call at the end of epoch to reset all results provided as `Metric` or `tensor`"""
+    def _reset(self, fx: Optional[str] = None, metrics: bool = True) -> None:
 
-        def reset_fn(item: ResultMetric) -> None:
-            nonlocal hook_name
-            nonlocal is_tensor
-            if is_tensor is None or item.meta.is_tensor == is_tensor:
-                if isinstance(hook_name, str) and hook_name != item.meta.fx:
-                    return
+        def fn(item: ResultMetric) -> None:
+            requested_type = metrics ^ item.meta.is_tensor  # logical xor
+            same_fx = fx is None or fx == item.meta.fx
+            if requested_type and same_fx:
                 item.reset()
 
-        apply_to_collection(dict(self.items()), ResultMetric, reset_fn)
+        apply_to_collection(self, ResultMetric, fn)
 
-    def reset_metrics(self):
-        self._reset_metrics(is_tensor=False)
-        self.on_epoch_end_reached = False
-        self._current_hook_name = None
+    def reset(self, metrics: bool = False) -> None:
+        """
+        Reset the result collection
 
-    def reset(self):
+        Args:
+            metrics: Whether to only reset the `torchmetrics.Metric` results
         """
-        This function is used to reset entirely the ResultCollection
-        """
-        self._reset_metrics()
+        self._reset(metrics=metrics)
         self.on_epoch_end_reached = False
         self._current_hook_name = None
 
@@ -529,9 +524,6 @@ class ResultCollection(dict):
         else:
             size = 1
         return size
-
-    def __str__(self) -> str:
-        return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
     def state_dict(self):
 
@@ -565,7 +557,6 @@ class ResultCollection(dict):
             self[k] = v
 
         if metrics:
-
             # the metric reference are lost during serialization and
             # they need to be set back during loading
 
@@ -576,6 +567,9 @@ class ResultCollection(dict):
                     item.value = metrics[lightning_attribute_name]
 
             apply_to_collection(dict(self.items()), ResultMetric, re_assign_metric)
+
+    def __str__(self) -> str:
+        return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
     def __getstate__(self) -> dict:
         d = self.__dict__.copy()
