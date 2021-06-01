@@ -14,7 +14,6 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-import os
 from copy import deepcopy
 from typing import Any, Callable
 from unittest import mock
@@ -26,10 +25,10 @@ from torchmetrics import Accuracy, AveragePrecision
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -562,7 +561,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     model = TestModel()
     model.validation_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
     logged = trainer.logged_metrics
 
@@ -573,33 +572,6 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     else:
         assert 'val_loss_custom_naming_0' in logged
         assert 'val_loss_custom_naming_1' in logged
-
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_logged_metrics_steps(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def validation_step(self, batch, batch_idx):
-            loss_val = torch.randn(1)
-            self.log('val_loss', loss_val)
-            return loss_val
-
-    model = TestModel()
-    model.validation_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
-        log_every_n_steps=1,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 1
-    assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 3
 
 
 def test_metrics_reset(tmpdir):

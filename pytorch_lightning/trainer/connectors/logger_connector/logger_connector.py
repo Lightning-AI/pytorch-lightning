@@ -19,11 +19,11 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -230,7 +230,6 @@ class LoggerConnector:
 
             # track the logged metrics
             self.logged_metrics.update(scalar_metrics)
-            self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
@@ -238,8 +237,6 @@ class LoggerConnector:
                 v = v.item()
 
             self._progress_bar_metrics.metrics[k] = v
-
-        self.trainer.dev_debugger.track_pbar_metrics_history(metrics)
 
     def evaluation_epoch_end(self):
         # reset dataloader idx

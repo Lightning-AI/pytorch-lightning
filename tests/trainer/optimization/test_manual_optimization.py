@@ -28,54 +28,56 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
+class ManualOptModel(BoringModel):
+
+    def __init__(self):
+        super().__init__()
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        opt_a, opt_b = self.optimizers()
+
+        # make sure there are no grads
+        if batch_idx > 0:
+            assert torch.all(self.layer.weight.grad == 0)
+
+        loss_1 = self.step(batch[0])
+        self.manual_backward(loss_1, opt_a)
+        opt_a.step()
+        opt_a.zero_grad()
+        assert torch.all(self.layer.weight.grad == 0)
+
+        loss_2 = self.step(batch[0])
+        # ensure we forward the correct params to the optimizer
+        # without retain_graph we can't do multiple backward passes
+        self.manual_backward(loss_2, opt_b, retain_graph=True)
+        self.manual_backward(loss_2, opt_a)
+        assert self.layer.weight.grad is not None
+        opt_b.step()
+        opt_b.zero_grad()
+        assert torch.all(self.layer.weight.grad == 0)
+
+        return loss_2
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+        return optimizer, optimizer_2
+
+
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_no_return(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
 
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
+    class TestModel(ManualOptModel):
 
         def training_step(self, batch, batch_idx):
-            # manual
-            opt_a, opt_b = self.optimizers()
-            loss_1 = self.step(batch[0])
-
-            # make sure there are no grads
-            if batch_idx > 0:
-                assert torch.all(self.layer.weight.grad == 0)
-
-            self.manual_backward(loss_1, opt_a)
-            opt_a.step()
-            opt_a.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
-
-            # fake discriminator
-            loss_2 = self.step(batch[0])
-
-            # ensure we forward the correct params to the optimizer
-            # without retain_graph we can't do multiple backward passes
-            self.manual_backward(loss_2, opt_b, retain_graph=True)
-            self.manual_backward(loss_2, opt_a, retain_graph=True)
-
-            assert self.layer.weight.grad is not None
-            opt_b.step()
-            opt_b.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
+            # avoid returning a value
+            super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs is empty as training_step does not return
             # and it is not automatic optimization
-            assert len(outputs) == 0
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer, optimizer_2
+            assert not outputs
 
     model = TestModel()
     model.val_dataloader = None
@@ -98,53 +100,16 @@ def test_multiple_optimizers_manual_no_return(tmpdir):
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_multiple_optimizers_manual_return(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
 
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
+    class TestModel(ManualOptModel):
 
         def training_step(self, batch, batch_idx):
-            # manual
-            opt_a, opt_b = self.optimizers()
-            loss_1 = self.step(batch[0])
-
-            # make sure there are no grads
-            if batch_idx > 0:
-                assert torch.all(self.layer.weight.grad == 0)
-
-            self.manual_backward(loss_1, opt_a)
-            opt_a.step()
-            opt_a.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
-
-            # fake discriminator
-            loss_2 = self.step(batch[0])
-
-            # ensure we forward the correct params to the optimizer
-            # without retain_graph we can't do multiple backward passes
-            self.manual_backward(loss_2, opt_b, retain_graph=True)
-            self.manual_backward(loss_2, opt_a, retain_graph=True)
-
-            assert self.layer.weight.grad is not None
-            opt_b.step()
-            opt_b.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
-
+            super().training_step(batch, batch_idx)
             return {'something': 'else'}
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer, optimizer_2
+            assert outputs == [{'something': 'else'}, {'something': 'else'}]
 
     model = TestModel()
     model.val_dataloader = None
@@ -166,55 +131,16 @@ def test_multiple_optimizers_manual_return(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_multiple_optimizers_manual_return_and_log(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
+def test_multiple_optimizers_manual_log(tmpdir):
 
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
+    class TestModel(ManualOptModel):
 
         def training_step(self, batch, batch_idx):
-            # manual
-            opt_a, opt_b = self.optimizers()
-            loss_1 = self.step(batch[0])
-
-            # make sure there are no grads
-            if batch_idx > 0:
-                assert torch.all(self.layer.weight.grad == 0)
-
-            self.manual_backward(loss_1, opt_a)
-            opt_a.step()
-            opt_a.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
-
-            # fake discriminator
-            loss_2 = self.step(batch[0])
-
-            # ensure we forward the correct params to the optimizer
-            # without retain_graph we can't do multiple backward passes
-            self.manual_backward(loss_2, opt_b, retain_graph=True)
-            self.manual_backward(loss_2, opt_a, retain_graph=True)
+            loss_2 = super().training_step(batch, batch_idx)
             self.log('a', loss_2, on_epoch=True)
 
-            assert self.layer.weight.grad is not None
-            opt_b.step()
-            opt_b.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
-
-            return {'something': 'else'}
-
         def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer, optimizer_2
+            assert not outputs
 
     model = TestModel()
     model.val_dataloader = None
@@ -234,62 +160,13 @@ def test_multiple_optimizers_manual_return_and_log(tmpdir):
     num_manual_backward_calls = 3
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * num_manual_backward_calls
 
-    expected = {'a_step', 'a_epoch', 'epoch'}
-    logged = set(trainer.logged_metrics.keys())
-    assert expected == logged
+    assert set(trainer.logged_metrics) == {'a_step', 'a_epoch', 'epoch'}
 
 
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1)
 def test_multiple_optimizers_manual_native_amp(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
-
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        def training_step(self, batch, batch_idx):
-            # manual
-            opt_a, opt_b = self.optimizers()
-            loss_1 = self.step(batch[0])
-
-            # make sure there are no grads
-            if batch_idx > 0:
-                assert torch.all(self.layer.weight.grad == 0)
-
-            self.manual_backward(loss_1, opt_a)
-            opt_a.step()
-            opt_a.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
-
-            # fake discriminator
-            loss_2 = self.step(batch[0])
-
-            # ensure we forward the correct params to the optimizer
-            # without retain_graph we can't do multiple backward passes
-            self.manual_backward(loss_2, opt_b, retain_graph=True)
-            self.manual_backward(loss_2, opt_a, retain_graph=True)
-
-            assert self.layer.weight.grad is not None
-            opt_b.step()
-            opt_b.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs is empty as training_step does not return
-            # and it is not automatic optimization
-            assert len(outputs) == 0
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer, optimizer_2
-
-    model = TestModel()
+    model = ManualOptModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
@@ -313,56 +190,17 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @RunIf(min_gpus=1, amp_apex=True)
 def test_multiple_optimizers_manual_apex_no_return(tmpdir):
-    """
-    Tests that only training_step can be used
-    """
 
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
+    class TestModel(ManualOptModel):
 
         def training_step(self, batch, batch_idx):
-            # manual
-            opt_a, opt_b = self.optimizers()
-            x = batch[0]
-
-            loss_1 = self(x)
-            loss_1 = self.loss(loss_1, loss_1)
-
-            # make sure there are no grads
-            if batch_idx > 0:
-                assert torch.all(self.layer.weight.grad == 0)
-
-            self.manual_backward(loss_1, opt_a)
-            opt_a.step()
-            opt_a.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
-
-            # fake discriminator
-            loss_2 = self(x)
-            loss_2 = self.loss(loss_2, loss_2)
-
-            # ensure we forward the correct params to the optimizer
-            # without retain_graph we can't do multiple backward passes
-            self.manual_backward(loss_2, retain_graph=True)
-            self.manual_backward(loss_2)
-
-            assert self.layer.weight.grad is not None
-            opt_b.step()
-            opt_b.zero_grad()
-            assert torch.all(self.layer.weight.grad == 0)
+            # avoid returning a value
+            super().training_step(batch, batch_idx)
 
         def training_epoch_end(self, outputs) -> None:
             # outputs is empty as training_step does not return
             # and it is not automatic optimization
             assert len(outputs) == 0
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer, optimizer_2
 
     model = TestModel()
     model.val_dataloader = None
@@ -599,13 +437,9 @@ def test_multiple_optimizers_step(tmpdir):
     Tests that `step` works with several optimizers
     """
 
-    class TestModel(BoringModel):
+    class TestModel(ManualOptModel):
 
         called = False
-
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
 
         def on_after_backward(self):
             self.called = True
@@ -646,11 +480,6 @@ def test_multiple_optimizers_step(tmpdir):
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer
             assert len(outputs) == 2
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer, optimizer_2
 
     model = TestModel()
     model.val_dataloader = None
@@ -730,8 +559,7 @@ def test_step_with_optimizer_closure(tmpdir):
             assert not torch.equal(weight_before, weight_after)
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
     model = TestModel()
     model.val_dataloader = None
@@ -790,8 +618,7 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
                 assert self.layer.weight.grad is not None
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
     model = TestModel()
     model.val_dataloader = None
@@ -811,7 +638,6 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
     assert trainer.dev_debugger.count_events('backward_call') == limit_train_batches * 2
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @patch("torch.optim.SGD.step")
 def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     """
@@ -843,8 +669,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
             opt.zero_grad()
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
     model = TestModel()
     model.val_dataloader = None
@@ -861,7 +686,7 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
     )
 
     trainer.fit(model)
-    expected_calls = [call(closure=ANY) for s in range(2)]
+    expected_calls = [call(closure=ANY) for _ in range(2)]
     step_mock.assert_has_calls(expected_calls)
 
 
@@ -1274,9 +1099,5 @@ def test_multiple_optimizers_logging(precision, tmpdir):
 
     trainer.fit(model)
 
-    expected = {'epoch', 'loss_d', 'loss_g'}
-    logged = set(trainer.logged_metrics.keys())
-    assert expected == logged
-    expected = {'loss_d', 'loss_g'}
-    logged = set(trainer.progress_bar_metrics.keys())
-    assert expected == logged
+    assert set(trainer.logged_metrics) == {'epoch', 'loss_d', 'loss_g'}
+    assert set(trainer.progress_bar_metrics) == {'loss_d', 'loss_g'}
