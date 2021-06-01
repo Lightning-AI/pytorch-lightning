@@ -202,14 +202,11 @@ def test_result_collection_restoration():
             )
             result.log('training_step', 'a_1', a, on_step=True, on_epoch=True)
             result.log('training_step', 'b_1', b, on_step=False, on_epoch=True)
-            result.log('training_step', 'c_1', [c, c], on_step=True, on_epoch=False)
+            result.log('training_step', 'c_1', {'1': c, '2': c}, on_step=True, on_epoch=False)
 
             batch_log = result.metrics[MetricSource.LOG]
-            batch_expected = {"a_step": i, "c": i, "a_1_step": i, "c_1": [i, i]}
-
-            assert set(batch_log.keys()) == set(batch_expected.keys())
-            for k in batch_expected.keys():
-                assert batch_expected[k] == batch_log[k]
+            assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
+            assert set(batch_log['c_1']) == {'1', '2'}
 
             _result = deepcopy(result)
             state_dict = result.state_dict()
@@ -231,13 +228,10 @@ def test_result_collection_restoration():
 
         epoch_log = result.metrics[MetricSource.LOG]
         _epoch_log = _result.metrics[MetricSource.LOG]
-
         assert epoch_log == _epoch_log
 
-        epoch_expected = {'a_1_epoch', 'a_epoch', 'b', 'b_1'}
-
-        assert set(epoch_log.keys()) == epoch_expected, epoch_log.keys()
-        for k in list(epoch_expected):
+        assert set(epoch_log) == {'a_1_epoch', 'a_epoch', 'b', 'b_1'}
+        for k in epoch_log:
             if k in {'a_epoch', 'b'}:
                 assert epoch_log[k] == cumulative_sum
             else:

@@ -507,7 +507,7 @@ class ResultCollection(dict):
     def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Optional[Dict[str, Metric]] = None) -> None:
 
         def to_result_metric(item: _SerializationHelper) -> ResultMetric:
-            result_metric = ResultMetric(item["meta"])
+            result_metric = ResultMetric(item["meta"], item["is_tensor"])
             result_metric.__dict__.update(item)
             return result_metric.to(self.device)
 
