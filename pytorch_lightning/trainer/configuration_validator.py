@@ -41,6 +41,7 @@ class ConfigValidator:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
+        self.__verify_manual_optimization_support(model)
 
     def __verify_train_loop_configuration(self, model: 'pl.LightningModule') -> None:
         # -----------------------------------
@@ -112,3 +113,19 @@ class ConfigValidator:
         for hook in batch_transfer_hooks:
             if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
                 raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
+
+    def __verify_manual_optimization_support(self, model: 'pl.LightningModule') -> None:
+        if model.automatic_optimization:
+            return
+        if self.trainer.gradient_clip_val > 0:
+            raise MisconfigurationException(
+                f"Automatic gradient clipping is not supported in manual optimization."
+                f" Remove the Trainer setting Trainer(gradient_clip_val={self.trainer.gradient_clip_val})"
+                f" or switch to automatic optimization."
+            )
+        if self.trainer.accumulate_grad_batches != 1:
+            raise MisconfigurationException(
+                f"Automatic gradient accumulation is not supported in manual optimization."
+                f" Remove the Trainer setting Trainer(accumulate_grad_batches={self.trainer.accumulate_grad_batches})"
+                f" or switch to automatic optimization."
+            )
