@@ -99,8 +99,6 @@ class AcceleratorConnector(object):
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         self.distributed_backend = distributed_backend
-        self.auto_select_gpus = auto_select_gpus
-        self.gpus = gpus
         self.num_nodes = num_nodes
         self.sync_batchnorm = sync_batchnorm
         self.benchmark = benchmark
@@ -127,9 +125,9 @@ class AcceleratorConnector(object):
 
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
-            self.gpus = pick_multiple_gpus(gpus)
+            gpus = pick_multiple_gpus(gpus)
 
-        self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
+        self.gpu_device_ids = device_parser.parse_gpu_ids(gpus)
 
         self.set_distributed_mode()
         self.configure_slurm_ddp()
@@ -257,7 +255,7 @@ class AcceleratorConnector(object):
 
     @property
     def on_gpu(self) -> bool:
-        gpus = self.parallel_device_ids
+        gpus = self.gpu_device_ids
         return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
 
     @property
@@ -309,7 +307,7 @@ class AcceleratorConnector(object):
 
     @property
     def num_gpus(self) -> int:
-        gpus = self.parallel_device_ids
+        gpus = self.gpu_device_ids
         if gpus is None:
             return 0
         return len(gpus)
@@ -317,7 +315,7 @@ class AcceleratorConnector(object):
     @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
         if self.on_gpu:
-            devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
+            devices = [torch.device("cuda", i) for i in self.gpu_device_ids]
         elif self.on_tpu:
             # explicitly don't make a tpu device here!
             # https://github.com/PyTorchLightning/pytorch-lightning/issues/3169
@@ -460,7 +458,7 @@ class AcceleratorConnector(object):
         elif self.on_tpu and isinstance(self.tpu_cores, list):
             plugin = SingleTPUPlugin(self.tpu_id)
         else:
-            single_gpu_ordinal = device_parser.determine_root_gpu_device(self.parallel_device_ids)
+            single_gpu_ordinal = device_parser.determine_root_gpu_device(self.gpu_device_ids)
             plugin = SingleDevicePlugin(device=torch.device(f"cuda:{single_gpu_ordinal}" if self.on_gpu else "cpu"))
         return plugin
 
@@ -553,7 +551,7 @@ class AcceleratorConnector(object):
                 rank_zero_warn(
                     'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
                 )
-                self.parallel_device_ids = None
+                self.gpu_device_ids = None
             if self.num_processes is None:
                 # define the max CPU available
                 self.num_processes = os.cpu_count()
@@ -626,7 +624,7 @@ class AcceleratorConnector(object):
         hvd.init()
         if self.on_gpu:
             # Horovod assigns one local GPU per process
-            self.parallel_device_ids = list(range(hvd.local_size()))
+            self.gpu_device_ids = list(range(hvd.local_size()))
         else:
             self.num_processes = hvd.local_size()
 
