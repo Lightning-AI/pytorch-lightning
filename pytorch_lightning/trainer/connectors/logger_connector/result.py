@@ -74,13 +74,17 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
 
     def __init__(self, metadata: Metadata, is_tensor: bool) -> None:
-        super().__init__(compute_on_step=is_tensor)
+        super().__init__()
         self.is_tensor = is_tensor
         self.meta = metadata
         if is_tensor:
             self.add_state("value", torch.tensor(0, dtype=torch.float))
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
+
+    def __setattr__(self, key, value):
+        # performance: skip the `torch.nn.Module.__setattr__` checks
+        object.__setattr__(self, key, value)
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
         if self.is_tensor:
@@ -115,13 +119,11 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.value.reset()
         self.meta.has_reset = True
 
-    def forward(self, value: _METRIC, *args, **kwargs) -> torch.Tensor:
-        """Overridden to avoid `self._forward_cache = None` after `update`"""
-        prev_fwd_cache = getattr(value, '_forward_cache', None)
-        out = super().forward(value, *args, **kwargs)
-        if out is None:
-            self._forward_cache = prev_fwd_cache
-        return out
+    def forward(self, value: _METRIC, *args, **kwargs) -> None:
+        # performance: skip the `torch.no_grad` context manager by calling `update` directly
+        # as `backward` shouldn't be run on metrics
+        self._forward_cache = value._forward_cache if isinstance(value, Metric) else value
+        self.update(value, *args, **kwargs)
 
     def __repr__(self) -> str:
         state = f"value={self.value}"
@@ -177,10 +179,19 @@ class ResultCollection(dict):
         self._on_epoch_end_reached = False
         self._minimize = None
         self._current_fx: Optional[str] = None
-        self.batch_size: int = 1
+        self._batch_size = torch.tensor(1, device=device)
         self.batch_idx: Optional[int] = None
         self.device: Optional[torch.device] = device
         self.fx_validator = FxValidator()
+
+    @property
+    def batch_size(self) -> torch.Tensor:
+        # performance: cache the `batch_size` tensor instead of re-creating it
+        return self._batch_size
+
+    @batch_size.setter
+    def batch_size(self, value: int) -> None:
+        self._batch_size = torch.tensor(value, device=self.device)
 
     @property
     def on_epoch_end_reached(self) -> bool:
@@ -287,7 +298,11 @@ class ResultCollection(dict):
         if self.should_reset_tensors(fx):
             # when restarting an new epoch, reset the tensors
             self._reset(fx, metrics=False)
-        self.update_metrics(key, value, batch_size)
+
+        if batch_size is not None:
+            self.batch_size = batch_size
+
+        self.update_metrics(key, value)
         self._current_fx = fx
 
     def register_key(self, key: str, meta: Metadata, value: _METRIC_COLLECTION) -> None:
@@ -311,12 +326,11 @@ class ResultCollection(dict):
         # reset tensor metrics only when the hook changed and reloading the dataloader
         return self._current_fx != fx and self.batch_idx in (None, 0)
 
-    def update_metrics(self, key: str, value: _METRIC_COLLECTION, batch_size: Optional[int]) -> None:
-        batch_size = torch.tensor(batch_size or self.batch_size, device=self.device)
+    def update_metrics(self, key: str, value: _METRIC_COLLECTION) -> None:
 
         def fn(result_metric, v):
-            # call the forward function of ResultMetric
-            result_metric(v.to(self.device), batch_size)
+            # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
+            result_metric.forward(v.to(self.device), self.batch_size)
             result_metric.meta.has_reset = False
 
         apply_to_collections(self[key], value, ResultMetric, fn)
