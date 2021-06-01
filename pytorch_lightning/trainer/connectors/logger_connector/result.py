@@ -470,22 +470,24 @@ class ResultCollection(dict):
         """Move all data to CPU."""
         return self.to(device="cpu")
 
-    def _reset(self, fx: Optional[str] = None, metrics: bool = True) -> None:
+    def _reset(self, fx: Optional[str] = None, metrics: Optional[bool] = None) -> None:
 
         def fn(item: ResultMetric) -> None:
-            requested_type = metrics ^ item.meta.is_tensor  # logical xor
+            requested_type = metrics is None or metrics ^ item.meta.is_tensor
             same_fx = fx is None or fx == item.meta.fx
             if requested_type and same_fx:
                 item.reset()
 
         apply_to_collection(self, ResultMetric, fn)
 
-    def reset(self, metrics: bool = False) -> None:
+    def reset(self, metrics: Optional[bool] = None) -> None:
         """
         Reset the result collection
 
         Args:
-            metrics: Whether to only reset the `torchmetrics.Metric` results
+            metrics: If True, only ``torchmetrics.Metric`` results are reset,
+                if False, only ``torch.Tensors`` are reset,
+                if ``None``, both are.
         """
         self._reset(metrics=metrics)
         self.on_epoch_end_reached = False

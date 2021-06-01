@@ -251,7 +251,7 @@ def test_result_collection_restoration():
         result.reset()
 
         # assert metric state reset to default values
-        assert metric_a.x == metric_a._defaults['x'], (metric_a.x, metric_a._defaults['x'])
+        assert metric_a.x == metric_a._defaults['x']
         assert metric_b.x == metric_b._defaults['x']
         assert metric_c.x == metric_c._defaults['x']
 
