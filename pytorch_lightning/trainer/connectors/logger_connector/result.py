@@ -175,19 +175,10 @@ class ResultCollection(dict):
         self._on_epoch_end_reached = False
         self._minimize = None
         self._current_hook_name: Optional[str] = None
-        self._batch_size: Optional[int] = None
+        self.batch_size: int = 1
         self.batch_idx: Optional[int] = None
         self.device: Optional[torch.device] = device
         self.fx_validator = FxValidator()
-
-    @property
-    def batch_size(self) -> int:
-        # FIXME
-        return self._batch_size or 1
-
-    @batch_size.setter
-    def batch_size(self, batch_size: int) -> None:
-        self._batch_size = batch_size
 
     @property
     def on_epoch_end_reached(self) -> bool:
@@ -514,9 +505,9 @@ class ResultCollection(dict):
 
     def extract_batch_size(self, batch: Any) -> None:
         try:
-            self._batch_size = self._extract_batch_size(batch)
+            self.batch_size = self._extract_batch_size(batch)
         except RecursionError:
-            self._batch_size = 1
+            self.batch_size = 1
 
     def _extract_batch_size(self, batch: Any) -> int:
         """

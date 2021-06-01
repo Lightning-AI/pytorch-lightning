@@ -234,10 +234,6 @@ class LoggerConnector:
         self.trainer.result_collection.extract_batch_size(split_batch)
         self.trainer.result_collection.batch_idx = batch_idx
 
-    def on_train_batch_end(self) -> None:
-        # TODO: why
-        self.trainer.result_collection.batch_size = 1
-
     def update_train_step_metrics(self, batch_output):
         metrics = self.trainer.result_collection.metrics
 
