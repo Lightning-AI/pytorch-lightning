@@ -146,7 +146,7 @@ class ResultCollection(dict):
         result = ResultCollection(True, torch.device("cpu"))
 
         # you can log to a specific collection.
-        # arguments: hook_name, key, value, metadata
+        # arguments: fx, key, value, metadata
         result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
         result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
 
@@ -170,7 +170,7 @@ class ResultCollection(dict):
         self.training = training
         self._on_epoch_end_reached = False
         self._minimize = None
-        self._current_hook_name: Optional[str] = None
+        self._current_fx: Optional[str] = None
         self.batch_size: int = 1
         self.batch_idx: Optional[int] = None
         self.device: Optional[torch.device] = device
@@ -226,7 +226,7 @@ class ResultCollection(dict):
 
     def log(
         self,
-        hook_name: str,
+        fx: str,
         name: str,
         value: Any,
         prog_bar: bool = False,
@@ -254,18 +254,18 @@ class ResultCollection(dict):
             )
 
         # storage key
-        key = f"{hook_name}.{name}"
-        # add dataloader_suffix to both key and hook_name
+        key = f"{fx}.{name}"
+        # add dataloader_suffix to both key and fx
         if dataloader_idx is not None:
             # use as ResultCollection key
             key += f'.{dataloader_idx}'
             # used to decide when to reset
-            hook_name += f'.{dataloader_idx}'
+            fx += f'.{dataloader_idx}'
 
         if key not in self:
             # create metadata object if storage key doesn't exist in self
             meta = Metadata(
-                fx=hook_name,
+                fx=fx,
                 name=name,
                 prog_bar=prog_bar,
                 logger=logger,
@@ -283,10 +283,10 @@ class ResultCollection(dict):
         batch_size = torch.tensor(batch_size or self.batch_size, device=self.device)
 
         # update the ResultMetric
-        self.update_metrics(hook_name, key, value, batch_size)
+        self.update_metrics(fx, key, value, batch_size)
 
         # save current_hook to know when to reset.
-        self._current_hook_name = hook_name
+        self._current_fx = fx
 
     def instance_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
 
@@ -312,17 +312,14 @@ class ResultCollection(dict):
             self[key + '.on_epoch'] = meta.on_epoch
             self[key + '.dataloader_idx'] = meta.dataloader_idx
 
-    def should_reset_tensors(self, hook_name: str) -> bool:
-        # reset tensor metrics only when hook_name changed and starting a new iteration over dataloader.
-        return self._current_hook_name != hook_name and self.batch_idx in (None, 0)
+    def should_reset_tensors(self, fx: str) -> bool:
+        # reset tensor metrics only when the hook changed and reloading the dataloader
+        return self._current_fx != fx and self.batch_idx in (None, 0)
 
-    def update_metrics(
-        self, hook_name: str, key: str, value: Union[Dict, torch.Tensor], batch_size: torch.Tensor
-    ) -> None:
-
-        if self.should_reset_tensors(hook_name):
-            # when restarting an new epoch, reset the tensor hooks dynamically.
-            self._reset(hook_name, metrics=False)
+    def update_metrics(self, fx: str, key: str, value: Union[Dict, torch.Tensor], batch_size: torch.Tensor) -> None:
+        if self.should_reset_tensors(fx):
+            # when restarting an new epoch, reset the tensors
+            self._reset(fx, metrics=False)
 
         # this function is used to call the forward function of ResultMetric object.
         def fn(result_metric, v):
@@ -492,7 +489,7 @@ class ResultCollection(dict):
         """
         self._reset(metrics=metrics)
         self.on_epoch_end_reached = False
-        self._current_hook_name = None
+        self._current_fx = None
 
     def extract_batch_size(self, batch: Any) -> None:
         try:
