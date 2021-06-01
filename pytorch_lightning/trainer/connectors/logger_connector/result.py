@@ -129,12 +129,6 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
 
-    # FIXME: necessary? tests pass?
-    # def __getstate__(self) -> dict:
-    #    d = super().__getstate__()
-    #    # delete reference to TorchMetrics Metric
-    #    d['_modules'].pop('value', None)
-    #    return d
 
 
 class _SerializationHelper(dict):
@@ -493,34 +487,6 @@ class ResultCollection(dict):
         else:
             size = 1
         return size
-
-    def state_dict(self):
-
-        def to_state_dict(item: ResultMetric) -> _SerializationHelper:
-            return _SerializationHelper(**item.__getstate__())
-
-        return {k: apply_to_collection(v, ResultMetric, to_state_dict) for k, v in self.items()}
-
-    def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Optional[Dict[str, Metric]] = None) -> None:
-
-        def to_result_metric(item: _SerializationHelper) -> ResultMetric:
-            result_metric = ResultMetric(item["meta"], item["is_tensor"])
-            result_metric.__dict__.update(item)
-            return result_metric.to(self.device)
-
-        state_dict = {k: apply_to_collection(v, _SerializationHelper, to_result_metric) for k, v in state_dict.items()}
-        for k, v in state_dict.items():
-            self[k] = v
-
-        if metrics:
-
-            def re_assign_metric(item: ResultMetric) -> None:
-                # metric references are lost during serialization and need to be set back during loading
-                name = item.meta.metric_attribute
-                if isinstance(name, str) and name in metrics:
-                    item.value = metrics[name]
-
-            apply_to_collection(self, ResultMetric, re_assign_metric)
 
     def __str__(self) -> str:
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'

@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
-
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -167,81 +165,6 @@ def test_result_metric_integration():
         "'h.c': ResultMetric(value=DummyMetric())"
         "})"
     )
-
-
-def test_result_collection_restoration():
-
-    _result = None
-    metric_a = DummyMetric()
-    metric_b = DummyMetric()
-    metric_c = DummyMetric()
-
-    result = ResultCollection(True, torch.device("cpu"))
-
-    for _ in range(2):
-
-        result.on_epoch_end_reached = False
-        cumulative_sum = 0
-
-        for i in range(3):
-
-            result.batch_idx = i
-
-            a = metric_a(i)
-            b = metric_b(i)
-            c = metric_c(i)
-
-            cumulative_sum += i
-
-            result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
-            result.log('training_step', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
-            result.log('training_step', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
-            result.log('training_step', 'a_1', a, on_step=True, on_epoch=True)
-            result.log('training_step', 'b_1', b, on_step=False, on_epoch=True)
-            result.log('training_step', 'c_1', {'1': c, '2': c}, on_step=True, on_epoch=False)
-
-            batch_log = result.metrics[MetricSource.LOG]
-            assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
-            assert set(batch_log['c_1']) == {'1', '2'}
-
-            _result = deepcopy(result)
-            state_dict = result.state_dict()
-
-            result = ResultCollection(True, torch.device("cpu"))
-            result.load_from_state_dict(
-                state_dict, {
-                    "metric_a": metric_a,
-                    "metric_b": metric_b,
-                    "metric_c": metric_c,
-                    "metric_a_end": metric_a
-                }
-            )
-
-            assert _result.items() == result.items()
-
-        result.on_epoch_end_reached = True
-        _result.on_epoch_end_reached = True
-
-        epoch_log = result.metrics[MetricSource.LOG]
-        _epoch_log = _result.metrics[MetricSource.LOG]
-        assert epoch_log == _epoch_log
-
-        assert set(epoch_log) == {'a_1_epoch', 'a_epoch', 'b', 'b_1'}
-        for k in epoch_log:
-            if k in {'a_epoch', 'b'}:
-                assert epoch_log[k] == cumulative_sum
-            else:
-                assert epoch_log[k] == 1
-
-        result.log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True, metric_attribute="metric_a_end")
-
-        _result.reset()
-        result.reset()
-
-        # assert metric state reset to default values
-        assert metric_a.x == metric_a._defaults['x']
-        assert metric_b.x == metric_b._defaults['x']
-        assert metric_c.x == metric_c._defaults['x']
 
 
 def test_result_collection_simple_loop():
