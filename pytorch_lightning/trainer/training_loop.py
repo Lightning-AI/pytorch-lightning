@@ -276,7 +276,7 @@ class TrainLoop:
             ):
                 raise MisconfigurationException(
                     "In automatic optimization, `training_step` must either return a Tensor, "
-                    "a dict with key 'loss' or None (where the step will be skipped)"
+                    "a dict with key 'loss' or None (where the step will be skipped)."
                 )
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
