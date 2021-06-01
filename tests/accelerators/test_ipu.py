@@ -174,3 +174,6 @@ def test_optimization(tmpdir):
     result = trainer.test(model, dm.test_dataloader())
     saved_result = result[0]['test_acc']
     assert saved_result > 0.6 and (saved_result == test_result)
+
+
+# todo add test for precision 16 and fully half precision + device iterations
