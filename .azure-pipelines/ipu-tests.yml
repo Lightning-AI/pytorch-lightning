@@ -91,6 +91,9 @@ jobs:
       displayName: 'Testing: standard'
 
     - bash: |
+        source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
+        source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
+
         bash tests/special_tests.sh
       env:
         MKL_THREADING_LAYER: "GNU"
