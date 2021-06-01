@@ -158,6 +158,7 @@ def test_warning_invalid_trainstep_output(tmpdir, output):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     with pytest.raises(
         MisconfigurationException,
-        match="In automatic optimization, `training_step` must either return a Tensor or a dict with key 'loss'"
+        match="In automatic optimization, `training_step` must either return a Tensor, "
+              "a dict with key 'loss' or None (where the step will be skipped)"
     ):
         trainer.fit(model)
