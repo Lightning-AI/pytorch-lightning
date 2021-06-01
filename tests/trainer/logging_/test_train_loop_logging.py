@@ -17,6 +17,7 @@ Test logging in the training loop
 
 import collections
 import itertools
+from re import escape
 
 import numpy as np
 import pytest
@@ -759,7 +760,7 @@ def test_metric_are_properly_reduced(tmpdir):
     assert "train_loss" in trainer.callback_metrics
 
 
-@pytest.mark.parametrize('value', [None, {'a': {'b': None}}])
+@pytest.mark.parametrize('value', [None, {'a': {'b': None}}, 'foo', [1, 2, 3], (1, 2, 3), [[1, 2], 3]])
 def test_log_none_raises(tmpdir, value):
 
     class TestModel(BoringModel):
@@ -769,7 +770,7 @@ def test_log_none_raises(tmpdir, value):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
-    with pytest.raises(ValueError, match=rf"self.log\(foo, {value}\)` was called"):
+    with pytest.raises(ValueError, match=rf"self.log\(foo, {escape(str(value))}\)` was called"):
         trainer.fit(model)
 
 

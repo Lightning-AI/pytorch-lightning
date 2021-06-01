@@ -328,8 +328,13 @@ class LightningModule(
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
 
-        # check for none values
-        apply_to_collection(value, type(None), partial(self.__check_none, name, value))
+        # check for invalid values
+        apply_to_collection(
+            value,
+            object,
+            partial(self.__check_allowed, name, value),
+            wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+        )
 
         # set the default depending on the fx_name
         on_step = self.__auto_choose_log_on_step(on_step)
@@ -469,8 +474,8 @@ class LightningModule(
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
     @staticmethod
-    def __check_none(name: str, value: Any, _) -> Any:
-        raise ValueError(f'`self.log({name}, {value})` was called, but `None` values cannot be logged')
+    def __check_allowed(name: str, value: Any, v) -> Any:
+        raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
 
     def write_prediction(
         self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'
