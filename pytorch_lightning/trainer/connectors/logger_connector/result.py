@@ -279,13 +279,10 @@ class ResultCollection(dict):
             # value can be provided as a nested collection.
             self.instance_result_metric(key, meta, value)
 
-        # compute batch_size
-        batch_size = torch.tensor(batch_size or self.batch_size, device=self.device)
-
-        # update the ResultMetric
-        self.update_metrics(fx, key, value, batch_size)
-
-        # save current_hook to know when to reset.
+        if self.should_reset_tensors(fx):
+            # when restarting an new epoch, reset the tensors
+            self._reset(fx, metrics=False)
+        self.update_metrics(key, value, batch_size)
         self._current_fx = fx
 
     def instance_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
@@ -316,46 +313,32 @@ class ResultCollection(dict):
         # reset tensor metrics only when the hook changed and reloading the dataloader
         return self._current_fx != fx and self.batch_idx in (None, 0)
 
-    def update_metrics(self, fx: str, key: str, value: Union[Dict, torch.Tensor], batch_size: torch.Tensor) -> None:
-        if self.should_reset_tensors(fx):
-            # when restarting an new epoch, reset the tensors
-            self._reset(fx, metrics=False)
+    def update_metrics(self, key: str, value: Union[Dict, torch.Tensor], batch_size: Optional[int]) -> None:
+        batch_size = torch.tensor(batch_size or self.batch_size, device=self.device)
 
-        # this function is used to call the forward function of ResultMetric object.
         def fn(result_metric, v):
-            assert isinstance(v, (torch.Tensor, Metric))
-            result_metric(v.to(self.device), batch_size.to(self.device))
+            # call the forward function of ResultMetric
+            result_metric(v.to(self.device), batch_size)
             result_metric.meta.has_reset = False
 
         apply_to_collections(self[key], value, ResultMetric, fn)
 
     @staticmethod
     def _get_forward_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
-        # skip if meta `on_step` is False
         if not result_metric.meta.on_step:
             return
-
-        # extract `ResultMetric` forward cache
         return result_metric._forward_cache.detach()
 
     @staticmethod
     def _to_item(t: torch.Tensor) -> float:
         return t.item()
 
-    def valid_metrics(self) -> Generator:
-        """
-        This function is used to iterate over current valid metrics.
-        """
-        for key, item in self.items():
-            # skip when item is None, bool or extra arguments from training_step.
-            if item is None or isinstance(item, bool) or key == "extra":
-                continue
-
-            # skip when the metrics hasn't been updated.
-            elif isinstance(item, ResultMetric) and item.meta.has_reset:
-                continue
-
-            yield key, item
+    def valid_items(self) -> Generator:
+        """This function is used to iterate over current valid metrics."""
+        return ((k, v) for k, v in self.items() if (
+            v is not None and not isinstance(v, bool) and not k == "extra"
+            and not (isinstance(v, ResultMetric) and v.meta.has_reset)
+        ))
 
     def _extract_metadata(self, key: str, result_metric, on_step: bool, suffix: str) -> Tuple:
         """
@@ -395,7 +378,7 @@ class ResultCollection(dict):
         suffix = self.STEP_SUFFIX if on_step else self.EPOCH_SUFFIX
 
         # iterate over all stored metrics.
-        for key, result_metric in self.valid_metrics():
+        for key, result_metric in self.valid_items():
 
             # extract forward_cache or computed from the ResultMetric
             # ignore when the output of fn is None
@@ -443,21 +426,16 @@ class ResultCollection(dict):
     def get_batch_metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
         return self.get_metrics(on_step=True)
 
-    @staticmethod
-    def _get_computed_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
-        # skip if meta.on_epoch is False
-        if not result_metric.meta.on_epoch:
-            return
-
-        # perform reduction is not done alrady
-        if not result_metric._computed:
-            result_metric.compute()
-
-        # extract computed from ResultMetric.
-        return result_metric._computed.detach()
-
     def get_epoch_metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
         return self.get_metrics(on_step=False)
+
+    @staticmethod
+    def _get_computed_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
+        if not result_metric.meta.on_epoch:
+            return
+        if not result_metric._computed:
+            result_metric.compute()
+        return result_metric._computed.detach()
 
     def to(self, *args, **kwargs) -> 'ResultCollection':
         """Move all data to the given device."""
