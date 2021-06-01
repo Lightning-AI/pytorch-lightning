@@ -154,10 +154,10 @@ def test_trainer_manual_optimization_config(tmpdir):
     model = BoringModel()
     model.automatic_optimization = False
 
+    trainer = Trainer(gradient_clip_val=1.0)
     with pytest.raises(MisconfigurationException, match="Automatic gradient clipping is not supported"):
-        trainer = Trainer(gradient_clip_val=1.0)
         trainer.fit(model)
 
+    trainer = Trainer(accumulate_grad_batches=2)
     with pytest.raises(MisconfigurationException, match="Automatic gradient accumulation is not supported"):
-        trainer = Trainer(accumulate_grad_batches=2)
         trainer.fit(model)
