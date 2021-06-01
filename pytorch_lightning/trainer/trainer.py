@@ -258,6 +258,14 @@ class Trainer(
                 :class:`datetime.timedelta`, or a dictionary with keys that will be passed to
                 :class:`datetime.timedelta`.
 
+            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
+                This can save some gpu memory, but can make training slower. Use with attention.
+
+            multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
+                In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
+                and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
+                reload when reaching the minimum length of datasets.
+
             num_nodes: number of GPU nodes for distributed training.
 
             num_processes: number of processes for distributed training with distributed_backend="ddp_cpu"
@@ -275,6 +283,9 @@ class Trainer(
             resume_from_checkpoint: Path/URL of the checkpoint from which training is resumed. If there is
                 no checkpoint file at the path, start from scratch. If resuming from mid-epoch checkpoint,
                 training will start from the beginning of the next epoch.
+
+            stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
+                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
@@ -298,17 +309,6 @@ class Trainer(
                 stored in a different place than the logs written in `default_root_dir`.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                 Defaults to `default_root_dir`.
-
-            move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
-                This can save some gpu memory, but can make training slower. Use with attention.
-
-            multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
-                In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
-                and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
-                reload when reaching the minimum length of datasets.
-
-            stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
-                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>_`
 
         """
         super().__init__()
