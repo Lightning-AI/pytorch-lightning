@@ -1,7 +1,6 @@
 import inspect
 import json
 import os
-from enum import Enum
 from typing import Any, Iterable, List, Optional, Union
 
 import torch
@@ -21,22 +20,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _POPTORCH_AVAILABLE:
     import poptorch
 
-# todo: Check gradient accumulation to ensure this works, similar to DeepSpeed, IPUs manage this.
-# todo: Check lr scheduling to ensure that when the LR is changed, we update the optimizer state.
-
-# todo: does creating an inference model and a training model allocate double the IPU cores?
-# todo: can we have one inference model for test/val/predict which takes a bool to choose a path?
-
-
-class IPUStage(Enum):
-    training = torch.tensor([0])
-    validation = torch.tensor([1])
-    testing = torch.tensor([2])
-    predicting = torch.tensor([3])
-
-    def __eq__(self, other):
-        return torch.equal(self.value, other)
-
 
 class LightningIPUModule(_LightningModuleWrapperBase):
 
@@ -44,23 +27,11 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         super().__init__(pl_module)
         self.precision = precision
 
-    def forward(self, stage, *inputs, **kwargs):
+    def forward(self, *inputs, **kwargs):
         if self.precision == 16:
             inputs = self._move_float_tensors_to_half(inputs)
 
-        trainer = self.module.trainer
-        if trainer and IPUStage.training == stage:
-            output = self.module.training_step(*inputs, **kwargs)
-        elif trainer and IPUStage.testing == stage:
-            output = self.module.test_step(*inputs, **kwargs)
-        elif trainer and IPUStage.validation == stage:
-            output = self.module.validation_step(*inputs, **kwargs)
-        elif trainer and IPUStage.predicting == stage:
-            output = self.module.predict_step(*inputs, **kwargs)
-        else:
-            output = self.module(*inputs, **kwargs)
-
-        return output
+        return super().forward(*inputs, **kwargs)
 
     @staticmethod
     def batch_to(data):
@@ -89,8 +60,7 @@ class IPUPlugin(ParallelPlugin):
         self.autoround_num_ipus = autoround_num_ipus
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
-        self.train_model = None
-        self.inference_model = None
+        self.poptorch_models = {}
 
         if self.autoreport:
             options = {"autoReport.all": self.autoreport}
@@ -116,22 +86,23 @@ class IPUPlugin(ParallelPlugin):
         precision = self.lightning_module.trainer.accelerator.precision_plugin.precision
         precision = 16 if self.half else precision
 
+        model = LightningIPUModule(self.lightning_module, precision)
+        self.model = model
+
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, they sync weights first.
 
-        model = LightningIPUModule(self.lightning_module, precision)
-        self.model = model
         if self.lightning_module.trainer.training:
             # Create model for training which will run training.
             optimizer = self.lightning_module.trainer.optimizers[0]
-            self.train_model = poptorch.trainingModel(
-                model=model, options=self._create_opts(training=True), optimizer=optimizer
+            model = poptorch.trainingModel(model=model, options=self._create_opts(training=True), optimizer=optimizer)
+            self.poptorch_models['train'] = model
+        for x in ('val', 'test', 'predict'):
+            model = poptorch.inferenceModel(
+                model=model,
+                options=self._create_opts(training=False),
             )
-
-        self.inference_model = poptorch.inferenceModel(
-            model=model,
-            options=self._create_opts(training=False),
-        )
+            self.poptorch_models[x] = model
 
     @property
     def replication_factor(self):
@@ -205,6 +176,7 @@ class IPUPlugin(ParallelPlugin):
 
     @property
     def _n_replicate(self):
+        # Ensure we replicate primitives values to have enough dimensions to split across devices
         accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
         return self.replication_factor * self.device_iterations * accumulate_grad_batches
 
@@ -220,28 +192,21 @@ class IPUPlugin(ParallelPlugin):
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
 
-    def _prepare_stage(self, stage: IPUStage):
-        return stage.value.repeat(self._n_replicate)
-
     def training_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        stage = self._prepare_stage(IPUStage.training)
-        return self.train_model(stage, *args, **kwargs)
+        return self.poptorch_models['train'](*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        stage = self._prepare_stage(IPUStage.validation)
-        return self.inference_model(stage, *args, **kwargs)
+        return self.poptorch_models['val'](*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        stage = self._prepare_stage(IPUStage.testing)
-        return self.inference_model(stage, *args, **kwargs)
+        return self.poptorch_models['test'](*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        stage = self._prepare_stage(IPUStage.predicting)
-        return self.inference_model(stage, *args, **kwargs)
+        return self.poptorch_models['predict'](*args, **kwargs)
 
     @property
     def on_gpu(self) -> bool:
@@ -269,3 +234,7 @@ class IPUPlugin(ParallelPlugin):
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
+
+    def teardown(self) -> None:
+        for k, model in self.poptorch_models.items():
+            model.destroy()
