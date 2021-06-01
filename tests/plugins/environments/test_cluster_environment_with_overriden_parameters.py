@@ -3,7 +3,6 @@ from unittest import mock
 
 import pytest
 from pytorch_lightning.plugins.environments import (
-    ClusterEnvironment,
     KubeflowEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
