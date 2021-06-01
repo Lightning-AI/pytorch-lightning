@@ -47,7 +47,7 @@ from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_d
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -259,7 +259,7 @@ class LightningModule(
     def log(
         self,
         name: str,
-        value: Any,
+        value: _METRIC_COLLECTION,
         prog_bar: bool = False,
         logger: bool = True,
         on_step: Optional[bool] = None,
@@ -328,6 +328,9 @@ class LightningModule(
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
 
+        # check for none values
+        apply_to_collection(value, type(None), partial(self.__check_none, name, value))
+
         # set the default depending on the fx_name
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
@@ -392,7 +395,7 @@ class LightningModule(
 
     def log_dict(
         self,
-        dictionary: dict,
+        dictionary: Dict[str, _METRIC_COLLECTION],
         prog_bar: bool = False,
         logger: bool = True,
         on_step: Optional[bool] = None,
@@ -464,6 +467,10 @@ class LightningModule(
         if not sync_dist or not dist_available:
             return value
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
+
+    @staticmethod
+    def __check_none(name: str, value: Any, _) -> Any:
+        raise ValueError(f'`self.log({name}, {value})` was called, but `None` values cannot be logged')
 
     def write_prediction(
         self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'

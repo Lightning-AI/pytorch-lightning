@@ -759,6 +759,20 @@ def test_metric_are_properly_reduced(tmpdir):
     assert "train_loss" in trainer.callback_metrics
 
 
+@pytest.mark.parametrize('value', [None, {'a': {'b': None}}])
+def test_log_none_raises(tmpdir, value):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            self.log("foo", value)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    model = TestModel()
+    with pytest.raises(ValueError, match=rf"self.log\(foo, {value}\)` was called"):
+        trainer.fit(model)
+
+
 def test_logging_raises(tmpdir):
 
     class TestModel(BoringModel):

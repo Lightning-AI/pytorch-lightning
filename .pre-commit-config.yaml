@@ -19,17 +19,28 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.0.1
     hooks:
-      - id: trailing-whitespace
       - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-toml
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.8.0
     hooks:
       - id: isort
-        args: [--settings-path, ./pyproject.toml]
+        name: Format imports
 
   - repo: https://github.com/pre-commit/mirrors-yapf
     rev: v0.31.0
     hooks:
       - id: yapf
-        args: [--parallel, --in-place]
+        name: Format code
+        language: python
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 3.9.2
+    hooks:
+      - id: flake8
+        name: Check PEP8

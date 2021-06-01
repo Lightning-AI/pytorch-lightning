@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numbers
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 import numpy as np
 import pytest
@@ -31,7 +31,7 @@ def test_recursive_application_to_collection():
         'd': ntc(bar=5.),  # named tuple
         'e': np.array([10.]),  # numpy array
         'f': 'this_is_a_dummy_str',  # string
-        'g': 12.  # number
+        'g': 12.,  # number
     }
 
     expected_result = {
@@ -41,7 +41,7 @@ def test_recursive_application_to_collection():
         'd': ntc(bar=torch.tensor([10.])),
         'e': np.array([20.]),
         'f': 'this_is_a_dummy_str',
-        'g': 24.
+        'g': 24.,
     }
 
     reduced = apply_to_collection(to_reduce, (torch.Tensor, numbers.Number, np.ndarray), lambda x: x * 2)
@@ -75,8 +75,14 @@ def test_recursive_application_to_collection():
     assert isinstance(reduced['f'], str), 'A string should not be reduced'
     assert reduced['f'] == expected_result['f'], 'String not preserved during reduction'
 
-    assert isinstance(reduced['g'], numbers.Number), 'Reduction of a number should result in a tensor'
+    assert isinstance(reduced['g'], numbers.Number), 'Reduction of a number should result in a number'
     assert reduced['g'] == expected_result['g'], 'Reduction of a number did not yield the desired result'
+
+    # mapping support
+    reduced = apply_to_collection({'a': 1, 'b': 2}, int, lambda x: str(x))
+    assert reduced == {'a': '1', 'b': '2'}
+    reduced = apply_to_collection(OrderedDict([('b', 2), ('a', 1)]), int, lambda x: str(x))
+    assert reduced == OrderedDict([('b', '2'), ('a', '1')])
 
 
 def test_apply_to_collection_include_none():
@@ -141,3 +147,10 @@ def test_apply_to_collections():
     to_reduce = [foo(1), foo(2), foo(3)]
     reduced = apply_to_collections(to_reduce, to_reduce, int, lambda *x: sum(x))
     assert reduced == [foo(2), foo(4), foo(6)]
+
+    # passing none
+    reduced1 = apply_to_collections([1, 2, 3], None, int, lambda x: x * x)
+    reduced2 = apply_to_collections(None, [1, 2, 3], int, lambda x: x * x)
+    assert reduced1 == reduced2 == [1, 4, 9]
+    reduced = apply_to_collections(None, None, int, lambda x: x * x)
+    assert reduced is None

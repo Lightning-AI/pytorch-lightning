@@ -54,7 +54,7 @@ CONVERSION_DTYPES = [
 ]
 
 
-def _is_namedtuple(obj):
+def _is_namedtuple(obj: object) -> bool:
     # https://github.com/pytorch/pytorch/blob/v1.8.1/torch/nn/parallel/scatter_gather.py#L4-L8
     return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
 
@@ -77,31 +77,31 @@ def apply_to_collection(
         function: the function to apply
         *args: positional arguments (will be forwarded to calls of ``function``)
         wrong_dtype: the given function won't be applied if this type is specified and the given collections
-            is of the :attr:`wrong_type` even if it is of type :attr`dtype`
+            is of the ``wrong_dtype`` even if it is of type ``dtype``
         include_none: Whether to include an element if the output of ``function`` is ``None``.
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
     Returns:
-        the resulting collection
+        The resulting collection
     """
-
     # Breaking condition
     if isinstance(data, dtype) and (wrong_dtype is None or not isinstance(data, wrong_dtype)):
         return function(data, *args, **kwargs)
 
+    elem_type = type(data)
+
     # Recursively apply to collection items
     if isinstance(data, Mapping):
-        out = {}
+        out = []  # can't use dict, need to preserve order if `OrderedDict`
         for k, v in data.items():
             v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             if include_none or v is not None:
-                out[k] = v
-        return out
+                out.append((k, v))
+        return elem_type(out)
 
     is_namedtuple = _is_namedtuple(data)
     is_sequence = isinstance(data, Sequence) and not isinstance(data, str)
     if is_namedtuple or is_sequence:
-        elem_type = type(data)
         out = []
         for d in data:
             v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
@@ -114,7 +114,7 @@ def apply_to_collection(
 
 
 def apply_to_collections(
-    data1: Any,
+    data1: Optional[Any],
     data2: Optional[Any],
     dtype: Union[type, tuple],
     function: Callable,
@@ -123,37 +123,42 @@ def apply_to_collections(
     **kwargs
 ) -> Any:
     """
-    Recursively applies a function to all elements of a certain dtype.
+    Zips two collections and applies a function to their items of a certain dtype.
 
     Args:
-        data: The first collection
+        data1: The first collection
         data2: The second collection
         dtype: the given function will be applied to all elements of this dtype
         function: the function to apply
         *args: positional arguments (will be forwarded to calls of ``function``)
-        wrong_dtype: the given function won't be applied if this type is specified and the given collections is of
-            the :attr:`wrong_type` even if it is of type :attr`dtype`
+        wrong_dtype: the given function won't be applied if this type is specified and the given collections
+            is of the ``wrong_dtype`` even if it is of type ``dtype``
         **kwargs: keyword arguments (will be forwarded to calls of ``function``)
 
     Returns:
-        the resulting collection
+        The resulting collection
     """
+    if data1 is None and data2 is not None:
+        # in case they were passed reversed
+        data1, data2 = data2, None
+
+    elem_type = type(data1)
+
     if isinstance(data1, dtype) and data2 is not None and (wrong_dtype is None or not isinstance(data1, wrong_dtype)):
         return function(data1, data2, *args, **kwargs)
 
     if isinstance(data1, Mapping) and data2 is not None:
         # use union because we want to fail if a key does not exist in both
         zipped = {k: (data1[k], data2[k]) for k in data1.keys() | data2.keys()}
-        return {
+        return elem_type({
             k: apply_to_collections(*v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             for k, v in zipped.items()
-        }
+        })
 
     is_namedtuple = _is_namedtuple(data1)
     is_sequence = isinstance(data1, Sequence) and not isinstance(data1, str)
     if (is_namedtuple or is_sequence) and data2 is not None:
         assert len(data1) == len(data2), 'Sequence collections have different sizes'
-        elem_type = type(data1)
         out = [
             apply_to_collections(v1, v2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             for v1, v2 in zip(data1, data2)
