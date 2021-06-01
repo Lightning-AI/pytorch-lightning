@@ -87,8 +87,6 @@ Fully Sharded Training
 
 Fully Sharded Training alleviates the need to worry about balancing layers onto specific devices using some form of pipe parallelism, and optimizes for distributed communication with minimal effort.
 
-By default, Fully Sharded acts similar to :ref:`sharded` which shards optimizer states and gradients. If you can train with default Fully Sharded, it is recommended to just use :ref:`sharded`.
-
 Shard Parameters to Reach 10+ Billion Parameters
 """"""""""""""""""""""""""""""""""""""""""""""""
 
