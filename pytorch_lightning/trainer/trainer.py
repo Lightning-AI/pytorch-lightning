@@ -225,24 +225,6 @@ class Trainer(
 
             log_every_n_steps: How often to log within steps (defaults to every 50 steps).
 
-            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
-                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
-
-            process_position: orders the progress bar when running multiple models on same machine.
-
-            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
-                Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
-                a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
-
-            profiler: To profile individual steps during training and assist in identifying bottlenecks.
-
-            overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
-
-            plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
-
-            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
-                TPUs.
-
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs`` = 1000.
 
@@ -272,6 +254,24 @@ class Trainer(
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
+
+            overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
+
+            plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
+
+            precision: Double precision (64), full precision (32) or half precision (16). Can be used on CPU, GPU or
+                TPUs.
+
+            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
+
+            process_position: orders the progress bar when running multiple models on same machine.
+
+            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
+                Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
+                a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
+
+            profiler: To profile individual steps during training and assist in identifying bottlenecks.
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
