@@ -131,9 +131,11 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         return out
 
 
-# placeholder for apply_to_collection
-class ResultMeta(Dict):
-    pass
+class _SerializationHelper(dict):
+    """
+    Since ``ResultCollection`` can hold ``ResultMetric`` values or dictionaries of them, we need
+    a class to differentiate between the cases after converting to state dict when saving its state.
+    """
 
 
 class ResultCollection(dict):
@@ -237,7 +239,7 @@ class ResultCollection(dict):
         enable_graph: bool = False,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
-        lightning_attribute_name: str = None,
+        lightning_attribute_name: Optional[str] = None,
     ):
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -325,9 +327,8 @@ class ResultCollection(dict):
 
     @staticmethod
     def _get_forward_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
-        if not result_metric.meta.on_step:
-            return
-        return result_metric._forward_cache.detach()
+        if result_metric.meta.on_step:
+            return result_metric._forward_cache.detach()
 
     @staticmethod
     def _to_item(t: torch.Tensor) -> float:
@@ -500,46 +501,34 @@ class ResultCollection(dict):
 
     def state_dict(self):
 
-        def get_state_dict(item: ResultMetric) -> Dict[str, Any]:
-            state = item.__getstate__()
+        def to_state_dict(item: ResultMetric) -> _SerializationHelper:
+            state = deepcopy(item.__getstate__())
             # delete reference to TorchMetrics Metric
-            state = deepcopy(state)
-            if 'value' in state['_modules'] and isinstance(state['_modules']["value"], Metric):
-                del state['_modules']["value"]
+            state['_modules'].pop('value', None)
+            return _SerializationHelper(**state)
 
-            # ResultMeta is used as a placeholder for making re-loading simpler
-            return ResultMeta(**state)
+        return {k: apply_to_collection(v, ResultMetric, to_state_dict) for k, v in self.items()}
 
-        return {k: apply_to_collection(v, ResultMetric, get_state_dict) for k, v in self.items()}
+    def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Optional[Dict[str, Metric]] = None) -> None:
 
-    def load_from_state_dict(self, state_dict: Dict[str, Any], metrics: Dict[str, Metric]):
-
-        def to_result_metric(item: ResultMeta) -> Dict[str, Any]:
-            # create a new ResultMetric
+        def to_result_metric(item: _SerializationHelper) -> ResultMetric:
             result_metric = ResultMetric(item["meta"])
-            # update its state
             result_metric.__dict__.update(item)
-            # move result_metric to device
             return result_metric.to(self.device)
 
-        # transform ResultMeta into ResultMetric
-        state_dict = {k: apply_to_collection(v, ResultMeta, to_result_metric) for k, v in state_dict.items()}
-
-        # add the state_dict as new key-value into self
+        state_dict = {k: apply_to_collection(v, _SerializationHelper, to_result_metric) for k, v in state_dict.items()}
         for k, v in state_dict.items():
             self[k] = v
 
         if metrics:
-            # the metric reference are lost during serialization and
-            # they need to be set back during loading
 
-            def re_assign_metric(item):
-                nonlocal metrics
-                lightning_attribute_name = item.meta.lightning_attribute_name
-                if isinstance(lightning_attribute_name, str) and lightning_attribute_name in metrics:
-                    item.value = metrics[lightning_attribute_name]
+            def re_assign_metric(item: ResultMetric) -> None:
+                # metric references are lost during serialization and need to be set back during loading
+                name = item.meta.lightning_attribute_name
+                if isinstance(name, str) and name in metrics:
+                    item.value = metrics[name]
 
-            apply_to_collection(dict(self.items()), ResultMetric, re_assign_metric)
+            apply_to_collection(self, ResultMetric, re_assign_metric)
 
     def __str__(self) -> str:
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
