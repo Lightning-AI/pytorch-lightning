@@ -2,18 +2,19 @@ import os
 from unittest import mock
 
 import pytest
+
 from pytorch_lightning.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
+    LightningEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    LightningEnvironment,
 )
 
 
 @pytest.mark.parametrize(
     ["cluster_environment_type"],
-    [("kubeflow",), ("lightning",), ("slurm",), ("torchelastic",)],
+    [("kubeflow", ), ("lightning", ), ("slurm", ), ("torchelastic", )],
 )
 def test_default_environ_parameters(cluster_environment_type: str):
     """
@@ -41,7 +42,7 @@ def test_default_environ_parameters(cluster_environment_type: str):
 )
 @pytest.mark.parametrize(
     ["cluster_environment_type"],
-    [("kubeflow",), ("lightning",), ("slurm",), ("torchelastic",)],
+    [("kubeflow", ), ("lightning", ), ("slurm", ), ("torchelastic", )],
 )
 def test_with_not_overriden_default_environ_parameters(cluster_environment_type: str):
     """
@@ -63,7 +64,7 @@ def test_with_not_overriden_default_environ_parameters(cluster_environment_type:
 
 @pytest.mark.parametrize(
     ["cluster_environment_type"],
-    [("kubeflow",), ("lightning",), ("slurm",), ("torchelastic",)],
+    [("kubeflow", ), ("lightning", ), ("slurm", ), ("torchelastic", )],
 )
 def test_with_user_defined_environ_parameters(cluster_environment_type: str):
     """
