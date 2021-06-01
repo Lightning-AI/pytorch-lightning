@@ -14,7 +14,7 @@
 
 import os
 import socket
-from typing import Dict
+from typing import Optional, Dict
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_only
@@ -32,7 +32,7 @@ class LightningEnvironment(ClusterEnvironment):
     training as it provides the most convenient way to launch the training script.
     """
 
-    def __init__(self, environ_settings: Dict[str, str] = {}):
+    def __init__(self, environ_settings: Optional[Dict[str, str]] = None):
         super().__init__(environ_settings=environ_settings)
         self._master_port = None
         self._global_rank: int = 0
