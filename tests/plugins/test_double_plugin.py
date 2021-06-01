@@ -140,12 +140,11 @@ def test_double_precision(tmpdir, boring_model):
 
 
 @RunIf(min_gpus=2)
-@pytest.mark.parametrize('boring_model', (DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward))
-def test_double_precision_ddp(tmpdir, boring_model):
-    model = boring_model()
+def test_double_precision_ddp(tmpdir):
+    model = DoublePrecisionBoringModel()
 
     trainer = Trainer(
-        max_epochs=2,
+        max_epochs=1,
         default_root_dir=tmpdir,
         accelerator='ddp_spawn',
         gpus=2,
