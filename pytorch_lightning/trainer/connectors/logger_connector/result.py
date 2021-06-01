@@ -157,11 +157,7 @@ class ResultCollection(dict):
                 result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
 
             result.on_epoch_end_reached = True  # indicate epoch end has been reached
-            result.log('training_epoch_end', 'acc', torch.tensor(...), on_step=False, on_epoch=True)
-
-            # Optionally:
-            result.reset_metrics() # reset the `torchmetrics.Metric`
-            result.reset() # reset the entire `ResultCollection`
+            result.log('training_epoch_end', 'acc', torch.tensor(...), on_step=False, on_epoch=True)`
     """
 
     # FIXME
