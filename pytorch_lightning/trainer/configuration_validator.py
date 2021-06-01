@@ -34,6 +34,7 @@ class ConfigValidator:
         if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             self.__verify_train_loop_configuration(model)
             self.__verify_eval_loop_configuration(model, 'val')
+            self.__verify_manual_optimization_support(model)
         elif self.trainer.state.fn == TrainerFn.VALIDATING:
             self.__verify_eval_loop_configuration(model, 'val')
         elif self.trainer.state.fn == TrainerFn.TESTING:
@@ -41,7 +42,6 @@ class ConfigValidator:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
-        self.__verify_manual_optimization_support(model)
 
     def __verify_train_loop_configuration(self, model: 'pl.LightningModule') -> None:
         # -----------------------------------
