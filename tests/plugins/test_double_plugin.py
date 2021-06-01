@@ -153,8 +153,6 @@ def test_double_precision_ddp(tmpdir):
         log_every_n_steps=1,
     )
     trainer.fit(model)
-    trainer.test(model)
-    trainer.predict(model)
 
 
 def test_double_precision_pickle(tmpdir):
