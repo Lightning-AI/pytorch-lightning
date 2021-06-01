@@ -424,7 +424,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         limit_val_batches=0,
         precision=16,
         amp_backend='native',
-        accumulate_grad_batches=4,
         gpus=1,
     )
     trainer.fit(model)
