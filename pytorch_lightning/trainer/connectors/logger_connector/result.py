@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
 import torch
-from torch import Tensor
 from torchmetrics import Metric
 
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
@@ -24,7 +23,10 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _METRIC
+
+# re-define the ones from pytorch_lightning.utilities.types without the `Number` type
+_METRIC = Union[Metric, torch.Tensor]
+_METRIC_COLLECTION = Union[_METRIC, Dict[str, _METRIC]]
 
 
 class MetricSource(LightningEnum):
@@ -79,10 +81,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.add_state("value", torch.tensor(0, dtype=torch.float))
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
-        # FIXME: self.value when not tensor?
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
-        # FIXME: support for non-tensor. sync returns tensor always
         if self.is_tensor:
             if self.meta.is_mean_reduction:
                 self.value += value.float().mean() * batch_size
@@ -192,12 +192,12 @@ class ResultCollection(dict):
         self.batch_idx = None
 
     @property
-    def metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
+    def metrics(self) -> Dict[str, _METRIC_COLLECTION]:
         """This function returns either batch or epoch metrics depending on ``on_epoch_end_reached``."""
         return self.get_epoch_metrics() if self.on_epoch_end_reached else self.get_batch_metrics()
 
     @property
-    def minimize(self) -> Optional[Tensor]:
+    def minimize(self) -> Optional[torch.Tensor]:
         """
         The :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` loss
         will be saved as the ``minimize`` attribute.
@@ -207,14 +207,14 @@ class ResultCollection(dict):
     @minimize.setter
     def minimize(self, loss: Optional[torch.Tensor]) -> None:
         if loss is not None:
-            if not isinstance(loss, Tensor):
+            if not isinstance(loss, torch.Tensor):
                 raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
             if loss.grad_fn is None:
                 raise RuntimeError("`Result.minimize` must have a `grad_fn`")
         self._minimize = loss
 
     @property
-    def extra(self) -> Dict:
+    def extra(self) -> Dict[str, Any]:
         """
         Extras are any keys other than the loss returned by
         :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
@@ -222,7 +222,7 @@ class ResultCollection(dict):
         return self.get('_extra', {})
 
     @extra.setter
-    def extra(self, extra: Dict) -> None:
+    def extra(self, extra: Dict[str, Any]) -> None:
 
         def check_fn(v):
             if v.grad_fn is not None:
@@ -238,7 +238,7 @@ class ResultCollection(dict):
         self,
         fx: str,
         name: str,
-        value: Any,
+        value: _METRIC_COLLECTION,
         prog_bar: bool = False,
         logger: bool = True,
         on_step: bool = False,
@@ -248,7 +248,7 @@ class ResultCollection(dict):
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
-    ):
+    ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -295,9 +295,9 @@ class ResultCollection(dict):
         self.update_metrics(key, value, batch_size)
         self._current_fx = fx
 
-    def to_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
+    def to_result_metric(self, key: str, meta: Metadata, value: _METRIC_COLLECTION) -> None:
 
-        def fn(v: Union[torch.Tensor, Metric]) -> ResultMetric:
+        def fn(v: _METRIC) -> ResultMetric:
             metric = ResultMetric(meta, isinstance(v, torch.Tensor))
             return metric.to(self.device)
 
@@ -315,7 +315,7 @@ class ResultCollection(dict):
         # reset tensor metrics only when the hook changed and reloading the dataloader
         return self._current_fx != fx and self.batch_idx in (None, 0)
 
-    def update_metrics(self, key: str, value: Union[Dict, torch.Tensor], batch_size: Optional[int]) -> None:
+    def update_metrics(self, key: str, value: _METRIC_COLLECTION, batch_size: Optional[int]) -> None:
         batch_size = torch.tensor(batch_size or self.batch_size, device=self.device)
 
         def fn(result_metric, v):
@@ -349,7 +349,7 @@ class ResultCollection(dict):
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def get_metrics(self, on_step: bool) -> Dict[str, Dict[str, torch.Tensor]]:
+    def get_metrics(self, on_step: bool) -> Dict[str, _METRIC_COLLECTION]:
         metrics = {k: {} for k in MetricSource}
 
         # either extract `forward_cache` or `computed` from `ResultMetric` objects
@@ -391,10 +391,10 @@ class ResultCollection(dict):
 
         return metrics
 
-    def get_batch_metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
+    def get_batch_metrics(self) -> Dict[str, _METRIC_COLLECTION]:
         return self.get_metrics(on_step=True)
 
-    def get_epoch_metrics(self) -> Dict[str, Dict[str, torch.Tensor]]:
+    def get_epoch_metrics(self) -> Dict[str, _METRIC_COLLECTION]:
         return self.get_metrics(on_step=False)
 
     @staticmethod
