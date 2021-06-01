@@ -89,3 +89,9 @@ jobs:
       env:
         MKL_THREADING_LAYER: "GNU"
       displayName: 'Testing: standard'
+
+    - bash: |
+        bash tests/special_tests.sh
+      env:
+        MKL_THREADING_LAYER: "GNU"
+      displayName: 'Testing: special'
