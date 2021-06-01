@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from abc import ABC, abstractmethod
 from typing import Dict
+
 from pytorch_lightning.utilities import rank_zero_warn
-import os
 
 
 class ClusterEnvironment(ABC):
