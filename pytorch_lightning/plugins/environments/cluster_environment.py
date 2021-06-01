@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
+from typing import Dict
 
 
 class ClusterEnvironment(ABC):
     """ Specification of a cluster environment. """
+
+    def __init__(self, environ_settings: Dict[str, str] = {}):
+        self.environ_settings = environ_settings
 
     @abstractmethod
     def creates_children(self) -> bool:

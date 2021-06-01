@@ -14,7 +14,7 @@
 
 import logging
 import os
-from typing import Optional
+from typing import Dict, Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.utilities import rank_zero_warn
@@ -24,6 +24,9 @@ log = logging.getLogger(__name__)
 
 class TorchElasticEnvironment(ClusterEnvironment):
     """ Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_ """
+
+    def __init__(self, environ_settings: Dict[str, str] = {}):
+        super().__init__(environ_settings=environ_settings)
 
     @staticmethod
     def is_using_torchelastic() -> bool:
