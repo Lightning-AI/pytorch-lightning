@@ -119,13 +119,13 @@ class ConfigValidator:
             return
         if self.trainer.gradient_clip_val > 0:
             raise MisconfigurationException(
-                f"Automatic gradient clipping is not supported in manual optimization."
+                f"Automatic gradient clipping is not supported for manual optimization."
                 f" Remove the Trainer setting Trainer(gradient_clip_val={self.trainer.gradient_clip_val})"
                 f" or switch to automatic optimization."
             )
         if self.trainer.accumulate_grad_batches != 1:
             raise MisconfigurationException(
-                f"Automatic gradient accumulation is not supported in manual optimization."
+                f"Automatic gradient accumulation is not supported for manual optimization."
                 f" Remove the Trainer setting Trainer(accumulate_grad_batches={self.trainer.accumulate_grad_batches})"
                 f" or switch to automatic optimization."
             )
