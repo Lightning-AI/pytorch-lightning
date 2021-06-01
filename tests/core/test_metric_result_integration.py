@@ -194,12 +194,8 @@ def test_result_collection_restoration():
             cumulative_sum += i
 
             result.log('training_step', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
-            result.log(
-                'training_step', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b"
-            )
-            result.log(
-                'training_step', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c"
-            )
+            result.log('training_step', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
+            result.log('training_step', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
             result.log('training_step', 'a_1', a, on_step=True, on_epoch=True)
             result.log('training_step', 'b_1', b, on_step=False, on_epoch=True)
             result.log('training_step', 'c_1', {'1': c, '2': c}, on_step=True, on_epoch=False)
@@ -237,9 +233,7 @@ def test_result_collection_restoration():
             else:
                 assert epoch_log[k] == 1
 
-        result.log(
-            'train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True, metric_attribute="metric_a_end"
-        )
+        result.log('train_epoch_end', 'a', metric_a, on_step=False, on_epoch=True, metric_attribute="metric_a_end")
 
         _result.reset()
         result.reset()

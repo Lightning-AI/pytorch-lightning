@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Generator
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
@@ -387,20 +387,14 @@ class ResultCollection(dict):
             value = apply_to_collection(result_metric, ResultMetric, fn, include_none=False)
 
             # detect if the value is None. This can be nested.
-            is_empty = True
+            is_none = False
 
-            def is_empty_fn(v):
-                nonlocal is_empty
-                # update is_empty if any value is not None.
-                if v is not None:
-                    is_empty = False
+            def any_none(_):
+                nonlocal is_none
+                is_none = True
 
-            # apply detection.
-            # TODO(@tchaton): need to find a way to support NamedTuple
-            apply_to_collection(value, object, is_empty_fn, wrong_dtype=(Mapping, Sequence))
-
-            # skip is the value was actually empty.
-            if is_empty:
+            apply_to_collection(value, type(None), any_none)
+            if is_none:
                 continue
 
             # extract metadata
