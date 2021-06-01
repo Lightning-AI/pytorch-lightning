@@ -87,7 +87,7 @@ class IPUClassificationModel(ClassificationModel):
         self.log('test_acc', torch.stack(outputs).mean())
 
 
-@RunIf(ipu=True)
+@RunIf(ipu=True, special=True)
 @pytest.mark.parametrize('ipu_cores', [1, 4])
 def test_all_stages(tmpdir, ipu_cores):
     model = IPUModel()
@@ -98,7 +98,7 @@ def test_all_stages(tmpdir, ipu_cores):
     trainer.predict(model, model.val_dataloader())
 
 
-@RunIf(ipu=True)
+@RunIf(ipu=True, special=True)
 @pytest.mark.parametrize('ipu_cores', [1, 4])
 def test_inference_only(tmpdir, ipu_cores):
     model = IPUModel()
