@@ -180,7 +180,7 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         args = parser.parse_args()
 
     trainer = Trainer.from_argparse_args(args)
-    assert trainer.gpu_device_ids == expected_gpu
+    assert trainer.data_parallel_device_ids == expected_gpu
 
 
 @pytest.mark.skipif(

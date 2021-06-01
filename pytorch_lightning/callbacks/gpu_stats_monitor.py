@@ -111,7 +111,7 @@ class GPUStatsMonitor(Callback):
                 f' since gpus attribute in Trainer is set to {trainer.gpus}.'
             )
 
-        self._gpu_ids = ','.join(map(str, trainer.gpu_device_ids))
+        self._gpu_ids = ','.join(map(str, trainer.data_parallel_device_ids))
 
     def on_train_epoch_start(self, trainer, pl_module) -> None:
         self._snap_intra_step_time = None

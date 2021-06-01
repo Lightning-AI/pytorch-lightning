@@ -210,7 +210,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_i
 
     assert args.gpus == expected_parsed
     trainer = Trainer.from_argparse_args(args)
-    assert trainer.gpu_device_ids == expected_device_ids
+    assert trainer.data_parallel_device_ids == expected_device_ids
 
 
 @RunIf(min_python="3.7.0")

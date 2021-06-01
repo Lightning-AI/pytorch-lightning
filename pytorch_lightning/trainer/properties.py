@@ -133,7 +133,7 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.num_gpus
 
     @property
-    def gpu_device_ids(self) -> Optional[List[int]]:
+    def data_parallel_device_ids(self) -> Optional[List[int]]:
         return self.accelerator_connector.gpu_device_ids
 
     @property
