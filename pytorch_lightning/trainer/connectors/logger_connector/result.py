@@ -219,17 +219,20 @@ class ResultCollection(dict):
         Extras are any keys other than the loss returned by
         :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
         """
-        # FIXME: add underscore to key
-        return self.get('extra', {})
+        return self.get('_extra', {})
 
     @extra.setter
     def extra(self, extra: Dict) -> None:
-        # FIXME: Should probably fail instead of detaching
-        def detach_fn(v):
-            return v.detach()
 
-        extra = apply_to_collection(extra, torch.Tensor, detach_fn)
-        self['extra'] = extra
+        def check_fn(v):
+            if v.grad_fn is not None:
+                raise MisconfigurationException(
+                    'You passed a tensor with `grad_fn` when calling `self.log()`.'
+                    f' The extra values are {extra}'
+                )
+
+        apply_to_collection(extra, torch.Tensor, check_fn)
+        self['_extra'] = extra
 
     def log(
         self,
@@ -334,7 +337,7 @@ class ResultCollection(dict):
     def valid_items(self) -> Generator:
         """This function is used to iterate over current valid metrics."""
         return ((k, v) for k, v in self.items()
-                if (not k == "extra" and not (isinstance(v, ResultMetric) and v.meta.has_reset)))
+                if not k == "_extra" and not (isinstance(v, ResultMetric) and v.meta.has_reset))
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
         name = result_metric.meta.name

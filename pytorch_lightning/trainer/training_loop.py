@@ -300,7 +300,7 @@ class TrainLoop:
 
         loss = None
         hiddens = None
-        result["extra"] = {}
+        result.extra = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
@@ -308,7 +308,7 @@ class TrainLoop:
             hiddens = training_step_output.pop("hiddens", None)
             if hiddens is not None:
                 hiddens = hiddens.detach()
-            result["extra"] = training_step_output
+            result.extra = training_step_output
 
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
