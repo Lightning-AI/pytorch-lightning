@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.3.4] - 2021-06-01
+
+### Fixed
+
+- Fixed info message when max training time reached ([#7780](https://github.com/PyTorchLightning/pytorch-lightning/pull/7780))
+- Fixed missing `__len__` method to `IndexBatchSamplerWrapper` ([#7681](https://github.com/PyTorchLightning/pytorch-lightning/pull/7681))
+
 ## [1.3.3] - 2021-05-27
 
 ### Changed
