@@ -9,6 +9,9 @@ from pytorch_lightning.plugins.environments import KubeflowEnvironment, SLURMEnv
 
 @pytest.mark.parametrize(["cluster_environment_type"], [("kubeflow", ), ("lightning", ), ("slurm", ), ("torchelastic", )])
 def test_default_environ_parameters(cluster_environment_type: str):
+    """
+    Test for setting default environ parameters.
+    """
     if cluster_environment_type == "kubeflow":
         env = KubeflowEnvironment()
     elif cluster_environment_type == "lightning":
@@ -29,6 +32,9 @@ def test_default_environ_parameters(cluster_environment_type: str):
 )
 @pytest.mark.parametrize(["cluster_environment_type"], [("kubeflow", ), ("lightning", ), ("slurm", ), ("torchelastic", )])
 def test_with_not_overriden_default_environ_parameters(cluster_environment_type: str):
+    """
+    Test for not setting default environ parameters when parameter is already set in `os.environ`.
+    """
     if cluster_environment_type == "kubeflow":
         env = KubeflowEnvironment()
     elif cluster_environment_type == "lightning":
@@ -46,6 +52,9 @@ def test_with_not_overriden_default_environ_parameters(cluster_environment_type:
 
 @pytest.mark.parametrize(["cluster_environment_type"], [("kubeflow", ), ("lightning", ), ("slurm", ), ("torchelastic", )])
 def test_with_user_defined_environ_parameters(cluster_environment_type: str):
+    """
+    Test for overriding environ parameters when user provide `envrion_settings`.
+    """
     if cluster_environment_type == "kubeflow":
         env = KubeflowEnvironment(environ_settings={"NCCL_NSOCKS_PERTHREA": "1"})
     elif cluster_environment_type == "lightning":
