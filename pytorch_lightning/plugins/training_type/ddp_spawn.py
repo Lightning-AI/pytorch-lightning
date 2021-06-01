@@ -134,7 +134,6 @@ class DDPSpawnPlugin(ParallelPlugin):
 
     def setup(self, model):
         os.environ["MASTER_PORT"] = str(self.cluster_environment.master_port())
-        os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
         # pass in a state q
         smp = mp.get_context("spawn")
         self.mp_queue = smp.SimpleQueue()

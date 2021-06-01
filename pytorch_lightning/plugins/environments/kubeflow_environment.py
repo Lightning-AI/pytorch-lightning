@@ -14,7 +14,6 @@
 
 import logging
 import os
-from typing import Dict
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 
@@ -27,9 +26,6 @@ class KubeflowEnvironment(ClusterEnvironment):
     `PyTorchJob <https://www.kubeflow.org/docs/components/training/pytorch/>`_
     operator from `Kubeflow <https://www.kubeflow.org>`_
     """
-
-    def __init__(self, environ_settings: Dict[str, str] = {}):
-        super().__init__(environ_settings=environ_settings)
 
     @staticmethod
     def is_using_kubeflow() -> bool:

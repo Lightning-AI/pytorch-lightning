@@ -15,7 +15,6 @@
 import logging
 import os
 import re
-from typing import Dict
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 
@@ -24,9 +23,6 @@ log = logging.getLogger(__name__)
 
 class SLURMEnvironment(ClusterEnvironment):
     """ Cluster environment for training on a cluster managed by SLURM. """
-
-    def __init__(self, environ_settings: Dict[str, str] = {}):
-        super().__init__(environ_settings=environ_settings)
 
     def creates_children(self) -> bool:
         return True

@@ -23,7 +23,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
@@ -98,18 +97,6 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         if torch_backend is None:
             torch_backend = "nccl" if self.on_gpu else "gloo"
         return torch_backend
-
-    def setup_environment(self):
-        if self.cluster_environment is None:
-            return
-        # set up os.environ
-        for environ_param, value in self.cluster_environment.environ_settings.items():
-            if environ_param in os.environ:
-                rank_zero_warn(
-                    f"environ parameter {environ_param}: {os.environ[environ_param]} "
-                    f"will be overriden to new value: {value}."
-                )
-            os.environ[environ_param] = value
 
     @staticmethod
     def configure_sync_batchnorm(model: 'pl.LightningModule') -> 'pl.LightningModule':

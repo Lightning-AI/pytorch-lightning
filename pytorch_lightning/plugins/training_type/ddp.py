@@ -127,8 +127,6 @@ class DDPPlugin(ParallelPlugin):
         return True
 
     def setup_environment(self):
-        # setup os.environ parameters from parent ParallelPlugin
-        super().setup_environment()
         # start the other scripts
         if not self.cluster_environment.creates_children() and os.environ.get("PL_IN_DDP_SUBPROCESS", "0") != "1":
             self._call_children_scripts()
