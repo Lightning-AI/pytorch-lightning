@@ -474,7 +474,7 @@ class LightningModule(
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
     @staticmethod
-    def __check_allowed(name: str, value: Any, v) -> Any:
+    def __check_allowed(name: str, value: Any, v: Any) -> None:
         raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
 
     def write_prediction(

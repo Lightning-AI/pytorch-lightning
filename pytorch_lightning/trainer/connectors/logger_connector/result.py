@@ -267,13 +267,10 @@ class ResultCollection(dict):
         key = f"{fx}.{name}"
         # add dataloader_suffix to both key and fx
         if dataloader_idx is not None:
-            # use as ResultCollection key
             key += f'.{dataloader_idx}'
-            # used to decide when to reset
             fx += f'.{dataloader_idx}'
 
         if key not in self:
-            # create metadata object if storage key doesn't exist in self
             meta = Metadata(
                 fx=fx,
                 name=name,
@@ -285,9 +282,7 @@ class ResultCollection(dict):
                 dataloader_idx=dataloader_idx,
                 metric_attribute=metric_attribute,
             )
-            # create one ResultMetric object per value.
-            # value can be provided as a nested collection.
-            self.to_result_metric(key, meta, value)
+            self.register_key(key, meta, value)
 
         if self.should_reset_tensors(fx):
             # when restarting an new epoch, reset the tensors
@@ -295,7 +290,8 @@ class ResultCollection(dict):
         self.update_metrics(key, value, batch_size)
         self._current_fx = fx
 
-    def to_result_metric(self, key: str, meta: Metadata, value: _METRIC_COLLECTION) -> None:
+    def register_key(self, key: str, meta: Metadata, value: _METRIC_COLLECTION) -> None:
+        """Create one ResultMetric object per value. Value can be provided as a nested collection"""
 
         def fn(v: _METRIC) -> ResultMetric:
             metric = ResultMetric(meta, isinstance(v, torch.Tensor))
