@@ -44,7 +44,6 @@ class Metadata:
     on_epoch: bool = True
     reduce_fx: Callable = torch.mean
     dataloader_idx: Optional[int] = None
-    is_tensor: bool = True
     lightning_attribute_name: Optional[str] = None
     has_reset: bool = False
 
@@ -73,10 +72,11 @@ class Metadata:
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
 
-    def __init__(self, metadata: Metadata) -> None:
-        super().__init__(compute_on_step=metadata.is_tensor)
+    def __init__(self, metadata: Metadata, is_tensor: bool) -> None:
+        super().__init__(compute_on_step=is_tensor)
+        self.is_tensor = is_tensor
         self.meta = metadata
-        if self.meta.is_tensor:
+        if is_tensor:
             self.add_state("value", torch.tensor(0, dtype=torch.float))
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
@@ -84,7 +84,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
         # FIXME: support for non-tensor. sync returns tensor always
-        if self.meta.is_tensor:
+        if self.is_tensor:
             if self.meta.is_mean_reduction:
                 self.value += value.float().mean() * batch_size
                 self.cumulated_batch_size += batch_size
@@ -99,7 +99,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self._forward_cache = value._forward_cache
 
     def compute(self) -> torch.Tensor:
-        if self.meta.is_tensor:
+        if self.is_tensor:
             if self.meta.is_mean_reduction:
                 return torch.sum(self.value) / torch.sum(self.cumulated_batch_size)
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
@@ -111,12 +111,12 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def __repr__(self) -> str:
         state = f"value={self.value}"
-        if self.meta.is_tensor and self.meta.is_mean_reduction:
+        if self.is_tensor and self.meta.is_mean_reduction:
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
 
     def reset(self) -> None:
-        if self.meta.is_tensor:
+        if self.is_tensor:
             super().reset()
         else:
             self.value.reset()
@@ -279,7 +279,7 @@ class ResultCollection(dict):
             )
             # create one ResultMetric object per value.
             # value can be provided as a nested collection.
-            self.instance_result_metric(key, meta, value)
+            self.to_result_metric(key, meta, value)
 
         if self.should_reset_tensors(fx):
             # when restarting an new epoch, reset the tensors
@@ -287,21 +287,16 @@ class ResultCollection(dict):
         self.update_metrics(key, value, batch_size)
         self._current_fx = fx
 
-    def instance_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
+    def to_result_metric(self, key: str, meta: Metadata, value: Union[Dict, torch.Tensor]) -> None:
 
         def fn(v: Union[torch.Tensor, Metric]) -> ResultMetric:
-            # This local function is used to `ResultMetric`.
-            # The `Metadata` is_tensor is modified on the fly
-            assert self.device is not None
-            nonlocal meta
-            meta = deepcopy(meta)
-            meta.is_tensor = torch.is_tensor(v)
-            metric = ResultMetric(meta)
+            metric = ResultMetric(meta, isinstance(v, torch.Tensor))
             return metric.to(self.device)
 
         # store a mapping between storage key and collection of `ResultMetric`
         self[key] = apply_to_collection(value, (torch.Tensor, Metric), fn)
 
+        # FIXME
         # when the value was a nested collection, store some metadata
         # to facilate access for later metrics gathering
         if not isinstance(self[key], ResultMetric):
@@ -452,7 +447,7 @@ class ResultCollection(dict):
     def _reset(self, fx: Optional[str] = None, metrics: Optional[bool] = None) -> None:
 
         def fn(item: ResultMetric) -> None:
-            requested_type = metrics is None or metrics ^ item.meta.is_tensor
+            requested_type = metrics is None or metrics ^ item.is_tensor
             same_fx = fx is None or fx == item.meta.fx
             if requested_type and same_fx:
                 item.reset()
