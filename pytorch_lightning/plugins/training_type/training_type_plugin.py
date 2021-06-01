@@ -28,6 +28,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 
 TBroadcast = TypeVar("T")
 
@@ -41,6 +42,11 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         self._call_configure_sharded_model_hook = True
+        self._precision_plugin = PrecisionPlugin()
+
+    @property
+    def select_precision_plugin(self, precision, amp_type, amp_level) -> PrecisionPlugin:
+        return
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""
