@@ -95,25 +95,21 @@ def test_weight_tying_warning(tmpdir, capsys=None):
         trainer.fit(model)
 
 
-# @RunIf(tpu=True)
-# @pl_multi_process_test
-# def test_if_weights_tied(tmpdir, capsys=None):
-#     """
-#     Test if weights are properly tied on `on_post_move_to_device`.
-#     Ensure no warning for parameter mismatch is thrown.
-#     """
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_if_weights_tied(tmpdir, capsys=None):
+    """
+    Test if weights are properly tied on `on_post_move_to_device`.
+    Ensure no warning for parameter mismatch is thrown.
+    """
 
-#     # TODO (kaushikb11): Add `parameter_validation` specific to TPU Accelerators
-#     class Model(WeightSharingModule):
+    class Model(WeightSharingModule):
 
-#         def on_post_move_to_device(self):
-#             self.layer_3.weight = self.layer_1.weight
+        def on_post_move_to_device(self):
+            self.layer_3.weight = self.layer_1.weight
 
-#     model = Model()
-#     trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
+    model = Model()
+    trainer = Trainer(checkpoint_callback=True, max_epochs=1, tpu_cores=1)
 
-#     with pytest.warns(UserWarning) as warnings:
-#         trainer.fit(model)
-
-#     assert not list(filter(lambda x: 'The model layers do not match' in str(x), warnings.list))
-#     assert len(trainer.test(model)) == 1
+    with pytest.warns(UserWarning, match="The model layers do not match"):
+        trainer.fit(model)

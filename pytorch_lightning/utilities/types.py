@@ -16,12 +16,15 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no trailing `_`)
 """
+from numbers import Number
 from typing import Any, Dict, Iterator, List, Union
 
 import torch
 from torchmetrics import Metric
 
-_METRIC = Union[Metric, torch.Tensor, int, float]
+_METRIC = Union[Metric, torch.Tensor, Number]
+# real type is `Union[_METRIC, Dict[str, '_METRIC_COLLECTION']]` but Sphinx fails with `RecursionError`
+_METRIC_COLLECTION = Union[_METRIC, Dict[str, _METRIC]]
 STEP_OUTPUT = Union[torch.Tensor, Dict[str, Any]]
 EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader

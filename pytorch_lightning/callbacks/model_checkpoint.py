@@ -26,6 +26,7 @@ from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
+from weakref import proxy
 
 import numpy as np
 import torch
@@ -33,12 +34,11 @@ import yaml
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _METRIC, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
-from pytorch_lightning.utilities.xla_device import tpu_training_and_local_rank_zero
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -331,6 +331,10 @@ class ModelCheckpoint(Callback):
         # Mode 3: save last checkpoints
         self._save_last_checkpoint(trainer, monitor_candidates)
 
+        # notify loggers
+        if trainer.is_global_zero and trainer.logger:
+            trainer.logger.after_save_checkpoint(proxy(self))
+
     def _should_skip_saving_checkpoint(self, trainer: 'pl.Trainer') -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
         return (
@@ -473,9 +477,8 @@ class ModelCheckpoint(Callback):
         )
         self._save_function = value
 
-    @rank_zero_only
-    def _del_model(self, filepath: str) -> None:
-        if self._fs.exists(filepath):
+    def _del_model(self, trainer: 'pl.Trainer', filepath: str) -> None:
+        if trainer.should_rank_save_checkpoint and self._fs.exists(filepath):
             self._fs.rm(filepath)
             log.debug(f"Removed checkpoint: {filepath}")
 
@@ -493,7 +496,7 @@ class ModelCheckpoint(Callback):
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
         # make paths
-        if trainer.is_global_zero or tpu_training_and_local_rank_zero(trainer):
+        if trainer.should_rank_save_checkpoint:
             self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the trainer
@@ -631,7 +634,7 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        if (not trainer.fast_dev_run and (trainer.is_global_zero or tpu_training_and_local_rank_zero(trainer))):
+        if not trainer.fast_dev_run and trainer.should_rank_save_checkpoint:
             self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def _add_backward_monitor_support(self, trainer: 'pl.Trainer') -> None:
@@ -694,11 +697,8 @@ class ModelCheckpoint(Callback):
 
         self._save_model(trainer, filepath)
 
-        if (
-            self.last_model_path and self.last_model_path != filepath
-            and (trainer.is_global_zero or tpu_training_and_local_rank_zero(trainer))
-        ):
-            self._del_model(self.last_model_path)
+        if self.last_model_path and self.last_model_path != filepath and trainer.should_rank_save_checkpoint:
+            self._del_model(trainer, self.last_model_path)
 
         self.last_model_path = filepath
 
@@ -724,9 +724,9 @@ class ModelCheckpoint(Callback):
 
         if (
             self.save_top_k is None and self.best_model_path and self.best_model_path != filepath
-            and (trainer.is_global_zero or tpu_training_and_local_rank_zero(trainer))
+            and trainer.should_rank_save_checkpoint
         ):
-            self._del_model(self.best_model_path)
+            self._del_model(trainer, self.best_model_path)
 
         self.best_model_path = filepath
 
@@ -773,7 +773,7 @@ class ModelCheckpoint(Callback):
         self._save_model(trainer, filepath)
 
         if del_filepath is not None and filepath != del_filepath:
-            self._del_model(del_filepath)
+            self._del_model(trainer, del_filepath)
 
     def to_yaml(self, filepath: Optional[Union[str, Path]] = None) -> None:
         """

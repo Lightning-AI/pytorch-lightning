@@ -76,7 +76,7 @@ class SaveConfigCallback(Callback):
         self,
         parser: LightningArgumentParser,
         config: Union[Namespace, Dict[str, Any]],
-        config_filename: str = 'config.yaml'
+        config_filename: str,
     ) -> None:
         self.parser = parser
         self.config = config
@@ -96,6 +96,7 @@ class LightningCLI:
         model_class: Type[LightningModule],
         datamodule_class: Type[LightningDataModule] = None,
         save_config_callback: Type[SaveConfigCallback] = SaveConfigCallback,
+        save_config_filename: str = 'config.yaml',
         trainer_class: Type[Trainer] = Trainer,
         trainer_defaults: Dict[str, Any] = None,
         seed_everything_default: int = None,
@@ -154,6 +155,7 @@ class LightningCLI:
         self.model_class = model_class
         self.datamodule_class = datamodule_class
         self.save_config_callback = save_config_callback
+        self.save_config_filename = save_config_filename
         self.trainer_class = trainer_class
         self.trainer_defaults = {} if trainer_defaults is None else trainer_defaults
         self.seed_everything_default = seed_everything_default
@@ -241,7 +243,8 @@ class LightningCLI:
             else:
                 self.config_init['trainer']['callbacks'].append(self.trainer_defaults['callbacks'])
         if self.save_config_callback is not None:
-            self.config_init['trainer']['callbacks'].append(self.save_config_callback(self.parser, self.config))
+            config_callback = self.save_config_callback(self.parser, self.config, self.save_config_filename)
+            self.config_init['trainer']['callbacks'].append(config_callback)
         self.trainer = self.trainer_class(**self.config_init['trainer'])
 
     def prepare_fit_kwargs(self) -> None:

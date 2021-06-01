@@ -96,7 +96,7 @@ class DDPPlugin(ParallelPlugin):
         self.set_world_ranks()
 
     @property
-    def root_device(self):
+    def root_device(self) -> torch.device:
         return self.parallel_devices[self.local_rank]
 
     @property

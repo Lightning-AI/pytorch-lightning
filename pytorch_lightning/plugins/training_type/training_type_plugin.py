@@ -60,11 +60,19 @@ class TrainingTypePlugin(Plugin, ABC):
     @abstractmethod
     def on_gpu(self) -> bool:
         """Returns whether the current process is done on GPU"""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def on_tpu(self) -> bool:
+        """Returns whether the current process is done on TPU"""
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
         """Returns the root device"""
+        raise NotImplementedError
 
     @abstractmethod
     def model_to_device(self) -> None:
@@ -153,19 +161,19 @@ class TrainingTypePlugin(Plugin, ABC):
         self._results = trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
-        return self.lightning_module.training_step(*args, **kwargs)
+        return self.model.training_step(*args, **kwargs)
 
     def post_training_step(self):
         pass
 
     def validation_step(self, *args, **kwargs):
-        return self.lightning_module.validation_step(*args, **kwargs)
+        return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.lightning_module.test_step(*args, **kwargs)
+        return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        return self.lightning_module.predict_step(*args, **kwargs)
+        return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output
@@ -290,6 +298,19 @@ class TrainingTypePlugin(Plugin, ABC):
     def call_configure_sharded_model_hook(self, mode: bool) -> None:
         self._call_configure_sharded_model_hook = mode
 
+    @abstractmethod
+    def teardown(self) -> None:
+        """
+        This method is called to teardown the training process.
+        It is the right place to release memory and free other resources.
+        """
+        raise NotImplementedError
+
     @classmethod
     def register_plugins(cls, plugin_registry):
         pass
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        """Returns whether the checkpoint should be saved (rank based)"""
+        return self.is_global_zero

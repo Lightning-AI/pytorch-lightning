@@ -83,8 +83,6 @@ def test_trainer_callback_hook_system_fit(_, tmpdir):
         call.on_after_backward(trainer, model),
         call.on_train_batch_end(trainer, model, ANY, ANY, 2, 0),
         call.on_batch_end(trainer, model),
-        call.on_train_epoch_end(trainer, model, ANY),
-        call.on_epoch_end(trainer, model),
         call.on_validation_start(trainer, model),
         call.on_epoch_start(trainer, model),
         call.on_validation_epoch_start(trainer, model),
@@ -94,6 +92,8 @@ def test_trainer_callback_hook_system_fit(_, tmpdir):
         call.on_epoch_end(trainer, model),
         call.on_validation_end(trainer, model),
         call.on_save_checkpoint(trainer, model),  # should take ANY but we are inspecting signature for BC
+        call.on_train_epoch_end(trainer, model, ANY),
+        call.on_epoch_end(trainer, model),
         call.on_train_end(trainer, model),
         call.on_fit_end(trainer, model),
         call.teardown(trainer, model, 'fit'),
