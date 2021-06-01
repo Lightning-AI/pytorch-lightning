@@ -7,7 +7,6 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 
 
@@ -20,8 +19,8 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_scale_batch_size=True if tuner_alg == 'batch size scaler' else False,
-        auto_lr_find=True if tuner_alg == 'learning rate finder' else False,
+        auto_scale_batch_size=(tuner_alg == 'batch size scaler'),
+        auto_lr_find=(tuner_alg == 'learning rate finder'),
         fast_dev_run=True
     )
     expected_message = f'Skipping {tuner_alg} since fast_dev_run is enabled.'
@@ -71,6 +70,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     checkpoint_callback = ModelCheckpoint()
     early_stopping_callback = EarlyStopping()
     trainer_config = dict(
+        default_root_dir=tmpdir,
         fast_dev_run=fast_dev_run,
         val_check_interval=2,
         logger=True,
@@ -95,7 +95,6 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
 
         # there should be no logger with fast_dev_run
         assert isinstance(trainer.logger, DummyLogger)
-        assert len(trainer.dev_debugger.logged_metrics) == fast_dev_run
 
         # checkpoint callback should not have been called with fast_dev_run
         assert trainer.checkpoint_callback == checkpoint_callback
@@ -111,7 +110,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     trainer.fit(train_val_step_model)
     trainer.test(ckpt_path=None)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     _make_fast_dev_run_assertions(trainer, train_val_step_model)
 
     # -----------------------
@@ -124,5 +123,5 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     trainer.fit(train_step_only_model)
     trainer.test(ckpt_path=None)
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     _make_fast_dev_run_assertions(trainer, train_step_only_model)

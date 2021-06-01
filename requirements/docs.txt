@@ -1,4 +1,4 @@
-sphinx>=3.0, !=3.5  # fails with sphinx.ext.viewcode
+sphinx>=4.0
 recommonmark  # fails with badges
 m2r  # fails with multi-line text
 nbsphinx>=0.8
@@ -8,6 +8,6 @@ sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
 https://github.com/PyTorchLightning/lightning_sphinx_theme/archive/master.zip#egg=pt-lightning-sphinx-theme
 sphinx-autodoc-typehints>=1.0
-sphinx-paramlinks>=0.4.0
+sphinx-paramlinks>=0.5.1
 sphinx-togglebutton>=0.2
 sphinx-copybutton>=0.3

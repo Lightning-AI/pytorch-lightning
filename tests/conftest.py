@@ -22,6 +22,16 @@ import torch.multiprocessing as mp
 
 
 @pytest.fixture(scope="function", autouse=True)
+def preserve_global_rank_variable():
+    """ Ensures that the rank_zero_only.rank global variable gets reset in each test. """
+    from pytorch_lightning.utilities.distributed import rank_zero_only
+    rank = getattr(rank_zero_only, "rank", None)
+    yield
+    if rank is not None:
+        setattr(rank_zero_only, "rank", rank)
+
+
+@pytest.fixture(scope="function", autouse=True)
 def assert_environment_unchanged():
     """ Ensures that environment variables set during the test do not leak out. """
     env_backup = os.environ.copy()

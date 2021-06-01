@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Any, List, Tuple
 
-import torch
+import torch.nn as nn
+from torch.optim import Optimizer
 
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 
@@ -21,8 +23,13 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 class TPUHalfPrecisionPlugin(PrecisionPlugin):
     """Plugin that enables bfloats on TPUs"""
 
-    precision = 16
+    precision: int = 16
 
-    def connect(self, model: torch.nn.Module, optimizers, lr_schedulers):
+    def connect(
+        self,
+        model: nn.Module,
+        optimizers: List[Optimizer],
+        lr_schedulers: List[Any],
+    ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
         os.environ["XLA_USE_BF16"] = str(1)
         return super().connect(model=model, optimizers=optimizers, lr_schedulers=lr_schedulers)

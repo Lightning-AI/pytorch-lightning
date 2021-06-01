@@ -11,16 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import pytest
-import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import BatchSampler, SequentialSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 class IndexedRandomDataset(RandomDataset):
@@ -73,7 +71,7 @@ class TestModel(BoringModel):
         return [self.create_dataset()] * self._numbers_test_dataloaders
 
 
-def check_replace_distrubuted_sampler(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx, mode):
+def check_replace_distributed_sampler(tmpdir, save_preds_on_dl_idx, accelerator, gpus, num_dl_idx, mode):
     num_processes = 2
     limit_test_batches = 2
     trainer_args = {
@@ -99,10 +97,29 @@ def check_replace_distrubuted_sampler(tmpdir, save_preds_on_dl_idx, accelerator,
         trainer.test(model)
 
 
-@pytest.mark.skipif(
-    not os.getenv("PL_RUNNING_SPECIAL_TESTS", '0') == '1', reason="test should be run outside of pytest"
-)
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2, special=True)
 @pytest.mark.parametrize("mode", [1, 2])
-def test_replace_distrubuted_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
-    check_replace_distrubuted_sampler(tmpdir, True, "ddp", 2, 2, mode)
+def test_replace_distributed_sampler_custom_dataloader_custom_batch_sampler(tmpdir, mode):
+    check_replace_distributed_sampler(tmpdir, True, "ddp", 2, 2, mode)
+
+
+@pytest.mark.parametrize("num_workers", [0, 1])
+def test_dataloader_warnings(num_workers):
+
+    class TestModel(BoringModel):
+
+        def on_train_start(self, *_) -> None:
+            raise SystemExit()
+
+    dl = DataLoader(RandomDataset(32, 64), num_workers=num_workers)
+    if hasattr(dl, "persistent_workers"):
+        if num_workers == 0:
+            warn_str = "Consider setting num_workers>0 and persistent_workers=True"
+        else:
+            warn_str = "Consider setting persistent_workers=True"
+    else:
+        warn_str = "Consider setting accelerator=ddp"
+
+    trainer = Trainer(accelerator="ddp_spawn")
+    with pytest.warns(UserWarning, match=warn_str), pytest.raises(SystemExit):
+        trainer.fit(TestModel(), dl)

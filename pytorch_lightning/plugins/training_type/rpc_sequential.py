@@ -13,7 +13,7 @@
 # limitations under the License
 import logging
 import os
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import torch
 import torch.distributed as torch_distrib
@@ -24,7 +24,7 @@ from torch.optim import Optimizer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.distributed import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.rpc import DEFAULT_RPC_TIMEOUT_SEC, RPCPlugin
-from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_PIPE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -100,8 +100,8 @@ class RPCSequentialPlugin(RPCPlugin):
 
     def init_ddp_connection(
         self,
-        global_rank: int,
-        world_size: int,
+        global_rank: Optional[int] = None,
+        world_size: Optional[int] = None,
     ) -> None:
         if self.lightning_module.trainer.amp_backend is not None:
             raise MisconfigurationException(
@@ -110,10 +110,10 @@ class RPCSequentialPlugin(RPCPlugin):
 
         if self._skip_init_connections():
             return
-        super().init_ddp_connection(
-            global_rank=global_rank,
-            world_size=world_size,
-        )
+
+        global_rank = global_rank if global_rank is not None else self.cluster_environment.global_rank()
+        world_size = world_size if world_size is not None else self.cluster_environment.world_size()
+        super().init_ddp_connection(global_rank, world_size)
         super().init_rpc_connection(global_rank=global_rank, world_size=world_size)
         model = self.lightning_module
         self.gpus_per_model = self._infer_check_num_gpus()
@@ -208,7 +208,7 @@ class RPCSequentialPlugin(RPCPlugin):
         Returns: Whether to skip initialization
 
         """
-        return torch_distrib.is_initialized() and self.lightning_module.running_stage == RunningStage.TESTING
+        return torch_distrib.is_initialized() and self.lightning_module.trainer.state.fn != TrainerFn.FITTING
 
     def init_model_parallel_groups(self):
         num_model_parallel = 1  # TODO currently no support for vertical model parallel
@@ -231,7 +231,7 @@ class RPCSequentialPlugin(RPCPlugin):
         return self.world_size
 
     def handle_transferred_pipe_module(self) -> None:
-        if not self.lightning_module.running_stage == RunningStage.TESTING:
+        if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             torch_distrib.barrier()  # Ensure we await main process initialization
             # Add trainer/configure_optimizers to the pipe model for access in all worker processes
             rpc_pipe.PipeModel.trainer = self.lightning_module.trainer
@@ -243,7 +243,7 @@ class RPCSequentialPlugin(RPCPlugin):
         # Create pipe_module
         model = self.lightning_module
         self._find_and_init_pipe_module(model)
-        if not self.lightning_module.running_stage == RunningStage.TESTING:
+        if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             torch_distrib.barrier()  # Ensure we join main process initialization
             model.sequential_module.foreach_worker(register_optimizers, include_self=True)
 
@@ -266,17 +266,17 @@ class RPCSequentialPlugin(RPCPlugin):
             self._model.require_backward_grad_sync = False
 
     @rank_zero_only
-    def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
+    def rpc_save_model(self, trainer, save_model_fn: Callable, filepath: str) -> None:
         model = self.lightning_module
         if not hasattr(model.sequential_module, "foreach_worker"):
             return
-        current_layers = pl_module.sequential_module
+        current_layers = model.sequential_module
         model.sequential_module.foreach_worker(
             save_layers_on_all_rank_zero_workers, {"gpus_per_model": self.gpus_per_model}, include_self=True
         )
-        pl_module.sequential_module = load_sequential_from_saved_layers(self.gpus_per_model)
-        save_model_fn(last_filepath, trainer, pl_module)
-        pl_module.sequential_module = current_layers
+        model.sequential_module = load_sequential_from_saved_layers(self.gpus_per_model)
+        save_model_fn(trainer, filepath)
+        model.sequential_module = current_layers
 
     def worker_optimizer_step(self, model: LightningModule, opt_idx: int, *args, **kwargs) -> None:
         model.sequential_module.foreach_worker(
@@ -333,9 +333,9 @@ class RPCSequentialPlugin(RPCPlugin):
         if self.main_rpc_process:
             super().start_training(trainer)
 
-    def start_testing(self, trainer) -> None:
+    def start_evaluating(self, trainer) -> None:
         if self.main_rpc_process:
-            super().start_testing(trainer)
+            super().start_evaluating(trainer)
 
 
 class LightningPipeModule(nn.Module):

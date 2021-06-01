@@ -46,7 +46,7 @@ recursive-include docs/source/_static/images/general/ pl_overview* tf_* tutorial
 
 # Include the Requirements
 recursive-include requirements *.txt
-recursive-exclude requirements *.sh
+recursive-exclude requirements *.sh *.py
 include requirements.txt
 include pyproject.toml
 

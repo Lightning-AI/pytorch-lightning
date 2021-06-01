@@ -13,11 +13,11 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 # import m2r
-import builtins
 import glob
 import os
 import shutil
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
 
@@ -27,10 +27,13 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
 FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
-if SPHINX_MOCK_REQUIREMENTS:
-    builtins.__LIGHTNING_SETUP__ = True
 
-import pytorch_lightning  # noqa: E402
+spec = spec_from_file_location(
+    "pytorch_lightning/__about__.py",
+    os.path.join(PATH_ROOT, "pytorch_lightning", "__about__.py"),
+)
+about = module_from_spec(spec)
+spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 
@@ -79,19 +82,19 @@ _transform_changelog(
 # -- Project information -----------------------------------------------------
 
 project = 'PyTorch Lightning'
-copyright = pytorch_lightning.__copyright__
-author = pytorch_lightning.__author__
+copyright = about.__copyright__
+author = about.__author__
 
 # The short X.Y version
-version = pytorch_lightning.__version__
+version = about.__version__
 # The full version, including alpha/beta/rc tags
-release = pytorch_lightning.__version__
+release = about.__version__
 
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = '3.4'
+needs_sphinx = '4.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -176,8 +179,8 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 # documentation.
 
 html_theme_options = {
-    'pytorch_project': pytorch_lightning.__homepage__,
-    'canonical_url': pytorch_lightning.__homepage__,
+    'pytorch_project': 'https://pytorchlightning.ai',
+    'canonical_url': about.__docs_url__,
     'collapse_navigation': False,
     'display_version': True,
     'logo_only': False,
@@ -279,6 +282,7 @@ intersphinx_mapping = {
     'torch': ('https://pytorch.org/docs/stable/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'PIL': ('https://pillow.readthedocs.io/en/stable/', None),
+    'torchmetrics': ('https://torchmetrics.readthedocs.io/en/stable/', None),
 }
 
 # -- Options for todo extension ----------------------------------------------
@@ -328,9 +332,11 @@ PACKAGE_MAPPING = {
     'comet-ml': 'comet_ml',
     'neptune-client': 'neptune',
     'hydra-core': 'hydra',
+    'pyDeprecate': 'deprecate',
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
+    MOCK_PACKAGES += ['fairscale']
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
     MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements', 'extra.txt'))
@@ -358,7 +364,8 @@ autodoc_default_options = {
 # This value determines the text for the permalink; it defaults to "¶". Set it to None or the empty
 #  string to disable permalinks.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_add_permalinks
-html_add_permalinks = "¶"
+html_permalinks = True
+html_permalinks_icon = "¶"
 
 # True to prefix each section label with the name of the document it is in, followed by a colon.
 #  For example, index:Introduction for a section called Introduction that appears in document index.rst.
@@ -371,6 +378,7 @@ doctest_test_doctest_blocks = ''
 doctest_global_setup = """
 import importlib
 import os
+from typing import Optional
 import torch
 from torch import nn
 import pytorch_lightning as pl
@@ -383,6 +391,6 @@ from pytorch_lightning.utilities import (
     _TORCHVISION_AVAILABLE,
     _module_available,
 )
-TORCHVISION_AVAILABLE = _module_available("torchvision")
+_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
 """
 coverage_skip_undoc_in_source = True

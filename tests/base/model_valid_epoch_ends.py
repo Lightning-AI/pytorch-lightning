@@ -43,9 +43,8 @@ class ValidationEpochEndVariations(ABC):
             val_loss_mean = val_loss_mean.item()
             val_acc_mean = val_acc_mean.item()
 
-        metrics_dict = {'early_stop_on': val_loss_mean, 'val_acc': val_acc_mean}
-        results = {'progress_bar': metrics_dict, 'log': metrics_dict}
-        return results
+        self.log('early_stop_on', val_loss_mean, prog_bar=True)
+        self.log('val_acc', val_acc_mean, prog_bar=True)
 
     def validation_epoch_end__multiple_dataloaders(self, outputs):
         """

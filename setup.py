@@ -14,22 +14,25 @@
 # limitations under the License.
 
 import os
+from importlib.util import module_from_spec, spec_from_file_location
 
-# Always prefer setuptools over distutils
 from setuptools import find_packages, setup
-
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
-PATH_ROOT = os.path.dirname(__file__)
-builtins.__LIGHTNING_SETUP__ = True
+_PATH_ROOT = os.path.dirname(__file__)
+_PATH_REQUIRE = os.path.join(_PATH_ROOT, 'requirements')
 
-import pytorch_lightning  # noqa: E402
-from pytorch_lightning.setup_tools import _load_readme_description, _load_requirements  # noqa: E402
+
+def _load_py_module(fname, pkg="pytorch_lightning"):
+    spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_ROOT, pkg, fname))
+    py = module_from_spec(spec)
+    spec.loader.exec_module(py)
+    return py
+
+
+about = _load_py_module('__about__.py')
+setup_tools = _load_py_module('setup_tools.py')
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
@@ -37,10 +40,10 @@ from pytorch_lightning.setup_tools import _load_readme_description, _load_requir
 # From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
     # 'docs': load_requirements(file_name='docs.txt'),
-    'examples': _load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='examples.txt'),
-    'loggers': _load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='loggers.txt'),
-    'extra': _load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='extra.txt'),
-    'test': _load_requirements(path_dir=os.path.join(PATH_ROOT, 'requirements'), file_name='test.txt')
+    'examples': setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name='examples.txt'),
+    'loggers': setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name='loggers.txt'),
+    'extra': setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name='extra.txt'),
+    'test': setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name='test.txt')
 }
 extras['dev'] = extras['extra'] + extras['loggers'] + extras['test']
 extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
@@ -53,6 +56,12 @@ for ex in ('cpu', 'cpu-extra'):
     # filter cpu only packages
     extras[ex] = [pkg for pkg in extras[kw] if not any(pgpu.lower() in pkg.lower() for pgpu in PACKAGES_GPU_ONLY)]
 
+long_description = setup_tools._load_readme_description(
+    _PATH_ROOT,
+    homepage=about.__homepage__,
+    version=about.__version__,
+)
+
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
 # what happens and to non-engineers they won't know to look in init ...
@@ -60,22 +69,22 @@ for ex in ('cpu', 'cpu-extra'):
 # engineer specific practices
 setup(
     name="pytorch-lightning",
-    version=pytorch_lightning.__version__,
-    description=pytorch_lightning.__docs__,
-    author=pytorch_lightning.__author__,
-    author_email=pytorch_lightning.__author_email__,
-    url=pytorch_lightning.__homepage__,
+    version=about.__version__,
+    description=about.__docs__,
+    author=about.__author__,
+    author_email=about.__author_email__,
+    url=about.__homepage__,
     download_url='https://github.com/PyTorchLightning/pytorch-lightning',
-    license=pytorch_lightning.__license__,
+    license=about.__license__,
     packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks', 'legacy', 'legacy/*']),
-    long_description=_load_readme_description(PATH_ROOT),
+    long_description=long_description,
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
-    install_requires=_load_requirements(PATH_ROOT),
+    install_requires=setup_tools._load_requirements(_PATH_ROOT),
     extras_require=extras,
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
@@ -102,5 +111,6 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
 )

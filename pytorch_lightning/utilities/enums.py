@@ -13,14 +13,14 @@
 # limitations under the License.
 """Enumerated utilities"""
 from enum import Enum
-from typing import Union
+from typing import List, Optional, Union
 
 
 class LightningEnum(str, Enum):
     """ Type of any enumerator with allowed comparison to string invariant to cases. """
 
     @classmethod
-    def from_str(cls, value: str) -> 'LightningEnum':
+    def from_str(cls, value: str) -> Optional['LightningEnum']:
         statuses = [status for status in dir(cls) if not status.startswith('_')]
         for st in statuses:
             if st.lower() == value.lower():
@@ -31,7 +31,7 @@ class LightningEnum(str, Enum):
         other = other.value if isinstance(other, Enum) else str(other)
         return self.value.lower() == other.lower()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # re-enable hashtable so it can be used as a dict key or in a set
         # example: set(LightningEnum)
         return hash(self.name)
@@ -58,15 +58,29 @@ class DistributedType(LightningEnum):
     >>> DistributedType.DDP2 in ('ddp2', )
     True
     """
+
+    @staticmethod
+    def interactive_compatible_types() -> List['DistributedType']:
+        """Returns a list containing interactive compatible DistributeTypes"""
+        return [
+            DistributedType.DP, DistributedType.DDP_SPAWN, DistributedType.DDP_SHARDED_SPAWN, DistributedType.TPU_SPAWN
+        ]
+
+    def is_interactive_compatible(self) -> bool:
+        """Returns whether self is interactive compatible"""
+        return self in DistributedType.interactive_compatible_types()
+
     DP = 'dp'
     DDP = 'ddp'
     DDP2 = 'ddp2'
     DDP_SPAWN = 'ddp_spawn'
+    TPU_SPAWN = 'tpu_spawn'
     DEEPSPEED = 'deepspeed'
     HOROVOD = 'horovod'
     DDP_SHARDED = 'ddp_sharded'
     DDP_SHARDED_SPAWN = 'ddp_sharded_spawn'
     RPC_SEQUENTIAL_PLUGIN = 'rpc_sequential'
+    DDP_FULLY_SHARDED = "ddp_fully_sharded"
 
 
 class DeviceType(LightningEnum):
@@ -84,3 +98,16 @@ class DeviceType(LightningEnum):
     CPU = 'CPU'
     GPU = 'GPU'
     TPU = 'TPU'
+
+
+class GradClipAlgorithmType(LightningEnum):
+    """ Define gradient_clip_algorithm types - training-tricks.
+    NORM type means "clipping gradients by norm". This computed over all model parameters together.
+    VALUE tpye means "clipping gradients by value". This will clip the gradient value for each parameter.
+
+    References:
+        clip_by_norm: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm
+        clip_by_value: https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_value
+    """
+    VALUE = 'value'
+    NORM = 'norm'

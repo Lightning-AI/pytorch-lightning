@@ -14,7 +14,7 @@
 from typing import Optional
 
 import torch
-from torch.utils.data import DataLoader, Dataset, Subset
+from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 
 from pytorch_lightning import LightningDataModule, LightningModule
 
@@ -34,19 +34,6 @@ class RandomDictDataset(Dataset):
         return self.len
 
 
-class RandomDictStringDataset(Dataset):
-
-    def __init__(self, size, length):
-        self.len = length
-        self.data = torch.randn(length, size)
-
-    def __getitem__(self, index):
-        return {"id": str(index), "x": self.data[index]}
-
-    def __len__(self):
-        return self.len
-
-
 class RandomDataset(Dataset):
 
     def __init__(self, size, length):
@@ -58,6 +45,31 @@ class RandomDataset(Dataset):
 
     def __len__(self):
         return self.len
+
+
+class RandomIterableDataset(IterableDataset):
+
+    def __init__(self, size: int, count: int):
+        self.count = count
+        self.size = size
+
+    def __iter__(self):
+        for _ in range(self.count):
+            yield torch.randn(self.size)
+
+
+class RandomIterableDatasetWithLen(IterableDataset):
+
+    def __init__(self, size: int, count: int):
+        self.count = count
+        self.size = size
+
+    def __iter__(self):
+        for _ in range(len(self)):
+            yield torch.randn(self.size)
+
+    def __len__(self):
+        return self.count
 
 
 class BoringModel(LightningModule):
@@ -136,6 +148,9 @@ class BoringModel(LightningModule):
     def test_dataloader(self):
         return DataLoader(RandomDataset(32, 64))
 
+    def predict_dataloader(self):
+        return DataLoader(RandomDataset(32, 64))
+
 
 class BoringDataModule(LightningDataModule):
 
@@ -151,8 +166,10 @@ class BoringDataModule(LightningDataModule):
     def setup(self, stage: Optional[str] = None):
         if stage == "fit" or stage is None:
             self.random_train = Subset(self.random_full, indices=range(64))
-            self.random_val = Subset(self.random_full, indices=range(64, 128))
             self.dims = self.random_train[0].shape
+
+        if stage in ("fit", "validate") or stage is None:
+            self.random_val = Subset(self.random_full, indices=range(64, 128))
 
         if stage == "test" or stage is None:
             self.random_test = Subset(self.random_full, indices=range(128, 192))

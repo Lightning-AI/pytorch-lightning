@@ -53,10 +53,10 @@ a module (i.e.: if your project has a model that trains on Imagenet and another 
 
         @staticmethod
         def add_model_specific_args(parent_parser):
-            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+            parser = parent_parser.add_argument_group("LitModel")
             parser.add_argument('--encoder_layers', type=int, default=12)
             parser.add_argument('--data_path', type=str, default='/some/path')
-            return parser
+            return parent_parser
 
 Now in your main trainer file, add the ``Trainer`` args, the program args, and add the model args
 
@@ -152,26 +152,7 @@ improve readability and reproducibility.
         model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
 
 
-3.  Assign to `self.hparams`. Anything assigned to `self.hparams` will also be saved automatically.
-
-    .. code-block:: python
-
-        # using a argparse.Namespace
-        class LitMNIST(LightningModule):
-            def __init__(self, hparams, *args, **kwargs):
-                super().__init__()
-                self.hparams = hparams
-                self.layer_1 = nn.Linear(28 * 28, self.hparams.layer_1_dim)
-                self.layer_2 = nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
-                self.layer_3 = nn.Linear(self.hparams.layer_2_dim, 10)
-            def train_dataloader(self):
-                return DataLoader(mnist_train, batch_size=self.hparams.batch_size)
-
-    .. warning:: Deprecated since v1.1.0. This method of assigning hyperparameters to the LightningModule
-        will no longer be supported from v1.3.0. Use the ``self.save_hyperparameters()`` method from above instead.
-
-
-4.  You can also save full objects such as `dict` or `Namespace` to the checkpoint.
+3.  You can also save full objects such as `dict` or `Namespace` to the checkpoint.
 
     .. code-block:: python
 
@@ -229,9 +210,9 @@ polluting the ``main.py`` file, the ``LightningModule`` lets you define argument
 
         @staticmethod
         def add_model_specific_args(parent_parser):
-            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+            parser = parent_parser.add_argument_group("LitMNIST")
             parser.add_argument('--layer_1_dim', type=int, default=128)
-            return parser
+            return parent_parser
 
 .. testcode::
 
@@ -243,9 +224,9 @@ polluting the ``main.py`` file, the ``LightningModule`` lets you define argument
 
         @staticmethod
         def add_model_specific_args(parent_parser):
-            parser = ArgumentParser(parents=[parent_parser], add_help=False)
+            parser = parent_parser.add_argument_group("GoodGAN")
             parser.add_argument('--encoder_layers', type=int, default=12)
-            return parser
+            return parent_parser
 
 
 Now we can allow each model to inject the arguments it needs in the ``main.py``

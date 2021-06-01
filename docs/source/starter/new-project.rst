@@ -83,7 +83,7 @@ Step 1: Define LightningModule
 
 .. testcode::
 
-    class LitAutoEncoder(LightningModule):
+    class LitAutoEncoder(pl.LightningModule):
 
         def __init__(self):
             super().__init__()
@@ -128,14 +128,14 @@ A :doc:`lightning module <../common/lightning_module>` defines a *system* not a 
 
 Examples of systems are:
 
-- `Autoencoder <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
-- `BERT <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>`_
-- `DQN <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=IAlT0-75T_Kv>`_
-- `GAN <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/gans/basic/basic_gan_module.py>`_
-- `Image classifier <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL>`_
+- `Autoencoder <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
+- `BERT <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/04-transformers-text-classification.ipynb>`_
+- `DQN <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/08-Domain-specific-demos.ipynb>`_
+- `GAN <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/03-basic-gan.ipynb>`_
+- `Image classifier <https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/notebooks/01-mnist-hello-world.ipynb>`_
 - Seq2seq
-- `SimCLR <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
-- `VAE <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
+- `SimCLR <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
+- `VAE <https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
 
 Under the hood a LightningModule is still just a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
@@ -248,7 +248,7 @@ as long as you return a loss with an attached graph from the `training_step`, Li
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        loss = self.encoder(batch[0])
+        loss = self.encoder(batch)
         return loss
 
 .. _manual_opt:
@@ -265,21 +265,20 @@ Turn off automatic optimization and you control the train loop!
     def __init__(self):
         self.automatic_optimization = False
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx):
         # access your optimizers with use_pl_optimizer=False. Default is True
-        (opt_a, opt_b, opt_c) = self.optimizers(use_pl_optimizer=True)
+        opt_a, opt_b = self.optimizers(use_pl_optimizer=True)
 
-        loss_a = self.generator(batch[0])
-
-        # use this instead of loss.backward so we can automate half precision, etc...
-        self.manual_backward(loss_a, opt_a, retain_graph=True)
-        self.manual_backward(loss_a, opt_a)
-        opt_a.step()
+        loss_a = self.generator(batch)
         opt_a.zero_grad()
+        # use `manual_backward()` instead of `loss.backward` to automate half precision, etc...
+        self.manual_backward(loss_a)
+        opt_a.step()
 
-        loss_b = self.discriminator(batch[0])
-        self.manual_backward(loss_b, opt_b)
-        ...
+        loss_b = self.discriminator(batch)
+        opt_b.zero_grad()
+        self.manual_backward(loss_b)
+        opt_b.step()
 
 
 Predict or Deploy
@@ -652,17 +651,17 @@ Make your data code reusable by organizing it into a :class:`~pytorch_lightning.
             MNIST(os.getcwd(), train=False, download=True)
 
         # OPTIONAL, called for every GPU/machine (assigning state is OK)
-        def setup(self, stage):
+        def setup(self, stage: Optional[str] = None):
             # transforms
             transform=transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize((0.1307,), (0.3081,))
             ])
             # split dataset
-            if stage == 'fit':
+            if stage in (None, 'fit'):
                 mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
-            if stage == 'test':
+            if stage == (None, 'test'):
                 self.mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
 
         # return the dataloader for each split
@@ -737,13 +736,13 @@ Lightning has many tools for debugging. Here is an example of just a few of them
 .. testcode::
 
     # Profile your code to find speed/memory bottlenecks
-    Trainer(profiler=True)
+    Trainer(profiler="simple")
 
 ---------------
 
-********************
-Other coool features
-********************
+*******************
+Other cool features
+*******************
 
 Once you define and train your first Lightning model, you might want to try other cool features like
 
@@ -752,7 +751,7 @@ Once you define and train your first Lightning model, you might want to try othe
 - :ref:`Automatically scale your batch size <advanced/training_tricks:Auto scaling of batch size>`
 - :doc:`Automatically find a good learning rate <../advanced/lr_finder>`
 - :ref:`Load checkpoints directly from S3 <common/weights_loading:Checkpoint Loading>`
-- :doc:`Scale to massive compute clusters <../clouds/slurm>`
+- :doc:`Scale to massive compute clusters <../clouds/cluster>`
 - :doc:`Use multiple dataloaders per train/val/test loop <../advanced/multiple_loaders>`
 - :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
 
@@ -762,9 +761,9 @@ Or read our :doc:`Guide <../starter/introduction_guide>` to learn more!
 
 Grid AI
 =======
-Grid AI is our native solution for large scale training and tuning on the cloud provider of your choice.
+Grid AI is our native solution for large scale training and tuning on the cloud.
 
-`Click here to request early-access <https://www.grid.ai/>`_.
+`Get started for free with your GitHub or Google Account here <https://www.grid.ai/>`_.
 
 ------------
 
@@ -772,8 +771,9 @@ Grid AI is our native solution for large scale training and tuning on the cloud 
 Community
 **********
 Our community of core maintainers and thousands of expert researchers is active on our
-`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A>`_
-and `Forum <https://forums.pytorchlightning.ai/>`_. Drop by to hang out, ask Lightning questions or even discuss research!
+`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ>`_
+and `GitHub Discussions <https://github.com/PyTorchLightning/pytorch-lightning/discussions>`_. Drop by
+to hang out, ask Lightning questions or even discuss research!
 
 
 -------------

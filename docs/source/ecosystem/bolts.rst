@@ -1,11 +1,11 @@
 Bolts
 =====
-`PyTorch Lightning Bolts <https://pytorch-lightning-bolts.readthedocs.io/en/latest/>`_, is our official collection
+`PyTorch Lightning Bolts <https://lightning-bolts.readthedocs.io/en/latest/>`_, is our official collection
 of prebuilt models across many research domains.
 
 .. code-block:: bash
 
-    pip install pytorch-lightning-bolts
+    pip install lightning-bolts
 
 In bolts we have:
 
@@ -68,8 +68,8 @@ you can trust the implementations and use them to bootstrap your research much f
 
             loss = self.criterion(logits.view(-1, logits.size(-1)), x.view(-1).long())
 
-            logs = {"loss": loss}
-            return {"loss": loss, "log": logs}
+            self.log("loss", loss)
+            return loss
 
 ----------
 

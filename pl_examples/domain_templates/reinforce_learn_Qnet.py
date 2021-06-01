@@ -20,7 +20,7 @@ classic CartPole environment.
 To run the template, just run:
 `python reinforce_learn_Qnet.py`
 
-After ~1500 steps, you will see the total_reward hitting the max score of 200.
+After ~1500 steps, you will see the total_reward hitting the max score of 475+.
 Open up TensorBoard to see the metrics:
 
 `tensorboard --logdir default`
@@ -149,7 +149,7 @@ class Agent:
     """
     Base Agent class handling the interaction with the environment
 
-    >>> env = gym.make("CartPole-v0")
+    >>> env = gym.make("CartPole-v1")
     >>> buffer = ReplayBuffer(10)
     >>> Agent(env, buffer)  # doctest: +ELLIPSIS
     <...reinforce_learn_Qnet.Agent object at ...>
@@ -229,7 +229,7 @@ class Agent:
 class DQNLightning(pl.LightningModule):
     """ Basic DQN Model
 
-    >>> DQNLightning(env="CartPole-v0")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> DQNLightning(env="CartPole-v1")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     DQNLightning(
       (net): DQN(
         (net): Sequential(...)
@@ -390,10 +390,10 @@ class DQNLightning(pl.LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = argparse.ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("DQNLightning")
         parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
         parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
-        parser.add_argument("--env", type=str, default="CartPole-v0", help="gym environment tag")
+        parser.add_argument("--env", type=str, default="CartPole-v1", help="gym environment tag")
         parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
         parser.add_argument("--sync_rate", type=int, default=10, help="how many frames do we update the target network")
         parser.add_argument("--replay_size", type=int, default=1000, help="capacity of the replay buffer")
@@ -407,7 +407,7 @@ class DQNLightning(pl.LightningModule):
         parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
         parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
         parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")
-        return parser
+        return parent_parser
 
 
 def main(args) -> None:

@@ -29,4 +29,4 @@ test: clean
 
 docs: clean
 	pip install --quiet -r requirements/docs.txt
-	python -m sphinx -b html -W docs/source docs/build
+	python -m sphinx -b html -W --keep-going docs/source docs/build

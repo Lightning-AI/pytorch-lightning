@@ -90,7 +90,7 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
 .. note::
 
     -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
-        reduction `on_epoch_end`. We recommend using the :doc:`metrics <../extensions/metrics>` API when working with custom reduction.
+        reduction in ``on_train_epoch_end``. We recommend using the :doc:`metrics <../extensions/metrics>` API when working with custom reduction.
 
     -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
         suffix ``_step`` and ``_epoch``, respectively. You can refer to these keys e.g. in the `monitor`
@@ -208,8 +208,8 @@ To change this behaviour, set the `log_every_n_steps` :class:`~pytorch_lightning
 Log writing frequency
 =====================
 
-Writing to a logger can be expensive, so by default Lightning write logs to disc or to the given logger every 100 training steps.
-To change this behaviour, set the interval at which you wish to flush logs to the filesystem using `log_every_n_steps` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
+Writing to a logger can be expensive, so by default Lightning writes logs to disk or to the given logger every 100 training steps.
+To change this behaviour, set the interval at which you wish to flush logs to the filesystem using the `flush_logs_every_n_steps` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
 
 .. testcode::
 
@@ -259,13 +259,19 @@ Configure console logging
 *************************
 
 Lightning logs useful information about the training process and user warnings to the console.
-You can retrieve the Lightning logger and change it to your liking. For example, increase the logging level
-to see fewer messages like so:
+You can retrieve the Lightning logger and change it to your liking. For example, adjust the logging level
+or redirect output for certain modules to log files:
 
-.. code-block:: python
+.. testcode::
 
     import logging
-    logging.getLogger("lightning").setLevel(logging.ERROR)
+
+    # configure logging at the root level of lightning
+    logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+
+    # configure logging on module level, redirect to file
+    logger = logging.getLogger("pytorch_lightning.core")
+    logger.addHandler(logging.FileHandler("core.log"))
 
 Read more about custom Python logging `here <https://docs.python.org/3/library/logging.html>`_.
 
@@ -287,6 +293,25 @@ When Lightning creates a checkpoint, it stores a key "hyper_parameters" with the
 Some loggers also allow logging the hyperparams used in the experiment. For instance,
 when using the TestTubeLogger or the TensorBoardLogger, all hyperparams will show
 in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
+
+.. note::
+    If you want to track a metric in the tensorboard hparams tab, log scalars to the key ``hp_metric``. If tracking multiple metrics, initialize ``TensorBoardLogger`` with ``default_hp_metric=False`` and call ``log_hyperparams`` only once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys. Refer to the following for examples on how to setup proper hyperparams metrics tracking within :doc:`LightningModule <../common/lightning_module>`.
+
+    .. code-block:: python
+
+        # Using default_hp_metric
+        def validation_step(self, batch, batch_idx):
+            self.log("hp_metric", some_scalar)
+
+        # Using custom or multiple metrics (default_hp_metric=False)
+        def on_train_start(self):
+            self.logger.log_hyperparams(self.hparams, {"hp/metric_1": 0, "hp/metric_2": 0})
+
+        def validation_step(self, batch, batch_idx):
+            self.log("hp/metric_1", some_scalar_1)
+            self.log("hp/metric_2", some_scalar_2)
+
+    In the example, using `hp/` as a prefix allows for the metrics to be grouped under "hp" in the tensorboard scalar tab where you can collapse them.
 
 ----------
 

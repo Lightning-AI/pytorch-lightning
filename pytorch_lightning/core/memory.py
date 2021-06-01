@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 from collections import OrderedDict
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -71,14 +71,15 @@ class LayerSummary(object):
     def __del__(self):
         self.detach_hook()
 
-    def _register_hook(self) -> RemovableHandle:
+    def _register_hook(self) -> Optional[RemovableHandle]:
         """
         Registers a hook on the module that computes the input- and output size(s) on the first forward pass.
         If the hook is called, it will remove itself from the from the module, meaning that
         recursive models will only record their input- and output shapes once.
+        Registering hooks on :class:`~torch.jit.ScriptModule` is not supported.
 
         Return:
-            A handle for the installed hook.
+            A handle for the installed hook, or ``None`` if registering the hook is not possible.
         """
 
         def hook(module, inp, out):
@@ -88,7 +89,10 @@ class LayerSummary(object):
             self._out_size = parse_batch_shape(out)
             self._hook_handle.remove()
 
-        return self._module.register_forward_hook(hook)
+        handle = None
+        if not isinstance(self._module, torch.jit.ScriptModule):
+            handle = self._module.register_forward_hook(hook)
+        return handle
 
     def detach_hook(self):
         """
@@ -246,7 +250,7 @@ class ModelSummary(object):
         trainer = self._model.trainer
 
         input_ = model.example_input_array
-        input_ = model._apply_batch_transfer_handler(input_, model.device)
+        input_ = model._apply_batch_transfer_handler(input_)
 
         if trainer is not None and trainer.amp_backend == AMPType.NATIVE and trainer._device_type != DeviceType.TPU:
             model.forward = torch.cuda.amp.autocast()(model.forward)

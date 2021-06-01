@@ -1,6 +1,14 @@
 from pytorch_lightning.plugins.base_plugin import Plugin  # noqa: F401
+from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
+    call_training_type_register_plugins,
+    TrainingTypePluginsRegistry,
+)
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin  # noqa: F401
+from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin  # noqa: F401
+from pytorch_lightning.plugins.precision.fully_sharded_native_amp import (  # noqa: F401
+    FullyShardedNativeMixedPrecisionPlugin,
+)
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin  # noqa: F401
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin  # noqa: F401
@@ -10,6 +18,7 @@ from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin  # noqa: F40
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.deepspeed import DeepSpeedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.dp import DataParallelPlugin  # noqa: F401
+from pytorch_lightning.plugins.training_type.fully_sharded import DDPFullyShardedPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.horovod import HorovodPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin  # noqa: F401
 from pytorch_lightning.plugins.training_type.rpc import RPCPlugin  # noqa: F401
@@ -27,21 +36,31 @@ __all__ = [
     "DDP2Plugin",
     "DDPPlugin",
     "DDPSpawnPlugin",
+    "DDPFullyShardedPlugin",
     "DeepSpeedPlugin",
     "DeepSpeedPrecisionPlugin",
+    "DoublePrecisionPlugin",
     "HorovodPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
+    "FullyShardedNativeMixedPrecisionPlugin"
     "SingleDevicePlugin",
     "SingleTPUPlugin",
     "TPUHalfPrecisionPlugin",
     "TPUSpawnPlugin",
-    'RPCPlugin',
-    'RPCSequentialPlugin',
-    'TrainingTypePlugin',
-    'ParallelPlugin',
-    'Plugin',
-    'DDPShardedPlugin',
-    'DDPSpawnShardedPlugin',
+    "RPCPlugin",
+    "RPCSequentialPlugin",
+    "TrainingTypePlugin",
+    "ParallelPlugin",
+    "Plugin",
+    "DDPShardedPlugin",
+    "DDPSpawnShardedPlugin",
 ]
+
+from pathlib import Path
+
+FILE_ROOT = Path(__file__).parent
+TRAINING_TYPE_BASE_MODULE = "pytorch_lightning.plugins.training_type"
+
+call_training_type_register_plugins(FILE_ROOT, TRAINING_TYPE_BASE_MODULE)

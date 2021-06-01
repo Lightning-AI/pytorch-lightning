@@ -23,6 +23,7 @@ from torch.optim import Optimizer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -31,7 +32,8 @@ from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingT
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
+from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
 from pytorch_lightning.utilities.argparse import (
     add_argparse_args,
@@ -48,7 +50,6 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _lightning_optimizers = None
     _progress_bar_callback: ProgressBarBase
-    _state: TrainerState
     _weights_save_path: str
 
     accelerator_connector: AcceleratorConnector
@@ -57,6 +58,11 @@ class TrainerProperties(ABC):
     limit_val_batches: int
     logger: LightningLoggerBase
     logger_connector: LoggerConnector
+    state: TrainerState
+    train_loop: TrainLoop
+    """
+    Accelerator properties
+    """
 
     @property
     def accelerator(self) -> Accelerator:
@@ -95,6 +101,10 @@ class TrainerProperties(ABC):
         return getattr(self.accelerator.training_type_plugin, "world_size", 1)
 
     @property
+    def should_rank_save_checkpoint(self) -> bool:
+        return self.accelerator.training_type_plugin.should_rank_save_checkpoint
+
+    @property
     def _distrib_type(self) -> DistributedType:
         return self.accelerator_connector._distrib_type
 
@@ -127,6 +137,80 @@ class TrainerProperties(ABC):
         return self.accelerator_connector.parallel_device_ids
 
     @property
+    def lightning_module(self) -> LightningModule:
+        return self.accelerator.lightning_module
+
+    @property
+    def optimizers(self) -> Optional[List[Optimizer]]:
+        return self.accelerator.optimizers
+
+    @optimizers.setter
+    def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
+        # Necessary to rewrap optimizers to lightning
+        # They will be re-created when accessing
+        # the `lightning_optimizers` trainer property
+        self._lightning_optimizers = None
+
+        self.accelerator.optimizers = new_optims
+
+    @property
+    def lr_schedulers(self) -> Optional[list]:
+        return self.accelerator.lr_schedulers
+
+    @lr_schedulers.setter
+    def lr_schedulers(self, new_schedulers: Optional[list]) -> None:
+        self.accelerator.lr_schedulers = new_schedulers
+
+    @property
+    def optimizer_frequencies(self) -> list:
+        return self.accelerator.optimizer_frequencies
+
+    @optimizer_frequencies.setter
+    def optimizer_frequencies(self, new_freqs: list) -> None:
+        self.accelerator.optimizer_frequencies = new_freqs
+
+    @property
+    def amp_backend(self) -> Optional[str]:
+        return self.accelerator.amp_backend
+
+    @property
+    def precision(self) -> Union[str, int]:
+        return self.accelerator.precision
+
+    @property
+    def scaler(self):
+        return self.accelerator.scaler
+
+    @property
+    def gpus(self) -> Optional[Union[List[int], str, int]]:
+        return self.accelerator_connector.gpus
+
+    @property
+    def model(self) -> torch.nn.Module:
+        """
+        The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
+        To access the pure LightningModule, use
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
+        """
+        return self.accelerator.model
+
+    @model.setter
+    def model(self, model: torch.nn.Module) -> None:
+        """
+        Setter for the model, pass-through to accelerator and plugin where the model reference is stored.
+        Used by the Tuner to reset the state of Trainer and Accelerator.
+
+        Args:
+            model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
+                on the backend.
+        """
+        self.accelerator.model = model
+
+    """
+    General properties
+    """
+
+    @property
     def log_dir(self) -> Optional[str]:
         if self.logger is None:
             dirpath = self.default_root_dir
@@ -139,34 +223,6 @@ class TrainerProperties(ABC):
     @property
     def use_amp(self) -> bool:
         return self.precision == 16
-
-    @property
-    def callback_metrics(self) -> dict:
-        return self.logger_connector.callback_metrics
-
-    @callback_metrics.setter
-    def callback_metrics(self, x: dict) -> None:
-        self.logger_connector.callback_metrics = x
-
-    @property
-    def logged_metrics(self) -> dict:
-        return self.logger_connector.logged_metrics
-
-    @logged_metrics.setter
-    def logged_metrics(self, x: dict) -> None:
-        self.logger_connector.logged_metrics = x
-
-    @property
-    def progress_bar_metrics(self) -> dict:
-        return self.logger_connector.progress_bar_metrics
-
-    @progress_bar_metrics.setter
-    def progress_bar_metrics(self, x: dict) -> None:
-        self.logger_connector.progress_bar_metrics = x
-
-    @property
-    def state(self) -> TrainerState:
-        return self._state
 
     @property
     def is_global_zero(self) -> bool:
@@ -187,45 +243,16 @@ class TrainerProperties(ABC):
             job_id = None
         return job_id
 
-    @classmethod
-    def default_attributes(cls) -> dict:
-        init_signature = inspect.signature(cls)
-
-        args = {}
-        for param_name in init_signature.parameters:
-            value = init_signature.parameters[param_name].default
-            args[param_name] = value
-
-        return args
-
-    @classmethod
-    def get_deprecated_arg_names(cls) -> List:
-        """Returns a list with deprecated Trainer arguments."""
-        depr_arg_names = []
-        for name, val in cls.__dict__.items():
-            if name.startswith('DEPRECATED') and isinstance(val, (tuple, list)):
-                depr_arg_names.extend(val)
-        return depr_arg_names
-
-    @classmethod
-    def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
-        return from_argparse_args(cls, args, **kwargs)
-
-    @classmethod
-    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return parse_argparser(cls, arg_parser)
-
-    @classmethod
-    def match_env_arguments(cls) -> Namespace:
-        return parse_env_variables(cls)
-
-    @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        return add_argparse_args(cls, parent_parser)
+    @property
+    def lightning_optimizers(self) -> List[LightningOptimizer]:
+        if self._lightning_optimizers is None:
+            self.convert_to_lightning_optimizers()
+        return self._lightning_optimizers
 
     @property
-    def gpus(self) -> Optional[Union[List[int], str, int]]:
-        return self.accelerator_connector.gpus
+    def distributed_sampler_kwargs(self) -> Optional[dict]:
+        if isinstance(self.training_type_plugin, ParallelPlugin):
+            return self.training_type_plugin.distributed_sampler_kwargs
 
     @property
     def data_parallel(self) -> bool:
@@ -307,6 +334,14 @@ class TrainerProperties(ABC):
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
 
     @property
+    def prediction_writer_callbacks(self) -> List[BasePredictionWriter]:
+        """
+        A list of all instances of :class:`~pytorch_lightning.callbacks.prediction_writer.BasePredictionWriter`
+        found in the Trainer.callbacks list.
+        """
+        return [cb for cb in self.callbacks if isinstance(cb, BasePredictionWriter)]
+
+    @property
     def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
         """
         The first :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
@@ -326,77 +361,177 @@ class TrainerProperties(ABC):
     def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
 
-    @property
-    def model(self) -> torch.nn.Module:
-        """
-        The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
-        To access the pure LightningModule, use
-        :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
-        """
-        return self.accelerator.model
+    """
+    Parsing properties
+    """
 
-    @model.setter
-    def model(self, model: torch.nn.Module) -> None:
-        """
-        Setter for the model, pass-through to accelerator and plugin where the model reference is stored.
-        Used by the Tuner to reset the state of Trainer and Accelerator.
+    @classmethod
+    def default_attributes(cls) -> dict:
+        init_signature = inspect.signature(cls)
+        return {k: v.default for k, v in init_signature.parameters.items()}
 
-        Args:
-            model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
-                on the backend.
-        """
-        self.accelerator.model = model
+    @classmethod
+    def get_deprecated_arg_names(cls) -> List:
+        """Returns a list with deprecated Trainer arguments."""
+        depr_arg_names = []
+        for name, val in cls.__dict__.items():
+            if name.startswith('DEPRECATED') and isinstance(val, (tuple, list)):
+                depr_arg_names.extend(val)
+        return depr_arg_names
 
-    @property
-    def lightning_optimizers(self) -> List[LightningOptimizer]:
-        if self._lightning_optimizers is None:
-            self.convert_to_lightning_optimizers()
-        return self._lightning_optimizers
+    @classmethod
+    def from_argparse_args(cls: Type['_T'], args: Union[Namespace, ArgumentParser], **kwargs) -> '_T':
+        return from_argparse_args(cls, args, **kwargs)
 
-    @property
-    def lightning_module(self) -> LightningModule:
-        return self.accelerator.lightning_module
+    @classmethod
+    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+        return parse_argparser(cls, arg_parser)
 
-    @property
-    def optimizers(self) -> Optional[List[Optimizer]]:
-        return self.accelerator.optimizers
+    @classmethod
+    def match_env_arguments(cls) -> Namespace:
+        return parse_env_variables(cls)
 
-    @optimizers.setter
-    def optimizers(self, new_optims: Optional[List[Optimizer]]) -> None:
-        # Necessary to rewrap optimizers to lightning
-        # They will be re-created when accessing
-        # the `lightning_optimizers` trainer property
-        self._lightning_optimizers = None
+    @classmethod
+    def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
+        return add_argparse_args(cls, parent_parser, **kwargs)
 
-        self.accelerator.optimizers = new_optims
+    """
+    State properties
+    """
 
     @property
-    def lr_schedulers(self) -> Optional[list]:
-        return self.accelerator.lr_schedulers
-
-    @lr_schedulers.setter
-    def lr_schedulers(self, new_schedulers: Optional[list]) -> None:
-        self.accelerator.lr_schedulers = new_schedulers
+    def interrupted(self) -> bool:
+        return self.state.status == TrainerStatus.INTERRUPTED
 
     @property
-    def optimizer_frequencies(self) -> list:
-        return self.accelerator.optimizer_frequencies
+    def training(self) -> bool:
+        return self.state.stage == RunningStage.TRAINING
 
-    @optimizer_frequencies.setter
-    def optimizer_frequencies(self, new_freqs: list) -> None:
-        self.accelerator.optimizer_frequencies = new_freqs
-
-    @property
-    def amp_backend(self) -> Optional[str]:
-        return self.accelerator.amp_backend
-
-    @property
-    def precision(self) -> Union[str, int]:
-        return self.accelerator.precision
+    @training.setter
+    def training(self, val: bool) -> None:
+        if val:
+            self.state.stage = RunningStage.TRAINING
+        elif self.training:
+            self.state.stage = None
 
     @property
-    def scaler(self):
-        return self.accelerator.scaler
+    def testing(self) -> bool:
+        return self.state.stage == RunningStage.TESTING
+
+    @testing.setter
+    def testing(self, val: bool) -> None:
+        if val:
+            self.state.stage = RunningStage.TESTING
+        elif self.testing:
+            self.state.stage = None
+
+    @property
+    def predicting(self) -> bool:
+        return self.state.stage == RunningStage.PREDICTING
+
+    @predicting.setter
+    def predicting(self, val: bool) -> None:
+        if val:
+            self.state.stage = RunningStage.PREDICTING
+        elif self.predicting:
+            self.state.stage = None
+
+    @property
+    def tuning(self) -> bool:
+        return self.state.stage == RunningStage.TUNING
+
+    @tuning.setter
+    def tuning(self, val: bool) -> None:
+        if val:
+            self.state.stage = RunningStage.TUNING
+        elif self.tuning:
+            self.state.stage = None
+
+    @property
+    def validating(self) -> bool:
+        return self.state.stage == RunningStage.VALIDATING
+
+    @validating.setter
+    def validating(self, val: bool) -> None:
+        if val:
+            self.state.stage = RunningStage.VALIDATING
+        elif self.validating:
+            self.state.stage = None
+
+    @property
+    def evaluating(self) -> bool:
+        return self.state.stage and self.state.stage.evaluating
+
+    @property
+    def sanity_checking(self) -> bool:
+        return self.state.stage == RunningStage.SANITY_CHECKING
+
+    @sanity_checking.setter
+    def sanity_checking(self, val: bool) -> None:
+        if val:
+            self.state.stage = RunningStage.SANITY_CHECKING
+        elif self.sanity_checking:
+            self.state.stage = None
+
+    """
+    Loop properties
+    """
+
+    @property
+    def global_step(self) -> int:
+        return self.train_loop.global_step
+
+    @property
+    def current_epoch(self) -> int:
+        return self.train_loop.current_epoch
+
+    @property
+    def max_epochs(self) -> Optional[int]:
+        return self.train_loop.max_epochs
+
+    @property
+    def min_epochs(self) -> Optional[int]:
+        return self.train_loop.min_epochs
+
+    @property
+    def max_steps(self) -> Optional[int]:
+        return self.train_loop.max_steps
+
+    @property
+    def min_steps(self) -> Optional[int]:
+        return self.train_loop.min_steps
+
+    """
+    Logging properties
+    """
+
+    @property
+    def callback_metrics(self) -> dict:
+        return self.logger_connector.callback_metrics
+
+    @callback_metrics.setter
+    def callback_metrics(self, x: dict) -> None:
+        self.logger_connector.callback_metrics = x
+
+    @property
+    def logged_metrics(self) -> dict:
+        return self.logger_connector.logged_metrics
+
+    @logged_metrics.setter
+    def logged_metrics(self, x: dict) -> None:
+        self.logger_connector.logged_metrics = x
+
+    @property
+    def progress_bar_metrics(self) -> dict:
+        return self.logger_connector.progress_bar_metrics
+
+    @progress_bar_metrics.setter
+    def progress_bar_metrics(self, x: dict) -> None:
+        self.logger_connector.progress_bar_metrics = x
+
+    """
+    Other
+    """
 
     # TODO: refactor this so that it can be done in LightningOptimizer
     def __getstate__(self):
@@ -406,11 +541,6 @@ class TrainerProperties(ABC):
 
     def __setstate__(self, state):
         self.__dict__ = state
-
-    @property
-    def distributed_sampler_kwargs(self) -> Optional[dict]:
-        if isinstance(self.training_type_plugin, ParallelPlugin):
-            return self.training_type_plugin.distributed_sampler_kwargs
 
 
 # Used to represent the concrete type TrainerProperties class methods are called on.

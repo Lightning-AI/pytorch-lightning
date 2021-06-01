@@ -19,6 +19,9 @@ Use or override one of the progress bar callbacks.
 
 """
 import importlib
+import io
+import math
+import os
 import sys
 
 # check if ipywidgets is installed before importing tqdm.auto
@@ -37,8 +40,7 @@ _PAD_SIZE = 5
 
 class tqdm(_tqdm):
     """
-    Custom tqdm progressbar where we append 0 to floating points/strings to
-    prevent the progress bar from flickering
+    Custom tqdm progressbar where we append 0 to floating points/strings to prevent the progress bar from flickering
     """
 
     @staticmethod
@@ -147,9 +149,10 @@ class ProgressBarBase(Callback):
         validation dataloader is of infinite size.
         """
         total_val_batches = 0
-        if not self.trainer.disable_validation:
-            is_val_epoch = (self.trainer.current_epoch) % self.trainer.check_val_every_n_epoch == 0
+        if self.trainer.enable_validation:
+            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
             total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
+
         return total_val_batches
 
     @property
@@ -187,13 +190,19 @@ class ProgressBarBase(Callback):
         """
         raise NotImplementedError
 
+    def print(self, *args, **kwargs):
+        """
+        You should provide a way to print without breaking the progress bar.
+        """
+        print(*args, **kwargs)
+
     def on_init_end(self, trainer):
         self._trainer = trainer
 
     def on_train_start(self, trainer, pl_module):
-        self._train_batch_idx = trainer.batch_idx
+        self._train_batch_idx = trainer.train_loop.batch_idx
 
-    def on_epoch_start(self, trainer, pl_module):
+    def on_train_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -211,7 +220,7 @@ class ProgressBarBase(Callback):
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         self._test_batch_idx += 1
 
-    def on_predict_start(self, trainer, pl_module):
+    def on_predict_epoch_start(self, trainer, pl_module):
         self._predict_batch_idx = 0
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -274,6 +283,7 @@ class ProgressBar(ProgressBarBase):
         self.main_progress_bar = None
         self.val_progress_bar = None
         self.test_progress_bar = None
+        self.predict_progress_bar = None
 
     def __getstate__(self):
         # can't pickle the tqdm objects
@@ -281,6 +291,7 @@ class ProgressBar(ProgressBarBase):
         state['main_progress_bar'] = None
         state['val_progress_bar'] = None
         state['test_progress_bar'] = None
+        state['predict_progress_bar'] = None
         return state
 
     @property
@@ -347,9 +358,11 @@ class ProgressBar(ProgressBarBase):
 
     def init_validation_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for validation. """
+        # The main progress bar doesn't exist in `trainer.validate()`
+        has_main_bar = self.main_progress_bar is not None
         bar = tqdm(
             desc='Validating',
-            position=(2 * self.process_position + 1),
+            position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
@@ -372,7 +385,6 @@ class ProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
-        reset(self.val_progress_bar, sum(trainer.num_sanity_val_batches))
         self.main_progress_bar = tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, trainer, pl_module):
@@ -384,11 +396,11 @@ class ProgressBar(ProgressBarBase):
         super().on_train_start(trainer, pl_module)
         self.main_progress_bar = self.init_train_tqdm()
 
-    def on_epoch_start(self, trainer, pl_module):
-        super().on_epoch_start(trainer, pl_module)
+    def on_train_epoch_start(self, trainer, pl_module):
+        super().on_train_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
-        if total_train_batches != float('inf'):
+        if total_train_batches != float('inf') and total_val_batches != float('inf'):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
@@ -398,26 +410,31 @@ class ProgressBar(ProgressBarBase):
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self._should_update(self.train_batch_idx, self.total_train_batches + self.total_val_batches):
+        total_batches = self.total_train_batches + self.total_val_batches
+        total_batches = convert_inf(total_batches)
+        if self._should_update(self.train_batch_idx, total_batches):
             self._update_bar(self.main_progress_bar)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
 
     def on_validation_start(self, trainer, pl_module):
         super().on_validation_start(trainer, pl_module)
-        if not trainer.running_sanity_check:
+        if trainer.sanity_checking:
+            reset(self.val_progress_bar, sum(trainer.num_sanity_val_batches))
+        else:
             self._update_bar(self.main_progress_bar)  # fill up remaining
             self.val_progress_bar = self.init_validation_tqdm()
             reset(self.val_progress_bar, self.total_val_batches)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         super().on_validation_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
-        if self._should_update(self.val_batch_idx, self.total_val_batches):
+        if self._should_update(self.val_batch_idx, convert_inf(self.total_val_batches)):
             self._update_bar(self.val_progress_bar)
             self._update_bar(self.main_progress_bar)
 
     def on_validation_end(self, trainer, pl_module):
         super().on_validation_end(trainer, pl_module)
-        self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
+        if self.main_progress_bar is not None:
+            self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
         self.val_progress_bar.close()
 
     def on_train_end(self, trainer, pl_module):
@@ -438,8 +455,8 @@ class ProgressBar(ProgressBarBase):
         super().on_test_end(trainer, pl_module)
         self.test_progress_bar.close()
 
-    def on_predict_start(self, trainer, pl_module):
-        super().on_predict_start(trainer, pl_module)
+    def on_predict_epoch_start(self, trainer, pl_module):
+        super().on_predict_epoch_start(trainer, pl_module)
         self.predict_progress_bar = self.init_predict_tqdm()
         self.predict_progress_bar.total = convert_inf(self.total_predict_batches)
 
@@ -451,11 +468,31 @@ class ProgressBar(ProgressBarBase):
     def on_predict_end(self, trainer, pl_module):
         self.predict_progress_bar.close()
 
-    def _should_update(self, current, total):
+    def print(
+        self, *args, sep: str = ' ', end: str = os.linesep, file: Optional[io.TextIOBase] = None, nolock: bool = False
+    ):
+        active_progress_bar = None
+
+        if self.main_progress_bar is not None and not self.main_progress_bar.disable:
+            active_progress_bar = self.main_progress_bar
+        elif self.val_progress_bar is not None and not self.val_progress_bar.disable:
+            active_progress_bar = self.val_progress_bar
+        elif self.test_progress_bar is not None and not self.test_progress_bar.disable:
+            active_progress_bar = self.test_progress_bar
+        elif self.predict_progress_bar is not None and not self.predict_progress_bar.disable:
+            active_progress_bar = self.predict_progress_bar
+
+        if active_progress_bar is not None:
+            s = sep.join(map(str, args))
+            active_progress_bar.write(s, end=end, file=file, nolock=nolock)
+
+    def _should_update(self, current, total) -> bool:
         return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
 
-    def _update_bar(self, bar):
+    def _update_bar(self, bar: Optional[tqdm]) -> None:
         """ Updates the bar by the refresh rate without overshooting. """
+        if bar is None:
+            return
         if bar.total is not None:
             delta = min(self.refresh_rate, bar.total - bar.n)
         else:
@@ -466,8 +503,8 @@ class ProgressBar(ProgressBarBase):
 
 
 def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
-    """ The tqdm doesn't support inf values. We have to convert it to None. """
-    if x == float('inf'):
+    """ The tqdm doesn't support inf/nan values. We have to convert it to None. """
+    if x is None or math.isinf(x) or math.isnan(x):
         return None
     return x
 

@@ -17,24 +17,27 @@ ARG PYTORCH_VERSION=1.5
 
 FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
-MAINTAINER PyTorchLightning <https://github.com/PyTorchLightning>
+LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
 ARG LIGHTNING_VERSION=""
 
-COPY ./ ./pytorch-lightning/
+COPY ./ /home/pytorch-lightning/
 
 # install dependencies
 RUN \
-    # Disable cache
-    #conda install "pip>20.1" && \
-    #pip config set global.cache-dir false && \
-    if [ -z $LIGHTNING_VERSION ] ; then \
-        pip install ./pytorch-lightning --no-cache-dir ; \
+    cd /home && \
+    mv pytorch-lightning/notebooks . && \
+    mv pytorch-lightning/pl_examples . && \
+    # replace by specific version if asked
+    if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
-    else \
-        rm -rf pytorch-lightning ; \
-        pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --no-cache-dir ; \
-    fi
+        wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
+        unzip ${LIGHTNING_VERSION}.zip ; \
+        mv pytorch-lightning-*/ pytorch-lightning ; \
+        rm *.zip ; \
+    fi && \
+    pip install ./pytorch-lightning["extra"] --no-cache-dir && \
+    rm -rf pytorch-lightning
 
 RUN python --version && \
     pip --version && \

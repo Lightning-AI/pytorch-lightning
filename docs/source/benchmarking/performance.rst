@@ -94,6 +94,21 @@ DP performs three GPU transfers for EVERY batch:
 
 Whereas DDP only performs 1 transfer to sync gradients. Because of this, DDP is MUCH faster than DP.
 
+When using DDP set find_unused_parameters=False
+-----------------------------------------------
+
+By default we have enabled find unused parameters to True. This is for compatibility issues that have arisen in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more information).
+This by default comes with a performance hit, and can be disabled in most cases.
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins import DDPPlugin
+
+    trainer = pl.Trainer(
+        gpus=2,
+        plugins=DDPPlugin(find_unused_parameters=False),
+    )
+
 ----------
 
 16-bit precision
@@ -117,30 +132,13 @@ However, know that 16-bit and multi-processing (any DDP) can have issues. Here a
 
 ----------
 
-Use Sharded DDP for GPU memory and scaling optimization
--------------------------------------------------------
+Advanced GPU Optimizations
+--------------------------
 
-Sharded DDP is a lightning integration of `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
-`ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_
-provided by `Fairscale <https://github.com/facebookresearch/fairscale>`_.
+When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
+Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/advanced_gpu>`.
 
-When training on multiple GPUs sharded DDP can assist to increase memory efficiency substantially, and in some cases performance on multi-node is better than traditional DDP.
-This is due to efficient communication and parallelization under the hood.
-
-To use Optimizer Sharded Training, refer to :ref:`model-parallelism`.
-
-Sharded DDP can work across all DDP variants by adding the additional ``--plugins ddp_sharded`` flag.
-
-Refer to the :doc:`distributed computing guide for more details <../advanced/multi_gpu>`.
-
-
-Sequential Model Parallelism with Checkpointing
------------------------------------------------
-PyTorch Lightning integration for Sequential Model Parallelism using `FairScale <https://github.com/facebookresearch/fairscale>`_.
-Sequential Model Parallelism splits a sequential module onto multiple GPUs, reducing peak GPU memory requirements substantially.
-
-For more information, refer to :ref:`sequential-parallelism`.
-
+----------
 
 Preload Data Into RAM
 ---------------------
@@ -166,3 +164,20 @@ Most UNIX-based operating systems provide direct access to tmpfs through a mount
     .. code-block:: python
 
         datamodule = MyDataModule(data_root="/dev/shm/my_data")
+
+----------
+
+Zero Grad ``set_to_none=True``
+------------------------------
+
+In order to modestly improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
+
+For a more detailed explanation of pros / cons of this technique,
+read `this <https://pytorch.org/docs/master/optim.html#torch.optim.Optimizer.zero_grad>`_ documentation by the PyTorch team.
+
+.. testcode::
+
+    class Model(LightningModule):
+
+        def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+            optimizer.zero_grad(set_to_none=True)

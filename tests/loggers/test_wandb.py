@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-import types
 from argparse import ArgumentParser
 from unittest import mock
 
@@ -25,53 +24,43 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
-def get_warnings(recwarn):
-    warnings_text = '\n'.join(str(w.message) for w in recwarn.list)
-    recwarn.clear()
-    return warnings_text
-
-
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_wandb_logger_init(wandb, recwarn):
+def test_wandb_logger_init(wandb):
     """Verify that basic functionality of wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here."""
 
     # test wandb.init called when there is no W&B run
     wandb.run = None
-    logger = WandbLogger()
+    logger = WandbLogger(
+        name='test_name', save_dir='test_save_dir', version='test_id', project='test_project', resume='never'
+    )
     logger.log_metrics({'acc': 1.0})
-    wandb.init.assert_called_once()
-    wandb.init().log.assert_called_once_with({'acc': 1.0}, step=None)
-
-    # test sync_step functionality
-    wandb.init().log.reset_mock()
-    wandb.init.reset_mock()
-    wandb.run = None
-    wandb.init().step = 0
-    logger = WandbLogger(sync_step=False)
-    logger.log_metrics({'acc': 1.0})
+    wandb.init.assert_called_once_with(
+        name='test_name', dir='test_save_dir', id='test_id', project='test_project', resume='never', anonymous=None
+    )
     wandb.init().log.assert_called_once_with({'acc': 1.0})
-    wandb.init().log.reset_mock()
-    logger.log_metrics({'acc': 1.0}, step=3)
-    wandb.init().log.assert_called_once_with({'acc': 1.0, 'trainer_step': 3})
 
-    # mock wandb step
-    wandb.init().step = 0
+    # test wandb.init and setting logger experiment externally
+    wandb.run = None
+    run = wandb.init()
+    logger = WandbLogger(experiment=run)
+    assert logger.experiment
 
     # test wandb.init not called if there is a W&B run
     wandb.init().log.reset_mock()
     wandb.init.reset_mock()
     wandb.run = wandb.init()
     logger = WandbLogger()
+    # verify default resume value
+    assert logger._wandb_init['resume'] == 'allow'
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init.assert_called_once()
-    wandb.init().log.assert_called_once_with({'acc': 1.0}, step=3)
+    wandb.init().log.assert_called_once_with({'acc': 1.0, 'trainer/global_step': 3})
 
     # continue training on same W&B run and offset step
-    wandb.init().step = 3
     logger.finalize('success')
-    logger.log_metrics({'acc': 1.0}, step=3)
-    wandb.init().log.assert_called_with({'acc': 1.0}, step=6)
+    logger.log_metrics({'acc': 1.0}, step=6)
+    wandb.init().log.assert_called_with({'acc': 1.0, 'trainer/global_step': 6})
 
     # log hyper parameters
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
@@ -87,17 +76,6 @@ def test_wandb_logger_init(wandb, recwarn):
     # watch a model
     logger.watch('model', 'log', 10)
     wandb.init().watch.assert_called_once_with('model', log='log', log_freq=10)
-
-    # verify warning for logging at a previous step
-    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
-    # current step from wandb should be 6 (last logged step)
-    logger.experiment.step = 6
-    # logging at step 2 should raise a warning (step_offset is still 3)
-    logger.log_metrics({'acc': 1.0}, step=2)
-    assert 'Trying to log at a previous step' in get_warnings(recwarn)
-    # logging again at step 2 should not display again the same warning
-    logger.log_metrics({'acc': 1.0}, step=2)
-    assert 'Trying to log at a previous step' not in get_warnings(recwarn)
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id
@@ -154,10 +132,8 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
 
     # mock return values of experiment
     wandb.run = None
-    wandb.init().step = 0
     logger.experiment.id = '1'
     logger.experiment.project_name.return_value = 'project'
-    logger.experiment.step = 0
 
     for _ in range(2):
         _ = logger.experiment
@@ -176,6 +152,71 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / 'project' / version / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0-step=2.ckpt'}
     assert trainer.log_dir == logger.save_dir
+
+
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_wandb_log_model(wandb, tmpdir):
+    """ Test that the logger creates the folders and files in the right place. """
+
+    wandb.run = None
+    model = BoringModel()
+
+    # test log_model=True
+    logger = WandbLogger(log_model=True)
+    logger.experiment.id = '1'
+    logger.experiment.project_name.return_value = 'project'
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    wandb.init().log_artifact.assert_called_once()
+
+    # test log_model='all'
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    logger = WandbLogger(log_model='all')
+    logger.experiment.id = '1'
+    logger.experiment.project_name.return_value = 'project'
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    assert wandb.init().log_artifact.call_count == 2
+
+    # test log_model=False
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    logger = WandbLogger(log_model=False)
+    logger.experiment.id = '1'
+    logger.experiment.project_name.return_value = 'project'
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    assert not wandb.init().log_artifact.called
+
+    # test correct metadata
+    import pytorch_lightning.loggers.wandb as pl_wandb
+    pl_wandb._WANDB_GREATER_EQUAL_0_10_22 = True
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    wandb.Artifact.reset_mock()
+    logger = pl_wandb.WandbLogger(log_model=True)
+    logger.experiment.id = '1'
+    logger.experiment.project_name.return_value = 'project'
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    wandb.Artifact.assert_called_once_with(
+        name='model-1',
+        type='model',
+        metadata={
+            'score': None,
+            'original_filename': 'epoch=1-step=5-v3.ckpt',
+            'ModelCheckpoint': {
+                'monitor': None,
+                'mode': 'min',
+                'save_last': None,
+                'save_top_k': None,
+                'save_weights_only': False,
+                '_every_n_train_steps': 0,
+                '_every_n_val_epochs': 1
+            }
+        }
+    )
 
 
 def test_wandb_sanitize_callable_params(tmpdir):
@@ -199,11 +240,10 @@ def test_wandb_sanitize_callable_params(tmpdir):
     params.wrapper_something_wo_name = lambda: lambda: '1'
     params.wrapper_something = wrapper_something
 
-    assert isinstance(params.gpus, types.FunctionType)
     params = WandbLogger._convert_params(params)
     params = WandbLogger._flatten_dict(params)
     params = WandbLogger._sanitize_callable_params(params)
-    assert params["gpus"] == '_gpus_arg_default'
+    assert params["gpus"] == "None"
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"

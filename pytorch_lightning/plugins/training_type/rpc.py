@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from contextlib import suppress
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import torch
 
@@ -63,16 +63,15 @@ class RPCPlugin(DDPPlugin):
         rpc._set_rpc_timeout(self.rpc_timeout_sec)
         self._is_rpc_initialized = True
 
-    def rpc_save_model(self, save_model_fn, last_filepath, trainer, pl_module) -> None:
+    def rpc_save_model(self, trainer, save_model_fn: Callable, filepath: str) -> None:
         """
         Override to save model to disk.
         This is required as the main process will be required to handle aggregating model states from RPC processes.
 
         Args:
-            save_model_fn: The saving function to save final model.
-            last_filepath: The filepath to save the model to.
             trainer: The trainer object.
-            pl_module: The LightningModule.
+            save_model_fn: The saving function to save final model.
+            filepath: The filepath to save the model to.
         """
         raise NotImplementedError
 

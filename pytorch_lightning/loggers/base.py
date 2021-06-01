@@ -20,10 +20,12 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
 from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from weakref import ReferenceType
 
 import numpy as np
 import torch
 
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_only
 
@@ -70,6 +72,15 @@ class LightningLoggerBase(ABC):
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
         self._agg_default_func = agg_default_func
+
+    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
+        """
+        Called after model checkpoint callback saves a new checkpoint
+
+        Args:
+            model_checkpoint: the model checkpoint callback instance
+        """
+        pass
 
     def update_agg_funcs(
         self,
@@ -279,12 +290,14 @@ class LightningLoggerBase(ABC):
         return params
 
     @abstractmethod
-    def log_hyperparams(self, params: argparse.Namespace):
+    def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
         """
         Record hyperparameters.
 
         Args:
             params: :class:`~argparse.Namespace` containing the hyperparameters
+            args: Optional positional arguments, depends on the specific logger being used
+            kwargs: Optional keywoard arguments, depends on the specific logger being used
         """
 
     def log_graph(self, model: LightningModule, input_array=None) -> None:
@@ -355,6 +368,10 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
+    def after_save_checkpoint(self, checkpoint_callback: 'ReferenceType[ModelCheckpoint]') -> None:
+        for logger in self._logger_iterable:
+            logger.after_save_checkpoint(checkpoint_callback)
+
     def update_agg_funcs(
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
@@ -418,41 +435,41 @@ class DummyExperiment(object):
     def __getattr__(self, _):
         return self.nop
 
-    def __getitem__(self, idx):
-        # enables self.logger[0].experiment.add_image
-        # and self.logger.experiment[0].add_image(...)
+    def __getitem__(self, idx) -> "DummyExperiment":
+        # enables self.logger.experiment[0].add_image(...)
         return self
 
 
 class DummyLogger(LightningLoggerBase):
-    """ Dummy logger for internal use. Is usefull if we want to disable users
-        logger for a feature, but still secure that users code can run """
+    """
+    Dummy logger for internal use. It is useful if we want to disable user's
+    logger for a feature, but still ensure that user code can run
+    """
 
     def __init__(self):
         super().__init__()
         self._experiment = DummyExperiment()
 
     @property
-    def experiment(self):
+    def experiment(self) -> DummyExperiment:
         return self._experiment
 
-    @rank_zero_only
-    def log_metrics(self, metrics, step):
+    def log_metrics(self, *args, **kwargs) -> None:
         pass
 
-    @rank_zero_only
-    def log_hyperparams(self, params):
-        pass
-
-    @property
-    def name(self):
+    def log_hyperparams(self, *args, **kwargs) -> None:
         pass
 
     @property
-    def version(self):
-        pass
+    def name(self) -> str:
+        return ""
 
-    def __getitem__(self, idx):
+    @property
+    def version(self) -> str:
+        return ""
+
+    def __getitem__(self, idx) -> "DummyLogger":
+        # enables self.logger[0].experiment.add_image(...)
         return self
 
 

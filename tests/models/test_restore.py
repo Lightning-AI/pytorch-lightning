@@ -27,9 +27,10 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import RunningStage, TrainerState
+from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 
@@ -85,6 +86,28 @@ class GenericValTestLossBoringModel(GenericParentValTestLossBoringModel[int]):
     pass
 
 
+class CustomClassificationModelDP(ClassificationModel):
+
+    def _step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        return {'logits': logits, 'y': y}
+
+    def training_step(self, batch, batch_idx):
+        out = self._step(batch, batch_idx)
+        loss = F.cross_entropy(out['logits'], out['y'])
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx)
+
+    def test_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx)
+
+    def validation_step_end(self, outputs):
+        self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
+
+
 def test_model_properties_resume_from_checkpoint(tmpdir):
     """
     Test that properties like `current_epoch` and `global_step`
@@ -109,23 +132,12 @@ def test_model_properties_resume_from_checkpoint(tmpdir):
 
 
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
-    """ Test that trying to resume from non-existing `resume_from_checkpoint` fail without error."""
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    checkpoint_cb = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=False,
-        callbacks=[checkpoint_cb],
-        limit_train_batches=2,
-        limit_val_batches=2,
-    )
-    # Generate checkpoint `last.ckpt` with BoringModel
-    trainer.fit(model, datamodule=dm)
-    # `True` if resume/restore successfully else `False`
-    assert trainer.checkpoint_connector.restore(str(tmpdir / "last.ckpt"), trainer.on_gpu)
-    assert not trainer.checkpoint_connector.restore(str(tmpdir / "last_non_existing.ckpt"), trainer.on_gpu)
+    """ Test that trying to resume from non-existing `resume_from_checkpoint` fails with an error."""
+    model = BoringModel()
+    trainer = Trainer(resume_from_checkpoint=str(tmpdir / "non_existing.ckpt"))
+
+    with pytest.raises(FileNotFoundError, match="Aborting training"):
+        trainer.fit(model)
 
 
 class CaptureCallbacksBeforeTraining(Callback):
@@ -144,10 +156,7 @@ def test_callbacks_state_resume_from_checkpoint(tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
-            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[
-                checkpoint,
-                callback_capture,
-            ]
+            default_root_dir=tmpdir, max_steps=1, logger=False, callbacks=[checkpoint, callback_capture]
         )
         assert checkpoint.best_model_path == ""
         assert checkpoint.best_model_score is None
@@ -192,33 +201,11 @@ def test_callbacks_references_resume_from_checkpoint(tmpdir):
     trainer.fit(model, datamodule=dm)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
 
     tutils.set_random_master_port()
-
-    class CustomClassificationModelDP(ClassificationModel):
-
-        def _step(self, batch, batch_idx):
-            x, y = batch
-            logits = self(x)
-            return {'logits': logits, 'y': y}
-
-        def training_step(self, batch, batch_idx):
-            _, y = batch
-            out = self._step(batch, batch_idx)
-            loss = F.cross_entropy(out['logits'], y)
-            return loss
-
-        def validation_step(self, batch, batch_idx):
-            return self._step(batch, batch_idx)
-
-        def test_step(self, batch, batch_idx):
-            return self._step(batch, batch_idx)
-
-        def validation_step_end(self, outputs):
-            self.log('val_acc', self.valid_acc(outputs['logits'], outputs['y']))
 
     dm = ClassifDataModule()
     model = CustomClassificationModelDP(lr=0.1)
@@ -246,7 +233,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     trainer.fit(model, datamodule=dm)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
@@ -259,10 +246,10 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(pretrained_model, dataloader)
+        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     """Verify `test()` on pretrained model."""
     tutils.set_random_master_port()
@@ -294,7 +281,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     log.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
@@ -307,7 +294,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tpipes.run_prediction(pretrained_model, dataloader, min_acc=0.1)
+        tpipes.run_prediction_eval_model_template(pretrained_model, dataloader, min_acc=0.1)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -338,7 +325,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     trainer.fit(model, datamodule=dm)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     pretrained_model = ClassificationModel.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     new_trainer = Trainer(**trainer_options)
@@ -370,7 +357,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     trainer.test(ckpt_path=None)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
@@ -395,10 +382,11 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     new_trainer.test(pretrained_model)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
-    model = BoringModel()
+    model = CustomClassificationModelDP(lr=0.1)
+    dm = ClassifDataModule()
 
     trainer_options = dict(max_epochs=1, gpus=2, accelerator='dp', default_root_dir=tmpdir)
 
@@ -416,13 +404,13 @@ def test_dp_resume(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     trainer.is_slurm_managing_tasks = True
-    trainer.fit(model)
+    trainer.fit(model, datamodule=dm)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
     real_global_epoch = trainer.current_epoch + 1
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # ---------------------------
     # HPC LOAD/SAVE
@@ -439,7 +427,7 @@ def test_dp_resume(tmpdir):
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
 
-    class CustomModel(BoringModel):
+    class CustomModel(CustomClassificationModelDP):
 
         def __init__(self):
             super().__init__()
@@ -451,19 +439,17 @@ def test_dp_resume(tmpdir):
 
             # if model and state loaded correctly, predictions will be good even though we
             # haven't trained with the new loaded model
-            dp_model = new_trainer.model
-            dp_model.eval()
-            dp_model.module.module.running_stage = RunningStage.EVALUATING
+            new_trainer.state.stage = RunningStage.VALIDATING
 
             dataloader = self.train_dataloader()
-            tpipes.run_prediction(self.trainer.lightning_module, dataloader)
+            tpipes.run_prediction_eval_model_template(self.trainer.lightning_module, dataloader=dataloader)
             self.on_train_start_called = True
 
     # new model
     model = CustomModel()
 
     # fit new model which should load hpc weights
-    new_trainer.fit(model)
+    new_trainer.fit(model, datamodule=dm)
     assert model.on_train_start_called
 
     # test freeze on gpu
@@ -490,7 +476,7 @@ def test_model_saving_loading(tmpdir):
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # make a prediction
     dataloaders = model.test_dataloader()
@@ -547,7 +533,7 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -595,7 +581,7 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
     trainer.fit(model)
 
     # traning complete
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -603,8 +589,8 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # load new model
     hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
-    hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
-    ckpt_path = hparams_url if url_ckpt else new_weights_path
+    ckpt_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
+    ckpt_path = ckpt_url if url_ckpt else new_weights_path
 
     class CurrentModel(BoringModel):
 

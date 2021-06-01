@@ -1,0 +1,91 @@
+trigger:
+  tags:
+    include:
+      - '*'
+  branches:
+    include:
+      - master
+      - release/*
+      - refs/tags/*
+pr:
+  - master
+  - release/*
+
+variables:
+- name: poplar_sdk
+  value: "poplar_sdk-ubuntu_20_04-2.0.0+481-79b41f85d1"
+
+jobs:
+  - job: ipu
+
+    pool: graphcore-ipus
+
+    workspace:
+      clean: all
+
+    steps:
+    - script: tar -xvzf /opt/poplar/${{ variables.poplar_sdk }}.tar.gz
+      displayName: "Extract Poplar SDK"
+
+    - script: |
+        set -eux
+        pip debug --verbose
+        pip install ${{ variables.poplar_sdk }}/poptorch-*ubuntu*.whl
+      displayName: "Install poptorch"
+
+    - script: |
+        set -eux
+        source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
+        NUM_IPUS=$(gc-info --ipu-count)
+        if [[ -z "${NUM_IPUS}" ]] || [[ "${NUM_IPUS}" -eq 0 ]]; then
+            echo "No IPUs found to reset. Exiting"
+            exit 1
+        fi
+        echo "Resetting parity on ${NUM_IPUS} IPU devices"
+        i=0
+        while [[ i -lt  "${NUM_IPUS}" ]]; do
+            gc-reset -d "${i}"
+            i=$((i + 1))
+        done
+      displayName: "Reset IPU devices"
+
+    - bash: |
+        export GIT_TERMINAL_PROMPT=1
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
+        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
+
+        python ./requirements/adjust_versions.py requirements/extra.txt
+        python ./requirements/adjust_versions.py requirements/examples.txt
+
+        pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
+
+        pip list
+      displayName: 'Install dependencies'
+
+    - bash: |
+        python tests/collect_env_details.py
+        python -c "import torch"
+      displayName: 'Env details'
+
+    - script: |
+        set -eux
+        source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
+        source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
+
+        python -c "import poptorch; print(poptorch.__version__)"
+      displayName: "Check poptorch installation"
+
+    - bash: |
+        wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
+        unzip -o legacy/checkpoints.zip -d legacy/
+        ls -l legacy/checkpoints/
+      displayName: 'Get legacy checkpoints'
+
+    - bash: |
+        source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
+        source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
+
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+      env:
+        MKL_THREADING_LAYER: "GNU"
+      displayName: 'Testing: standard'

@@ -135,7 +135,7 @@ class ActorContinous(nn.Module):
 class ExperienceSourceDataset(IterableDataset):
     """
     Implementation from PyTorch Lightning Bolts:
-    https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/datamodules/experience_source.py
+    https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/datamodules/experience_source.py
 
     Basic experience source dataset. Takes a generate_batch function that returns an iterator.
     The logic for the experience source and how the batch is generated is defined the Lightning model itself
@@ -446,7 +446,7 @@ class PPOLightning(pl.LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
-        parser = argparse.ArgumentParser(parents=[parent_parser])
+        parser = parent_parser.add_argument_group("PPOLightning")
         parser.add_argument("--env", type=str, default="CartPole-v0")
         parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
         parser.add_argument("--lam", type=float, default=0.95, help="advantage discount factor")
@@ -467,7 +467,7 @@ class PPOLightning(pl.LightningModule):
             "--clip_ratio", type=float, default=0.2, help="hyperparameter for clipping in the policy objective"
         )
 
-        return parser
+        return parent_parser
 
 
 def main(args) -> None:

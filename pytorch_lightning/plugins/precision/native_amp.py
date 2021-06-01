@@ -12,37 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Callable, Generator
+from typing import Any, Callable, Generator
 
 import torch
 from torch.optim import LBFGS, Optimizer
 
-from pytorch_lightning.core import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import _NATIVE_AMP_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _NATIVE_AMP_AVAILABLE:
-    from torch.cuda.amp import autocast
-else:
-    autocast = None
-
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
+    """ Plugin for native mixed precision training with :mod:`torch.cuda.amp`."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        super().__init__()
+        if not _NATIVE_AMP_AVAILABLE:
+            raise MisconfigurationException(
+                "You have asked for native AMP but your PyTorch version does not support it."
+                " Consider upgrading with `pip install torch>=1.6`."
+            )
+
         self.backend = AMPType.NATIVE
         self.scaler = torch.cuda.amp.GradScaler()
 
     def backward(
         self,
-        model: LightningModule,
+        model: 'pl.LightningModule',
         closure_loss: torch.Tensor,
         optimizer: Optimizer,
         opt_idx: int,
         should_accumulate: bool,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> torch.Tensor:
         """performs the actual backpropagation
 
@@ -65,7 +68,12 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         return closure_loss
 
     def pre_optimizer_step(
-        self, pl_module: LightningModule, optimizer: Optimizer, optimizer_idx: int, lambda_closure: Callable, **kwargs
+        self,
+        pl_module: 'pl.LightningModule',
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        lambda_closure: Callable,
+        **kwargs: Any,
     ) -> bool:
         """always called before the optimizer step.
         Checks that the optimizer is not LBFGS, as this one is not supported by native amp
@@ -89,7 +97,25 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.scaler.update()
 
     @contextmanager
-    def train_step_context(self) -> Generator[autocast, None, None]:
+    def train_step_context(self) -> Generator[None, None, None]:
+        """Enable autocast context"""
+        with torch.cuda.amp.autocast():
+            yield
+
+    @contextmanager
+    def val_step_context(self) -> Generator[None, None, None]:
+        """Enable autocast context"""
+        with torch.cuda.amp.autocast():
+            yield
+
+    @contextmanager
+    def test_step_context(self) -> Generator[None, None, None]:
+        """Enable autocast context"""
+        with torch.cuda.amp.autocast():
+            yield
+
+    @contextmanager
+    def predict_step_context(self) -> Generator[None, None, None]:
         """Enable autocast context"""
         with torch.cuda.amp.autocast():
             yield

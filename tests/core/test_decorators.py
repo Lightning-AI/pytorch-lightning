@@ -16,9 +16,10 @@ import torch
 
 from pytorch_lightning.core.decorators import auto_move_data
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@RunIf(min_gpus=1)
 @pytest.mark.parametrize(['src_device', 'dest_device'], [
     pytest.param(torch.device('cpu'), torch.device('cpu')),
     pytest.param(torch.device('cpu', 0), torch.device('cuda', 0)),

@@ -30,9 +30,7 @@ def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_ste
         max_steps=max_steps,
         weights_summary=None,
     )
-
-    result = trainer.fit(model)
-    assert result == 1, "Training did not complete"
+    trainer.fit(model)
 
     # check training stopped at max_epochs or max_steps
     if trainer.max_steps and not trainer.max_epochs:

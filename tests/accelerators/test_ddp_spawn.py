@@ -11,25 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
-import torch
-
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.states import TrainerState
-from tests.base import EvalModelTemplate
+from tests.helpers import BoringModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     tutils.set_random_master_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
-        callbacks=[EarlyStopping()],
+        callbacks=[EarlyStopping(monitor='train_acc')],
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
@@ -37,11 +36,12 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         accelerator='ddp_spawn',
     )
 
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
+    dm = ClassifDataModule()
+    model = ClassificationModel()
+    tpipes.run_model_test(trainer_options, model, dm)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_multi_gpu_model_ddp_spawn(tmpdir):
     tutils.set_random_master_port()
 
@@ -55,7 +55,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
-    model = EvalModelTemplate()
+    model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
 
@@ -63,12 +63,12 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@RunIf(min_gpus=2)
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()
 
-    model = EvalModelTemplate()
+    model = BoringModel()
     fit_options = dict(train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
     trainer = Trainer(
@@ -81,4 +81,4 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         accelerator='ddp_spawn',
     )
     trainer.fit(model, **fit_options)
-    assert trainer.state == TrainerState.FINISHED, "DDP doesn't work with dataloaders passed to fit()."
+    assert trainer.state.finished, "DDP doesn't work with dataloaders passed to fit()."
