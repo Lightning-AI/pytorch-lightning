@@ -37,9 +37,7 @@ class ClusterEnvironment(ABC):
                 )
             else:
                 os.environ[environ_param] = value
-                rank_zero_warn(
-                    f"Setting environ parameter {environ_param} to default value: {value}."
-                )
+                rank_zero_warn(f"Setting environ parameter {environ_param} to default value: {value}.")
         # override os.environ from user defined `environ_settings`
         for environ_param, value in environ_settings.items():
             if environ_param in os.environ:
