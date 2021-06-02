@@ -43,7 +43,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -469,8 +469,7 @@ class LightningModule(
         if isinstance(value, numbers.Number):
             value = torch.tensor(value, device=device, dtype=torch.float)
         sync_fn = sync_fn or sync_ddp_if_available
-        dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
-        if not sync_dist or not dist_available:
+        if not sync_dist:
             return value
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
