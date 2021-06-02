@@ -39,6 +39,11 @@ repos:
         name: Format code
         language: python
 
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: 'v2.3'
+    hooks:
+      - id: vulture
+
   - repo: https://github.com/PyCQA/flake8
     rev: 3.9.2
     hooks:

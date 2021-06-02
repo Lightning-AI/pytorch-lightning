@@ -90,7 +90,7 @@ class RegisterRecordFunction:
 
                 self._handles[module_name] = [pre_forward_handle, post_forward_handle]
 
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+    def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
         for handles in self._handles.values():
             for h in handles:
                 h.remove()
