@@ -89,9 +89,7 @@ jobs:
           python-version: 3.7
 
       - name: Install dependencies
-        run: |
-          pip install vulture
-          pip list
+        run: pip install vulture && pip list
 
       - name: Check for dead code with Vulture
         run: |
