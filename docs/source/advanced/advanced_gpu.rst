@@ -109,7 +109,7 @@ This is a requirement for really large models and also saves on instantiation ti
 ``auto_wrap`` will recursively wrap `torch.nn.Modules` within the ``LightningModule`` with nested Fully Sharded Wrappers,
 signalling that we'd like to partition these modules across data parallel devices, discarding the full weights when not required (information `here <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp_tips.html>`__).
 
-Enabling ``auto_wrap`` can have varying level of success based on the complexity of your model. **Auto Wrap does not support models with shared parameters**, use :ref:`manual-wrap` instead.
+``auto_wrap`` can have varying level of success based on the complexity of your model. **Auto Wrap does not support models with shared parameters**.
 
 ``wrap`` will simply wrap the module with a Fully Sharded Parallel class with the correct parameters from the Lightning context manager.
 
