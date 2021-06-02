@@ -46,16 +46,16 @@ class IPUPlugin(ParallelPlugin):
 
     def __init__(
         self,
-        half: bool = False,
         device_iterations: int = 1,
         autoround_num_ipus: bool = True,
         autoreport: bool = True,
         autoreport_dir: Optional[str] = None,
+        convert_model_to_half: bool = False,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
     ):
         super().__init__(parallel_devices, cluster_environment)
-        self.half = half
+        self.convert_model_to_half = convert_model_to_half
         self.device_iterations = device_iterations
         self.autoround_num_ipus = autoround_num_ipus
         self.autoreport = autoreport
@@ -80,11 +80,11 @@ class IPUPlugin(ParallelPlugin):
         return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def pre_dispatch(self) -> None:
-        if self.half:
+        if self.convert_model_to_half:
             log.info('Using full 16bit precision, converting LightningModule weights to FP16.')
             self.model = self.model.half()
         precision = self.lightning_module.trainer.accelerator.precision_plugin.precision
-        precision = 16 if self.half else precision
+        precision = 16 if self.convert_model_to_half else precision
 
         model = LightningIPUModule(self.lightning_module, precision)
         self.model = model
@@ -250,7 +250,7 @@ class IPUPlugin(ParallelPlugin):
     def load_model(self, stage):
         self.detach_models()
         model = self.poptorch_models[stage]
-        if self._compiled(model):
+        if self._compiled(model) and not model.isAttachedToDevice():
             model.attachToDevice()
 
     def on_train_start(self):
