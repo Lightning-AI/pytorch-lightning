@@ -79,10 +79,8 @@ class EvaluationLoop(object):
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
-            self.trainer.accelerator.on_test_start()
         else:
             self.trainer.call_hook('on_validation_start', *args, **kwargs)
-            self.trainer.accelerator.on_validation_start()
 
     def on_evaluation_model_eval(self) -> None:
         model_ref = self.trainer.lightning_module
@@ -101,10 +99,8 @@ class EvaluationLoop(object):
     def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         if self.trainer.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
-            self.trainer.accelerator.on_test_end()
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
-            self.trainer.accelerator.on_validation_end()
 
         if self.trainer.state.fn != TrainerFn.FITTING:
             # summarize profile results

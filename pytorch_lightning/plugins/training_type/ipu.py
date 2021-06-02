@@ -4,10 +4,10 @@ import os
 from typing import Any, Iterable, List, Optional, Union
 
 import torch
-from torch.nn import Module
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -61,6 +61,7 @@ class IPUPlugin(ParallelPlugin):
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
         self.poptorch_models = {}
+        self._original_accumulate_grad_batches = None
 
         if self.autoreport:
             options = {"autoReport.all": self.autoreport}
@@ -80,6 +81,7 @@ class IPUPlugin(ParallelPlugin):
         return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def pre_dispatch(self) -> None:
+        self._handle_gradient_accumulation_steps()
         if self.convert_model_to_half:
             log.info('Using full 16bit precision, converting LightningModule weights to FP16.')
             self.model = self.model.half()
@@ -174,10 +176,28 @@ class IPUPlugin(ParallelPlugin):
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
 
+    def _handle_gradient_accumulation_steps(self):
+        """
+        This functions overrides the trainer.accumulation_scheduler to generate
+        ``accumulate_grad_batches=1``.
+        Therefore, ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation.
+        """
+        self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+        if self._original_accumulate_grad_batches > 1:
+            # todo (tchaton) Add support for accumulate_grad_batches being a dictionary.
+            self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
+
+    def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:
+        if self._original_accumulate_grad_batches > 1:
+            if total_batch_idx % self._original_accumulate_grad_batches == 0:
+                current_global_step += 1
+            return current_global_step
+        return super().update_global_step(total_batch_idx, current_global_step)
+
     @property
     def _n_replicate(self):
-        # Ensure we replicate primitives values to have enough dimensions to split across devices
-        accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+        # Ensure we replicate values to have enough dimensions to split across devices
+        accumulate_grad_batches = self._original_accumulate_grad_batches
         return self.replication_factor * self.device_iterations * accumulate_grad_batches
 
     def _prepare_input(self, args):
@@ -240,6 +260,7 @@ class IPUPlugin(ParallelPlugin):
             model.destroy()
 
     def _compiled(self, model):
+        # Required to ensure we only attach compiled models, as they are compiled lazily.
         return model._executable is not None
 
     def detach_models(self):
@@ -276,3 +297,8 @@ class IPUPlugin(ParallelPlugin):
 
     def on_predict_end(self):
         self.detach_models()
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        # Update optimizer stats if LR scheduler modified the optimizer state
+        optimizer = self.lightning_module.trainer.optimizers[0]
+        self.poptorch_models['train'].setOptimizer(optimizer)

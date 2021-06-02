@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from typing import Any, Optional
 
 import pytest
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Callback, seed_everything, Trainer
+from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.datasets import SklearnDataset
@@ -91,7 +93,7 @@ class IPUClassificationModel(ClassificationModel):
 @pytest.mark.parametrize('ipu_cores', [1, 4])
 def test_all_stages(tmpdir, ipu_cores):
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, accelerator='ipu', ipu_cores=ipu_cores)
+    trainer = Trainer(fast_dev_run=True, ipu_cores=ipu_cores)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -103,7 +105,7 @@ def test_all_stages(tmpdir, ipu_cores):
 def test_inference_only(tmpdir, ipu_cores):
     model = IPUModel()
 
-    trainer = Trainer(fast_dev_run=True, accelerator='ipu', ipu_cores=ipu_cores)
+    trainer = Trainer(fast_dev_run=True, ipu_cores=ipu_cores)
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model, model.val_dataloader())
@@ -176,4 +178,61 @@ def test_optimization(tmpdir):
     assert saved_result > 0.6 and (saved_result == test_result)
 
 
-# todo add test for precision 16 and fully half precision + device iterations
+@RunIf(ipu=True, special=True)
+def test_mixed_precision(tmpdir):
+
+    class TestCallback(Callback):
+
+        def setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', stage: Optional[str] = None) -> None:
+            assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
+            assert trainer.accelerator.precision_plugin.precision == 16
+            assert trainer.accelerator.model.precision == 16
+            raise SystemExit
+
+    model = IPUModel()
+    trainer = Trainer(fast_dev_run=True, ipu_cores=1, precision=16, callbacks=TestCallback())
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@RunIf(ipu=True, special=True)
+def test_pure_half_precision(tmpdir):
+
+    class TestCallback(Callback):
+
+        def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+            assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+            assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
+            assert trainer.accelerator.precision_plugin.precision == 16
+            assert trainer.accelerator.model.precision == 16
+            assert trainer.accelerator.training_type_plugin.convert_model_of_to_half
+            for param in trainer.accelerator.model.parameters():
+                assert param.dtype == torch.float16
+            raise SystemExit
+
+    model = IPUModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        ipu_cores=1,
+        precision=16,
+        plugins=IPUPlugin(convert_model_to_half=True),
+        callbacks=TestCallback()
+    )
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@RunIf(ipu=True, special=True)
+def test_device_iterations_ipu_plugin(tmpdir):
+
+    class TestCallback(Callback):
+
+        def setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', stage: Optional[str] = None) -> None:
+            assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+            assert trainer.accelerator.training_type_plugin.device_iterations == 20
+            raise SystemExit
+
+    model = IPUModel()
+    trainer = Trainer(fast_dev_run=True, ipu_cores=1, plugins=IPUPlugin(device_iterations=20), callbacks=TestCallback())
+    with pytest.raises(SystemExit):
+        trainer.fit(model)

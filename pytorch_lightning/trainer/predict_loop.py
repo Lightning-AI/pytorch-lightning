@@ -141,7 +141,6 @@ class PredictLoop(object):
         # hook
         self.trainer.call_hook("on_predict_start")
         self.trainer.call_hook("on_predict_epoch_start")
-        self.trainer.accelerator.on_predict_start()
 
     def on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
         self.trainer.profiler.describe()
@@ -163,4 +162,3 @@ class PredictLoop(object):
 
         # hook
         self.trainer.call_hook("on_predict_end")
-        self.trainer.accelerator.on_predict_end()

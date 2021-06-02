@@ -362,3 +362,16 @@ class TrainingTypePlugin(Plugin, ABC):
     def on_predict_end(self):
         """Called when predict ends."""
         pass
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+
+        If you return -1 here, you will skip training for the rest of the current epoch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
+        """
+        pass

@@ -101,7 +101,6 @@ class TrainLoop:
     def on_train_start(self):
         # hook
         self.trainer.call_hook("on_train_start")
-        self.trainer.accelerator.on_train_start()
 
     def on_train_end(self):
         if self._teardown_already_run:
@@ -125,9 +124,6 @@ class TrainLoop:
 
         # summarize profile results
         self.trainer.profiler.describe()
-
-        # give accelerators a chance to finish
-        self.trainer.accelerator.on_train_end()
 
         # reset bookkeeping
         self.trainer.state.stage = None
@@ -631,9 +627,8 @@ class TrainLoop:
                 else:
                     model_ref.on_train_epoch_end()
 
-            # if the PL module doesn't have the hook then call the accelerator
-            # used to auto-reduce things for the user with Results obj
-            elif hasattr(self.trainer.accelerator, hook_name):
+            # call hook in accelerator
+            if hasattr(self.trainer.accelerator, hook_name):
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
 
