@@ -90,14 +90,14 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
     def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
         if self.is_tensor:
             if self.meta.is_mean_reduction:
-                self.value += value.float().mean() * batch_size
+                self.value += value.mean() * batch_size
                 self.cumulated_batch_size += batch_size
 
             elif self.meta.is_max_reduction:
-                self.value = max(self.value, value.float().mean())
+                self.value = max(self.value, value.mean())
 
             elif self.meta.is_min_reduction:
-                self.value = min(self.value, value.float().mean())
+                self.value = min(self.value, value.mean())
         else:
             self.value = value  # noqa: attribute-defined-outside-init
             self._forward_cache = value._forward_cache
@@ -121,9 +121,13 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         self.meta.has_reset = True
 
     def forward(self, value: _METRIC, *args, **kwargs) -> None:
+        if isinstance(value, Metric):
+            self._forward_cache = value._forward_cache
+        else:
+            value = value.float()
+            self._forward_cache = value
         # performance: skip the `torch.no_grad` context manager by calling `update` directly
         # as `backward` shouldn't be run on metrics
-        self._forward_cache = value._forward_cache if isinstance(value, Metric) else value
         self.update(value, *args, **kwargs)
 
     def __repr__(self) -> str:
