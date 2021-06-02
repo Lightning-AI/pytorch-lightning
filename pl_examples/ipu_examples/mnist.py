@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pprint import pprint
-
 import torch
 from torch.nn import functional as F
 
 import pytorch_lightning as pl
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
-from pytorch_lightning.plugins import IPUPlugin
 
 
 class LitClassifier(pl.LightningModule):
@@ -60,7 +57,7 @@ class LitClassifier(pl.LightningModule):
         return acc
 
     def accuracy(self, logits, y):
-        # todo (sean): currently IPU poptorch doesn't implicit convert bools to tensor
+        # currently IPU poptorch doesn't implicit convert bools to tensor
         # hence we use an explicit calculation for accuracy here. Once fixed in poptorch
         # we can use the accuracy metric.
         acc = torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
