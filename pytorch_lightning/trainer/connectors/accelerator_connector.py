@@ -138,6 +138,7 @@ class AcceleratorConnector(object):
         self.configure_slurm_ddp()
 
         self.handle_given_plugins()
+        self.validate_accelerate_type()
 
         self._training_type_plugin_resolved = False
         self.accelerator = self.select_accelerator()
@@ -185,6 +186,12 @@ class AcceleratorConnector(object):
             self._accelerator_type = DeviceType.GPU
         else:
             self._accelerator_type = DeviceType.CPU
+
+    def validate_accelerate_type(self) -> None:
+        if self._accelerator_type and self._accelerator_type != self._device_type:
+            raise MisconfigurationException("")
+        else:
+            self._accelerator_type = self._device_type
 
     def handle_given_plugins(self) -> None:
 
