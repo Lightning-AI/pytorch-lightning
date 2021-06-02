@@ -56,6 +56,7 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
+    _GPU_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
     _TPU_AVAILABLE,
@@ -181,7 +182,7 @@ class AcceleratorConnector(object):
             self._accelerator_type = DeviceType.TPU
         elif self.distributed_backend == DeviceType.GPU:
             if not self.on_gpu:
-                msg = "GPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `gpus` to `Trainer`"
+                msg = "GPUs are not available" if not _GPU_AVAILABLE else "you didn't pass `gpus` to `Trainer`"
                 raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}")
             self._accelerator_type = DeviceType.GPU
         else:
