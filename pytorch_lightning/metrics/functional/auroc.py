@@ -34,4 +34,4 @@ def auroc(
     .. deprecated::
         Use :func:`torchmetrics.functional.auroc`. Will be removed in v1.5.0.
     """
-    return void(preds,target,num_classes,pos_label,average,max_fpr,sample_weights)
+    return void(preds, target, num_classes, pos_label, average, max_fpr, sample_weights)

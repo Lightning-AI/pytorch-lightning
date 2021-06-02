@@ -32,4 +32,4 @@ def average_precision(
     .. deprecated::
         Use :func:`torchmetrics.functional.average_precision`. Will be removed in v1.5.0.
     """
-    return void(preds,target,num_classes,pos_label,sample_weights)
+    return void(preds, target, num_classes, pos_label, sample_weights)

@@ -30,4 +30,4 @@ def r2score(
     .. deprecated::
         Use :func:`torchmetrics.functional.r2score`. Will be removed in v1.5.0.
     """
-    return void(preds,target,adjusted,multioutput)
+    return void(preds, target, adjusted, multioutput)

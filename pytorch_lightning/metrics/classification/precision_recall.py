@@ -72,4 +72,7 @@ class Recall(_Recall):
         .. deprecated::
             Use :class:`~torchmetrics.Recall`. Will be removed in v1.5.0.
         """
-        void(num_classes, threshold,average,multilabel,mdmc_average,ignore_index,top_k,is_multiclass,compute_on_step,dist_sync_on_step,process_group,dist_sync_fn)
+        void(
+            num_classes, threshold, average, multilabel, mdmc_average, ignore_index, top_k, is_multiclass,
+            compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
+        )

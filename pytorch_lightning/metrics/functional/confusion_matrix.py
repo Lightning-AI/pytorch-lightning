@@ -32,4 +32,4 @@ def confusion_matrix(
     .. deprecated::
         Use :func:`torchmetrics.functional.confusion_matrix`. Will be removed in v1.5.0.
     """
-    return void(preds,target,num_classes,normalize,threshold)
+    return void(preds, target, num_classes, normalize, threshold)

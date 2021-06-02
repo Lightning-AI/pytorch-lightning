@@ -36,4 +36,4 @@ def stat_scores(
     .. deprecated::
         Use :func:`torchmetrics.functional.stat_scores`. Will be removed in v1.5.0.
     """
-    return void(preds,target,reduce,mdmc_reduce,num_classes,top_k,threshold,is_multiclass,ignore_index)
+    return void(preds, target, reduce, mdmc_reduce, num_classes, top_k, threshold, is_multiclass, ignore_index)

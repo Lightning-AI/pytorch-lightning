@@ -35,4 +35,4 @@ def ssim(
     .. deprecated::
         Use :func:`torchmetrics.functional.ssim`. Will be removed in v1.5.0.
     """
-    return void(preds,target,kernel_size,sigma,reduction,data_range,k1,k2)
+    return void(preds, target, kernel_size, sigma, reduction, data_range, k1, k2)

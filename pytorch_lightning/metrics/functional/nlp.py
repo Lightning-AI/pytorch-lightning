@@ -36,4 +36,4 @@ def bleu_score(
     .. deprecated::
         Use :func:`torchmetrics.functional.bleu_score`. Will be removed in v1.5.0.
     """
-    return void(translate_corpus,reference_corpus,n_gram,smooth)
+    return void(translate_corpus, reference_corpus, n_gram, smooth)

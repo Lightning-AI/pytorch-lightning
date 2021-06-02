@@ -34,4 +34,4 @@ class CompositionalMetric(_CompositionalMetric):
         .. deprecated::
             Use :class:`torchmetrics.metric.CompositionalMetric`. Will be removed in v1.5.0.
         """
-        void(operator,metric_a,metric_b)
+        void(operator, metric_a, metric_b)

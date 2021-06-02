@@ -39,5 +39,7 @@ class IoU(_IoU):
         .. deprecated::
             Use :class:`~torchmetrics.IoU`. Will be removed in v1.5.0.
         """
-        void(num_classes, ignore_index, absent_score, threshold, reduction,
-            compute_on_step, dist_sync_on_step, process_group)
+        void(
+            num_classes, ignore_index, absent_score, threshold, reduction, compute_on_step, dist_sync_on_step,
+            process_group
+        )

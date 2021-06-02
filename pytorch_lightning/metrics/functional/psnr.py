@@ -33,4 +33,4 @@ def psnr(
     .. deprecated::
         Use :func:`torchmetrics.functional.psnr`. Will be removed in v1.5.0.
     """
-    return void(preds,target,data_range,base,reduction,dim)
+    return void(preds, target, data_range, base, reduction, dim)

@@ -36,4 +36,4 @@ def iou(
     .. deprecated::
         Use :func:`torchmetrics.functional.iou`. Will be removed in v1.5.0.
     """
-    return void(pred,target,ignore_index,absent_score,threshold,num_classes,reduction)
+    return void(pred, target, ignore_index, absent_score, threshold, num_classes, reduction)

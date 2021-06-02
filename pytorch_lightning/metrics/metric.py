@@ -34,7 +34,7 @@ class Metric(_Metric):
         .. deprecated::
             Use :class:`torchmetrics.Metric`. Will be removed in v1.5.0.
         """
-        void(compute_on_step,dist_sync_on_step,process_group,dist_sync_fn)
+        void(compute_on_step, dist_sync_on_step, process_group, dist_sync_fn)
 
 
 class MetricCollection(_MetricCollection):

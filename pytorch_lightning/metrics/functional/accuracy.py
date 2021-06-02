@@ -32,4 +32,4 @@ def accuracy(
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
     """
-    return void(preds,target,threshold,top_k,subset_accuracy)
+    return void(preds, target, threshold, top_k, subset_accuracy)

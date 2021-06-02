@@ -33,4 +33,4 @@ def precision_recall_curve(
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
     """
-    return void(preds,target,num_classes,pos_label,sample_weights)
+    return void(preds, target, num_classes, pos_label, sample_weights)

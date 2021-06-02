@@ -30,4 +30,4 @@ def explained_variance(
     .. deprecated::
         Use :func:`torchmetrics.functional.explained_variance`. Will be removed in v1.5.0.
     """
-    return void(preds,target,multioutput)
+    return void(preds, target, multioutput)
