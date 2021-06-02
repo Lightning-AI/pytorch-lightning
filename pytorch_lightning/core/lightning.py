@@ -374,15 +374,7 @@ class LightningModule(
                     f" of {list(self._metric_attributes.values())}"
                 )
 
-        sync_fn = partial(
-            self.__sync,
-            sync_fn=self.trainer.training_type_plugin.reduce,
-            sync_dist=sync_dist,
-            sync_dist_op=sync_dist_op,
-            sync_dist_group=sync_dist_group,
-            device=self.device,
-        )
-        value = apply_to_collection(value, (torch.Tensor, numbers.Number), sync_fn)
+        value = apply_to_collection(value, numbers.Number, self.__to_float)
 
         result_collection.log(
             self._current_fx_name,
@@ -458,16 +450,13 @@ class LightningModule(
 
     @staticmethod
     def __sync(
-        value: Union[torch.Tensor, numbers.Number],
+        value: torch.Tensor,
         sync_fn: Optional[Callable] = None,
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
-        device: torch.device = None,
     ) -> torch.Tensor:
         """Sync across workers when using distributed training"""
-        if isinstance(value, numbers.Number):
-            value = torch.tensor(value, device=device, dtype=torch.float)
         sync_fn = sync_fn or sync_ddp_if_available
         if not sync_dist:
             return value
@@ -482,6 +471,9 @@ class LightningModule(
     @staticmethod
     def __check_allowed(name: str, value: Any, v: Any) -> None:
         raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
+
+    def __to_float(self, value: numbers.Number) -> torch.Tensor:
+        return torch.tensor(value, device=self.device, dtype=torch.float)
 
     def write_prediction(
         self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'
