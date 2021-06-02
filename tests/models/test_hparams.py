@@ -55,7 +55,7 @@ class SaveHparamsDecoratedModel(BoringModel):
 
     @decorate
     @decorate
-    def __init__(self, hparams, *_my_args, **_my_kwargs):
+    def __init__(self, hparams, *my_args, **my_kwargs):
         super().__init__()
         self.save_hyperparameters(hparams)
 
