@@ -54,9 +54,9 @@ class PrecisionPlugin(Plugin):
         self,
         model: 'pl.LightningModule',
         closure_loss: Tensor,
+        should_accumulate: bool,
         optimizer: Optimizer,
         opt_idx: int,
-        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
@@ -65,10 +65,9 @@ class PrecisionPlugin(Plugin):
         Args:
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
+            should_accumulate: whether to accumulate gradients or not
             optimizer: the optimizer to perform the step lateron
             opt_idx: the optimizer's index
-            should_accumulate: whether to accumulate gradients or not
-
         """
         automatic_optimization = model.automatic_optimization
 

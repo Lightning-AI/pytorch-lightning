@@ -47,7 +47,7 @@ class DataParallelPlugin(ParallelPlugin):
     def world_size(self) -> int:
         return 1
 
-    def setup(self, model):
+    def setup_model(self, model):
         # model needs to be moved to the device before it is wrapped
         model.to(self.root_device)
         self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)

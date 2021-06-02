@@ -28,7 +28,7 @@ class DDP2Plugin(DDPPlugin):
     def world_size(self) -> int:
         return self.num_nodes
 
-    def setup(self, model):
+    def setup_model(self, model):
         self._model = model
         # set the task idx
         self.task_idx = self.cluster_environment.local_rank()

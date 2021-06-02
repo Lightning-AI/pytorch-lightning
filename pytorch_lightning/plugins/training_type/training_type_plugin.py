@@ -59,6 +59,10 @@ class TrainingTypePlugin(Plugin, ABC):
         self._call_configure_sharded_model_hook = True
         self._precision_plugin = None
 
+        self.optimizers: List = []
+        self.lr_schedulers: List = []
+        self.optimizer_frequencies: List = []
+
     @property
     def precision_plugin(self) -> Optional[PrecisionPlugin]:
         return self._precision_plugin
@@ -143,8 +147,45 @@ class TrainingTypePlugin(Plugin, ABC):
         which allows the user to access the accelerator environment before setup is complete.
         """
 
-    def setup(self, model: Module) -> None:
-        """Called by the accelerator to finish setup."""
+    def setup(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> None:
+        """
+        Setup plugins for the trainer fit and creates optimizers.
+
+        Args:
+            trainer: the trainer instance
+            model: the LightningModule
+        """
+        self.setup_model(model)
+        if not self.setup_optimizers_in_pre_dispatch:
+            self.setup_optimizers(trainer)
+        self.connect_precision_plugin()
+
+    def setup_model(self, model: 'pl.LightningModule') -> None:
+        """Called to setup model in TrainingTypePlugin environment."""
+
+    def connect_precision_plugin(self) -> None:
+        """Connect precision plugin to model, optimizer and schedulers."""
+        assert self.precision_plugin is not None
+        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        self.model = model
+        self.optimizers = optimizers
+        self.schedulers = schedulers
+
+    def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
+        """
+        Creates optimizers and schedulers
+
+        Args:
+            trainer: the Trainer, these optimizers should be connected to
+        """
+        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
+            return
+        optimizers, lr_schedulers, optimizer_frequencies = self.init_optimizers(
+            trainer=trainer, model=self.lightning_module
+        )
+        self.optimizers = optimizers
+        self.lr_schedulers = lr_schedulers
+        self.optimizer_frequencies = optimizer_frequencies
 
     @property
     @abstractmethod
@@ -209,6 +250,63 @@ class TrainingTypePlugin(Plugin, ABC):
     def post_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int, **kwargs) -> None:
         """Hook to do something after each optimizer step."""
 
+    def backward(
+        self,
+        closure_loss: torch.Tensor,
+        should_accumulate: bool,
+        optimizer: Optimizer,
+        opt_idx: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tensor:
+        """Forwards backward-calls to the precision plugin.
+
+        Args:
+            closure_loss: a tensor holding the loss value to backpropagate
+            should_accumulate: whether to accumulate gradients
+        """
+        self.pre_backward(closure_loss, should_accumulate, optimizer, opt_idx)
+
+        output = self.precision_plugin.backward(
+            self.lightning_module, closure_loss, should_accumulate, optimizer, opt_idx, *args, **kwargs
+        )
+
+        self.training_type_plugin.post_backward(closure_loss, should_accumulate, optimizer, opt_idx)
+
+        return output
+
+    def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
+        """performs the actual optimizer step.
+
+        Args:
+            optimizer: the optimizer performing the step
+            opt_idx: index of the current optimizer
+            lambda_closure: closure calculating the loss value
+
+        """
+        # TODO: this function interface is not ideal
+        make_optimizer_step = self.precision_plugin.pre_optimizer_step(
+            self.lightning_module, optimizer, opt_idx, lambda_closure, **kwargs
+        )
+        if make_optimizer_step:
+            optimizer.step(closure=lambda_closure, **kwargs)
+        self.precision_plugin.post_optimizer_step(optimizer, opt_idx)
+        self.post_optimizer_step(optimizer, opt_idx, **kwargs)
+
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float],
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+        """clips all the optimizer parameters to the given value"""
+        self.precision_plugin.clip_gradients(
+            optimizer,
+            clip_val,
+            gradient_clip_algorithm=gradient_clip_algorithm,
+            model=self.model,
+        )
+
     @property
     def model(self) -> Module:
         """Returns the potentially wrapped LightningModule"""
@@ -237,6 +335,22 @@ class TrainingTypePlugin(Plugin, ABC):
     @property
     def rpc_enabled(self) -> bool:
         return False
+
+    @property
+    def amp_backend(self) -> Optional[LightningEnum]:
+        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
+            return AMPType.APEX
+        elif isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+            return AMPType.NATIVE
+        return None
+
+    @property
+    def precision(self) -> Union[str, int]:
+        return self.precision_plugin.precision
+
+    @property
+    def scaler(self) -> Optional['GradScaler']:
+        return getattr(self.precision_plugin, 'scaler', None)
 
     def start_training(self, trainer: 'pl.Trainer') -> None:
         # double dispatch to initiate the training loop
@@ -287,9 +401,6 @@ class TrainingTypePlugin(Plugin, ABC):
 
     def init_optimizers(self, trainer: 'pl.Trainer', model: 'pl.LightningModule'):
         return trainer.init_optimizers(model)
-
-    def optimizer_step(self, optimizer: torch.optim.Optimizer, lambda_closure: Callable, **kwargs):
-        optimizer.step(closure=lambda_closure, **kwargs)
 
     @property
     def setup_optimizers_in_pre_dispatch(self) -> bool:

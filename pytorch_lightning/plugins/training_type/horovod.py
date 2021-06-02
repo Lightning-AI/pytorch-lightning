@@ -55,7 +55,7 @@ class HorovodPlugin(ParallelPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def setup(self, model):
+    def setup_model(self, model):
         self._model = model
         self.model_to_device()
 
