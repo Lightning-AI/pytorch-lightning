@@ -101,6 +101,7 @@ class TrainLoop:
     def on_train_start(self):
         # hook
         self.trainer.call_hook("on_train_start")
+        self.trainer.accelerator.on_train_start()
 
     def on_train_end(self):
         if self._teardown_already_run:

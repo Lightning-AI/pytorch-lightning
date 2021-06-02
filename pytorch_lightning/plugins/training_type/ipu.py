@@ -238,3 +238,41 @@ class IPUPlugin(ParallelPlugin):
     def teardown(self) -> None:
         for k, model in self.poptorch_models.items():
             model.destroy()
+
+    def _compiled(self, model):
+        return model._executable is not None
+
+    def detach_models(self):
+        for k, model in self.poptorch_models.items():
+            if self._compiled(model) and model.isAttachedToDevice():
+                model.detachFromDevice()
+
+    def load_model(self, stage):
+        self.detach_models()
+        model = self.poptorch_models[stage]
+        if self._compiled(model):
+            model.attachToDevice()
+
+    def on_train_start(self):
+        self.load_model('train')
+
+    def on_validation_start(self):
+        self.load_model('val')
+
+    def on_test_start(self):
+        self.load_model('test')
+
+    def on_predict_start(self):
+        self.load_model('predict')
+
+    def on_train_end(self):
+        self.detach_models()
+
+    def on_validation_end(self):
+        self.detach_models()
+
+    def on_test_end(self):
+        self.detach_models()
+
+    def on_predict_end(self):
+        self.detach_models()
