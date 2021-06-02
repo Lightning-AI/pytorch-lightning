@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
+from deprecate import void
 from torchmetrics import HammingDistance as _HammingDistance
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -35,4 +36,4 @@ class HammingDistance(_HammingDistance):
         .. deprecated::
             Use :class:`~torchmetrics.HammingDistance`. Will be removed in v1.5.0.
         """
-        _ = threshold, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
+        void(threshold, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn)

@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Optional
 
+from deprecate import void
 from torchmetrics import IoU as _IoU
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -38,5 +39,5 @@ class IoU(_IoU):
         .. deprecated::
             Use :class:`~torchmetrics.IoU`. Will be removed in v1.5.0.
         """
-        _ = num_classes, ignore_index, absent_score, threshold, reduction, \
-            compute_on_step, dist_sync_on_step, process_group
+        void(num_classes, ignore_index, absent_score, threshold, reduction,
+            compute_on_step, dist_sync_on_step, process_group)

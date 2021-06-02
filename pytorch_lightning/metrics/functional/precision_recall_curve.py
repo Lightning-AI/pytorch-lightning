@@ -14,6 +14,7 @@
 from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
+from deprecate import void
 from torchmetrics.functional import precision_recall_curve as _precision_recall_curve
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -32,3 +33,4 @@ def precision_recall_curve(
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
     """
+    return void(preds,target,num_classes,pos_label,sample_weights)

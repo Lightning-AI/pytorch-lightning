@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import List, Optional, Sequence, Tuple, Union
 
+from deprecate import void
 from torch import Tensor
 from torchmetrics.functional import roc as _roc
 
@@ -31,3 +32,4 @@ def roc(
     .. deprecated::
         Use :func:`torchmetrics.functional.roc`. Will be removed in v1.5.0.
     """
+    return void(preds,target,num_classes,pos_label,sample_weights)

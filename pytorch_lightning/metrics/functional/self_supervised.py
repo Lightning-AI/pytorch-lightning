@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from deprecate import void
 from torchmetrics.functional import embedding_similarity as _embedding_similarity
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -28,3 +29,4 @@ def embedding_similarity(
     .. deprecated::
         Use :func:`torchmetrics.functional.embedding_similarity`. Will be removed in v1.5.0.
     """
+    return void(batch,similarity,reduction,zero_diagonal)

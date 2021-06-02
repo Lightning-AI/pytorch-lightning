@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Optional
 
+from deprecate import void
 from torchmetrics import F1 as _F1
 from torchmetrics import FBeta as _FBeta
 
@@ -61,4 +62,4 @@ class F1(_F1):
         .. deprecated::
             Use :class:`~torchmetrics.F1`. Will be removed in v1.5.0.
         """
-        _ = num_classes, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group
+        void(num_classes, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group)

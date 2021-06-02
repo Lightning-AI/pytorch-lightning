@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Optional, Sequence
 
+from deprecate import void
 from torchmetrics import SSIM as _SSIM
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -39,4 +40,4 @@ class SSIM(_SSIM):
         .. deprecated::
             Use :class:`~torchmetrics.SSIM`. Will be removed in v1.5.0.
         """
-        _ = kernel_size, sigma, reduction, data_range, k1, k2, compute_on_step, dist_sync_on_step, process_group
+        void(kernel_size, sigma, reduction, data_range, k1, k2, compute_on_step, dist_sync_on_step, process_group)

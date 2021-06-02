@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Optional
 
+from deprecate import void
 from torchmetrics import ConfusionMatrix as _ConfusionMatrix
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -36,4 +37,4 @@ class ConfusionMatrix(_ConfusionMatrix):
         .. deprecated::
             Use :class:`~torchmetrics.ConfusionMatrix`. Will be removed in v1.5.0.
         """
-        _ = num_classes, normalize, threshold, compute_on_step, dist_sync_on_step, process_group
+        void(num_classes, normalize, threshold, compute_on_step, dist_sync_on_step, process_group)

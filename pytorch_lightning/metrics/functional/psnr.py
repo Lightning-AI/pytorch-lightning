@@ -14,6 +14,7 @@
 from typing import Optional, Tuple, Union
 
 import torch
+from deprecate import void
 from torchmetrics.functional import psnr as _psnr
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -32,3 +33,4 @@ def psnr(
     .. deprecated::
         Use :func:`torchmetrics.functional.psnr`. Will be removed in v1.5.0.
     """
+    return void(preds,target,data_range,base,reduction,dim)

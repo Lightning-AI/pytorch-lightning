@@ -14,6 +14,7 @@
 from typing import Optional
 
 import torch
+from deprecate import void
 from torchmetrics.functional import f1 as _f1
 from torchmetrics.functional import fbeta as _fbeta
 
@@ -34,6 +35,7 @@ def fbeta(
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
     """
+    return void(preds,target,num_classes,beta,threshold,average,multilabel)
 
 
 @deprecated_metrics(target=_f1)
@@ -49,3 +51,4 @@ def f1(
     .. deprecated::
         Use :func:`torchmetrics.functional.f1`. Will be removed in v1.5.0.
     """
+    return void(preds,target,num_classes,threshold,average,multilabel)

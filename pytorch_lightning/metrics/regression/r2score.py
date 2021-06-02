@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
+from deprecate import void
 from torchmetrics import R2Score as _R2Score
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -37,4 +38,4 @@ class R2Score(_R2Score):
         .. deprecated::
             Use :class:`~torchmetrics.R2Score`. Will be removed in v1.5.0.
         """
-        _ = num_outputs, adjusted, multioutput, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
+        void(num_outputs, adjusted, multioutput, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn)

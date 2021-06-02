@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import torch
+from deprecate import void
 from torchmetrics.functional import mean_absolute_error as _mean_absolute_error
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -24,3 +25,4 @@ def mean_absolute_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tens
     .. deprecated::
         Use :func:`torchmetrics.functional.mean_absolute_error`. Will be removed in v1.5.0.
     """
+    return void(preds, target)

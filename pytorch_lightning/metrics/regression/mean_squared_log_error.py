@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
+from deprecate import void
 from torchmetrics import MeanSquaredLogError as _MeanSquaredLogError
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -34,4 +35,4 @@ class MeanSquaredLogError(_MeanSquaredLogError):
         .. deprecated::
             Use :class:`~torchmetrics.MeanSquaredLogError`. Will be removed in v1.5.0.
         """
-        _ = compute_on_step, dist_sync_on_step, process_group, dist_sync_fn
+        void(compute_on_step, dist_sync_on_step, process_group, dist_sync_fn)

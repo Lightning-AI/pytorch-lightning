@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import torch
+from deprecate import void
 from torchmetrics.functional import mean_squared_error as _mean_squared_error
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -24,3 +25,4 @@ def mean_squared_error(preds: torch.Tensor, target: torch.Tensor) -> torch.Tenso
     .. deprecated::
         Use :func:`torchmetrics.functional.mean_squared_error`. Will be removed in v1.5.0.
     """
+    return void(preds, target)

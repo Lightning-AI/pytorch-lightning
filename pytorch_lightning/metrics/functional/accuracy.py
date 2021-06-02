@@ -14,6 +14,7 @@
 from typing import Optional
 
 import torch
+from deprecate import void
 from torchmetrics.functional import accuracy as _accuracy
 
 from pytorch_lightning.metrics.utils import deprecated_metrics
@@ -31,3 +32,4 @@ def accuracy(
     .. deprecated::
         Use :func:`torchmetrics.functional.accuracy`. Will be removed in v1.5.0.
     """
+    return void(preds,target,threshold,top_k,subset_accuracy)
