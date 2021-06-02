@@ -33,6 +33,8 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -233,6 +235,9 @@ class DeepSpeedPlugin(DDPPlugin):
         self.loss_scale_window = loss_scale_window
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
+
+    def _select_precision_plugin(self, precision: int, amp_type: str, amp_level: str) -> PrecisionPlugin:
+       return DeepSpeedPrecisionPlugin(precision)
 
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:

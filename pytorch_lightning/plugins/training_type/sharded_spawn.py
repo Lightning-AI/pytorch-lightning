@@ -22,6 +22,8 @@ from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.plugins import ShardedNativeMixedPrecisionPlugin
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -33,6 +35,17 @@ if _FAIRSCALE_AVAILABLE:
 
 class DDPSpawnShardedPlugin(DDPSpawnPlugin):
     """ Optimizer sharded training provided by FairScale. """
+
+    def _select_mixed_precision_plugin(
+        self, amp_type: str, amp_level: str
+    ) -> PrecisionPlugin:
+        selected_amp_type = self._select_mixed_precision_amp_type(amp_type)
+        if selected_amp_type == AMPType.APEX:
+            raise MisconfigurationException(
+                "DDPSpawnShardedPlugin is not supported with Apex AMP,"
+                " please using native AMP for 16-bit precision."
+            )
+        return ShardedNativeMixedPrecisionPlugin()
 
     def configure_ddp(self):
         self._wrap_optimizers()

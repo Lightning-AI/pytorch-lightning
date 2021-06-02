@@ -219,12 +219,6 @@ class AcceleratorConnector(object):
         self._cluster_environment = cluster_environment or self.select_cluster_environment()
 
     @property
-    def precision_plugin(self) -> PrecisionPlugin:
-        if self._precision_plugin is None:
-            self._precision_plugin = self.select_precision_plugin()
-        return self._precision_plugin
-
-    @property
     def training_type_plugin(self) -> TrainingTypePlugin:
         if self._training_type_plugin_resolved:
             # avoid calling `resolve_training_type_plugin` multiple times
@@ -349,59 +343,6 @@ class AcceleratorConnector(object):
         )
         return TorchElasticEnvironment.is_using_torchelastic()
 
-    def select_precision_plugin(self) -> PrecisionPlugin:
-        # set precision type
-        self.amp_type = AMPType.from_str(self.amp_type)
-
-        if self._distrib_type == DistributedType.DEEPSPEED or isinstance(self._training_type_plugin, DeepSpeedPlugin):
-            return DeepSpeedPrecisionPlugin(self.precision)
-
-        if self.precision == 32:
-            return PrecisionPlugin()
-        elif self.precision == 64:
-            return DoublePrecisionPlugin()
-        elif self.precision == 16:
-            if self.on_tpu:
-                return TPUHalfPrecisionPlugin()
-
-            if self.amp_type == AMPType.NATIVE:
-                if self.on_cpu:
-                    raise MisconfigurationException(
-                        "You have asked for native AMP on CPU, but AMP is only available on GPU."
-                    )
-                elif not _NATIVE_AMP_AVAILABLE:
-                    msg = "You have asked for native AMP but your PyTorch version does not support it." \
-                          " Consider upgrading with `pip install torch>=1.6`."
-                    if _APEX_AVAILABLE:
-                        self.amp_type = AMPType.APEX
-                        msg += " We will attempt to use NVIDIA Apex for this session."
-                        rank_zero_warn(msg)
-                    else:
-                        raise MisconfigurationException(msg)
-                else:
-                    log.info("Using native 16bit precision.")
-                    if self._is_sharded_training_type:
-                        return ShardedNativeMixedPrecisionPlugin()
-                    if self._is_fully_sharded_training_type:
-                        return FullyShardedNativeMixedPrecisionPlugin()
-                    return NativeMixedPrecisionPlugin()
-
-            if self.amp_type == AMPType.APEX:
-                if not _APEX_AVAILABLE:
-                    raise MisconfigurationException(
-                        "You have asked for Apex AMP but you have not installed it yet."
-                        " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
-                    )
-                if self._is_sharded_training_type or self._is_fully_sharded_training_type:
-                    raise MisconfigurationException(
-                        "Sharded Plugin is not supported with Apex AMP,"
-                        " please using native AMP for 16-bit precision."
-                    )
-                log.info("Using APEX 16bit precision.")
-                return ApexMixedPrecisionPlugin(self.amp_level)
-
-        raise NotImplementedError("We only support precisions 64, 32 and 16!")
-
     def select_training_type_plugin(self) -> TrainingTypePlugin:
         if self.use_ddp2:
             plugin = DDP2Plugin(
@@ -482,6 +423,16 @@ class AcceleratorConnector(object):
             # set sync_batchnorm for training_type from trainer setting
             training_type.sync_batchnorm = self.sync_batchnorm
 
+        if self._precision_plugin is not None:
+            training_type.precision_plugin = {
+                "precision_plugin": self._precision_plugin
+            }
+        else:
+            training_type.precision_plugin = {
+                "precision": self.precision,
+                "amp_type": self.amp_type,
+                "amp_level": self.amp_level,
+            }
         return training_type
 
     def select_accelerator(self) -> Accelerator:
@@ -501,11 +452,8 @@ class AcceleratorConnector(object):
             acc_cls = TPUAccelerator
         else:
             acc_cls = CPUAccelerator
-        # as precision_plugin is dependent on training_type_plugin, make sure
-        # that we first select training_type_plugin, then precision_plugin
         return acc_cls(
             training_type_plugin=self.training_type_plugin,
-            precision_plugin=self.precision_plugin,
         )
 
     def select_cluster_environment(self) -> ClusterEnvironment:

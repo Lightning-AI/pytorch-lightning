@@ -12,25 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TypeVar, Union
 
-import torch
-from torch import Tensor
-from torch.nn import Module
-from torch.optim import Optimizer
-from torch.utils.data import DataLoader
-
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.base_plugin import Plugin
+from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.utilities import (
+    AMPType,
+    _NATIVE_AMP_AVAILABLE,
+    _APEX_AVAILABLE,
+)
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
-from pytorch_lightning.plugins.precision import PrecisionPlugin
+from torch import Tensor
+from torch.nn import Module
+from torch.optim import Optimizer
+from torch.utils.data import DataLoader
+from pytorch_lightning.plugins import (
+    ApexMixedPrecisionPlugin,
+    DoublePrecisionPlugin,
+    NativeMixedPrecisionPlugin,
+    PrecisionPlugin,
+    TPUHalfPrecisionPlugin,
+)
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 TBroadcast = TypeVar("T")
+
+log = logging.getLogger(__name__)
 
 
 class TrainingTypePlugin(Plugin, ABC):
@@ -42,11 +57,80 @@ class TrainingTypePlugin(Plugin, ABC):
         self._model = None
         self._results: Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]] = None
         self._call_configure_sharded_model_hook = True
-        self._precision_plugin = PrecisionPlugin()
+        self._precision_plugin = None
 
     @property
-    def select_precision_plugin(self, precision, amp_type, amp_level) -> PrecisionPlugin:
-        return
+    def precision_plugin(self) -> Optional[PrecisionPlugin]:
+        return self._precision_plugin
+
+    @precision_plugin.setter
+    def precision_plugin(self, args: Dict[str, Any]) -> None:
+        if args.get("precision_plugin") is not None:
+            precision_plugin = args["precision_plugin"]
+            assert isinstance(precision_plugin, PrecisionPlugin)
+            self._precision_plugin = precision_plugin
+        else:
+            self._precision_plugin = self._select_precision_plugin(
+                precision=args.get("precision", 32),
+                amp_type=args.get("amp_type"),
+                amp_level=args.get("amp_level"),
+            )
+
+    def _select_precision_plugin(
+        self, precision: int, amp_type: Optional[str], amp_level: Optional[str]
+    ) -> PrecisionPlugin:
+        if self.precision == 32:
+            return PrecisionPlugin()
+        if self.precision == 64:
+            return DoublePrecisionPlugin()
+        if self.precision == 16:
+            if self.on_tpu:
+                return TPUHalfPrecisionPlugin()
+            return self._select_mixed_precision_plugin(amp_type, amp_level)
+        raise NotImplementedError("We only support precisions 64, 32 and 16!")
+
+    def _select_mixed_precision_amp_type(self, amp_type: Optional[str]) -> AMPType:
+        assert amp_type is not None
+        amp_type = AMPType.from_str(amp_type)
+        if amp_type == AMPType.NATIVE:
+            if not self.on_gpu:
+                raise MisconfigurationException(
+                    "You have asked for native AMP on CPU, but native AMP is only available on GPU."
+                )
+            if not _NATIVE_AMP_AVAILABLE:
+                msg = (
+                    "You have asked for native AMP but your PyTorch version does not support it."
+                    " Consider upgrading with `pip install torch>=1.6`."
+                )
+                if _APEX_AVAILABLE:
+                    msg += " We will attempt to use NVIDIA Apex for this session."
+                    rank_zero_warn(msg)
+                    return AMPType.APEX
+                else:
+                    raise MisconfigurationException(msg)
+            else:
+                return amp_type
+        if amp_type == AMPType.APEX:
+            if _APEX_AVAILABLE:
+                return amp_type
+            else:
+                raise MisconfigurationException(
+                    "You have asked for Apex AMP but you have not installed it yet."
+                    " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
+                )
+        raise NotImplementedError("We only support amp_type: native, apex!")
+
+    def _select_mixed_precision_plugin(
+        self, amp_type: Optional[str], amp_level: Optional[str]
+    ) -> PrecisionPlugin:
+        selected_amp_type = self._select_mixed_precision_amp_type(amp_type)
+        if selected_amp_type == AMPType.NATIVE:
+            log.info("Using APEX 16bit precision.")
+            return NativeMixedPrecisionPlugin()
+        if selected_amp_type == AMPType.APEX:
+            assert amp_level is not None
+            log.info("Using APEX 16bit precision.")
+            return ApexMixedPrecisionPlugin(amp_level)
 
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin"""

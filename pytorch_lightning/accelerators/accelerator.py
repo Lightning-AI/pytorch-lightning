@@ -52,7 +52,6 @@ class Accelerator:
 
     def __init__(
         self,
-        precision_plugin: PrecisionPlugin,
         training_type_plugin: TrainingTypePlugin,
     ) -> None:
         """
@@ -60,7 +59,7 @@ class Accelerator:
             precision_plugin: the plugin to handle precision-specific parts
             training_type_plugin: the plugin to handle different training routines
         """
-        self.precision_plugin = precision_plugin
+        self.precision_plugin = training_type_plugin.precision_plugin
         self.training_type_plugin = training_type_plugin
 
         self.optimizers: List = []
