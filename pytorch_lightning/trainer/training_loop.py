@@ -271,8 +271,9 @@ class TrainLoop:
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
         elif self.trainer.automatic_optimization:
             if not (
-                isinstance(training_step_output, torch.Tensor) or
-                (isinstance(training_step_output, Mapping) and 'loss' in training_step_output)
+                isinstance(training_step_output, torch.Tensor) or (
+                    isinstance(training_step_output, Mapping) and 'loss' in training_step_output
+                )
             ):
                 raise MisconfigurationException(
                     "In automatic optimization, `training_step` must either return a Tensor, "
