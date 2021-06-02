@@ -90,7 +90,7 @@ class DeviceDtypeModuleMixin(Module):
             >>> module.weight #doctest: +ELLIPSIS
             tensor([[...]], dtype=torch.float64)
             >>> cpu = torch.device('cpu')
-            >>> module.to(cpu, dtype=torch.convert_model_to_half, non_blocking=True)
+            >>> module.to(cpu, dtype=torch.half, non_blocking=True)
             ExampleModule()
             >>> module.weight #doctest: +ELLIPSIS
             tensor([[...]], dtype=torch.float16)

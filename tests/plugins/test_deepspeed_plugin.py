@@ -618,8 +618,7 @@ def _assert_save_model_is_equal(model, tmpdir, trainer, cls=BoringModel):
     if trainer.global_rank == 0:
         saved_model = cls.load_from_checkpoint(checkpoint_path)
         if model.dtype == torch.half:
-            saved_model = saved_model.convert_model_to_half(
-            )  # model is loaded in float32 as default, move it to float16
+            saved_model = saved_model.half()  # model is loaded in float32 as default, move it to float16
         model = model.cpu()
         # Assert model parameters are identical after loading
         for orig_param, trained_model_param in zip(model.parameters(), saved_model.parameters()):
