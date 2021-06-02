@@ -70,8 +70,8 @@ class IPUPlugin(ParallelPlugin):
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
-    def setup(self, model: Module) -> None:
-        super().setup(model)
+    def setup_environment(self) -> None:
+        super().setup_environment()
         if not poptorch.ipuHardwareIsAvailable():
             raise MisconfigurationException("IPU Accelerator requires IPUs to run.")
 
