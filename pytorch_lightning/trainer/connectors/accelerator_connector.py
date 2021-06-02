@@ -166,9 +166,7 @@ class AcceleratorConnector(object):
         self.replace_sampler_ddp = replace_sampler_ddp
 
     def select_accelerator_type(self) -> None:
-        auto = self.distributed_backend == "auto"
-        accelerator_types = DeviceType.__members__.values()
-        if auto and self.distributed_backend not in accelerator_types:
+        if self.distributed_backend == "auto":
             if self.on_tpu:
                 self._accelerator_type = DeviceType.TPU
             elif self.on_gpu:
@@ -291,7 +289,7 @@ class AcceleratorConnector(object):
     @property
     def on_gpu(self) -> bool:
         gpus = self.parallel_device_ids
-        return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
+        return gpus is not None and len(gpus) > 0 and _GPU_AVAILABLE
 
     @property
     def use_gpu(self) -> bool:
@@ -645,14 +643,20 @@ class AcceleratorConnector(object):
                 'Please set accelerator=ddp or accelerator=ddp2.'
             )
 
-        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self._device_type == DeviceType.GPU}')
+        rank_zero_info(f'GPU available: {_GPU_AVAILABLE}, used: {self._device_type == DeviceType.GPU}')
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
-        if torch.cuda.is_available() and self._device_type != DeviceType.GPU:
+        if _GPU_AVAILABLE and self._device_type != DeviceType.GPU:
             rank_zero_warn(
-                "GPU available but not used. Set the gpus flag in your trainer"
+                "GPU available but not used. Set the `gpus` flag in your trainer"
                 " `Trainer(gpus=1)` or script `--gpus=1`."
+            )
+
+        if _TPU_AVAILABLE and self._device_type != DeviceType.TPU:
+            rank_zero_warn(
+                "TPU available but not used. Set the `tpu_cores` flag in your trainer"
+                " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
             )
 
     def _set_horovod_backend(self):
