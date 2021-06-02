@@ -18,12 +18,12 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 
+from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
@@ -108,9 +108,7 @@ class DDPFullyShardedPlugin(DDPPlugin):
         self.state_dict_device = torch.device("cpu") if state_dict_to_cpu else None
         self._process_group = None
 
-    def _select_mixed_precision_plugin(
-        self, amp_type: str, amp_level: str
-    ) -> PrecisionPlugin:
+    def _select_mixed_precision_plugin(self, amp_type: str, amp_level: str) -> PrecisionPlugin:
         selected_amp_type = self._select_mixed_precision_amp_type(amp_type)
         if selected_amp_type == AMPType.APEX:
             raise MisconfigurationException(

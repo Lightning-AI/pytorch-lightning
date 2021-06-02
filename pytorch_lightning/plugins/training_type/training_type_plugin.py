@@ -16,24 +16,14 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, TypeVar, Union
 
-import pytorch_lightning as pl
 import torch
-from pytorch_lightning.overrides.base import unwrap_lightning_module
-from pytorch_lightning.plugins.base_plugin import Plugin
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.utilities import (
-    AMPType,
-    _NATIVE_AMP_AVAILABLE,
-    _APEX_AVAILABLE,
-)
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+
+import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
     DoublePrecisionPlugin,
@@ -41,7 +31,13 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
     TPUHalfPrecisionPlugin,
 )
+from pytorch_lightning.plugins.base_plugin import Plugin
+from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.utilities import _APEX_AVAILABLE, _NATIVE_AMP_AVAILABLE, AMPType, rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT, _PREDICT_OUTPUT
 
 TBroadcast = TypeVar("T")
 
@@ -124,9 +120,7 @@ class TrainingTypePlugin(Plugin, ABC):
                 )
         raise NotImplementedError("We only support amp_type: native, apex!")
 
-    def _select_mixed_precision_plugin(
-        self, amp_type: Optional[str], amp_level: Optional[str]
-    ) -> PrecisionPlugin:
+    def _select_mixed_precision_plugin(self, amp_type: Optional[str], amp_level: Optional[str]) -> PrecisionPlugin:
         selected_amp_type = self._select_mixed_precision_amp_type(amp_type)
         if selected_amp_type == AMPType.NATIVE:
             log.info("Using APEX 16bit precision.")

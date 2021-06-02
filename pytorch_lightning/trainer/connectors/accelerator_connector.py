@@ -424,9 +424,7 @@ class AcceleratorConnector(object):
             training_type.sync_batchnorm = self.sync_batchnorm
 
         if self._precision_plugin is not None:
-            training_type.precision_plugin = {
-                "precision_plugin": self._precision_plugin
-            }
+            training_type.precision_plugin = {"precision_plugin": self._precision_plugin}
         else:
             training_type.precision_plugin = {
                 "precision": self.precision,
@@ -452,9 +450,7 @@ class AcceleratorConnector(object):
             acc_cls = TPUAccelerator
         else:
             acc_cls = CPUAccelerator
-        return acc_cls(
-            training_type_plugin=self.training_type_plugin,
-        )
+        return acc_cls(training_type_plugin=self.training_type_plugin, )
 
     def select_cluster_environment(self) -> ClusterEnvironment:
         if self._cluster_environment is not None:

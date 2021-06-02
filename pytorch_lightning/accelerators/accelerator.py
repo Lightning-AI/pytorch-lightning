@@ -199,7 +199,8 @@ class Accelerator:
         """
         step_kwargs = self.to_device(step_kwargs)
 
-        with self.training_type_plugin.precision_plugin.train_step_context(), self.training_type_plugin.train_step_context():
+        with self.training_type_plugin.precision_plugin.train_step_context(
+        ), self.training_type_plugin.train_step_context():
             return self.training_type_plugin.training_step(*step_kwargs.values())
 
     def post_training_step(self) -> None:
@@ -219,7 +220,8 @@ class Accelerator:
         """
         step_kwargs = self.to_device(step_kwargs)
 
-        with self.training_type_plugin.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context():
+        with self.training_type_plugin.precision_plugin.val_step_context(), self.training_type_plugin.val_step_context(
+        ):
             return self.training_type_plugin.validation_step(*step_kwargs.values())
 
     def test_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> Optional[STEP_OUTPUT]:
@@ -236,7 +238,8 @@ class Accelerator:
         """
         step_kwargs = self.to_device(step_kwargs)
 
-        with self.training_type_plugin.precision_plugin.test_step_context(), self.training_type_plugin.test_step_context():
+        with self.training_type_plugin.precision_plugin.test_step_context(
+        ), self.training_type_plugin.test_step_context():
             return self.training_type_plugin.test_step(*step_kwargs.values())
 
     def predict_step(self, step_kwargs: Dict[str, Union[Any, int]]) -> STEP_OUTPUT:
@@ -253,7 +256,8 @@ class Accelerator:
         """
         step_kwargs = self.to_device(step_kwargs)
 
-        with self.training_type_plugin.precision_plugin.predict_step_context(), self.training_type_plugin.predict_step_context():
+        with self.training_type_plugin.precision_plugin.predict_step_context(
+        ), self.training_type_plugin.predict_step_context():
             return self.training_type_plugin.predict_step(*step_kwargs.values())
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
@@ -416,7 +420,7 @@ class Accelerator:
         )
         self.setup_training_type_plugin(model)
 
-     # todo: remove in v1.5
+    # todo: remove in v1.5
     def setup_training_type_plugin(self, model: 'pl.LightningModule') -> None:
         """Attaches the training type plugin to the accelerator."""
         self.training_type_plugin.setup_model(model)

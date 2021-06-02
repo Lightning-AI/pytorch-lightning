@@ -18,12 +18,12 @@ from torch.optim import Optimizer
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
+from pytorch_lightning.plugins import ShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins import ShardedNativeMixedPrecisionPlugin
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -37,9 +37,7 @@ class DDPShardedPlugin(DDPPlugin):
 
     _REDUCE_BUFFER_SIZE_DEFAULT = 2**23  # 8M
 
-    def _select_mixed_precision_plugin(
-        self, amp_type: str, amp_level: str
-    ) -> PrecisionPlugin:
+    def _select_mixed_precision_plugin(self, amp_type: str, amp_level: str) -> PrecisionPlugin:
         selected_amp_type = self._select_mixed_precision_amp_type(amp_type)
         if selected_amp_type == AMPType.APEX:
             raise MisconfigurationException(

@@ -25,7 +25,9 @@ import torch
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.trainer.optimizers import _get_default_scheduler_config
 from pytorch_lightning.utilities import AMPType
@@ -33,8 +35,6 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
@@ -237,7 +237,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self.min_loss_scale = min_loss_scale
 
     def _select_precision_plugin(self, precision: int, amp_type: str, amp_level: str) -> PrecisionPlugin:
-       return DeepSpeedPrecisionPlugin(precision)
+        return DeepSpeedPrecisionPlugin(precision)
 
     def _load_config(self, config):
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
