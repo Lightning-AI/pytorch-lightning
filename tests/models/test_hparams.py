@@ -272,7 +272,7 @@ class AggSubClassBoringModel(SubClassBoringModel):
 class UnconventionalArgsBoringModel(CustomBoringModel):
     """ A model that has unconventional names for "self", "*args" and "**kwargs". """
 
-    def __init__(obj, *more_args, _other_arg=300, **more_kwargs):
+    def __init__(obj, *more_args, other_arg=300, **more_kwargs):
         # intentionally named obj
         super().__init__(*more_args, **more_kwargs)
         obj.save_hyperparameters()
