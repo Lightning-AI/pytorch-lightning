@@ -37,5 +37,7 @@ ignore_names = [
     "torch_save",
     "using_lbfgs",
     "kw",
+    "prediction",
+    "root",
 ]
 sort_by_size = true
