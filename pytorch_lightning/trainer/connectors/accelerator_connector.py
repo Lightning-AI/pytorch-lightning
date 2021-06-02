@@ -271,20 +271,31 @@ class AcceleratorConnector(object):
         return self._device_type == DeviceType.CPU
 
     @property
+    def use_cpu(self) -> bool:
+        return self._accelerator_type == DeviceType.CPU and self.on_cpu
+
+    @property
     def on_tpu(self) -> bool:
         return self.tpu_cores is not None
+
+    @property
+    def use_tpu(self) -> bool:
+        return self._accelerator_type == DeviceType.TPU and self.on_tpu
 
     @property
     def tpu_id(self) -> Optional[int]:
         if self.on_tpu and isinstance(self.tpu_cores, list):
             return self.tpu_cores[0]
-
         return None
 
     @property
     def on_gpu(self) -> bool:
         gpus = self.parallel_device_ids
         return gpus is not None and len(gpus) > 0 and torch.cuda.is_available()
+
+    @property
+    def use_gpu(self) -> bool:
+        return self._accelerator_type == DeviceType.GPU and self.on_gpu
 
     @property
     def use_dp(self) -> bool:
