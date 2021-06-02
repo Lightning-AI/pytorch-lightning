@@ -95,6 +95,7 @@ class AcceleratorConnector(object):
         # initialization
         self._device_type = DeviceType.CPU
         self._distrib_type = None
+        self._accelerator_type = None
 
         self.num_processes = num_processes
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
@@ -131,6 +132,7 @@ class AcceleratorConnector(object):
 
         self.parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
 
+        self.select_accelerator_type()
         self.set_distributed_mode()
         self.configure_slurm_ddp()
 
@@ -161,6 +163,29 @@ class AcceleratorConnector(object):
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
         self.replace_sampler_ddp = replace_sampler_ddp
+
+    def select_accelerator_type(self) -> None:
+        auto = self.distributed_backend == "auto"
+        accelerator_types = DeviceType.__members__.values()
+        if auto and self.distributed_backend not in accelerator_types:
+            if self.on_tpu:
+                self._accelerator_type = DeviceType.TPU
+            elif self.on_gpu:
+                self._accelerator_type = DeviceType.GPU
+            else:
+                self._accelerator_type = DeviceType.CPU
+        elif self.distributed_backend == DeviceType.TPU:
+            if not self.on_tpu:
+                msg = "TPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `tpu_cores` to `Trainer`"
+                raise MisconfigurationException(f"You passed `accelerator='tpu'`, but {msg}")
+            self._accelerator_type = DeviceType.TPU
+        elif self.distributed_backend == DeviceType.GPU:
+            if not self.on_gpu:
+                msg = "GPUs are not available" if not _TPU_AVAILABLE else "you didn't pass `gpus` to `Trainer`"
+                raise MisconfigurationException(f"You passed `accelerator='gpu'`, but {msg}")
+            self._accelerator_type = DeviceType.GPU
+        else:
+            self._accelerator_type = DeviceType.CPU
 
     def handle_given_plugins(self) -> None:
 
