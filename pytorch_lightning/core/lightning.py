@@ -329,6 +329,7 @@ class LightningModule(
             )
 
         # check for invalid values
+        apply_to_collection(value, dict, partial(self.__check_not_nested, name))
         apply_to_collection(
             value,
             object,
@@ -472,6 +473,12 @@ class LightningModule(
         if not sync_dist or not dist_available:
             return value
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
+
+    @staticmethod
+    def __check_not_nested(name: str, value: dict) -> None:
+        if any(isinstance(v, dict) for v in value.values()):
+            raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
+        return value
 
     @staticmethod
     def __check_allowed(name: str, value: Any, v: Any) -> None:

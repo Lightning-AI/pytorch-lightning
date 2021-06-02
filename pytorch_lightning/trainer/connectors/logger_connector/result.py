@@ -13,6 +13,7 @@
 # limitations under the License.
 from collections.abc import Generator
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
 import torch
@@ -141,8 +142,8 @@ class ResultMetricCollection(dict):
     with the same metadata.
     """
 
-    def __init__(self, metadata: Metadata) -> None:
-        super().__init__()
+    def __init__(self, *args, metadata: Optional[Metadata] = None) -> None:
+        super().__init__(*args)
         self.meta = metadata
 
 
@@ -270,6 +271,7 @@ class ResultCollection(dict):
             value = value.cpu()
 
         if on_step and self.on_epoch_end_reached:
+            # `FxValidator` should avoid this ever happening. Either a bug there or a bug in the logic order.
             raise RuntimeError(
                 "Logging `on_step` when `on_epoch_end_reached` isn't allowed. This shouldn't have happened."
             )
@@ -312,14 +314,9 @@ class ResultCollection(dict):
             metric = ResultMetric(meta, isinstance(v, torch.Tensor))
             return metric.to(self.device)
 
+        value = apply_to_collection(value, (torch.Tensor, Metric), fn)
         if isinstance(value, dict):
-            rmc = ResultMetricCollection(meta)
-            rmc.update(value)
-            apply_to_collection(rmc, (torch.Tensor, Metric), fn)
-            value = rmc
-        else:
-            value = fn(value)
-
+            value = ResultMetricCollection(value, metadata=meta)
         self[key] = value
 
     def should_reset_tensors(self, fx: str) -> bool:
@@ -336,9 +333,13 @@ class ResultCollection(dict):
         apply_to_collections(self[key], value, ResultMetric, fn)
 
     @staticmethod
-    def _get_forward_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
-        if result_metric.meta.on_step:
+    def _get_cache(on_step: bool, result_metric: ResultMetric) -> Optional[torch.Tensor]:
+        if on_step and result_metric.meta.on_step:
             return result_metric._forward_cache.detach()
+        elif not on_step and result_metric.meta.on_epoch:
+            if not result_metric._computed:
+                result_metric.compute()
+            return result_metric._computed.detach()
 
     @staticmethod
     def _to_item(t: torch.Tensor) -> float:
@@ -362,15 +363,12 @@ class ResultCollection(dict):
     def get_metrics(self, on_step: bool) -> Dict[str, _METRIC_COLLECTION]:
         metrics = {k: {} for k in MetricSource}
 
-        # either extract `forward_cache` or `computed` from `ResultMetric` objects
-        fn = self._get_forward_cache if on_step else self._get_computed_cache
-
-        # iterate over all stored metrics.
         for key, result_metric in self.valid_items():
 
-            # extract forward_cache or computed from the ResultMetric
-            # ignore when the output of fn is None
-            value = apply_to_collection(result_metric, ResultMetric, fn, include_none=False)
+            # extract forward_cache or computed from the ResultMetric. ignore when the output is None
+            value = apply_to_collection(
+                result_metric, ResultMetric, partial(self._get_cache, on_step), include_none=False
+            )
 
             # detect if the value is None. This can be nested.
             is_none = False
@@ -394,7 +392,7 @@ class ResultCollection(dict):
                 metrics[MetricSource.CALLBACK][name] = value
                 metrics[MetricSource.CALLBACK][forked_name] = value
 
-            # populate progress_bar metrics. values should be converted to float
+            # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:
                 value = apply_to_collection(value, torch.Tensor, self._to_item, include_none=False)
                 metrics[MetricSource.PBAR][forked_name] = value
@@ -406,14 +404,6 @@ class ResultCollection(dict):
 
     def get_epoch_metrics(self) -> Dict[str, _METRIC_COLLECTION]:
         return self.get_metrics(on_step=False)
-
-    @staticmethod
-    def _get_computed_cache(result_metric: ResultMetric) -> Optional[torch.Tensor]:
-        if not result_metric.meta.on_epoch:
-            return
-        if not result_metric._computed:
-            result_metric.compute()
-        return result_metric._computed.detach()
 
     def to(self, *args, **kwargs) -> 'ResultCollection':
         """Move all data to the given device."""

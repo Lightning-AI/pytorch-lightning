@@ -760,7 +760,12 @@ def test_metric_are_properly_reduced(tmpdir):
     assert "train_loss" in trainer.callback_metrics
 
 
-@pytest.mark.parametrize('value', [None, {'a': {'b': None}}, 'foo', [1, 2, 3], (1, 2, 3), [[1, 2], 3]])
+@pytest.mark.parametrize(
+    'value',
+    [None, dict(a=None),
+     dict(a=dict(b=None)),
+     dict(a=dict(b=1)), 'foo', [1, 2, 3], (1, 2, 3), [[1, 2], 3]]
+)
 def test_log_none_raises(tmpdir, value):
 
     class TestModel(BoringModel):
