@@ -14,10 +14,10 @@
 import torch
 from torchmetrics.functional import embedding_similarity as _embedding_similarity
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_embedding_similarity, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_embedding_similarity)
 def embedding_similarity(
     batch: torch.Tensor,
     similarity: str = 'cosine',

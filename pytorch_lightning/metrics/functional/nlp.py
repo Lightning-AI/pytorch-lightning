@@ -21,10 +21,10 @@ from typing import Sequence
 import torch
 from torchmetrics.functional import bleu_score as _bleu_score
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_bleu_score, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_bleu_score)
 def bleu_score(
     translate_corpus: Sequence[str],
     reference_corpus: Sequence[str],

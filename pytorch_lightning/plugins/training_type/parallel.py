@@ -19,14 +19,16 @@ from typing import Any, List, Optional
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
+    """ Plugin for training with multiple processes in parallel. """
 
     def __init__(
         self,
@@ -36,22 +38,39 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         super().__init__()
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
-        self.global_rank = 0
-        self.world_size = 1
-        self.local_rank = 0
 
     @property
     @abstractmethod
-    def root_device(self):
+    def root_device(self) -> torch.device:
         raise NotImplementedError
 
     @property
-    def on_gpu(self):
+    def on_gpu(self) -> bool:
         return self.root_device.type == "cuda" and torch.cuda.is_available()
+
+    @property
+    def on_tpu(self) -> bool:
+        return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
     def lightning_module(self):
         return unwrap_lightning_module(self._model)
+
+    @property
+    def global_rank(self) -> int:
+        return self.cluster_environment.global_rank() if self.cluster_environment is not None else 0
+
+    @property
+    def local_rank(self) -> int:
+        return self.cluster_environment.local_rank() if self.cluster_environment is not None else 0
+
+    @property
+    def node_rank(self) -> int:
+        return self.cluster_environment.node_rank() if self.cluster_environment is not None else 0
+
+    @property
+    def world_size(self) -> int:
+        return self.cluster_environment.world_size() if self.cluster_environment is not None else 1
 
     @property
     def is_global_zero(self) -> bool:
@@ -80,7 +99,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         return torch_backend
 
     @staticmethod
-    def configure_sync_batchnorm(model: LightningModule) -> LightningModule:
+    def configure_sync_batchnorm(model: 'pl.LightningModule') -> 'pl.LightningModule':
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
@@ -93,8 +112,7 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         Return:
             LightningModule with batchnorm layers synchronized between process groups
         """
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        return model
+        return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     @contextmanager
     def block_backward_sync(self):
@@ -108,3 +126,11 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
                 yield None
         else:
             yield None
+
+    def teardown(self) -> None:
+        if self.on_gpu:
+            # GPU teardown
+            self.lightning_module.cpu()
+            # clean up memory
+            with torch.cuda.device(self.root_device):
+                torch.cuda.empty_cache()

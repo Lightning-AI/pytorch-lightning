@@ -15,12 +15,12 @@ from typing import Any, Optional
 
 from torchmetrics import IoU as _IoU
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class IoU(_IoU):
 
-    @deprecated(target=_IoU, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_IoU)
     def __init__(
         self,
         num_classes: int,
@@ -38,3 +38,5 @@ class IoU(_IoU):
         .. deprecated::
             Use :class:`~torchmetrics.IoU`. Will be removed in v1.5.0.
         """
+        _ = num_classes, ignore_index, absent_score, threshold, reduction, \
+            compute_on_step, dist_sync_on_step, process_group

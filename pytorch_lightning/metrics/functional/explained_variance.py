@@ -16,10 +16,10 @@ from typing import Sequence, Union
 import torch
 from torchmetrics.functional import explained_variance as _explained_variance
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_explained_variance, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_explained_variance)
 def explained_variance(
     preds: torch.Tensor,
     target: torch.Tensor,

@@ -77,16 +77,15 @@ PyTorch Lightning Documentation
    :name: Examples
    :caption: Examples
 
-   ecosystem/pytorch_ecoystem
    ecosystem/community_examples
-   Autoencoder <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
-   BYOL <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>
-   DQN <https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#deep-q-network-dqn>
-   GAN <https://pytorch-lightning-bolts.readthedocs.io/en/latest/gans.html#basic-gan>
-   GPT-2 <https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2>
-   Image-GPT <https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#image-gpt>
-   SimCLR <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr>
-   VAE <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#basic-vae>
+   Autoencoder <https://lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
+   BYOL <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>
+   DQN <https://lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#deep-q-network-dqn>
+   GAN <https://lightning-bolts.readthedocs.io/en/latest/gans.html#basic-gan>
+   GPT-2 <https://lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2>
+   Image-GPT <https://lightning-bolts.readthedocs.io/en/latest/convolutional.html#image-gpt>
+   SimCLR <https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr>
+   VAE <https://lightning-bolts.readthedocs.io/en/latest/autoencoders.html#basic-vae>
 
 .. toctree::
    :maxdepth: 1
@@ -94,16 +93,18 @@ PyTorch Lightning Documentation
    :caption: Common Use Cases
 
    clouds/cloud_training
+   clouds/cluster
    advanced/amp
-   clouds/slurm
    common/child_modules
    common/debugging
    common/loggers
    common/early_stopping
    common/fast_training
    common/hyperparameters
+   common/lightning_cli
    advanced/lr_finder
    advanced/multi_gpu
+   advanced/advanced_gpu
    advanced/multiple_loaders
    common/weights_loading
    common/optimizers
@@ -114,7 +115,6 @@ PyTorch Lightning Documentation
    advanced/pruning_quantization
    advanced/transfer_learning
    advanced/tpu
-   advanced/cluster
    common/test_set
    common/production_inference
 

@@ -54,7 +54,7 @@ Notice a few things.
         new_x = torch.Tensor(2, 3)
         new_x = new_x.type_as(x)
 
-5.  There are no samplers for distributed, Lightning also does this for you.
+5.  Lightning by default handles the distributed sampler for you.
 
 |
 
@@ -602,7 +602,6 @@ For cases like production, you might want to iterate different models inside a L
             loss = F.cross_entropy(y_hat, y)
             acc = FM.accuracy(y_hat, y)
 
-            # loss is tensor. The Checkpoint Callback is monitoring 'checkpoint_on'
             metrics = {'val_acc': acc, 'val_loss': loss}
             self.log_dict(metrics)
             return metrics
@@ -699,10 +698,22 @@ log_dict
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.log_dict
     :noindex:
 
+manual_backward
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
+    :noindex:
+
 print
 ~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.print
+    :noindex:
+
+predict_step
+~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.lightning.LightningModule.predict_step
     :noindex:
 
 save_hyperparameters
@@ -913,35 +924,14 @@ use_amp
 ~~~~~~~
 True if using Automatic Mixed Precision (AMP)
 
-------------
-
-use_ddp
-~~~~~~~
-True if using ddp
-
-------------
-
-use_ddp2
-~~~~~~~~
-True if using ddp2
-
-------------
-
-use_dp
-~~~~~~
-True if using dp
-
-------------
-
-use_tpu
-~~~~~~~
-True if using TPUs
-
 --------------
 
 automatic_optimization
 ~~~~~~~~~~~~~~~~~~~~~~
-When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling your optimizers. However, we do take care of precision and any accelerators used.
+When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling
+your optimizers. However, we do take care of precision and any accelerators used.
+
+See :ref:`manual optimization<common/optimizers:Manual optimization>` for details.
 
 .. code-block:: python
 
@@ -956,7 +946,9 @@ When set to ``False``, Lightning does not automate the optimization process. Thi
         self.manual_backward(loss)
         opt.step()
 
-This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter. Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
+This is recommended only if using 2+ optimizers AND if you know how to perform the optimization procedure properly. Note
+that automatic optimization can still be used with multiple optimizers by relying on the ``optimizer_idx`` parameter.
+Manual optimization is most useful for research topics like reinforcement learning, sparse coding, and GAN research.
 
 .. code-block:: python
 
@@ -1002,7 +994,7 @@ Set or access your datamodule.
 .. code-block:: python
 
     def configure_optimizers(self):
-        num_training_samples = len(self.datamodule.train_dataloader())
+        num_training_samples = len(self.trainer.datamodule.train_dataloader())
         ...
 
 --------------
@@ -1013,9 +1005,68 @@ Get the model file size (in megabytes) using ``self.model_size`` inside Lightnin
 
 --------------
 
+truncated_bptt_steps
+^^^^^^^^^^^^^^^^^^^^
+
+Truncated back prop breaks performs backprop every k steps of
+a much longer sequence.
+
+If this is enabled, your batches will automatically get truncated
+and the trainer will apply Truncated Backprop to it.
+
+(`Williams et al. "An efficient gradient-based algorithm for on-line training of
+recurrent network trajectories."
+<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
+
+`Tutorial <https://d2l.ai/chapter_recurrent-neural-networks/bptt.html>`_
+
+.. testcode:: python
+
+    from pytorch_lightning import LightningModule
+
+    class MyModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            # Important: This property activates truncated backpropagation through time
+            # Setting this value to 2 splits the batch into sequences of size 2
+            self.truncated_bptt_steps = 2
+
+        # Truncated back-propagation through time
+        def training_step(self, batch, batch_idx, hiddens):
+            # the training step must be updated to accept a ``hiddens`` argument
+            # hiddens are the hiddens from the previous truncated backprop step
+            out, hiddens = self.lstm(data, hiddens)
+            return {
+                "loss": ...,
+                "hiddens": hiddens
+            }
+
+Lightning takes care to split your batch along the time-dimension.
+
+.. code-block:: python
+
+    # we use the second as the time dimension
+    # (batch, time, ...)
+    sub_batch = batch[0, 0:t, ...]
+
+To modify how the batch is split,
+override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
+
+.. testcode:: python
+
+    class LitMNIST(LightningModule):
+        def tbptt_split_batch(self, batch, split_size):
+            # do your own splitting on the batch
+            return splits
+
+--------------
+
 Hooks
 ^^^^^
-This is the pseudocode to describe how all the hooks are called during a call to ``.fit()``.
+This is the pseudocode to describe the structure of :meth:`~pytorch_lightning.trainer.Trainer.fit`.
+The inputs and outputs of each function are not represented for simplicity. Please check each function's API reference
+for more information.
 
 .. code-block:: python
 
@@ -1026,35 +1077,41 @@ This is the pseudocode to describe how all the hooks are called during a call to
 
         configure_callbacks()
 
-        on_fit_start()
-
-        for gpu/tpu in gpu/tpus:
-            train_on_device(model.copy())
-
-        on_fit_end()
+        with parallel(devices):
+            # devices can be GPUs, TPUs, ...
+            train_on_device(model)
 
     def train_on_device(model):
-        # setup is called PER DEVICE
-        setup()
+        # called PER DEVICE
+        on_fit_start()
+        setup('fit')
         configure_optimizers()
-        on_pretrain_routine_start()
 
+        on_pretrain_routine_start()
+        on_pretrain_routine_end()
+
+        # the sanity check runs here
+
+        on_train_start()
         for epoch in epochs:
             train_loop()
+        on_train_end()
 
-        teardown()
+        on_fit_end()
+        teardown('fit')
 
     def train_loop():
+        on_epoch_start()
         on_train_epoch_start()
-        train_outs = []
-        for train_batch in train_dataloader():
+
+        for batch in train_dataloader():
             on_train_batch_start()
 
-            # ----- train_step methods -------
-            out = training_step(batch)
-            train_outs.append(out)
+            on_before_batch_transfer()
+            transfer_batch_to_device()
+            on_after_batch_transfer()
 
-            loss = out.loss
+            training_step()
 
             on_before_zero_grad()
             optimizer_zero_grad()
@@ -1064,34 +1121,42 @@ This is the pseudocode to describe how all the hooks are called during a call to
 
             optimizer_step()
 
-            on_train_batch_end(out)
+            on_train_batch_end()
 
             if should_check_val:
                 val_loop()
-
         # end training epoch
-        logs = training_epoch_end(outs)
+        training_epoch_end()
+
+        on_train_epoch_end()
+        on_epoch_end()
 
     def val_loop():
-        model.eval()
+        on_validation_model_eval()  # calls `model.eval()`
         torch.set_grad_enabled(False)
 
+        on_validation_start()
+        on_epoch_start()
         on_validation_epoch_start()
-        val_outs = []
-        for val_batch in val_dataloader():
+
+        for batch in val_dataloader():
             on_validation_batch_start()
 
-            # -------- val step methods -------
-            out = validation_step(val_batch)
-            val_outs.append(out)
+            on_before_batch_transfer()
+            transfer_batch_to_device()
+            on_after_batch_transfer()
 
-            on_validation_batch_end(out)
+            validation_step()
 
-        validation_epoch_end(val_outs)
+            on_validation_batch_end()
+        validation_epoch_end()
+
         on_validation_epoch_end()
+        on_epoch_end()
+        on_validation_end()
 
         # set up for train
-        model.train()
+        on_validation_model_train()  # calls `model.train()`
         torch.set_grad_enabled(True)
 
 backward
@@ -1106,22 +1171,15 @@ get_progress_bar_dict
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
     :noindex:
 
-manual_backward
-~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
-    :noindex:
-
-
 on_after_backward
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_after_backward
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_after_backward
     :noindex:
 
 on_before_zero_grad
 ~~~~~~~~~~~~~~~~~~~
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_before_zero_grad
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_before_zero_grad
     :noindex:
 
 on_fit_start
@@ -1140,15 +1198,38 @@ on_fit_end
 on_load_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_load_checkpoint
+.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint
     :noindex:
 
 on_save_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
+.. automethod:: pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint
     :noindex:
 
+on_train_start
+~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_start
+    :noindex:
+
+on_train_end
+~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_end
+    :noindex:
+
+on_validation_start
+~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_start
+    :noindex:
+
+on_validation_end
+~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_end
+    :noindex:
 
 on_pretrain_routine_start
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1186,6 +1267,11 @@ on_test_epoch_end
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
     :noindex:
 
+on_test_end
+~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_end
+    :noindex:
 
 on_train_batch_start
 ~~~~~~~~~~~~~~~~~~~~
@@ -1197,6 +1283,18 @@ on_train_batch_end
 ~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_end
+    :noindex:
+
+on_epoch_start
+~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_epoch_start
+    :noindex:
+
+on_epoch_end
+~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_epoch_end
     :noindex:
 
 on_train_epoch_start
@@ -1235,6 +1333,36 @@ on_validation_epoch_end
 .. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_end
     :noindex:
 
+on_post_move_to_device
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_post_move_to_device
+    :noindex:
+
+on_validation_model_eval
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_model_eval
+    :noindex:
+
+on_validation_model_train
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_validation_model_train
+    :noindex:
+
+on_test_model_eval
+~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_eval
+    :noindex:
+
+on_test_model_train
+~~~~~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.core.hooks.ModelHooks.on_test_model_train
+    :noindex:
+
 optimizer_step
 ~~~~~~~~~~~~~~
 
@@ -1256,7 +1384,7 @@ prepare_data
 setup
 ~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.setup
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.setup
     :noindex:
 
 tbptt_split_batch
@@ -1268,25 +1396,25 @@ tbptt_split_batch
 teardown
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.hooks.ModelHooks.teardown
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.teardown
     :noindex:
 
 train_dataloader
 ~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.train_dataloader
     :noindex:
 
 val_dataloader
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.val_dataloader
     :noindex:
 
 test_dataloader
 ~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
+.. automethod:: pytorch_lightning.core.hooks.DataHooks.test_dataloader
     :noindex:
 
 transfer_batch_to_device

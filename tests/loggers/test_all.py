@@ -31,7 +31,6 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.base import DummyExperiment
-from pytorch_lightning.trainer.states import TrainerState
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
@@ -49,8 +48,8 @@ def _get_logger_args(logger_class, save_dir):
     return logger_args
 
 
-def _instantiate_logger(logger_class, save_idr, **override_kwargs):
-    args = _get_logger_args(logger_class, save_idr)
+def _instantiate_logger(logger_class, save_dir, **override_kwargs):
+    args = _get_logger_args(logger_class, save_dir)
     args.update(**override_kwargs)
     logger = logger_class(**args)
     return logger
@@ -102,7 +101,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
     class StoreHistoryLogger(logger_class):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, **kwargs)
             self.history = []
 
@@ -356,7 +355,7 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         callbacks=[RankZeroLoggerCheck()],
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_logger_with_prefix_all(tmpdir, monkeypatch):
@@ -369,38 +368,38 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.comet.comet_ml'), \
          mock.patch('pytorch_lightning.loggers.comet.CometOfflineExperiment'):
         _patch_comet_atexit(monkeypatch)
-        logger = _instantiate_logger(CometLogger, save_idr=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(CometLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
 
     # MLflow
     with mock.patch('pytorch_lightning.loggers.mlflow.mlflow'), \
          mock.patch('pytorch_lightning.loggers.mlflow.MlflowClient'):
-        logger = _instantiate_logger(MLFlowLogger, save_idr=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_metric.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
 
     # Neptune
     with mock.patch('pytorch_lightning.loggers.neptune.neptune'):
-        logger = _instantiate_logger(NeptuneLogger, save_idr=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(NeptuneLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_metric.assert_called_once_with("tmp-test", 1.0)
 
     # TensorBoard
     with mock.patch('pytorch_lightning.loggers.tensorboard.SummaryWriter'):
-        logger = _instantiate_logger(TensorBoardLogger, save_idr=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # TestTube
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
-        logger = _instantiate_logger(TestTubeLogger, save_idr=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(TestTubeLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0}, global_step=0)
 
     # WandB
     with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
-        logger = _instantiate_logger(WandbLogger, save_idr=tmpdir, prefix=prefix)
+        logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
         wandb.run = None
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)

@@ -136,7 +136,7 @@ class ModelIO(object):
 
         if hparams_file is not None:
             extension = hparams_file.split('.')[-1]
-            if extension.lower() in ('csv'):
+            if extension.lower() == 'csv':
                 hparams = load_hparams_from_tags_csv(hparams_file)
             elif extension.lower() in ('yml', 'yaml'):
                 hparams = load_hparams_from_yaml(hparams_file)

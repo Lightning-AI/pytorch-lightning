@@ -15,12 +15,12 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import AUC as _AUC
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class AUC(_AUC):
 
-    @deprecated(target=_AUC, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_AUC)
     def __init__(
         self,
         reorder: bool = False,
@@ -35,3 +35,4 @@ class AUC(_AUC):
         .. deprecated::
             Use :class:`~torchmetrics.AUC`. Will be removed in v1.5.0.
         """
+        _ = reorder, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn

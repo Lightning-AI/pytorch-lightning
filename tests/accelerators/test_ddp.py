@@ -18,9 +18,12 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from torch.nn.parallel.distributed import DistributedDataParallel
 
+import pytorch_lightning as pl
 from pytorch_lightning import Trainer
-from tests.accelerators import ddp_model, DDPLauncher
+from pytorch_lightning.callbacks import Callback
+from tests.accelerators import ddp_model
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.utilities.distributed import call_training_script
@@ -71,19 +74,6 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
         assert out['test_acc'] > 0.7
 
 
-@RunIf(min_gpus=2)
-@DDPLauncher.run(
-    "--max_epochs [max_epochs] --gpus 2 --accelerator [accelerator]",
-    max_epochs=["1"],
-    accelerator=["ddp", "ddp_spawn"]
-)
-def test_cli_to_pass(tmpdir, args=None):
-    """
-    This test verify we can call function using test_cli name
-    """
-    return '1'
-
-
 @RunIf(skip_windows=True)
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
 def test_torch_distributed_backend_env_variables(tmpdir):
@@ -130,3 +120,43 @@ def test_ddp_torch_dist_is_available_in_setup(mock_set_device, mock_is_available
     )
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+@RunIf(min_gpus=2, min_torch="1.8.1", special=True)
+@pytest.mark.parametrize("precision", [16, 32])
+def test_ddp_wrapper(tmpdir, precision):
+    """
+    Test parameters to ignore are carried over for DDP.
+    """
+
+    class WeirdModule(torch.nn.Module):
+
+        def _save_to_state_dict(self, destination, prefix, keep_vars):
+            return {"something": "something"}
+
+    class CustomModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.weird_module = WeirdModule()
+
+            # should be skip.
+            self._ddp_params_and_buffers_to_ignore = ('something')
+
+    class CustomCallback(Callback):
+
+        def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+            assert isinstance(trainer.training_type_plugin.model, DistributedDataParallel)
+            assert trainer.training_type_plugin.model.parameters_to_ignore == ('something')
+            assert trainer.training_type_plugin.model.module._ddp_params_and_buffers_to_ignore == ('something')
+
+    model = CustomModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        precision=precision,
+        accelerator="ddp",
+        gpus=2,
+        callbacks=CustomCallback(),
+    )
+    trainer.fit(model)

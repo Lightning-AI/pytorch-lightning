@@ -16,10 +16,10 @@ from typing import Optional, Tuple, Union
 import torch
 from torchmetrics.functional import psnr as _psnr
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_psnr, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_psnr)
 def psnr(
     preds: torch.Tensor,
     target: torch.Tensor,

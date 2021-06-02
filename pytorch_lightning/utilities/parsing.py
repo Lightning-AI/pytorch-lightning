@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import copy
 import inspect
 import pickle
+import types
 from argparse import Namespace
-from typing import Dict, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -55,13 +56,34 @@ def str_to_bool(val: str) -> bool:
     raise ValueError(f'invalid truth value {val}')
 
 
+def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
+    """Convert a string representation to truth of bool if possible, or otherwise try to convert it to an int.
+
+    >>> str_to_bool_or_int("FALSE")
+    False
+    >>> str_to_bool_or_int("1")
+    True
+    >>> str_to_bool_or_int("2")
+    2
+    >>> str_to_bool_or_int("abc")
+    'abc'
+    """
+    val = str_to_bool_or_str(val)
+    if isinstance(val, bool):
+        return val
+    try:
+        return int(val)
+    except ValueError:
+        return val
+
+
 def is_picklable(obj: object) -> bool:
     """Tests if an object can be pickled"""
 
     try:
         pickle.dumps(obj)
         return True
-    except (pickle.PicklingError, AttributeError):
+    except (pickle.PickleError, AttributeError):
         return False
 
 
@@ -159,6 +181,52 @@ def flatten_dict(source, result=None):
             result[k] = v
 
     return result
+
+
+def save_hyperparameters(
+    obj: Any,
+    *args,
+    ignore: Optional[Union[Sequence[str], str]] = None,
+    frame: Optional[types.FrameType] = None
+) -> None:
+    """See :meth:`~pytorch_lightning.LightningModule.save_hyperparameters`"""
+
+    if len(args) == 1 and not isinstance(args, str) and not args[0]:
+        # args[0] is an empty container
+        return
+
+    if not frame:
+        frame = inspect.currentframe().f_back
+    init_args = get_init_args(frame)
+    assert init_args, "failed to inspect the obj init"
+
+    if ignore is not None:
+        if isinstance(ignore, str):
+            ignore = [ignore]
+        if isinstance(ignore, (list, tuple)):
+            ignore = [arg for arg in ignore if isinstance(arg, str)]
+        init_args = {k: v for k, v in init_args.items() if k not in ignore}
+
+    if not args:
+        # take all arguments
+        hp = init_args
+        obj._hparams_name = "kwargs" if hp else None
+    else:
+        # take only listed arguments in `save_hparams`
+        isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
+        if len(isx_non_str) == 1:
+            hp = args[isx_non_str[0]]
+            cand_names = [k for k, v in init_args.items() if v == hp]
+            obj._hparams_name = cand_names[0] if cand_names else None
+        else:
+            hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
+            obj._hparams_name = "kwargs"
+
+    # `hparams` are expected here
+    if hp:
+        obj._set_hparams(hp)
+    # make deep copy so  there is not other runtime changes reflected
+    obj._hparams_initial = copy.deepcopy(obj._hparams)
 
 
 class AttributeDict(Dict):

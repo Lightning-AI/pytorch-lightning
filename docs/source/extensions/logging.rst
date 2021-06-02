@@ -90,7 +90,7 @@ The :func:`~~pytorch_lightning.core.lightning.LightningModule.log` method has a 
 .. note::
 
     -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
-        reduction `on_epoch_end`. We recommend using the :doc:`metrics <../extensions/metrics>` API when working with custom reduction.
+        reduction in ``on_train_epoch_end``. We recommend using the :doc:`metrics <../extensions/metrics>` API when working with custom reduction.
 
     -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
         suffix ``_step`` and ``_epoch``, respectively. You can refer to these keys e.g. in the `monitor`
@@ -208,8 +208,8 @@ To change this behaviour, set the `log_every_n_steps` :class:`~pytorch_lightning
 Log writing frequency
 =====================
 
-Writing to a logger can be expensive, so by default Lightning write logs to disc or to the given logger every 100 training steps.
-To change this behaviour, set the interval at which you wish to flush logs to the filesystem using `log_every_n_steps` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
+Writing to a logger can be expensive, so by default Lightning writes logs to disk or to the given logger every 100 training steps.
+To change this behaviour, set the interval at which you wish to flush logs to the filesystem using the `flush_logs_every_n_steps` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
 
 .. testcode::
 

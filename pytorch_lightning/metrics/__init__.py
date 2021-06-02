@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from warnings import warn
 
 from pytorch_lightning.metrics.classification import (  # noqa: F401
     Accuracy,
@@ -39,8 +38,9 @@ from pytorch_lightning.metrics.regression import (  # noqa: F401
     R2Score,
     SSIM,
 )
+from pytorch_lightning.utilities import rank_zero_deprecation
 
-warn(
+rank_zero_deprecation(
     "`pytorch_lightning.metrics.*` module has been renamed to `torchmetrics.*` and split off to its own package"
-    " (https://github.com/PyTorchLightning/metrics) since v1.3 and will be removed in v1.5", DeprecationWarning
+    " (https://github.com/PyTorchLightning/metrics) since v1.3 and will be removed in v1.5"
 )

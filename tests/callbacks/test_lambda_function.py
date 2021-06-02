@@ -29,10 +29,12 @@ def test_lambda_call(tmpdir):
 
     checker = set()
     hooks = [m for m, _ in inspect.getmembers(Callback, predicate=inspect.isfunction)]
-    hooks_args = {h: (lambda x: lambda *args: checker.add(x))(h) for h in hooks}
-    hooks_args["on_save_checkpoint"] = (lambda x: lambda *args: [checker.add(x)])("on_save_checkpoint")
+    hooks_args = {h: (lambda x: lambda *_: checker.add(x))(h) for h in hooks}
+    hooks_args["on_save_checkpoint"] = (lambda x: lambda *_: [checker.add(x)])("on_save_checkpoint")
 
     model = CustomModel()
+
+    # successful run
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -40,22 +42,21 @@ def test_lambda_call(tmpdir):
         limit_val_batches=1,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    results = trainer.fit(model)
-    assert results
+    trainer.fit(model)
 
-    model = CustomModel()
-    ckpt_path = trainer.checkpoint_callback.best_model_path
+    # raises KeyboardInterrupt and loads from checkpoint
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
         limit_train_batches=1,
         limit_val_batches=1,
         limit_test_batches=1,
-        resume_from_checkpoint=ckpt_path,
+        limit_predict_batches=1,
+        resume_from_checkpoint=trainer.checkpoint_callback.best_model_path,
         callbacks=[LambdaCallback(**hooks_args)],
     )
-    results = trainer.fit(model)
+    trainer.fit(model)
     trainer.test(model)
+    trainer.predict(model)
 
-    assert results
     assert checker == set(hooks)

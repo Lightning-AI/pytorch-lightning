@@ -148,7 +148,9 @@ class BaseProfiler(AbstractProfiler):
         # so to avoid them, we open and close the files within this function
         # by calling `_prepare_streams` and `teardown`
         self._prepare_streams()
-        self._write_stream(self.summary())
+        summary = self.summary()
+        if summary:
+            self._write_stream(summary)
         if self._output_file is not None:
             self._output_file.flush()
         self.teardown(stage=self._stage)

@@ -15,12 +15,12 @@ from typing import Any, Optional
 
 from torchmetrics import ROC as _ROC
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class ROC(_ROC):
 
-    @deprecated(target=_ROC, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_ROC)
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -35,3 +35,4 @@ class ROC(_ROC):
         .. deprecated::
             Use :class:`~torchmetrics.ROC`. Will be removed in v1.5.0.
         """
+        _ = num_classes, pos_label, compute_on_step, dist_sync_on_step, process_group

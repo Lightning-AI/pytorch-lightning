@@ -15,7 +15,7 @@ import logging
 import os
 from typing import Optional, Tuple
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import DeviceType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -28,58 +28,15 @@ log = logging.getLogger(__name__)
 
 
 def scale_batch_size(
-    trainer,
-    model: LightningModule,
+    trainer: 'pl.Trainer',
+    model: 'pl.LightningModule',
     mode: str = 'power',
     steps_per_trial: int = 3,
     init_val: int = 2,
     max_trials: int = 25,
     batch_arg_name: str = 'batch_size',
-    **fit_kwargs
-):
-    r"""
-    Will iteratively try to find the largest batch size for a given model
-    that does not give an out of memory (OOM) error.
-
-    Args:
-        trainer: The Trainer
-        model: Model to fit.
-
-        mode: string setting the search mode. Either `power` or `binsearch`.
-            If mode is `power` we keep multiplying the batch size by 2, until
-            we get an OOM error. If mode is 'binsearch', we will initially
-            also keep multiplying by 2 and after encountering an OOM error
-            do a binary search between the last successful batch size and the
-            batch size that failed.
-
-        steps_per_trial: number of steps to run with a given batch size.
-            Idealy 1 should be enough to test if a OOM error occurs,
-            however in practise a few are needed
-
-        init_val: initial batch size to start the search with
-
-        max_trials: max number of increase in batch size done before
-           algorithm is terminated
-
-        batch_arg_name: name of the attribute that stores the batch size.
-            It is expected that the user has provided a model or datamodule that has a hyperparameter
-            with that name. We will look for this attribute name in the following places
-
-            - ``model``
-            - ``model.hparams``
-            - ``model.datamodule``
-            - ``trainer.datamodule`` (the datamodule passed to the tune method)
-
-        **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
-            or datamodule.
-
-    Raises:
-        MisconfigurationException:
-            If field ``batch_arg_name`` is not found in ``model`` and ``model.hparams``, or
-            if batch scaling feature is used with dataloaders passed directly to ``.fit()``.
-        ValueError:
-            If mode in method ``scale_batch_size`` is neither ``power`` nor ``binsearch``.
-    """
+) -> Optional[int]:
+    """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size`"""
     if trainer.fast_dev_run:
         rank_zero_warn('Skipping batch size scaler since fast_dev_run is enabled.', UserWarning)
         return
@@ -113,13 +70,13 @@ def scale_batch_size(
         trainer.progress_bar_callback.disable()
 
     # Initially we just double in size until an OOM is encountered
-    new_size = _adjust_batch_size(trainer, batch_arg_name, value=init_val)  # initially set to init_val
+    new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)  # initially set to init_val
     if mode == 'power':
-        new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs)
+        new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials)
     elif mode == 'binsearch':
-        new_size = _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs)
+        new_size = _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
     else:
-        raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch')
+        raise ValueError('mode in method `scale_batch_size` could either be `power` or `binsearch`')
 
     garbage_collection_cuda()
     log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
@@ -139,7 +96,7 @@ def scale_batch_size(
     return new_size
 
 
-def __scale_batch_dump_params(trainer):
+def __scale_batch_dump_params(trainer: 'pl.Trainer') -> None:
     # Prevent going into infinite loop
     trainer.__dumped_params = {
         'auto_lr_find': trainer.auto_lr_find,
@@ -155,11 +112,11 @@ def __scale_batch_dump_params(trainer):
     }
 
 
-def __scale_batch_reset_params(trainer, model, steps_per_trial):
+def __scale_batch_reset_params(trainer: 'pl.Trainer', model: 'pl.LightningModule', steps_per_trial: int) -> None:
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
-    trainer.current_epoch = 0
-    trainer.max_steps = steps_per_trial  # take few steps
+    trainer.train_loop.current_epoch = 0
+    trainer.train_loop.max_steps = steps_per_trial  # take few steps
     trainer.weights_summary = None  # not needed before full run
     trainer.logger = DummyLogger()
     trainer.callbacks = []  # not needed before full run
@@ -168,10 +125,10 @@ def __scale_batch_reset_params(trainer, model, steps_per_trial):
     trainer.model = model  # required for saving
 
 
-def __scale_batch_restore_params(trainer):
+def __scale_batch_restore_params(trainer: 'pl.Trainer') -> None:
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
-    trainer.current_epoch = trainer.__dumped_params['current_epoch']
-    trainer.max_steps = trainer.__dumped_params['max_steps']
+    trainer.train_loop.current_epoch = trainer.__dumped_params['current_epoch']
+    trainer.train_loop.max_steps = trainer.__dumped_params['max_steps']
     trainer.weights_summary = trainer.__dumped_params['weights_summary']
     trainer.logger = trainer.__dumped_params['logger']
     trainer.callbacks = trainer.__dumped_params['callbacks']
@@ -181,15 +138,16 @@ def __scale_batch_restore_params(trainer):
     del trainer.__dumped_params
 
 
-def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs):
-    """ Batch scaling mode where the size is doubled at each iteration until an
-        OOM error is encountered. """
+def _run_power_scaling(
+    trainer: 'pl.Trainer', model: 'pl.LightningModule', new_size: int, batch_arg_name: str, max_trials: int
+) -> int:
+    """ Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered. """
     for _ in range(max_trials):
         garbage_collection_cuda()
-        trainer.global_step = 0  # reset after each try
+        trainer.train_loop.global_step = 0  # reset after each try
         try:
             # Try fit
-            trainer.fit(model, **fit_kwargs)
+            trainer.tuner._run(model)
             # Double in size
             new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
         except RuntimeError as exception:
@@ -202,12 +160,17 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **f
             else:
                 raise  # some other error not memory related
 
-        if not changed:
+        if changed:
+            # Force the train dataloader to reset as the batch size has changed
+            trainer.reset_train_dataloader(model)
+        else:
             break
     return new_size
 
 
-def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs):
+def _run_binsearch_scaling(
+    trainer: 'pl.Trainer', model: 'pl.LightningModule', new_size: int, batch_arg_name: str, max_trials: int
+) -> int:
     """ Batch scaling mode where the size is initially is doubled at each iteration
         until an OOM error is encountered. Hereafter, the batch size is further
         refined using a binary search """
@@ -215,10 +178,10 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
     count = 0
     while True:
         garbage_collection_cuda()
-        trainer.global_step = 0  # reset after each try
+        trainer.train_loop.global_step = 0  # reset after each try
         try:
             # Try fit
-            trainer.fit(model, **fit_kwargs)
+            trainer.tuner._run(model)
             count += 1
             if count > max_trials:
                 break
@@ -232,7 +195,10 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
             else:
                 new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
 
-            if not changed:
+            if changed:
+                # Force the train dataloader to reset as the batch size has changed
+                trainer.reset_train_dataloader(model)
+            else:
                 break
 
         except RuntimeError as exception:
@@ -252,7 +218,7 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
 
 
 def _adjust_batch_size(
-    trainer,
+    trainer: 'pl.Trainer',
     batch_arg_name: str = 'batch_size',
     factor: float = 1.0,
     value: Optional[int] = None,

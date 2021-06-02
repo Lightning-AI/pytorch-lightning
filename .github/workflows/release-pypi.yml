@@ -5,7 +5,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   push:
     branches: [master, "release/*"]
   release:
-    types: [created]
+    types: [published]
 
 
 jobs:
@@ -35,6 +35,7 @@ jobs:
   upload-package:
     runs-on: ubuntu-20.04
     needs: build-package
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v2
     - uses: actions/download-artifact@v2
@@ -44,7 +45,6 @@ jobs:
     - run: ls -lh dist/
 
     - name: Upload to release
-      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: AButler/upload-release-assets@v2.0
       with:
         files: 'dist/*'
@@ -53,6 +53,7 @@ jobs:
   publish-package:
     runs-on: ubuntu-20.04
     needs: build-package
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v2
     - uses: actions/download-artifact@v2
@@ -62,14 +63,12 @@ jobs:
     - run: ls -lh dist/
 
     - name: Delay releasing
-      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: juliangruber/sleep-action@v1
       with:
         time: 10m
 
     # We do this, since failures on test.pypi aren't that bad
     - name: Publish to Test PyPI
-      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: pypa/gh-action-pypi-publish@v1.4.1
       with:
         user: __token__
@@ -78,7 +77,6 @@ jobs:
         verbose: true
 
     - name: Publish distribution 📦 to PyPI
-      if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       uses: pypa/gh-action-pypi-publish@v1.4.1
       with:
         user: __token__
@@ -89,17 +87,23 @@ jobs:
     needs: [build-package, publish-package]
     steps:
     - uses: actions/checkout@v2
+
     - uses: actions/setup-python@v2
       with:
         python-version: 3.7
+
+    - name: Weekly reset caching
+      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
+      id: times
+
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
     - name: Cache pip
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: ${{ runner.os }}-pip-
+        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-
 
     - name: Install dependencies
       run: |
@@ -124,7 +128,6 @@ jobs:
         ls -l legacy/checkpoints/
 
     - name: Generate checkpoint
-      # if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
       run: |
         ls -lh dist/
         pip install dist/*.whl

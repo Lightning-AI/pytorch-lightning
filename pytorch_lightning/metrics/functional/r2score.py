@@ -15,10 +15,10 @@
 import torch
 from torchmetrics.functional import r2score as _r2score
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_r2score, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_r2score)
 def r2score(
     preds: torch.Tensor,
     target: torch.Tensor,

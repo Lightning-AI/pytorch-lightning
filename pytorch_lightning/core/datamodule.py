@@ -14,87 +14,17 @@
 """LightningDataModule for loading DataLoaders with ease."""
 
 import functools
-from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
 
 
-class _DataModuleWrapper(type):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__has_added_checks = False
-
-    def __call__(cls, *args, **kwargs):
-        """A wrapper for LightningDataModule that:
-
-        1. Runs user defined subclass's __init__
-        2. Assures prepare_data() runs on rank 0
-        3. Lets you check prepare_data and setup to see if they've been called
-        """
-        if not cls.__has_added_checks:
-            cls.__has_added_checks = True
-            # Track prepare_data calls and make sure it runs on rank zero
-            cls.prepare_data = track_data_hook_calls(rank_zero_only(cls.prepare_data))
-            # Track setup calls
-            cls.setup = track_data_hook_calls(cls.setup)
-
-        # Get instance of LightningDataModule by mocking its __init__ via __call__
-        obj = type.__call__(cls, *args, **kwargs)
-
-        return obj
-
-
-def track_data_hook_calls(fn):
-    """A decorator that checks if prepare_data/setup have been called.
-
-    - When ``dm.prepare_data()`` is called, ``dm.has_prepared_data`` gets set to True
-    - When ``dm.setup()``, ``dm.has_setup_{fit,validate,test}`` get set to True
-    - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
-        Its corresponding `dm_has_setup_{stage}` attribute gets set to True
-
-    Args:
-        fn (function): Function that will be tracked to see if it has been called.
-
-    Returns:
-        function: Decorated function that tracks its call status and saves it to private attrs in its obj instance.
-    """
-
-    @functools.wraps(fn)
-    def wrapped_fn(*args, **kwargs):
-
-        # The object instance from which setup or prepare_data was called
-        obj = args[0]
-
-        # If calling setup, we check the stage and assign stage-specific bool args
-        if fn.__name__ == "setup":
-
-            # Get stage either by grabbing from args or checking kwargs.
-            # If not provided, set call status of 'fit', 'validate', and 'test' to True.
-            # We do this so __attach_datamodule in trainer.py doesn't mistakenly call setup('test') on trainer.test()
-            stage = args[1] if len(args) > 1 else kwargs.get("stage", None)
-
-            if stage is None:
-                for s in ("fit", "validate", "test"):
-                    setattr(obj, f"_has_setup_{s}", True)
-            else:
-                setattr(obj, f"_has_setup_{stage}", True)
-
-        if fn.__name__ == "prepare_data":
-            obj._has_prepared_data = True
-
-        return fn(*args, **kwargs)
-
-    return wrapped_fn
-
-
-class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapper):
+class LightningDataModule(CheckpointHooks, DataHooks):
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits, data preparation and transforms across models.
@@ -107,7 +37,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
             def prepare_data(self):
                 # download, split, etc...
                 # only called on 1 GPU/TPU in distributed
-            def setup(self):
+            def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
             def train_dataloader(self):
@@ -119,14 +49,18 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
             def test_dataloader(self):
                 test_split = Dataset(...)
                 return DataLoader(test_split)
+            def teardown(self):
+                # clean up after fit or test
+                # called on every process in DDP
 
-    A DataModule implements 5 key methods:
+    A DataModule implements 6 key methods:
 
     * **prepare_data** (things to do on 1 GPU/TPU not on every GPU/TPU in distributed mode).
     * **setup**  (things to do on every accelerator in distributed mode).
     * **train_dataloader** the training dataloader.
     * **val_dataloader** the val dataloader(s).
     * **test_dataloader** the test dataloader(s).
+    * **teardown** (things to do on every accelerator in distributed mode when finished)
 
 
     This allows you to share a full dataset without explaining how to download,
@@ -154,10 +88,16 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False
+
         self._has_setup_fit = False
         self._has_setup_validate = False
         self._has_setup_test = False
         self._has_setup_predict = False
+
+        self._has_teardown_fit = False
+        self._has_teardown_validate = False
+        self._has_teardown_test = False
+        self._has_teardown_predict = False
 
     @property
     def train_transforms(self):
@@ -259,13 +199,41 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         """
         return self._has_setup_predict
 
-    @abstractmethod
-    def prepare_data(self, *args, **kwargs):
-        pass
+    @property
+    def has_teardown_fit(self) -> bool:
+        """Return bool letting you know if ``datamodule.teardown(stage='fit')`` has been called or not.
 
-    @abstractmethod
-    def setup(self, stage: Optional[str] = None):
-        pass
+        Returns:
+            bool: True ``if datamodule.teardown(stage='fit')`` has been called. False by default.
+        """
+        return self._has_teardown_fit
+
+    @property
+    def has_teardown_validate(self) -> bool:
+        """Return bool letting you know if ``datamodule.teardown(stage='validate')`` has been called or not.
+
+        Returns:
+            bool: True if ``datamodule.teardown(stage='validate')`` has been called. False by default.
+        """
+        return self._has_teardown_validate
+
+    @property
+    def has_teardown_test(self) -> bool:
+        """Return bool letting you know if ``datamodule.teardown(stage='test')`` has been called or not.
+
+        Returns:
+            bool: True if ``datamodule.teardown(stage='test')`` has been called. False by default.
+        """
+        return self._has_teardown_test
+
+    @property
+    def has_teardown_predict(self) -> bool:
+        """Return bool letting you know if ``datamodule.teardown(stage='predict')`` has been called or not.
+
+        Returns:
+            bool: True if ``datamodule.teardown(stage='predict')`` has been called. False by default.
+        """
+        return self._has_teardown_predict
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
@@ -278,11 +246,12 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         Args:
             args: The parser or namespace to take arguments from. Only known arguments will be
-             parsed and passed to the :class:`LightningDataModule`.
+                parsed and passed to the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
             **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
-             These must be valid DataModule arguments.
+                These must be valid DataModule arguments.
 
         Example::
+
             parser = ArgumentParser(add_help=False)
             parser = LightningDataModule.add_argparse_args(parser)
             module = LightningDataModule.from_argparse_args(args)
@@ -321,7 +290,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
 
         """
 
-        def dataloader(ds, shuffle=False):
+        def dataloader(ds: Dataset, shuffle: bool = False) -> DataLoader:
+            shuffle &= not isinstance(ds, IterableDataset)
             return DataLoader(
                 ds,
                 batch_size=batch_size,
@@ -355,3 +325,70 @@ class LightningDataModule(CheckpointHooks, DataHooks, metaclass=_DataModuleWrapp
         if test_dataset is not None:
             datamodule.test_dataloader = test_dataloader
         return datamodule
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> 'LightningDataModule':
+        obj = super().__new__(cls)
+        # track `DataHooks` calls and run `prepare_data` only on rank zero
+        obj.prepare_data = cls._track_data_hook_calls(obj, rank_zero_only(obj.prepare_data))
+        obj.setup = cls._track_data_hook_calls(obj, obj.setup)
+        obj.teardown = cls._track_data_hook_calls(obj, obj.teardown)
+        return obj
+
+    @staticmethod
+    def _track_data_hook_calls(obj: 'LightningDataModule', fn: callable) -> callable:
+        """A decorator that checks if prepare_data/setup/teardown has been called.
+
+        - When ``dm.prepare_data()`` is called, ``dm.has_prepared_data`` gets set to True
+        - When ``dm.setup()``, ``dm.has_setup_{fit,validate,test}`` get set to True
+        - When ``dm.setup(stage)`` is called, where stage is any of ``{fit,validate,test,predict}``.
+          Its corresponding `dm_has_setup_{stage}` attribute gets set to True
+        - ``dm.teardown()`` and ``dm.teardown(stage)`` act exactly like ``dm.setup``
+
+        Args:
+            obj: Object whose function will be tracked
+            fn: Function that will be tracked to see if it has been called.
+
+        Returns:
+            Decorated function that tracks its call status and saves it to private attrs in its obj instance.
+        """
+
+        @functools.wraps(fn)
+        def wrapped_fn(*args: str, **kwargs: Optional[str]) -> Any:
+            name = fn.__name__
+            has_run = False
+
+            # If calling setup, we check the stage and assign stage-specific bool args
+            if name in ("setup", "teardown"):
+
+                # Get stage either by grabbing from args or checking kwargs.
+                # If not provided, set call status of 'fit', 'validate', and 'test' to True.
+                # We do this so __attach_datamodule in trainer.py doesn't mistakenly call
+                # setup('test') on trainer.test()
+                stage = args[0] if len(args) else kwargs.get("stage", None)
+
+                if stage is None:
+                    has_run = True
+                    for s in ("fit", "validate", "test"):
+                        attr = f"_has_{name}_{s}"
+                        has_run &= getattr(obj, attr)
+                        setattr(obj, attr, True)
+                else:
+                    attr = f"_has_{name}_{stage}"
+                    has_run = getattr(obj, attr)
+                    setattr(obj, attr, True)
+
+            elif name == "prepare_data":
+                has_run = obj._has_prepared_data
+                obj._has_prepared_data = True
+
+            if not has_run:
+                return fn(*args, **kwargs)
+
+        return wrapped_fn
+
+    def __getstate__(self) -> dict:
+        # avoids _pickle.PicklingError: Can't pickle <...>: it's not the same object as <...>
+        d = self.__dict__.copy()
+        for fn in ("prepare_data", "setup", "teardown"):
+            del d[fn]
+        return d

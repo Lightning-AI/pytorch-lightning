@@ -18,7 +18,7 @@ import torch.multiprocessing as mp
 from torchmetrics import Metric
 
 import tests.helpers.utils as tutils
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from tests.helpers.runif import RunIf
 
 
@@ -76,6 +76,7 @@ def _ddp_test_fn(rank, worldsize):
                 assert batch_expected[k] == batch_log[k]
 
         epoch_log = result.get_epoch_log_metrics()
+        result.reset()
 
         # assert metric state reset to default values
         assert metric_a.x == metric_a._defaults['x']
@@ -92,7 +93,6 @@ def _ddp_test_fn(rank, worldsize):
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
     worldsize = 2
@@ -127,6 +127,7 @@ def test_result_metric_integration():
                 assert batch_expected[k] == batch_log[k]
 
         epoch_log = result.get_epoch_log_metrics()
+        result.reset()
 
         # assert metric state reset to default values
         assert metric_a.x == metric_a._defaults['x']

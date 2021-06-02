@@ -16,10 +16,10 @@ from typing import List, Optional, Sequence, Tuple, Union
 from torch import Tensor
 from torchmetrics.functional import roc as _roc
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_roc, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_roc)
 def roc(
     preds: Tensor,
     target: Tensor,

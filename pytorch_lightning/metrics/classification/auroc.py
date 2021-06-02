@@ -15,12 +15,12 @@ from typing import Any, Callable, Optional
 
 from torchmetrics import AUROC as _AUROC
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
 class AUROC(_AUROC):
 
-    @deprecated(target=_AUROC, ver_deprecate="1.3.0", ver_remove="1.5.0")
+    @deprecated_metrics(target=_AUROC)
     def __init__(
         self,
         num_classes: Optional[int] = None,
@@ -38,3 +38,4 @@ class AUROC(_AUROC):
         .. deprecated::
             Use :class:`~torchmetrics.AUROC`. Will be removed in v1.5.0.
         """
+        _ = num_classes, pos_label, average, max_fpr, compute_on_step, dist_sync_on_step, process_group, dist_sync_fn

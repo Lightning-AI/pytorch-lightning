@@ -36,11 +36,11 @@ references:
   build_push_docker: &build_push_docker
     run:
       name: Build and push Docker image
+      environment:
+        - PYTHON_VER: 3.7
       command: |
         gcloud --quiet auth configure-docker
         #cd dockers/tpu-tests
-        export PYTHON_VER=$(python -c "import random ; print('3.6' if random.random() > 0.5 else '3.7')" 2>&1)
-        echo $PYTHON_VER
         docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "PYTHON_VERSION=$PYTHON_VER" --build-arg "PYTORCH_VERSION=$XLA_VER" .
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 

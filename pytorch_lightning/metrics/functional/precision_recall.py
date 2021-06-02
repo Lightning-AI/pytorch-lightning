@@ -18,10 +18,10 @@ from torchmetrics.functional import precision as _precision
 from torchmetrics.functional import precision_recall as _precision_recall
 from torchmetrics.functional import recall as _recall
 
-from pytorch_lightning.utilities.deprecation import deprecated
+from pytorch_lightning.metrics.utils import deprecated_metrics
 
 
-@deprecated(target=_precision, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_precision)
 def precision(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -39,7 +39,7 @@ def precision(
     """
 
 
-@deprecated(target=_recall, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_recall)
 def recall(
     preds: torch.Tensor,
     target: torch.Tensor,
@@ -57,7 +57,7 @@ def recall(
     """
 
 
-@deprecated(target=_precision_recall, ver_deprecate="1.3.0", ver_remove="1.5.0")
+@deprecated_metrics(target=_precision_recall)
 def precision_recall(
     preds: torch.Tensor,
     target: torch.Tensor,

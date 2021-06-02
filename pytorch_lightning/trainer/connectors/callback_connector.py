@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import List, Union
+from datetime import timedelta
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -27,14 +30,15 @@ class CallbackConnector:
 
     def on_trainer_init(
         self,
-        callbacks,
-        checkpoint_callback,
-        progress_bar_refresh_rate,
-        process_position,
-        default_root_dir,
-        weights_save_path,
-        resume_from_checkpoint,
-        stochastic_weight_avg,
+        callbacks: Optional[Union[List[Callback], Callback]],
+        checkpoint_callback: bool,
+        progress_bar_refresh_rate: Optional[int],
+        process_position: int,
+        default_root_dir: Optional[str],
+        weights_save_path: Optional[str],
+        resume_from_checkpoint: Optional[Union[Path, str]],
+        stochastic_weight_avg: bool,
+        max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
         self.trainer.resume_from_checkpoint = resume_from_checkpoint
 
@@ -50,10 +54,14 @@ class CallbackConnector:
 
         # configure checkpoint callback
         # pass through the required args to figure out defaults
-        self.configure_checkpoint_callbacks(checkpoint_callback)
+        self._configure_checkpoint_callbacks(checkpoint_callback)
 
         # configure swa callback
         self._configure_swa_callbacks()
+
+        # configure the timer callback.
+        # responsible to stop the training when max_time is reached.
+        self._configure_timer_callback(max_time)
 
         # init progress bar
         self.trainer._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
@@ -62,7 +70,16 @@ class CallbackConnector:
         # it is important that these are the last callbacks to run
         self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
-    def configure_checkpoint_callbacks(self, checkpoint_callback: Union[ModelCheckpoint, bool]):
+    def _configure_checkpoint_callbacks(self, checkpoint_callback: bool) -> None:
+        # TODO: Remove this error in v1.5 so we rely purely on the type signature
+        if not isinstance(checkpoint_callback, bool):
+            error_msg = (
+                "Invalid type provided for checkpoint_callback:"
+                f" Expected bool but received {type(checkpoint_callback)}."
+            )
+            if isinstance(checkpoint_callback, Callback):
+                error_msg += " Pass callback instances to the `callbacks` argument in the Trainer constructor instead."
+            raise MisconfigurationException(error_msg)
         if self._trainer_has_checkpoint_callbacks() and checkpoint_callback is False:
             raise MisconfigurationException(
                 "Trainer was configured with checkpoint_callback=False but found ModelCheckpoint"
@@ -105,6 +122,15 @@ class CallbackConnector:
             progress_bar_callback = None
 
         return progress_bar_callback
+
+    def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
+        if max_time is None:
+            return
+        if any(isinstance(cb, Timer) for cb in self.trainer.callbacks):
+            rank_zero_info("Ignoring `Trainer(max_time=...)`, callbacks list already contains a Timer.")
+            return
+        timer = Timer(duration=max_time, interval="step")
+        self.trainer.callbacks.append(timer)
 
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0

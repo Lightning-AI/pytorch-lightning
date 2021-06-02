@@ -13,17 +13,18 @@
 # limitations under the License.
 import os
 import sys
-from distutils.version import LooseVersion
 from typing import Optional
 
 import pytest
 import torch
+from packaging.version import Version
 from pkg_resources import get_distribution
 
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
+    _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _FAIRSCALE_PIPE_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _NATIVE_AMP_AVAILABLE,
@@ -69,6 +70,7 @@ class RunIf:
         rpc: bool = False,
         fairscale: bool = False,
         fairscale_pipe: bool = False,
+        fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
         **kwargs
     ):
@@ -89,6 +91,8 @@ class RunIf:
             special: running in special mode, outside pytest suit
             rpc: requires Remote Procedure Call (RPC)
             fairscale: if `fairscale` module is required to run the test
+            fairscale_pipe: if `fairscale` with pipe module is required to run the test
+            fairscale_fully_sharded: if `fairscale` fully sharded module is required to run the test
             deepspeed: if `deepspeed` module is required to run the test
             kwargs: native pytest.mark.skipif keyword arguments
         """
@@ -100,18 +104,18 @@ class RunIf:
             reasons.append(f"GPUs>={min_gpus}")
 
         if min_torch:
-            torch_version = LooseVersion(get_distribution("torch").version)
-            conditions.append(torch_version < LooseVersion(min_torch))
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) < Version(min_torch))
             reasons.append(f"torch>={min_torch}")
 
         if max_torch:
-            torch_version = LooseVersion(get_distribution("torch").version)
-            conditions.append(torch_version >= LooseVersion(max_torch))
+            torch_version = get_distribution("torch").version
+            conditions.append(Version(torch_version) >= Version(max_torch))
             reasons.append(f"torch<{max_torch}")
 
         if min_python:
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-            conditions.append(py_version < LooseVersion(min_python))
+            conditions.append(Version(py_version) < Version(min_python))
             reasons.append(f"python>={min_python}")
 
         if quantization:
@@ -159,6 +163,10 @@ class RunIf:
         if fairscale_pipe:
             conditions.append(not _FAIRSCALE_PIPE_AVAILABLE)
             reasons.append("Fairscale Pipe")
+
+        if fairscale_fully_sharded:
+            conditions.append(not _FAIRSCALE_FULLY_SHARDED_AVAILABLE)
+            reasons.append("Fairscale Fully Sharded")
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)

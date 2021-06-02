@@ -318,7 +318,10 @@ class NeptuneLogger(LightningLoggerBase):
             text: The value of the log (data-point).
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
-        self.experiment.log_text(log_name, text, step=step)
+        if step is None:
+            self.experiment.log_text(log_name, text)
+        else:
+            self.experiment.log_text(log_name, x=step, y=text)
 
     @rank_zero_only
     def log_image(self, log_name: str, image: Union[str, Any], step: Optional[int] = None) -> None:
