@@ -187,6 +187,10 @@ class AcceleratorConnector(object):
         else:
             self._accelerator_type = DeviceType.CPU
 
+        accelerator_types = DeviceType.__members__.values()
+        if self.distributed_backend in accelerator_types:
+            self.distributed_backend = None
+
     def validate_accelerate_type(self) -> None:
         if self._accelerator_type and self._accelerator_type != self._device_type:
             raise MisconfigurationException("")
@@ -277,7 +281,7 @@ class AcceleratorConnector(object):
 
     @property
     def use_cpu(self) -> bool:
-        return self._accelerator_type == DeviceType.CPU and self.on_cpu
+        return self.on_cpu
 
     @property
     def on_tpu(self) -> bool:
@@ -345,7 +349,7 @@ class AcceleratorConnector(object):
         if hasattr(self.training_type_plugin, 'is_distributed') and not self.on_tpu:
             return self.training_type_plugin.is_distributed
         is_distributed = self.use_ddp or self.use_ddp2 or self.use_horovod
-        if self.on_tpu:
+        if self.use_tpu:
             is_distributed |= self.training_type_plugin.is_distributed
         return is_distributed
 
@@ -358,9 +362,9 @@ class AcceleratorConnector(object):
 
     @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
-        if self.on_gpu:
+        if self.use_gpu:
             devices = [torch.device("cuda", i) for i in self.parallel_device_ids]
-        elif self.on_tpu:
+        elif self.use_tpu:
             # explicitly don't make a tpu device here!
             # https://github.com/PyTorchLightning/pytorch-lightning/issues/3169
             if isinstance(self.tpu_cores, int):
@@ -537,9 +541,9 @@ class AcceleratorConnector(object):
                 )
             return self.distributed_backend
 
-        if self.on_gpu:
+        if self.use_gpu:
             acc_cls = GPUAccelerator
-        elif self.on_tpu:
+        elif self.use_tpu:
             acc_cls = TPUAccelerator
         else:
             acc_cls = CPUAccelerator
@@ -588,6 +592,9 @@ class AcceleratorConnector(object):
                 )
                 self.distributed_backend = "ddp_spawn"
 
+        is_cpu_accelerator_type = self._accelerator_type and self._accelerator_type == DeviceType.CPU
+        _use_cpu = is_cpu_accelerator_type or self.distributed_backend and 'cpu' in self.distributed_backend
+
         # special case with DDP on CPUs
         if self.distributed_backend == "ddp_cpu":
             self._distrib_type = DistributedType.DDP_SPAWN
@@ -600,21 +607,19 @@ class AcceleratorConnector(object):
                 # define the max CPU available
                 self.num_processes = os.cpu_count()
         # special case with TPUs
-        elif self.distributed_backend == 'tpu' or self.tpu_cores is not None:
+        elif self.tpu_cores is not None and not _use_cpu:
             self._device_type = DeviceType.TPU
             if isinstance(self.tpu_cores, int):
                 self._distrib_type = DistributedType.TPU_SPAWN
         elif self.distributed_backend and self._distrib_type is None:
             self._distrib_type = DistributedType(self.distributed_backend)
 
-        # unless you request explicitly for CPU and some GPU are available use them
-        _on_cpu = self.distributed_backend and 'cpu' in self.distributed_backend
-        if self.num_gpus > 0 and not _on_cpu:
+        if self.num_gpus > 0 and not _use_cpu:
             self._device_type = DeviceType.GPU
 
         _gpu_distrib_types = (DistributedType.DP, DistributedType.DDP, DistributedType.DDP_SPAWN, DistributedType.DDP2)
         # DP and DDP2 cannot run without GPU
-        if self.num_gpus == 0 and self._distrib_type in _gpu_distrib_types and not _on_cpu:
+        if self.num_gpus == 0 and self._distrib_type in _gpu_distrib_types and not _use_cpu:
             rank_zero_warn(
                 'You requested distributed training on GPUs, but none is available, so we set backend to `ddp_cpu`.'
             )
@@ -651,7 +656,7 @@ class AcceleratorConnector(object):
             )
 
         rank_zero_info(f'GPU available: {_GPU_AVAILABLE}, used: {self._device_type == DeviceType.GPU}')
-        num_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        num_cores = self.tpu_cores if self.use_tpu else 0
         rank_zero_info(f'TPU available: {_TPU_AVAILABLE}, using: {num_cores} TPU cores')
 
         if _GPU_AVAILABLE and self._device_type != DeviceType.GPU:
