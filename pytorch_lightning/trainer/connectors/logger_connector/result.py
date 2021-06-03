@@ -118,10 +118,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
                 self.cumulated_batch_size += batch_size
-            elif self.meta.is_max_reduction:
-                self.value = max(self.value, value.mean())
-            elif self.meta.is_min_reduction:
-                self.value = min(self.value, value.mean())
+            elif self.meta.is_max_reduction or self.meta.is_min_reduction:
+                self.value = self.meta.reduce_fx(self.value, value.mean())
         else:
             self.value = value  # noqa: attribute-defined-outside-init
             self._forward_cache = value._forward_cache
