@@ -374,15 +374,15 @@ class ResultCollection(dict):
                 result_metric, ResultMetric, partial(self._get_cache, on_step), include_none=False
             )
 
-            # detect if the value is None. This can be nested.
-            is_none = False
+            # check if the collection is empty
+            has_tensor = False
 
-            def any_none(_):
-                nonlocal is_none
-                is_none = True
+            def any_tensor(_):
+                nonlocal has_tensor
+                has_tensor = True
 
-            apply_to_collection(value, type(None), any_none)
-            if is_none:
+            apply_to_collection(value, torch.Tensor, any_tensor)
+            if not has_tensor:
                 continue
 
             name, forked_name = self._forked_name(result_metric, on_step)
