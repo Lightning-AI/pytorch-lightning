@@ -26,7 +26,6 @@ from typing import Any, Callable, Dict, Optional, TextIO, Tuple, Union
 
 import numpy as np
 
-from pytorch_lightning.profiler.pytorch import PyTorchProfiler  # noqa F401
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 
