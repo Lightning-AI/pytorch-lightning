@@ -199,8 +199,6 @@ class LoggerConnector:
 
     def update_evaluation_step_metrics(self) -> None:
         metrics = self.trainer.result_collection.metrics
-
-        # update metrics
         self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
         self._callback_metrics.update(metrics[MetricSource.CALLBACK])
 
