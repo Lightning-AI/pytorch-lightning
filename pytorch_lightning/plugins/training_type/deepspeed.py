@@ -316,7 +316,7 @@ class DeepSpeedPlugin(DDPPlugin):
         else:
             model_parallel_context = super().model_sharded_context()
 
-        with model_parallel_context:
+        with torch.cuda.amp.autocast(), model_parallel_context:
             yield
 
     def _set_deepspeed_activation_checkpointing(self):
