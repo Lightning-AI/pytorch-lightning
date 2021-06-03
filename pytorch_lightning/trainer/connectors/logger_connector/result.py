@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
-from dataclasses import dataclass
-from functools import partial
+from dataclasses import dataclass, field
+from functools import partial, wraps
 from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
 import torch
 from torchmetrics import Metric
 
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.enums import LightningEnum
@@ -37,6 +38,22 @@ class MetricSource(LightningEnum):
 
 
 @dataclass
+class Sync:
+    fn: Callable
+    should: bool = False
+    op: Union[Any, str] = 'mean'
+    group: Optional[Any] = None
+
+    @property
+    def __call__(self) -> Callable:
+        return partial(self.fn, reduce_op=self.op, group=self.group) if self.should else self.no_op
+
+    @staticmethod
+    def no_op(value: Any, *_, **__) -> Any:
+        return value
+
+
+@dataclass
 class Metadata:
     fx: str
     name: str
@@ -48,6 +65,7 @@ class Metadata:
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
+    sync: Sync = field(default_factory=Sync)
 
     @property
     def forked(self) -> bool:
@@ -90,13 +108,16 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
+            # performance: no need to accumulate on values only logged on_step
+            if self.meta.on_step and not self.meta.on_epoch:
+                self.value = self.meta.sync(value)
+                return
+            # perform accumulation with reduction
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
                 self.cumulated_batch_size += batch_size
-
             elif self.meta.is_max_reduction:
                 self.value = max(self.value, value.mean())
-
             elif self.meta.is_min_reduction:
                 self.value = min(self.value, value.mean())
         else:
@@ -105,14 +126,36 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def compute(self) -> torch.Tensor:
         if self.is_tensor:
+            value = self.meta.sync(self.value)
             if self.meta.is_mean_reduction:
-                return torch.sum(self.value) / torch.sum(self.cumulated_batch_size)
+                cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
+                # FIXME: might need sum
+                return value / cumulated_batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
-                return self.value
+                return value
             raise MisconfigurationException(
                 f"Only [min, max, mean] reductions are supported. Found {self.meta.reduce_fx}"
             )
         return self.value.compute()
+
+    def _wrap_compute(self, compute: Any) -> Any:
+        # Override to avoid syncing - we handle it ourselves.
+        @wraps(compute)
+        def wrapped_func(*args, **kwargs):
+            if not self._update_called:
+                rank_zero_warn(
+                    f"The ``compute`` method of metric {self.__class__.__name__}"
+                    " was called before the ``update`` method which may lead to errors,"
+                    " as metric states have not yet been updated.", UserWarning
+                )
+
+            # return cached value
+            if self._computed is not None:
+                return self._computed
+            self._computed = compute(*args, **kwargs)
+            return self._computed
+
+        return wrapped_func
 
     def reset(self) -> None:
         if self.is_tensor:
@@ -122,11 +165,12 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         self.has_reset = True
 
     def forward(self, value: _METRIC, batch_size: torch.Tensor) -> None:
-        if isinstance(value, Metric):
-            self._forward_cache = value._forward_cache
-        else:
+        if self.is_tensor:
             value = value.float()
             self._forward_cache = value
+        else:
+            self._forward_cache = value._forward_cache
+
         if self.meta.enable_graph:
             with torch.no_grad():
                 self.update(value, batch_size)
@@ -265,6 +309,10 @@ class ResultCollection(dict):
         on_epoch: bool = True,
         reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_fn: Callable = Sync.no_op,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
         metric_attribute: Optional[str] = None,
@@ -291,20 +339,30 @@ class ResultCollection(dict):
             key += f'.{dataloader_idx}'
             fx += f'.{dataloader_idx}'
 
-        if key not in self:
-            meta = Metadata(
-                fx=fx,
-                name=name,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                dataloader_idx=dataloader_idx,
-                metric_attribute=metric_attribute,
+        meta = Metadata(
+            fx=fx,
+            name=name,
+            prog_bar=prog_bar,
+            logger=logger,
+            on_step=on_step,
+            on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
+            enable_graph=enable_graph,
+            dataloader_idx=dataloader_idx,
+            metric_attribute=metric_attribute,
+            sync=Sync(
+                should=sync_dist,
+                fn=sync_dist_fn,
+                op=sync_dist_op,
+                group=sync_dist_group,
             )
+        )
+        if key not in self:
             self.register_key(key, meta, value)
+        elif meta != self[key].meta:
+            raise MisconfigurationException(
+                f'You called `self.log({key}, ...)` twice with different arguments. This is not allowed'
+            )
 
         if self.should_reset_tensors(fx):
             # when restarting an new epoch, reset the tensors

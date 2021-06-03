@@ -389,6 +389,10 @@ class LightningModule(
             dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
             batch_size=batch_size,
             metric_attribute=metric_attribute,
+            sync_dist=sync_dist,
+            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
+            sync_dist_op=sync_dist_op,
+            sync_dist_group=sync_dist_group,
         )
 
     def log_dict(
@@ -447,20 +451,6 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 add_dataloader_idx=add_dataloader_idx
             )
-
-    @staticmethod
-    def __sync(
-        value: torch.Tensor,
-        sync_fn: Optional[Callable] = None,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-    ) -> torch.Tensor:
-        """Sync across workers when using distributed training"""
-        sync_fn = sync_fn or sync_ddp_if_available
-        if not sync_dist:
-            return value
-        return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
     @staticmethod
     def __check_not_nested(name: str, value: dict) -> None:
