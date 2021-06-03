@@ -102,10 +102,6 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
 
-    def __setattr__(self, key, value):
-        # performance: skip the `torch.nn.Module.__setattr__` checks
-        object.__setattr__(self, key, value)
-
     def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
             value = value.float()
@@ -138,6 +134,21 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             )
         return self.value.compute()
 
+    def reset(self) -> None:
+        if self.is_tensor:
+            super().reset()
+        else:
+            self.value.reset()
+        self.has_reset = True
+
+    def forward(self, value: _METRIC, batch_size: torch.Tensor) -> None:
+        if self.meta.enable_graph:
+            with torch.no_grad():
+                self.update(value, batch_size)
+        else:
+            # performance: skip the `torch.no_grad` context manager by calling `update` directly
+            self.update(value, batch_size)
+
     def _wrap_compute(self, compute: Any) -> Any:
         # Override to avoid syncing - we handle it ourselves.
         @wraps(compute)
@@ -157,20 +168,9 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
         return wrapped_func
 
-    def reset(self) -> None:
-        if self.is_tensor:
-            super().reset()
-        else:
-            self.value.reset()
-        self.has_reset = True
-
-    def forward(self, value: _METRIC, batch_size: torch.Tensor) -> None:
-        if self.meta.enable_graph:
-            with torch.no_grad():
-                self.update(value, batch_size)
-        else:
-            # performance: skip the `torch.no_grad` context manager by calling `update` directly
-            self.update(value, batch_size)
+    def __setattr__(self, key, value):
+        # performance: skip the `torch.nn.Module.__setattr__` checks
+        object.__setattr__(self, key, value)
 
     def __repr__(self) -> str:
         state = f"value={self.value}"
@@ -407,7 +407,7 @@ class ResultCollection(dict):
         return cache
 
     @staticmethod
-    def _to_item(t: torch.Tensor) -> float:
+    def __to_item(t: torch.Tensor) -> float:
         return t.item()
 
     def valid_items(self) -> Generator:
@@ -459,7 +459,7 @@ class ResultCollection(dict):
 
             # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:
-                value = apply_to_collection(value, torch.Tensor, self._to_item, include_none=False)
+                value = apply_to_collection(value, torch.Tensor, self.__to_item, include_none=False)
                 metrics[MetricSource.PBAR][forked_name] = value
 
         return metrics
@@ -469,17 +469,6 @@ class ResultCollection(dict):
 
     def get_epoch_metrics(self) -> Dict[str, _METRIC_COLLECTION]:
         return self.get_metrics(on_step=False)
-
-    def to(self, *args, **kwargs) -> 'ResultCollection':
-        """Move all data to the given device."""
-        for k, v in self.items():
-            if isinstance(v, (torch.Tensor, Metric)):
-                self[k] = v.to(*args, **kwargs)
-        return self
-
-    def cpu(self) -> 'ResultCollection':
-        """Move all data to CPU."""
-        return self.to(device="cpu")
 
     def _reset(self, fx: Optional[str] = None, metrics: Optional[bool] = None) -> None:
 
@@ -530,6 +519,17 @@ class ResultCollection(dict):
         else:
             size = 1
         return size
+
+    def to(self, *args, **kwargs) -> 'ResultCollection':
+        """Move all data to the given device."""
+        for k, v in self.items():
+            if isinstance(v, (torch.Tensor, Metric)):
+                self[k] = v.to(*args, **kwargs)
+        return self
+
+    def cpu(self) -> 'ResultCollection':
+        """Move all data to CPU."""
+        return self.to(device="cpu")
 
     def __str__(self) -> str:
         return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
