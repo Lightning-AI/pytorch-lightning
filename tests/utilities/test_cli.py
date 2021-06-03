@@ -456,7 +456,7 @@ def test_lightning_cli_submodules(tmpdir):
 @pytest.mark.skipif(torchvision_version < version.parse('0.8.0'), reason='torchvision>=0.8.0 is required')
 def test_lightning_cli_torch_modules(tmpdir):
 
-    class MainModule(BoringModel):
+    class TestModule(BoringModel):
 
         def __init__(
             self,
@@ -491,7 +491,7 @@ def test_lightning_cli_torch_modules(tmpdir):
     ]
 
     with mock.patch('sys.argv', ['any.py'] + cli_args):
-        cli = LightningCLI(MainModule)
+        cli = LightningCLI(TestModule)
 
     assert isinstance(cli.model.activation, torch.nn.LeakyReLU)
     assert cli.model.activation.negative_slope == 0.2
