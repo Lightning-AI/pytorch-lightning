@@ -108,6 +108,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
     def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
+            value = value.float()
+            self._forward_cache = value
             # performance: no need to accumulate on values only logged on_step
             if self.meta.on_step and not self.meta.on_epoch:
                 self.value = self.meta.sync(value)
@@ -165,12 +167,6 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         self.has_reset = True
 
     def forward(self, value: _METRIC, batch_size: torch.Tensor) -> None:
-        if self.is_tensor:
-            value = value.float()
-            self._forward_cache = value
-        else:
-            self._forward_cache = value._forward_cache
-
         if self.meta.enable_graph:
             with torch.no_grad():
                 self.update(value, batch_size)
