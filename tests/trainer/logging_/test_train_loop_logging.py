@@ -840,3 +840,14 @@ def test_logging_raises(tmpdir):
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r'self.log\(foo, ...\)` twice in `training_step`'):
         trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            self.log('foo', -1, reduce_fx=torch.argmax)
+            return super().training_step(*args)
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match=r'reduce_fx={min,max,mean}\)` are currently supported'):
+        trainer.fit(model)

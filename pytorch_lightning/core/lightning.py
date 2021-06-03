@@ -296,13 +296,13 @@ class LightningModule(
            "validation_epoch_end*", "F", "T", "F", "T"
 
         Args:
-            name: key name
-            value: value name
+            name: key to log
+            value: value to log
             prog_bar: if True logs to the progress bar
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -425,7 +425,7 @@ class LightningModule(
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs

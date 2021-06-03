@@ -88,6 +88,10 @@ class _Metadata:
     def is_min_reduction(self) -> bool:
         return self.reduce_fx in (torch.min, min)
 
+    @property
+    def is_custom_reduction(self) -> bool:
+        return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction)
+
 
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
@@ -352,6 +356,11 @@ class ResultCollection(dict):
             )
         )
         if key not in self:
+            if meta.is_custom_reduction:
+                raise MisconfigurationException(
+                    'Only `self.log(..., reduce_fx={min,max,mean})` are currently supported.'
+                    ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`'
+                )
             self.register_key(key, meta, value)
         elif meta != self[key].meta:
             raise MisconfigurationException(
