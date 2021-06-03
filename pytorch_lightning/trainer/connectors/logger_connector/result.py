@@ -434,7 +434,7 @@ class ResultCollection(dict):
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def get_metrics(self, on_step: bool) -> Dict[str, Dict[str, _METRIC]]:
+    def get_metrics(self, on_step: bool) -> Dict[MetricSource, Dict[str, _METRIC]]:
         metrics = {k: {} for k in MetricSource}
 
         for key, result_metric in self.valid_items():

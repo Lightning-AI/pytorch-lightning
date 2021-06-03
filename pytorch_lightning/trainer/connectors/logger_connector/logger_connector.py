@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from copy import deepcopy
 from pprint import pprint
 from typing import Any, Dict, Iterable, Optional
 
@@ -120,31 +119,25 @@ class LoggerConnector:
         model_ref._current_dataloader_idx = None
         self.trainer.result_collection.on_epoch_end_reached = True
 
-    def add_to_eval_loop_results(self, dl_idx, has_been_initialized):
+    def prepare_eval_loop_results(self, metrics: Dict[str, _METRIC]) -> None:
         if self.trainer.sanity_checking:
             return
 
-        callback_metrics = self.trainer.result_collection.metrics[MetricSource.CALLBACK]
-        callback_metrics = deepcopy(callback_metrics)
-        for key in list(callback_metrics.keys()):
-            if "dataloader_idx" in key and f"dataloader_idx_{dl_idx}" not in key:
-                # remove callback metrics that don't belong to this dataloader
-                del callback_metrics[key]
-        if has_been_initialized:
-            self.eval_loop_results[dl_idx].update(callback_metrics)
-        else:
-            self.eval_loop_results.append(callback_metrics)
-
-    def prepare_eval_loop_results(self):
         num_dataloaders = self.trainer.evaluation_loop.num_dataloaders
         has_been_initialized = len(self.eval_loop_results) == num_dataloaders
         for dl_idx in range(self.trainer.evaluation_loop.num_dataloaders):
-            self.add_to_eval_loop_results(dl_idx, has_been_initialized)
+            # remove callback metrics that don't belong to this dataloader
+            callback_metrics = {
+                k: v
+                for k, v in metrics.items() if "dataloader_idx" not in k or f"dataloader_idx_{dl_idx}" in k
+            }
+            if has_been_initialized:
+                self.eval_loop_results[dl_idx].update(callback_metrics)
+            else:
+                self.eval_loop_results.append(callback_metrics)
 
     def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
-        metrics = self.trainer.result_collection.metrics
-
-        # update metrics
+        metrics = self.trainer.result_collection.get_metrics(False)
         self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
         self._callback_metrics.update(metrics[MetricSource.CALLBACK])
 
@@ -154,7 +147,8 @@ class LoggerConnector:
             if metrics_to_log:
                 self.log_metrics(metrics_to_log, {})
 
-        self.prepare_eval_loop_results()
+        # FIXME: use self.callback_metrics instead?
+        self.prepare_eval_loop_results(metrics[MetricSource.CALLBACK])
 
         # log results of evaluation
         if (
