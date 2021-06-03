@@ -508,6 +508,9 @@ class TrainLoop:
                 dataloader_idx,
             )
 
+            # clear memory before running validation
+            del batch
+
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
