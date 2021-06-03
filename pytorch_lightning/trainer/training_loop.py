@@ -508,7 +508,7 @@ class TrainLoop:
                 dataloader_idx,
             )
 
-            # clear memory before running validation
+            # release memory before running any other hooks
             del batch
 
             # -----------------------------------------

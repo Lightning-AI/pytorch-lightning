@@ -988,6 +988,9 @@ class Trainer(
                 # hook + store predictions
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
+                # release memory before running any other hooks
+                del batch
+
                 # log batch metrics
                 self.logger_connector.log_evaluation_step_metrics()
 
@@ -1095,6 +1098,9 @@ class Trainer(
                 # lightning module methods
                 with self.profiler.profile("predict_step"):
                     self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
+
+                # release memory before running any other hooks
+                del batch
 
         # call hook
         results = self.predict_loop.on_predict_epoch_end()
