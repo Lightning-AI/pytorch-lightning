@@ -464,11 +464,6 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            # -----------------------------------------
-            # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
-            # -----------------------------------------
-            self.trainer.logger_connector.update_train_step_metrics(batch_output)
-
             # hook
             self.on_train_batch_end(
                 epoch_output,
@@ -477,6 +472,11 @@ class TrainLoop:
                 batch_idx,
                 dataloader_idx,
             )
+
+            # -----------------------------------------
+            # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
+            # -----------------------------------------
+            self.trainer.logger_connector.update_train_step_metrics(batch_output)
 
             # -----------------------------------------
             # VALIDATE IF NEEDED
