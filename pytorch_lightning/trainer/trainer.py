@@ -1253,7 +1253,9 @@ class Trainer(
             # used to auto-reduce things for the user with Results obj
             if hasattr(self.accelerator, hook_name):
                 accelerator_hook = getattr(self.accelerator, hook_name)
-                accelerator_hook(*args, **kwargs)
+                accelerator_output = accelerator_hook(*args, **kwargs)
+                if not output:
+                    output = accelerator_output
 
         if not skip:
             self._cache_logged_metrics()
