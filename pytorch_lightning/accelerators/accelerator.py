@@ -50,6 +50,14 @@ class Accelerator:
 
     """
 
+    DEFAULT_ENVIRON_SETTINGS = {
+        # these are default NCCL settings for communication speedup
+        # https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-nsocks-perthread
+        "NCCL_NSOCKS_PERTHREAD": "4",
+        # https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-socket-nthreads
+        "NCCL_SOCKET_NTHREADS": "2",
+    }
+
     def __init__(
         self,
         precision_plugin: PrecisionPlugin,

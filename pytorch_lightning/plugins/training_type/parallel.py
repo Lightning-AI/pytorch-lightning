@@ -24,11 +24,19 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
 from pytorch_lightning.utilities import _XLA_AVAILABLE
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
+from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, rank_zero_warn, ReduceOp
 
 
 class ParallelPlugin(TrainingTypePlugin, ABC):
     """ Plugin for training with multiple processes in parallel. """
+
+    DEFAULT_NCCL_ENVIRON_SETTINGS = {
+        # these are default NCCL settings for communication speedup
+        # https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-nsocks-perthread
+        "NCCL_NSOCKS_PERTHREAD": "4",
+        # https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-socket-nthreads
+        "NCCL_SOCKET_NTHREADS": "2",
+    }
 
     def __init__(
         self,
@@ -90,6 +98,20 @@ class ParallelPlugin(TrainingTypePlugin, ABC):
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
+
+    def setup_environment(self) -> None:
+        """Setting default nccl environment parameters."""
+        if self.torch_distributed_backend == "nccl":
+            # setting default environment if `os.environ` not set.
+            for environ_param, value in self.DEFAULT_NCCL_ENVIRON_SETTINGS.items():
+                if environ_param in os.environ:
+                    rank_zero_warn(
+                        f"environ parameter {environ_param}: {os.environ.get(environ_param)} "
+                        "is already set, will not apply default value."
+                    )
+                else:
+                    os.environ[environ_param] = value
+                    rank_zero_warn(f"Setting environ parameter {environ_param} to default value: {value}.")
 
     @property
     def torch_distributed_backend(self):
