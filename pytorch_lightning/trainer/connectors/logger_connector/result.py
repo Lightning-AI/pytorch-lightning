@@ -48,7 +48,6 @@ class Metadata:
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
-    has_reset: bool = False
 
     @property
     def forked(self) -> bool:
@@ -79,6 +78,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         super().__init__()
         self.is_tensor = is_tensor
         self.meta = metadata
+        self.has_reset = False
         if is_tensor:
             self.add_state("value", torch.tensor(0, dtype=torch.float))
             if self.meta.is_mean_reduction:
@@ -119,7 +119,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             super().reset()
         else:
             self.value.reset()
-        self.meta.has_reset = True
+        self.has_reset = True
 
     def forward(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if isinstance(value, Metric):
@@ -337,7 +337,7 @@ class ResultCollection(dict):
         def fn(result_metric, v):
             # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
             result_metric.forward(v.to(self.device), self.batch_size)
-            result_metric.meta.has_reset = False
+            result_metric.has_reset = False
 
         apply_to_collections(self[key], value, ResultMetric, fn)
 
@@ -357,7 +357,7 @@ class ResultCollection(dict):
     def valid_items(self) -> Generator:
         """This function is used to iterate over current valid metrics."""
         return ((k, v) for k, v in self.items()
-                if not k == "_extra" and not (isinstance(v, ResultMetric) and v.meta.has_reset))
+                if not k == "_extra" and not (isinstance(v, ResultMetric) and v.has_reset))
 
     def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
         name = result_metric.meta.name
