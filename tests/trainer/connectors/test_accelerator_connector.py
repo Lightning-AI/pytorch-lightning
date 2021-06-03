@@ -3,7 +3,6 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.plugins import DDPPlugin, PrecisionPlugin, SingleDevicePlugin
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 
 
 def test_accelerator_training_type_plugin():
