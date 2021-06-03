@@ -627,7 +627,8 @@ class TrainLoop:
                 else:
                     model_ref.on_train_epoch_end()
 
-            # call hook in accelerator
+            # if the PL module doesn't have the hook then call the accelerator
+            # used to auto-reduce things for the user with Results obj
             if hasattr(self.trainer.accelerator, hook_name):
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
