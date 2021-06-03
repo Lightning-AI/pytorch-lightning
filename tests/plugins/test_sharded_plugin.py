@@ -51,7 +51,7 @@ def test_sharded_ddp_choice(tmpdir, accelerator):
         callbacks=[CB()],
     )
 
-    `with pytest.raises(SystemExit):`
+    with pytest.raises(SystemExit):
         trainer.fit(model)
 
 

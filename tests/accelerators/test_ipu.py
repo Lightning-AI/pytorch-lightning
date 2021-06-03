@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Optional
+from typing import Optional
 
 import pytest
 import torch
@@ -20,6 +20,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Callback, seed_everything, Trainer
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -200,7 +201,7 @@ def test_pure_half_precision(tmpdir):
 
     class TestCallback(Callback):
 
-        def on_train_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule') -> None:
+        def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
             assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
             assert trainer.accelerator.precision_plugin.precision == 16
@@ -227,12 +228,35 @@ def test_device_iterations_ipu_plugin(tmpdir):
 
     class TestCallback(Callback):
 
-        def setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', stage: Optional[str] = None) -> None:
+        def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
             assert trainer.accelerator.training_type_plugin.device_iterations == 20
+            # assert device iterations has been set correctly within the poptorch options
+            poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models['train']
+            assert poptorch_model._options.toDict()['device_iterations'] == 20
             raise SystemExit
 
     model = IPUModel()
     trainer = Trainer(fast_dev_run=True, ipu_cores=1, plugins=IPUPlugin(device_iterations=20), callbacks=TestCallback())
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@RunIf(ipu=True, special=True)
+def test_accumulated_batches(tmpdir):
+
+    class TestCallback(Callback):
+
+        def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+            # ensure the accumulation_scheduler is overridden to accumulate every batch
+            # since ipu handle accumulation
+            assert trainer.accumulation_scheduler.scheduling == {0: 1}
+            # assert poptorch option have been set correctly
+            poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models['train']
+            assert poptorch_model._options.Training.toDict()['gradient_accumulation'] == 2
+            raise SystemExit
+
+    model = IPUModel()
+    trainer = Trainer(fast_dev_run=True, ipu_cores=1, accumulate_grad_batches=2, callbacks=TestCallback())
     with pytest.raises(SystemExit):
         trainer.fit(model)
