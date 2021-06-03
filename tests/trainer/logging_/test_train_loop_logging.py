@@ -12,74 +12,64 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Tests to ensure that the training loop works with a dict (1.0)
+Test logging in the training loop
 """
 
 import collections
 import itertools
-import os
-from unittest import mock
 
 import numpy as np
 import pytest
 import torch
-from torch.utils.data import Dataset
 
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.core.lightning import LightningModule
-from tests.helpers.boring_model import BoringModel, RandomDictDataset, RandomDictStringDataset
-from tests.helpers.deterministic_model import DeterministicModel
+from tests.helpers.boring_model import BoringModel, RandomDictDataset
 from tests.helpers.runif import RunIf
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__log(tmpdir):
     """
     Tests that only training_step can be used
     """
 
-    class TestModel(DeterministicModel):
+    class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx):
-            acc = self.step(batch, batch_idx)
-            acc = acc + batch_idx
+            out = super().training_step(batch, batch_idx)
+            loss = out['loss']
 
             # -----------
             # default
             # -----------
-            self.log('default', acc)
+            self.log('default', loss)
 
             # -----------
             # logger
             # -----------
             # on_step T on_epoch F
-            self.log('l_s', acc, on_step=True, on_epoch=False, prog_bar=False, logger=True)
+            self.log('l_s', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
 
             # on_step F on_epoch T
-            self.log('l_e', acc, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+            self.log('l_e', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
             # on_step T on_epoch T
-            self.log('l_se', acc, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+            self.log('l_se', loss, on_step=True, on_epoch=True, prog_bar=False, logger=True)
 
             # -----------
             # pbar
             # -----------
             # on_step T on_epoch F
-            self.log('p_s', acc, on_step=True, on_epoch=False, prog_bar=True, logger=False)
+            self.log('p_s', loss, on_step=True, on_epoch=False, prog_bar=True, logger=False)
 
             # on_step F on_epoch T
-            self.log('p_e', acc, on_step=False, on_epoch=True, prog_bar=True, logger=False)
+            self.log('p_e', loss, on_step=False, on_epoch=True, prog_bar=True, logger=False)
 
             # on_step T on_epoch T
-            self.log('p_se', acc, on_step=True, on_epoch=True, prog_bar=True, logger=False)
+            self.log('p_se', loss, on_step=True, on_epoch=True, prog_bar=True, logger=False)
 
-            self.training_step_called = True
-            return acc
-
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
+            return loss
 
     model = TestModel()
     model.val_dataloader = None
@@ -95,14 +85,8 @@ def test__training_step__log(tmpdir):
     )
     trainer.fit(model)
 
-    # make sure correct steps were called
-    assert model.training_step_called
-    assert not model.training_step_end_called
-    assert not model.training_epoch_end_called
-
-    # make sure all the metrics are available for callbacks
-    logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {
+    logged_metrics = set(trainer.logged_metrics)
+    assert logged_metrics == {
         'epoch',
         'default',
         'l_e',
@@ -110,50 +94,35 @@ def test__training_step__log(tmpdir):
         'l_se_step',
         'l_se_epoch',
     }
-    assert logged_metrics == expected_logged_metrics
 
-    pbar_metrics = set(trainer.progress_bar_metrics.keys())
-    expected_pbar_metrics = {
+    pbar_metrics = set(trainer.progress_bar_metrics)
+    assert pbar_metrics == {
         'p_e',
         'p_s',
         'p_se_step',
         'p_se_epoch',
     }
-    assert pbar_metrics == expected_pbar_metrics
 
-    callback_metrics = set(trainer.callback_metrics.keys())
-    callback_metrics.remove('debug_epoch')
-    expected_callback_metrics = set()
-    expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
-    expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
-    expected_callback_metrics.update({'p_se', 'l_se'})
-    expected_callback_metrics.remove('epoch')
-    assert callback_metrics == expected_callback_metrics
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {'p_se', 'l_se'}) - {'epoch'}
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test__training_step__epoch_end__log(tmpdir):
     """
-    Tests that only training_step can be used
+    Tests that training_epoch_end can log
     """
 
-    class TestModel(DeterministicModel):
+    class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx):
-            self.training_step_called = True
-            acc = self.step(batch, batch_idx)
-            acc = acc + batch_idx
-            self.log('a', acc, on_step=True, on_epoch=True)
-            self.log_dict({'a1': acc, 'a2': acc})
-            return acc
+            out = super().training_step(batch, batch_idx)
+            loss = out['loss']
+            self.log('a', loss, on_step=True, on_epoch=True)
+            self.log_dict({'a1': loss, 'a2': loss})
+            return out
 
         def training_epoch_end(self, outputs):
-            self.training_epoch_end_called = True
             self.log('b1', outputs[0]['loss'])
             self.log('b', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
-
-        def backward(self, loss, optimizer, optimizer_idx):
-            return LightningModule.backward(self, loss, optimizer, optimizer_idx)
 
     model = TestModel()
     model.val_dataloader = None
@@ -168,52 +137,33 @@ def test__training_step__epoch_end__log(tmpdir):
     )
     trainer.fit(model)
 
-    # make sure correct steps were called
-    assert model.training_step_called
-    assert not model.training_step_end_called
-    assert model.training_epoch_end_called
+    logged_metrics = set(trainer.logged_metrics)
+    assert logged_metrics == {'epoch', 'a_step', 'a_epoch', 'b', 'b1', 'a1', 'a2'}
 
-    # make sure all the metrics are available for callbacks
-    logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {'epoch', 'a_step', 'a_epoch', 'b', 'b1', 'a1', 'a2'}
-    assert logged_metrics == expected_logged_metrics
+    pbar_metrics = set(trainer.progress_bar_metrics)
+    assert pbar_metrics == {'b'}
 
-    pbar_metrics = set(trainer.progress_bar_metrics.keys())
-    expected_pbar_metrics = {'b'}
-    assert pbar_metrics == expected_pbar_metrics
-
-    callback_metrics = set(trainer.callback_metrics.keys())
-    callback_metrics.remove('debug_epoch')
-    expected_callback_metrics = set()
-    expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
-    expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
-    expected_callback_metrics.remove('epoch')
-    expected_callback_metrics.add('a')
-    assert callback_metrics == expected_callback_metrics
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {'a'}) - {'epoch'}
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
 def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval, max_epochs):
     """
-    Tests that only training_step can be used
+    Tests that training_step_end and training_epoch_end can log
     """
 
     class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx):
-            self.training_step_called = True
             loss = self.step(batch[0])
             self.log('a', loss, on_step=True, on_epoch=True)
             return loss
 
         def training_step_end(self, out):
-            self.training_step_end_called = True
             self.log('b', out, on_step=True, on_epoch=True, prog_bar=True, logger=True)
             return out
 
         def training_epoch_end(self, outputs):
-            self.training_epoch_end_called = True
             self.log('c', outputs[0]['loss'], on_epoch=True, prog_bar=True, logger=True)
             self.log('d/e/f', 2)
 
@@ -230,31 +180,14 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     )
     trainer.fit(model)
 
-    # make sure correct steps were called
-    assert model.training_step_called
-    assert model.training_step_end_called
-    assert model.training_epoch_end_called
-
     # make sure all the metrics are available for callbacks
-    logged_metrics = set(trainer.logged_metrics.keys())
-    expected_logged_metrics = {'a_step', 'a_epoch', 'b_step', 'b_epoch', 'c', 'd/e/f', 'epoch'}
-    assert logged_metrics == expected_logged_metrics
+    logged_metrics = set(trainer.logged_metrics)
+    assert logged_metrics == {'a_step', 'a_epoch', 'b_step', 'b_epoch', 'c', 'd/e/f', 'epoch'}
 
-    pbar_metrics = set(trainer.progress_bar_metrics.keys())
-    expected_pbar_metrics = {'c', 'b_epoch', 'b_step'}
-    assert pbar_metrics == expected_pbar_metrics
+    pbar_metrics = set(trainer.progress_bar_metrics)
+    assert pbar_metrics == {'c', 'b_epoch', 'b_step'}
 
-    callback_metrics = set(trainer.callback_metrics.keys())
-    callback_metrics.remove('debug_epoch')
-    expected_callback_metrics = set()
-    expected_callback_metrics = expected_callback_metrics.union(logged_metrics)
-    expected_callback_metrics = expected_callback_metrics.union(pbar_metrics)
-    expected_callback_metrics.update({'a', 'b'})
-    expected_callback_metrics.remove('epoch')
-    assert callback_metrics == expected_callback_metrics
-
-    # assert the loggers received the expected number
-    assert len(trainer.dev_debugger.logged_metrics) == ((batches / log_interval) * max_epochs) + max_epochs
+    assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {'a', 'b'}) - {'epoch'}
 
 
 @pytest.mark.parametrize(['batches', 'fx', 'result'], [(1, min, 0), (2, max, 1), (11, max, 10)])
@@ -267,7 +200,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
 
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
-            self.log('foo', torch.tensor(batch_idx).long(), on_step=False, on_epoch=True, reduce_fx=fx)
+            self.log('foo', torch.tensor(batch_idx, dtype=torch.long), on_step=False, on_epoch=True, reduce_fx=fx)
             return acc
 
         def validation_step(self, batch, batch_idx):
@@ -347,7 +280,6 @@ def test_tbptt_log(tmpdir):
 
     model = TestModel()
     model.training_epoch_end = None
-    model.example_input_array = torch.randn(5, truncated_bptt_steps)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -360,9 +292,7 @@ def test_tbptt_log(tmpdir):
     )
     trainer.fit(model)
 
-    generated = set(trainer.logged_metrics.keys())
-    expected = {'a_step', 'a_epoch', 'epoch'}
-    assert generated == expected
+    assert set(trainer.logged_metrics) == {'a_step', 'a_epoch', 'epoch'}
 
 
 def test_different_batch_types_for_sizing(tmpdir):
@@ -400,102 +330,9 @@ def test_different_batch_types_for_sizing(tmpdir):
     )
     trainer.fit(model)
 
-    generated = set(trainer.logger_connector.logged_metrics)
-    expected = {'a_step', 'a_epoch', 'n_step', 'n_epoch', 'epoch'}
-
-    assert generated == expected
+    assert set(trainer.logged_metrics) == {'a_step', 'a_epoch', 'n_step', 'n_epoch', 'epoch'}
 
 
-def test_validation_step_with_string_data_logging(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def on_train_epoch_start(self) -> None:
-            print("override any method to prove your bug")
-
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch["x"])
-            loss = self.loss(batch, output)
-            return {"loss": loss}
-
-        def validation_step(self, batch, batch_idx):
-            output = self.layer(batch["x"])
-            loss = self.loss(batch, output)
-            self.log("x", loss)
-            return {"x": loss}
-
-    # fake data
-    train_data = torch.utils.data.DataLoader(RandomDictStringDataset(32, 64))
-    val_data = torch.utils.data.DataLoader(RandomDictStringDataset(32, 64))
-
-    # model
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=1,
-        weights_summary=None,
-    )
-    trainer.fit(model, train_data, val_data)
-
-
-def test_nested_datasouce_batch(tmpdir):
-
-    class NestedDictStringDataset(Dataset):
-
-        def __init__(self, size, length):
-            self.len = length
-            self.data = torch.randn(length, size)
-
-        def __getitem__(self, index):
-            x = {
-                'post_text': ['bird is fast', 'big cat'],
-                'dense_0': [
-                    torch.tensor([-0.1000, 0.2000], dtype=torch.float64),
-                    torch.tensor([1, 1], dtype=torch.uint8),
-                ],
-                'post_id': ['115', '116'],
-                'label': [torch.tensor([0, 1]), torch.tensor([1, 1], dtype=torch.uint8)]
-            }
-            return x
-
-        def __len__(self):
-            return self.len
-
-    class TestModel(BoringModel):
-
-        def on_train_epoch_start(self) -> None:
-            print("override any method to prove your bug")
-
-        def training_step(self, batch, batch_idx):
-            output = self.layer(torch.rand(32))
-            loss = self.loss(batch, output)
-            return {"loss": loss}
-
-        def validation_step(self, batch, batch_idx):
-            output = self.layer(torch.rand(32))
-            loss = self.loss(batch, output)
-            self.log("x", loss)
-            return {"x": loss}
-
-    # fake data
-    train_data = torch.utils.data.DataLoader(NestedDictStringDataset(32, 64))
-    val_data = torch.utils.data.DataLoader(NestedDictStringDataset(32, 64))
-
-    # model
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=1,
-        weights_summary=None,
-    )
-    trainer.fit(model, train_data, val_data)
-
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 def test_log_works_in_train_callback(tmpdir):
     """
     Tests that log can be called within callback
@@ -667,7 +504,6 @@ def test_log_works_in_train_callback(tmpdir):
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
-    trainer.callback_metrics.pop("debug_epoch")
     assert trainer.logged_metrics["train_loss"] == model.manual_loss[-1]
     assert trainer.callback_metrics["train_loss"] == model.manual_loss[-1]
     trainer.callback_metrics.pop("train_loss")
@@ -742,7 +578,6 @@ def test_logging_sync_dist_true_ddp(tmpdir):
             return acc
 
         def validation_step(self, batch, batch_idx):
-            self.training_step_called = True
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='AVG')
@@ -934,3 +769,17 @@ def test_metric_are_properly_reduced(tmpdir):
 
     assert trainer.callback_metrics["val_acc"] == 8 / 32.
     assert "train_loss" in trainer.callback_metrics
+
+
+@pytest.mark.parametrize('value', [None, {'a': {'b': None}}])
+def test_log_none_raises(tmpdir, value):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            self.log("foo", value)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    model = TestModel()
+    with pytest.raises(ValueError, match=rf"self.log\(foo, {value}\)` was called"):
+        trainer.fit(model)

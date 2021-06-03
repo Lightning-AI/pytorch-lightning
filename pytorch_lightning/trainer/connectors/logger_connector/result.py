@@ -461,16 +461,6 @@ class Result(Dict):
         result['meta'] = meta
         return result
 
-    def dp_reduce(self):
-        for k, value in self.items():
-            if k == 'meta' or isinstance(value, Metric):
-                continue
-
-            if isinstance(value, list):
-                value = torch.tensor(value)
-
-            self[k] = value.mean(dim=-1)
-
     @property
     def should_reduce_on_epoch_end(self) -> bool:
         return self['meta']['_internal']['_reduce_on_epoch']
