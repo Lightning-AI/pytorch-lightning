@@ -383,7 +383,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
         on_after_batch_transfer_hook_rank = None
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
-            assert dataloader_idx == 0
+            assert dataloader_idx is None
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
