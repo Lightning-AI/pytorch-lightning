@@ -1254,7 +1254,7 @@ class Trainer(
             if hasattr(self.accelerator, hook_name):
                 accelerator_hook = getattr(self.accelerator, hook_name)
                 accelerator_output = accelerator_hook(*args, **kwargs)
-                if not output:
+                if output is None:
                     output = accelerator_output
 
         if not skip:
