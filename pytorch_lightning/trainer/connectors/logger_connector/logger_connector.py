@@ -20,7 +20,7 @@ import torch
 
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
-from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource
+from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -36,8 +36,8 @@ class LoggerConnector:
         self._val_log_step: int = 0
         self._test_log_step: int = 0
         self._progress_bar_metrics: Dict[str, float] = {}
-        self._logged_metrics: Dict[str, float] = {}
-        self._callback_metrics: Dict[str, float] = {}
+        self._logged_metrics: Dict[str, _METRIC] = {}
+        self._callback_metrics: Dict[str, _METRIC] = {}
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
@@ -149,10 +149,9 @@ class LoggerConnector:
         self._callback_metrics.update(metrics[MetricSource.CALLBACK])
 
         if not self.trainer.sanity_checking:
-
             # log all the metrics as a single dict
             metrics_to_log = metrics[MetricSource.LOG]
-            if len(metrics_to_log) > 0:
+            if metrics_to_log:
                 self.log_metrics(metrics_to_log, {})
 
         self.prepare_eval_loop_results()
@@ -216,9 +215,8 @@ class LoggerConnector:
 
         # logs user requested information to logger
         batch_log_metrics = metrics[MetricSource.LOG]
-        if len(batch_log_metrics) > 0:
-            kwargs = dict() if "step" in batch_log_metrics else dict(step=self.evaluation_log_step)
-            self.log_metrics(batch_log_metrics, {}, **kwargs)
+        if batch_log_metrics:
+            self.log_metrics(batch_log_metrics, {}, step=self.evaluation_log_step)
 
         # increment the step even if nothing was logged
         self.increment_evaluation_log_step()
@@ -248,10 +246,8 @@ class LoggerConnector:
         batch_log_metrics = metrics[MetricSource.LOG]
         if self.should_update_logs or self.trainer.fast_dev_run is True:
             # logs user requested information to logger
-            grad_norm_dict = batch_output.grad_norm_dict
-            if grad_norm_dict is None:
-                grad_norm_dict = {}
-            if len(batch_log_metrics) > 0 or len(grad_norm_dict) > 0:
+            grad_norm_dict = batch_output.grad_norm_dict or {}
+            if batch_log_metrics or grad_norm_dict:
                 self.log_metrics(batch_log_metrics, grad_norm_dict)
 
     def on_train_epoch_end(self):
@@ -267,9 +263,7 @@ class LoggerConnector:
 
         # add the metrics to the loggers
         epoch_log_metrics = metrics[MetricSource.LOG]
-        if epoch_log_metrics and len(epoch_log_metrics) > 0:
-            epoch_log_metrics["epoch"] = self.trainer.current_epoch
-            self._logged_metrics.update(epoch_log_metrics)
+        if epoch_log_metrics:
             self.log_metrics(epoch_log_metrics, {})
 
         # reset result collection for next epoch
