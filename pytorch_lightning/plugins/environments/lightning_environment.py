@@ -32,6 +32,7 @@ class LightningEnvironment(ClusterEnvironment):
     """
 
     def __init__(self):
+        super().__init__()
         self._master_port = None
         self._global_rank: int = 0
         self._world_size: int = 1
