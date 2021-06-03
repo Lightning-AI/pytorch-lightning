@@ -20,13 +20,13 @@ import sys
 from argparse import Namespace
 from contextlib import redirect_stdout
 from io import StringIO
-from packaging import version
 from typing import List, Optional
 from unittest import mock
 
 import pytest
 import torch
 import yaml
+from packaging import version
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -35,7 +35,6 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import LightningArgumentParser, LightningCLI, SaveConfigCallback
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
-
 
 torchvision_version = version.parse('0')
 if _TORCHVISION_AVAILABLE:
