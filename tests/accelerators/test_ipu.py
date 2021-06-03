@@ -207,7 +207,7 @@ def test_pure_half_precision(tmpdir):
             assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
             assert trainer.accelerator.precision_plugin.precision == 16
             assert trainer.accelerator.model.precision == 16
-            assert trainer.accelerator.training_type_plugin.convert_model_of_to_half
+            assert trainer.accelerator.training_type_plugin.convert_model_to_half
             for param in trainer.accelerator.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
