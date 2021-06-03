@@ -1,4 +1,4 @@
 [submodule "notebooks"]
 	path = notebooks
-	url = https://github.com/PyTorchLightning/lightning-notebooks.git
+	url = https://github.com/PyTorchLightning/lightning-tutorials.git
 	branch = publication
