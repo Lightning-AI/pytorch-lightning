@@ -361,7 +361,7 @@ class ResultCollection(dict):
             self.register_key(key, meta, value)
         elif meta != self[key].meta:
             raise MisconfigurationException(
-                f'You called `self.log({key}, ...)` twice with different arguments. This is not allowed'
+                f'You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed'
             )
 
         if self.should_reset_tensors(fx):
