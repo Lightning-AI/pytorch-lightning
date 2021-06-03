@@ -5,7 +5,7 @@ from pytorch_lightning.plugins import PrecisionPlugin, DDPPlugin, SingleDevicePl
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 
 def test_accelerator_training_type_plugin():
-    """Test that the training_type_plugin pulled from accelearator"""
+    """Test that training_type_plugin is pulled from accelearator"""
 
     # check that this works for different types of plugins to ensure
     # there are no dependencies on TrainingTypePlugin class refinements
