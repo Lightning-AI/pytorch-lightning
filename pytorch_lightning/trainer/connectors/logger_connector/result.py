@@ -38,7 +38,7 @@ class MetricSource(LightningEnum):
 
 
 @dataclass
-class Sync:
+class _Sync:
     fn: Callable
     should: bool = False
     op: Union[Any, str] = 'mean'
@@ -54,7 +54,7 @@ class Sync:
 
 
 @dataclass
-class Metadata:
+class _Metadata:
     fx: str
     name: str
     prog_bar: bool = False
@@ -65,7 +65,7 @@ class Metadata:
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
-    sync: Sync = field(default_factory=Sync)
+    sync: _Sync = field(default_factory=_Sync)
 
     @property
     def forked(self) -> bool:
@@ -92,7 +92,7 @@ class Metadata:
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
 
-    def __init__(self, metadata: Metadata, is_tensor: bool) -> None:
+    def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
         super().__init__()
         self.is_tensor = is_tensor
         self.meta = metadata
@@ -194,7 +194,7 @@ class ResultMetricCollection(dict):
     with the same metadata.
     """
 
-    def __init__(self, *args, metadata: Optional[Metadata] = None) -> None:
+    def __init__(self, *args, metadata: Optional[_Metadata] = None) -> None:
         super().__init__(*args)
         self.meta = metadata
 
@@ -310,7 +310,7 @@ class ResultCollection(dict):
         reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_fn: Callable = Sync.no_op,
+        sync_dist_fn: Callable = _Sync.no_op,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
@@ -339,7 +339,7 @@ class ResultCollection(dict):
             key += f'.{dataloader_idx}'
             fx += f'.{dataloader_idx}'
 
-        meta = Metadata(
+        meta = _Metadata(
             fx=fx,
             name=name,
             prog_bar=prog_bar,
@@ -350,7 +350,7 @@ class ResultCollection(dict):
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
             metric_attribute=metric_attribute,
-            sync=Sync(
+            sync=_Sync(
                 should=sync_dist,
                 fn=sync_dist_fn,
                 op=sync_dist_op,
@@ -374,7 +374,7 @@ class ResultCollection(dict):
         self.update_metrics(key, value)
         self._current_fx = fx
 
-    def register_key(self, key: str, meta: Metadata, value: _METRIC_COLLECTION) -> None:
+    def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
         """Create one ResultMetric object per value. Value can be provided as a nested collection"""
 
         def fn(v: _METRIC) -> ResultMetric:
