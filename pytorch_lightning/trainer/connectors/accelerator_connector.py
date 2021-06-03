@@ -168,7 +168,6 @@ class AcceleratorConnector(object):
         precision = None
         cluster_environment = None
 
-
         for plug in self.plugins:
             if isinstance(plug, str) and plug in TrainingTypePluginsRegistry:
                 if training_type is None:
