@@ -19,7 +19,7 @@ def test_accelerator_training_type_plugin():
         training_type_plugin=singledev_plugin,
     )
     trainer = Trainer(accelerator=accelerator)
-    assert trainer.training_type_plugin is singledev_plugin
+    assert trainer.accelerator_connector.training_type_plugin is singledev_plugin
 
     precision_plugin = PrecisionPlugin()
     ddp_plugin = DDPPlugin()
@@ -28,4 +28,4 @@ def test_accelerator_training_type_plugin():
         training_type_plugin=ddp_plugin,
     )
     trainer = Trainer(accelerator=accelerator)
-    assert trainer.training_type_plugin is ddp_plugin
+    assert trainer.accelerator_connector.training_type_plugin is ddp_plugin
