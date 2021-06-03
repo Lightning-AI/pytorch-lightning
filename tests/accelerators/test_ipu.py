@@ -112,6 +112,7 @@ def test_inference_only(tmpdir, ipu_cores):
     trainer.predict(model, model.val_dataloader())
 
 
+@RunIf(ipu=True, special=True)
 def test_optimization(tmpdir):
     seed_everything(42)
 
@@ -184,7 +185,7 @@ def test_mixed_precision(tmpdir):
 
     class TestCallback(Callback):
 
-        def setup(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule', stage: Optional[str] = None) -> None:
+        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
             assert isinstance(trainer.accelerator.precision_plugin, IPUPrecisionPlugin)
             assert trainer.accelerator.precision_plugin.precision == 16
             assert trainer.accelerator.model.precision == 16
