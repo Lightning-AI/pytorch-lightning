@@ -20,6 +20,7 @@ import sys
 from argparse import Namespace
 from contextlib import redirect_stdout
 from io import StringIO
+from packaging import version
 from typing import List, Optional
 from unittest import mock
 
@@ -34,6 +35,11 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import LightningArgumentParser, LightningCLI, SaveConfigCallback
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
+
+
+torchvision_version = version.parse('0')
+if _TORCHVISION_AVAILABLE:
+    torchvision_version = version.parse(__import__('torchvision').__version__)
 
 
 @mock.patch('argparse.ArgumentParser.parse_args')
@@ -448,7 +454,7 @@ def test_lightning_cli_submodules(tmpdir):
     assert isinstance(cli.config_init['model']['submodule2'], BoringModel)
 
 
-@pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason='torchvision is required')
+@pytest.mark.skipif(torchvision_version < version.parse('0.8.0'), reason='torchvision>=0.8.0 is required')
 def test_lightning_cli_torch_modules(tmpdir):
 
     class MainModule(BoringModel):
