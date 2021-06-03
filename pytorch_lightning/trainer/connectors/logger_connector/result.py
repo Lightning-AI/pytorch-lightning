@@ -401,12 +401,16 @@ class ResultCollection(dict):
 
     @staticmethod
     def _get_cache(on_step: bool, result_metric: ResultMetric) -> Optional[torch.Tensor]:
+        cache = None
         if on_step and result_metric.meta.on_step:
-            return result_metric._forward_cache.detach()
+            cache = result_metric._forward_cache
         elif not on_step and result_metric.meta.on_epoch:
             if not result_metric._computed:
                 result_metric.compute()
-            return result_metric._computed.detach()
+            cache = result_metric._computed
+        if cache is not None and not result_metric.meta.enable_graph:
+            return cache.detach()
+        return cache
 
     @staticmethod
     def _to_item(t: torch.Tensor) -> float:
