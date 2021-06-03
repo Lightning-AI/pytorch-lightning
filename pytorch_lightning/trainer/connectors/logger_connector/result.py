@@ -45,6 +45,7 @@ class Metadata:
     on_step: bool = False
     on_epoch: bool = True
     reduce_fx: Callable = torch.mean
+    enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
     has_reset: bool = False
@@ -87,7 +88,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
         # performance: skip the `torch.nn.Module.__setattr__` checks
         object.__setattr__(self, key, value)
 
-    def update(self, value: _METRIC, batch_size: Optional[int] = None) -> None:
+    def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if self.is_tensor:
             if self.meta.is_mean_reduction:
                 self.value += value.mean() * batch_size
@@ -120,15 +121,18 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.value.reset()
         self.meta.has_reset = True
 
-    def forward(self, value: _METRIC, *args, **kwargs) -> None:
+    def forward(self, value: _METRIC, batch_size: torch.Tensor) -> None:
         if isinstance(value, Metric):
             self._forward_cache = value._forward_cache
         else:
             value = value.float()
             self._forward_cache = value
-        # performance: skip the `torch.no_grad` context manager by calling `update` directly
-        # as `backward` shouldn't be run on metrics
-        self.update(value, *args, **kwargs)
+        if self.meta.enable_graph:
+            with torch.no_grad():
+                self.update(value, batch_size)
+        else:
+            # performance: skip the `torch.no_grad` context manager by calling `update` directly
+            self.update(value, batch_size)
 
     def __repr__(self) -> str:
         state = f"value={self.value}"
@@ -296,6 +300,7 @@ class ResultCollection(dict):
                 on_step=on_step,
                 on_epoch=on_epoch,
                 reduce_fx=reduce_fx,
+                enable_graph=enable_graph,
                 dataloader_idx=dataloader_idx,
                 metric_attribute=metric_attribute,
             )
