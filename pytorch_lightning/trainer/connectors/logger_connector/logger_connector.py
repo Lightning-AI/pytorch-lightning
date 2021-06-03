@@ -264,14 +264,14 @@ class LoggerConnector:
     """
 
     @property
-    def callback_metrics(self) -> Dict[str, float]:
+    def callback_metrics(self) -> Dict[str, _METRIC]:
         if self.trainer.result_collection:
             metrics = self.trainer.result_collection.metrics[MetricSource.CALLBACK]
             self._callback_metrics.update(metrics)
         return self._callback_metrics
 
     @property
-    def logged_metrics(self) -> Dict[str, float]:
+    def logged_metrics(self) -> Dict[str, _METRIC]:
         if self.trainer.result_collection:
             metrics = self.trainer.result_collection.metrics[MetricSource.LOG]
             self._logged_metrics.update(metrics)

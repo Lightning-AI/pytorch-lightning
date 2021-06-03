@@ -502,7 +502,7 @@ def test_log_works_in_train_callback(tmpdir):
         # get creation attr
         func_attr = test_callback.funcs_attr[func_name]
 
-        # retrived orginal logged values
+        # retrieved original logged values
         values = test_callback.callback_funcs_called[func_name]
         if len(values) > 0:
             original_values = values[len(values) - 1]
