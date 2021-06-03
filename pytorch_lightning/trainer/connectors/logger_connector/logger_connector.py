@@ -139,7 +139,6 @@ class LoggerConnector:
     def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
         metrics = self.trainer.result_collection.get_metrics(False)
         self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
-        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
 
         if not self.trainer.sanity_checking:
             # log all the metrics as a single dict
@@ -147,8 +146,7 @@ class LoggerConnector:
             if metrics_to_log:
                 self.log_metrics(metrics_to_log, {})
 
-        # FIXME: use self.callback_metrics instead?
-        self.prepare_eval_loop_results(metrics[MetricSource.CALLBACK])
+        self.prepare_eval_loop_results(self.callback_metrics)
 
         # log results of evaluation
         if (
