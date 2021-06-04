@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union, Dict
 
 import torch
 from torch import Tensor
@@ -127,3 +127,9 @@ class PrecisionPlugin(Plugin):
         """Clip gradients by norm"""
         parameters = self.master_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        pass
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        pass
