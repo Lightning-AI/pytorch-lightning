@@ -137,8 +137,15 @@ Profiler API
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    profilers
+    AbstractProfiler
+    AdvancedProfiler
+    BaseProfiler
+    PassThroughProfiler
+    PyTorchProfiler
+    SimpleProfiler
+
 
 Trainer API
 -----------
