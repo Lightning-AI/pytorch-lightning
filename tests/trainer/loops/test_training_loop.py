@@ -11,10 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
+
 import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
@@ -222,3 +225,56 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_):
     else:
         assert trainer.batch_idx == batch_idx_
         assert trainer.global_step == batch_idx_ * max_epochs
+
+
+def test_should_stop_mid_epoch(tmpdir):
+    """Test that training correctly stops mid epoch and that validation is still called at the right time"""
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.validation_called_at = None
+
+        def training_step(self, batch, batch_idx):
+            if batch_idx == 4:
+                self.trainer.should_stop = True
+            return super().training_step(batch, batch_idx)
+
+        def validation_step(self, *args):
+            self.validation_called_at = (self.trainer.current_epoch, self.trainer.global_step)
+            return super().validation_step(*args)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=10,
+        limit_val_batches=1,
+    )
+    trainer.fit(model)
+
+    assert trainer.current_epoch == 0
+    assert trainer.global_step == 5
+    assert model.validation_called_at == (0, 4)
+
+
+@pytest.mark.parametrize(['output'], [(5., ), ({'a': 5}, )])
+def test_warning_invalid_trainstep_output(tmpdir, output):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            return output
+
+    model = TestModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    with pytest.raises(
+        MisconfigurationException,
+        match=re.escape(
+            "In automatic optimization, `training_step` must either return a Tensor, "
+            "a dict with key 'loss' or None (where the step will be skipped)."
+        )
+    ):
+        trainer.fit(model)
