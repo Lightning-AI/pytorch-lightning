@@ -139,7 +139,6 @@ Profiler API
     :nosignatures:
     :template: classtemplate.rst
 
-    AbstractProfiler
     AdvancedProfiler
     BaseProfiler
     PassThroughProfiler
