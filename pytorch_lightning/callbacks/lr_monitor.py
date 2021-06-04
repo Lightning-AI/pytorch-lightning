@@ -159,13 +159,7 @@ class LearningRateMonitor(Callback):
 
     def _extract_lr(self, trainer, param_group, name: str) -> Dict[str, float]:
         lr = param_group.get('lr')
-        if name in self.lrs:
-            self.lrs[name].append(lr)
-        else:
-            # new params groups have been added and we need to refresh the names.
-            names = self._find_names(trainer.lr_schedulers, add_lr_sch_names=False)
-            self._remap_keys(names)
-            self.lrs[name].append(lr)
+        self.lrs[name].append(lr)
         return {name: lr}
 
     def _remap_keys(self, names: List[str]) -> None:

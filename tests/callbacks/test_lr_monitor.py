@@ -310,8 +310,8 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
             opt_3 = optim.Adam(parameters, lr=0.1)
             optimizers = [opt, opt_2, opt_3]
             schedulers = [
-                optim.lr_scheduler.StepLR(opt, step_size=1, gamma=0.9),
-                optim.lr_scheduler.StepLR(opt_2, step_size=1, gamma=0.9),
+                optim.lr_scheduler.StepLR(opt, step_size=1, gamma=0.5),
+                optim.lr_scheduler.StepLR(opt_2, step_size=1, gamma=0.5),
             ]
             return optimizers, schedulers
 
@@ -366,17 +366,17 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
     model.training_epoch_end = None
     trainer.fit(model)
 
-    expected = [0.1, 0.09000000000000001, 0.08100000000000002, 0.07290000000000002, 0.06561000000000002]
+    expected = [0.1, 0.05, 0.025, 0.0125, 0.00625]
     assert lr_monitor.lrs['lr-Adam/pg1'] == expected
 
-    expected = [0.1, 0.09000000000000001, 0.08100000000000002, 0.07290000000000002]
+    expected = [0.1, 0.05, 0.025, 0.0125]
     assert lr_monitor.lrs['lr-Adam/pg2'] == expected
 
-    expected = [0.1, 0.09000000000000001, 0.08100000000000002, 0.07290000000000002, 0.06561000000000002]
+    expected = [0.1, 0.05, 0.025, 0.0125, 0.00625]
     assert lr_monitor.lrs['lr-Adam-1/pg1'] == expected
 
-    expected = [0.1, 0.09000000000000001, 0.08100000000000002]
+    expected = [0.1, 0.05, 0.025]
     assert lr_monitor.lrs['lr-Adam-1/pg2'] == expected
 
-    expected = [0.1, 0.09000000000000001]
+    expected = [0.1, 0.05]
     assert lr_monitor.lrs['lr-Adam-1/pg3'] == expected
