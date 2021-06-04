@@ -60,8 +60,7 @@ def test__validation_step__log(tmpdir):
     )
     trainer.fit(model)
 
-    # make sure all the metrics are available for callbacks
-    expected_logged_metrics = {
+    assert set(trainer.logged_metrics) == {
         'a2',
         'a_step',
         'a_epoch',
@@ -69,14 +68,10 @@ def test__validation_step__log(tmpdir):
         'b_epoch',
         'epoch',
     }
-    logged_metrics = set(trainer.logged_metrics.keys())
-    assert expected_logged_metrics == logged_metrics
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
-    callback_metrics = set(trainer.callback_metrics.keys())
-    expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
-    assert expected_cb_metrics == callback_metrics
+    assert set(trainer.callback_metrics) == {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
 
 
 def test__validation_step__epoch_end__log(tmpdir):
@@ -228,7 +223,9 @@ def test_eval_logging_auto_reduce(tmpdir):
 
     # make sure values are correct
     assert trainer.logged_metrics['val_loss_epoch'] == model.manual_epoch_end_mean
-    assert trainer.callback_metrics['val_loss'] == trainer.logged_metrics['val_loss_step']
+    assert trainer.callback_metrics['val_loss_epoch'] == model.manual_epoch_end_mean
+    assert trainer.callback_metrics['val_loss'] == model.manual_epoch_end_mean
+    assert trainer.logged_metrics["val_loss_step"] == model.val_losses[-1]
 
 
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
@@ -327,7 +324,8 @@ def test_log_works_in_val_callback(tmpdir):
                     "on_epoch": on_epoch,
                     "prog_bar": prog_bar,
                     "forked": on_step and on_epoch,
-                    "func_name": func_name
+                    "func_name": func_name,
+                    "training": self.log.__self__.trainer.training
                 }
 
                 if on_step and on_epoch:
@@ -336,7 +334,8 @@ def test_log_works_in_val_callback(tmpdir):
                         "on_epoch": False,
                         "prog_bar": prog_bar,
                         "forked": False,
-                        "func_name": func_name
+                        "func_name": func_name,
+                        "training": self.log.__self__.trainer.training
                     }
 
                     self.funcs_attr[f"{custom_func_name}_epoch"] = {
@@ -344,7 +343,8 @@ def test_log_works_in_val_callback(tmpdir):
                         "on_epoch": True,
                         "prog_bar": prog_bar,
                         "forked": False,
-                        "func_name": func_name
+                        "func_name": func_name,
+                        "training": self.log.__self__.trainer.training
                     }
 
         def on_validation_start(self, trainer, pl_module):
@@ -376,11 +376,6 @@ def test_log_works_in_val_callback(tmpdir):
                 on_steps=self.choices,
                 on_epochs=self.choices,
                 prob_bars=self.choices
-            )
-
-        def on_batch_end(self, trainer, pl_module):
-            self.make_logging(
-                pl_module, 'on_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
             )
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -439,7 +434,6 @@ def test_log_works_in_val_callback(tmpdir):
 
     assert test_callback.funcs_called_count["on_epoch_start"] == 1
     # assert test_callback.funcs_called_count["on_batch_start"] == 1
-    assert test_callback.funcs_called_count["on_batch_end"] == 1
     assert test_callback.funcs_called_count["on_validation_start"] == 1
     assert test_callback.funcs_called_count["on_validation_epoch_start"] == 1
     # assert test_callback.funcs_called_count["on_validation_batch_start"] == 4
@@ -458,13 +452,12 @@ def test_log_works_in_val_callback(tmpdir):
 
     # function used to describe expected return logic
     def get_expected_output(func_attr, original_values):
-
-        if func_attr["on_epoch"] and not func_attr["on_step"]:
-            # Apply mean on values
-            expected_output = np.mean(original_values)
-        else:
+        if func_attr["on_step"] and not func_attr["on_epoch"]:
             # Keep the latest value
             expected_output = np.max(original_values)
+        else:
+            # Apply mean on values
+            expected_output = np.mean(original_values)
         return expected_output
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
@@ -490,9 +483,9 @@ def test_log_works_in_val_callback(tmpdir):
 
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
-            assert func_name in trainer.logger_connector.progress_bar_metrics
+            assert func_name in trainer.progress_bar_metrics
         else:
-            assert func_name not in trainer.logger_connector.progress_bar_metrics
+            assert func_name not in trainer.progress_bar_metrics
 
 
 def test_log_works_in_test_callback(tmpdir):
@@ -641,11 +634,10 @@ def test_log_works_in_test_callback(tmpdir):
 
     # function used to describe expected return logic
     def get_expected_output(func_attr, original_values):
-        # Apply mean on values
-        if func_attr["on_epoch"] and not func_attr["on_step"]:
-            expected_output = np.mean(original_values)
-        else:
+        if func_attr["on_step"] and not func_attr["on_epoch"]:
             expected_output = np.max(original_values)
+        else:
+            expected_output = np.mean(original_values)
         return expected_output
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true

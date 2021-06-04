@@ -26,12 +26,13 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from torchmetrics.metric import Metric
 
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -42,15 +43,12 @@ from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
-
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -108,13 +106,13 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results: Optional['Result'] = None
         self._current_fx_name: Optional[str] = None
         self._running_manual_backward: bool = False
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
+        self._metric_attributes: Optional[Dict[int, str]] = None
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -274,6 +272,8 @@ class LightningModule(
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
+        batch_size: Optional[int] = None,
+        metric_attribute: Optional[str] = None,
     ) -> None:
         """
         Log a key, value
@@ -296,13 +296,13 @@ class LightningModule(
            "validation_epoch_end*", "F", "T", "F", "T"
 
         Args:
-            name: key name
-            value: value name
+            name: key to log
+            value: value to log
             prog_bar: if True logs to the progress bar
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -310,6 +310,10 @@ class LightningModule(
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
+            batch_size: Current batch_size. This will be directly inferred from the loaded batch,
+                but some some data structures might need to explicitly provide it.
+            metric_attribute: The attribute name for the metric in the LightningModule.
+                Necessary to save/restore its state.
         """
         if tbptt_reduce_fx is not None:
             rank_zero_deprecation(
@@ -324,32 +328,56 @@ class LightningModule(
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
 
-        # check for none values
-        apply_to_collection(value, type(None), partial(self.__check_none, name, value))
+        # check for invalid values
+        apply_to_collection(value, dict, partial(self.__check_not_nested, name))
+        apply_to_collection(
+            value,
+            object,
+            partial(self.__check_allowed, name, value),
+            wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+        )
 
         # set the default depending on the fx_name
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
+        result_collection = self.trainer.result_collection
+        assert result_collection is not None
         assert self._current_fx_name is not None
-        self.trainer.logger_connector.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+        result_collection.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
         if "/dataloader_idx_" in name:
-            raise MisconfigurationException(f"Logged key: {name} should not contain information about dataloader_idx.")
+            raise MisconfigurationException(
+                f"You called `self.log` with the key `{name}`"
+                " but it should not contain information about `dataloader_idx`"
+            )
 
-        sync_fn = partial(
-            self.__sync,
-            sync_fn=self.trainer.training_type_plugin.reduce,
-            sync_dist=sync_dist,
-            sync_dist_op=sync_dist_op,
-            sync_dist_group=sync_dist_group,
-            device=self.device,
-        )
-        value = apply_to_collection(value, (torch.Tensor, numbers.Number), sync_fn)
+        if metric_attribute is None and isinstance(value, Metric):
+            if self._metric_attributes is None:
+                # compute once
+                self._metric_attributes = {
+                    id(module): name
+                    for name, module in self.named_children() if isinstance(module, Metric)
+                }
+                if not self._metric_attributes:
+                    raise MisconfigurationException(
+                        "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
+                        " You can fix this by setting an attribute for the metric in your `LightningModule`."
+                    )
+            # try to find the passed metric in the LightningModule
+            metric_attribute = self._metric_attributes.get(id(value))
+            if metric_attribute is None:
+                raise MisconfigurationException(
+                    "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
+                    f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
+                    f" of {list(self._metric_attributes.values())}"
+                )
 
-        assert self._results is not None
-        self._results.log(
+        value = apply_to_collection(value, numbers.Number, self.__to_float)
+
+        result_collection.log(
+            self._current_fx_name,
             name,
             value,
             prog_bar=prog_bar,
@@ -359,6 +387,12 @@ class LightningModule(
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
+            batch_size=batch_size,
+            metric_attribute=metric_attribute,
+            sync_dist=sync_dist,
+            sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
+            sync_dist_op=sync_dist_op,
+            sync_dist_group=sync_dist_group,
         )
 
     def log_dict(
@@ -391,7 +425,7 @@ class LightningModule(
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -419,26 +453,17 @@ class LightningModule(
             )
 
     @staticmethod
-    def __sync(
-        value: Union[torch.Tensor, numbers.Number],
-        sync_fn: Optional[Callable] = None,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-        device: torch.device = None,
-    ) -> torch.Tensor:
-        """Sync across workers when using distributed training"""
-        if isinstance(value, numbers.Number):
-            value = torch.tensor(value, device=device, dtype=torch.float)
-        sync_fn = sync_fn or sync_ddp_if_available
-        dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
-        if not sync_dist or not dist_available:
-            return value
-        return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
+    def __check_not_nested(name: str, value: dict) -> None:
+        if any(isinstance(v, dict) for v in value.values()):
+            raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
+        return value
 
     @staticmethod
-    def __check_none(name: str, value: Any, _) -> Any:
-        raise ValueError(f'`self.log({name}, {value})` was called, but `None` values cannot be logged')
+    def __check_allowed(name: str, value: Any, v: Any) -> None:
+        raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
+
+    def __to_float(self, value: numbers.Number) -> torch.Tensor:
+        return torch.tensor(value, device=self.device, dtype=torch.float)
 
     def write_prediction(
         self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'

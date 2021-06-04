@@ -49,7 +49,7 @@ from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.env_vars_connector import _defaults_from_env_vars
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
@@ -1106,7 +1106,7 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # log batch metrics
-                self.logger_connector.log_evaluation_step_metrics()
+                self.logger_connector.update_evaluation_step_metrics()
 
                 # track epoch level outputs
                 dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
@@ -1176,9 +1176,6 @@ class Trainer(
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
 
-        # reset cached results
-        self.logger_connector.reset()
-
         torch.set_grad_enabled(True)
 
         return eval_loop_results
@@ -1186,7 +1183,7 @@ class Trainer(
     # TODO: move inside evaluation loop
     def _track_output_for_epoch_end(self, outputs, output):
         if output is not None:
-            if isinstance(output, Result):
+            if isinstance(output, ResultCollection):
                 output = output.detach()
                 if self.move_metrics_to_cpu:
                     output = output.cpu()
@@ -1277,11 +1274,14 @@ class Trainer(
 
             self.on_sanity_check_end()
 
-            self.state.stage = stage
+            # reset validation metrics
+            self.result_collection.reset()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training
             reset_seed()
+
+            self.state.stage = stage
 
     def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:
         if ckpt_path is None:
@@ -1356,32 +1356,13 @@ class Trainer(
         model._current_fx_name = None
         model._current_dataloader_idx = None
 
-    def _reset_result_and_set_fx_name(self, hook_name: str) -> bool:
-        # on_before_zero_grad is called within training_step
-        # TODO(@carmocca): Result should handle this logic
-        if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
-            return True
-        model_ref = self.lightning_module
-        if model_ref is not None:
-            # used to track current hook name called
-            model_ref._results = Result()
-            model_ref._current_fx_name = hook_name
-        return False
-
-    def _cache_logged_metrics(self):
-        model_ref = self.lightning_module
-        if model_ref is not None:
-            # capture logging for this hook
-            self.logger_connector.cache_logged_metrics()
-
     def call_hook(self, hook_name: str, *args, **kwargs) -> Any:
         # Note this implementation is copy/pasted into the TrainLoop class in TrainLoop._on_train_epoch_end_hook
         # This was done to manage the deprecation of the `outputs` argument to on_train_epoch_end
         # If making changes to this function, ensure that those changes are also made to
         # TrainLoop._on_train_epoch_end_hook
-
-        # set hook_name to model + reset Result obj
-        skip = self._reset_result_and_set_fx_name(hook_name)
+        if self.lightning_module:
+            self.lightning_module._current_fx_name = hook_name
 
         # always profile hooks
         with self.profiler.profile(hook_name):
@@ -1404,8 +1385,9 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator, hook_name)
                 output = accelerator_hook(*args, **kwargs)
 
-        if not skip:
-            self._cache_logged_metrics()
+        if self.lightning_module:
+            self.lightning_module._current_fx_name = None
+
         return output
 
     @staticmethod

@@ -11,593 +11,542 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Result class for easier logging and epoch-wise reduction."""
-
-from copy import copy
-from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
+from collections.abc import Generator
+from dataclasses import dataclass, field
+from functools import partial, wraps
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
 import torch
-from torch import Tensor
 from torchmetrics import Metric
 
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
+from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.enums import LightningEnum
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-class Result(Dict):
+# re-define the ones from pytorch_lightning.utilities.types without the `Number` type
+_METRIC = Union[Metric, torch.Tensor]
+_METRIC_COLLECTION = Union[_METRIC, Dict[str, _METRIC]]
 
-    def __init__(self) -> None:
-        super().__init__()
-        self['meta'] = {'_internal': {'_reduce_on_epoch': False, 'batch_sizes': []}}
 
-    def __getitem__(self, key: Union[str, Any]) -> Any:
-        try:
-            return super().__getitem__(key)
-        except KeyError:
-            return super().__getitem__(f'{key}_step')
+class MetricSource(LightningEnum):
+    CALLBACK = "callback"
+    PBAR = "pbar"
+    LOG = "log"
 
-    def __getattr__(self, key: str) -> Any:
-        try:
-            if key == 'batch_log_metrics':
-                return self.get_batch_log_metrics()
-            elif key == 'batch_pbar_metrics':
-                return self.get_batch_pbar_metrics()
-            elif key == 'epoch_log_metrics':
-                return self.get_epoch_log_metrics()
-            elif key == 'epoch_pbar_metrics':
-                return self.get_epoch_pbar_metrics()
-            else:
-                return self[key]
-        except KeyError:
-            return None
 
-    def __setattr__(self, key: str, val: Union[Tensor, Any]):
-        # ensure tensors are detached
-        if isinstance(val, torch.Tensor) and key != 'minimize':
-            val = val.detach()
-        self[key] = val
-
-    def __getstate__(self):
-        return self
-
-    def __setstate__(self, d):
-        self.update(d)
+@dataclass
+class _Sync:
+    fn: Callable
+    should: bool = False
+    op: Union[Any, str] = 'mean'
+    group: Optional[Any] = None
 
     @property
-    def minimize(self) -> Optional[Tensor]:
-        return self.get('minimize', None)
+    def __call__(self) -> Callable:
+        return partial(self.fn, reduce_op=self.op, group=self.group) if self.should else self.no_op
+
+    @staticmethod
+    def no_op(value: Any, *_, **__) -> Any:
+        return value
+
+
+@dataclass
+class _Metadata:
+    fx: str
+    name: str
+    prog_bar: bool = False
+    logger: bool = True
+    on_step: bool = False
+    on_epoch: bool = True
+    reduce_fx: Callable = torch.mean
+    enable_graph: bool = False
+    dataloader_idx: Optional[int] = None
+    metric_attribute: Optional[str] = None
+    sync: _Sync = field(default_factory=_Sync)
+
+    @property
+    def forked(self) -> bool:
+        return self.on_step and self.on_epoch
+
+    def forked_name(self, on_step: bool) -> str:
+        if self.forked:
+            return f'{self.name}_{"step" if on_step else "epoch"}'
+        return self.name
+
+    @property
+    def is_mean_reduction(self) -> bool:
+        return self.reduce_fx == torch.mean
+
+    @property
+    def is_max_reduction(self) -> bool:
+        return self.reduce_fx in (torch.max, max)
+
+    @property
+    def is_min_reduction(self) -> bool:
+        return self.reduce_fx in (torch.min, min)
+
+    @property
+    def is_custom_reduction(self) -> bool:
+        return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction)
+
+
+class ResultMetric(Metric, DeviceDtypeModuleMixin):
+    """Wraps the value provided to `:meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
+
+    def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
+        super().__init__()
+        self.is_tensor = is_tensor
+        self.meta = metadata
+        self.has_reset = False
+        if is_tensor:
+            self.add_state("value", torch.tensor(0, dtype=torch.float))
+            if self.meta.is_mean_reduction:
+                self.add_state("cumulated_batch_size", torch.tensor(0, dtype=torch.float))
+
+    def update(self, value: _METRIC, batch_size: torch.Tensor) -> None:
+        if self.is_tensor:
+            value = value.float()
+            self._forward_cache = value
+            # performance: no need to accumulate on values only logged on_step
+            if self.meta.on_step and not self.meta.on_epoch:
+                self.value = self.meta.sync(value)
+                return
+            # perform accumulation with reduction
+            if self.meta.is_mean_reduction:
+                self.value += value.mean() * batch_size
+                self.cumulated_batch_size += batch_size
+            elif self.meta.is_max_reduction or self.meta.is_min_reduction:
+                self.value = self.meta.reduce_fx(self.value, value.mean())
+        else:
+            self.value = value  # noqa: attribute-defined-outside-init
+            self._forward_cache = value._forward_cache
+
+    def compute(self) -> torch.Tensor:
+        if self.is_tensor:
+            value = self.meta.sync(self.value)
+            if self.meta.is_mean_reduction:
+                cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
+                # FIXME: might need sum
+                return value / cumulated_batch_size
+            elif self.meta.is_max_reduction or self.meta.is_min_reduction:
+                return value
+            raise MisconfigurationException(
+                f"Only [min, max, mean] reductions are supported. Found {self.meta.reduce_fx}"
+            )
+        return self.value.compute()
+
+    def reset(self) -> None:
+        if self.is_tensor:
+            super().reset()
+        else:
+            self.value.reset()
+        self.has_reset = True
+
+    def forward(self, value: _METRIC, batch_size: torch.Tensor) -> None:
+        if self.meta.enable_graph:
+            with torch.no_grad():
+                self.update(value, batch_size)
+        else:
+            # performance: skip the `torch.no_grad` context manager by calling `update` directly
+            self.update(value, batch_size)
+
+    def _wrap_compute(self, compute: Any) -> Any:
+        # Override to avoid syncing - we handle it ourselves.
+        @wraps(compute)
+        def wrapped_func(*args, **kwargs):
+            if not self._update_called:
+                rank_zero_warn(
+                    f"The ``compute`` method of metric {self.__class__.__name__}"
+                    " was called before the ``update`` method which may lead to errors,"
+                    " as metric states have not yet been updated.", UserWarning
+                )
+
+            # return cached value
+            if self._computed is not None:
+                return self._computed
+            self._computed = compute(*args, **kwargs)
+            return self._computed
+
+        return wrapped_func
+
+    def __setattr__(self, key, value):
+        # performance: skip the `torch.nn.Module.__setattr__` checks
+        object.__setattr__(self, key, value)
+
+    def __repr__(self) -> str:
+        state = f"value={self.value}"
+        if self.is_tensor and self.meta.is_mean_reduction:
+            state += f", cumulated_batch_size={self.cumulated_batch_size}"
+        return f"{self.__class__.__name__}({state})"
+
+
+class ResultMetricCollection(dict):
+    """
+    Dict wrapper for easy access to metadata.
+
+    All of the leaf items should be instances of
+    :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric`
+    with the same metadata.
+    """
+
+    def __init__(self, *args, metadata: Optional[_Metadata] = None) -> None:
+        super().__init__(*args)
+        self.meta = metadata
+
+
+class ResultCollection(dict):
+    """
+    Collection (dictionary) of :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetric` or
+    :class:`~pytorch_lightning.trainer.connectors.logger_connector.result.ResultMetricCollection`
+
+    Example:
+
+        # `device` needs to be provided before logging
+        result = ResultCollection(True, torch.device("cpu"))
+
+        # you can log to a specific collection.
+        # arguments: fx, key, value, metadata
+        result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
+        result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
+
+        for epoch in epochs:
+            for batch_idx, batch in enumerate(dataloader):
+                # the batch_idx is used to reset the tensor metrics
+                result.batch_idx = batch_idx
+                result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
+
+            result.on_epoch_end_reached = True  # indicate epoch end has been reached
+            result.log('training_epoch_end', 'acc', torch.tensor(...), on_step=False, on_epoch=True)`
+    """
+
+    DATALOADER_SUFFIX = "/dataloader_idx_{}"
+
+    def __init__(self, training: bool, device: Optional[torch.device] = None) -> None:
+        super().__init__()
+        self.training = training
+        self._on_epoch_end_reached = False
+        self._minimize = None
+        self._current_fx: Optional[str] = None
+        self._batch_size = torch.tensor(1, device=device)
+        self.batch_idx: Optional[int] = None
+        self.device: Optional[torch.device] = device
+        self.fx_validator = FxValidator()
+
+    @property
+    def batch_size(self) -> torch.Tensor:
+        # performance: cache the `batch_size` tensor instead of re-creating it
+        return self._batch_size
+
+    @batch_size.setter
+    def batch_size(self, value: int) -> None:
+        self._batch_size = torch.tensor(value, device=self.device)
+
+    @property
+    def on_epoch_end_reached(self) -> bool:
+        return self._on_epoch_end_reached
+
+    @on_epoch_end_reached.setter
+    def on_epoch_end_reached(self, on_epoch_end_reached):
+        self._on_epoch_end_reached = on_epoch_end_reached
+        self.batch_idx = None
+
+    @property
+    def metrics(self) -> Dict[str, _METRIC_COLLECTION]:
+        """This function returns either batch or epoch metrics depending on ``on_epoch_end_reached``."""
+        return self.get_epoch_metrics() if self.on_epoch_end_reached else self.get_batch_metrics()
+
+    @property
+    def minimize(self) -> Optional[torch.Tensor]:
+        """
+        The :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` loss
+        will be saved as the ``minimize`` attribute.
+        """
+        return self._minimize
 
     @minimize.setter
-    def minimize(self, val: Optional[torch.Tensor]) -> None:
-        if val is not None:
-            if not isinstance(val, Tensor):
-                raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {val}")
-            if val.grad_fn is None:
+    def minimize(self, loss: Optional[torch.Tensor]) -> None:
+        if loss is not None:
+            if not isinstance(loss, torch.Tensor):
+                raise ValueError(f"`Result.minimize` must be a `torch.Tensor`, found: {loss}")
+            if loss.grad_fn is None:
                 raise RuntimeError("`Result.minimize` must have a `grad_fn`")
-        self['minimize'] = val
+        self._minimize = loss
+
+    @property
+    def extra(self) -> Dict[str, Any]:
+        """
+        Extras are any keys other than the loss returned by
+        :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`
+        """
+        return self.get('_extra', {})
+
+    @extra.setter
+    def extra(self, extra: Dict[str, Any]) -> None:
+
+        def check_fn(v):
+            if v.grad_fn is not None:
+                raise MisconfigurationException(
+                    'You passed a tensor with `grad_fn` when calling `self.log()`.'
+                    f' The extra values are {extra}'
+                )
+
+        apply_to_collection(extra, torch.Tensor, check_fn)
+        self['_extra'] = extra
 
     def log(
         self,
+        fx: str,
         name: str,
-        value: Any,
+        value: _METRIC_COLLECTION,
         prog_bar: bool = False,
         logger: bool = True,
         on_step: bool = False,
         on_epoch: bool = True,
         reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_fn: Callable = _Sync.no_op,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
-    ):
+        batch_size: Optional[int] = None,
+        metric_attribute: Optional[str] = None,
+    ) -> None:
+        """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
+        # move metrics to cpu on TPU.
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
 
-        if 'meta' not in self:
-            self.__setitem__('meta', {})
-
-        # if user requests both step and epoch, then we split the metric in two automatically
-        # one will be logged per step. the other per epoch
-        was_forked = False
-        if on_step and on_epoch:
-            was_forked = True
-
-            # set step version
-            step_name = f'{name}_step'
-
-            self.__set_meta(
-                step_name,
-                value,
-                prog_bar,
-                logger,
-                on_step=True,
-                on_epoch=False,
-                reduce_fx=reduce_fx,
-                forked=False,
-                dataloader_idx=dataloader_idx,
+        if on_step and self.on_epoch_end_reached:
+            # `FxValidator` should avoid this ever happening. Either a bug there or a bug in the logic order.
+            raise RuntimeError(
+                "Logging `on_step` when `on_epoch_end_reached` isn't allowed. This shouldn't have happened."
             )
 
-            self.__setitem__(step_name, value)
+        # storage key
+        key = f"{fx}.{name}"
+        # add dataloader_suffix to both key and fx
+        if dataloader_idx is not None:
+            key += f'.{dataloader_idx}'
+            fx += f'.{dataloader_idx}'
 
-            # set epoch version
-            epoch_name = f'{name}_epoch'
-
-            self.__set_meta(
-                epoch_name,
-                value,
-                prog_bar,
-                logger,
-                on_step=False,
-                on_epoch=True,
-                reduce_fx=reduce_fx,
-                forked=False,
-                dataloader_idx=dataloader_idx,
-            )
-            self.__setitem__(epoch_name, value)
-
-        # always log the original metric
-        self.__set_meta(
-            name,
-            value,
-            prog_bar,
-            logger,
-            on_step,
-            on_epoch,
-            reduce_fx,
-            forked=was_forked,
-            dataloader_idx=dataloader_idx,
-        )
-
-        # set the value
-        self.__setitem__(name, value)
-
-    def __set_meta(
-        self,
-        name: str,
-        value: Any,
-        prog_bar: bool,
-        logger: bool,
-        on_step: bool,
-        on_epoch: bool,
-        reduce_fx: Callable,
-        forked: bool,
-        dataloader_idx: Union[int, None],
-    ):
-        # set the meta for the item
-        meta_value = value
-        meta = dict(
+        meta = _Metadata(
+            fx=fx,
+            name=name,
             prog_bar=prog_bar,
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
-            value=meta_value,
-            forked=forked,
+            enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
+            metric_attribute=metric_attribute,
+            sync=_Sync(
+                should=sync_dist,
+                fn=sync_dist_fn,
+                op=sync_dist_op,
+                group=sync_dist_group,
+            )
         )
+        if key not in self:
+            if meta.is_custom_reduction:
+                raise MisconfigurationException(
+                    'Only `self.log(..., reduce_fx={min,max,mean})` are currently supported.'
+                    ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`'
+                )
+            self.register_key(key, meta, value)
+        elif meta != self[key].meta:
+            raise MisconfigurationException(
+                f'You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed'
+            )
 
-        self['meta'][name] = meta
+        if self.should_reset_tensors(fx):
+            # when restarting an new epoch, reset the tensors
+            self._reset(fx, metrics=False)
 
-        # track whether any input requires reduction on epoch end
-        _internal = self['meta']['_internal']
-        _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
-
-    def track_batch_size(self, batch):
-        batch_size = Result.extract_batch_size(batch)
-        Result.attach_batch_size(batch_size, self)
-
-    @staticmethod
-    def extract_batch_size(batch):
-        try:
-            batch_size = Result.unpack_batch_size(batch)
-        except RecursionError:
-            batch_size = 1
-        return batch_size
-
-    @staticmethod
-    def attach_batch_size(batch_size: Union[int, None], result: 'Result') -> None:
         if batch_size is not None:
-            meta = result['meta']
-            meta['_internal']['batch_sizes'].append(batch_size)
+            self.batch_size = batch_size
 
-    def get_batch_sizes(self):
-        meta = self['meta']
-        return torch.tensor(meta['_internal']['batch_sizes'])
+        self.update_metrics(key, value)
+        self._current_fx = fx
 
-    def _add_dataloader_idx(self, k: str, dataloader_idx: Union[int, None], add_dataloader_idx: bool) -> str:
-        if dataloader_idx is not None and add_dataloader_idx:
-            return f"{k}/dataloader_idx_{dataloader_idx}"
-        return k
+    def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
+        """Create one ResultMetric object per value. Value can be provided as a nested collection"""
 
-    def get_batch_log_metrics(self, include_forked_originals=True, add_dataloader_idx=False) -> dict:
-        """
-        Gets the metrics to log at the end of the batch step
+        def fn(v: _METRIC) -> ResultMetric:
+            metric = ResultMetric(meta, isinstance(v, torch.Tensor))
+            return metric.to(self.device)
 
-        """
-        result = {}
+        value = apply_to_collection(value, (torch.Tensor, Metric), fn)
+        if isinstance(value, dict):
+            value = ResultMetricCollection(value, metadata=meta)
+        self[key] = value
 
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
+    def should_reset_tensors(self, fx: str) -> bool:
+        # reset tensor metrics only when the hook changed and reloading the dataloader
+        return self._current_fx != fx and self.batch_idx in (None, 0)
 
-            if options['forked'] and not include_forked_originals:
-                continue
+    def update_metrics(self, key: str, value: _METRIC_COLLECTION) -> None:
 
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
+        def fn(result_metric, v):
+            # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
+            result_metric.forward(v.to(self.device), self.batch_size)
+            result_metric.has_reset = False
 
-            if options['logger'] and options['on_step']:
-                if isinstance(self[k], Metric) and self[k]._forward_cache is not None:
-                    result[dl_key] = self[k]._forward_cache.detach()
-                else:
-                    result[dl_key] = self[k]
-
-        return result
-
-    def get_epoch_log_metrics(self, add_dataloader_idx=False) -> dict:
-        """
-        Gets the metrics to log at the end of epoch
-        """
-        result = {}
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-
-            if options['forked']:
-                continue
-
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
-
-            if options['logger'] and options['on_epoch']:
-                if isinstance(self[k], Metric):
-                    result[dl_key] = self[k].compute().detach()
-                else:
-                    result[dl_key] = self[k]
-
-            if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute for reuse later
-                self[k].compute()
-
-        return result
-
-    def get_epoch_pbar_metrics(self, add_dataloader_idx=False):
-        """
-        Gets the metrics to log at the end of epoch
-        """
-        result = {}
-
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-
-            if options['forked']:
-                continue
-
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
-
-            if options['prog_bar'] and options['on_epoch']:
-                if isinstance(self[k], Metric):
-                    result[dl_key] = self[k].compute().detach()
-                else:
-                    result[dl_key] = self[k]
-
-            if k in self and not options['on_epoch'] and isinstance(self[k], Metric):
-                # compute for reuse later
-                self[k].compute()
-
-        return result
-
-    def get_forked_metrics(self, add_dataloader_idx=False):
-        """
-        Gets the metrics to log at the end of epoch
-        """
-        result = {}
-
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
-
-            if options['forked']:
-                if isinstance(self[k], Metric):
-                    result[dl_key] = self[k].compute().detach()
-                else:
-                    result[dl_key] = self[k]
-
-        return result
-
-    def get_batch_pbar_metrics(self, include_forked_originals=True, add_dataloader_idx=False):
-        """
-        Gets the metrics to log at the end of the batch step
-        """
-        result = {}
-
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-
-            if options['forked'] and not include_forked_originals:
-                continue
-
-            dl_key = self._add_dataloader_idx(k, options["dataloader_idx"], add_dataloader_idx)
-
-            if options['prog_bar'] and options['on_step']:
-                if isinstance(self[k], Metric) and self[k]._forward_cache is not None:
-                    result[dl_key] = self[k]._forward_cache
-                else:
-                    result[dl_key] = self[k]
-
-        return result
-
-    def detach(self) -> 'Result':
-        for k, v in self.items():
-            if isinstance(v, torch.Tensor):
-                self.__setitem__(k, v.detach())
-        return self
-
-    def to(self, *args, **kwargs) -> 'Result':
-        """Move all self attributes to the given device."""
-        for k, v in self.items():
-            if isinstance(v, torch.Tensor):
-                self.__setitem__(k, v.to(*args, **kwargs))
-        return self
-
-    def cpu(self) -> 'Result':
-        """Move all self attributes to CPU."""
-        return self.to(torch.device("cpu"))
-
-    def __repr__(self):
-        self_copy = self.copy()
-
-        if 'meta' in self_copy:
-            del self_copy['meta']
-
-        return str(self_copy)
-
-    def __str__(self):
-        copy = self.copy()
-        del copy['meta']
-
-        return str(copy)
-
-    def __copy__(self):
-        newone = type(self)()
-        for k, v in self.items():
-            if isinstance(v, torch.Tensor):
-                v = v.detach()
-            newone[k] = copy(v)
-        return newone
+        apply_to_collections(self[key], value, ResultMetric, fn)
 
     @staticmethod
-    def unpack_batch_size(sample):
+    def _get_cache(on_step: bool, result_metric: ResultMetric) -> Optional[torch.Tensor]:
+        cache = None
+        if on_step and result_metric.meta.on_step:
+            cache = result_metric._forward_cache
+        elif not on_step and result_metric.meta.on_epoch:
+            if not result_metric._computed:
+                result_metric.compute()
+            cache = result_metric._computed
+        if cache is not None and not result_metric.meta.enable_graph:
+            return cache.detach()
+        return cache
+
+    @staticmethod
+    def __to_item(t: torch.Tensor) -> float:
+        return t.item()
+
+    def valid_items(self) -> Generator:
+        """This function is used to iterate over current valid metrics."""
+        return ((k, v) for k, v in self.items()
+                if not k == "_extra" and not (isinstance(v, ResultMetric) and v.has_reset))
+
+    def _forked_name(self, result_metric: ResultMetric, on_step: bool) -> Tuple[str, str]:
+        name = result_metric.meta.name
+        forked_name = result_metric.meta.forked_name(on_step)
+        dl_idx = result_metric.meta.dataloader_idx
+        if dl_idx is not None:
+            dataloader_suffix = self.DATALOADER_SUFFIX.format(dl_idx)
+            name += dataloader_suffix
+            forked_name += dataloader_suffix
+        return name, forked_name
+
+    def get_metrics(self, on_step: bool) -> Dict[MetricSource, Dict[str, _METRIC]]:
+        metrics = {k: {} for k in MetricSource}
+
+        for key, result_metric in self.valid_items():
+
+            # extract forward_cache or computed from the ResultMetric. ignore when the output is None
+            value = apply_to_collection(
+                result_metric, ResultMetric, partial(self._get_cache, on_step), include_none=False
+            )
+
+            # check if the collection is empty
+            has_tensor = False
+
+            def any_tensor(_):
+                nonlocal has_tensor
+                has_tensor = True
+
+            apply_to_collection(value, torch.Tensor, any_tensor)
+            if not has_tensor:
+                continue
+
+            name, forked_name = self._forked_name(result_metric, on_step)
+
+            # populate logging metrics
+            if result_metric.meta.logger:
+                metrics[MetricSource.LOG][forked_name] = value
+
+            # populate callback metrics. callback metrics don't take `_step` forked metrics
+            if self.training or result_metric.meta.on_epoch and not on_step:
+                metrics[MetricSource.CALLBACK][name] = value
+                metrics[MetricSource.CALLBACK][forked_name] = value
+
+            # populate progress_bar metrics. convert tensors to numbers
+            if result_metric.meta.prog_bar:
+                value = apply_to_collection(value, torch.Tensor, self.__to_item, include_none=False)
+                metrics[MetricSource.PBAR][forked_name] = value
+
+        return metrics
+
+    def get_batch_metrics(self) -> Dict[str, _METRIC_COLLECTION]:
+        return self.get_metrics(on_step=True)
+
+    def get_epoch_metrics(self) -> Dict[str, _METRIC_COLLECTION]:
+        return self.get_metrics(on_step=False)
+
+    def _reset(self, fx: Optional[str] = None, metrics: Optional[bool] = None) -> None:
+
+        def fn(item: ResultMetric) -> None:
+            requested_type = metrics is None or metrics ^ item.is_tensor
+            same_fx = fx is None or fx == item.meta.fx
+            if requested_type and same_fx:
+                item.reset()
+
+        apply_to_collection(self, ResultMetric, fn)
+
+    def reset(self, metrics: Optional[bool] = None) -> None:
         """
-        Recursively unpack sample to find a torch.Tensor.
-        returns len(tensor) when found, or 1 when it hits an empty or non iterable.
+        Reset the result collection
+
+        Args:
+            metrics: If True, only ``torchmetrics.Metric`` results are reset,
+                if False, only ``torch.Tensors`` are reset,
+                if ``None``, both are.
         """
-        if isinstance(sample, torch.Tensor):
-            size = sample.size(0)
-        elif isinstance(sample, str):
-            return len(sample)
-        elif isinstance(sample, dict):
-            sample = next(iter(sample.values()), 1)
-            size = Result.unpack_batch_size(sample)
-        elif isinstance(sample, Iterable):
-            sample = next(iter(sample), 1)
-            size = Result.unpack_batch_size(sample)
+        self._reset(metrics=metrics)
+        self.on_epoch_end_reached = False
+        self._current_fx = None
+
+    def extract_batch_size(self, batch: Any) -> None:
+        try:
+            self.batch_size = self._extract_batch_size(batch)
+        except RecursionError:
+            self.batch_size = 1
+
+    def _extract_batch_size(self, batch: Any) -> int:
+        """
+        Recursively unpack a batch to find a torch.Tensor.
+
+        Returns:
+            ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
+        """
+        if isinstance(batch, torch.Tensor):
+            size = batch.size(0)
+        elif isinstance(batch, str):
+            return len(batch)
+        elif isinstance(batch, dict):
+            sample = next(iter(batch.values()), 1)
+            size = self._extract_batch_size(sample)
+        elif isinstance(batch, Iterable):
+            sample = next(iter(batch), 1)
+            size = self._extract_batch_size(sample)
         else:
             size = 1
         return size
 
-    @classmethod
-    def reduce_on_epoch_end(cls, outputs):
-        # get the batch sizes for all outputs
-        batch_sizes = []
-        meta = {}
-        for x in outputs:
-            batch_sizes.append(x.get_batch_sizes())
-            meta.update(x['meta'])
+    def to(self, *args, **kwargs) -> 'ResultCollection':
+        """Move all data to the given device."""
+        for k, v in self.items():
+            if isinstance(v, (torch.Tensor, Metric)):
+                self[k] = v.to(*args, **kwargs)
+        return self
 
-        batch_sizes = torch.stack(batch_sizes).view(-1)
+    def cpu(self) -> 'ResultCollection':
+        """Move all data to CPU."""
+        return self.to(device="cpu")
 
-        result = cls()
-        result = recursive_gather(outputs, result)
-        recursive_stack(result)
+    def __str__(self) -> str:
+        return f'{self.__class__.__name__}({self.training}, {self.device}, {repr(self)})'
 
-        for k, option in meta.items():
-            if k == '_internal' or isinstance(result[k], Metric):
-                continue
-
-            # for forked metrics don't reduce, just take the last val
-            if option['forked']:
-                result[k] = choose_last(result[k])
-                continue
-
-            if option['on_epoch']:
-                fx = option['reduce_fx']
-                if fx == torch.mean:
-                    if isinstance(result[k], list):
-                        result[k] = torch.tensor(result[k]).float()
-                    try:
-                        reduced_val = weighted_mean(result[k], batch_sizes)
-                    # todo: specify the expected Exceptions to come
-                    except Exception:
-                        reduced_val = torch.mean(result[k])
-                else:
-                    reduced_val = fx(result[k])
-
-                result[k] = reduced_val
-            else:
-                del result[k]
-
-        result['meta'] = meta
-        return result
-
-    @classmethod
-    def reduce_across_time(cls, time_outputs):
-        # auto-reduce across time for tbptt
-        meta = time_outputs[0]['meta']
-
-        result = cls()
-        result = recursive_gather(time_outputs, result)
-        recursive_stack(result)
-
-        for k, value in result.items():
-            if k in ['meta', 'extra'] or isinstance(value, Metric):
-                continue
-
-            if isinstance(value, list):
-                value = torch.tensor(value)
-
-            if isinstance(value, dict):
-                # TODO: recursive reduce:
-                _recursive_fx_apply(value, torch.mean)
-            else:
-                result[k] = torch.mean(value.float())
-
-        result['meta'] = meta
-        return result
-
-    @property
-    def should_reduce_on_epoch_end(self) -> bool:
-        return self['meta']['_internal']['_reduce_on_epoch']
-
-    def rename_keys(self, map_dict: dict):
-        """
-        Maps key values to the target values. Useful when renaming variables in mass.
-
-        Args:
-            map_dict:
-        """
-        meta = self.meta
-        for source, dest in map_dict.items():
-            # map the main keys
-            self[dest] = self[source]
-            del self[source]
-
-            # map meta
-            meta[dest] = meta[source]
-            del meta[source]
-
-    def reset(self) -> None:
-        """
-        Call at the end of epoch to reset all metric objects
-        """
-        for k, value in self.items():
-            if isinstance(value, Metric):
-                value.reset()
-
-
-def choose_last(x):
-    if isinstance(x, (torch.Tensor, list)):
-        return x[-1]
-    if isinstance(x, dict):
-        for k, v in x.items():
-            x[k] = x[k][-1]
-
-
-def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
-    for out in outputs:
-        if 'meta' in out:
-            del out['meta']
-
-        for k, v in out.items():
-            # support manual opt where the user does not return a minimize key
-            if k == 'minimize' and v is None:
-                continue
-
-            if isinstance(v, dict):
-                in_d = result.get(k, {})
-                v = recursive_gather([v], in_d)
-                result[k] = v
-            else:
-                if isinstance(v, Metric):
-                    # if v is a metric, just keep one of them,
-                    # don't keep on adding a list of them
-                    result[k] = v
-                else:
-                    if k not in result:
-                        result[k] = []
-                    result[k].append(v)
-
-    return result
-
-
-def recursive_stack(result: MutableMapping):
-    for k, v in result.items():
-        if isinstance(v, dict):
-            recursive_stack(v)
-
-        result[k] = collate_tensors(v)
-
-
-def _recursive_fx_apply(input: dict, fx):
-    for k, v in input.items():
-        if isinstance(v, list):
-            v = torch.tensor(v)
-
-        if isinstance(v, torch.Tensor):
-            v = fx(v.float())
-            input[k] = v
-        else:
-            _recursive_fx_apply(v, fx)
-
-
-def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
-    if not items or not isinstance(items, (list, tuple)) or any(not isinstance(item, Tensor) for item in items):
-        # items is not a sequence, empty, or contains non-tensors
-        return items
-
-    if all(item.ndim == 0 for item in items):
-        # all tensors are scalars, we need to stack
-        return torch.stack(items)
-
-    if all(item.ndim >= 1 and item.shape[1:] == items[0].shape[1:] for item in items):
-        # we can concatenate along the first dimension
-        return torch.cat(items)
-
-    return items
-
-
-def weighted_mean(result, weights):
-
-    if isinstance(result, dict):
-        _process_dataloader_aggregated_steps(result, weights)
-    else:
-        if isinstance(result, list):
-            result = torch.tensor(result)
-
-        weights = weights.to(result.device)[:result.size(0)]
-        numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
-        result = numerator / weights.sum().float()
-    return result
-
-
-def _process_dataloader_aggregated_steps(result, weights):
-    internal_keys = {'meta'}
-
-    moved = False
-
-    for k, v in result.items():
-        if k in internal_keys:
-            continue
-
-        # make sure v is a tensor
-        if not isinstance(v, torch.Tensor):
-            v = torch.tensor(v)
-
-        # move to memory only once
-        if not moved:
-            weights = weights.to(v.device)
-            moved = True
-
-        # move weights to same device as value to reduce
-        weights_t = weights[:v.size(0)]
-
-        # weighted mean
-        numerator = torch.dot(v.float(), weights_t.transpose(-1, 0).float())
-        v = numerator / weights.sum().float()
-        result[k] = v
+    def __getstate__(self) -> dict:
+        d = self.__dict__.copy()
+        # can't deepcopy tensors with grad_fn
+        minimize = d.get('_minimize')
+        if minimize is not None:
+            d['_minimize'] = minimize.detach()
+        return d

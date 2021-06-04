@@ -23,7 +23,6 @@ import torch
 from torchmetrics import Metric
 
 _METRIC = Union[Metric, torch.Tensor, Number]
-# real type is `Union[_METRIC, Dict[str, '_METRIC_COLLECTION']]` but Sphinx fails with `RecursionError`
 _METRIC_COLLECTION = Union[_METRIC, Dict[str, _METRIC]]
 STEP_OUTPUT = Union[torch.Tensor, Dict[str, Any]]
 EPOCH_OUTPUT = List[STEP_OUTPUT]

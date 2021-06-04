@@ -75,16 +75,23 @@ class FxValidator:
         training_epoch_end=dict(on_step=(False, ), on_epoch=(False, True)),
         validation_epoch_end=dict(on_step=(False, ), on_epoch=(False, True)),
         test_epoch_end=dict(on_step=(False, ), on_epoch=(False, True)),
+        on_before_batch_transfer=None,
+        transfer_batch_to_device=None,
+        on_after_batch_transfer=None,
+        backward=None,
+        optimizer_step=None,
         # TODO(@carmocca): some {step,epoch}_{start,end} are missing
     )
 
-    def check_logging(self, fx_name: str, on_step: bool, on_epoch: bool) -> None:
-        if fx_name not in self.functions:
+    @classmethod
+    def check_logging(cls, fx_name: str, on_step: bool, on_epoch: bool) -> None:
+        """Check if the given function name is allowed to log"""
+        if fx_name not in cls.functions:
             raise RuntimeError(
                 f'You are trying to `self.log()` inside `{fx_name}` but it is not implemented.'
                 ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`'
             )
-        allowed = self.functions[fx_name]
+        allowed = cls.functions[fx_name]
         if allowed is None:
             raise MisconfigurationException(f"{fx_name} function doesn't support logging using `self.log()`")
 

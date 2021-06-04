@@ -17,6 +17,7 @@ Test logging in the training loop
 
 import collections
 import itertools
+from re import escape
 
 import numpy as np
 import pytest
@@ -25,6 +26,8 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.metrics import Accuracy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDictDataset
 from tests.helpers.runif import RunIf
 
@@ -190,7 +193,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {'a', 'b'}) - {'epoch'}
 
 
-@pytest.mark.parametrize(['batches', 'fx', 'result'], [(1, min, 0), (2, max, 1), (11, max, 10)])
+@pytest.mark.parametrize(['batches', 'fx', 'result'], [(3, min, 0), (3, max, 2), (11, max, 10)])
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     """
     Tests that log works correctly with different tensor types
@@ -327,6 +330,7 @@ def test_different_batch_types_for_sizing(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         weights_summary=None,
+        fast_dev_run=True,
     )
     trainer.fit(model)
 
@@ -344,7 +348,7 @@ def test_log_works_in_train_callback(tmpdir):
         count = 1
         choices = [False, True]
         # used to compute expected values
-        callback_funcs_called = collections.defaultdict(list)
+        callback_funcs_called = collections.defaultdict(dict)
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
@@ -353,22 +357,17 @@ def test_log_works_in_train_callback(tmpdir):
         ):
             self.funcs_called_count[func_name] += 1
             iterate = list(itertools.product(*[on_steps, on_epochs, prob_bars]))
+            value = self.count * func_idx
+
+            current_epoch = pl_module.trainer.current_epoch
+
             for idx, (on_step, on_epoch, prog_bar) in enumerate(iterate):
                 # run logging
                 custom_func_name = f"{func_idx}_{idx}_{func_name}"
-                pl_module.log(
-                    custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar
-                )
+                pl_module.log(custom_func_name, value, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
-                # catch information for verification
-
-                # on on_train_start is outside the main loop. Won't be called
-                if func_name == "on_train_start":
-                    self.callback_funcs_called[func_name].append([self.count * func_idx])
-
-                # Saved only values from second epoch, so we can compute its mean or latest.
-                if pl_module.trainer.current_epoch == 1:
-                    self.callback_funcs_called[func_name].append([self.count * func_idx])
+                self.callback_funcs_called[custom_func_name].setdefault(current_epoch, [])
+                self.callback_funcs_called[custom_func_name][current_epoch].append(value)
 
                 forked = on_step and on_epoch
 
@@ -396,6 +395,8 @@ def test_log_works_in_train_callback(tmpdir):
                         "forked": False,
                         "func_name": func_name
                     }
+
+                self.count += 1
 
         def on_train_start(self, trainer, pl_module):
             self.make_logging(
@@ -431,10 +432,6 @@ def test_log_works_in_train_callback(tmpdir):
                 on_epochs=self.choices,
                 prob_bars=self.choices
             )
-            # used to make sure aggregation works fine.
-            # we should obtain func[value * c for c in range(1, max_epochs * limit_train_batches)])
-            # with func = np.mean if on_epoch else func = np.max
-            self.count += 1
 
         def on_train_epoch_end(self, trainer, pl_module):
             self.make_logging(
@@ -454,7 +451,7 @@ def test_log_works_in_train_callback(tmpdir):
             output = self.layer(batch)
             loss = self.loss(batch, output)
             self.manual_loss.append(loss)
-            self.log('train_loss', loss)
+            self.log('train_loss', loss, prog_bar=True)
             return {"loss": loss}
 
     max_epochs = 2
@@ -483,15 +480,6 @@ def test_log_works_in_train_callback(tmpdir):
     assert test_callback.funcs_called_count["on_epoch_end"] == 2
     assert test_callback.funcs_called_count["on_train_epoch_end"] == 2
 
-    # Make sure the func_name exists within callback_metrics. If not, we missed some
-    callback_metrics_keys = [*trainer.callback_metrics.keys()]
-    for func_name in test_callback.callback_funcs_called.keys():
-        is_in = False
-        for callback_metrics_key in callback_metrics_keys:
-            if func_name in callback_metrics_key:
-                is_in = True
-        assert is_in, (func_name, callback_metrics_keys)
-
     # function used to describe expected return logic
     def get_expected_output(func_attr, original_values):
         if func_attr["on_epoch"] and not func_attr["on_step"]:
@@ -504,7 +492,7 @@ def test_log_works_in_train_callback(tmpdir):
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     # pop extra keys
-    assert trainer.logged_metrics["train_loss"] == model.manual_loss[-1]
+    assert trainer.progress_bar_dict["train_loss"] == model.manual_loss[-1]
     assert trainer.callback_metrics["train_loss"] == model.manual_loss[-1]
     trainer.callback_metrics.pop("train_loss")
 
@@ -514,12 +502,13 @@ def test_log_works_in_train_callback(tmpdir):
         # get creation attr
         func_attr = test_callback.funcs_attr[func_name]
 
-        # retrived orginal logged values
-        original_values = test_callback.callback_funcs_called[func_attr["func_name"]]
-
-        # compute expected output and compare to actual one
-        expected_output = get_expected_output(func_attr, original_values)
-        assert float(output_value) == float(expected_output)
+        # retrieved original logged values
+        values = test_callback.callback_funcs_called[func_name]
+        if len(values) > 0:
+            original_values = values[len(values) - 1]
+            # compute expected output and compare to actual one
+            expected_output = get_expected_output(func_attr, original_values)
+            assert float(output_value) == float(expected_output)
 
     for func_name, func_attr in test_callback.funcs_attr.items():
         if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
@@ -771,7 +760,12 @@ def test_metric_are_properly_reduced(tmpdir):
     assert "train_loss" in trainer.callback_metrics
 
 
-@pytest.mark.parametrize('value', [None, {'a': {'b': None}}])
+@pytest.mark.parametrize(
+    'value',
+    [None, dict(a=None),
+     dict(a=dict(b=None)),
+     dict(a=dict(b=1)), 'foo', [1, 2, 3], (1, 2, 3), [[1, 2], 3]]
+)
 def test_log_none_raises(tmpdir, value):
 
     class TestModel(BoringModel):
@@ -781,5 +775,79 @@ def test_log_none_raises(tmpdir, value):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
-    with pytest.raises(ValueError, match=rf"self.log\(foo, {value}\)` was called"):
+    with pytest.raises(ValueError, match=rf"self.log\(foo, {escape(str(value))}\)` was called"):
+        trainer.fit(model)
+
+
+def test_logging_raises(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo/dataloader_idx_0', -1)
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match='`self.log` with the key `foo/dataloader_idx_0`'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match='fix this by setting an attribute for the metric in your'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.bar = Accuracy()
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo', Accuracy())
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(
+        MisconfigurationException,
+        match=r"`self.log\(foo, ..., metric_attribute=name\)` where `name` is one of \['bar'\]"
+    ):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            loss = super().training_step(*args)['loss']
+            return {"loss": loss, 'foo': loss}
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match='You passed a tensor with `grad_fn`'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            self.log('foo', -1, prog_bar=False)
+            self.log('foo', -1, prog_bar=True)
+            return super().training_step(*args)
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match=r'self.log\(foo, ...\)` twice in `training_step`'):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            self.log('foo', -1, reduce_fx=torch.argmax)
+            return super().training_step(*args)
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match=r'reduce_fx={min,max,mean}\)` are currently supported'):
         trainer.fit(model)
