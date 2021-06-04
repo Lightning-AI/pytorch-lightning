@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from abc import ABC
-from typing import Generator
+from typing import Generator, Dict, Any
 
 import pytorch_lightning as pl
 
@@ -49,3 +49,9 @@ class Plugin(ABC):
     def predict_step_context(self) -> Generator:
         """A contextmanager for the predict step"""
         yield
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        pass
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        pass
