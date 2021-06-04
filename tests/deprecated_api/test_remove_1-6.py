@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ Test deprecated functionality which will be removed in v1.6.0 """
-
-import os
-from unittest import mock
-
 import pytest
 
 from pytorch_lightning import Trainer
@@ -90,10 +86,3 @@ def test_v1_6_0_tbptt_pad_token(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.deprecated_call(match=r"tbptt_pad_token=...\)` is no longer supported"):
         trainer.fit(TestModel())
-
-
-@mock.patch.dict(os.environ, {"PYTHONWARNINGS": "default"})
-def test_v1_6_0_profilers_import(tmpdir):
-
-    with pytest.deprecated_call(match=r"depreceated in v1.4, and will be removed in v1.6"):
-        from pytorch_lightning.profiler.profilers import BaseProfiler  # noqa F401
