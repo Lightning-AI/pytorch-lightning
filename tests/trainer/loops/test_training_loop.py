@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
+
 import pytest
 import torch
 
@@ -158,7 +160,9 @@ def test_warning_invalid_trainstep_output(tmpdir, output):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     with pytest.raises(
         MisconfigurationException,
-        match="In automatic optimization, `training_step` must either return a Tensor, "
-        "a dict with key 'loss' or None (where the step will be skipped)."
+        match=re.escape(
+            "In automatic optimization, `training_step` must either return a Tensor, "
+            "a dict with key 'loss' or None (where the step will be skipped)."
+        )
     ):
         trainer.fit(model)
