@@ -129,7 +129,20 @@ class PrecisionPlugin(Plugin):
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """
+        Called when Trainer is restoring from a checkpoint.
+
+        Args:
+            checkpoint: The full checkpoint content being restored.
+        """
         pass
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """
+        Called when Trainer is saving a checkpoint.
+
+        Args:
+            checkpoint: The full checkpoint dictionary before it gets dumped to a file.
+                Implementations of this hook can insert additional data into this dictionary.
+        """
         pass
