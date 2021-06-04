@@ -2,7 +2,7 @@ from collections import OrderedDict
 from typing import Any, Dict, Iterator, Optional, Union
 
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -56,7 +56,7 @@ class EvaluationLoop(Loop):
         self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
         # log batch metrics
-        self.trainer.logger_connector.log_evaluation_step_metrics()
+        self.trainer.logger_connector.update_evaluation_step_metrics()
 
         # track epoch level outputs
         self.outputs = self.trainer._track_output_for_epoch_end(self.outputs, output)
@@ -73,23 +73,14 @@ class EvaluationLoop(Loop):
         # configure step_kwargs
         step_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx)
 
-        model_ref = self.trainer.lightning_module
-        model_ref._results = Result()
-
         if self.trainer.testing:
-            model_ref._current_fx_name = "test_step"
+            self.trainer.lightning_module._current_fx_name = "test_step"
             with self.trainer.profiler.profile("test_step"):
                 output = self.trainer.accelerator.test_step(step_kwargs)
         else:
-            model_ref._current_fx_name = "validation_step"
+            self.trainer.lightning_module._current_fx_name = "validation_step"
             with self.trainer.profiler.profile("validation_step"):
                 output = self.trainer.accelerator.validation_step(step_kwargs)
-
-        # capture any logged information
-        self.trainer.logger_connector.cache_logged_metrics()
-        # track batch size for weighted average
-        if isinstance(output, Result):
-            output.track_batch_size(batch)
 
         return output
 
@@ -101,8 +92,8 @@ class EvaluationLoop(Loop):
         return output
 
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        # set dataloader_idx to model and track batch_size
-        self.trainer.logger_connector.on_evaluation_batch_start(batch, dataloader_idx, self.num_dataloaders)
+        assert self.num_dataloaders is not None
+        self.trainer.logger_connector.on_evaluation_batch_start(batch, batch_idx, dataloader_idx, self.num_dataloaders)
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)
@@ -127,7 +118,7 @@ class EvaluationLoop(Loop):
     def store_predictions(self, output: Optional[STEP_OUTPUT], batch_idx: int, dataloader_idx: int) -> None:
         # Add step predictions to prediction collection to write later
         if output is not None and self.predictions is not None:
-            if isinstance(output, Result) and self.trainer.testing:
+            if isinstance(output, ResultCollection) and self.trainer.testing:
                 self.predictions.add(output.pop('predictions', None))
 
         # track debug metrics

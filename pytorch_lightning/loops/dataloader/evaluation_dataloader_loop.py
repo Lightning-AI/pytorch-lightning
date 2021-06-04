@@ -4,7 +4,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.evaluation_loop import EvaluationLoop
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -18,6 +18,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         self._max_batches: Optional[Union[int, Sequence[int]]] = None
         self.outputs = []
         self.evaluation_loop = EvaluationLoop()
+
+        self.validation_results = ResultCollection(False)
+        self.test_results = ResultCollection(False)
 
     @property
     def num_dataloaders(self) -> int:
@@ -147,6 +150,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
 
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
+
+        self.trainer.logger_connector.on_evaluation_start()
+
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
         else:
@@ -167,6 +173,9 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             model_ref.on_validation_model_train()
 
     def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
+        assert self.trainer.result_collection is not None
+        self.trainer.result_collection.reset(metrics=True)
+
         if self.trainer.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
@@ -226,13 +235,10 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
                 model._current_fx_name = 'validation_epoch_end'
                 model.validation_epoch_end(outputs)
 
-        # capture logging
-        self.trainer.logger_connector.cache_logged_metrics()
-
     def store_predictions(self, output: Optional[STEP_OUTPUT], batch_idx: int, dataloader_idx: int) -> None:
         # Add step predictions to prediction collection to write later
         if output is not None and self.predictions is not None:
-            if isinstance(output, Result) and self.trainer.testing:
+            if isinstance(output, ResultCollection) and self.trainer.testing:
                 self.predictions.add(output.pop('predictions', None))
 
         # track debug metrics

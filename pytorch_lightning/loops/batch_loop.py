@@ -11,7 +11,6 @@ from torch.optim import Optimizer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.plugins import ParallelPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AMPType, AttributeDict, DeviceType, grad_norm
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -56,7 +55,7 @@ class BatchLoop(Loop):
     def run(self, batch, batch_idx, dataloader_idx):
         if batch is None:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
-            return AttributeDict(signal=0, grad_norm_dic={}, training_step_output_for_epoch_end=[[]])
+            return AttributeDict(signal=0, grad_norm_dic={}, training_step_output=[[]])
 
         # hook
         response = self.trainer.call_hook("on_batch_start")
@@ -70,13 +69,11 @@ class BatchLoop(Loop):
 
         super().run(batch, batch_idx, dataloader_idx)
 
-        output = AttributeDict(
+        return AttributeDict(
             signal=0,
-            # TODO: Properly aggregate grad_norm accross opt_idx and split_idx
             grad_norm_dict=self.grad_norm_dicts[-1],
-            training_step_output_for_epoch_end=self.batch_outputs,
+            training_step_output=self.batch_outputs,
         )
-        return output
 
     def reset(self) -> None:
         # self.iteration_count = 0
@@ -101,13 +98,13 @@ class BatchLoop(Loop):
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                 result = self._run_optimization(batch_idx, split_idx, split_batch, opt_idx, optimizer)
                 if result:
-                    self.batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
+                    self.batch_outputs[opt_idx].append(result.training_step_output)
                     grad_norm_dict = result.get("grad_norm_dict", {})
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_idx, split_batch)
             if result:
-                self.batch_outputs[0].append(result.training_step_output_for_epoch_end)
+                self.batch_outputs[0].append(result.training_step_output)
 
         # TODO: Properly aggregate grad_norm accross opt_idx and split_idx
         self.grad_norm_dicts.append(grad_norm_dict)
@@ -194,16 +191,11 @@ class BatchLoop(Loop):
         if not opt_closure_result:
             return
 
-        # cache metrics
-        self.trainer.logger_connector.cache_training_step_metrics(opt_closure_result)
-
         # check if loss or model weights are nan
         if self.trainer.terminate_on_nan:
             self._check_finite(opt_closure_result.loss)
 
     def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
-        training_step_output.detach()
-
         # insert after step hook
         self.trainer.call_hook("on_after_backward")
 
@@ -225,55 +217,36 @@ class BatchLoop(Loop):
 
             # manually capture logged metrics
             model_ref._current_fx_name = 'training_step'
-            model_ref._results = Result()
             with self.trainer.profiler.profile("training_step"):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
-
-            self.trainer.logger_connector.cache_logged_metrics()
 
             self._check_training_step_output(training_step_output)
 
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
 
-            training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
-                training_step_output, split_batch
-            )
-            if training_step_output_for_epoch_end is None:
+            training_step_output = self._process_training_step_output(training_step_output)
+            if training_step_output is None:
                 return
 
-        # enable empty loss when using manual opt
         closure_loss = None
-        untouched_loss = None
-
+        loss = None
         if self.trainer.lightning_module.automatic_optimization:
             # accumulate loss. if accumulate_grad_batches==1, no effect
             closure_loss = training_step_output.minimize / self.trainer.accumulate_grad_batches
-
             # the loss will get scaled for amp. avoid any modifications to it
-            untouched_loss = closure_loss.detach().clone()
+            loss = closure_loss.detach().clone()
+        return AttributeDict(closure_loss=closure_loss, loss=loss, training_step_output=training_step_output)
 
-        # result
-        result = AttributeDict(
-            closure_loss=closure_loss,
-            loss=untouched_loss,
-            training_step_output=training_step_output,  # Result object
-            training_step_output_for_epoch_end=training_step_output_for_epoch_end,  # Result object
-        )
-        return result
+    def _process_training_step_output(self, training_step_output):
+        if training_step_output is None:
+            return None
 
-    def _process_training_step_output(self, training_step_output, split_batch):
-        training_step_output_for_epoch_end = training_step_output
-
-        # enable validation_step return None
-        if training_step_output_for_epoch_end is None:
-            return None, None
-
-        result = self.trainer.lightning_module._results
+        result = self.trainer.result_collection
 
         loss = None
         hiddens = None
-        result["extra"] = {}
+        result.extra = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
@@ -281,7 +254,7 @@ class BatchLoop(Loop):
             hiddens = training_step_output.pop("hiddens", None)
             if hiddens is not None:
                 hiddens = hiddens.detach()
-            result["extra"] = training_step_output
+            result.extra = training_step_output
 
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
@@ -291,16 +264,10 @@ class BatchLoop(Loop):
         result.minimize = loss
         self._hiddens = hiddens
 
-        # track batch for manual reduction with result
-        result.track_batch_size(len(split_batch))
-
-        # track metrics without grads for epoch reduction
-        training_step_output_for_epoch_end = copy(result)
-        training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
         if self.trainer.move_metrics_to_cpu:
-            training_step_output_for_epoch_end = training_step_output_for_epoch_end.cpu()
+            result = result.cpu()
 
-        return training_step_output_for_epoch_end, result
+        return result
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.lightning_module
@@ -415,7 +382,8 @@ class BatchLoop(Loop):
             model.toggle_optimizer(optimizer, opt_idx)
 
         # use to track metrics internally
-        self.trainer.logger_connector.on_train_split_start(split_idx, opt_idx, split_batch)
+        # TODO: pass split_idx here?
+        self.trainer.logger_connector.on_train_split_start(batch_idx=split_idx, split_batch=split_batch)
 
     @contextmanager
     def block_ddp_sync_behaviour(self, should_block_sync: bool = False):

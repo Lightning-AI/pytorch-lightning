@@ -10,6 +10,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.training_loop import TrainingLoop
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -34,6 +35,8 @@ class EpochLoop(Loop):
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
 
         self.training_loop = TrainingLoop(min_steps, max_steps)
+
+        self.train_results = ResultCollection(True)
 
     @property
     def current_epoch(self) -> int:
@@ -127,6 +130,7 @@ class EpochLoop(Loop):
             return super().run()
 
     def on_run_start(self):
+        self.trainer.logger_connector.on_train_start()
         self.trainer.call_hook("on_train_start")
 
     def on_advance_start(self):  # equal to old on_train_epoch_start
@@ -171,7 +175,7 @@ class EpochLoop(Loop):
             # TODO(@carmocca): deprecate and rename so users don't get confused
             self.global_step -= 1
             # log epoch metrics
-            self.trainer.logger_connector.log_train_epoch_end_metrics(epoch_output)
+            self.trainer.logger_connector.update_train_epoch_metrics()
             self.global_step += 1
 
     def on_advance_end(self):

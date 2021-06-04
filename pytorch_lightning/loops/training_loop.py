@@ -3,7 +3,7 @@ from typing import Dict, Iterator, List, Union
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.batch_loop import BatchLoop
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -99,16 +99,16 @@ class TrainingLoop(Loop):
         # hook
         self.on_train_batch_end(
             self.epoch_output,
-            batch_output.training_step_output_for_epoch_end,
+            batch_output.training_step_output,
             batch,
             self.iteration_count,
             self._dataloader_idx,
         )
 
         # -----------------------------------------
-        # SAVE METRICS TO LOGGERS
+        # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
         # -----------------------------------------
-        self.trainer.logger_connector.log_train_step_metrics(batch_output)
+        self.trainer.logger_connector.update_train_step_metrics(batch_output)
 
     def on_advance_end(self):
         # -----------------------------------------
@@ -166,9 +166,6 @@ class TrainingLoop(Loop):
                     'HINT: remove the return statement in training_epoch_end'
                 )
 
-            # capture logging
-            self.trainer.logger_connector.cache_logged_metrics()
-
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
@@ -187,8 +184,7 @@ class TrainingLoop(Loop):
         # This implementation is copied from Trainer.call_hook
         hook_name = "on_train_epoch_end"
 
-        # set hook_name to model + reset Result obj
-        skip = self.trainer._reset_result_and_set_fx_name(hook_name)
+        self.trainer.lightning_module._current_fx_name = hook_name
 
         # always profile hooks
         with self.trainer.profiler.profile(hook_name):
@@ -218,8 +214,7 @@ class TrainingLoop(Loop):
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
 
-        if not skip:
-            self.trainer._cache_logged_metrics()
+        self.trainer.lightning_module._current_fx_name = None
 
     def _num_training_batches_reached(self, is_last_batch=False):
         return self.batches_seen == self.trainer.num_training_batches or is_last_batch
@@ -241,49 +236,55 @@ class TrainingLoop(Loop):
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)
 
-        # reset batch logger internals
-        self.trainer.logger_connector.on_train_batch_end()
-
     def track_epoch_end_reduce_metrics(self, epoch_output, batch_end_outputs):
+        hook_overridden = self._should_add_batch_output_to_epoch_output()
+        if not hook_overridden:
+            return
 
         # track the outputs to reduce at the end of the epoch
         for opt_idx, opt_outputs in enumerate(batch_end_outputs):
-            sample_output = opt_outputs[-1]
-
-            # decide if we need to reduce at the end of the epoch automatically
-            auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
-            hook_overridden = (
-                is_overridden("training_epoch_end", model=self.trainer.lightning_module)
-                or is_overridden("on_train_epoch_end", model=self.trainer.lightning_module)
-            )
-
-            # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
-            if not (hook_overridden or auto_reduce_tng_result):
-                continue
-
             # with 1 step (no tbptt) don't use a sequence at epoch end
-            if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
+            if (
+                isinstance(opt_outputs, list) and len(opt_outputs) == 1
+                and not isinstance(opt_outputs[0], ResultCollection)
+            ):
                 opt_outputs = opt_outputs[0]
 
             epoch_output[opt_idx].append(opt_outputs)
 
+    def _should_add_batch_output_to_epoch_output(self) -> bool:
+        # We add to the epoch outputs if
+        # 1. The model defines training_epoch_end OR
+        # 2. The model overrides on_train_epoch_end which has `outputs` in the signature
+        # TODO: in v1.5 this only needs to check if training_epoch_end is overridden
+        lightning_module = self.trainer.lightning_module
+        if is_overridden("training_epoch_end", model=lightning_module):
+            return True
+
+        if is_overridden("on_train_epoch_end", model=lightning_module):
+            model_hook_fx = getattr(lightning_module, "on_train_epoch_end")
+            if is_param_in_hook_signature(model_hook_fx, "outputs"):
+                return True
+
+        return False
+
     @staticmethod
     def _prepare_outputs(
-        outputs: List[List[List[Result]]],
+        outputs: List[List[List['ResultCollection']]],
         batch_mode: bool,
     ) -> Union[List[List[List[Dict]]], List[List[Dict]], List[Dict], Dict]:
         """
         Extract required information from batch or epoch end results.
 
         Args:
-            outputs: A 3-dimensional list of ``Result`` objects with dimensions:
-                [optimizer outs][batch outs][tbptt steps].
+            outputs: A 3-dimensional list of ``ResultCollection`` objects with dimensions:
+                ``[optimizer outs][batch outs][tbptt steps]``.
 
             batch_mode: If True, ignore the batch output dimension.
 
         Returns:
-            The cleaned outputs with ``Result`` objects converted to dictionaries. All list dimensions of size one will
-            be collapsed.
+            The cleaned outputs with ``ResultCollection`` objects converted to dictionaries.
+            All list dimensions of size one will be collapsed.
         """
         processed_outputs = []
         for opt_outputs in outputs:
@@ -298,6 +299,9 @@ class TrainingLoop(Loop):
 
             for batch_outputs in opt_outputs:
                 processed_tbptt_outputs = []
+
+                if isinstance(batch_outputs, ResultCollection):
+                    batch_outputs = [batch_outputs]
 
                 for tbptt_output in batch_outputs:
                     out = tbptt_output.extra
