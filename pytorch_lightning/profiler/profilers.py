@@ -1,8 +1,8 @@
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.utilities.distributed import rank_zero_deprecation
 
-rank_zero_warn(
+rank_zero_deprecation(
     "Using ``import pytorch_lightning.profiler.profilers`` is depreceated in v1.4, and will be removed in v1.6. "
-    "HINT: Use ``import pytorch_lightning.profiler`` directly.", DeprecationWarning
+    "HINT: Use ``import pytorch_lightning.profiler`` directly."
 )
 
 from pytorch_lightning.profiler.advanced import AdvancedProfiler  # noqa E402
