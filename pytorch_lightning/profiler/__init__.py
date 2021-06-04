@@ -195,14 +195,15 @@ Or::
 
 """
 from pytorch_lightning.profiler.advanced import AdvancedProfiler
-from pytorch_lightning.profiler.base import BaseProfiler, PassThroughProfiler
+from pytorch_lightning.profiler.base import AbstractProfiler, BaseProfiler, PassThroughProfiler
 from pytorch_lightning.profiler.pytorch import PyTorchProfiler
 from pytorch_lightning.profiler.simple import SimpleProfiler
 
 __all__ = [
+    'AbstractProfiler',
     'BaseProfiler',
-    'SimpleProfiler',
     'AdvancedProfiler',
     'PassThroughProfiler',
     'PyTorchProfiler',
+    'SimpleProfiler',
 ]
