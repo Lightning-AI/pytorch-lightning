@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from logging import warning
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
+from logging import warning
 from typing import cast, List, Optional, Type, TypeVar, Union
 
 import torch
