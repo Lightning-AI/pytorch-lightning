@@ -155,10 +155,6 @@ class LearningRateMonitor(Callback):
                     )
                     latest_stat.update(momentum)
 
-        print()
-        print(self.lrs)
-        print()
-
         return latest_stat
 
     def _extract_lr(self, trainer, param_group, name: str) -> Dict[str, float]:
