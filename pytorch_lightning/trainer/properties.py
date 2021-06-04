@@ -15,7 +15,6 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
-from logging import warning
 from typing import cast, List, Optional, Type, TypeVar, Union
 
 import torch
@@ -29,7 +28,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
+from pytorch_lightning.plugins import DDPSpawnPlugin, ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
@@ -512,7 +511,7 @@ class TrainerProperties(ABC):
     @property
     def callback_metrics(self) -> dict:
         _cb_metrics: dict = self.logger_connector.callback_metrics
-        if not _cb_metrics and self.accelerator.training_type_plugin.distributed_backend == 'ddp_spawn':
+        if not _cb_metrics and isinstance(self.accelerator.training_type_plugin, DDPSpawnPlugin):
             warning_cache.warn(
                 "You are using the'ddp_spawn' accelerator and trying to access to a property outside of the ",
                 "main process. If this is the intended behaviour, you should use the 'ddp' accelerator."
