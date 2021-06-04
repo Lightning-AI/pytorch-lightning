@@ -272,7 +272,7 @@ class TrainLoop:
         elif self.trainer.lightning_module.automatic_optimization:
             if not (
                 isinstance(training_step_output, torch.Tensor) or
-                (isinstance(training_step_output, Mapping) and 'loss' in training_step_output)
+                (isinstance(training_step_output, Mapping) and 'loss' in training_step_output) or training_step_output is None
             ):
                 raise MisconfigurationException(
                     "In automatic optimization, `training_step` must either return a Tensor, "
