@@ -163,7 +163,6 @@ class LearningRateMonitor(Callback):
 
     def _extract_lr(self, trainer, param_group, name: str) -> Dict[str, float]:
         lr = param_group.get('lr')
-        print(trainer.current_epoch, name, lr)
         if name in self.lrs:
             self.lrs[name].append(lr)
         else:
