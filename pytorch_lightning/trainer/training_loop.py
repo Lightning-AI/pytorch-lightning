@@ -269,7 +269,7 @@ class TrainLoop:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
-        elif self.trainer.automatic_optimization:
+        elif self.trainer.lightning_module.automatic_optimization:
             if not (
                 isinstance(training_step_output, torch.Tensor) or
                 (isinstance(training_step_output, Mapping) and 'loss' in training_step_output)
