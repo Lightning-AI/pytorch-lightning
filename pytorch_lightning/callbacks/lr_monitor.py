@@ -19,7 +19,7 @@ Learning Rate Monitor
 Monitor and logs learning rate for lr schedulers during training.
 
 """
-
+from collections import defaultdict
 from typing import Dict, List, Optional
 
 from pytorch_lightning.callbacks.base import Callback
@@ -53,7 +53,7 @@ class LearningRateMonitor(Callback):
     In case of multiple optimizers of same type, they will be named ``Adam``,
     ``Adam-1`` etc. If a optimizer has multiple parameter groups they will
     be named ``Adam/pg1``, ``Adam/pg2`` etc. To control naming, pass in a
-    ``name`` keyword in the construction of the learning rate schdulers
+    ``name`` keyword in the construction of the learning rate schedulers
 
     Example::
 
@@ -146,7 +146,7 @@ class LearningRateMonitor(Callback):
 
                 for i, pg in enumerate(param_groups):
                     suffix = f'/pg{i + 1}' if len(param_groups) > 1 else ''
-                    lr = self._extract_lr(param_group=pg, name=f'{name}{suffix}')
+                    lr = self._extract_lr(trainer, param_group=pg, name=f'{name}{suffix}')
                     latest_stat.update(lr)
                     momentum = self._extract_momentum(
                         param_group=pg, name=f'{name}-momentum{suffix}', use_betas=use_betas
@@ -155,10 +155,25 @@ class LearningRateMonitor(Callback):
 
         return latest_stat
 
-    def _extract_lr(self, param_group, name: str) -> Dict[str, float]:
+    def _extract_lr(self, trainer, param_group, name: str) -> Dict[str, float]:
         lr = param_group.get('lr')
-        self.lrs[name].append(lr)
+        try:
+            self.lrs[name].append(lr)
+        except KeyError:
+            names = self._find_names(trainer.lr_schedulers, add_lr_sch_names=False)
+            self._remap_keys(names)
+            self.lrs[name].append(lr)
         return {name: lr}
+
+    def _remap_keys(self, names: List[str]) -> None:
+        token = '/pg1'
+        for new_name in names:
+            if token in new_name:
+                old_n = new_name.replace(token, '')
+                self.lrs[new_name] = self.lrs[old_n]
+                del self.lrs[old_n]
+            else:
+                self.lrs[new_name] = []
 
     def _extract_momentum(self, param_group, name: str, use_betas: bool) -> Dict[str, float]:
         if not self.log_momentum:
@@ -168,35 +183,45 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values[name] = momentum
         return {name: momentum}
 
-    def _find_names(self, lr_schedulers) -> List[str]:
-        # Create uniqe names in the case we have multiple of the same learning
-        # rate schduler + multiple parameter groups
+    def _add_prefix(self, name, optimizer_cls, seen_optimizer_types) -> str:
+        count = seen_optimizer_types[optimizer_cls]
+        return name + f'-{count}' if count else name
+
+    def _find_names(self, lr_schedulers, add_lr_sch_names: bool = True) -> List[str]:
+        # Create unique names in the case we have multiple of the same learning
+        # rate scheduler + multiple parameter groups
         names = []
+        seen_optimizers = []
+        seen_optimizer_types = defaultdict(int)
         for scheduler in lr_schedulers:
             sch = scheduler['scheduler']
             if scheduler['name'] is not None:
                 name = scheduler['name']
             else:
-                opt_name = 'lr-' + sch.optimizer.__class__.__name__
-                i, name = 1, opt_name
+                name = 'lr-' + sch.optimizer.__class__.__name__
 
-                # Multiple schduler of the same type
-                while True:
-                    if name not in names:
-                        break
-                    i, name = i + 1, f'{opt_name}-{i}'
+            seen_optimizers.append(sch.optimizer)
+            optimizer_cls = type(sch.optimizer)
+            if scheduler['name'] is None:
+                if optimizer_cls not in seen_optimizer_types:
+                    seen_optimizer_types[optimizer_cls] = 0
+                else:
+                    seen_optimizer_types[optimizer_cls] += 1
 
-            # Multiple param groups for the same schduler
+            # Multiple param groups for the same scheduler
             param_groups = sch.optimizer.param_groups
 
             if len(param_groups) != 1:
-                for i, pg in enumerate(param_groups):
-                    temp = f'{name}/pg{i + 1}'
+                for i in range(len(param_groups)):
+                    temp = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
+                    temp = f'{temp}/pg{i + 1}'
                     names.append(temp)
             else:
+                name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
                 names.append(name)
 
-            self.lr_sch_names.append(name)
+            if add_lr_sch_names:
+                self.lr_sch_names.append(name)
 
         return names
 

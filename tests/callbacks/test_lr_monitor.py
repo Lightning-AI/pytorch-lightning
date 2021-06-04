@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import torch
 from torch import optim
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -278,3 +281,54 @@ def test_lr_monitor_custom_name(tmpdir):
     )
     trainer.fit(TestModel())
     assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ['my_logging_name']
+
+
+def test_multiple_optimizers_basefinetuning(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.backbone = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(True))
+            self.layer = torch.nn.Linear(32, 2)
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            return super().training_step(batch, batch_idx)
+
+        def forward(self, x):
+            return self.layer(self.backbone(x))
+
+        def configure_optimizers(self):
+            opt = optim.Adam(self.layer.parameters(), lr=0.1)
+            opt_2 = optim.Adam(self.layer.parameters(), lr=0.1)
+            opt_3 = optim.Adam(self.layer.parameters(), lr=0.1)
+            return [opt, opt_2, opt_3
+                    ], [optim.lr_scheduler.StepLR(opt, step_size=1),
+                        optim.lr_scheduler.StepLR(opt_2, step_size=1)]
+
+    class Check(Callback):
+
+        def on_epoch_end(self, trainer, pl_module) -> None:
+            assert lr_monitor.lr_sch_names == ['lr-Adam', 'lr-Adam-1']
+            if trainer.current_epoch > 2:
+                assert list(lr_monitor.lrs.keys()) == ['lr-Adam/pg1', 'lr-Adam/pg2', 'lr-Adam-1/pg1', 'lr-Adam-1/pg2']
+            else:
+                assert list(lr_monitor.lrs.keys()) == ['lr-Adam', 'lr-Adam-1']
+
+    lr_monitor = LearningRateMonitor()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=4,
+        limit_val_batches=0,
+        limit_train_batches=2,
+        callbacks=[lr_monitor, BackboneFinetuning(unfreeze_backbone_at_epoch=2),
+                   Check()],
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+    )
+    model = TestModel()
+    model.training_epoch_end = None
+    trainer.fit(model)
+
+    # 3 epoch difference
+    assert len(lr_monitor.lrs["lr-Adam/pg1"]) == len(lr_monitor.lrs["lr-Adam/pg2"]) + 3
