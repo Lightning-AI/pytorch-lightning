@@ -289,7 +289,12 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
 
         def __init__(self):
             super().__init__()
-            self.backbone = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(True))
+            self.backbone = torch.nn.Sequential(
+                torch.nn.Linear(32, 32),
+                torch.nn.Linear(32, 32),
+                torch.nn.Linear(32, 32),
+                torch.nn.ReLU(True),
+            )
             self.layer = torch.nn.Linear(32, 2)
 
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -299,36 +304,79 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
             return self.layer(self.backbone(x))
 
         def configure_optimizers(self):
-            opt = optim.Adam(self.layer.parameters(), lr=0.1)
-            opt_2 = optim.Adam(self.layer.parameters(), lr=0.1)
-            opt_3 = optim.Adam(self.layer.parameters(), lr=0.1)
-            return [opt, opt_2, opt_3
-                    ], [optim.lr_scheduler.StepLR(opt, step_size=1),
-                        optim.lr_scheduler.StepLR(opt_2, step_size=1)]
+            parameters = list(filter(lambda p: p.requires_grad, self.parameters()))
+            opt = optim.Adam(parameters, lr=0.1)
+            opt_2 = optim.Adam(parameters, lr=0.1)
+            opt_3 = optim.Adam(parameters, lr=0.1)
+            optimizers = [opt, opt_2, opt_3]
+            schedulers = [
+                optim.lr_scheduler.StepLR(opt, step_size=1, gamma=0.9),
+                optim.lr_scheduler.StepLR(opt_2, step_size=1, gamma=0.9),
+            ]
+            return optimizers, schedulers
 
     class Check(Callback):
 
-        def on_epoch_end(self, trainer, pl_module) -> None:
+        def on_train_epoch_start(self, trainer, pl_module) -> None:
+            num_param_groups = sum([len(opt.param_groups) for opt in trainer.optimizers])
             assert lr_monitor.lr_sch_names == ['lr-Adam', 'lr-Adam-1']
-            if trainer.current_epoch > 2:
+            if trainer.current_epoch == 0:
+                assert num_param_groups == 3
+            elif trainer.current_epoch == 1:
+                assert num_param_groups == 4
+                assert list(lr_monitor.lrs.keys()) == ['lr-Adam-1', 'lr-Adam/pg1', 'lr-Adam/pg2']
+            elif trainer.current_epoch == 2:
+                assert num_param_groups == 5
                 assert list(lr_monitor.lrs.keys()) == ['lr-Adam/pg1', 'lr-Adam/pg2', 'lr-Adam-1/pg1', 'lr-Adam-1/pg2']
             else:
-                assert list(lr_monitor.lrs.keys()) == ['lr-Adam', 'lr-Adam-1']
+                expected = ['lr-Adam/pg1', 'lr-Adam/pg2', 'lr-Adam-1/pg1', 'lr-Adam-1/pg2', 'lr-Adam-1/pg3']
+                assert list(lr_monitor.lrs.keys()) == expected
+
+    class TestFinetuning(BackboneFinetuning):
+
+        def freeze_before_training(self, pl_module):
+            self.freeze(pl_module.backbone[0])
+            self.freeze(pl_module.backbone[1])
+            self.freeze(pl_module.layer)
+
+        def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+            """Called when the epoch begins."""
+            if epoch == 1 and opt_idx == 0:
+                self.unfreeze_and_add_param_group(pl_module.backbone[0], optimizer, lr=0.1)
+            if epoch == 2 and opt_idx == 1:
+                self.unfreeze_and_add_param_group(pl_module.layer, optimizer, lr=0.1)
+
+            if epoch == 3 and opt_idx == 1:
+                assert len(optimizer.param_groups) == 2
+                self.unfreeze_and_add_param_group(pl_module.backbone[1], optimizer, lr=0.1)
+                assert len(optimizer.param_groups) == 3
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=4,
+        max_epochs=5,
         limit_val_batches=0,
         limit_train_batches=2,
-        callbacks=[lr_monitor, BackboneFinetuning(unfreeze_backbone_at_epoch=2),
-                   Check()],
+        callbacks=[TestFinetuning(), lr_monitor, Check()],
         progress_bar_refresh_rate=0,
         weights_summary=None,
+        checkpoint_callback=False
     )
     model = TestModel()
     model.training_epoch_end = None
     trainer.fit(model)
 
-    # 3 epoch difference
-    assert len(lr_monitor.lrs["lr-Adam/pg1"]) == len(lr_monitor.lrs["lr-Adam/pg2"]) + 3
+    expected = [0.1, 0.09000000000000001, 0.08100000000000002, 0.07290000000000002, 0.06561000000000002]
+    assert lr_monitor.lrs['lr-Adam/pg1'] == expected
+
+    expected = [0.1, 0.09000000000000001, 0.08100000000000002, 0.07290000000000002]
+    assert lr_monitor.lrs['lr-Adam/pg2'] == expected
+
+    expected = [0.1, 0.09000000000000001, 0.08100000000000002, 0.07290000000000002, 0.06561000000000002]
+    assert lr_monitor.lrs['lr-Adam-1/pg1'] == expected
+
+    expected = [0.1, 0.09000000000000001, 0.08100000000000002]
+    assert lr_monitor.lrs['lr-Adam-1/pg2'] == expected
+
+    expected = [0.1, 0.09000000000000001]
+    assert lr_monitor.lrs['lr-Adam-1/pg3'] == expected

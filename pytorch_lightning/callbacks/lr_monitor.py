@@ -19,7 +19,6 @@ Learning Rate Monitor
 Monitor and logs learning rate for lr schedulers during training.
 
 """
-from collections import defaultdict
 from typing import Dict, List, Optional
 
 from pytorch_lightning.callbacks.base import Callback
@@ -138,6 +137,9 @@ class LearningRateMonitor(Callback):
     def _extract_stats(self, trainer, interval: str) -> Dict[str, float]:
         latest_stat = {}
 
+        names = self._find_names(trainer.lr_schedulers, add_lr_sch_names=False)
+        self._remap_keys(names)
+
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
             if scheduler['interval'] == interval or interval == 'any':
                 opt = scheduler['scheduler'].optimizer
@@ -153,13 +155,19 @@ class LearningRateMonitor(Callback):
                     )
                     latest_stat.update(momentum)
 
+        print()
+        print(self.lrs)
+        print()
+
         return latest_stat
 
     def _extract_lr(self, trainer, param_group, name: str) -> Dict[str, float]:
         lr = param_group.get('lr')
-        try:
+        print(trainer.current_epoch, name, lr)
+        if name in self.lrs:
             self.lrs[name].append(lr)
-        except KeyError:
+        else:
+            # new params groups have been added and we need to refresh the names.
             names = self._find_names(trainer.lr_schedulers, add_lr_sch_names=False)
             self._remap_keys(names)
             self.lrs[name].append(lr)
@@ -170,10 +178,12 @@ class LearningRateMonitor(Callback):
         for new_name in names:
             if token in new_name:
                 old_n = new_name.replace(token, '')
-                self.lrs[new_name] = self.lrs[old_n]
-                del self.lrs[old_n]
+                if old_n in self.lrs:
+                    self.lrs[new_name] = self.lrs[old_n]
+                    del self.lrs[old_n]
             else:
-                self.lrs[new_name] = []
+                if new_name not in self.lrs:
+                    self.lrs[new_name] = []
 
     def _extract_momentum(self, param_group, name: str, use_betas: bool) -> Dict[str, float]:
         if not self.log_momentum:
@@ -192,7 +202,7 @@ class LearningRateMonitor(Callback):
         # rate scheduler + multiple parameter groups
         names = []
         seen_optimizers = []
-        seen_optimizer_types = defaultdict(int)
+        seen_optimizer_types = {}
         for scheduler in lr_schedulers:
             sch = scheduler['scheduler']
             if scheduler['name'] is not None:
