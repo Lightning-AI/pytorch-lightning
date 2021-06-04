@@ -1242,8 +1242,7 @@ class Trainer(
                 accelerator_hook = getattr(self.accelerator, hook_name)
                 accelerator_output = accelerator_hook(*args, **kwargs)
                 # Rely on the accelerator output if lightningModule hook returns nothing
-                if output is None:
-                    output = accelerator_output
+                output = output or accelerator_output
 
         if not skip:
             self._cache_logged_metrics()
