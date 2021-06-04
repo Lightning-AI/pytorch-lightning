@@ -194,6 +194,8 @@ class LearningRateMonitor(Callback):
         return {name: momentum}
 
     def _add_prefix(self, name, optimizer_cls, seen_optimizer_types) -> str:
+        if optimizer_cls not in seen_optimizer_types:
+            return name
         count = seen_optimizer_types[optimizer_cls]
         return name + f'-{count}' if count else name
 
