@@ -20,8 +20,13 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests import PATH_DATASETS
 from tests.helpers.datasets import AverageDataset, MNIST, TrialMNIST
+
+if _TORCHVISION_AVAILABLE:
+    from torchvision import models, transforms
+    from torchvision.datasets import CIFAR10
 
 
 class Generator(nn.Module):
@@ -228,3 +233,41 @@ class ParityModuleMNIST(LightningModule):
             train=True,
             download=True,
         ), batch_size=128, num_workers=1)
+
+
+class ParityModuleCIFAR(LightningModule):
+
+    def __init__(self, backbone="resnet101", hidden_dim=1024, learning_rate=1e-3, pretrained=True):
+        super().__init__()
+        self.save_hyperparameters()
+
+        self.learning_rate = learning_rate
+        self.num_classes = 10
+        self.backbone = getattr(models, backbone)(pretrained=pretrained)
+
+        self.classifier = torch.nn.Sequential(
+            torch.nn.Linear(1000, hidden_dim), torch.nn.Linear(hidden_dim, self.num_classes)
+        )
+        self.transform = transforms.Compose([
+            transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.backbone(x)
+        y_hat = self.classifier(y_hat)
+        loss = F.cross_entropy(y_hat, y)
+        return {'loss': loss}
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+
+    def train_dataloader(self):
+        return DataLoader(
+            CIFAR10(
+                root="./",
+                train=True,
+                download=True,
+                transform=self.transform,
+            ), batch_size=32, num_workers=1
+        )

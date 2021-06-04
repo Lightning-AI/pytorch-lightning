@@ -20,7 +20,7 @@ import torch
 from tqdm import tqdm
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from tests.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
+from tests.helpers.advanced_models import ParityModuleCIFAR, ParityModuleMNIST, ParityModuleRNN
 
 
 def assert_parity_relative(pl_values, pt_values, norm_by: float = 1, max_diff: float = 0.1):
@@ -47,6 +47,7 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
     [
         (ParityModuleRNN, 0.05, 0.0),
         (ParityModuleMNIST, 0.25, 0.0),  # todo: lower this thr
+        (ParityModuleCIFAR, 1.25, 0.0),
     ]
 )
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
