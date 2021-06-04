@@ -92,4 +92,4 @@ def test_v1_6_0_tbptt_pad_token(tmpdir):
 def test_v1_6_0_profilers_import(tmpdir):
 
     with pytest.deprecated_call(match=r"depreceated in v1.4, and will be removed in v1.6"):
-        import pytorch_lightning.profiler.profilers  # noqa F401
+        from pytorch_lightning.profiler.profilers import BaseProfiler  # noqa F401
