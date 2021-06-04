@@ -515,7 +515,7 @@ class TrainerProperties(ABC):
         if not _cb_metrics and self.accelerator.training_type_plugin.distributed_backend == 'ddp_spawn':
             warning_cache.warn(
                 "You are using the'ddp_spawn' accelerator and trying to access to a property outside of the ",
-                "main process. This is an intentionate behaviour, thus, we suggest to use the 'ddp' accelerator."
+                "main process. If this is the intended behaviour, you should use the 'ddp' accelerator."
             )
         return _cb_metrics
 
