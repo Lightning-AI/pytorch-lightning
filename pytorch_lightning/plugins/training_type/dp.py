@@ -18,8 +18,8 @@ from torch.nn import DataParallel
 
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class DataParallelPlugin(ParallelPlugin):
@@ -52,30 +52,24 @@ class DataParallelPlugin(ParallelPlugin):
         model.to(self.root_device)
         self._model = DataParallel(LightningParallelModule(model), self.parallel_devices)
 
-    def reduce(self, tensor, *args, **kwargs):
+    def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
         """
-        Reduces a tensor from all parallel processes to one aggregated tensor.
+        Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
 
         Args:
-            tensor: the tensor to sync and reduce
+            collection: The collection of tensors to sync and reduce.
             *args: ignored for DP
             **kwargs: ignored for DP
 
         Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
+            Reduced tensor values or the same value if it was not or did not contain a tensor.
         """
-        if isinstance(tensor, Result):
-            tensor.dp_reduce()
 
-        else:
+        def mean(t: torch.Tensor) -> torch.Tensor:
+            original_dtype = t.dtype
+            return t.float().mean().to(original_dtype)
 
-            def _reduce(t: torch.Tensor):
-                dtype_tensor = t.dtype
-                return t.float().mean().type(dtype_tensor)
-
-            tensor = apply_to_collection(tensor, torch.Tensor, _reduce)
-
-        return tensor
+        return apply_to_collection(collection, torch.Tensor, mean)
 
     @property
     def root_device(self):

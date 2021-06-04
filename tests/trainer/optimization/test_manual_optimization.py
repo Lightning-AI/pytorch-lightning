@@ -424,7 +424,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         limit_val_batches=0,
         precision=16,
         amp_backend='native',
-        accumulate_grad_batches=4,
         gpus=1,
     )
     trainer.fit(model)
@@ -631,7 +630,6 @@ def test_step_with_optimizer_closure_and_accumulated_grad(tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        accumulate_grad_batches=2,
     )
 
     trainer.fit(model)
@@ -682,7 +680,6 @@ def test_step_with_optimizer_closure_and_extra_arguments(step_mock, tmpdir):
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        accumulate_grad_batches=2,
     )
 
     trainer.fit(model)
@@ -757,7 +754,6 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        accumulate_grad_batches=2,
     )
 
     trainer.fit(model)
@@ -867,7 +863,6 @@ def train_manual_optimization(tmpdir, accelerator, model_cls=TesManualOptimizati
         limit_val_batches=2,
         max_epochs=1,
         log_every_n_steps=1,
-        accumulate_grad_batches=2,
         gpus=2,
         accelerator=accelerator,
         callbacks=[TestManualOptimizationDDPCallack()]
