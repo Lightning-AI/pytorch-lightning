@@ -90,12 +90,21 @@ class HorovodPlugin(ParallelPlugin):
             return [(name, p) for name, p in model.named_parameters() if p in opt_params]
 
         # Horovod: wrap optimizers to perform gradient aggregation via allreduce
-        optimizers = [
-            hvd.DistributedOptimizer(
-                optimizer, named_parameters=_filter_named_parameters(self.lightning_module, optimizer)
-            ) for optimizer in optimizers
-        ]
-        self.lightning_module.trainer.accelerator.optimizers = optimizers
+        h_optimizers = []
+        for optimizer in optimizers:
+            if 'horovod' not in str(optimizer.__class__):
+                h_optimizers.append(hvd.DistributedOptimizer(
+                    optimizer, named_parameters=_filter_named_parameters(self.lightning_module, optimizer)
+                ))
+            else:
+                h_optimizers.append(optimizer)
+        self.lightning_module.trainer.accelerator.optimizers = h_optimizers
+        # optimizers = [
+        #     hvd.DistributedOptimizer(
+        #         optimizer, named_parameters=_filter_named_parameters(self.lightning_module, optimizer)
+        #     ) for optimizer in optimizers
+        # ]
+        # self.lightning_module.trainer.accelerator.optimizers = optimizers
 
     def start_training(self, trainer):
         with ExitStack() as stack:
