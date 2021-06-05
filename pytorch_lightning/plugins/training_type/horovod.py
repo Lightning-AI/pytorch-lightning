@@ -93,9 +93,11 @@ class HorovodPlugin(ParallelPlugin):
         h_optimizers = []
         for optimizer in optimizers:
             if 'horovod' not in str(optimizer.__class__):
-                h_optimizers.append(hvd.DistributedOptimizer(
-                    optimizer, named_parameters=_filter_named_parameters(self.lightning_module, optimizer)
-                ))
+                h_optimizers.append(
+                    hvd.DistributedOptimizer(
+                        optimizer, named_parameters=_filter_named_parameters(self.lightning_module, optimizer)
+                    )
+                )
             else:
                 h_optimizers.append(optimizer)
         self.lightning_module.trainer.accelerator.optimizers = h_optimizers
