@@ -19,12 +19,13 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
-class PrecisionPlugin(Plugin):
+class PrecisionPlugin(Plugin, CheckpointHooks):
     """
     Base class for all plugins handling the precision-specific parts of the training.
     The class attribute precision must be overwritten in child classes.
@@ -127,22 +128,3 @@ class PrecisionPlugin(Plugin):
         """Clip gradients by norm"""
         parameters = self.master_params(optimizer)
         torch.nn.utils.clip_grad_norm_(parameters, clip_val)
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Called when Trainer is restoring from a checkpoint.
-
-        Args:
-            checkpoint: The full checkpoint content being restored.
-        """
-        pass
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """
-        Called when Trainer is saving a checkpoint.
-
-        Args:
-            checkpoint: The full checkpoint dictionary before it gets dumped to a file.
-                Implementations of this hook can insert additional data into this dictionary.
-        """
-        pass
