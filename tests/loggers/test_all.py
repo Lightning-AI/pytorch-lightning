@@ -15,7 +15,7 @@ import inspect
 import os
 import pickle
 from unittest import mock
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
@@ -176,7 +176,11 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
 
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb'):
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb_mock:
+        wandb_mock.run = None
+        exp = Mock()
+        exp.dir = tmpdir / "logs"
+        wandb_mock.init.return_value = exp
         _test_loggers_save_dir_and_weights_save_path(tmpdir, WandbLogger)
 
 
@@ -216,7 +220,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
     trainer.fit(model)
     assert trainer.weights_save_path == weights_save_path
-    assert trainer.logger.save_dir == save_dir
+    assert trainer.experiment_dir == save_dir / logger.name / logger.version
     assert trainer.checkpoint_callback.dirpath == weights_save_path / 'name' / 'version' / 'checkpoints'
     assert trainer.default_root_dir == tmpdir
 
