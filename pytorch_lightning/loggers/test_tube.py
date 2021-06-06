@@ -198,10 +198,11 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def experiment_dir(self) -> str:
-        return os.path.join(self.save_dir, self.name, f"version_{self.version}")
+        version = self.version if isinstance(self.version, str) else f"version_{self.version}"
+        return os.path.join(self.save_dir, self.name, version)
 
     @property
-    def name(self) -> str:
+    def name(self) -> Union[int, str]:
         if self._experiment is None:
             return self._name
 
