@@ -157,10 +157,6 @@ class TrainerProperties(ABC):
     def lr_schedulers(self) -> Optional[list]:
         return self.accelerator.lr_schedulers
 
-    @property
-    def use_amp(self) -> bool:
-        return self.precision == 16
-
     @lr_schedulers.setter
     def lr_schedulers(self, new_schedulers: Optional[list]) -> None:
         self.accelerator.lr_schedulers = new_schedulers
@@ -213,6 +209,10 @@ class TrainerProperties(ABC):
     """
     General properties
     """
+
+    @property
+    def use_amp(self) -> bool:
+        return self.precision == 16
 
     @property
     def is_global_zero(self) -> bool:
