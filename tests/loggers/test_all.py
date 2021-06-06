@@ -78,6 +78,7 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
         wandb.run = None
         wandb.init().step = 0
+        wandb.init().dir = "wandb"
         _test_loggers_fit_test(tmpdir, WandbLogger)
 
 
@@ -176,11 +177,9 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch):
     with mock.patch('pytorch_lightning.loggers.test_tube.Experiment'):
         _test_loggers_save_dir_and_weights_save_path(tmpdir, TestTubeLogger)
 
-    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb_mock:
-        wandb_mock.run = None
-        exp = Mock()
-        exp.dir = tmpdir / "logs"
-        wandb_mock.init.return_value = exp
+    with mock.patch('pytorch_lightning.loggers.wandb.wandb') as wandb:
+        wandb.run = None
+        wandb.init().dir = tmpdir / "logs"
         _test_loggers_save_dir_and_weights_save_path(tmpdir, WandbLogger)
 
 
