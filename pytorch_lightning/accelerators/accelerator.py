@@ -174,8 +174,6 @@ class Accelerator:
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
         model = self.lightning_module
-
-        # TODO: Add support to allow batch transfer to device in Lightning for DP mode.
         if model is not None and not isinstance(self.training_type_plugin, DataParallelPlugin):
             # no need to transfer batch to device in DP mode
             return model._apply_batch_transfer_handler(batch, device, dataloader_idx)
