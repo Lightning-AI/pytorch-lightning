@@ -1237,11 +1237,14 @@ class Trainer(
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)
 
-            # if the PL module doesn't have the hook then call the accelerator
-            # used to auto-reduce things for the user with Results obj
-            elif hasattr(self.accelerator, hook_name):
+            # call the accelerator hook
+            if hasattr(self.accelerator, hook_name):
                 accelerator_hook = getattr(self.accelerator, hook_name)
-                output = accelerator_hook(*args, **kwargs)
+                accelerator_output = accelerator_hook(*args, **kwargs)
+                # Rely on the accelerator output if lightningModule hook returns nothing
+                # Required for cases such as DataParallel where we reduce the output for the user
+                # todo: move this data parallel logic into the data parallel plugin
+                output = accelerator_output if output is None else output
 
         if not skip:
             self._cache_logged_metrics()

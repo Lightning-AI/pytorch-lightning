@@ -23,7 +23,7 @@ import torch
 from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
-from pytorch_lightning.profiler.profilers import BaseProfiler
+from pytorch_lightning.profiler.base import BaseProfiler
 from pytorch_lightning.utilities.distributed import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
@@ -90,7 +90,7 @@ class RegisterRecordFunction:
 
                 self._handles[module_name] = [pre_forward_handle, post_forward_handle]
 
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+    def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
         for handles in self._handles.values():
             for h in handles:
                 h.remove()

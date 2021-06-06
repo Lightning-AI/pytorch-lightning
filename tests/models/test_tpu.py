@@ -21,11 +21,10 @@ from torch.utils.data import DataLoader
 
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.plugins import TPUSpawnPlugin
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -424,20 +423,14 @@ def test_if_test_works_with_checkpoint_false(tmpdir):
 def test_tpu_sync_dist():
     """Test tpu spawn sync dist operation """
 
-    def test_sync_dist(rank):
-        tensor = torch.tensor([1.0])
-        training_type_plugin = TPUSpawnPlugin()
-
-        res = Result()
-        res.log(
-            "test_tensor",
-            tensor,
-            sync_fn=training_type_plugin.reduce,
+    def test_sync_dist(_):
+        value = LightningModule._LightningModule__sync(
+            torch.tensor([1.0]),
+            sync_fn=TPUSpawnPlugin().reduce,
             sync_dist=True,
             sync_dist_op=torch.distributed.ReduceOp.SUM
         )
-
-        assert res["test_tensor"].item() == 8, "Result-Log does not work properly with TPU Spawn and Tensors"
+        assert value.item() == 8
 
     xmp.spawn(test_sync_dist, nprocs=8, start_method='fork')
 

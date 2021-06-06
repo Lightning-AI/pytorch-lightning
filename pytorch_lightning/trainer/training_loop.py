@@ -16,7 +16,7 @@ from collections import OrderedDict
 from contextlib import contextmanager, suppress
 from copy import copy
 from functools import partial, update_wrapper
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -269,6 +269,16 @@ class TrainLoop:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
+        elif self.trainer.lightning_module.automatic_optimization:
+            if not any((
+                isinstance(training_step_output, torch.Tensor),
+                (isinstance(training_step_output, Mapping)
+                 and 'loss' in training_step_output), training_step_output is None
+            )):
+                raise MisconfigurationException(
+                    "In automatic optimization, `training_step` must either return a Tensor, "
+                    "a dict with key 'loss' or None (where the step will be skipped)."
+                )
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
@@ -390,7 +400,8 @@ class TrainLoop:
 
                 for tbptt_output in batch_outputs:
                     out = tbptt_output.extra
-                    out['loss'] = tbptt_output.minimize
+                    if tbptt_output.minimize is not None:
+                        out['loss'] = tbptt_output.minimize.detach()
                     processed_tbptt_outputs.append(out)
 
                 # if there was only one tbptt step then we can collapse that dimension
@@ -623,9 +634,8 @@ class TrainLoop:
                 else:
                     model_ref.on_train_epoch_end()
 
-            # if the PL module doesn't have the hook then call the accelerator
-            # used to auto-reduce things for the user with Results obj
-            elif hasattr(self.trainer.accelerator, hook_name):
+            # call the accelerator hook
+            if hasattr(self.trainer.accelerator, hook_name):
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
 
