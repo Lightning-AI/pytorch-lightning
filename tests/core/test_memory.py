@@ -105,15 +105,12 @@ class LazyModel(LightningModule):
     """ A model which contains lazy layers with unintialized parameters. """
 
     def __init__(self):
-
         super().__init__()
-
         self.layer1 = nn.LazyLinear(5)
         self.layer2 = nn.LazyLinear(2)
 
-    def forward(self, input):
-
-        return self.layer2(self.layer1(input))
+    def forward(self, inp):
+        return self.layer2(self.layer1(inp))
 
 
 def test_lazy_model_summary():
