@@ -118,7 +118,10 @@ class LayerSummary(object):
     @property
     def num_parameters(self) -> int:
         """ Returns the number of parameters in this module. """
-        return sum(np.prod(p.shape) if not isinstance(p, torch.nn.parameter.UninitializedParameter) else 0 for p in self._module.parameters())
+        return sum(
+            np.prod(p.shape) if not isinstance(p, torch.nn.parameter.UninitializedParameter) else 0
+            for p in self._module.parameters()
+        )
 
 
 class ModelSummary(object):
@@ -225,11 +228,17 @@ class ModelSummary(object):
 
     @property
     def total_parameters(self) -> int:
-        return sum(p.numel() if not isinstance(p, torch.nn.parameter.UninitializedParameter) else 0 for p in self._model.parameters())
+        return sum(
+            p.numel() if not isinstance(p, torch.nn.parameter.UninitializedParameter) else 0
+            for p in self._model.parameters()
+        )
 
     @property
     def trainable_parameters(self) -> int:
-        return sum(p.numel() if not isinstance(p, torch.nn.parameter.UninitializedParameter) else 0 for p in self._model.parameters() if p.requires_grad)
+        return sum(
+            p.numel() if not isinstance(p, torch.nn.parameter.UninitializedParameter) else 0
+            for p in self._model.parameters() if p.requires_grad
+        )
 
     @property
     def model_size(self) -> float:
