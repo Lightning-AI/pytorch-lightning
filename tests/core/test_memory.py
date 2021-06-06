@@ -114,7 +114,7 @@ class LazyModel(LightningModule):
 
 
 def test_lazy_model_summary():
-    """ Test that lazy model summary does not raise an error. """
+    """ Test that the model summary can work with lazy layers. """
 
     lazy_model = LazyModel()
 
