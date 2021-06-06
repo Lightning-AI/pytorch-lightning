@@ -139,16 +139,6 @@ class TrainerProperties(ABC):
     @property
     def lightning_module(self) -> LightningModule:
         return self.accelerator.lightning_module
-    def log_dir(self) -> Optional[str]:
-        rank_zero_deprecation(
-            "Trainer.log_dir is deprecated since v1.4 and will be removed in v1.6."
-            " Use Trainer.experiment_dir instead, which consistently points to `save_dir/name/version`"
-            " for all built-in loggers."
-        )
-        if self.logger is None:
-            dirpath = self.default_root_dir
-        else:
-            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
 
     @property
     def optimizers(self) -> Optional[List[Optimizer]]:
@@ -166,12 +156,6 @@ class TrainerProperties(ABC):
     @property
     def lr_schedulers(self) -> Optional[list]:
         return self.accelerator.lr_schedulers
-    def experiment_dir(self) -> Optional[str]:
-        dirpath = self.logger.experiment_dir if self.logger is not None else self.default_root_dir
-        if not getattr(self, "__experiment_dir_broadcasted", False):
-            dirpath = self.accelerator.broadcast(dirpath)
-            setattr(self, "__experiment_dir_broadcasted", True)
-        return dirpath
 
     @property
     def use_amp(self) -> bool:
@@ -229,20 +213,6 @@ class TrainerProperties(ABC):
     """
     General properties
     """
-
-    @property
-    def log_dir(self) -> Optional[str]:
-        if self.logger is None:
-            dirpath = self.default_root_dir
-        else:
-            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
-
-        dirpath = self.accelerator.broadcast(dirpath)
-        return dirpath
-
-    @property
-    def use_amp(self) -> bool:
-        return self.precision == 16
 
     @property
     def is_global_zero(self) -> bool:
@@ -532,6 +502,27 @@ class TrainerProperties(ABC):
     @callback_metrics.setter
     def callback_metrics(self, x: dict) -> None:
         self.logger_connector.callback_metrics = x
+
+    @property
+    def experiment_dir(self) -> Optional[str]:
+        dirpath = self.logger.experiment_dir if self.logger is not None else self.default_root_dir
+        if not getattr(self, "__experiment_dir_broadcasted", False):
+            dirpath = self.accelerator.broadcast(dirpath)
+            setattr(self, "__experiment_dir_broadcasted", True)
+        return dirpath
+
+    @property
+    def log_dir(self) -> Optional[str]:
+        rank_zero_deprecation(
+            "Trainer.log_dir is deprecated since v1.4 and will be removed in v1.6."
+            " Use Trainer.experiment_dir instead, which consistently points to `save_dir/name/version`"
+            " for all built-in loggers."
+        )
+        if self.logger is None:
+            dirpath = self.default_root_dir
+        else:
+            dirpath = getattr(self.logger, 'log_dir' if isinstance(self.logger, TensorBoardLogger) else 'save_dir')
+        return dirpath
 
     @property
     def logged_metrics(self) -> dict:
