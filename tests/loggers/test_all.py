@@ -15,7 +15,7 @@ import inspect
 import os
 import pickle
 from unittest import mock
-from unittest.mock import ANY, Mock
+from unittest.mock import ANY
 
 import pytest
 import torch
