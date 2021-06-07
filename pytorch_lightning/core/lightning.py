@@ -297,7 +297,7 @@ class LightningModule(
 
         Args:
             name: key to log
-            value: value to log
+            value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if True logs to the progress bar
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
@@ -426,7 +426,8 @@ class LightningModule(
             self.log_dict(values)
 
         Args:
-            dictionary: key value pairs (str, tensors)
+            dictionary: key value pairs.
+                The values can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if True logs to the progress base
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
