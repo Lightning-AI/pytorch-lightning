@@ -1326,6 +1326,23 @@ class LightningModule(
         self.trainer.train_loop.backward(loss, optimizer=None, opt_idx=None, *args, **kwargs)
         self._running_manual_backward = False
 
+    def on_before_backward(self, loss: torch.Tensor) -> None:
+        """
+        Override on_before_backward with your own implementation if you need to.
+
+        Args:
+            loss: Loss is already scaled by accumulated grads and possibly scaled by Mixed Precision.
+
+        Called to before backward step.
+
+        Example::
+
+            def on_before_backward(self, loss):
+                print(f"Current Loss: {loss}")
+
+        """
+        pass
+
     def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
         """
         Override backward with your own implementation if you need to.
