@@ -487,7 +487,7 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
             # -----------------------------------------
-            self.trainer.logger_connector.update_train_step_metrics(batch_output)
+            self.trainer.logger_connector.update_train_step_metrics()
 
             # -----------------------------------------
             # VALIDATE IF NEEDED

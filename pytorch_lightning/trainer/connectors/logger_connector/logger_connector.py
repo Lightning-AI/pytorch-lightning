@@ -22,7 +22,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import AttributeDict, DeviceType
+from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
@@ -210,7 +210,7 @@ class LoggerConnector:
         self._batch_idx = batch_idx
         self._split_idx = split_idx
 
-    def update_train_step_metrics(self, batch_output: AttributeDict) -> None:
+    def update_train_step_metrics(self) -> None:
         if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
