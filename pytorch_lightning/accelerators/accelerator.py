@@ -591,12 +591,5 @@ class Accelerator:
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop before anything happens for that batch.
-
-        If you return -1 here, you will skip training for the rest of the current epoch.
-
-        Args:
-            batch: The batched data as it is returned by the training DataLoader.
-            batch_idx: the index of the batch
-            dataloader_idx: the index of the dataloader
         """
         return self.training_type_plugin.on_train_batch_start(batch, batch_idx, dataloader_idx)
