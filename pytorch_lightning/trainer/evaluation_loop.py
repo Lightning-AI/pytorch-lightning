@@ -198,7 +198,7 @@ class EvaluationLoop(object):
 
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         # inform logger the batch loop has finished
-        self.trainer.logger_connector._epoch_end_reached = True
+        self.trainer.logger_connector.epoch_end_reached()
 
         # call the model epoch end
         model = self.trainer.lightning_module
