@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     model = LitClassifier()
 
-    trainer = pl.Trainer(max_epochs=2, ipu_cores=8)
+    trainer = pl.Trainer(max_epochs=2, ipus=8)
 
     trainer.fit(model, datamodule=dm)
     trainer.test(model, datamodule=dm)

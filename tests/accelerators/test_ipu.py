@@ -93,17 +93,17 @@ class IPUClassificationModel(ClassificationModel):
 
 @RunIf(ipu=True)
 def test_accelerator_selected(tmpdir):
-    trainer = Trainer(ipu_cores=1)
+    trainer = Trainer(ipus=1)
     assert isinstance(trainer.accelerator, IPUAccelerator)
-    trainer = Trainer(ipu_cores=1, accelerator='ipu')
+    trainer = Trainer(ipus=1, accelerator='ipu')
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
 @RunIf(ipu=True)
-@pytest.mark.parametrize('ipu_cores', [1, 4])
-def test_all_stages(tmpdir, ipu_cores):
+@pytest.mark.parametrize('ipus', [1, 4])
+def test_all_stages(tmpdir, ipus):
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, ipu_cores=ipu_cores)
+    trainer = Trainer(fast_dev_run=True, ipus=ipus)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -111,11 +111,11 @@ def test_all_stages(tmpdir, ipu_cores):
 
 
 @RunIf(ipu=True)
-@pytest.mark.parametrize('ipu_cores', [1, 4])
-def test_inference_only(tmpdir, ipu_cores):
+@pytest.mark.parametrize('ipus', [1, 4])
+def test_inference_only(tmpdir, ipus):
     model = IPUModel()
 
-    trainer = Trainer(fast_dev_run=True, ipu_cores=ipu_cores)
+    trainer = Trainer(fast_dev_run=True, ipus=ipus)
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model, model.val_dataloader())
@@ -157,7 +157,7 @@ def test_optimization(tmpdir):
         max_epochs=1,
         weights_summary=None,
         deterministic=True,
-        ipu_cores=2,
+        ipus=2,
     )
 
     # fit model
@@ -201,7 +201,7 @@ def test_mixed_precision(tmpdir):
             raise SystemExit
 
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, ipu_cores=1, precision=16, callbacks=TestCallback())
+    trainer = Trainer(fast_dev_run=True, ipus=1, precision=16, callbacks=TestCallback())
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -224,7 +224,7 @@ def test_pure_half_precision(tmpdir):
     model = IPUModel()
     trainer = Trainer(
         fast_dev_run=True,
-        ipu_cores=1,
+        ipus=1,
         precision=16,
         plugins=IPUPlugin(convert_model_to_half=True),
         callbacks=TestCallback()
@@ -247,7 +247,7 @@ def test_device_iterations_ipu_plugin(tmpdir):
             raise SystemExit
 
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, ipu_cores=1, plugins=IPUPlugin(device_iterations=2), callbacks=TestCallback())
+    trainer = Trainer(fast_dev_run=True, ipus=1, plugins=IPUPlugin(device_iterations=2), callbacks=TestCallback())
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -267,6 +267,6 @@ def test_accumulated_batches(tmpdir):
             raise SystemExit
 
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, ipu_cores=1, accumulate_grad_batches=2, callbacks=TestCallback())
+    trainer = Trainer(fast_dev_run=True, ipus=1, accumulate_grad_batches=2, callbacks=TestCallback())
     with pytest.raises(SystemExit):
         trainer.fit(model)

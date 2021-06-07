@@ -107,7 +107,7 @@ class Trainer(
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
-        ipu_cores: Optional[int] = None,
+        ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,
         progress_bar_refresh_rate: Optional[int] = None,
         overfit_batches: Union[int, float] = 0.0,
@@ -324,7 +324,7 @@ class Trainer(
         self.optimizer_connector = OptimizerConnector(self)
 
         self.accelerator_connector = AcceleratorConnector(
-            num_processes, tpu_cores, ipu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm,
+            num_processes, tpu_cores, ipus, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm,
             benchmark, replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
         self.logger_connector = LoggerConnector(self, log_gpu_memory)
