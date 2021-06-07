@@ -15,13 +15,15 @@ from collections import Callable
 
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class IPUAccelerator(Accelerator):
+    """ Accelerator for IPUs. """
 
-    def setup_optimizers(self, trainer):
+    def setup_optimizers(self, trainer: 'pl.Trainer') -> None:
         super().setup_optimizers(trainer)
 
         if len(self.optimizers) > 1:

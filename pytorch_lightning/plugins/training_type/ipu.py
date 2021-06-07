@@ -43,6 +43,9 @@ class LightningIPUModule(_LightningModuleWrapperBase):
 
 
 class IPUPlugin(ParallelPlugin):
+    """
+        Plugin for training on IPU devices.
+    """
 
     def __init__(
         self,
@@ -53,7 +56,19 @@ class IPUPlugin(ParallelPlugin):
         convert_model_to_half: bool = False,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
-    ):
+    ) -> None:
+        """
+        Arguments:
+
+            device_iterations: Number of iterations to run on device at once before returning to host.
+                This can be used as an optimization to speed up training.
+                https://docs.graphcore.ai/projects/poptorch-user-guide/en/0.1.67/batching.html
+            autoround_num_ipus: When selecting multiple IPUs, auto-rounds to powers of 2 as required for IPUs.
+            autoreport: Enable auto-reporting for IPUs using PopVision
+                https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html
+            autoreport_dir: Optional directory to store autoReport output.
+            convert_model_to_half: Converts the model to half precision, which can be used for pure FP16 training.
+        """
         super().__init__(parallel_devices, cluster_environment)
         self.convert_model_to_half = convert_model_to_half
         self.device_iterations = device_iterations
@@ -92,7 +107,7 @@ class IPUPlugin(ParallelPlugin):
         self.model = model
 
         # Separate models are instantiated for different stages, but they share the same weights on host.
-        # When validation/test models are run, they sync weights first.
+        # When validation/test models are run, weights are synced first.
 
         if self.lightning_module.trainer.training:
             # Create model for training which will run training.
@@ -228,6 +243,62 @@ class IPUPlugin(ParallelPlugin):
         args = self._prepare_input(args)
         return self.poptorch_models['predict'](*args, **kwargs)
 
+    def teardown(self) -> None:
+        for k, model in self.poptorch_models.items():
+            model.destroy()
+
+    def _compiled(self, model):
+        # Required to ensure we only attach compiled models, as they are compiled lazily.
+        return model._executable is not None
+
+    def _detach_models(self):
+        """
+        Detaches all stage specific models from IPU devices.
+        """
+        for k, model in self.poptorch_models.items():
+            if self._compiled(model) and model.isAttachedToDevice():
+                model.detachFromDevice()
+
+    def _load_model(self, stage):
+        """
+        Loads the stage specific accelerator model onto device if compiled and not attached to IPU devices.
+        Args:
+            stage: The stage to load
+        """
+        self._detach_models()
+        model = self.poptorch_models[stage]
+        if self._compiled(model) and not model.isAttachedToDevice():
+            model.attachToDevice()
+
+    def on_train_start(self):
+        self._load_model('train')
+
+    def on_validation_start(self):
+        self._load_model('val')
+
+    def on_test_start(self):
+        self._load_model('test')
+
+    def on_predict_start(self):
+        self._load_model('predict')
+
+    def on_train_end(self):
+        self._detach_models()
+
+    def on_validation_end(self):
+        self._detach_models()
+
+    def on_test_end(self):
+        self._detach_models()
+
+    def on_predict_end(self):
+        self._detach_models()
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        # Updates optimizer stats if LR scheduler modified the optimizer state
+        optimizer = self.lightning_module.trainer.optimizers[0]
+        self.poptorch_models['train'].setOptimizer(optimizer)
+
     @property
     def on_gpu(self) -> bool:
         return False
@@ -254,51 +325,3 @@ class IPUPlugin(ParallelPlugin):
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
-
-    def teardown(self) -> None:
-        for k, model in self.poptorch_models.items():
-            model.destroy()
-
-    def _compiled(self, model):
-        # Required to ensure we only attach compiled models, as they are compiled lazily.
-        return model._executable is not None
-
-    def detach_models(self):
-        for k, model in self.poptorch_models.items():
-            if self._compiled(model) and model.isAttachedToDevice():
-                model.detachFromDevice()
-
-    def load_model(self, stage):
-        self.detach_models()
-        model = self.poptorch_models[stage]
-        if self._compiled(model) and not model.isAttachedToDevice():
-            model.attachToDevice()
-
-    def on_train_start(self):
-        self.load_model('train')
-
-    def on_validation_start(self):
-        self.load_model('val')
-
-    def on_test_start(self):
-        self.load_model('test')
-
-    def on_predict_start(self):
-        self.load_model('predict')
-
-    def on_train_end(self):
-        self.detach_models()
-
-    def on_validation_end(self):
-        self.detach_models()
-
-    def on_test_end(self):
-        self.detach_models()
-
-    def on_predict_end(self):
-        self.detach_models()
-
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
-        # Update optimizer stats if LR scheduler modified the optimizer state
-        optimizer = self.lightning_module.trainer.optimizers[0]
-        self.poptorch_models['train'].setOptimizer(optimizer)
