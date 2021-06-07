@@ -419,13 +419,13 @@ def test_log_works_in_train_callback(tmpdir):
     assert trainer.callback_metrics["train_loss"] == model.seen_losses[-1]
 
     assert cb.call_counter == {
-        'on_train_batch_end': 2,
-        'on_batch_end': 2,
+        'on_train_start': 1,
         'on_epoch_start': 1,
         'on_train_epoch_start': 1,
+        'on_train_batch_end': 2,
+        'on_batch_end': 2,
         'on_train_epoch_end': 1,
-        'on_epoch_end': 1,
-        'on_train_start': 1
+        'on_epoch_end': 1
     }
 
     def get_expected(on_epoch, values):
