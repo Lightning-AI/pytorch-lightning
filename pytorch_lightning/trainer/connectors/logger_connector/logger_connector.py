@@ -40,6 +40,7 @@ class LoggerConnector:
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
+        self._split_idx: Optional[int] = None
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
         # logging
@@ -206,9 +207,10 @@ class LoggerConnector:
     Train metric updates
     """
 
-    def on_train_split_start(self, batch_idx: int, split_batch: Any) -> None:
+    def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
         self.trainer.result_collection.extract_batch_size(split_batch)
         self._batch_idx = batch_idx
+        self._split_idx = split_idx
 
     def update_train_step_metrics(self, batch_output):
         if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
@@ -247,6 +249,7 @@ class LoggerConnector:
         self._callback_metrics.update(metrics[MetricSource.CALLBACK])
         self._logged_metrics.update(metrics[MetricSource.LOG])
         self._batch_idx = None
+        self._split_idx = None
 
     def on_batch_end(self) -> None:
         assert not self._epoch_end_reached
@@ -256,12 +259,17 @@ class LoggerConnector:
         self._logged_metrics.update(metrics[MetricSource.LOG])
 
     def should_reset_tensors(self, fx: str) -> bool:
-        # reset tensor metrics only when the hook changed and reloading the dataloader
-        return self._current_fx != fx and self._batch_idx in (None, 0)
+        is_different_fx = self._current_fx != fx
+        if self._split_idx is None:
+            is_first_batch = self._batch_idx in (None, 0)
+        else:
+            is_first_batch = self._batch_idx + self._split_idx == 0
+        return is_different_fx and is_first_batch
 
     def reset(self, metrics: Optional[bool] = None) -> None:
         self.trainer.result_collection.reset(metrics=metrics)
         self._batch_idx = None
+        self._split_idx = None
         self._current_fx = None
 
     @property

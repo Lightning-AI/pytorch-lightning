@@ -644,7 +644,7 @@ class TrainLoop:
             self.split_idx = split_idx
 
             # let logger connector extract batch size
-            self.trainer.logger_connector.on_train_split_start(batch_idx, split_batch)
+            self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
             if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
