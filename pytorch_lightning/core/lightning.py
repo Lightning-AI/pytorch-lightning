@@ -26,7 +26,7 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -341,7 +341,7 @@ class LightningModule(
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-        result_collection = self.trainer.result_collection
+        result_collection: 'ResultCollection' = self.trainer.result_collection  # noqa F821
         assert result_collection is not None
         assert self._current_fx_name is not None
         result_collection.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
@@ -376,6 +376,10 @@ class LightningModule(
 
         value = apply_to_collection(value, numbers.Number, self.__to_float)
 
+        if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
+            # when restarting an new epoch, reset the tensors
+            result_collection.reset(metrics=False, fx=self._current_fx_name)
+
         result_collection.log(
             self._current_fx_name,
             name,
@@ -395,9 +399,11 @@ class LightningModule(
             sync_dist_group=sync_dist_group,
         )
 
+        self.trainer.logger_connector._current_fx = self._current_fx_name
+
     def log_dict(
         self,
-        dictionary: Dict[str, _METRIC_COLLECTION],
+        dictionary: Mapping[str, _METRIC_COLLECTION],
         prog_bar: bool = False,
         logger: bool = True,
         on_step: Optional[bool] = None,
@@ -1523,6 +1529,21 @@ class LightningModule(
         See :meth:`torch.optim.Optimizer.zero_grad` for the explanation of the above example.
         """
         optimizer.zero_grad()
+
+    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
+        """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        Args:
+            grad_norm_dict: Dictionary containing current grad norm metrics
+
+        Examples::
+
+            # DEFAULT
+            def log_grad_norm(self, grad_norm_dict):
+                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+
+        """
+        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
         r"""

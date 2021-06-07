@@ -15,6 +15,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 from typing import cast, List, Optional, Type, TypeVar, Union
 
 import torch
@@ -277,8 +278,8 @@ class TrainerProperties(ABC):
         ref_model = cast(LightningModule, ref_model)
 
         standard_metrics = ref_model.get_progress_bar_dict()
-        logged_metrics = self.progress_bar_metrics
-        duplicates = list(standard_metrics.keys() & logged_metrics.keys())
+        pbar_metrics = self.progress_bar_metrics
+        duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
         if duplicates:
             rank_zero_warn(
                 f"The progress bar already tracks a metric with the name(s) '{', '.join(duplicates)}' and"
@@ -286,9 +287,7 @@ class TrainerProperties(ABC):
                 f" If this is undesired, change the name or override `get_progress_bar_dict()`"
                 f" in `LightingModule`.", UserWarning
             )
-        all_metrics = dict(**standard_metrics)
-        all_metrics.update(**logged_metrics)
-        return all_metrics
+        return {**standard_metrics, **pbar_metrics}
 
     @property
     def disable_validation(self) -> bool:
@@ -363,6 +362,10 @@ class TrainerProperties(ABC):
         found in the Trainer.callbacks list.
         """
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+
+    @property
+    def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
+        return self.checkpoint_connector.resume_checkpoint_path
 
     def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
