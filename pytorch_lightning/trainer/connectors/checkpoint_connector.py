@@ -60,7 +60,7 @@ class CheckpointConnector:
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
         elif self.trainer.resume_from_checkpoint is not None:
-            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer._device_type == DeviceType.GPU)
+            self.restore(self.trainer.resume_from_checkpoint)
 
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier('TrainerIOMixin.restore_weights')
@@ -69,7 +69,7 @@ class CheckpointConnector:
         if self.trainer._device_type == DeviceType.GPU:
             torch.cuda.empty_cache()
 
-    def restore(self, checkpoint_path: str, on_gpu: bool) -> bool:
+    def restore(self, checkpoint_path: str) -> bool:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
@@ -85,7 +85,7 @@ class CheckpointConnector:
 
         model = self.trainer.lightning_module
 
-        if on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
