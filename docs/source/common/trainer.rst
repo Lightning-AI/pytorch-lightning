@@ -1534,7 +1534,7 @@ Can specify as float or int.
     # Find the total number of train batches
     total_train_batches = total_train_samples // (train_batch_size * world_size)
 
-    # Compute how many time we will call validation during training batch loop
+    # Compute how many times we will call validation during the training loop
     val_check_batch = max(1, int(total_train_batches * val_check_interval))
     val_checks_per_epoch = total_train_batches / val_check_batch
 
