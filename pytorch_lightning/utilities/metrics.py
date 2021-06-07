@@ -21,7 +21,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 def metrics_to_scalars(metrics: dict) -> dict:
     """ Recursively walk through a dictionary of metrics and convert single-item tensors to scalar values. """
 
-    # TODO: this is duplicated in MetricsHolder. should be unified
     new_metrics = {}
     for k, v in metrics.items():
         if isinstance(v, torch.Tensor):
