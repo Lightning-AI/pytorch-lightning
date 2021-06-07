@@ -71,7 +71,6 @@ class CheckpointConnector:
             raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
 
         rank_zero_info(f"Restoring states from the checkpoint file at {checkpoint_path}")
-        self.loaded_checkpoint = pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
         checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
             checkpoint_path, map_location=lambda storage, loc: storage
         )
@@ -98,18 +97,15 @@ class CheckpointConnector:
         2. from `resume_from_checkpoint` file
         3. don't restore
         """
-        self.resume_start()
-
-        if self.resume_checkpoint_path is not None:
-            self.restore(self.resume_checkpoint_path)
-
-        self.resume_end()
+        self.restore(self.resume_checkpoint_path)
 
     def restore(self, checkpoint_path: str) -> bool:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
         """
+        self.resume_checkpoint_path = checkpoint_path
+        self.resume_start()
         model = self.trainer.lightning_module
 
         if self.trainer._device_type == DeviceType.GPU:
@@ -118,7 +114,7 @@ class CheckpointConnector:
         # restore training state
         self.restore_training_state(self.loaded_checkpoint, self._load_optimizer_states)
 
-        rank_zero_info(f"Restored states from the checkpoint file at {checkpoint_path}")
+        self.resume_end()
         return True
 
     def restore_model_state(self, model: LightningModule, checkpoint) -> None:
@@ -143,6 +139,9 @@ class CheckpointConnector:
         :param checkpoint:
         :return:
         """
+        if not self.loaded_checkpoint:
+            return
+
         # validation
         if load_optimizer_states and ('optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint):
             raise KeyError(
