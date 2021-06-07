@@ -123,7 +123,6 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
         limit_val_batches=1,
         max_epochs=1,
         weights_summary=None,
-        accumulate_grad_batches=999,  # does not do anything if manual optimization
     )
 
     with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, \

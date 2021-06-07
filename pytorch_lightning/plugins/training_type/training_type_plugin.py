@@ -161,19 +161,19 @@ class TrainingTypePlugin(Plugin, ABC):
         self._results = trainer.run_stage()
 
     def training_step(self, *args, **kwargs):
-        return self.lightning_module.training_step(*args, **kwargs)
+        return self.model.training_step(*args, **kwargs)
 
     def post_training_step(self):
         pass
 
     def validation_step(self, *args, **kwargs):
-        return self.lightning_module.validation_step(*args, **kwargs)
+        return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
-        return self.lightning_module.test_step(*args, **kwargs)
+        return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
-        return self.lightning_module.predict_step(*args, **kwargs)
+        return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, output):
         return output
@@ -195,19 +195,19 @@ class TrainingTypePlugin(Plugin, ABC):
         """
         return dataloader
 
-    def on_reset_train_dataloader(self, dataloader) -> Union[Iterable, DataLoader]:
+    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Called before resetting the train dataloader."""
         return dataloader
 
-    def on_reset_val_dataloader(self, dataloader) -> Union[Iterable, DataLoader]:
+    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Called before resetting the val dataloader."""
         return dataloader
 
-    def on_reset_test_dataloader(self, dataloader) -> Union[Iterable, DataLoader]:
+    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Called before resetting the test dataloader."""
         return dataloader
 
-    def on_reset_predict_dataloader(self, dataloader) -> Union[Iterable, DataLoader]:
+    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         """Called before resetting the predict dataloader."""
         return dataloader
 
