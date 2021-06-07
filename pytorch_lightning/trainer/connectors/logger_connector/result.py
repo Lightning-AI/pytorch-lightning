@@ -45,7 +45,7 @@ class _Sync:
     group: Optional[Any] = None
 
     @property
-    def __call__(self) -> Callable:
+    def __call__(self) -> Any:
         return partial(self.fn, reduce_op=self.op, group=self.group) if self.should else self.no_op
 
     @staticmethod
