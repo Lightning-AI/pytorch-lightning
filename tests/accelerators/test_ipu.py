@@ -91,6 +91,7 @@ class IPUClassificationModel(ClassificationModel):
         self.log('test_acc', torch.stack(outputs).mean())
 
 
+@RunIf(ipu=True)
 def test_accelerator_selected(tmpdir):
     trainer = Trainer(ipu_cores=1)
     assert isinstance(trainer.accelerator, IPUAccelerator)
