@@ -98,7 +98,7 @@ def test_accelerator_selected(tmpdir):
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
-@RunIf(ipu=True, special=True)
+@RunIf(ipu=True)
 @pytest.mark.parametrize('ipu_cores', [1, 4])
 def test_all_stages(tmpdir, ipu_cores):
     model = IPUModel()
@@ -109,7 +109,7 @@ def test_all_stages(tmpdir, ipu_cores):
     trainer.predict(model, model.val_dataloader())
 
 
-@RunIf(ipu=True, special=True)
+@RunIf(ipu=True)
 @pytest.mark.parametrize('ipu_cores', [1, 4])
 def test_inference_only(tmpdir, ipu_cores):
     model = IPUModel()
@@ -120,7 +120,7 @@ def test_inference_only(tmpdir, ipu_cores):
     trainer.predict(model, model.val_dataloader())
 
 
-@RunIf(ipu=True, special=True)
+@RunIf(ipu=True)
 def test_optimization(tmpdir):
     seed_everything(42)
 
@@ -188,7 +188,7 @@ def test_optimization(tmpdir):
     assert saved_result > 0.6 and (saved_result == test_result)
 
 
-@RunIf(ipu=True, special=True)
+@RunIf(ipu=True)
 def test_mixed_precision(tmpdir):
 
     class TestCallback(Callback):
@@ -205,7 +205,7 @@ def test_mixed_precision(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(ipu=True, special=True)
+@RunIf(ipu=True)
 def test_pure_half_precision(tmpdir):
 
     class TestCallback(Callback):
@@ -232,7 +232,7 @@ def test_pure_half_precision(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(ipu=True, special=True)
+@RunIf(ipu=True)
 def test_device_iterations_ipu_plugin(tmpdir):
 
     class TestCallback(Callback):
@@ -251,7 +251,7 @@ def test_device_iterations_ipu_plugin(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(ipu=True, special=True)
+@RunIf(ipu=True)
 def test_accumulated_batches(tmpdir):
 
     class TestCallback(Callback):
