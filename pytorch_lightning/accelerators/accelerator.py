@@ -460,6 +460,22 @@ class Accelerator:
         """
         return self.training_type_plugin.process_dataloader(dataloader)
 
+    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the train dataloader."""
+        return self.training_type_plugin.on_reset_train_dataloader(dataloader)
+
+    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the val dataloader."""
+        return self.training_type_plugin.on_reset_val_dataloader(dataloader)
+
+    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the test dataloader."""
+        return self.training_type_plugin.on_reset_test_dataloader(dataloader)
+
+    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
+        """Called before resetting the predict dataloader."""
+        return self.training_type_plugin.on_reset_predict_dataloader(dataloader)
+
     @property
     def results(self) -> Any:
         """

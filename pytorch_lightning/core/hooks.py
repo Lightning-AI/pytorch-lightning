@@ -807,7 +807,8 @@ class CheckpointHooks:
         else you might want to save.
 
         Args:
-            checkpoint: Checkpoint to be saved
+            checkpoint: The full checkpoint dictionary before it gets dumped to a file.
+                Implementations of this hook can insert additional data into this dictionary.
 
         Example::
 

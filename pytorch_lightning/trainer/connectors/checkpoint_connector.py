@@ -21,21 +21,11 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
-    _OMEGACONF_AVAILABLE,
-    AMPType,
-    DeviceType,
-    rank_zero_info,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, DeviceType, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
-
-if _APEX_AVAILABLE:
-    from apex import amp
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -43,9 +33,10 @@ if _OMEGACONF_AVAILABLE:
 
 class CheckpointConnector:
 
-    def __init__(self, trainer):
+    def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
         self.trainer = trainer
-
+        self.resume_checkpoint_path = resume_from_checkpoint
+        self.loaded_checkpoint = dict()
         # used to validate checkpointing logic
         self.has_trained = False
 
@@ -69,8 +60,8 @@ class CheckpointConnector:
             rank_zero_info(f'restored hpc model from: {checkpoint_path}')
 
         # 2. Attempt to restore states from `resume_from_checkpoint` file
-        elif self.trainer.resume_from_checkpoint is not None:
-            self.restore(self.trainer.resume_from_checkpoint, on_gpu=self.trainer._device_type == DeviceType.GPU)
+        elif self.resume_checkpoint_path is not None:
+            self.restore(self.resume_checkpoint_path)
 
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier('TrainerIOMixin.restore_weights')
@@ -79,7 +70,7 @@ class CheckpointConnector:
         if self.trainer._device_type == DeviceType.GPU:
             torch.cuda.empty_cache()
 
-    def restore(self, checkpoint_path: str, on_gpu: bool) -> bool:
+    def restore(self, checkpoint_path: str) -> bool:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
@@ -95,7 +86,7 @@ class CheckpointConnector:
 
         model = self.trainer.lightning_module
 
-        if on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
@@ -141,11 +132,7 @@ class CheckpointConnector:
                 " where `model.ckpt` is your checkpoint file."
             )
 
-        # restore amp scaling
-        if self.trainer.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
-            self.trainer.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.trainer.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
-            amp.load_state_dict(checkpoint['amp_scaling_state'])
+        self.trainer.precision_plugin.on_load_checkpoint(checkpoint)
 
         # restore callback states
         self.trainer.on_load_checkpoint(checkpoint)
@@ -294,14 +281,7 @@ class CheckpointConnector:
                 lr_schedulers.append(scheduler['scheduler'].state_dict())
             checkpoint['lr_schedulers'] = lr_schedulers
 
-            # dump amp scaling
-            if (
-                self.trainer.amp_backend == AMPType.NATIVE and self.trainer._device_type != DeviceType.TPU
-                and self.trainer.scaler is not None
-            ):
-                checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
-            elif self.trainer.amp_backend == AMPType.APEX:
-                checkpoint['amp_scaling_state'] = amp.state_dict()
+            self.trainer.precision_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
         if model.hparams:
