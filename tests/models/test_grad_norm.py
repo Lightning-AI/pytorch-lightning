@@ -108,5 +108,5 @@ def test_grad_tracking_interval(tmpdir, log_every_n_steps):
             if grad_norm_dict:
                 grad_norm_dicts.append(grad_norm_dict)
 
-        assert len(grad_norm_dicts) == expected
-        assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts)
+        assert len(grad_norm_dicts) == expected + 1
+        assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts[:-1])
