@@ -239,14 +239,14 @@ def test_device_iterations_ipu_plugin(tmpdir):
 
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
-            assert trainer.accelerator.training_type_plugin.device_iterations == 20
+            assert trainer.accelerator.training_type_plugin.device_iterations == 2
             # assert device iterations has been set correctly within the poptorch options
             poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models['train']
-            assert poptorch_model._options.toDict()['device_iterations'] == 20
+            assert poptorch_model._options.toDict()['device_iterations'] == 2
             raise SystemExit
 
     model = IPUModel()
-    trainer = Trainer(fast_dev_run=True, ipu_cores=1, plugins=IPUPlugin(device_iterations=20), callbacks=TestCallback())
+    trainer = Trainer(fast_dev_run=True, ipu_cores=1, plugins=IPUPlugin(device_iterations=2), callbacks=TestCallback())
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
