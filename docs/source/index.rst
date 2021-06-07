@@ -58,6 +58,9 @@ PyTorch Lightning Documentation
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
    notebooks/starters/mnist-hello-world.ipynb
+   notebooks/starters/datamodules.ipynb
+   notebooks/starters/cifar10-baseline.ipynb
+   notebooks/starters/basic-gan.ipynb
 
 .. toctree::
    :maxdepth: 2
