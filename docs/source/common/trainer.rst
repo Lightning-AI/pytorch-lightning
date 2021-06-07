@@ -1538,7 +1538,7 @@ Can specify as float or int.
     val_check_batch = max(1, int(total_train_batches * val_check_interval))
     val_checks_per_epoch = total_train_batches / val_check_batch
 
-    # Compute how validation batches seen during an epoch
+    # Find the total number of validation batches
     total_val_batches = total_val_samples // (val_batch_size * world_size)
 
     # Total number of batches run
