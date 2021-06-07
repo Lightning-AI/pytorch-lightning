@@ -1118,10 +1118,43 @@ class Trainer(
 
         return eval_loop_results
 
-
-
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
-        pass
+        # prepare dataloaders
+        dataloaders, max_batches = self.predict_loop.get_predict_dataloaders()
+
+        # check if we want to skip this evaluation
+        if self.predict_loop.should_skip_predict(max_batches):
+            return []
+
+        # set up the eval loop
+        self.predict_loop.setup(max_batches, dataloaders)
+
+        # call hook
+        self.predict_loop.on_predict_start()
+
+        # run validation/testing
+        for dataloader_idx, dataloader in enumerate(dataloaders):
+            dataloader = self.accelerator.process_dataloader(dataloader)
+            dl_max_batches = self.predict_loop.max_batches[dataloader_idx]
+            for batch_idx, batch in enumerate(dataloader):
+                if batch is None:
+                    continue
+
+                # stop short when running on limited batches
+                if batch_idx >= dl_max_batches:
+                    break
+
+                # lightning module methods
+                with self.profiler.profile("predict_step"):
+                    self.predict_loop.predict_step(batch, batch_idx, dataloader_idx)
+
+        # call hook
+        results = self.predict_loop.on_predict_epoch_end()
+
+        # call hook
+        self.predict_loop.on_predict_end()
+
+        return results
 
     def _run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
