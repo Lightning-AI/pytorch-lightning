@@ -389,6 +389,9 @@ class Trainer(
             truncated_bptt_steps,
             terminate_on_nan,
         )
+
+        self.evaluation_loop.on_trainer_init()
+        self.predict_loop.on_trainer_init()
         self._setup_on_init(num_sanity_val_steps)
 
         # configure tuner
@@ -432,9 +435,6 @@ class Trainer(
             self.num_sanity_val_steps = float("inf")
         else:
             self.num_sanity_val_steps = num_sanity_val_steps
-
-        self.num_predict_batches = []
-        self.predicted_ckpt_path = None
 
     def _setup_fit(self, model, train_dataloader=None, val_dataloaders=None, datamodule=None):
         # clean hparams
