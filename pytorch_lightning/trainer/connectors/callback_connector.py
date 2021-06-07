@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from datetime import timedelta
-from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ProgressBar, ProgressBarBase
