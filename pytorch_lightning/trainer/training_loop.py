@@ -634,6 +634,9 @@ class TrainLoop:
         for split_idx, split_batch in enumerate(splits):
             self.split_idx = split_idx
 
+            # let logger connector extract batch size
+            self.trainer.logger_connector.on_train_split_start(batch_idx, split_batch)
+
             if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                     result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
@@ -656,8 +659,8 @@ class TrainLoop:
         # TODO: In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
         #   opt_idx=0 to opt_idx=None in the signature here
 
-        # toggle model params + set info to logger_connector
-        self.run_train_split_start(batch_idx, split_batch, opt_idx, optimizer)
+        # toggle model params
+        self.run_optimization_start(opt_idx, optimizer)
 
         result = AttributeDict()
         closure = self.make_closure(split_batch, batch_idx, opt_idx, optimizer, self._hiddens, result)
@@ -907,15 +910,12 @@ class TrainLoop:
         if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
             self.trainer.logger.save()
 
-    def run_train_split_start(self, batch_idx, split_batch, opt_idx, optimizer):
+    def run_optimization_start(self, opt_idx, optimizer):
         # make sure only the gradients of the current optimizer's parameters are calculated
         # in the training step to prevent dangling gradients in multiple-optimizer setup.
         if self.trainer.lightning_module.automatic_optimization and len(self.trainer.optimizers) > 1:
             model = self.trainer.lightning_module
             model.toggle_optimizer(optimizer, opt_idx)
-
-        # use to track metrics internally
-        self.trainer.logger_connector.on_train_split_start(batch_idx, split_batch)
 
     def update_running_loss(self, current_loss: torch.Tensor) -> None:
         if self.trainer.lightning_module.automatic_optimization:
