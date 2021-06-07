@@ -574,8 +574,8 @@ def test_progress_bar_max_val_check_interval(
     assert trainer.val_check_batch == val_check_batch
     val_checks_per_epoch = total_train_batches / val_check_batch
     total_val_batches = total_val_samples // (val_batch_size * world_size)
-    assert trainer.callbacks[0].total_train_batches == total_train_batches
-    assert trainer.callbacks[0].total_val_batches == total_val_batches
+    assert trainer.progress_bar_callback.total_train_batches == total_train_batches
+    assert trainer.progress_bar_callback.total_val_batches == total_val_batches
     total_val_batches = total_val_batches * val_checks_per_epoch
     if trainer.is_global_zero:
-        assert trainer.callbacks[0].main_progress_bar.total == total_train_batches + total_val_batches
+        assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
