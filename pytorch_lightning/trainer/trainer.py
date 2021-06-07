@@ -1042,8 +1042,6 @@ class Trainer(
             self.state.stage = None
             raise
 
-
-
     def _run_evaluation(self) -> _EVALUATE_OUTPUT:
         if not (self.evaluating or self.sanity_checking):
             rank_zero_warn(
@@ -1052,29 +1050,85 @@ class Trainer(
             )
             self.validating = True
 
-        if NEW_LOOP:
-            # # TODO: move this check inside new loop
-            # # prepare dataloaders
+        # prepare dataloaders
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
-            dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
+        # check if we want to skip this evaluation
+        if self.evaluation_loop.should_skip_evaluation(max_batches):
+            return [], []
 
-            # max_batches = self.evaluation_loop.get_max_batches()
-            #
-            # # TODO: move this check inside new loop
-            # # check if we want to skip this evaluation
-            if self.evaluation_loop.should_skip_evaluation(max_batches):
-                return [], []
+        # enable eval mode + no grads
+        self.evaluation_loop.on_evaluation_model_eval()
+        # ref model
+        model = self.lightning_module
+        model.zero_grad()
+        torch.set_grad_enabled(False)
 
-            # enable eval mode + no grads
-            self.evaluation_loop.on_evaluation_model_eval()
-            # ref model
-            model = self.lightning_module
-            model.zero_grad()
-            torch.set_grad_enabled(False)
+        # hook
+        self.evaluation_loop.on_evaluation_start()
 
-            eval_loop_results = self.evaluation_loop.run()
-        else:
-            eval_loop_results = self._run_evaluatin_old_loop()
+        # set up the eval loop
+        self.evaluation_loop.setup(max_batches, dataloaders)
+
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_start()
+
+        # run validation/testing
+        for dataloader_idx, dataloader in enumerate(dataloaders):
+            # bookkeeping
+            dl_outputs = []
+            dataloader = self.accelerator.process_dataloader(dataloader)
+            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
+
+            for batch_idx, batch in enumerate(dataloader):
+                if batch is None:
+                    continue
+
+                # stop short when running on limited batches
+                if batch_idx >= dl_max_batches:
+                    break
+
+                # hook
+                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+
+                # lightning module methods
+                with self.profiler.profile("evaluation_step_and_end"):
+                    output = self.evaluation_loop.evaluation_step(batch, batch_idx, dataloader_idx)
+                    output = self.evaluation_loop.evaluation_step_end(output)
+
+                # hook + store predictions
+                self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
+
+                # log batch metrics
+                self.logger_connector.log_evaluation_step_metrics()
+
+                # track epoch level outputs
+                dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
+
+            # store batch level output per dataloader
+            if self.evaluation_loop.should_track_batch_outputs_for_epoch_end:
+                self.evaluation_loop.outputs.append(dl_outputs)
+
+        outputs = self.evaluation_loop.outputs
+
+        # reset outputs
+        self.evaluation_loop.outputs = []
+
+        # with a single dataloader don't pass a 2D list
+        if len(outputs) > 0 and self.evaluation_loop.num_dataloaders == 1:
+            outputs = outputs[0]
+
+        # lightning module method
+        self.evaluation_loop.evaluation_epoch_end(outputs)
+
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_end()
+
+        # log epoch metrics
+        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
+
+        # hook
+        self.evaluation_loop.on_evaluation_end()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -1082,11 +1136,13 @@ class Trainer(
         # enable train mode again
         self.evaluation_loop.on_evaluation_model_train()
 
+        # reset cached results
+        self.logger_connector.reset()
+
         torch.set_grad_enabled(True)
 
         return eval_loop_results
 
-    # TODO: move inside evaluation loop
     def _track_output_for_epoch_end(self, outputs, output):
         if output is not None:
             if isinstance(output, ResultCollection):
