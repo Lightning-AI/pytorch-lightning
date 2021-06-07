@@ -7,4 +7,4 @@ torchtext>=0.5
 # onnx>=1.7.0
 onnxruntime>=1.3.0
 hydra-core>=1.0
-jsonargparse[signatures]>=3.12.0
+jsonargparse[signatures]>=3.13.1

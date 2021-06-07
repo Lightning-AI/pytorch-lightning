@@ -17,15 +17,13 @@ import queue as q
 import traceback
 from multiprocessing import Process, Queue
 
-import pytorch_lightning as pl
-from pytorch_lightning.utilities.enums import DeviceType
 from pytorch_lightning.utilities.imports import _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
-#: define waiting time got checking TPU available in sec
-TPU_CHECK_TIMEOUT = 25
+# define TPU availability timeout in seconds
+TPU_CHECK_TIMEOUT = 60
 
 
 def inner_f(queue, func, *args, **kwargs):  # pragma: no cover
@@ -105,8 +103,3 @@ class XLADeviceUtils:
             if XLADeviceUtils._TPU_AVAILABLE:
                 os.environ["PL_TPU_AVAILABLE"] = '1'
         return XLADeviceUtils._TPU_AVAILABLE
-
-
-def tpu_training_and_local_rank_zero(trainer: 'pl.Trainer') -> bool:
-    return trainer._device_type == DeviceType.TPU and \
-        trainer.training_type_plugin.local_rank == 0

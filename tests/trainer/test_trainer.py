@@ -36,7 +36,6 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import DeviceType, DistributedType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
@@ -1303,42 +1302,6 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
     log_metrics_mock.assert_has_calls(expected_calls)
-
-
-@pytest.mark.parametrize(['profiler', 'expected'], [
-    (None, PassThroughProfiler),
-    (SimpleProfiler(), SimpleProfiler),
-    (AdvancedProfiler(), AdvancedProfiler),
-    ('simple', SimpleProfiler),
-    ('Simple', SimpleProfiler),
-    ('advanced', AdvancedProfiler),
-    ('pytorch', PyTorchProfiler),
-])
-def test_trainer_profiler_correct_args(profiler, expected):
-    kwargs = {'profiler': profiler} if profiler is not None else {}
-    trainer = Trainer(**kwargs)
-    assert isinstance(trainer.profiler, expected)
-
-
-def test_trainer_profiler_incorrect_str_arg():
-    with pytest.raises(ValueError, match=r".*can only be 'simple', 'advanced' or 'pytorch'"):
-        Trainer(profiler="unknown_profiler")
-
-
-@pytest.mark.parametrize('profiler', (
-    42,
-    [42],
-    dict(a=42),
-    torch.tensor(42),
-    Trainer(),
-))
-def test_trainer_profiler_incorrect_arg_type(profiler):
-    with pytest.raises(
-        MisconfigurationException,
-        match="Only None, str and subclasses of `BaseProfiler`"
-        r" are valid values for `Trainer`'s `profiler` parameter. *"
-    ):
-        Trainer(profiler=profiler)
 
 
 class TestLightningDataModule(LightningDataModule):

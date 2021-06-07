@@ -23,6 +23,7 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.decorators import parameter_validation
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
 from pytorch_lightning.trainer.connectors.data_connector import _PatchDataLoader
@@ -171,6 +172,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         if self.local_rank == 0:
             time.sleep(2)
 
+    @parameter_validation
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
 
@@ -306,3 +308,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # TPU teardown
         os.environ.pop("PT_XLA_DEBUG", None)
         self.barrier("teardown")
+
+    @property
+    def should_rank_save_checkpoint(self) -> bool:
+        return self.local_rank == 0

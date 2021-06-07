@@ -13,15 +13,12 @@
 # limitations under the License.
 """Result class for easier logging and epoch-wise reduction."""
 
-import numbers
 from copy import copy
 from typing import Any, Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Tensor
 from torchmetrics import Metric
-
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
 
 
 class Result(Dict):
@@ -86,28 +83,11 @@ class Result(Dict):
         on_epoch: bool = True,
         reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-        sync_fn: Callable = None,
         dataloader_idx: Optional[int] = None,
-        device: torch.device = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
-
-        # sync across workers when using distributed training
-        sync_fn = sync_fn or sync_ddp_if_available
-
-        if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
-            is_dist_initialized = torch.distributed.is_available() and torch.distributed.is_initialized()
-            # TODO: Find a way to make the reduction only once, so we don't need to clone.
-            if (is_dist_initialized or tpu_distributed()) and isinstance(value, torch.Tensor):
-                value = value.clone()
-            else:
-                value = torch.tensor(value, device=device, dtype=torch.float)
-            value = sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
@@ -480,16 +460,6 @@ class Result(Dict):
 
         result['meta'] = meta
         return result
-
-    def dp_reduce(self):
-        for k, value in self.items():
-            if k == 'meta' or isinstance(value, Metric):
-                continue
-
-            if isinstance(value, list):
-                value = torch.tensor(value)
-
-            self[k] = value.mean(dim=-1)
 
     @property
     def should_reduce_on_epoch_end(self) -> bool:

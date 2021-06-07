@@ -157,7 +157,7 @@ def test_early_stopping_patience_train(
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 
     class ModelOverrideTrainReturn(BoringModel):
-        train_return_values = torch.Tensor(loss_values)
+        train_return_values = torch.tensor(loss_values)
 
         def training_epoch_end(self, outputs):
             loss = self.train_return_values[self.current_epoch]
@@ -169,7 +169,7 @@ def test_early_stopping_patience_train(
         model.validation_step = None
 
     early_stop_callback = EarlyStopping(
-        monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=validation_step_none
+        monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=True
     )
     trainer = Trainer(
         default_root_dir=tmpdir,

@@ -20,7 +20,7 @@ docker image build \
     --build-arg PYTORCH_VERSION=1.8 \
     .
 ```
-or nightly version from Coda
+or nightly version from Conda
 ```bash
 git clone <git-repository>
 docker image build \
