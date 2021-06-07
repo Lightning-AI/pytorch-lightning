@@ -117,7 +117,8 @@ def test_fx_validator(tmpdir):
         # This summarizes where and what is currently possible to log using `self.log`
         is_stage = "train" in func_name or "test" in func_name or "validation" in func_name
         is_start = "start" in func_name or "batch" in func_name
-        on_step = is_stage and is_start
+        is_epoch = "epoch" in func_name
+        on_step = is_stage and not is_start and not is_epoch
         on_epoch = True
         # creating allowed condition
         allowed = (
