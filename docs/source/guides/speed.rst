@@ -10,13 +10,27 @@
 Speed up model training
 #######################
 
-There are multiple ways you can speed up your model.
+There are multiple ways you can speed up your model's time to convergence:
+
+* `<Early stopping_>`_
+
+* `<GPU/TPU training_>`_
+
+* `<Mixed precision (16-bit) training_>`_
+
+* `<Control Training Epochs_>`_
+
+* `<Control Validation Frequency_>`_
+
+* `<Limit Dataset Size_>`_
 
 .. _early_stopping:
 
 **************
 Early stopping
 **************
+
+**Use when:**
 
 .. raw:: html
 
@@ -26,81 +40,49 @@ Early stopping
 
 |
 
-Early stopping based on metric
-==============================
+Early stopping is an optimization technique used to avoid overfitting without compromising the model's accuracy. When training a large network, there will be a point during training when the model will stop generalizing and start learning the statistical noise in the training dataset. To avoid overfitting and reduce training time, unable early stopping to stop training at the point when performance on a validation dataset starts to degrade (you can pick the metric to monitor).
+
+
+Stop training when metric is degrading
+======================================
 The
 :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
 callback can be used to monitor a validation metric and stop the training when no improvement is observed.
 
-To enable it:
+.. testcode::
 
-- Import :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback.
-- Log the metric you want to monitor using :func:`~pytorch_lightning.core.lightning.LightningModule.log` method.
-- Init the callback, and set `monitor` to the logged metric of your choice.
-- Pass the :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback to the :class:`~pytorch_lightning.trainer.trainer.Trainer` callbacks flag.
-
-.. code-block:: python
-
+    # 1. Import EarlyStopping callback
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+    # 2. Log the metric you want to monitor using `self.log` method.
     def validation_step(...):
         self.log('val_loss', loss)
 
-    trainer = Trainer(callbacks=[EarlyStopping(monitor='val_loss')])
+    # 3. Init the callback, and set `monitor` to the logged metric of your choice.
+    early_stop_callback = EarlyStopping(monitor='val_loss');
 
-You can customize the callbacks behaviour by changing its parameters.
+    # 4. Pass the callback to the Trainer `callbacks` flag.
+    trainer = Trainer(callbacks=[early_stop_callback])
+
+
+Stop training based on metric value
+===================================
+You can set a `stopping_threshold` to stop training immediately once the monitored quantity reaches this threshold. It is useful when we know that going beyond a certain optimal value does not further benefit us.
 
 .. testcode::
 
     early_stop_callback = EarlyStopping(
        monitor='val_accuracy',
-       min_delta=0.00,
-       patience=3,
-       verbose=False,
-       mode='max'
+       stopping_threshold=0.98
+
     )
     trainer = Trainer(callbacks=[early_stop_callback])
 
+You can set a `divergence_threshold` to stop training as soon as the monitored quantity is lower than this threshold. When reaching a value this bad, we believe the model cannot recover anymore and it is better to stop early and run with different initial conditions.
 
-Additional parameters that stop training at extreme points:
+You can also set `check_finite` to stop training when the monitored metric becomes NaN or infinite.
 
-- ``stopping_threshold``: Stops training immediately once the monitored quantity reaches this threshold.
-  It is useful when we know that going beyond a certain optimal value does not further benefit us.
-- ``divergence_threshold``: Stops training as soon as the monitored quantity becomes worse than this threshold.
-  When reaching a value this bad, we believe the model cannot recover anymore and it is better to stop early and run with different initial conditions.
-- ``check_finite``: When turned on, we stop training if the monitored metric becomes NaN or infinite.
-
-In case you need early stopping in a different part of training, subclass :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
-and change where it is called:
-
-.. testcode::
-
-    class MyEarlyStopping(EarlyStopping):
-
-        def on_validation_end(self, trainer, pl_module):
-            # override this to disable early stopping at the end of val loop
-            pass
-
-        def on_train_end(self, trainer, pl_module):
-            # instead, do it at the end of training loop
-            self._run_early_stopping_check(trainer, pl_module)
-
-.. note::
-   The :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback runs
-   at the end of every validation epoch,
-   which, under the default configuration, happen after every training epoch.
-   However, the frequency of validation can be modified by setting various parameters
-   in the :class:`~pytorch_lightning.trainer.trainer.Trainer`,
-   for example :paramref:`~pytorch_lightning.trainer.trainer.Trainer.check_val_every_n_epoch`
-   and :paramref:`~pytorch_lightning.trainer.trainer.Trainer.val_check_interval`.
-   It must be noted that the `patience` parameter counts the number of
-   validation epochs with no improvement, and not the number of training epochs.
-   Therefore, with parameters `check_val_every_n_epoch=10` and `patience=3`, the trainer
-   will perform at least 40 training epochs before being stopped.
-
-.. seealso::
-    - :class:`~pytorch_lightning.trainer.trainer.Trainer`
-    - :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+Learn more in the :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` doc.
 
 
 Stopping an epoch early
@@ -112,15 +94,70 @@ If you do this repeatedly, for every epoch you had originally requested, then th
 
 ----------
 
+****************
+GPU/TPU training
+****************
+
+**Use when:** Running large datasets or want to speed up your training.
+
+With Lightning, running on GPUs, TPUs or multiple node is a simple switch of a flag.
+
+GPU training
+============
+
+Lightning supports a variety of plugins to further speed up distributed GPU training. Most notably:
+
+* :class:`~pytorch_lightning.plugins.training_type.DDPPlugin`
+* :class:`~pytorch_lightning.plugins.training_type.DDPShardedPlugin`
+* :class:`~pytorch_lightning.plugins.training_type.DeepSpeedPlugin`
+
+.. testcode::
+
+    # run on 1 gpu
+    trainer = Trainer(gpus=1)
+
+    # train on 8 gpus
+    trainer = Trainer(gpus=8)
+
+    # train on multiple GPUs across nodes (uses 8 gpus in total)
+    trainer = Trainer(gpus=2, num_nodes=4)
+
+
+TPU training
+============
+
+.. testcode::
+
+    # train on 1 TPU core
+    trainer = Trainer(tpu_cores=1)
+
+    # train on 8 TPU cores
+    trainer = Trainer(tpu_cores=8)
+
+To train on more than 8 cores (ie: a POD),
+submit this script using the xla_dist script.
+
+Example::
+
+    python -m torch_xla.distributed.xla_dist
+    --tpu=$TPU_POD_NAME
+    --conda-env=torch-xla-nightly
+    --env=XLA_USE_BF16=1
+    -- python your_trainer_file.py
+
+
+Read more in our :ref:`accelerators` and :ref:`plugins` guides.
+
+
+-----------
+
 .. _amp:
 
 *********************************
 Mixed precision (16-bit) training
 *********************************
 
-Mixed precision is the combined use of both 32 and 16 bit floating points during model training, which reduced memory requirements and improves performance significantly, achiving over 3X speedups on modern GPUs.
-
-Lightning offers mixed precision or 16-bit training for CPUs, GPUs, and TPUs.
+**Use when:**
 
 .. raw:: html
 
@@ -131,97 +168,68 @@ Lightning offers mixed precision or 16-bit training for CPUs, GPUs, and TPUs.
 |
 
 
-16-bit precision on GPUs
-========================
-Mixed or 16-bit precision can cut your memory footprint by half.
-If using volta architecture GPUs it can give a dramatic training speed-up as well.
+Mixed precision is the combined use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
 
-When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision.
+Lightning offers mixed precision or 16-bit training for CPUs, GPUs, and TPUs. 
+
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
 
-    # turn on 16-bit precision
-    trainer = Trainer(precision=16, gpus=1)
+    # 16-bit precision
+    trainer = Trainer(precision=16, gpus=4)
 
-.. admonition:: Using 16-bit precision with PyTorch < 1.6 is not recommended, but supported using apex.
-   :class: dropdown, warning
-
-    NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ to use the native AMP 16-bit precision.
-
-    If you are using an earlier version of PyTorch (before 1.6), Lightning uses `Apex <https://github.com/NVIDIA/apex>`_ to support 16-bit training.
-
-    To use Apex 16-bit training:
-
-    1. Install Apex
-
-    .. code-block:: bash
-
-        # ------------------------
-        # OPTIONAL: on your cluster you might need to load CUDA 10 or 9
-        # depending on how you installed PyTorch
-
-        # see available modules
-        module avail
-
-        # load correct CUDA before install
-        module load cuda-10.0
-        # ------------------------
-
-        # make sure you've loaded a cuda version > 4.0 and < 7.0
-        module load gcc-6.1.0
-
-        $ pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
-
-    2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
-
-    .. testcode::
-        :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
-
-        # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level='O2', precision=16)
-
-    If you need to configure the apex init for your particular use case, or want to ucustumize the
-    16-bit training behviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
-
-16-bit precision on TPUs
-========================
-To use 16-bit precision on TPUs simply set the number of tpu cores, and set `precision` trainer flag to 16.
-
-.. testcode::
-    :skipif: not _TPU_AVAILABLE
-
-    # DEFAULT
-    trainer = Trainer(tpu_cores=8, precision=32)
-
-    # turn on 16-bit
-    trainer = Trainer(tpu_cores=8, precision=16)
 
 ----------------
 
 
 ***********************
-Control Training epochs
+Control Training Epochs
 ***********************
 
-It can be useful to force training for a minimum number of epochs or limit to a max number of epochs. Use the `min_epochs` and `max_epochs` Trainer flags to set the number of epochs to run.
+**Use when:**
 
-.. seealso:: :class:`~pytorch_lightning.trainer.trainer.Trainer`
+It can be useful to force training for a minimum number of epochs or limit to a max number of epochs. Use the `min_epochs` and `max_epochs` Trainer flags to set the number of epochs to run.
 
 .. testcode::
 
     # DEFAULT
     trainer = Trainer(min_epochs=1, max_epochs=1000)
 
+
+You can also control the number of steos with the `min_steps` and  `max_steps` flags:
+
+.. testcode::
+
+    trainer = Trainer(max_steps=1000)
+
+    trainer = Trainer(min_steps=100)
+
+You can also interupt training based on training time:
+
+.. testcode::
+    
+    # Stop after 12 hours of training or when reaching 10 epochs (string)
+    trainer = Trainer(max_time="00:12:00:00", max_epochs=10)
+
+    # Stop after 1 day and 5 hours (dict)
+    trainer = Trainer(max_time={"days": 1, "hours": 5})
+
+Learn more in our :ref:`trainer_flags` guide.
+
+
 ----------------
 
 ****************************
-Control validation frequency
+Control Validation Frequency
 ****************************
 
 Check validation every n epochs
 ===============================
-If you have a small dataset, you might want to check validation every n epochs. Use the `check_val_every_n_epoch` Trainer flag.
+
+**Use when:** You have a small dataset, and want to run less validation checks.
+
+You can limit validation check to only run every n epochs using the `check_val_every_n_epoch` Trainer flag.
 
 .. testcode::
 
@@ -231,6 +239,9 @@ If you have a small dataset, you might want to check validation every n epochs. 
 
 Set validation check frequency within 1 training epoch
 ======================================================
+
+**Use when:** You have a large dataset, and want to run mid-epoch validation checks.
+
 For large datasets, it's often desirable to check validation multiple times within a training loop.
 Pass in a float to check that often within 1 training epoch. Pass in an int `k` to check every `k` training batches.
 Must use an `int` if using an `IterableDataset`.
@@ -246,15 +257,20 @@ Must use an `int` if using an `IterableDataset`.
     # check every 100 train batches (ie: for `IterableDatasets` or fixed frequency)
     trainer = Trainer(val_check_interval=100)
 
+Learn more in our :ref:`trainer_flags` guide.
+
 ----------------
 
 ******************
-Limit dataset size
+Limit Dataset Size
 ******************
 
 Use data subset for training, validation, and test
 ==================================================
-If you don't want to check 100% of the training/validation/test set (for debugging or if it's huge), set these flags.
+
+**Use when:** Debugging or running huge datasets.
+
+If you don't want to check 100% of the training/validation/test set set these flags:
 
 .. testcode::
 
@@ -277,3 +293,7 @@ If you also pass ``shuffle=True`` to the dataloader, a different random subset o
 .. note:: ``limit_train_batches``, ``limit_val_batches`` and ``limit_test_batches`` will be overwritten by ``overfit_batches`` if ``overfit_batches`` > 0. ``limit_val_batches`` will be ignored if ``fast_dev_run=True``.
 
 .. note:: If you set ``limit_val_batches=0``, validation will be disabled.
+
+Learn more in our :ref:`trainer_flags` guide.
+
+
