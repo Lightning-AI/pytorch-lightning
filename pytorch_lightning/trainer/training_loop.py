@@ -15,7 +15,7 @@
 from collections import OrderedDict
 from contextlib import contextmanager, suppress
 from functools import partial, update_wrapper
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -100,8 +100,7 @@ class TrainLoop:
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
-        # hook
-        self.trainer.logger_connector.on_train_start()
+        self.trainer.result_collection.device = self.trainer.lightning_module.device
         self.trainer.call_hook("on_train_start")
 
     def on_train_end(self):
@@ -169,6 +168,7 @@ class TrainLoop:
         self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
 
         # hook
+        self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
@@ -180,6 +180,7 @@ class TrainLoop:
         # hook
         self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, batch_idx, dataloader_idx)
         self.trainer.call_hook('on_batch_end')
+        self.trainer.logger_connector.on_batch_end()
 
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)
@@ -261,6 +262,16 @@ class TrainLoop:
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
+        elif self.trainer.lightning_module.automatic_optimization:
+            if not any((
+                isinstance(training_step_output, torch.Tensor),
+                (isinstance(training_step_output, Mapping)
+                 and 'loss' in training_step_output), training_step_output is None
+            )):
+                raise MisconfigurationException(
+                    "In automatic optimization, `training_step` must either return a Tensor, "
+                    "a dict with key 'loss' or None (where the step will be skipped)."
+                )
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
@@ -533,7 +544,7 @@ class TrainLoop:
 
     def on_train_epoch_end(self, epoch_output: List[List[List['ResultCollection']]]) -> None:
         # inform logger the batch loop has finished
-        self.trainer.logger_connector.on_train_epoch_end()
+        self.trainer.logger_connector.epoch_end_reached()
 
         # prepare epoch output
         processed_epoch_output = TrainLoop._prepare_outputs(epoch_output, batch_mode=False)
@@ -556,6 +567,7 @@ class TrainLoop:
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_epoch_output)
         self.trainer.call_hook('on_epoch_end')
+        self.trainer.logger_connector.on_epoch_end()
 
     def _on_train_epoch_end_hook(self, processed_epoch_output) -> None:
         # We cannot rely on Trainer.call_hook because the signatures might be different across
@@ -588,17 +600,15 @@ class TrainLoop:
                 else:
                     model_ref.on_train_epoch_end()
 
-            # if the PL module doesn't have the hook then call the accelerator
-            # used to auto-reduce things for the user with Results obj
-            elif hasattr(self.trainer.accelerator, hook_name):
+            # call the accelerator hook
+            if hasattr(self.trainer.accelerator, hook_name):
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
 
         self.trainer.lightning_module._current_fx_name = None
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
-        # track grad norms
-        grad_norm_dict = {}
+        model_ref = self.trainer.lightning_module
 
         # bookkeeping
         self._hiddens = None
@@ -612,19 +622,19 @@ class TrainLoop:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(
                 signal=0,
-                grad_norm_dict={},
                 training_step_output=batch_outputs,
             )
 
         # hook
+        self.trainer.logger_connector.on_batch_start()
         response = self.trainer.call_hook("on_batch_start")
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dict={})
+            return AttributeDict(signal=-1)
 
         # hook
         response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dict={})
+            return AttributeDict(signal=-1)
 
         # lightning module hook
         splits = self._tbptt_split_batch(batch)
@@ -633,14 +643,13 @@ class TrainLoop:
             self.split_idx = split_idx
 
             # let logger connector extract batch size
-            self.trainer.logger_connector.on_train_split_start(batch_idx, split_batch)
+            self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
-            if self.trainer.lightning_module.automatic_optimization:
+            if model_ref.automatic_optimization:
                 for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                     result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                     if result:
                         batch_outputs[opt_idx].append(result.training_step_output)
-                        grad_norm_dict = result.get("grad_norm_dict", {})
             else:
                 # in manual optimization, there is no looping over optimizers
                 result = self._run_optimization(batch_idx, split_batch)
@@ -649,7 +658,6 @@ class TrainLoop:
 
         return AttributeDict(
             signal=0,
-            grad_norm_dict=grad_norm_dict,
             training_step_output=batch_outputs,
         )
 
@@ -804,7 +812,10 @@ class TrainLoop:
 
         if not self.should_accumulate():
             # track gradients
-            result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
+            grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
+            if grad_norm_dict:
+                self.trainer.lightning_module._current_fx_name = "on_after_backward"
+                self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
 
     def update_lr_schedulers(self, interval: str) -> None:
         if interval == "step":

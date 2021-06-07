@@ -23,6 +23,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -117,7 +118,8 @@ def test_fx_validator(tmpdir):
         # This summarizes where and what is currently possible to log using `self.log`
         is_stage = "train" in func_name or "test" in func_name or "validation" in func_name
         is_start = "start" in func_name or "batch" in func_name
-        on_step = is_stage and is_start
+        is_epoch = "epoch" in func_name
+        on_step = is_stage and not is_start and not is_epoch
         on_epoch = True
         # creating allowed condition
         allowed = (
@@ -355,15 +357,15 @@ def test_metrics_reset(tmpdir):
             acc.reset.assert_called_once()
             ap.reset.assert_called_once()
 
-        def on_train_end(self):
-            self._assert_epoch_end('train')
-
-        def on_validation_end(self):
-            if not self.trainer.sanity_checking:
+        def teardown(self, stage):
+            if stage == TrainerFn.FITTING:
+                self._assert_epoch_end('train')
                 self._assert_epoch_end('val')
 
-        def on_test_end(self):
-            if not self.trainer.sanity_checking:
+            elif stage == TrainerFn.VALIDATING:
+                self._assert_epoch_end('val')
+
+            elif stage == TrainerFn.TESTING:
                 self._assert_epoch_end('test')
 
     def _assert_called(model, stage):
@@ -470,7 +472,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
     assert result_collection["training_step.loss_1_0_0"].value == sum(total_value)
     assert result_collection["training_step.loss_1_0_0"].cumulated_batch_size == sum(excepted_batches)
 
-    batch_metrics = result_collection.get_batch_metrics()
+    batch_metrics = result_collection.metrics(True)
 
     expected = {
         'loss_1_1_0_step': torch.tensor([9.]),
@@ -504,9 +506,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
     }
     assert batch_metrics[MetricSource.CALLBACK] == excepted
 
-    result_collection.on_epoch_end_reached = True
-
-    epoch_metrics = result_collection.get_epoch_metrics()
+    epoch_metrics = result_collection.metrics(False)
 
     mean = (torch.tensor(excepted_values) * torch.tensor(excepted_batches)).sum() / sum(excepted_batches)
 

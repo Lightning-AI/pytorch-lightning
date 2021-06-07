@@ -13,22 +13,23 @@
 # limitations under the License.
 import os
 from pprint import pprint
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Mapping, Optional
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities import AttributeDict, DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 
 class LoggerConnector:
 
-    def __init__(self, trainer, log_gpu_memory: Optional[str] = None):
+    def __init__(self, trainer: 'pl.Trainer', log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self.eval_loop_results = []
@@ -37,25 +38,31 @@ class LoggerConnector:
         self._progress_bar_metrics: Dict[str, float] = {}
         self._logged_metrics: Dict[str, _METRIC] = {}
         self._callback_metrics: Dict[str, _METRIC] = {}
+        self._epoch_end_reached = False
+        self._current_fx: Optional[str] = None
+        self._batch_idx: Optional[int] = None
+        self._split_idx: Optional[int] = None
 
-    def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
-        # logging
+    def on_trainer_init(
+        self, logger: LightningLoggerBase, flush_logs_every_n_steps: int, log_every_n_steps: int,
+        move_metrics_to_cpu: bool
+    ) -> None:
         self.configure_logger(logger)
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
 
     @property
-    def should_flush_logs(self):
+    def should_flush_logs(self) -> bool:
         should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
         return should_flush or self.trainer.should_stop
 
     @property
-    def should_update_logs(self):
+    def should_update_logs(self) -> bool:
         should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
         return should_log_every_n_steps or self.trainer.should_stop
 
-    def configure_logger(self, logger):
+    def configure_logger(self, logger: LightningLoggerBase) -> None:
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
 
@@ -71,14 +78,13 @@ class LoggerConnector:
             else:
                 self.trainer.logger = logger
 
-    def log_metrics(self, metrics, grad_norm_dict, step=None):
+    def log_metrics(self, metrics: Dict[str, _METRIC], step: Optional[int] = None) -> None:
         """Logs the metric dict passed in.
         If `step` parameter is None and `step` key is presented is metrics,
         uses metrics["step"] as a step
 
         Args:
-            metrics (dict): Metric values
-            grad_norm_dict (dict): Gradient norms
+            metrics: Metric values
             step (int): Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
@@ -86,9 +92,6 @@ class LoggerConnector:
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             metrics.update(mem_map)
-
-        # add norms
-        metrics.update(grad_norm_dict)
 
         # turn all tensors to scalars
         scalar_metrics = metrics_to_scalars(metrics)
@@ -113,13 +116,7 @@ class LoggerConnector:
     Evaluation metric updates
     """
 
-    def evaluation_epoch_end(self):
-        # reset dataloader idx
-        model_ref = self.trainer.lightning_module
-        model_ref._current_dataloader_idx = None
-        self.trainer.result_collection.on_epoch_end_reached = True
-
-    def prepare_eval_loop_results(self, metrics: Dict[str, _METRIC]) -> None:
+    def prepare_eval_loop_results(self, metrics: Mapping[str, _METRIC]) -> None:
         if self.trainer.sanity_checking:
             return
 
@@ -137,16 +134,16 @@ class LoggerConnector:
                 self.eval_loop_results.append(callback_metrics)
 
     def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
-        metrics = self.trainer.result_collection.get_metrics(False)
-        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
+        assert self._epoch_end_reached
+        metrics = self.metrics
 
         if not self.trainer.sanity_checking:
             # log all the metrics as a single dict
-            metrics_to_log = metrics[MetricSource.LOG]
-            if metrics_to_log:
-                self.log_metrics(metrics_to_log, {})
+            log_metrics = metrics[MetricSource.LOG]
+            if log_metrics:
+                self.log_metrics(log_metrics)
 
-        self.prepare_eval_loop_results(self.callback_metrics)
+        self.prepare_eval_loop_results(metrics[MetricSource.CALLBACK])
 
         # log results of evaluation
         if (
@@ -163,7 +160,6 @@ class LoggerConnector:
                 print('-' * 80)
 
         results = self.eval_loop_results
-
         # clear mem
         self.eval_loop_results = []
         return results
@@ -183,9 +179,6 @@ class LoggerConnector:
         elif self.trainer.state.stage is RunningStage.TESTING:
             self._test_log_step += 1
 
-    def on_evaluation_start(self) -> None:
-        self.trainer.result_collection.device = self.trainer.lightning_module.device
-
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
         model = self.trainer.lightning_module
         # set dataloader_idx only if multiple ones
@@ -193,20 +186,17 @@ class LoggerConnector:
 
         # track batch_size
         self.trainer.result_collection.extract_batch_size(batch)
-        self.trainer.result_collection.batch_idx = batch_idx
+        self._batch_idx = batch_idx
 
     def update_evaluation_step_metrics(self) -> None:
-        metrics = self.trainer.result_collection.metrics
-        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
-        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
-
         if self.trainer.sanity_checking:
             return
 
         # logs user requested information to logger
-        batch_log_metrics = metrics[MetricSource.LOG]
-        if batch_log_metrics:
-            self.log_metrics(batch_log_metrics, {}, step=self.evaluation_log_step)
+        assert not self._epoch_end_reached
+        metrics = self.metrics[MetricSource.LOG]
+        if metrics:
+            self.log_metrics(metrics, step=self.evaluation_log_step)
 
         # increment the step even if nothing was logged
         self.increment_evaluation_log_step()
@@ -215,42 +205,29 @@ class LoggerConnector:
     Train metric updates
     """
 
-    def on_train_start(self) -> None:
-        self.trainer.result_collection.device = self.trainer.lightning_module.device
-
-    def on_train_split_start(self, batch_idx: int, split_batch: Any) -> None:
+    def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
         self.trainer.result_collection.extract_batch_size(split_batch)
-        self.trainer.result_collection.batch_idx = batch_idx
+        self._batch_idx = batch_idx
+        self._split_idx = split_idx
 
-    def update_train_step_metrics(self, batch_output):
-        metrics = self.trainer.result_collection.metrics
-        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
-        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
-
+    def update_train_step_metrics(self, batch_output: AttributeDict) -> None:
         if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
         # when metrics should be logged
-        batch_log_metrics = metrics[MetricSource.LOG]
+        assert not self._epoch_end_reached
+        metrics = self.metrics[MetricSource.LOG]
         if self.should_update_logs or self.trainer.fast_dev_run is True:
             # logs user requested information to logger
-            grad_norm_dict = batch_output.grad_norm_dict or {}
-            if batch_log_metrics or grad_norm_dict:
-                self.log_metrics(batch_log_metrics, grad_norm_dict)
-
-    def on_train_epoch_end(self):
-        # inform cached logger connector epoch finished
-        self.trainer.result_collection.on_epoch_end_reached = True
+            if metrics:
+                self.log_metrics(metrics)
 
     def update_train_epoch_metrics(self) -> None:
-        metrics = self.trainer.result_collection.metrics
-        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
-        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
-
         # add the metrics to the loggers
-        epoch_log_metrics = metrics[MetricSource.LOG]
-        if epoch_log_metrics:
-            self.log_metrics(epoch_log_metrics, {})
+        assert self._epoch_end_reached
+        metrics = self.metrics[MetricSource.LOG]
+        if metrics:
+            self.log_metrics(metrics)
 
         # reset result collection for next epoch
         self.trainer.result_collection.reset(metrics=True)
@@ -259,23 +236,69 @@ class LoggerConnector:
     Utilities and properties
     """
 
+    def on_epoch_start(self) -> None:
+        self._epoch_end_reached = False
+
+    def on_batch_start(self) -> None:
+        self._epoch_end_reached = False
+
+    def epoch_end_reached(self):
+        self.trainer.logger_connector._epoch_end_reached = True
+        self.trainer.logger_connector._batch_idx = None
+        self.trainer.logger_connector._split_idx = None
+
+    def on_epoch_end(self) -> None:
+        assert self._epoch_end_reached
+        metrics = self.metrics
+        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
+        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
+        self._logged_metrics.update(metrics[MetricSource.LOG])
+        self._current_fx = None
+
+    def on_batch_end(self) -> None:
+        assert not self._epoch_end_reached
+        metrics = self.metrics
+        self._progress_bar_metrics.update(metrics[MetricSource.PBAR])
+        self._callback_metrics.update(metrics[MetricSource.CALLBACK])
+        self._logged_metrics.update(metrics[MetricSource.LOG])
+
+    def should_reset_tensors(self, fx: str) -> bool:
+        is_different_fx = self._current_fx != fx
+        if self._split_idx is None:
+            is_first_batch = self._batch_idx in (None, 0)
+        else:
+            is_first_batch = self._batch_idx + self._split_idx == 0
+        return is_different_fx and is_first_batch
+
+    def reset(self, metrics: Optional[bool] = None) -> None:
+        self.trainer.result_collection.reset(metrics=metrics)
+        self._batch_idx = None
+        self._split_idx = None
+        self._current_fx = None
+
+    @property
+    def metrics(self) -> Dict[MetricSource, Dict[str, _METRIC]]:
+        """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
+        on_step = not self._epoch_end_reached
+        return self.trainer.result_collection.metrics(on_step)
+
     @property
     def callback_metrics(self) -> Dict[str, _METRIC]:
         if self.trainer.result_collection:
-            metrics = self.trainer.result_collection.metrics[MetricSource.CALLBACK]
+            metrics = self.metrics[MetricSource.CALLBACK]
             self._callback_metrics.update(metrics)
         return self._callback_metrics
 
     @property
     def logged_metrics(self) -> Dict[str, _METRIC]:
         if self.trainer.result_collection:
-            metrics = self.trainer.result_collection.metrics[MetricSource.LOG]
+            metrics = self.metrics[MetricSource.LOG]
             self._logged_metrics.update(metrics)
         return self._logged_metrics
 
     @property
     def progress_bar_metrics(self) -> Dict[str, float]:
         if self.trainer.result_collection:
-            metrics = self.trainer.result_collection.metrics[MetricSource.PBAR]
+            metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics

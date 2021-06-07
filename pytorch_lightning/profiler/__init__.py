@@ -194,14 +194,16 @@ Or::
     python -c 'import torch; print(torch.autograd.profiler.load_nvprof("trace_name.prof"))'
 
 """
-
-from pytorch_lightning.profiler.profilers import AdvancedProfiler, BaseProfiler, PassThroughProfiler, SimpleProfiler
+from pytorch_lightning.profiler.advanced import AdvancedProfiler
+from pytorch_lightning.profiler.base import AbstractProfiler, BaseProfiler, PassThroughProfiler
 from pytorch_lightning.profiler.pytorch import PyTorchProfiler
+from pytorch_lightning.profiler.simple import SimpleProfiler
 
 __all__ = [
+    'AbstractProfiler',
     'BaseProfiler',
-    'SimpleProfiler',
     'AdvancedProfiler',
     'PassThroughProfiler',
-    "PyTorchProfiler",
+    'PyTorchProfiler',
+    'SimpleProfiler',
 ]
