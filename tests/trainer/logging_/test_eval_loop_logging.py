@@ -360,12 +360,7 @@ def test_log_works_in_val_callback(tmpdir):
         def on_epoch_start(self, trainer, pl_module):
             if trainer.validating:
                 self.make_logging(
-                    pl_module,
-                    'on_epoch_start',
-                    2,
-                    on_steps=self.choices,
-                    on_epochs=[True],
-                    prob_bars=self.choices
+                    pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
                 )
 
         def on_validation_epoch_start(self, trainer, pl_module):
@@ -400,12 +395,7 @@ def test_log_works_in_val_callback(tmpdir):
 
         def on_validation_epoch_end(self, trainer, pl_module):
             self.make_logging(
-                pl_module,
-                'on_validation_epoch_end',
-                9,
-                on_steps=[False],
-                on_epochs=[True],
-                prob_bars=self.choices
+                pl_module, 'on_validation_epoch_end', 9, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
     class TestModel(BoringModel):

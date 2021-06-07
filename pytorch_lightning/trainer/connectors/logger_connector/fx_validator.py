@@ -43,8 +43,11 @@ class FxValidator:
         on_train_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
         on_validation_epoch_start=dict(on_step=(False, True), on_epoch=(True, )),
         on_validation_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
-        on_test_epoch_start=dict(on_step=(False, True), on_epoch=(False, True, )),
-        on_test_epoch_end=dict(on_step=(False, ), on_epoch=(True,)),
+        on_test_epoch_start=dict(on_step=(False, True), on_epoch=(
+            False,
+            True,
+        )),
+        on_test_epoch_end=dict(on_step=(False, ), on_epoch=(True, )),
         on_predict_epoch_start=None,
         on_predict_epoch_end=None,
         on_epoch_start=dict(on_step=(False, True), on_epoch=(True, )),
