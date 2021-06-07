@@ -64,6 +64,8 @@ class LitClassifier(pl.LightningModule):
         return acc
 
     def validation_epoch_end(self, outputs) -> None:
+        # since the training step/validation step and test step are run on the IPU device
+        # we must log the average loss outside the step functions.
         self.log('val_acc', torch.stack(outputs).mean(), prog_bar=True)
 
     def test_epoch_end(self, outputs) -> None:
