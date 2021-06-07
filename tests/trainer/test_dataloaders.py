@@ -1679,7 +1679,7 @@ def test_request_dataloader(tmpdir):
     pytest.param(8, 4, 2, 1, 0.5),
 ])
 def test_progress_bar_max_val_check_interval(
-    total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval
+    total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval, tmpdir
 ):
 
     world_size = 2
@@ -1689,7 +1689,7 @@ def test_progress_bar_max_val_check_interval(
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         max_epochs=1,
         weights_summary=None,
