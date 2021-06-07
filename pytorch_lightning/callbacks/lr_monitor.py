@@ -170,10 +170,9 @@ class LearningRateMonitor(Callback):
         This function is used the remap the keys if param groups for a given optimizer increased.
         """
         for new_name in names:
-            old_n = new_name.replace(token, '')
-            if token in new_name and old_n in self.lrs:
-                self.lrs[new_name] = self.lrs[old_n]
-                del self.lrs[old_n]
+            old_name = new_name.replace(token, '')
+            if token in new_name and old_name in self.lrs:
+                self.lrs[new_name] = self.lrs.pop(old_name)
             elif new_name not in self.lrs:
                 self.lrs[new_name] = []
 
