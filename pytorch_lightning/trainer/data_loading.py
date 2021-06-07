@@ -51,6 +51,7 @@ class TrainerDataLoadingMixin(ABC):
     test_dataloaders: Optional[List[DataLoader]]
     num_test_batches: List[Union[int, float]]
     limit_train_batches: Union[int, float]
+    log_every_n_steps: int
     overfit_batches: Union[int, float]
     distributed_sampler_kwargs: dict
     accelerator: Accelerator
@@ -301,6 +302,13 @@ class TrainerDataLoadingMixin(ABC):
             else:
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
+
+        if self.logger and self.num_training_batches < self.log_every_n_steps:
+            rank_zero_warn(
+                f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
+                f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
+                f" you want to see logs for the training epoch."
+            )
 
     def _reset_eval_dataloader(
         self,
