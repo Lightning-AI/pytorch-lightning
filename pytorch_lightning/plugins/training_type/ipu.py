@@ -23,12 +23,12 @@ if _POPTORCH_AVAILABLE:
 
 class LightningIPUModule(_LightningModuleWrapperBase):
 
-    def __init__(self, pl_module: LightningModule, precision: int):
+    def __init__(self, pl_module: LightningModule, precision: Union[str, int]):
         super().__init__(pl_module)
         self.precision = precision
 
     def forward(self, *inputs, **kwargs):
-        if self.precision == 16:
+        if self.precision in ("mixed", 16):
             inputs = self._move_float_tensors_to_half(inputs)
 
         return super().forward(*inputs, **kwargs)
@@ -98,7 +98,7 @@ class IPUPlugin(ParallelPlugin):
         if self.convert_model_to_half:
             log.info('Using full 16bit precision, converting LightningModule weights to FP16.')
             self.model = self.model.half()
-        precision = self.lightning_module.trainer.accelerator.precision_plugin.precision
+        precision = self.lightning_module.trainer.precision
         precision = 16 if self.convert_model_to_half else precision
 
         model = LightningIPUModule(self.lightning_module, precision)
