@@ -55,7 +55,12 @@ callback can be used to monitor a validation metric and stop the training when n
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
     # 2. Log the metric you want to monitor using `self.log` method.
-    def validation_step(...):
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        z = self.encoder(x)
+        x_hat = self.decoder(z)
+        loss = F.mse_loss(x_hat, x)
+
         self.log('val_loss', loss)
 
     # 3. Init the callback, and set `monitor` to the logged metric of your choice.
