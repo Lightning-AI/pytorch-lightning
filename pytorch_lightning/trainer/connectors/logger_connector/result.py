@@ -261,10 +261,7 @@ class ResultCollection(dict):
 
         def check_fn(v):
             if v.grad_fn is not None:
-                raise MisconfigurationException(
-                    'You passed a tensor with `grad_fn` when calling `self.log()`.'
-                    f' The extra values are {extra}'
-                )
+                raise MisconfigurationException(f'You returned a tensor with `grad_fn`. The extra values are {extra}')
 
         apply_to_collection(extra, torch.Tensor, check_fn)
         self['_extra'] = extra

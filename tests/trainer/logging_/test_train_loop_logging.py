@@ -755,7 +755,7 @@ def test_logging_raises(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match='You passed a tensor with `grad_fn`'):
+    with pytest.raises(MisconfigurationException, match='You returned a tensor with `grad_fn`'):
         trainer.fit(model)
 
     class TestModel(BoringModel):
