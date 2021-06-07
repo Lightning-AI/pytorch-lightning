@@ -100,8 +100,7 @@ class TrainLoop:
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
-        # hook
-        self.trainer.logger_connector.on_train_start()
+        self.trainer.result_collection.device = self.trainer.lightning_module.device
         self.trainer.call_hook("on_train_start")
 
     def on_train_end(self):
@@ -169,6 +168,7 @@ class TrainLoop:
         self.accumulated_loss = TensorRunningAccum(window_length=self.trainer.accumulate_grad_batches)
 
         # hook
+        self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
@@ -180,6 +180,7 @@ class TrainLoop:
         # hook
         self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, batch_idx, dataloader_idx)
         self.trainer.call_hook('on_batch_end')
+        self.trainer.logger_connector.on_batch_end()
 
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)
@@ -533,7 +534,7 @@ class TrainLoop:
 
     def on_train_epoch_end(self, epoch_output: List[List[List['ResultCollection']]]) -> None:
         # inform logger the batch loop has finished
-        self.trainer.logger_connector.on_train_epoch_end()
+        self.trainer.logger_connector._epoch_end_reached = True
 
         # prepare epoch output
         processed_epoch_output = TrainLoop._prepare_outputs(epoch_output, batch_mode=False)
@@ -556,6 +557,7 @@ class TrainLoop:
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_epoch_output)
         self.trainer.call_hook('on_epoch_end')
+        self.trainer.logger_connector.on_epoch_end()
 
     def _on_train_epoch_end_hook(self, processed_epoch_output) -> None:
         # We cannot rely on Trainer.call_hook because the signatures might be different across

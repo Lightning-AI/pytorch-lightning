@@ -470,7 +470,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
     assert result_collection["training_step.loss_1_0_0"].value == sum(total_value)
     assert result_collection["training_step.loss_1_0_0"].cumulated_batch_size == sum(excepted_batches)
 
-    batch_metrics = result_collection.get_batch_metrics()
+    batch_metrics = result_collection.metrics(True)
 
     expected = {
         'loss_1_1_0_step': torch.tensor([9.]),
@@ -504,9 +504,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
     }
     assert batch_metrics[MetricSource.CALLBACK] == excepted
 
-    result_collection.on_epoch_end_reached = True
-
-    epoch_metrics = result_collection.get_epoch_metrics()
+    epoch_metrics = result_collection.metrics(False)
 
     mean = (torch.tensor(excepted_values) * torch.tensor(excepted_batches)).sum() / sum(excepted_batches)
 

@@ -376,6 +376,10 @@ class LightningModule(
 
         value = apply_to_collection(value, numbers.Number, self.__to_float)
 
+        if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
+            # when restarting an new epoch, reset the tensors
+            result_collection.reset(metrics=False, fx=self._current_fx_name)
+
         result_collection.log(
             self._current_fx_name,
             name,
@@ -394,6 +398,8 @@ class LightningModule(
             sync_dist_op=sync_dist_op,
             sync_dist_group=sync_dist_group,
         )
+
+        self.trainer.logger_connector._current_fx = self._current_fx_name
 
     def log_dict(
         self,

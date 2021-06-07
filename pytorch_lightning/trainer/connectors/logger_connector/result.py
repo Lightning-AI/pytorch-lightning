@@ -211,15 +211,6 @@ class ResultCollection(dict):
         # arguments: fx, key, value, metadata
         result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
         result.log('validation_step', 'recall', torch.tensor(...), on_step=True, on_epoch=True)
-
-        for epoch in epochs:
-            for batch_idx, batch in enumerate(dataloader):
-                # the batch_idx is used to reset the tensor metrics
-                result.batch_idx = batch_idx
-                result.log('training_step', 'acc', torch.tensor(...), on_step=True, on_epoch=True)
-
-            result.on_epoch_end_reached = True  # indicate epoch end has been reached
-            result.log('training_epoch_end', 'acc', torch.tensor(...), on_step=False, on_epoch=True)`
     """
 
     DATALOADER_SUFFIX = "/dataloader_idx_{}"
@@ -227,11 +218,8 @@ class ResultCollection(dict):
     def __init__(self, training: bool, device: Optional[torch.device] = None) -> None:
         super().__init__()
         self.training = training
-        self._on_epoch_end_reached = False
         self._minimize = None
-        self._current_fx: Optional[str] = None
         self._batch_size = torch.tensor(1, device=device)
-        self.batch_idx: Optional[int] = None
         self.device: Optional[torch.device] = device
         self.fx_validator = FxValidator()
 
@@ -243,20 +231,6 @@ class ResultCollection(dict):
     @batch_size.setter
     def batch_size(self, value: int) -> None:
         self._batch_size = torch.tensor(value, device=self.device)
-
-    @property
-    def on_epoch_end_reached(self) -> bool:
-        return self._on_epoch_end_reached
-
-    @on_epoch_end_reached.setter
-    def on_epoch_end_reached(self, on_epoch_end_reached):
-        self._on_epoch_end_reached = on_epoch_end_reached
-        self.batch_idx = None
-
-    @property
-    def metrics(self) -> Dict[str, _METRIC_COLLECTION]:
-        """This function returns either batch or epoch metrics depending on ``on_epoch_end_reached``."""
-        return self.get_epoch_metrics() if self.on_epoch_end_reached else self.get_batch_metrics()
 
     @property
     def minimize(self) -> Optional[torch.Tensor]:
@@ -324,12 +298,6 @@ class ResultCollection(dict):
         if isinstance(value, torch.Tensor) and value.device.type == "xla":
             value = value.cpu()
 
-        if on_step and self.on_epoch_end_reached:
-            # `FxValidator` should avoid this ever happening. Either a bug there or a bug in the logic order.
-            raise RuntimeError(
-                "Logging `on_step` when `on_epoch_end_reached` isn't allowed. This shouldn't have happened."
-            )
-
         # storage key
         key = f"{fx}.{name}"
         # add dataloader_suffix to both key and fx
@@ -367,15 +335,10 @@ class ResultCollection(dict):
                 f'You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed'
             )
 
-        if self.should_reset_tensors(fx):
-            # when restarting an new epoch, reset the tensors
-            self._reset(fx, metrics=False)
-
         if batch_size is not None:
             self.batch_size = batch_size
 
         self.update_metrics(key, value)
-        self._current_fx = fx
 
     def register_key(self, key: str, meta: _Metadata, value: _METRIC_COLLECTION) -> None:
         """Create one ResultMetric object per value. Value can be provided as a nested collection"""
@@ -388,10 +351,6 @@ class ResultCollection(dict):
         if isinstance(value, dict):
             value = ResultMetricCollection(value, metadata=meta)
         self[key] = value
-
-    def should_reset_tensors(self, fx: str) -> bool:
-        # reset tensor metrics only when the hook changed and reloading the dataloader
-        return self._current_fx != fx and self.batch_idx in (None, 0)
 
     def update_metrics(self, key: str, value: _METRIC_COLLECTION) -> None:
 
@@ -434,7 +393,7 @@ class ResultCollection(dict):
             forked_name += dataloader_suffix
         return name, forked_name
 
-    def get_metrics(self, on_step: bool) -> Dict[MetricSource, Dict[str, _METRIC]]:
+    def metrics(self, on_step: bool) -> Dict[MetricSource, Dict[str, _METRIC]]:
         metrics = {k: {} for k in MetricSource}
 
         for key, result_metric in self.valid_items():
@@ -473,13 +432,16 @@ class ResultCollection(dict):
 
         return metrics
 
-    def get_batch_metrics(self) -> Dict[str, _METRIC_COLLECTION]:
-        return self.get_metrics(on_step=True)
+    def reset(self, metrics: Optional[bool] = None, fx: Optional[str] = None) -> None:
+        """
+        Reset the result collection
 
-    def get_epoch_metrics(self) -> Dict[str, _METRIC_COLLECTION]:
-        return self.get_metrics(on_step=False)
-
-    def _reset(self, fx: Optional[str] = None, metrics: Optional[bool] = None) -> None:
+        Args:
+            metrics: If True, only ``torchmetrics.Metric`` results are reset,
+                if False, only ``torch.Tensors`` are reset,
+                if ``None``, both are.
+            fx: Function to reset
+        """
 
         def fn(item: ResultMetric) -> None:
             requested_type = metrics is None or metrics ^ item.is_tensor
@@ -488,19 +450,6 @@ class ResultCollection(dict):
                 item.reset()
 
         apply_to_collection(self, ResultMetric, fn)
-
-    def reset(self, metrics: Optional[bool] = None) -> None:
-        """
-        Reset the result collection
-
-        Args:
-            metrics: If True, only ``torchmetrics.Metric`` results are reset,
-                if False, only ``torch.Tensors`` are reset,
-                if ``None``, both are.
-        """
-        self._reset(metrics=metrics)
-        self.on_epoch_end_reached = False
-        self._current_fx = None
 
     def extract_batch_size(self, batch: Any) -> None:
         try:

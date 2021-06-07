@@ -1010,11 +1010,11 @@ class Trainer(
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
-        # log epoch metrics
-        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
-
         # hook
         self.evaluation_loop.on_evaluation_end()
+
+        # log epoch metrics
+        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -1114,7 +1114,7 @@ class Trainer(
             self.on_sanity_check_end()
 
             # reset validation metrics
-            self.result_collection.reset()
+            self.logger_connector.reset()
 
             # reset the seed to what it was before sanity check
             # prevents sanity check to affect random sampling in training

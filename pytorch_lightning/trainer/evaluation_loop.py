@@ -80,7 +80,7 @@ class EvaluationLoop(object):
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
 
-        self.trainer.logger_connector.on_evaluation_start()
+        self.trainer.result_collection.device = self.trainer.lightning_module.device
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
@@ -102,8 +102,7 @@ class EvaluationLoop(object):
             model_ref.on_validation_model_train()
 
     def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
-        assert self.trainer.result_collection is not None
-        self.trainer.result_collection.reset(metrics=True)
+        self.trainer.logger_connector.reset(metrics=True)
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
@@ -134,6 +133,7 @@ class EvaluationLoop(object):
         self.num_dataloaders = self._get_num_dataloaders(dataloaders)
 
     def on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
+        self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook('on_epoch_start', *args, **kwargs)
 
         if self.trainer.testing:
@@ -196,11 +196,14 @@ class EvaluationLoop(object):
             return is_overridden('validation_epoch_end', model=model)
 
     def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        # unset dataloder_idx in model
-        self.trainer.logger_connector.evaluation_epoch_end()
+        # inform logger the batch loop has finished
+        self.trainer.logger_connector._epoch_end_reached = True
 
         # call the model epoch end
         model = self.trainer.lightning_module
+
+        # unset dataloader_idx in model
+        model._current_dataloader_idx = None
 
         if self.trainer.testing:
             if is_overridden('test_epoch_end', model=model):
@@ -234,6 +237,10 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_batch_end', output, batch, batch_idx, dataloader_idx)
 
+        # FIXME: missing hook?
+        # self.trainer.call_hook('on_batch_end')
+        self.trainer.logger_connector.on_batch_end()
+
         # store predicitons if do_write_predictions and track eval loss history
         self.store_predictions(output, batch_idx, dataloader_idx)
 
@@ -250,3 +257,4 @@ class EvaluationLoop(object):
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
         self.trainer.call_hook(hook_name)
         self.trainer.call_hook('on_epoch_end')
+        self.trainer.logger_connector.on_epoch_end()
