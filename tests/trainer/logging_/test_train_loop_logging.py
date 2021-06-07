@@ -409,7 +409,7 @@ def test_log_works_in_train_callback(tmpdir):
         limit_train_batches=2,
         limit_val_batches=0,
         num_sanity_val_steps=0,
-        max_epochs=2,
+        max_epochs=1,
         callbacks=[cb]
     )
     trainer.fit(model)
@@ -419,12 +419,12 @@ def test_log_works_in_train_callback(tmpdir):
     assert trainer.callback_metrics["train_loss"] == model.seen_losses[-1]
 
     assert cb.call_counter == {
-        'on_train_batch_end': 4,
-        'on_batch_end': 4,
-        'on_epoch_start': 2,
-        'on_train_epoch_start': 2,
-        'on_train_epoch_end': 2,
-        'on_epoch_end': 2,
+        'on_train_batch_end': 2,
+        'on_batch_end': 2,
+        'on_epoch_start': 1,
+        'on_train_epoch_start': 1,
+        'on_train_epoch_end': 1,
+        'on_epoch_end': 1,
         'on_train_start': 1
     }
 
