@@ -103,8 +103,6 @@ class EvaluationLoop(object):
             model_ref.on_validation_model_train()
 
     def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
-        self.trainer.logger_connector.reset(metrics=True)
-
         if self.trainer.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
         else:
@@ -113,6 +111,8 @@ class EvaluationLoop(object):
         if self.trainer.state.fn != TrainerFn.FITTING:
             # summarize profile results
             self.trainer.profiler.describe()
+
+        self.trainer.logger_connector.reset(metrics=True)
 
     def reload_evaluation_dataloaders(self) -> None:
         model = self.trainer.lightning_module
