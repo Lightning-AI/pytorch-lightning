@@ -537,14 +537,11 @@ def test_progress_bar_can_be_pickled():
     pickle.dumps(bar)
 
 
-@pytest.mark.parametrize(
-    "train_batches, val_batches, total_expected", [
-        [50, 15, 65], [112, 27, 91],
-    ]
-)
-def test_main_progress_bar_total(
-    tmpdir, train_batches: int, val_batches: int, total_expected: int
-):
+@pytest.mark.parametrize("train_batches, val_batches, total_expected", [
+    [50, 15, 65],
+    [112, 27, 91],
+])
+def test_main_progress_bar_total(tmpdir, train_batches: int, val_batches: int, total_expected: int):
     model = BoringModel()
     progress_bar = MockedUpdateProgressBars()
     trainer = Trainer(
