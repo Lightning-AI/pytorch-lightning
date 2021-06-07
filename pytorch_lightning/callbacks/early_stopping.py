@@ -121,12 +121,6 @@ class EarlyStopping(Callback):
         RuntimeError:
             If the metric ``monitor`` is not available.
 
-    Example::
-
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import EarlyStopping
-        >>> early_stopping = EarlyStopping('val_loss')
-        >>> trainer = Trainer(callbacks=[early_stopping])
     """
     mode_dict = {
         'min': torch.lt,
