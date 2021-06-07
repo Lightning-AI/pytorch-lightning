@@ -20,6 +20,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Callback, seed_everything, Trainer
+from pytorch_lightning.accelerators import IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from tests.helpers.boring_model import BoringModel
@@ -88,6 +89,13 @@ class IPUClassificationModel(ClassificationModel):
 
     def test_epoch_end(self, outputs) -> None:
         self.log('test_acc', torch.stack(outputs).mean())
+
+
+def test_accelerator_selected(tmpdir):
+    trainer = Trainer(ipu_cores=1)
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+    trainer = Trainer(ipu_cores=1, accelerator='ipu')
+    assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
 @RunIf(ipu=True, special=True)
