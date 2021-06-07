@@ -341,7 +341,7 @@ class LightningModule(
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-        result_collection = self.trainer.result_collection
+        result_collection: 'ResultCollection' = self.trainer.result_collection  # noqa F821
         assert result_collection is not None
         assert self._current_fx_name is not None
         result_collection.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
