@@ -1668,11 +1668,15 @@ def test_request_dataloader(tmpdir):
 
 
 @RunIf(min_gpus=2, special=True)
-@pytest.mark.parametrize(["total_train_samples", "train_batch_size", "total_val_samples", "val_batch_size", "val_check_interval"], [
-    pytest.param(8, 4, 2, 1, 0.2),
-    pytest.param(8, 4, 2, 1, 0.5),
-])
-def test_progress_bar_max_val_check_interval(total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval, tmpdir):
+@pytest.mark.parametrize(
+    ["total_train_samples", "train_batch_size", "total_val_samples", "val_batch_size", "val_check_interval"], [
+        pytest.param(8, 4, 2, 1, 0.2),
+        pytest.param(8, 4, 2, 1, 0.5),
+    ]
+)
+def test_progress_bar_max_val_check_interval(
+    total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval, tmpdir
+):
 
     world_size = 2
 
