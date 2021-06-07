@@ -264,9 +264,9 @@ class LoggerConnector:
     def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
         if not self.trainer.sanity_checking:
             # log all the metrics as a single dict
-            metrics_to_log = self.cached_results.get_epoch_log_metrics()
-            if len(metrics_to_log) > 0:
-                self.log_metrics(metrics_to_log)
+            log_metrics = self.cached_results.get_epoch_log_metrics()
+            if log_metrics:
+                self.log_metrics(log_metrics)
 
         self.prepare_eval_loop_results()
 
@@ -351,16 +351,15 @@ class LoggerConnector:
 
         return epoch_log_metrics, epoch_progress_bar_metrics
 
-    def log_train_step_metrics(self, batch_output):
+    def log_train_step_metrics(self):
         if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
-        _, metrics = self.cached_results.update_logger_connector()
+
         # when metrics should be logged
-        if self.should_update_logs or self.trainer.fast_dev_run is True:
-            # logs user requested information to logger
-            if metrics:
-                self.log_metrics(metrics)
-                self._callback_metrics.update(metrics)
+        _, metrics = self.cached_results.update_logger_connector()
+        if self.should_update_logs or self.trainer.fast_dev_run is True and metrics:
+            self.log_metrics(metrics)
+            self._callback_metrics.update(metrics)
 
     @property
     def evaluation_log_step(self) -> Optional[int]:
@@ -380,12 +379,11 @@ class LoggerConnector:
     def log_evaluation_step_metrics(self) -> None:
         if self.trainer.sanity_checking:
             return
-        _, batch_log_metrics = self.cached_results.update_logger_connector()
 
         # logs user requested information to logger
-        if len(batch_log_metrics) > 0:
-            kwargs = dict() if "step" in batch_log_metrics else dict(step=self.evaluation_log_step)
-            self.log_metrics(batch_log_metrics, **kwargs)
+        _, metrics = self.cached_results.update_logger_connector()
+        if metrics:
+            self.log_metrics(metrics, step=self.evaluation_log_step)
 
         # increment the step even if nothing was logged
         self.increment_evaluation_log_step()

@@ -71,7 +71,6 @@ def test__eval_step__flow(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
@@ -144,7 +143,6 @@ def test__eval_step__eval_step_end__flow(tmpdir):
 
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1

@@ -87,6 +87,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
             assert np.allclose(mod[k], log[k], rtol=rtol), k
 
 
+@pytest.mark.skip("TODO: remove skip with #7631")
 @pytest.mark.parametrize("log_every_n_steps", [1, 2, 3])
 def test_grad_tracking_interval(tmpdir, log_every_n_steps):
     """ Test that gradient norms get tracked in the right interval and that everytime the same keys get logged. """
