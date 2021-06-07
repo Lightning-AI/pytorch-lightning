@@ -297,7 +297,7 @@ class ManualBoringModel(BoringModel):
 
 
 @RunIf(skip_windows=True, special=True, fairscale=True, min_gpus=2)
-@pytest.mark.parametrize("accelerator", ["ddp_sharded", "ddp_sharded_spawn"])
+@pytest.mark.parametrize("accelerator", ["ddp_sharded"])
 def test_ddp_sharded_plugin_manual_optimization(tmpdir, accelerator):
     model = ManualBoringModel()
     trainer = Trainer(
