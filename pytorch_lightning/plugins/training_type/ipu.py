@@ -34,10 +34,10 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         return super().forward(*inputs, **kwargs)
 
     @staticmethod
-    def batch_to(data):
+    def batch_to(data: torch.Tensor) -> torch.Tensor:
         return data.half()
 
-    def _move_float_tensors_to_half(self, batch: Any):
+    def _move_float_tensors_to_half(self, batch: Any) -> Any:
         batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
         return batch
 
@@ -70,6 +70,9 @@ class IPUPlugin(ParallelPlugin):
             convert_model_to_half: Converts the model to half precision, which can be used for pure FP16 training.
         """
         super().__init__(parallel_devices, cluster_environment)
+        if not poptorch.ipuHardwareIsAvailable():
+            raise MisconfigurationException("IPU Accelerator requires IPUs to run.")
+
         self.convert_model_to_half = convert_model_to_half
         self.device_iterations = device_iterations
         self.autoround_num_ipus = autoround_num_ipus
@@ -85,11 +88,6 @@ class IPUPlugin(ParallelPlugin):
                     os.makedirs(self.autoreport_dir)
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
-
-    def setup_environment(self) -> None:
-        super().setup_environment()
-        if not poptorch.ipuHardwareIsAvailable():
-            raise MisconfigurationException("IPU Accelerator requires IPUs to run.")
 
     @property
     def lightning_module(self) -> Optional[LightningModule]:
@@ -125,7 +123,7 @@ class IPUPlugin(ParallelPlugin):
     def replication_factor(self):
         return len(self.parallel_devices)
 
-    def _create_opts(self, training):
+    def _create_opts(self, training: bool):
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
@@ -138,16 +136,16 @@ class IPUPlugin(ParallelPlugin):
             opts.randomSeed(int(os.environ["PL_GLOBAL_SEED"]))
         return opts
 
-    def on_reset_train_dataloader(self, dataloader) -> Union[Iterable, DataLoader]:
+    def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         return self.process_dataloader(dataloader)
 
-    def on_reset_val_dataloader(self, dataloader) -> Union[Iterable, DataLoader]:
+    def on_reset_val_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         return self.process_dataloader(dataloader)
 
-    def on_reset_test_dataloader(self, dataloader) -> Union[Iterable, DataLoader]:
+    def on_reset_test_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         return self.process_dataloader(dataloader)
 
-    def on_reset_predict_dataloader(self, dataloader) -> Union[Iterable, DataLoader]:
+    def on_reset_predict_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         return self.process_dataloader(dataloader)
 
     def process_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
@@ -215,7 +213,7 @@ class IPUPlugin(ParallelPlugin):
         accumulate_grad_batches = self._original_accumulate_grad_batches
         return self.replication_factor * self.device_iterations * accumulate_grad_batches
 
-    def _prepare_input(self, args):
+    def _prepare_input(self, args: Any):
 
         def to_tuple(x):
             return tuple(x)
@@ -247,7 +245,7 @@ class IPUPlugin(ParallelPlugin):
         for k, model in self.poptorch_models.items():
             model.destroy()
 
-    def _compiled(self, model):
+    def _compiled(self, model: Any):
         # Required to ensure we only attach compiled models, as they are compiled lazily.
         return model._executable is not None
 
@@ -259,7 +257,7 @@ class IPUPlugin(ParallelPlugin):
             if self._compiled(model) and model.isAttachedToDevice():
                 model.detachFromDevice()
 
-    def _load_model(self, stage):
+    def _load_model(self, stage: str):
         """
         Loads the stage specific accelerator model onto device if compiled and not attached to IPU devices.
         Args:
