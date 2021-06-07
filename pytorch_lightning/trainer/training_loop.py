@@ -814,9 +814,9 @@ class TrainLoop:
             # track gradients
             grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
             if grad_norm_dict:
+                import pdb; pdb.set_trace()
                 self.trainer.lightning_module._current_fx_name = "on_after_backward"
                 self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
-                self.trainer.lightning_module._current_fx_name = None
 
     def update_lr_schedulers(self, interval: str) -> None:
         if interval == "step":
