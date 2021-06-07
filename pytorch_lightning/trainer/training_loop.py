@@ -455,20 +455,14 @@ class TrainLoop:
 
     def track_and_norm_grad(self, optimizer) -> dict:
         # track gradient norms
-        grad_norm_dict = self._track_gradient_norm()
+        grad_norm_dict = {}
+        if (self.global_step + 1) % self.trainer.log_every_n_steps == 0 and float(self.trainer.track_grad_norm) > 0:
+            grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
 
         # clip gradients
         self.trainer.accelerator.clip_gradients(
             optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
         )
-        return grad_norm_dict
-
-    def _track_gradient_norm(self):
-        grad_norm_dict = {}
-        if (self.global_step + 1) % self.trainer.log_every_n_steps == 0:
-            if float(self.trainer.track_grad_norm) > 0:
-                model = self.trainer.lightning_module
-                grad_norm_dict = grad_norm(model, self.trainer.track_grad_norm)
         return grad_norm_dict
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
@@ -643,9 +637,6 @@ class TrainLoop:
             self.trainer._cache_logged_metrics()
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
-        # track grad norms
-        grad_norm_dict = {}
-
         # bookkeeping
         self._hiddens = None
 
@@ -656,21 +647,17 @@ class TrainLoop:
 
         if batch is None:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
-            return AttributeDict(
-                signal=0,
-                grad_norm_dict={},
-                training_step_output_for_epoch_end=batch_outputs,
-            )
+            return AttributeDict(signal=0, training_step_output_for_epoch_end=batch_outputs)
 
         # hook
         response = self.trainer.call_hook("on_batch_start")
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dict={})
+            return AttributeDict(signal=-1)
 
         # hook
         response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dict={})
+            return AttributeDict(signal=-1)
 
         # lightning module hook
         splits = self._tbptt_split_batch(batch)
@@ -683,20 +670,13 @@ class TrainLoop:
                     result = self._run_optimization(batch_idx, split_idx, split_batch, opt_idx, optimizer)
                     if result:
                         batch_outputs[opt_idx].append(result.training_step_output_for_epoch_end)
-                        grad_norm_dict = result.get("grad_norm_dict", {})
             else:
                 # in manual optimization, there is no looping over optimizers
                 result = self._run_optimization(batch_idx, split_idx, split_batch)
                 if result:
                     batch_outputs[0].append(result.training_step_output_for_epoch_end)
 
-        output = AttributeDict(
-            signal=0,
-            # todo: Properly aggregate grad_norm accros opt_idx and split_idx
-            grad_norm_dict=grad_norm_dict,
-            training_step_output_for_epoch_end=batch_outputs,
-        )
-        return output
+        return AttributeDict(signal=0, training_step_output_for_epoch_end=batch_outputs)
 
     def _run_optimization(self, batch_idx, split_idx, split_batch, opt_idx=0, optimizer=None):
         # TODO: In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
@@ -852,7 +832,10 @@ class TrainLoop:
 
         if not self.should_accumulate():
             # track gradients
-            result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
+            grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
+            if grad_norm_dict:
+                self.trainer.lightning_module._current_fx_name = "on_after_backward"
+                self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
 
     def update_lr_schedulers(self, interval: str) -> None:
         if interval == "step":

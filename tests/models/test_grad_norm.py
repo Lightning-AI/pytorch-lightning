@@ -66,14 +66,8 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
         logged_metrics = []
 
         def on_train_batch_end(self, *_) -> None:
-            if self.trainer.logged_metrics:
-                # add batch level logged metrics
-                # copy so they don't get reduced
-                self.logged_metrics.append(self.trainer.logged_metrics.copy())
-
-        def on_train_end(self):
-            # add aggregated logged metrics
-            self.logged_metrics.append(self.trainer.logged_metrics)
+            # copy so they don't get reduced
+            self.logged_metrics.append(self.trainer.logged_metrics.copy())
 
     model = TestModel(norm_type)
 
