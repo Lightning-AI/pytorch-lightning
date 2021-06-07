@@ -576,7 +576,8 @@ class TrainLoop:
 
         # This implementation is copied from Trainer.call_hook
         hook_name = "on_train_epoch_end"
-        self.trainer.lightning_module._current_fx_name = hook_name
+        prev_fx_name = self.lightning_module._current_fx_name
+        self.lightning_module._current_fx_name = hook_name
 
         # always profile hooks
         with self.trainer.profiler.profile(hook_name):
@@ -605,7 +606,8 @@ class TrainLoop:
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
 
-        self.trainer.lightning_module._current_fx_name = None
+        # restore current_fx when nested context
+        self.lightning_module._current_fx_name = prev_fx_name
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         model_ref = self.trainer.lightning_module
