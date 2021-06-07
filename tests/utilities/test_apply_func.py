@@ -86,6 +86,7 @@ def test_recursive_application_to_collection():
 
     # custom mappings
     class _CustomCollection(dict):
+
         def __init__(self, initial_dict):
             super().__init__(initial_dict)
 
