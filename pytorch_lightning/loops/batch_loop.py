@@ -2,7 +2,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
 from functools import partial, update_wrapper
-from typing import Any, Callable, List, Optional, Tuple, Mapping
+from typing import Any, Callable, List, Mapping, Optional, Tuple
 
 import numpy as np
 import torch
@@ -211,9 +211,9 @@ class BatchLoop(Loop):
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
         elif self.trainer.lightning_module.automatic_optimization:
             if not any((
-                    isinstance(training_step_output, torch.Tensor),
-                    (isinstance(training_step_output, Mapping)
-                     and 'loss' in training_step_output), training_step_output is None
+                isinstance(training_step_output, torch.Tensor),
+                (isinstance(training_step_output, Mapping)
+                 and 'loss' in training_step_output), training_step_output is None
             )):
                 raise MisconfigurationException(
                     "In automatic optimization, `training_step` must either return a Tensor, "
