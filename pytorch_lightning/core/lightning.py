@@ -1530,6 +1530,23 @@ class LightningModule(
         """
         optimizer.zero_grad()
 
+    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
+        """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        Args:
+            grad_norm_dict: Dictionary containing current grad norm metrics
+
+        Examples::
+
+            # DEFAULT
+            def log_grad_norm(self, grad_norm_dict):
+                print(grad_norm_dict)
+
+        """
+        self._current_fx_name = "on_after_backward"
+        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self._current_fx_name = None
+
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
         r"""
         When using truncated backpropagation through time, each batch must be split along the

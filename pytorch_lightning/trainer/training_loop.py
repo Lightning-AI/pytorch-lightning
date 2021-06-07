@@ -608,8 +608,7 @@ class TrainLoop:
         self.trainer.lightning_module._current_fx_name = None
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
-        # track grad norms
-        grad_norm_dict = {}
+        model_ref = self.trainer.lightning_module
 
         # bookkeeping
         self._hiddens = None
@@ -623,19 +622,18 @@ class TrainLoop:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
             return AttributeDict(
                 signal=0,
-                grad_norm_dict={},
                 training_step_output=batch_outputs,
             )
 
         # hook
         response = self.trainer.call_hook("on_batch_start")
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dict={})
+            return AttributeDict(signal=-1)
 
         # hook
         response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dict={})
+            return AttributeDict(signal=-1)
 
         # lightning module hook
         splits = self._tbptt_split_batch(batch)
@@ -646,12 +644,11 @@ class TrainLoop:
             # let logger connector extract batch size
             self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
-            if self.trainer.lightning_module.automatic_optimization:
+            if model_ref.automatic_optimization:
                 for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                     result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                     if result:
                         batch_outputs[opt_idx].append(result.training_step_output)
-                        grad_norm_dict = result.get("grad_norm_dict", {})
             else:
                 # in manual optimization, there is no looping over optimizers
                 result = self._run_optimization(batch_idx, split_batch)
@@ -660,7 +657,6 @@ class TrainLoop:
 
         return AttributeDict(
             signal=0,
-            grad_norm_dict=grad_norm_dict,
             training_step_output=batch_outputs,
         )
 
@@ -815,7 +811,8 @@ class TrainLoop:
 
         if not self.should_accumulate():
             # track gradients
-            result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
+            grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
+            self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
 
     def update_lr_schedulers(self, interval: str) -> None:
         if interval == "step":

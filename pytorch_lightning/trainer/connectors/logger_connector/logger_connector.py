@@ -226,9 +226,8 @@ class LoggerConnector:
         metrics = self.metrics[MetricSource.LOG]
         if self.should_update_logs or self.trainer.fast_dev_run is True:
             # logs user requested information to logger
-            grad_norm_dict = batch_output.grad_norm_dict or {}
-            if metrics or grad_norm_dict:
-                self.log_metrics(metrics, grad_norm_dict)
+            if metrics:
+                self.log_metrics(metrics, {})
 
     def update_train_epoch_metrics(self) -> None:
         # add the metrics to the loggers
