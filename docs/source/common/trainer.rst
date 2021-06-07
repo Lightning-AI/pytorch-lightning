@@ -1541,8 +1541,8 @@ Can specify as float or int.
     # Compute how validation batches seen during an epoch
     total_val_batches = total_val_samples // (val_batch_size * world_size)
 
-    # Compute total number of batches seen within an epoch
-    total_total_batches = total_train_batches + total_val_batches
+    # Total number of batches run
+    total_fit_batches = total_train_batches + total_val_batches
 
 
 weights_save_path
