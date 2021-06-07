@@ -1155,11 +1155,9 @@ precision
 
 |
 
-Double precision (64), full precision (32) or half precision (16).
-Can all be used on GPU or TPUs. Only double (64) and full precision (32) available on CPU.
-
-If used on TPU will use torch.bfloat16 but tensor printing
-will still show torch.float32.
+Lightning supports double precision (64), full precision (32) or half precision (16) training.
+Half precision, or mixed precision, is the combined use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
+All precision modes be used on GPU or TPUs. Only double (64) and full precision (32) available on CPU.
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
@@ -1177,6 +1175,51 @@ Example::
 
     # one day
     trainer = Trainer(precision=8|4|2)
+
+
+.. note:: When running on TPUs, torch.float16 will be used but tensor printing will still show torch.float32.
+
+.. admonition::  When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision. Using 16-bit precision with PyTorch < 1.6 is not recommended, but supported using apex.
+   :class: dropdown, warning
+
+    NVIDIA Apex and DDP have instability problems. We recommend upgrading to PyTorch 1.6+ to use the native AMP 16-bit precision.
+
+    If you are using an earlier version of PyTorch (before 1.6), Lightning uses `Apex <https://github.com/NVIDIA/apex>`_ to support 16-bit training.
+
+    To use Apex 16-bit training:
+
+    1. Install Apex
+
+    .. code-block:: bash
+
+        # ------------------------
+        # OPTIONAL: on your cluster you might need to load CUDA 10 or 9
+        # depending on how you installed PyTorch
+
+        # see available modules
+        module avail
+
+        # load correct CUDA before install
+        module load cuda-10.0
+        # ------------------------
+
+        # make sure you've loaded a cuda version > 4.0 and < 7.0
+        module load gcc-6.1.0
+
+        $ pip install --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex
+
+    2. Set the `precision` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the `amp_level` flag.
+
+    .. testcode::
+        :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
+
+        # turn on 16-bit
+        trainer = Trainer(amp_backend="apex", amp_level='O2', precision=16)
+
+    If you need to configure the apex init for your particular use case, or want to ucustumize the
+    16-bit training behviour, override :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
+
+
 
 process_position
 ^^^^^^^^^^^^^^^^
