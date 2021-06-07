@@ -151,7 +151,7 @@ class LearningRateMonitor(Callback):
 
                 for i, pg in enumerate(param_groups):
                     suffix = f'/pg{i + 1}' if len(param_groups) > 1 else ''
-                    lr = self._extract_lr(pg, name=f'{name}{suffix}')
+                    lr = self._extract_lr(pg, f'{name}{suffix}')
                     latest_stat.update(lr)
                     momentum = self._extract_momentum(
                         param_group=pg, name=f'{name}-momentum{suffix}', use_betas=use_betas
