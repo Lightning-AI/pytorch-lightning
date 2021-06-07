@@ -112,7 +112,8 @@ class CheckpointConnector:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
-        self.restore_training_state(self.loaded_checkpoint, self._load_optimizer_states)
+        if self.loaded_checkpoint:
+            self.restore_training_state(self.loaded_checkpoint, self._load_optimizer_states)
 
         self.resume_end()
         return True
@@ -139,8 +140,6 @@ class CheckpointConnector:
         :param checkpoint:
         :return:
         """
-        if not self.loaded_checkpoint:
-            return
 
         # validation
         if load_optimizer_states and ('optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint):
