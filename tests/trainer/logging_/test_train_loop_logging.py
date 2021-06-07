@@ -17,6 +17,7 @@ Test logging in the training loop
 
 import collections
 import itertools
+from re import escape
 
 import numpy as np
 import pytest
@@ -25,6 +26,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDictDataset
 from tests.helpers.runif import RunIf
 
@@ -190,7 +192,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {'a', 'b'}) - {'epoch'}
 
 
-@pytest.mark.parametrize(['batches', 'fx', 'result'], [(1, min, 0), (2, max, 1), (11, max, 10)])
+@pytest.mark.parametrize(['batches', 'fx', 'result'], [(3, min, 0), (3, max, 2), (11, max, 10)])
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     """
     Tests that log works correctly with different tensor types
@@ -644,8 +646,6 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
             return super().training_step(*args)
 
         def on_train_epoch_end(self, *_):
-            self.on_train_epoch_end_called = True
-            self.epoch_end_called = True
             self.log(
                 'foo_2',
                 torch.tensor(self.current_epoch),
@@ -654,11 +654,12 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
                 sync_dist=True,
                 sync_dist_op='sum'
             )
+            self.on_train_epoch_end_called = True
 
         def on_epoch_end(self):
-            self.epoch_end_called = True
             assert self.trainer.progress_bar_dict["foo"] == self.current_epoch
             assert self.trainer.progress_bar_dict["foo_2"] == self.current_epoch
+            self.epoch_end_called = True
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -672,8 +673,8 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
     )
     model = TestModel()
     trainer.fit(model)
-    assert model.epoch_end_called
     assert model.on_train_epoch_end_called
+    assert model.epoch_end_called
 
 
 def test_logging_in_callbacks_with_log_function(tmpdir):
@@ -771,7 +772,12 @@ def test_metric_are_properly_reduced(tmpdir):
     assert "train_loss" in trainer.callback_metrics
 
 
-@pytest.mark.parametrize('value', [None, {'a': {'b': None}}])
+@pytest.mark.parametrize(
+    'value',
+    [None, dict(a=None),
+     dict(a=dict(b=None)),
+     dict(a=dict(b=1)), 'foo', [1, 2, 3], (1, 2, 3), [[1, 2], 3]]
+)
 def test_log_none_raises(tmpdir, value):
 
     class TestModel(BoringModel):
@@ -781,5 +787,19 @@ def test_log_none_raises(tmpdir, value):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
-    with pytest.raises(ValueError, match=rf"self.log\(foo, {value}\)` was called"):
+    match = escape(f"self.log(foo, {value})` was called")
+    with pytest.raises(ValueError, match=match):
+        trainer.fit(model)
+
+
+def test_logging_raises(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log('foo/dataloader_idx_0', -1)
+
+    trainer = Trainer(default_root_dir=tmpdir)
+    model = TestModel()
+    with pytest.raises(MisconfigurationException, match='`self.log` with the key `foo/dataloader_idx_0`'):
         trainer.fit(model)

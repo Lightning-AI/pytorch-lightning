@@ -150,12 +150,9 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert len(trainer.logger_connector.progress_bar_metrics) == 0
 
     # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
-
+    batch_idx, batch = 0, next(iter(model.train_dataloader()))
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
@@ -230,12 +227,9 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert len(trainer.logger_connector.progress_bar_metrics) == 0
 
     # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
-
+    batch_idx, batch = 0, next(iter(model.train_dataloader()))
     out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
-    assert len(out.grad_norm_dict) == 0 and isinstance(out.grad_norm_dict, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
     assert len(train_step_out) == 1
