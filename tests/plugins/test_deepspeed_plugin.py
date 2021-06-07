@@ -574,8 +574,8 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, cpu_offload
     class VerificationCallback(Callback):
 
         def __init__(self):
-            self.on_train_batch_start_called = False           
-            self.on_before_backward_called = False            
+            self.on_train_batch_start_called = False
+            self.on_before_backward_called = False
 
         def on_train_batch_start(
             self, trainer, pl_module: LightningModule, batch: Any, batch_idx: int, dataloader_idx: int

@@ -18,8 +18,8 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning.callbacks import Callback
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from tests.helpers import BoringModel
@@ -72,13 +72,13 @@ def test_amp_apex_ddp(
 
 class CheckOnBeforeBackward(Callback):
 
-        def __init__(self):
-            self.on_before_backward_called = False            
+    def __init__(self):
+        self.on_before_backward_called = False
 
-        def on_before_backward(self, trainer, pl_module, loss):
-            assert isinstance(loss, torch.Tensor)
-            assert loss.grad_fn is not None
-            self.on_before_backward_called = True
+    def on_before_backward(self, trainer, pl_module, loss):
+        assert isinstance(loss, torch.Tensor)
+        assert loss.grad_fn is not None
+        self.on_before_backward_called = True
 
 
 class GradientUnscaleBoringModel(BoringModel):
@@ -87,7 +87,7 @@ class GradientUnscaleBoringModel(BoringModel):
         norm = torch.nn.utils.clip_grad_norm_(self.parameters(), 2)
         if not (torch.isinf(norm) or torch.isnan(norm)):
             assert norm.item() < 15.
-        
+
         cb = [cb for cb in self.trainer.callbacks if isinstance(cb, CheckOnBeforeBackward)]
         assert len(cb) == 1
         assert cb[0].on_before_backward_called
@@ -129,10 +129,10 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
             assert self.trainer.precision_plugin._connected
             return super().training_step(batch, batch_idx)
 
-    def on_after_backward(self):
-        cb = [cb for cb in self.trainer.callbacks if isinstance(cb, CheckOnBeforeBackward)]
-        assert len(cb) == 1
-        assert cb[0].on_before_backward_called
+        def on_after_backward(self):
+            cb = [cb for cb in self.trainer.callbacks if isinstance(cb, CheckOnBeforeBackward)]
+            assert len(cb) == 1
+            assert cb[0].on_before_backward_called
 
     trainer = Trainer(
         default_root_dir=tmpdir,
