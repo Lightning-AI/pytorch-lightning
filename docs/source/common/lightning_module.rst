@@ -1036,7 +1036,7 @@ recurrent network trajectories."
         def training_step(self, batch, batch_idx, hiddens):
             # the training step must be updated to accept a ``hiddens`` argument
             # hiddens are the hiddens from the previous truncated backprop step
-            out, hiddens = self.lstm(data, hiddens)
+            out, (hiddens, _) = self.lstm(data, hiddens)
             return {
                 "loss": ...,
                 "hiddens": hiddens
