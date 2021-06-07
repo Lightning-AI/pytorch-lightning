@@ -1200,7 +1200,7 @@ class Trainer(
         # If making changes to this function, ensure that those changes are also made to
         # TrainLoop._on_train_epoch_end_hook
         if self.lightning_module:
-            # restore current_fx when nested context
+            # restore current_fx when nested context
             if self.lightning_module._current_fx_name is not None:
                 current_fx_name = self.lightning_module._current_fx_name
             else:
