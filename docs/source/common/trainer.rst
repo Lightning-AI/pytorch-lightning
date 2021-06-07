@@ -658,6 +658,8 @@ Writes logs to disk this often.
 See Also:
     - :doc:`logging <../extensions/logging>`
 
+.. _gpus:
+
 gpus
 ^^^^
 
@@ -1156,8 +1158,8 @@ precision
 |
 
 Lightning supports double precision (64), full precision (32) or half precision (16) training.
+
 Half precision, or mixed precision, is the combined use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
-All precision modes be used on GPU or TPUs. Only double (64) and full precision (32) available on CPU.
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE and not _NATIVE_AMP_AVAILABLE or not torch.cuda.is_available()
@@ -1166,18 +1168,16 @@ All precision modes be used on GPU or TPUs. Only double (64) and full precision 
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16, gpus=1)
+    trainer = Trainer(precision=16)
 
     # 64-bit precision
     trainer = Trainer(precision=64)
 
-Example::
-
-    # one day
-    trainer = Trainer(precision=8|4|2)
-
 
 .. note:: When running on TPUs, torch.float16 will be used but tensor printing will still show torch.float32.
+
+.. note:: 16-bit precision is not supported on CPUs.
+
 
 .. admonition::  When using PyTorch 1.6+, Lightning uses the native AMP implementation to support 16-bit precision. Using 16-bit precision with PyTorch < 1.6 is not recommended, but supported using apex.
    :class: dropdown, warning
