@@ -15,6 +15,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import ArgumentParser, Namespace
+from pathlib import Path
 from typing import cast, List, Optional, Type, TypeVar, Union
 
 import torch
@@ -357,6 +358,10 @@ class TrainerProperties(ABC):
         found in the Trainer.callbacks list.
         """
         return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+
+    @property
+    def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
+        return self.checkpoint_connector.resume_checkpoint_path
 
     def save_checkpoint(self, filepath, weights_only: bool = False) -> None:
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
