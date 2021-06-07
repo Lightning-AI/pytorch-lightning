@@ -83,7 +83,7 @@ def scale_batch_size(
 
     # Restore initial state of model
     if trainer.is_global_zero:
-        trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer._device_type == DeviceType.GPU)
+        trainer.checkpoint_connector.restore(str(save_path))
         fs = get_filesystem(str(save_path))
         if fs.exists(save_path):
             fs.rm(save_path)
