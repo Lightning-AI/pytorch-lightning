@@ -160,7 +160,6 @@ class LoggerConnector:
                 print('-' * 80)
 
         results = self.eval_loop_results
-
         # clear mem
         self.eval_loop_results = []
         return results
@@ -238,6 +237,9 @@ class LoggerConnector:
     """
 
     def on_epoch_start(self) -> None:
+        self._epoch_end_reached = False
+
+    def on_batch_start(self) -> None:
         self._epoch_end_reached = False
 
     def epoch_end_reached(self):

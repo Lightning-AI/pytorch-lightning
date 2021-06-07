@@ -626,6 +626,7 @@ class TrainLoop:
             )
 
         # hook
+        self.trainer.logger_connector.on_batch_start()
         response = self.trainer.call_hook("on_batch_start")
         if response == -1:
             return AttributeDict(signal=-1)
