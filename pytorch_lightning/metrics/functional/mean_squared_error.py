@@ -13,10 +13,9 @@
 # limitations under the License.
 
 import torch
-from deprecate import void
 from torchmetrics.functional import mean_squared_error as _mean_squared_error
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_mean_squared_error)

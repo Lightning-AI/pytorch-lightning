@@ -14,12 +14,11 @@
 from typing import Optional
 
 import torch
-from deprecate import void
 from torchmetrics.functional import precision as _precision
 from torchmetrics.functional import precision_recall as _precision_recall
 from torchmetrics.functional import recall as _recall
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_precision)

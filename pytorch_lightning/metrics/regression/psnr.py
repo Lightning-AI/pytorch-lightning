@@ -13,10 +13,9 @@
 # limitations under the License.
 from typing import Any, Optional, Tuple, Union
 
-from deprecate import void
 from torchmetrics import PSNR as _PSNR
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class PSNR(_PSNR):

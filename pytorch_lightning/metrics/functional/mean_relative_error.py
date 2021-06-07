@@ -13,10 +13,9 @@
 # limitations under the License.
 
 import torch
-from deprecate import void
 from torchmetrics.functional.regression.mean_relative_error import mean_relative_error as _mean_relative_error
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_mean_relative_error)

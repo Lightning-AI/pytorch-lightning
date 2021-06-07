@@ -14,10 +14,9 @@
 from typing import Sequence, Union
 
 import torch
-from deprecate import void
 from torchmetrics.functional import explained_variance as _explained_variance
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_explained_variance)

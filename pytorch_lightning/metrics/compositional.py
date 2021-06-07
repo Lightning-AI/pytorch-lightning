@@ -14,11 +14,10 @@
 from typing import Callable, Union
 
 import torch
-from deprecate import void
 from torchmetrics import Metric
 from torchmetrics.metric import CompositionalMetric as _CompositionalMetric
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class CompositionalMetric(_CompositionalMetric):

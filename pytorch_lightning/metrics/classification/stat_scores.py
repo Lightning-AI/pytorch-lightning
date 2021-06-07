@@ -13,10 +13,9 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
-from deprecate import void
 from torchmetrics import StatScores as _StatScores
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class StatScores(_StatScores):

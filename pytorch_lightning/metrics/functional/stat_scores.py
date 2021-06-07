@@ -14,10 +14,9 @@
 from typing import Optional
 
 import torch
-from deprecate import void
 from torchmetrics.functional import stat_scores as _stat_scores
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_stat_scores)

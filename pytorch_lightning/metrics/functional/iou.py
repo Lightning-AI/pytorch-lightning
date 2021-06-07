@@ -14,10 +14,9 @@
 from typing import Optional
 
 import torch
-from deprecate import void
 from torchmetrics.functional import iou as _iou
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_3, _TORCHMETRICS_LOWER_THAN_0_3
 
 

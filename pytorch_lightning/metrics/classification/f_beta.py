@@ -13,11 +13,10 @@
 # limitations under the License.
 from typing import Any, Optional
 
-from deprecate import void
 from torchmetrics import F1 as _F1
 from torchmetrics import FBeta as _FBeta
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class FBeta(_FBeta):

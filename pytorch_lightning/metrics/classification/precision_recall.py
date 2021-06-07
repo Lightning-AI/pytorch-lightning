@@ -13,11 +13,10 @@
 # limitations under the License.
 from typing import Any, Callable, Optional
 
-from deprecate import void
 from torchmetrics import Precision as _Precision
 from torchmetrics import Recall as _Recall
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class Precision(_Precision):

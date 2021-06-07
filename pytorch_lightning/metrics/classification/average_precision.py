@@ -13,10 +13,9 @@
 # limitations under the License.
 from typing import Any, Optional
 
-from deprecate import void
 from torchmetrics import AveragePrecision as _AveragePrecision
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class AveragePrecision(_AveragePrecision):

@@ -13,10 +13,9 @@
 # limitations under the License.
 
 import torch
-from deprecate import void
 from torchmetrics.functional import r2score as _r2score
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_r2score)

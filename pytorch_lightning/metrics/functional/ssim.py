@@ -14,10 +14,9 @@
 from typing import Optional, Sequence
 
 import torch
-from deprecate import void
 from torchmetrics.functional import ssim as _ssim
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_ssim)

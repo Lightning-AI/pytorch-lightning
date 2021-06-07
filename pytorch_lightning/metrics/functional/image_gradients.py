@@ -14,10 +14,9 @@
 from typing import Tuple
 
 import torch
-from deprecate import void
 from torchmetrics.functional import image_gradients as _image_gradients
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_image_gradients)
