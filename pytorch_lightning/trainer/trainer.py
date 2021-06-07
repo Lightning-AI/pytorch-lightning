@@ -1009,11 +1009,11 @@ class Trainer(
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
-        # log epoch metrics
-        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
-
         # hook
         self.evaluation_loop.on_evaluation_end()
+
+        # log epoch metrics
+        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
 
         # save predictions to disk
         self.evaluation_loop.predictions.to_disk()
@@ -1200,6 +1200,11 @@ class Trainer(
         # If making changes to this function, ensure that those changes are also made to
         # TrainLoop._on_train_epoch_end_hook
         if self.lightning_module:
+            # restore current_fx when nested context
+            if self.lightning_module._current_fx_name is not None:
+                current_fx_name = self.lightning_module._current_fx_name
+            else:
+                current_fx_name = None
             self.lightning_module._current_fx_name = hook_name
 
         # always profile hooks
@@ -1227,7 +1232,7 @@ class Trainer(
                 output = accelerator_output if output is None else output
 
         if self.lightning_module:
-            self.lightning_module._current_fx_name = None
+            self.lightning_module._current_fx_name = None if (current_fx_name == hook_name) else current_fx_name
 
         return output
 

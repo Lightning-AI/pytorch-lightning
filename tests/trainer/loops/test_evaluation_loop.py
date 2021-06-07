@@ -68,7 +68,7 @@ def test_log_epoch_metrics_before_on_evaluation_end(get_evaluate_epoch_results_m
     )
     trainer.fit(LessBoringModel())
 
-    assert order == ["log_epoch_metrics", "on_validation_end"]
+    assert order == ["on_validation_end", "log_epoch_metrics"]
 
 
 @RunIf(min_gpus=1)
