@@ -330,3 +330,41 @@ class TrainingTypePlugin(Plugin, ABC):
     def should_rank_save_checkpoint(self) -> bool:
         """Returns whether the checkpoint should be saved (rank based)"""
         return self.is_global_zero
+
+    def on_train_start(self) -> None:
+        """Called when train begins."""
+        pass
+
+    def on_validation_start(self) -> None:
+        """Called when validation begins."""
+        pass
+
+    def on_test_start(self) -> None:
+        """Called when test begins."""
+        pass
+
+    def on_predict_start(self) -> None:
+        """Called when predict begins."""
+        pass
+
+    def on_train_end(self) -> None:
+        """Called when train ends."""
+        pass
+
+    def on_validation_end(self) -> None:
+        """Called when validation ends."""
+        pass
+
+    def on_test_end(self) -> None:
+        """Called when test end."""
+        pass
+
+    def on_predict_end(self):
+        """Called when predict ends."""
+        pass
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+        """
+        pass
