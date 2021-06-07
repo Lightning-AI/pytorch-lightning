@@ -1197,7 +1197,9 @@ class Trainer(
     def _reset_result_and_set_fx_name(self, hook_name: str) -> bool:
         # on_before_zero_grad is called within training_step
         # TODO(@carmocca): Result should handle this logic
-        if "batch_start" in hook_name or hook_name in ("on_before_zero_grad", "on_after_backward"):
+        if "batch_start" in hook_name or hook_name in (
+            "on_before_zero_grad", "on_before_backward", "on_after_backward"
+        ):
             return True
         model_ref = self.lightning_module
         if model_ref is not None:
