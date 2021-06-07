@@ -36,12 +36,9 @@ class CallbackConnector:
         process_position: int,
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
-        resume_from_checkpoint: Optional[Union[Path, str]],
         stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
-        self.trainer.resume_from_checkpoint = resume_from_checkpoint
-
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
