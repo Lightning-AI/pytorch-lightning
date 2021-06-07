@@ -11,10 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
+
 import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
@@ -142,3 +145,24 @@ def test_should_stop_mid_epoch(tmpdir):
     assert trainer.current_epoch == 0
     assert trainer.global_step == 5
     assert model.validation_called_at == (0, 4)
+
+
+@pytest.mark.parametrize(['output'], [(5., ), ({'a': 5}, )])
+def test_warning_invalid_trainstep_output(tmpdir, output):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            return output
+
+    model = TestModel()
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    with pytest.raises(
+        MisconfigurationException,
+        match=re.escape(
+            "In automatic optimization, `training_step` must either return a Tensor, "
+            "a dict with key 'loss' or None (where the step will be skipped)."
+        )
+    ):
+        trainer.fit(model)
