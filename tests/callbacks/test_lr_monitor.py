@@ -324,13 +324,13 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
                 assert num_param_groups == 3
             elif trainer.current_epoch == 1:
                 assert num_param_groups == 4
-                assert list(lr_monitor.lrs.keys()) == ['lr-Adam-1', 'lr-Adam/pg1', 'lr-Adam/pg2']
+                assert list(lr_monitor.lrs) == ['lr-Adam-1', 'lr-Adam/pg1', 'lr-Adam/pg2']
             elif trainer.current_epoch == 2:
                 assert num_param_groups == 5
-                assert list(lr_monitor.lrs.keys()) == ['lr-Adam/pg1', 'lr-Adam/pg2', 'lr-Adam-1/pg1', 'lr-Adam-1/pg2']
+                assert list(lr_monitor.lrs) == ['lr-Adam/pg1', 'lr-Adam/pg2', 'lr-Adam-1/pg1', 'lr-Adam-1/pg2']
             else:
                 expected = ['lr-Adam/pg1', 'lr-Adam/pg2', 'lr-Adam-1/pg1', 'lr-Adam-1/pg2', 'lr-Adam-1/pg3']
-                assert list(lr_monitor.lrs.keys()) == expected
+                assert list(lr_monitor.lrs) == expected
 
     class TestFinetuning(BackboneFinetuning):
 
