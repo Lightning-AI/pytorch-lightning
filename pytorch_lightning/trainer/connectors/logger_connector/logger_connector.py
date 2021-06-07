@@ -78,16 +78,13 @@ class LoggerConnector:
             else:
                 self.trainer.logger = logger
 
-    def log_metrics(
-        self, metrics: Dict[str, _METRIC], grad_norm_dict: Dict[str, float], step: Optional[int] = None
-    ) -> None:
+    def log_metrics(self, metrics: Dict[str, _METRIC], step: Optional[int] = None) -> None:
         """Logs the metric dict passed in.
         If `step` parameter is None and `step` key is presented is metrics,
         uses metrics["step"] as a step
 
         Args:
             metrics: Metric values
-            grad_norm_dict: Gradient norms
             step (int): Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
@@ -95,9 +92,6 @@ class LoggerConnector:
         if self.trainer._device_type == DeviceType.GPU and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             metrics.update(mem_map)
-
-        # add norms
-        metrics.update(grad_norm_dict)
 
         # turn all tensors to scalars
         scalar_metrics = metrics_to_scalars(metrics)
@@ -147,7 +141,7 @@ class LoggerConnector:
             # log all the metrics as a single dict
             log_metrics = metrics[MetricSource.LOG]
             if log_metrics:
-                self.log_metrics(log_metrics, {})
+                self.log_metrics(log_metrics)
 
         self.prepare_eval_loop_results(metrics[MetricSource.CALLBACK])
 
@@ -203,7 +197,7 @@ class LoggerConnector:
         assert not self._epoch_end_reached
         metrics = self.metrics[MetricSource.LOG]
         if metrics:
-            self.log_metrics(metrics, {}, step=self.evaluation_log_step)
+            self.log_metrics(metrics, step=self.evaluation_log_step)
 
         # increment the step even if nothing was logged
         self.increment_evaluation_log_step()
@@ -227,14 +221,14 @@ class LoggerConnector:
         if self.should_update_logs or self.trainer.fast_dev_run is True:
             # logs user requested information to logger
             if metrics:
-                self.log_metrics(metrics, {})
+                self.log_metrics(metrics)
 
     def update_train_epoch_metrics(self) -> None:
         # add the metrics to the loggers
         assert self._epoch_end_reached
         metrics = self.metrics[MetricSource.LOG]
         if metrics:
-            self.log_metrics(metrics, {})
+            self.log_metrics(metrics)
 
         # reset result collection for next epoch
         self.trainer.result_collection.reset(metrics=True)
