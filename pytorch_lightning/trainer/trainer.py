@@ -433,19 +433,6 @@ class Trainer(
         else:
             self.num_sanity_val_steps = num_sanity_val_steps
 
-        self.num_sanity_val_batches = []
-        self.num_test_batches = []
-        self.num_val_batches = []
-        self.test_dataloaders = None
-        self.val_dataloaders = None
-
-        # .validate() and .test() set this when they load a checkpoint
-        self.validated_ckpt_path = None
-        self.tested_ckpt_path = None
-
-        # when true, print evaluation results in .validate() and .test()
-        self.verbose_evaluate = True
-
         self.num_predict_batches = []
         self.predicted_ckpt_path = None
 

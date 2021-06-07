@@ -38,7 +38,18 @@ class EvaluationLoop(object):
         self.test_results = ResultCollection(False)
 
     def on_trainer_init(self) -> None:
-        pass
+        self.trainer.num_sanity_val_batches = []
+        self.trainer.num_test_batches = []
+        self.trainer.num_val_batches = []
+        self.trainer.test_dataloaders = None
+        self.trainer.val_dataloaders = None
+
+        # .validate() and .test() set this when they load a checkpoint
+        self.trainer.validated_ckpt_path = None
+        self.trainer.tested_ckpt_path = None
+
+        # when true, print evaluation results in .validate() and .test()
+        self.trainer.verbose_evaluate = True
 
     def get_evaluation_dataloaders(self) -> Tuple[Optional[List[DataLoader]], List[Union[int, float]]]:
         model = self.trainer.lightning_module
