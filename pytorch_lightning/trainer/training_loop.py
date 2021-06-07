@@ -544,7 +544,7 @@ class TrainLoop:
 
     def on_train_epoch_end(self, epoch_output: List[List[List['ResultCollection']]]) -> None:
         # inform logger the batch loop has finished
-        self.trainer.logger_connector._epoch_end_reached = True
+        self.trainer.logger_connector.epoch_end_reached()
 
         # prepare epoch output
         processed_epoch_output = TrainLoop._prepare_outputs(epoch_output, batch_mode=False)
