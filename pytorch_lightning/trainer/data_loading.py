@@ -51,6 +51,7 @@ class TrainerDataLoadingMixin(ABC):
     test_dataloaders: Optional[List[DataLoader]]
     num_test_batches: List[Union[int, float]]
     limit_train_batches: Union[int, float]
+    log_every_n_steps: int
     overfit_batches: Union[int, float]
     distributed_sampler_kwargs: dict
     accelerator: Accelerator
@@ -261,6 +262,9 @@ class TrainerDataLoadingMixin(ABC):
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
 
+        # allow accelerator to modify dataloader
+        self.train_dataloader = self.accelerator.on_reset_train_dataloader(self.train_dataloader)
+
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
@@ -298,6 +302,13 @@ class TrainerDataLoadingMixin(ABC):
             else:
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
+
+        if self.logger and self.num_training_batches < self.log_every_n_steps:
+            rank_zero_warn(
+                f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
+                f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
+                f" you want to see logs for the training epoch."
+            )
 
     def _reset_eval_dataloader(
         self,
@@ -360,6 +371,10 @@ class TrainerDataLoadingMixin(ABC):
 
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
+
+        # allow accelerator to modify dataloader
+        hook_name = f"on_reset_{mode}_dataloader"
+        dataloaders = getattr(self.accelerator, hook_name)(dataloaders)
 
         loader_num_batches = []
 
