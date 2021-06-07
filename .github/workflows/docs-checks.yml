@@ -13,9 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          token: ${{ secrets.PAT_GHOST }}
           submodules: true
-          lfs: true
+          # lfs: true
       - uses: ammaraskar/sphinx-action@master
         with:
           # git is required to clone the docs theme
@@ -29,9 +28,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          token: ${{ secrets.PAT_GHOST }}
           submodules: true
-          lfs: true
+          # lfs: true
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -79,9 +77,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          token: ${{ secrets.PAT_GHOST }}
           submodules: true
-          lfs: true
+          # lfs: true
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
