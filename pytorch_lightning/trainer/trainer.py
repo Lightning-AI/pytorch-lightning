@@ -1200,11 +1200,7 @@ class Trainer(
         # If making changes to this function, ensure that those changes are also made to
         # TrainLoop._on_train_epoch_end_hook
         if self.lightning_module:
-            # restore current_fx when nested context
-            if self.lightning_module._current_fx_name is not None:
-                current_fx_name = self.lightning_module._current_fx_name
-            else:
-                current_fx_name = None
+            prev_fx_name = self.lightning_module._current_fx_name
             self.lightning_module._current_fx_name = hook_name
 
         # always profile hooks
@@ -1232,7 +1228,8 @@ class Trainer(
                 output = accelerator_output if output is None else output
 
         if self.lightning_module:
-            self.lightning_module._current_fx_name = None if (current_fx_name == hook_name) else current_fx_name
+            # restore current_fx when nested context
+            self.lightning_module._current_fx_name = prev_fx_name
 
         return output
 
