@@ -2,7 +2,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from copy import copy
 from functools import partial, update_wrapper
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple, Mapping
 
 import numpy as np
 import torch
@@ -55,23 +55,23 @@ class BatchLoop(Loop):
     def run(self, batch, batch_idx, dataloader_idx):
         if batch is None:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
-            return AttributeDict(signal=0, grad_norm_dic={}, training_step_output=[[]])
+            return AttributeDict(signal=0, training_step_output=[[]])
 
         # hook
+        self.trainer.logger_connector.on_batch_start()
         response = self.trainer.call_hook("on_batch_start")
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dic={})
+            return AttributeDict(signal=-1)
 
         # hook
         response = self.trainer.call_hook("on_train_batch_start", batch, batch_idx, dataloader_idx)
         if response == -1:
-            return AttributeDict(signal=-1, grad_norm_dic={})
+            return AttributeDict(signal=-1)
 
         super().run(batch, batch_idx, dataloader_idx)
 
         return AttributeDict(
             signal=0,
-            grad_norm_dict=self.grad_norm_dicts[-1],
             training_step_output=self.batch_outputs,
         )
 
@@ -91,7 +91,7 @@ class BatchLoop(Loop):
         self.split_idx = split_idx
 
         # let logger connector extract current batch size
-        self.trainer.logger_connector.on_train_split_start(batch_idx, split_batch)
+        self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
         # TODO: this list needs to go outside this loop
         # batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
@@ -102,14 +102,13 @@ class BatchLoop(Loop):
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                 if result:
                     self.batch_outputs[opt_idx].append(result.training_step_output)
-                    grad_norm_dict = result.get("grad_norm_dict", {})
         else:
             # in manual optimization, there is no looping over optimizers
             result = self._run_optimization(batch_idx, split_batch)
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
 
-        # TODO: Properly aggregate grad_norm accross opt_idx and split_idx
+        # TODO: needed?
         self.grad_norm_dicts.append(grad_norm_dict)
 
 
@@ -210,6 +209,16 @@ class BatchLoop(Loop):
             if training_step_output.grad_fn is None:
                 # TODO: Find why - RuntimeError: Expected to mark a variable ready only once ...
                 raise MisconfigurationException("In manual optimization, `training_step` should not return a Tensor")
+        elif self.trainer.lightning_module.automatic_optimization:
+            if not any((
+                    isinstance(training_step_output, torch.Tensor),
+                    (isinstance(training_step_output, Mapping)
+                     and 'loss' in training_step_output), training_step_output is None
+            )):
+                raise MisconfigurationException(
+                    "In automatic optimization, `training_step` must either return a Tensor, "
+                    "a dict with key 'loss' or None (where the step will be skipped)."
+                )
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         # give the PL module a result for logging
@@ -460,7 +469,10 @@ class BatchLoop(Loop):
 
         if not self.should_accumulate():
             # track gradients
-            result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
+            grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
+            if grad_norm_dict:
+                self.trainer.lightning_module._current_fx_name = "on_after_backward"
+                self.trainer.lightning_module.log_grad_norm(grad_norm_dict)
 
     def update_running_loss(self, current_loss: torch.Tensor) -> None:
         if self.trainer.lightning_module.automatic_optimization:

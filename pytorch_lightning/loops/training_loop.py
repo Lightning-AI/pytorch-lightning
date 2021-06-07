@@ -144,7 +144,7 @@ class TrainingLoop(Loop):
             return
 
         # inform logger the batch loop has finished
-        self.trainer.logger_connector.on_train_epoch_end()
+        self.trainer.logger_connector.epoch_end_reached()
 
         # prepare epoch output
         processed_outputs = self._prepare_outputs(self.epoch_output, batch_mode=False)
@@ -169,6 +169,7 @@ class TrainingLoop(Loop):
         # call train epoch end hooks
         self._on_train_epoch_end_hook(processed_outputs)
         self.trainer.call_hook('on_epoch_end')
+        self.trainer.logger_connector.on_epoch_end()
         return self.epoch_output
 
 
@@ -208,9 +209,8 @@ class TrainingLoop(Loop):
                 else:
                     model_ref.on_train_epoch_end()
 
-            # if the PL module doesn't have the hook then call the accelerator
-            # used to auto-reduce things for the user with Results obj
-            elif hasattr(self.trainer.accelerator, hook_name):
+            # call the accelerator hook
+            if hasattr(self.trainer.accelerator, hook_name):
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
 
@@ -232,6 +232,7 @@ class TrainingLoop(Loop):
         # hook
         self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, batch_idx, dataloader_idx)
         self.trainer.call_hook('on_batch_end')
+        self.trainer.logger_connector.on_batch_end()
 
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, batch_end_outputs)
