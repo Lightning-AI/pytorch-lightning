@@ -261,6 +261,9 @@ class TrainerDataLoadingMixin(ABC):
         # wrap the sequence of train loaders to a CombinedLoader object for computing the num_training_batches
         self.train_dataloader = CombinedLoader(self.train_dataloader, self.data_connector.multiple_trainloader_mode)
 
+        # allow accelerator to modify dataloader
+        self.train_dataloader = self.accelerator.on_reset_train_dataloader(self.train_dataloader)
+
         self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
@@ -360,6 +363,10 @@ class TrainerDataLoadingMixin(ABC):
 
         # add worker_init_fn for correct seeding in worker processes
         apply_to_collection(dataloaders, dtype=DataLoader, function=self.auto_add_worker_init_fn)
+
+        # allow accelerator to modify dataloader
+        hook_name = f"on_reset_{mode}_dataloader"
+        dataloaders = getattr(self.accelerator, hook_name)(dataloaders)
 
         loader_num_batches = []
 
