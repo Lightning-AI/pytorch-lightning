@@ -402,7 +402,9 @@ class ProgressBar(ProgressBarBase):
         total_val_batches = self.total_val_batches
         if total_train_batches != float('inf') and total_val_batches != float('inf'):
             # val can be checked multiple times per epoch
-            val_checks_per_epoch = total_train_batches // trainer.val_check_batch
+            val_checks_per_epoch = total_val_batches // trainer.val_check_batch
+            if val_checks_per_epoch == 0:
+                val_checks_per_epoch = 1
             total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
         reset(self.main_progress_bar, total_batches)
