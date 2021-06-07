@@ -73,6 +73,8 @@ class PrecisionPlugin(Plugin, CheckpointHooks):
         """
         automatic_optimization = model.automatic_optimization
 
+        model.trainer.call_hook("on_before_backward", closure_loss)
+
         # do backward pass
         if automatic_optimization:
             model.backward(closure_loss, optimizer, opt_idx)

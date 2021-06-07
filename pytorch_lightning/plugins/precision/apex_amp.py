@@ -74,6 +74,9 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         # enter apex context
         closure_loss = scaled_loss.__enter__()
 
+        # hook
+        model.trainer.call_hook("on_before_backward", closure_loss)
+
         # do backward pass
         # TODO: not entirely sure, why we need this
         if model is not None and isinstance(model, LightningModule):
