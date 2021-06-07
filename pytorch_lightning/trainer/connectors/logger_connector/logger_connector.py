@@ -13,22 +13,23 @@
 # limitations under the License.
 import os
 from pprint import pprint
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Mapping, Optional
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import DeviceType
+from pytorch_lightning.utilities import AttributeDict, DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 
 class LoggerConnector:
 
-    def __init__(self, trainer, log_gpu_memory: Optional[str] = None):
+    def __init__(self, trainer: 'pl.Trainer', log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self.eval_loop_results = []
@@ -42,24 +43,26 @@ class LoggerConnector:
         self._batch_idx: Optional[int] = None
         self._split_idx: Optional[int] = None
 
-    def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
-        # logging
+    def on_trainer_init(
+        self, logger: LightningLoggerBase, flush_logs_every_n_steps: int, log_every_n_steps: int,
+        move_metrics_to_cpu: bool
+    ) -> None:
         self.configure_logger(logger)
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
 
     @property
-    def should_flush_logs(self):
+    def should_flush_logs(self) -> bool:
         should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
         return should_flush or self.trainer.should_stop
 
     @property
-    def should_update_logs(self):
+    def should_update_logs(self) -> bool:
         should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
         return should_log_every_n_steps or self.trainer.should_stop
 
-    def configure_logger(self, logger):
+    def configure_logger(self, logger: LightningLoggerBase) -> None:
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
 
@@ -75,14 +78,16 @@ class LoggerConnector:
             else:
                 self.trainer.logger = logger
 
-    def log_metrics(self, metrics, grad_norm_dict, step=None):
+    def log_metrics(
+        self, metrics: Dict[str, _METRIC], grad_norm_dict: Dict[str, float], step: Optional[int] = None
+    ) -> None:
         """Logs the metric dict passed in.
         If `step` parameter is None and `step` key is presented is metrics,
         uses metrics["step"] as a step
 
         Args:
-            metrics (dict): Metric values
-            grad_norm_dict (dict): Gradient norms
+            metrics: Metric values
+            grad_norm_dict: Gradient norms
             step (int): Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
@@ -117,7 +122,7 @@ class LoggerConnector:
     Evaluation metric updates
     """
 
-    def prepare_eval_loop_results(self, metrics: Dict[str, _METRIC]) -> None:
+    def prepare_eval_loop_results(self, metrics: Mapping[str, _METRIC]) -> None:
         if self.trainer.sanity_checking:
             return
 
@@ -212,7 +217,7 @@ class LoggerConnector:
         self._batch_idx = batch_idx
         self._split_idx = split_idx
 
-    def update_train_step_metrics(self, batch_output):
+    def update_train_step_metrics(self, batch_output: AttributeDict) -> None:
         if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 

@@ -14,7 +14,7 @@
 from collections.abc import Generator
 from dataclasses import dataclass, field
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union
 
 import torch
 from torchmetrics import Metric
@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 # re-define the ones from pytorch_lightning.utilities.types without the `Number` type
 _METRIC = Union[Metric, torch.Tensor]
-_METRIC_COLLECTION = Union[_METRIC, Dict[str, _METRIC]]
+_METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 
 
 class MetricSource(LightningEnum):
@@ -172,7 +172,7 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
 
         return wrapped_func
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value: Any) -> None:
         # performance: skip the `torch.nn.Module.__setattr__` checks
         object.__setattr__(self, key, value)
 
@@ -220,7 +220,7 @@ class ResultCollection(dict):
         self.training = training
         self._minimize = None
         self._batch_size = torch.tensor(1, device=device)
-        self.device: Optional[torch.device] = device
+        self.device: Optional[Union[str, torch.device]] = device
         self.fx_validator = FxValidator()
 
     @property
@@ -258,7 +258,7 @@ class ResultCollection(dict):
         return self.get('_extra', {})
 
     @extra.setter
-    def extra(self, extra: Dict[str, Any]) -> None:
+    def extra(self, extra: Mapping[str, Any]) -> None:
 
         def check_fn(v):
             if v.grad_fn is not None:

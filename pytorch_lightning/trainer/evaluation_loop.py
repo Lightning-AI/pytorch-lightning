@@ -80,6 +80,7 @@ class EvaluationLoop(object):
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
 
+        assert self.trainer.result_collection is not None
         self.trainer.result_collection.device = self.trainer.lightning_module.device
 
         if self.trainer.testing:
