@@ -39,7 +39,6 @@ class LoggerConnector:
         self._callback_metrics: Dict[str, _METRIC] = {}
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
-        # FIXME: use _epoch_end_reached?
         self._batch_idx: Optional[int] = None
 
     def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
