@@ -39,6 +39,57 @@ class CheckpointConnector:
         self.loaded_checkpoint = dict()
         # used to validate checkpointing logic
         self.has_trained = False
+        self._load_optimizer_states = True
+
+    @property
+    def hpc_resume_path(self) -> Optional[str]:
+        dir_path_hpc = str(self.trainer.weights_save_path)
+        max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
+        if max_suffix is not None:
+            return f"{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt"
+
+    def resume_start(self) -> None:
+        """
+        Attempt to restore a checkpoint in this priority:
+
+        1. from HPC weights if found
+        2. from `resume_from_checkpoint` file if provided
+        3. don't restore
+        """
+        self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path
+        checkpoint_path = self.resume_checkpoint_path
+        if not checkpoint_path:
+            return
+
+        # clear cache before restore
+        if self.trainer._device_type == DeviceType.GPU:
+            torch.cuda.empty_cache()
+
+        # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
+        fs = get_filesystem(checkpoint_path)
+        if not fs.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
+
+        rank_zero_info(f"Restoring states from the checkpoint file at {checkpoint_path}")
+        self.loaded_checkpoint = pl_load(checkpoint_path, map_location=(lambda storage, loc: storage))
+        checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
+            checkpoint_path, map_location=lambda storage, loc: storage
+        )
+        self.loaded_checkpoint = checkpoint
+        self._load_optimizer_states = load_optimizer_states
+
+    def resume_end(self) -> None:
+        """ Signal the connector that all states have resumed and memory for the checkpoint object can be released. """
+        rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
+        self.resume_checkpoint_path = None
+        self.loaded_checkpoint = dict()
+
+        # clear cache after restore
+        if self.trainer._device_type == DeviceType.GPU:
+            torch.cuda.empty_cache()
+
+        # wait for all to catch up
+        self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
 
     def restore_weights(self) -> None:
         """
@@ -47,50 +98,25 @@ class CheckpointConnector:
         2. from `resume_from_checkpoint` file
         3. don't restore
         """
-        # clear cache before restore
-        if self.trainer._device_type == DeviceType.GPU:
-            torch.cuda.empty_cache()
+        self.resume_start()
 
-        # 1. Attempt to restore states from HPC checkpoint
-        dir_path_hpc = str(self.trainer.weights_save_path)
-        max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
-        if max_suffix is not None:
-            checkpoint_path = f'{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt'
-            self.hpc_load(checkpoint_path, self.trainer._device_type == DeviceType.GPU)
-            rank_zero_info(f'restored hpc model from: {checkpoint_path}')
+        if self.resume_checkpoint_path is not None:
+            self.restore(self.resume_checkpoint_path)
 
-        # 2. Attempt to restore states from `resume_from_checkpoint` file
-        elif self.resume_checkpoint_path is not None:
-            self.restore(self.resume_checkpoint_path, on_gpu=self.trainer._device_type == DeviceType.GPU)
+        self.resume_end()
 
-        # wait for all to catch up
-        self.trainer.training_type_plugin.barrier('TrainerIOMixin.restore_weights')
-
-        # clear cache after restore
-        if self.trainer._device_type == DeviceType.GPU:
-            torch.cuda.empty_cache()
-
-    def restore(self, checkpoint_path: str, on_gpu: bool) -> bool:
+    def restore(self, checkpoint_path: str) -> bool:
         """
         Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
         All restored states are listed in return value description of `dump_checkpoint`.
         """
-        # Try to read the checkpoint file at `checkpoint_path`. If not exist, do not restore checkpoint.
-        fs = get_filesystem(checkpoint_path)
-        if not fs.exists(checkpoint_path):
-            raise FileNotFoundError(f"Checkpoint at {checkpoint_path} not found. Aborting training.")
-
-        checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
-            checkpoint_path, map_location=lambda storage, loc: storage
-        )
-
         model = self.trainer.lightning_module
 
-        if on_gpu:
+        if self.trainer._device_type == DeviceType.GPU:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
-        self.restore_training_state(checkpoint, load_optimizer_states)
+        self.restore_training_state(self.loaded_checkpoint, self._load_optimizer_states)
 
         rank_zero_info(f"Restored states from the checkpoint file at {checkpoint_path}")
         return True
