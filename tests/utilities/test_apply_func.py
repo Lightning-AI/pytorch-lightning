@@ -84,6 +84,16 @@ def test_recursive_application_to_collection():
     reduced = apply_to_collection(OrderedDict([('b', 2), ('a', 1)]), int, lambda x: str(x))
     assert reduced == OrderedDict([('b', '2'), ('a', '1')])
 
+    # custom mappings
+    class _CustomCollection(dict):
+
+        def __init__(self, initial_dict):
+            super().__init__(initial_dict)
+
+    to_reduce = _CustomCollection({'a': 1, 'b': 2, 'c': 3})
+    reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
+    assert reduced == _CustomCollection({'a': '1', 'b': '2', 'c': '3'})
+
 
 def test_apply_to_collection_include_none():
     to_reduce = [1, 2, 3.4, 5.6, 7]
