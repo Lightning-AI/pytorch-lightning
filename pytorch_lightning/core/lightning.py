@@ -1543,9 +1543,7 @@ class LightningModule(
                 print(grad_norm_dict)
 
         """
-        self._current_fx_name = "on_after_backward"
         self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self._current_fx_name = None
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
         r"""
