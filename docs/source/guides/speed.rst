@@ -126,7 +126,7 @@ Lightning supports a variety of plugins to further speed up distributed GPU trai
 TPU training
 ============
 
-.. testcode::
+.. code-block:: python
 
     # train on 1 TPU core
     trainer = Trainer(tpu_cores=1)
