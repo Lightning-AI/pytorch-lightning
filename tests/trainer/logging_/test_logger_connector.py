@@ -17,7 +17,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision
-
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning import LightningModule, seed_everything
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
@@ -356,15 +356,15 @@ def test_metrics_reset(tmpdir):
             acc.reset.assert_called_once()
             ap.reset.assert_called_once()
 
-        def on_train_end(self):
-            self._assert_epoch_end('train')
-
-        def on_validation_end(self):
-            if not self.trainer.sanity_checking:
+        def teardown(self, stage):
+            if stage == TrainerFn.FITTING:
+                self._assert_epoch_end('train')
                 self._assert_epoch_end('val')
 
-        def on_test_end(self):
-            if not self.trainer.sanity_checking:
+            elif stage == TrainerFn.VALIDATING:
+                self._assert_epoch_end('val')
+
+            elif stage == TrainerFn.TESTING:
                 self._assert_epoch_end('test')
 
     def _assert_called(model, stage):
