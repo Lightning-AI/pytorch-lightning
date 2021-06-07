@@ -17,7 +17,7 @@ from typing import Optional, Tuple
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import DeviceType, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
