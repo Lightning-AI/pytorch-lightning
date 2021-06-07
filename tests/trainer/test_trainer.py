@@ -1069,9 +1069,9 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
 
     with patch.object(
-        trainer.evaluation_loop.evaluation_loop,
+        trainer.evaluation_loop,
         "evaluation_step",
-        wraps=trainer.evaluation_loop.evaluation_loop.evaluation_step
+        wraps=trainer.evaluation_loop.evaluation_step
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple_mixed_length()
         trainer.fit(model, val_dataloaders=val_dataloaders)
@@ -1099,9 +1099,9 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     assert trainer.num_sanity_val_steps == float("inf")
 
     with patch.object(
-        trainer.evaluation_loop.evaluation_loop,
+        trainer.evaluation_loop,
         "evaluation_step",
-        wraps=trainer.evaluation_loop.evaluation_loop.evaluation_step
+        wraps=trainer.evaluation_loop.evaluation_step
     ) as mocked:
         val_dataloaders = model.val_dataloader__multiple()
         trainer.fit(model, val_dataloaders=val_dataloaders)
