@@ -362,44 +362,36 @@ def test_log_works_in_train_callback(tmpdir):
                 self.logged_arguments[fx] = {"on_step": on_step, "on_epoch": on_epoch, "prog_bar": prog_bar}
                 self.count += 1
 
-        def on_train_start(self, trainer, pl_module):
+        def on_train_start(self, _, pl_module):
+            self.make_logging(pl_module, 'on_train_start', on_steps=[False], on_epochs=[True], prob_bars=self.choices)
+
+        def on_epoch_start(self, _, pl_module):
             self.make_logging(
-                pl_module, 'on_train_start', on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+                pl_module, 'on_epoch_start', on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_epoch_start(self, trainer, pl_module):
+        def on_train_epoch_start(self, _, pl_module):
             self.make_logging(
-                pl_module, 'on_epoch_start', on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+                pl_module, 'on_train_epoch_start', on_steps=self.choices, on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_train_epoch_start(self, trainer, pl_module):
-            self.make_logging(
-                pl_module,
-                'on_train_epoch_start',
-                on_steps=self.choices,
-                on_epochs=self.choices,
-                prob_bars=self.choices
-            )
-
-        def on_batch_end(self, trainer, pl_module):
+        def on_batch_end(self, _, pl_module):
             self.make_logging(
                 pl_module, 'on_batch_end', on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
             )
 
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_train_batch_end(self, _, pl_module, *__):
             self.make_logging(
                 pl_module, 'on_train_batch_end', on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
             )
 
-        def on_train_epoch_end(self, trainer, pl_module):
+        def on_train_epoch_end(self, _, pl_module):
             self.make_logging(
-                pl_module, 'on_train_epoch_end', on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
+                pl_module, 'on_train_epoch_end', on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_epoch_end(self, trainer, pl_module):
-            self.make_logging(
-                pl_module, 'on_epoch_end', on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
-            )
+        def on_epoch_end(self, _, pl_module):
+            self.make_logging(pl_module, 'on_epoch_end', on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
     class TestModel(BoringModel):
         seen_losses = []
