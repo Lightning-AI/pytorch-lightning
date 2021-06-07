@@ -130,7 +130,7 @@ class EpochLoop(Loop):
             return super().run()
 
     def on_run_start(self):
-        self.trainer.logger_connector.on_train_start()
+        self.trainer.result_collection.device = self.trainer.lightning_module.device
         self.trainer.call_hook("on_train_start")
 
     def on_advance_start(self):  # equal to old on_train_epoch_start
@@ -154,6 +154,7 @@ class EpochLoop(Loop):
         )
 
         # hook
+        self.trainer.logger_connector.on_epoch_start()
         self.trainer.call_hook("on_epoch_start")
         self.trainer.call_hook("on_train_epoch_start")
 
