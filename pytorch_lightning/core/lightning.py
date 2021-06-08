@@ -263,7 +263,7 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Callable = torch.mean,
+        reduce_fx: Union[str, Callable] = 'mean',
         tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
         tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
@@ -376,12 +376,6 @@ class LightningModule(
             # when restarting an new epoch, reset the tensors
             results.reset(metrics=False, fx=self._current_fx_name)
 
-        if isinstance(sync_dist_op, str):
-            sync_dist_op = sync_dist_op.lower()
-            if sync_dist_op == "avg":
-                sync_dist_op = 'mean'
-            reduce_fx = self.__check_sync_dist_op(sync_dist_op, reduce_fx)
-
         results.log(
             self._current_fx_name,
             name,
@@ -410,7 +404,7 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Callable = torch.mean,
+        reduce_fx: Union[str, Callable] = 'mean',
         tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
         tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
@@ -462,7 +456,7 @@ class LightningModule(
             )
 
     @staticmethod
-    def __check_not_nested(value: dict, name: str) -> None:
+    def __check_not_nested(value: dict, name: str) -> dict:
         # self-imposed restriction. for simplicity
         if any(isinstance(v, dict) for v in value.values()):
             raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
@@ -474,13 +468,6 @@ class LightningModule(
 
     def __to_float(self, value: numbers.Number) -> torch.Tensor:
         return torch.tensor(value, device=self.device, dtype=torch.float)
-
-    @staticmethod
-    def __check_sync_dist_op(sync_dist_op: str, fx: Callable) -> Callable:
-        torch_fx = getattr(torch, sync_dist_op)
-        if getattr(torch, sync_dist_op) != fx:
-            return torch_fx
-        return fx
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
