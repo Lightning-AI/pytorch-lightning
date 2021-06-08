@@ -513,8 +513,8 @@ class TrainerProperties(ABC):
         _cb_metrics: dict = self.logger_connector.callback_metrics
         if not _cb_metrics and isinstance(self.accelerator.training_type_plugin, DDPSpawnPlugin):
             warning_cache.warn(
-                "You are using the'ddp_spawn' accelerator and trying to access to a property outside of the ",
-                "main process. If this is the intended behaviour, you should use the 'ddp' accelerator."
+                "You are using an accelerator relying on spawn to create its processes and this property would be unchanged on the main process, "
+                "To access this property from main process, you should use the ``ddp`` based accelerator."
             )
         return _cb_metrics
 
