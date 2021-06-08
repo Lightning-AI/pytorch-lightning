@@ -758,8 +758,10 @@ def test_result_collection_on_tensor_with_mean_reduction():
     mean = total_value / total_batches
     pbar_metrics = epoch_metrics[MetricSource.PBAR]
     assert set(pbar_metrics) == {
-        'loss_on_epoch_prog_bar', 'loss_on_epoch_prog_bar_logger', 'loss_on_step_on_epoch_prog_bar_epoch',
-        'loss_on_step_on_epoch_prog_bar_logger_epoch'
+        'loss_on_epoch_prog_bar',
+        'loss_on_epoch_prog_bar_logger',
+        'loss_on_step_on_epoch_prog_bar_epoch',
+        'loss_on_step_on_epoch_prog_bar_logger_epoch',
     }
     assert all(allclose(m, mean) for m in pbar_metrics.values())
     assert epoch_metrics[MetricSource.LOG] == {
