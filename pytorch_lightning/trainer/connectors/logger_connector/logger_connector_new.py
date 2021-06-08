@@ -27,7 +27,8 @@ from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 
-class LoggerConnector:
+# TODO(@carmocca): Remove `New` suffix
+class LoggerConnectorNew:
 
     def __init__(self, trainer: 'pl.Trainer', log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
@@ -119,7 +120,44 @@ class LoggerConnector:
     Evaluation metric updates
     """
 
-    def prepare_eval_loop_results(self, metrics: Mapping[str, _METRIC]) -> None:
+    @property
+    def _eval_log_step(self) -> Optional[int]:
+        if self.trainer.state.stage is RunningStage.VALIDATING:
+            return self._val_log_step
+        elif self.trainer.state.stage is RunningStage.TESTING:
+            return self._test_log_step
+        else:
+            return None
+
+    def _increment_eval_log_step(self) -> None:
+        if self.trainer.state.stage is RunningStage.VALIDATING:
+            self._val_log_step += 1
+        elif self.trainer.state.stage is RunningStage.TESTING:
+            self._test_log_step += 1
+
+    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
+        model = self.trainer.lightning_module
+        # set dataloader_idx only if multiple ones
+        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
+
+        # track batch_size
+        self.trainer.result_collection.extract_batch_size(batch)
+        self._batch_idx = batch_idx
+
+    def update_eval_step_metrics(self) -> None:
+        if self.trainer.sanity_checking:
+            return
+
+        # logs user requested information to logger
+        assert not self._epoch_end_reached
+        metrics = self.metrics[MetricSource.LOG]
+        if metrics:
+            self.log_metrics(metrics, step=self._eval_log_step)
+
+        # increment the step even if nothing was logged
+        self._increment_eval_log_step()
+
+    def _prepare_eval_loop_results(self, metrics: Mapping[str, _METRIC]) -> None:
         if self.trainer.sanity_checking:
             return
 
@@ -136,7 +174,7 @@ class LoggerConnector:
             else:
                 self.eval_loop_results.append(callback_metrics)
 
-    def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
+    def update_eval_epoch_metrics(self) -> _EVALUATE_OUTPUT:
         assert self._epoch_end_reached
         metrics = self.metrics
 
@@ -146,7 +184,7 @@ class LoggerConnector:
             if log_metrics:
                 self.log_metrics(log_metrics)
 
-        self.prepare_eval_loop_results(metrics[MetricSource.CALLBACK])
+        self._prepare_eval_loop_results(metrics[MetricSource.CALLBACK])
 
         # log results of evaluation
         if (
@@ -166,43 +204,6 @@ class LoggerConnector:
         # clear mem
         self.eval_loop_results = []
         return results
-
-    @property
-    def evaluation_log_step(self) -> Optional[int]:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            return self._val_log_step
-        elif self.trainer.state.stage is RunningStage.TESTING:
-            return self._test_log_step
-        else:
-            return None
-
-    def increment_evaluation_log_step(self) -> None:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            self._val_log_step += 1
-        elif self.trainer.state.stage is RunningStage.TESTING:
-            self._test_log_step += 1
-
-    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
-        model = self.trainer.lightning_module
-        # set dataloader_idx only if multiple ones
-        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
-
-        # track batch_size
-        self.trainer.results.extract_batch_size(batch)
-        self._batch_idx = batch_idx
-
-    def update_evaluation_step_metrics(self) -> None:
-        if self.trainer.sanity_checking:
-            return
-
-        # logs user requested information to logger
-        assert not self._epoch_end_reached
-        metrics = self.metrics[MetricSource.LOG]
-        if metrics:
-            self.log_metrics(metrics, step=self.evaluation_log_step)
-
-        # increment the step even if nothing was logged
-        self.increment_evaluation_log_step()
 
     """
     Train metric updates
