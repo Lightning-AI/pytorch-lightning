@@ -685,7 +685,7 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir):
         def on_save_checkpoint(self, checkpoint):
             lr_dict = checkpoint['lr_schedulers'][0]
             # since plateau schedulers are updated after saving checkpoint, last_epoch should be 1
-            assert lr_dict['last_epoch'] == batches - 1  # step count starts at 1
+            assert lr_dict['last_epoch'] == batches - 1  # last epoch starts at 0
             self.on_save_checkpoint_called = True
 
     model = TestModel()
