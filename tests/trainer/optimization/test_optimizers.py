@@ -623,7 +623,8 @@ def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch
     assert mocked_sched.call_count == expected_steps
 
 
-def test_scheduler_lr_step_interval_updated_before_saving(tmpdir):
+@pytest.mark.parametrize("every_n_train_steps", [None, 2])
+def test_scheduler_lr_step_interval_updated_before_saving(tmpdir, every_n_train_steps):
     batches = 2
     lr, gamma = 1, 10
     trainer = Trainer(
@@ -633,7 +634,7 @@ def test_scheduler_lr_step_interval_updated_before_saving(tmpdir):
         max_epochs=1,
         limit_train_batches=batches,
         limit_val_batches=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir)]
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=every_n_train_steps)]
     )
 
     class TestModel(BoringModel):
