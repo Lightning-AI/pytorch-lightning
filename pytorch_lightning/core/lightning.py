@@ -13,18 +13,13 @@
 # limitations under the License.
 """nn.Module with additional great features."""
 
-import collections
-import copy
-import inspect
 import logging
 import numbers
 import os
 import tempfile
-import types
 import uuid
-from argparse import Namespace
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -35,15 +30,13 @@ from pytorch_lightning.core.base_lightning import RootLightningModule
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
+from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -137,122 +130,6 @@ class LightningModule(
         # multiple schedulers
         return lr_schedulers
 
-    @property
-    def example_input_array(self) -> Any:
-        return self._example_input_array
-
-    @property
-    def current_epoch(self) -> int:
-        """The current epoch"""
-        return self.trainer.current_epoch if self.trainer else 0
-
-    @property
-    def global_step(self) -> int:
-        """Total training batches seen across all epochs"""
-        return self.trainer.global_step if self.trainer else 0
-
-    @property
-    def global_rank(self) -> int:
-        """ The index of the current process across all nodes and devices. """
-        return self.trainer.global_rank if self.trainer else 0
-
-    @property
-    def local_rank(self) -> int:
-        """ The index of the current process within a single node. """
-        return self.trainer.local_rank if self.trainer else 0
-
-    @example_input_array.setter
-    def example_input_array(self, example: Any) -> None:
-        self._example_input_array = example
-
-    @property
-    def datamodule(self) -> Any:
-        rank_zero_deprecation(
-            "The `LightningModule.datamodule` property is deprecated in v1.3 and will be removed in v1.5."
-            " Access the datamodule through using `self.trainer.datamodule` instead."
-        )
-        return self._datamodule
-
-    @datamodule.setter
-    def datamodule(self, datamodule: Any) -> None:
-        self._datamodule = datamodule
-
-    @property
-    def on_gpu(self):
-        """
-        True if your model is currently running on GPUs.
-        Useful to set flags around the LightningModule for different CPU vs GPU behavior.
-        """
-        return self.device.type == "cuda"
-
-    @property
-    def automatic_optimization(self) -> bool:
-        """
-        If False you are responsible for calling .backward, .step, zero_grad.
-        """
-        return self._automatic_optimization
-
-    @automatic_optimization.setter
-    def automatic_optimization(self, automatic_optimization: bool) -> None:
-        self._automatic_optimization = automatic_optimization
-
-    @property
-    def truncated_bptt_steps(self) -> int:
-        """
-        truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much a longer sequence.
-        If this is > 0, the training step is passed ``hiddens``.
-        """
-        return self._truncated_bptt_steps
-
-    @truncated_bptt_steps.setter
-    def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
-        self._truncated_bptt_steps = truncated_bptt_steps
-
-    @property
-    def logger(self):
-        """ Reference to the logger object in the Trainer. """
-        return self.trainer.logger if self.trainer else None
-
-    def _apply_batch_transfer_handler(
-        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
-    ) -> Any:
-        device = device or self.device
-        batch = self.on_before_batch_transfer(batch, dataloader_idx)
-
-        if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
-            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
-        else:
-            warning_cache.warn(
-                "`transfer_batch_to_device` hook signature has changed in v1.4."
-                " `dataloader_idx` parameter has been added to it. Support for"
-                " the old signature will be removed in v1.6", DeprecationWarning
-            )
-            batch = self.transfer_batch_to_device(batch, device)
-
-        batch = self.on_after_batch_transfer(batch, dataloader_idx)
-        return batch
-
-    def print(self, *args, **kwargs) -> None:
-        r"""
-        Prints only from process 0. Use this in any distributed mode to log only once.
-
-        Args:
-            *args: The thing to print. The same as for Python's built-in print function.
-            **kwargs: The same as for Python's built-in print function.
-
-        Example::
-
-            def forward(self, x):
-                self.print(x, 'in forward')
-
-        """
-        if self.trainer.is_global_zero:
-            progress_bar = self.trainer.progress_bar_callback
-            if progress_bar is not None and progress_bar.is_enabled:
-                progress_bar.print(*args, **kwargs)
-            else:
-                print(*args, **kwargs)
-
     def log_dict(
         self,
         dictionary: Mapping[str, _METRIC_COLLECTION],
@@ -311,7 +188,7 @@ class LightningModule(
             )
 
     @staticmethod
-    def __sync(
+    def _sync(
         value: Union[torch.Tensor, numbers.Number],
         sync_fn: Optional[Callable] = None,
         sync_dist: bool = False,
@@ -327,100 +204,6 @@ class LightningModule(
         if not sync_dist or not dist_available:
             return value
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
-
-    @staticmethod
-    def __check_not_nested(value: dict, name: str) -> None:
-        # self-imposed restriction. for simplicity
-        if any(isinstance(v, dict) for v in value.values()):
-            raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
-        return value
-
-    @staticmethod
-    def __check_allowed(v: Any, name: str, value: Any) -> None:
-        raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
-
-    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
-        """Override this method to change the default behaviour of ``log_grad_norm``.
-
-        Args:
-            grad_norm_dict: Dictionary containing current grad norm metrics
-
-        Example::
-
-            # DEFAULT
-            def log_grad_norm(self, grad_norm_dict):
-                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-        """
-        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-
-    def write_prediction(
-        self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'
-    ):
-        """
-        Write predictions to disk using ``torch.save``
-
-        Example::
-
-            self.write_prediction('pred', torch.tensor(...), filename='my_predictions.pt')
-
-        Args:
-            name: a string indicating the name to save the predictions under
-            value: the predictions, either a single :class:`~torch.Tensor` or a list of them
-            filename: name of the file to save the predictions to
-
-        Note:
-            when running in distributed mode, calling ``write_prediction`` will create a file for
-            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
-
-        .. deprecated::v1.3
-            Will be removed in v1.5.0.
-        """
-        rank_zero_deprecation(
-            'LightningModule method `write_prediction` was deprecated in v1.3'
-            ' and will be removed in v1.5.'
-        )
-
-        self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
-
-    def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
-        """
-        Write a dictonary of predictions to disk at once using ``torch.save``
-
-        Example::
-
-            pred_dict = {'pred1': torch.tensor(...), 'pred2': torch.tensor(...)}
-            self.write_prediction_dict(pred_dict)
-
-        Args:
-            predictions_dict: dict containing predictions, where each prediction should
-                either be single :class:`~torch.Tensor` or a list of them
-
-        Note:
-            when running in distributed mode, calling ``write_prediction_dict`` will create a file for
-            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
-
-        .. deprecated::v1.3
-            Will be removed in v1.5.0.
-        """
-        rank_zero_deprecation(
-            'LightningModule method `write_prediction_dict` was deprecated in v1.3 and'
-            ' will be removed in v1.5.'
-        )
-
-        for k, v in predictions_dict.items():
-            self.write_prediction(k, v, filename)
-
-    def __auto_choose_log_on_step(self, on_step: Optional[bool]) -> bool:
-        if on_step is None:
-            on_step = False
-            on_step |= self._current_fx_name in ('training_step', 'training_step_end')
-        return on_step
-
-    def __auto_choose_log_on_epoch(self, on_epoch: Optional[bool]) -> bool:
-        if on_epoch is None:
-            on_epoch = True
-            on_epoch &= self._current_fx_name not in ('training_step', 'training_step_end')
-        return on_epoch
 
     def all_gather(
         self,
@@ -1411,69 +1194,6 @@ class LightningModule(
         """
         optimizer.zero_grad()
 
-    def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
-        r"""
-        When using truncated backpropagation through time, each batch must be split along the
-        time dimension. Lightning handles this by default, but for custom behavior override
-        this function.
-
-        Args:
-            batch: Current batch
-            split_size: The size of the split
-
-        Return:
-            List of batch splits. Each split will be passed to :meth:`training_step` to enable truncated
-            back propagation through time. The default implementation splits root level Tensors and
-            Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
-
-        Examples::
-
-            def tbptt_split_batch(self, batch, split_size):
-              splits = []
-              for t in range(0, time_dims[0], split_size):
-                  batch_split = []
-                  for i, x in enumerate(batch):
-                      if isinstance(x, torch.Tensor):
-                          split_x = x[:, t:t + split_size]
-                      elif isinstance(x, collections.Sequence):
-                          split_x = [None] * len(x)
-                          for batch_idx in range(len(x)):
-                              split_x[batch_idx] = x[batch_idx][t:t + split_size]
-
-                      batch_split.append(split_x)
-
-                  splits.append(batch_split)
-
-              return splits
-
-        Note:
-            Called in the training loop after
-            :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
-            if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
-            Each returned batch split is passed separately to :meth:`training_step`.
-
-        """
-        time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
-        assert len(time_dims) >= 1, "Unable to determine batch time dimension"
-        assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
-
-        splits = []
-        for t in range(0, time_dims[0], split_size):
-            batch_split = []
-            for i, x in enumerate(batch):
-                if isinstance(x, torch.Tensor):
-                    split_x = x[:, t:t + split_size]
-                elif isinstance(x, collections.Sequence):
-                    split_x = [None] * len(x)
-                    for batch_idx in range(len(x)):
-                        split_x[batch_idx] = x[batch_idx][t:t + split_size]
-
-                batch_split.append(split_x)
-
-            splits.append(batch_split)
-
-        return splits
-
     def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
         model_summary = None
 
@@ -1515,175 +1235,12 @@ class LightningModule(
 
         self.train()
 
-    def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
-        r"""
-        Implement this to override the default items displayed in the progress bar.
-        By default it includes the average loss value, split index of BPTT (if used)
-        and the version of the experiment when using a logger.
-
-        .. code-block::
-
-            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
-
-        Here is an example how to override the defaults:
-
-        .. code-block:: python
-
-            def get_progress_bar_dict(self):
-                # don't show the version number
-                items = super().get_progress_bar_dict()
-                items.pop("v_num", None)
-                return items
-
-        Return:
-            Dictionary with the items to be displayed in the progress bar.
-        """
-        # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.train_loop.running_loss.mean()
-        avg_training_loss = None
-        if running_train_loss is not None:
-            avg_training_loss = running_train_loss.cpu().item()
-        elif self.automatic_optimization:
-            avg_training_loss = float('NaN')
-
-        tqdm_dict = {}
-        if avg_training_loss is not None:
-            tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
-
-        module_tbptt_enabled = self.truncated_bptt_steps > 0
-        trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
-        if module_tbptt_enabled or trainer_tbptt_enabled:
-            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
-
-        if self.trainer.logger is not None and self.trainer.logger.version is not None:
-            version = self.trainer.logger.version
-            # show last 4 places of long version strings
-            version = version[-4:] if isinstance(version, str) else version
-            tqdm_dict["v_num"] = version
-
-        return tqdm_dict
-
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:
             raise MisconfigurationException(
                 f'to use {fn_name}, please disable automatic optimization:'
                 ' set model property `automatic_optimization` as False'
             )
-
-    @classmethod
-    def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
-        """
-        Collect all module arguments in the current constructor and all child constructors.
-        The child constructors are all the ``__init__`` methods that reach the current class through
-        (chained) ``super().__init__()`` calls.
-
-        Args:
-            frame: instance frame
-
-        Returns:
-            self_arguments: arguments dictionary of the first instance
-            parents_arguments: arguments dictionary of the parent's instances
-        """
-        if not frame:
-            frame = inspect.currentframe()
-
-        frame_args = collect_init_args(frame.f_back, [])
-        self_arguments = frame_args[-1]
-
-        # set hyper_parameters in child
-        self_arguments = self_arguments
-        parents_arguments = {}
-
-        # add all arguments from parents
-        for args in frame_args[:-1]:
-            parents_arguments.update(args)
-        return self_arguments, parents_arguments
-
-    def save_hyperparameters(
-        self,
-        *args,
-        ignore: Optional[Union[Sequence[str], str]] = None,
-        frame: Optional[types.FrameType] = None
-    ) -> None:
-        """Save model arguments to ``hparams`` attribute.
-
-        Args:
-            args: single object of `dict`, `NameSpace` or `OmegaConf`
-                or string names or arguments from class ``__init__``
-            ignore: an argument name or a list of argument names from
-                class ``__init__`` to be ignored
-            frame: a frame object. Default is None
-
-        Example::
-            >>> class ManuallyArgsModel(LightningModule):
-            ...     def __init__(self, arg1, arg2, arg3):
-            ...         super().__init__()
-            ...         # manually assign arguments
-            ...         self.save_hyperparameters('arg1', 'arg3')
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-            >>> model.hparams
-            "arg1": 1
-            "arg3": 3.14
-
-            >>> class AutomaticArgsModel(LightningModule):
-            ...     def __init__(self, arg1, arg2, arg3):
-            ...         super().__init__()
-            ...         # equivalent automatic
-            ...         self.save_hyperparameters()
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = AutomaticArgsModel(1, 'abc', 3.14)
-            >>> model.hparams
-            "arg1": 1
-            "arg2": abc
-            "arg3": 3.14
-
-            >>> class SingleArgModel(LightningModule):
-            ...     def __init__(self, params):
-            ...         super().__init__()
-            ...         # manually assign single argument
-            ...         self.save_hyperparameters(params)
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
-            >>> model.hparams
-            "p1": 1
-            "p2": abc
-            "p3": 3.14
-
-            >>> class ManuallyArgsModel(LightningModule):
-            ...     def __init__(self, arg1, arg2, arg3):
-            ...         super().__init__()
-            ...         # pass argument(s) to ignore as a string or in a list
-            ...         self.save_hyperparameters(ignore='arg2')
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-            >>> model.hparams
-            "arg1": 1
-            "arg3": 3.14
-        """
-        # the frame needs to be created in this file.
-        if not frame:
-            frame = inspect.currentframe().f_back
-        save_hyperparameters(self, *args, ignore=ignore, frame=frame)
-
-    def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
-        if isinstance(hp, Namespace):
-            hp = vars(hp)
-        if isinstance(hp, dict):
-            hp = AttributeDict(hp)
-        elif isinstance(hp, PRIMITIVE_TYPES):
-            raise ValueError(f"Primitives {PRIMITIVE_TYPES} are not allowed.")
-        elif not isinstance(hp, ALLOWED_CONFIG_TYPES):
-            raise ValueError(f"Unsupported config type of {type(hp)}.")
-
-        if isinstance(hp, dict) and isinstance(self.hparams, dict):
-            self.hparams.update(hp)
-        else:
-            self._hparams = hp
 
     @torch.no_grad()
     def to_onnx(
@@ -1815,19 +1372,6 @@ class LightningModule(
                 torch.jit.save(torchscript_module, f)
 
         return torchscript_module
-
-    @property
-    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
-        if not hasattr(self, "_hparams"):
-            self._hparams = AttributeDict()
-        return self._hparams
-
-    @property
-    def hparams_initial(self) -> AttributeDict:
-        if not hasattr(self, "_hparams_initial"):
-            return AttributeDict()
-        # prevent any change
-        return copy.deepcopy(self._hparams_initial)
 
     @property
     def model_size(self) -> float:
