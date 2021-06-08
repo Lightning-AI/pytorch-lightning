@@ -623,7 +623,7 @@ def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch
     assert mocked_sched.call_count == expected_steps
 
 
-@pytest.mark.parametrize("every_n_train_steps", [None, 2])
+@pytest.mark.parametrize('every_n_train_steps', [None, 2])
 def test_scheduler_lr_step_interval_updated_before_saving(tmpdir, every_n_train_steps):
     batches = 2
     lr, gamma = 1, 10
@@ -651,6 +651,41 @@ def test_scheduler_lr_step_interval_updated_before_saving(tmpdir, every_n_train_
             assert self.trainer.global_step + 1 == batches  # the global step hasn't been increased yet
             assert lr_dict['_step_count'] - 1 == batches  # step count starts at 1
             assert lr_dict['_last_lr'] == [lr * gamma ** batches]
+            self.on_save_checkpoint_called = True
+
+    model = TestModel()
+    trainer.fit(model)
+    assert model.on_save_checkpoint_called
+
+
+def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir):
+    batches = 4
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        logger=False,
+        max_epochs=1,
+        limit_train_batches=batches,
+        limit_val_batches=1,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)]
+    )
+
+    class TestModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            self.log("foo", batch_idx)
+            return super().training_step(batch, batch_idx)
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.Adam(self.parameters())
+            lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+            lr_dict = {'scheduler': lr_scheduler, 'interval': 'step', 'monitor': 'foo'}
+            return [optimizer], [lr_dict]
+
+        def on_save_checkpoint(self, checkpoint):
+            lr_dict = checkpoint['lr_schedulers'][0]
+            # since plateau schedulers are updated after saving checkpoint, last_epoch should be 1
+            assert lr_dict['last_epoch'] == batches - 1  # step count starts at 1
             self.on_save_checkpoint_called = True
 
     model = TestModel()
