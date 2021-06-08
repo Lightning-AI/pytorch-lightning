@@ -691,21 +691,21 @@ def test_metrics_reset(tmpdir):
 
 def test_result_collection_on_tensor_with_mean_reduction():
     result_collection = ResultCollection(True, torch.device("cpu"))
+    product = [(True, True), (False, True), (True, False), (False, False)]
 
     for i in range(1, 10):
         value = torch.tensor(i, dtype=torch.float)
-        for prob_bar in [False, True]:
+        for prog_bar in [False, True]:
             for logger in [False, True]:
-                for j, (on_step, on_epoch) in enumerate([(True, True), (False, True), (True, False), (False, False)],
-                                                        1):
+                for j, (on_step, on_epoch) in enumerate(product, 1):
                     result_collection.log(
                         "training_step",
-                        f"loss_{j}_{int(prob_bar)}_{int(logger)}",
+                        f"loss_{j}_{int(prog_bar)}_{int(logger)}",
                         value,
                         on_step=on_step,
                         on_epoch=on_epoch,
                         batch_size=i**2,
-                        prog_bar=prob_bar,
+                        prog_bar=prog_bar,
                         logger=logger
                     )
 
