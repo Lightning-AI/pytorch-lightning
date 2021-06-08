@@ -262,12 +262,12 @@ def test_should_stop_mid_epoch(tmpdir):
 @pytest.mark.parametrize(['output'], [(5., ), ({'a': 5}, )])
 def test_warning_invalid_trainstep_output(tmpdir, output):
 
-    class TestModel(BoringModel):
+    class InvalidTrainStepModel(BoringModel):
 
         def training_step(self, batch, batch_idx):
             return output
 
-    model = TestModel()
+    model = InvalidTrainStepModel()
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     with pytest.raises(
@@ -278,3 +278,22 @@ def test_warning_invalid_trainstep_output(tmpdir, output):
         )
     ):
         trainer.fit(model)
+
+
+def test_warning_valid_train_step_end(tmpdir):
+
+    class ValidTrainStepEndModel(BoringModel):
+
+        def training_step(self, batch, batch_idx):
+            output = self(batch)
+            return {'output': output, 'batch': batch}
+
+        def training_step_end(self, outputs):
+            loss = self.loss(outputs['batch'], outputs['output'])
+            return loss
+
+    # No error is raised
+    model = ValidTrainStepEndModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+
+    trainer.fit(model)
