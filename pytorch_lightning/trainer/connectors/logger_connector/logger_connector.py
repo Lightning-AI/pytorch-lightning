@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from pprint import pprint
-from typing import Any, Dict, Iterable, Mapping, Optional
+from typing import Any, Dict, Iterable, Mapping, Optional, Union
 
 import torch
 
