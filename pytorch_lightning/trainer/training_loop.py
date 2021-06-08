@@ -504,6 +504,9 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
+            # update non-plateau LR schedulers
+            self.update_lr_schedulers('step', skip_plateau_scheduler=True)
+
             # hook
             # TODO: add outputs to batches
             self.on_train_batch_end(
@@ -533,7 +536,7 @@ class TrainLoop:
             # -----------------------------------------
             self.save_loggers_on_train_batch_end()
 
-            # update LR schedulers
+            # update plateau LR scheduler after metrics are logged
             self.update_lr_schedulers('step')
             self.trainer.checkpoint_connector.has_trained = True
 
@@ -854,8 +857,8 @@ class TrainLoop:
             # track gradients
             result.grad_norm_dict = self.track_and_norm_grad(optimizer=optimizer)
 
-    def update_lr_schedulers(self, interval: str) -> None:
-        if interval == "step":
+    def update_lr_schedulers(self, interval: str, skip_plateau_scheduler: bool = False) -> None:
+        if interval == "step" and skip_plateau_scheduler:
             finished_accumulation = self._accumulated_batches_reached()
             finished_epoch = self._num_training_batches_reached()
             if not finished_accumulation and not finished_epoch:
@@ -863,6 +866,7 @@ class TrainLoop:
         self.trainer.optimizer_connector.update_learning_rates(
             interval=interval,
             opt_indices=[opt_idx for opt_idx, _ in self.get_active_optimizers()],
+            skip_plateau_scheduler=skip_plateau_scheduler,
         )
 
     def increment_accumulated_grad_global_step(self):
