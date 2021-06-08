@@ -18,7 +18,6 @@ from copy import deepcopy
 from typing import Any, Callable
 from unittest import mock
 
-import numpy as np
 import pytest
 import torch
 from torch.utils.data import DataLoader
@@ -693,7 +692,7 @@ def test_metrics_reset(tmpdir):
 def test_result_collection_on_tensor_with_mean_reduction():
     result_collection = ResultCollection(True, torch.device("cpu"))
     product = [(True, True), (False, True), (True, False), (False, False)]
-    values = torch.arange(1, 10).float()
+    values = torch.arange(1, 10).float()  # need to convert to float() due to precision issues using torch 1.4
     batches = values * values
 
     for i, v in enumerate(values):
@@ -757,14 +756,12 @@ def test_result_collection_on_tensor_with_mean_reduction():
     epoch_metrics = result_collection.metrics(False)
     mean = total_value / total_batches
     pbar_metrics = epoch_metrics[MetricSource.PBAR]
-    assert set(pbar_metrics) == {
-        'loss_on_epoch_prog_bar',
-        'loss_on_epoch_prog_bar_logger',
-        'loss_on_step_on_epoch_prog_bar_epoch',
-        'loss_on_step_on_epoch_prog_bar_logger_epoch',
+    assert pbar_metrics == {
+        'loss_on_epoch_prog_bar': mean,
+        'loss_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch_prog_bar_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean,
     }
-    # pbar metrics are converted to float, need to check with `allclose`
-    assert all(np.allclose(m, mean) for m in pbar_metrics.values())
     assert epoch_metrics[MetricSource.LOG] == {
         'loss_on_epoch_logger': mean,
         'loss_on_epoch_prog_bar_logger': mean,
