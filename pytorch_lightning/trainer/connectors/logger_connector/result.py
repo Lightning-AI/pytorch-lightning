@@ -62,7 +62,7 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    reduce_fx: Callable = torch.mean
+    reduce_fx: Union[str, Callable] = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
