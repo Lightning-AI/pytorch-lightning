@@ -358,7 +358,7 @@ class ResultCollection(dict):
         apply_to_collections(self[key], value, ResultMetric, fn)
 
     @staticmethod
-    def _get_cache(on_step: bool, result_metric: ResultMetric) -> Optional[torch.Tensor]:
+    def _get_cache(result_metric: ResultMetric, on_step: bool) -> Optional[torch.Tensor]:
         cache = None
         if on_step and result_metric.meta.on_step:
             cache = result_metric._forward_cache
@@ -395,9 +395,7 @@ class ResultCollection(dict):
         for key, result_metric in self.valid_items():
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
-            value = apply_to_collection(
-                result_metric, ResultMetric, partial(self._get_cache, on_step), include_none=False
-            )
+            value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
 
             # check if the collection is empty
             has_tensor = False
@@ -476,9 +474,17 @@ class ResultCollection(dict):
 
     def to(self, *args, **kwargs) -> 'ResultCollection':
         """Move all data to the given device."""
-        for k, v in self.items():
-            if isinstance(v, (torch.Tensor, Metric)):
-                self[k] = v.to(*args, **kwargs)
+
+        def to_(item: Union[torch.Tensor, Metric], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Metric]:
+            return item.to(*args, **kwargs)
+
+        apply_to_collection(self, (torch.Tensor, Metric), to_, *args, **kwargs)
+
+        if self.minimize is not None:
+            self.minimize = self.minimize.to(*args, **kwargs)
+        self._batch_size = self._batch_size.to(*args, **kwargs)
+        if 'device' in kwargs:
+            self.device = kwargs['device']
         return self
 
     def cpu(self) -> 'ResultCollection':

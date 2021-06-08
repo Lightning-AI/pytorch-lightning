@@ -22,7 +22,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import AttributeDict, DeviceType
+from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
@@ -85,7 +85,7 @@ class LoggerConnector:
 
         Args:
             metrics: Metric values
-            step (int): Step for which metrics should be logged. Default value is `self.global_step` during training or
+            step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
         # add gpu memory
@@ -210,17 +210,15 @@ class LoggerConnector:
         self._batch_idx = batch_idx
         self._split_idx = split_idx
 
-    def update_train_step_metrics(self, batch_output: AttributeDict) -> None:
+    def update_train_step_metrics(self) -> None:
         if self.trainer.train_loop.should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
         # when metrics should be logged
         assert not self._epoch_end_reached
         metrics = self.metrics[MetricSource.LOG]
-        if self.should_update_logs or self.trainer.fast_dev_run is True:
-            # logs user requested information to logger
-            if metrics:
-                self.log_metrics(metrics)
+        if self.should_update_logs or self.trainer.fast_dev_run is True and metrics:
+            self.log_metrics(metrics)
 
     def update_train_epoch_metrics(self) -> None:
         # add the metrics to the loggers
@@ -231,6 +229,11 @@ class LoggerConnector:
 
         # reset result collection for next epoch
         self.trainer.result_collection.reset(metrics=True)
+
+    def teardown(self):
+        self.trainer.train_loop.train_results.cpu()
+        self.trainer.evaluation_loop.validation_results.cpu()
+        self.trainer.evaluation_loop.test_results.cpu()
 
     """
     Utilities and properties
