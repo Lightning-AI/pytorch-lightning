@@ -17,17 +17,16 @@ from typing import Optional
 import pytest
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.utilities import _IPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.datasets import SklearnDataset
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
@@ -93,6 +92,7 @@ class IPUClassificationModel(ClassificationModel):
         self.log('test_acc', torch.stack(outputs).mean())
 
 
+@pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
 def test_fail_if_no_ipus(tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
         Trainer(ipus=1)
@@ -135,37 +135,12 @@ def test_inference_only(tmpdir, ipus):
 def test_optimization(tmpdir):
     seed_everything(42)
 
-    # Override to drop last uneven batch, as IPU poptorch does not support uneven inputs.
-    class DataModule(ClassifDataModule):
-
-        def train_dataloader(self):
-            return DataLoader(
-                SklearnDataset(self.x_train, self.y_train, self._x_type, self._y_type),
-                batch_size=self.batch_size,
-                drop_last=True
-            )
-
-        def val_dataloader(self):
-            return DataLoader(
-                SklearnDataset(self.x_valid, self.y_valid, self._x_type, self._y_type),
-                batch_size=self.batch_size,
-                drop_last=True
-            )
-
-        def test_dataloader(self):
-            return DataLoader(
-                SklearnDataset(self.x_test, self.y_test, self._x_type, self._y_type),
-                batch_size=self.batch_size,
-                drop_last=True
-            )
-
-    dm = DataModule(length=1024)
+    dm = ClassifDataModule(length=1024)
     model = IPUClassificationModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        weights_summary=None,
         deterministic=True,
         ipus=2,
     )
@@ -181,7 +156,7 @@ def test_optimization(tmpdir):
     assert result[0]['val_acc'] > 0.7
 
     # test
-    result = trainer.test(datamodule=dm)
+    result = trainer.test(model, datamodule=dm)
     assert dm.trainer is not None
     test_result = result[0]['test_acc']
     assert test_result > 0.6
@@ -194,9 +169,9 @@ def test_optimization(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, deterministic=True)
 
-    result = trainer.test(model, dm.test_dataloader())
+    result = trainer.test(model, datamodule=dm)
     saved_result = result[0]['test_acc']
-    assert saved_result > 0.6 and (saved_result == test_result)
+    assert saved_result == test_result
 
 
 @RunIf(ipu=True)

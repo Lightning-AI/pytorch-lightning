@@ -192,6 +192,9 @@ class IPUPlugin(ParallelPlugin):
         if not contains_dataset:
             dl_args.pop('dataset')
 
+        # Override to drop last uneven batch, as IPUs does not support uneven inputs.
+        dl_args['drop_last'] = True
+
         dataloader = poptorch.DataLoader(**dl_args, options=opts)
         dataloader.multiprocessing_context = multiprocessing_context
         return dataloader
