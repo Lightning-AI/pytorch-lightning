@@ -19,8 +19,8 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         self.outputs = []
         self.evaluation_loop = EvaluationLoop()
 
-        self.validation_results = ResultCollection(False)
-        self.test_results = ResultCollection(False)
+        self._val_results = ResultCollection(False)
+        self._test_results = ResultCollection(False)
 
     @property
     def num_dataloaders(self) -> int:
@@ -29,6 +29,13 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
         return self._dataloaders
+
+    @property
+    def results(self) -> Optional[ResultCollection]:
+        if self.trainer.validating or self.trainer.sanity_checking:
+            return self._val_results
+        elif self.trainer.testing:
+            return self._test_results
 
     @property
     def predictions(self):
@@ -151,8 +158,8 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
 
-        assert self.trainer.result_collection is not None
-        self.trainer.result_collection.device = self.trainer.lightning_module.device
+        assert self.trainer.results is not None
+        self.trainer.results.to(device=self.trainer.lightning_module.device)
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
