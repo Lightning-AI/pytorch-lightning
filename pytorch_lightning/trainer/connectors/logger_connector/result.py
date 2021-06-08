@@ -25,6 +25,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.metrics import metrics_to_scalars
 
 # re-define the ones from pytorch_lightning.utilities.types without the `Number` type
 _METRIC = Union[Metric, torch.Tensor]
@@ -370,10 +371,6 @@ class ResultCollection(dict):
             return cache.detach()
         return cache
 
-    @staticmethod
-    def __to_item(t: torch.Tensor) -> float:
-        return t.item()
-
     def valid_items(self) -> Generator:
         """This function is used to iterate over current valid metrics."""
         return ((k, v) for k, v in self.items()
@@ -421,8 +418,7 @@ class ResultCollection(dict):
 
             # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:
-                value = apply_to_collection(value, torch.Tensor, self.__to_item, include_none=False)
-                metrics[MetricSource.PBAR][forked_name] = value
+                metrics[MetricSource.PBAR][forked_name] = metrics_to_scalars(value)
 
         return metrics
 
