@@ -650,7 +650,7 @@ def test_scheduler_lr_step_interval_updated_before_saving(tmpdir, every_n_train_
             # 2 batches ran. since the lr_dict interval is `step`, the step count should be 2
             assert self.trainer.global_step + 1 == batches  # the global step hasn't been increased yet
             assert lr_dict['_step_count'] - 1 == batches  # step count starts at 1
-            assert lr_dict['_last_lr'] == [lr * gamma ** batches]
+            assert lr_dict['_last_lr'] == [lr * gamma**batches]
             self.on_save_checkpoint_called = True
 
     model = TestModel()
