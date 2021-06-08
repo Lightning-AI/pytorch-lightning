@@ -476,14 +476,17 @@ class ResultCollection(dict):
 
     def to(self, *args, **kwargs) -> 'ResultCollection':
         """Move all data to the given device."""
-        for k, v in self.items():
-            if isinstance(v, (torch.Tensor, Metric)):
-                self[k] = v.to(*args, **kwargs)
-        state = self.__getstate__()
-        for k, v in state.items():
-            if isinstance(v, (torch.Tensor, Metric)):
-                state[k] = v.to(*args, **kwargs)
-        self.__dict__.update(state)
+
+        def to_(item: Union[torch.Tensor, Metric], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Metric]:
+            return item.to(*args, **kwargs)
+
+        apply_to_collection(self, (torch.Tensor, Metric), to_, *args, **kwargs)
+
+        if self.minimize is not None:
+            self.minimize = self.minimize.to(*args, **kwargs)
+        self._batch_size = self._batch_size.to(*args, **kwargs)
+        if 'device' in kwargs:
+            self.device = kwargs['device']
         return self
 
     def cpu(self) -> 'ResultCollection':
