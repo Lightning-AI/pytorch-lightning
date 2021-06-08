@@ -11,14 +11,14 @@ class Loop(ABC):
         self.iteration_count: int = 0
         self.trainer: Optional['pl.Trainer'] = None
 
-    def connect(self, trainer, *args, **kwargs) -> None:
-        """Connects Loop with all the necessary things like connectors and accelerators"""
-        self.trainer = proxy(trainer)
-
     @property
     @abstractmethod
     def done(self) -> bool:
         """Property indicating when loop is finished"""
+
+    def connect(self, trainer, *args, **kwargs) -> None:
+        """Connects Loop with all the necessary things like connectors and accelerators"""
+        self.trainer = proxy(trainer)
 
     @abstractmethod
     def reset(self) -> None:

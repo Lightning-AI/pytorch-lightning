@@ -36,6 +36,10 @@ class BatchLoop(Loop):
         self._skip_backward = False
 
     @property
+    def done(self):
+        return len(self._remaining_splits) == 0
+
+    @property
     def skip_backward(self) -> bool:
         """ Determines whether the loop will skip backward during automatic optimization. """
         return self._skip_backward
@@ -47,10 +51,6 @@ class BatchLoop(Loop):
 
     def connect(self, trainer, *args, **kwargs):
         self.trainer = trainer
-
-    @property
-    def done(self):
-        return len(self._remaining_splits) == 0
 
     def run(self, batch, batch_idx, dataloader_idx):
         if batch is None:

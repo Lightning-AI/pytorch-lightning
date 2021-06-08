@@ -93,10 +93,6 @@ class EpochLoop(Loop):
         """ Determines whether the loop will skip backward during automatic optimization. """
         self.training_loop.batch_loop.skip_backward = value
 
-    def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
-        self.trainer = trainer
-        self.training_loop.connect(trainer)
-
     @property
     def done(self) -> bool:
         # TODO: Move track steps inside training loop and move part of these condition inside training loop
@@ -121,6 +117,10 @@ class EpochLoop(Loop):
                 self.trainer.should_stop = False
 
         return stop_steps or should_stop or stop_epochs
+
+    def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
+        self.trainer = trainer
+        self.training_loop.connect(trainer)
 
     def reset(self) -> None:
         self.iteration_count = 0
