@@ -358,7 +358,7 @@ class ResultCollection(dict):
         apply_to_collections(self[key], value, ResultMetric, fn)
 
     @staticmethod
-    def _get_cache(on_step: bool, result_metric: ResultMetric) -> Optional[torch.Tensor]:
+    def _get_cache(result_metric: ResultMetric, on_step: bool) -> Optional[torch.Tensor]:
         cache = None
         if on_step and result_metric.meta.on_step:
             cache = result_metric._forward_cache
@@ -395,9 +395,7 @@ class ResultCollection(dict):
         for key, result_metric in self.valid_items():
 
             # extract forward_cache or computed from the ResultMetric. ignore when the output is None
-            value = apply_to_collection(
-                result_metric, ResultMetric, partial(self._get_cache, on_step), include_none=False
-            )
+            value = apply_to_collection(result_metric, ResultMetric, self._get_cache, on_step, include_none=False)
 
             # check if the collection is empty
             has_tensor = False
