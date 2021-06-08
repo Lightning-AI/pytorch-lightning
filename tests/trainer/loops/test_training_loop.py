@@ -154,7 +154,6 @@ def test_warning_invalid_trainstep_output(tmpdir, output):
 
         def training_step(self, batch, batch_idx):
             return output
-            
 
     model = InvalidTrainStepModel()
 
@@ -168,18 +167,21 @@ def test_warning_invalid_trainstep_output(tmpdir, output):
     ):
         trainer.fit(model)
 
+
 def test_warning_valid_train_step_end(tmpdir):
+
     class ValidTrainStepEndModel(BoringModel):
+
         def training_step(self, batch, batch_idx):
             output = self(batch)
-            return { 'output': output, 'batch': batch }
+            return {'output': output, 'batch': batch}
 
         def training_step_end(self, outputs):
             loss = self.loss(outputs['batch'], outputs['output'])
             return loss
 
-    # No error is raised 
+    # No error is raised
     model = ValidTrainStepEndModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    
+
     trainer.fit(model)
