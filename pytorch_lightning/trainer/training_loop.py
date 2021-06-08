@@ -426,20 +426,14 @@ class TrainLoop:
 
     def track_and_norm_grad(self, optimizer) -> dict:
         # track gradient norms
-        grad_norm_dict = self._track_gradient_norm()
+        grad_norm_dict = {}
+        if (self.global_step + 1) % self.trainer.log_every_n_steps == 0 and float(self.trainer.track_grad_norm) > 0:
+            grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
 
         # clip gradients
         self.trainer.accelerator.clip_gradients(
             optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
         )
-        return grad_norm_dict
-
-    def _track_gradient_norm(self):
-        grad_norm_dict = {}
-        if (self.global_step + 1) % self.trainer.log_every_n_steps == 0:
-            if float(self.trainer.track_grad_norm) > 0:
-                model = self.trainer.lightning_module
-                grad_norm_dict = grad_norm(model, self.trainer.track_grad_norm)
         return grad_norm_dict
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
@@ -610,8 +604,6 @@ class TrainLoop:
         self.trainer.lightning_module._current_fx_name = prev_fx_name
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
-        model_ref = self.trainer.lightning_module
-
         # bookkeeping
         self._hiddens = None
 
@@ -622,10 +614,7 @@ class TrainLoop:
 
         if batch is None:
             self.warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
-            return AttributeDict(
-                signal=0,
-                training_step_output=batch_outputs,
-            )
+            return AttributeDict(signal=0, training_step_output=batch_outputs)
 
         # hook
         self.trainer.logger_connector.on_batch_start()
@@ -647,7 +636,7 @@ class TrainLoop:
             # let logger connector extract batch size
             self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
-            if model_ref.automatic_optimization:
+            if self.trainer.lightning_module.automatic_optimization:
                 for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                     result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
                     if result:
@@ -658,10 +647,7 @@ class TrainLoop:
                 if result:
                     batch_outputs[0].append(result.training_step_output)
 
-        return AttributeDict(
-            signal=0,
-            training_step_output=batch_outputs,
-        )
+        return AttributeDict(signal=0, training_step_output=batch_outputs)
 
     def _run_optimization(self, batch_idx, split_batch, opt_idx=0, optimizer=None):
         # TODO: In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change

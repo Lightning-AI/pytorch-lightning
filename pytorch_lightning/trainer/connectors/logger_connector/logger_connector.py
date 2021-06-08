@@ -85,7 +85,7 @@ class LoggerConnector:
 
         Args:
             metrics: Metric values
-            step (int): Step for which metrics should be logged. Default value is `self.global_step` during training or
+            step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
         # add gpu memory
