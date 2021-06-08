@@ -379,20 +379,3 @@ def test_device_placement(tmpdir):
     assert_device(torch.device("cpu"))
     trainer.predict(model, dataloaders=model.train_dataloader())
     assert_device(torch.device("cpu"))
-
-
-def test_on_before_backward(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.on_before_backward_called = False
-
-        def on_before_backward(self, loss: torch.Tensor) -> None:
-            self.on_before_backward_called = True
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    trainer.fit(model)
-    assert model.on_before_backward_called

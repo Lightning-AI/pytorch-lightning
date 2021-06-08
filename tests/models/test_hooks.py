@@ -242,6 +242,7 @@ class HookedModel(BoringModel):
             'training_step',
             'on_before_zero_grad',
             'optimizer_zero_grad',
+            'on_before_backward',
             'backward',
             'on_after_backward',
             'optimizer_step',
@@ -278,6 +279,10 @@ class HookedModel(BoringModel):
     def training_epoch_end(self, *args, **kwargs):
         self.called.append("training_epoch_end")
         super().training_epoch_end(*args, **kwargs)
+
+    def on_before_backward(self, loss):
+        self.called.append("on_before_backward")
+        super().on_before_backward(loss)
 
     def backward(self, *args, **kwargs):
         self.called.append("backward")
