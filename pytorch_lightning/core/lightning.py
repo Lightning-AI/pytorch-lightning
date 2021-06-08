@@ -17,6 +17,7 @@ import collections
 import copy
 import inspect
 import logging
+import numbers
 import os
 import tempfile
 import types
@@ -25,26 +26,34 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from torchmetrics import Metric
 
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.warnings import WarningCache
 
+if TYPE_CHECKING:
+    from pytorch_lightning.trainer.connectors.logger_connector.result import Result
+
+warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 
@@ -59,7 +68,7 @@ class LightningModule(
     Module,
 ):
     # Below is for property support of JIT in PyTorch 1.7
-    # since none of them is important when using JIT, we are going to ignore them.
+    # since none of these are important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = [
         "datamodule",
         "example_input_array",
@@ -72,6 +81,8 @@ class LightningModule(
         "local_rank",
         "logger",
         "model_size",
+        "automatic_optimization",
+        "truncated_bptt_steps",
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -98,12 +109,12 @@ class LightningModule(
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
-        self._results: Optional[Result] = None
-        self._current_fx_name: str = ''
+        self._results: Optional['Result'] = None
+        self._current_fx_name: Optional[str] = None
         self._running_manual_backward: bool = False
-        self._current_hook_fx_name: Optional[str] = None
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
+        self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
@@ -192,13 +203,38 @@ class LightningModule(
         self._automatic_optimization = automatic_optimization
 
     @property
+    def truncated_bptt_steps(self) -> int:
+        """
+        truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much a longer sequence.
+        If this is > 0, the training step is passed ``hiddens``.
+        """
+        return self._truncated_bptt_steps
+
+    @truncated_bptt_steps.setter
+    def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
+        self._truncated_bptt_steps = truncated_bptt_steps
+
+    @property
     def logger(self):
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def _apply_batch_transfer_handler(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0):
+    def _apply_batch_transfer_handler(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ) -> Any:
+        device = device or self.device
         batch = self.on_before_batch_transfer(batch, dataloader_idx)
-        batch = self.transfer_batch_to_device(batch, device)
+
+        if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
+            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
+        else:
+            warning_cache.warn(
+                "`transfer_batch_to_device` hook signature has changed in v1.4."
+                " `dataloader_idx` parameter has been added to it. Support for"
+                " the old signature will be removed in v1.6", DeprecationWarning
+            )
+            batch = self.transfer_batch_to_device(batch, device)
+
         batch = self.on_after_batch_transfer(batch, dataloader_idx)
         return batch
 
@@ -226,20 +262,20 @@ class LightningModule(
     def log(
         self,
         name: str,
-        value: Any,
+        value: _METRIC_COLLECTION,
         prog_bar: bool = False,
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
+        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+    ) -> None:
         """
         Log a key, value
 
@@ -261,15 +297,13 @@ class LightningModule(
            "validation_epoch_end*", "F", "T", "F", "T"
 
         Args:
-            name: key name
-            value: value name
+            name: key to log
+            value: value to log
             prog_bar: if True logs to the progress bar
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -278,76 +312,80 @@ class LightningModule(
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
         """
-        if self._results is not None:
-            # in any epoch end can't log step metrics (only epoch metric)
-            if 'epoch_end' in self._current_fx_name and on_step:
-                m = f'on_step=True cannot be used on {self._current_fx_name} method'
-                raise MisconfigurationException(m)
-
-            if 'epoch_end' in self._current_fx_name and on_epoch is False:
-                m = f'on_epoch cannot be False when called from the {self._current_fx_name} method'
-                raise MisconfigurationException(m)
-
-            # add log_dict
-            # TODO: if logged twice fail with crash
-
-            # set the default depending on the fx_name
-            on_step = self.__auto_choose_log_on_step(on_step)
-            on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
-
-            if self._current_hook_fx_name is not None:
-                self.trainer.logger_connector.check_logging_in_callbacks(
-                    self._current_hook_fx_name, on_step=on_step, on_epoch=on_epoch
-                )
-
-            # make sure user doesn't introduce logic for multi-dataloaders
-            if "/dataloader_idx_" in name:
-                raise MisconfigurationException(
-                    f"Logged key: {name} should not contain information about dataloader_idx."
-                )
-
-            training_type_plugin = self.trainer.training_type_plugin
-
-            # Determine if dataloader index should be added
-            dataloader_idx = self._current_dataloader_idx if add_dataloader_idx else None
-
-            self._results.log(
-                name,
-                value,
-                prog_bar,
-                logger,
-                on_step,
-                on_epoch,
-                reduce_fx,
-                tbptt_reduce_fx,
-                tbptt_pad_token,
-                enable_graph,
-                sync_dist,
-                sync_dist_op,
-                sync_dist_group,
-                training_type_plugin.reduce,
-                dataloader_idx,
-                self.device,
+        if tbptt_reduce_fx is not None:
+            rank_zero_deprecation(
+                '`self.log(tbptt_reduce_fx=...)` is no longer supported. The flag will be removed in v1.6.'
+                ' Please, open a discussion explaining your use-case in'
+                ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
+        if tbptt_pad_token is not None:
+            rank_zero_deprecation(
+                '`self.log(tbptt_pad_token=...)` is no longer supported. The flag will be removed in v1.6.'
+                ' Please, open a discussion explaining your use-case in'
+                ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
+            )
+
+        # check for invalid values
+        apply_to_collection(value, dict, self.__check_not_nested, name)
+        apply_to_collection(
+            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+        )
+
+        # set the default depending on the fx_name
+        on_step = self.__auto_choose_log_on_step(on_step)
+        on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
+
+        assert self._current_fx_name is not None
+        self.trainer.logger_connector.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+
+        # make sure user doesn't introduce logic for multi-dataloaders
+        if "/dataloader_idx_" in name:
+            raise MisconfigurationException(
+                f"You called `self.log` with the key `{name}`"
+                " but it should not contain information about `dataloader_idx`"
+            )
+
+        sync_fn = partial(
+            self.__sync,
+            sync_fn=self.trainer.training_type_plugin.reduce,
+            sync_dist=sync_dist,
+            sync_dist_op=sync_dist_op,
+            sync_dist_group=sync_dist_group,
+            device=self.device,
+        )
+        value = apply_to_collection(value, (torch.Tensor, numbers.Number), sync_fn)
+
+        assert self._results is not None
+        self._results.log(
+            name,
+            value,
+            prog_bar=prog_bar,
+            logger=logger,
+            on_step=on_step,
+            on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
+            enable_graph=enable_graph,
+            dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
+        )
 
     def log_dict(
         self,
-        dictionary: dict,
+        dictionary: Mapping[str, _METRIC_COLLECTION],
         prog_bar: bool = False,
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Callable = torch.mean,
-        tbptt_pad_token: int = 0,
+        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
+        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
-    ):
+    ) -> None:
         """
-        Log a dictonary of values at once
+        Log a dictionary of values at once
 
         Example::
 
@@ -360,9 +398,7 @@ class LightningModule(
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
-            tbptt_reduce_fx: function to reduce on truncated back prop
-            tbptt_pad_token: token to use for padding
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -388,6 +424,49 @@ class LightningModule(
                 tbptt_reduce_fx=tbptt_reduce_fx,
                 add_dataloader_idx=add_dataloader_idx
             )
+
+    @staticmethod
+    def __sync(
+        value: Union[torch.Tensor, numbers.Number],
+        sync_fn: Optional[Callable] = None,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
+        device: torch.device = None,
+    ) -> torch.Tensor:
+        """Sync across workers when using distributed training"""
+        if isinstance(value, numbers.Number):
+            value = torch.tensor(value, device=device, dtype=torch.float)
+        sync_fn = sync_fn or sync_ddp_if_available
+        dist_available = torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
+        if not sync_dist or not dist_available:
+            return value
+        return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
+
+    @staticmethod
+    def __check_not_nested(value: dict, name: str) -> None:
+        # self-imposed restriction. for simplicity
+        if any(isinstance(v, dict) for v in value.values()):
+            raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
+        return value
+
+    @staticmethod
+    def __check_allowed(v: Any, name: str, value: Any) -> None:
+        raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
+
+    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
+        """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        Args:
+            grad_norm_dict: Dictionary containing current grad norm metrics
+
+        Example::
+
+            # DEFAULT
+            def log_grad_norm(self, grad_norm_dict):
+                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        """
+        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def write_prediction(
         self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'
@@ -446,30 +525,16 @@ class LightningModule(
         for k, v in predictions_dict.items():
             self.write_prediction(k, v, filename)
 
-    def __auto_choose_log_on_step(self, on_step):
+    def __auto_choose_log_on_step(self, on_step: Optional[bool]) -> bool:
         if on_step is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_step = True
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_step = False
-            else:
-                on_step = False
-
+            on_step = False
+            on_step |= self._current_fx_name in ('training_step', 'training_step_end')
         return on_step
 
-    def __auto_choose_log_on_epoch(self, on_epoch):
+    def __auto_choose_log_on_epoch(self, on_epoch: Optional[bool]) -> bool:
         if on_epoch is None:
-            if self._current_fx_name in {'training_step', 'training_step_end'}:
-                on_epoch = False
-            elif self._current_fx_name in {
-                'evaluation_step', 'evaluation_step_end', 'evaluation_epoch_end', 'training_epoch_end'
-            }:
-                on_epoch = True
-            else:
-                on_epoch = True
-
+            on_epoch = True
+            on_epoch &= self._current_fx_name not in ('training_step', 'training_step_end')
         return on_epoch
 
     def all_gather(
@@ -497,8 +562,7 @@ class LightningModule(
         group = group if group is not None else torch.distributed.group.WORLD
         all_gather = self.trainer.accelerator.all_gather
         data = convert_to_tensors(data, device=self.device)
-        all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
-        return apply_to_collection(data, torch.Tensor, all_gather)
+        return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
 
     def forward(self, *args, **kwargs) -> Any:
         r"""
@@ -524,7 +588,7 @@ class LightningModule(
             batch_idx (int): Integer displaying index of this batch
             optimizer_idx (int): When using multiple optimizers, this argument will also be present.
             hiddens(:class:`~torch.Tensor`): Passed in if
-                :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
+                :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
 
         Return:
             Any of.
@@ -1101,12 +1165,77 @@ class LightningModule(
 
             - **Single optimizer**.
             - **List or Tuple** of optimizers.
-            - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers (or
-              multiple lr_dict).
+            - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers
+                (or multiple ``lr_dict``).
             - **Dictionary**, with an ``"optimizer"`` key, and (optionally) a ``"lr_scheduler"``
-              key whose value is a single LR scheduler or lr_dict.
+                key whose value is a single LR scheduler or ``lr_dict``.
             - **Tuple of dictionaries** as described above, with an optional ``"frequency"`` key.
             - **None** - Fit will run without any optimizer.
+
+        The ``lr_dict`` is a dictionary which contains the scheduler and its associated configuration.
+        The default configuration is shown below.
+
+        .. code-block:: python
+
+            lr_dict = {
+                # REQUIRED: The scheduler instance
+                'scheduler': lr_scheduler,
+                # The unit of the scheduler's step size, could also be 'step'.
+                # 'epoch' updates the scheduler on epoch end whereas 'step'
+                # updates it after a optimizer update.
+                'interval': 'epoch',
+                # How many epochs/steps should pass between calls to
+                # `scheduler.step()`. 1 corresponds to updating the learning
+                # rate after every epoch/step.
+                'frequency': 1,
+                # Metric to to monitor for schedulers like `ReduceLROnPlateau`
+                'monitor': 'val_loss',
+                # If set to `True`, will enforce that the value specified 'monitor'
+                # is available when the scheduler is updated, thus stopping
+                # training if not found. If set to `False`, it will only produce a warning
+                'strict': True,
+                # If using the `LearningRateMonitor` callback to monitor the
+                # learning rate progress, this keyword can be used to specify
+                # a custom logged name
+                'name': None,
+            }
+
+        When there are schedulers in which the ``.step()`` method is conditioned on a value, such as the
+        :class:`torch.optim.lr_scheduler.ReduceLROnPlateau` scheduler, Lightning requires that the ``lr_dict``
+        contains the keyword ``"monitor"`` set to the metric name that the scheduler should be conditioned on.
+
+        .. testcode::
+
+            # The ReduceLROnPlateau scheduler requires a monitor
+            def configure_optimizers(self):
+                optimizer = Adam(...)
+                return {
+                    'optimizer': optimizer,
+                    'lr_scheduler': {
+                        'scheduler': ReduceLROnPlateau(optimizer, ...),
+                        'monitor': 'metric_to_track',
+                    }
+                }
+
+            # In the case of two optimizers, only one using the ReduceLROnPlateau scheduler
+            def configure_optimizers(self):
+                optimizer1 = Adam(...)
+                optimizer2 = SGD(...)
+                scheduler1 = ReduceLROnPlateau(optimizer1, ...)
+                scheduler2 = LambdaLR(optimizer2, ...)
+                return (
+                    {
+                        'optimizer': optimizer1,
+                        'lr_scheduler': {
+                            'scheduler': scheduler1,
+                            'monitor': 'metric_to_track',
+                        }
+                    },
+                    {'optimizer': optimizer2, 'lr_scheduler': scheduler2}
+                )
+
+        Metrics can be made available to monitor by simply logging it using
+        ``self.log('metric_to_track', metric_val)`` in your :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
         Note:
             The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
@@ -1114,9 +1243,11 @@ class LightningModule(
             It should be given to none or to all of the optimizers.
             There is a difference between passing multiple optimizers in a list,
             and passing multiple optimizers in dictionaries with a frequency of 1:
-            In the former case, all optimizers will operate on the given batch in each optimization step.
-            In the latter, only one optimizer will operate on the given batch at every step.
-            This is different from the ``frequency`` value specified in the lr_dict mentioned below.
+
+                - In the former case, all optimizers will operate on the given batch in each optimization step.
+                - In the latter, only one optimizer will operate on the given batch at every step.
+
+            This is different from the ``frequency`` value specified in the ``lr_dict`` mentioned above.
 
             .. code-block:: python
 
@@ -1133,36 +1264,9 @@ class LightningModule(
             If an LR scheduler is specified for an optimizer using the ``lr_scheduler`` key in the above dict,
             the scheduler will only be updated when its optimizer is being used.
 
-        Note:
-            The lr_dict is a dictionary which contains the scheduler and its associated configuration.
-            The default configuration is shown below.
-
-            .. code-block:: python
-
-                lr_dict = {
-                    'scheduler': lr_scheduler, # The LR scheduler instance (required)
-                    'interval': 'epoch', # The unit of the scheduler's step size
-                    'frequency': 1, # The frequency of the scheduler
-                    'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
-                    'monitor': 'val_loss', # Metric for ReduceLROnPlateau to monitor
-                    'strict': True, # Whether to crash the training if `monitor` is not found
-                    'name': None, # Custom name for LearningRateMonitor to use
-                }
-
-            Only the ``"scheduler"`` key is required, the rest will be set to the defaults above.
-
-        Note:
-            The ``"frequency"`` value is an ``int`` corresponding to the number of sequential batches optimized with the
-            specific optimizer. It should be given to none or to all of the optimizers.
-
-            There is a difference between passing multiple optimizers in a list and passing multiple optimizers in
-            dictionaries with a frequency of 1:
-            In the former case, all optimizers will operate on the given batch in each optimization step.
-            In the latter, only one optimizer will operate on the given batch at every step.
-
         Examples::
 
-            # most cases
+            # most cases. no learning rate scheduler
             def configure_optimizers(self):
                 return Adam(self.parameters(), lr=1e-3)
 
@@ -1180,11 +1284,14 @@ class LightningModule(
                 return [gen_opt, dis_opt], [dis_sch]
 
             # example with step-based learning rate schedulers
+            # each optimizer has its own scheduler
             def configure_optimizers(self):
                 gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
                 dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
-                gen_sch = {'scheduler': ExponentialLR(gen_opt, 0.99),
-                           'interval': 'step'}  # called after each training step
+                gen_sch = {
+                    'scheduler': ExponentialLR(gen_opt, 0.99),
+                    'interval': 'step'  # called after each training step
+                }
                 dis_sch = CosineAnnealing(dis_opt, T_max=10) # called every epoch
                 return [gen_opt, dis_opt], [gen_sch, dis_sch]
 
@@ -1211,18 +1318,6 @@ class LightningModule(
               at each training step.
             - If you need to control how often those optimizers step or override the default ``.step()`` schedule,
               override the :meth:`optimizer_step` hook.
-            - If you only want to call a learning rate scheduler every ``x`` step or epoch, or want to monitor a custom
-              metric, you can specify these in a lr_dict:
-
-              .. code-block:: python
-
-                  lr_dict = {
-                      'scheduler': lr_scheduler,
-                      'interval': 'step',  # or 'epoch'
-                      'monitor': 'val_f1',
-                      'frequency': x,
-                  }
-
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
@@ -1469,7 +1564,7 @@ class LightningModule(
         Note:
             Called in the training loop after
             :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
-            if :paramref:`~pytorch_lightning.trainer.Trainer.truncated_bptt_steps` > 0.
+            if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
 
         """
@@ -1570,8 +1665,10 @@ class LightningModule(
         if avg_training_loss is not None:
             tqdm_dict["loss"] = f"{avg_training_loss:.3g}"
 
-        if self.trainer.truncated_bptt_steps is not None:
-            tqdm_dict["split_idx"] = self.trainer.split_idx
+        module_tbptt_enabled = self.truncated_bptt_steps > 0
+        trainer_tbptt_enabled = self.trainer.truncated_bptt_steps is not None and self.trainer.truncated_bptt_steps > 0
+        if module_tbptt_enabled or trainer_tbptt_enabled:
+            tqdm_dict["split_idx"] = self.trainer.train_loop.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version
@@ -1828,7 +1925,9 @@ class LightningModule(
         self.train(mode)
 
         if file_path is not None:
-            torch.jit.save(torchscript_module, file_path)
+            fs = get_filesystem(file_path)
+            with fs.open(file_path, "wb") as f:
+                torch.jit.save(torchscript_module, f)
 
         return torchscript_module
 

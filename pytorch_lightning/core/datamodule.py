@@ -37,7 +37,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
             def prepare_data(self):
                 # download, split, etc...
                 # only called on 1 GPU/TPU in distributed
-            def setup(self):
+            def setup(self, stage):
                 # make assignments here (val/train/test split)
                 # called on every process in DDP
             def train_dataloader(self):
@@ -355,6 +355,7 @@ class LightningDataModule(CheckpointHooks, DataHooks):
         @functools.wraps(fn)
         def wrapped_fn(*args: str, **kwargs: Optional[str]) -> Any:
             name = fn.__name__
+            has_run = False
 
             # If calling setup, we check the stage and assign stage-specific bool args
             if name in ("setup", "teardown"):
@@ -366,15 +367,22 @@ class LightningDataModule(CheckpointHooks, DataHooks):
                 stage = args[0] if len(args) else kwargs.get("stage", None)
 
                 if stage is None:
+                    has_run = True
                     for s in ("fit", "validate", "test"):
-                        setattr(obj, f"_has_{name}_{s}", True)
+                        attr = f"_has_{name}_{s}"
+                        has_run &= getattr(obj, attr)
+                        setattr(obj, attr, True)
                 else:
-                    setattr(obj, f"_has_{name}_{stage}", True)
+                    attr = f"_has_{name}_{stage}"
+                    has_run = getattr(obj, attr)
+                    setattr(obj, attr, True)
 
             elif name == "prepare_data":
+                has_run = obj._has_prepared_data
                 obj._has_prepared_data = True
 
-            return fn(*args, **kwargs)
+            if not has_run:
+                return fn(*args, **kwargs)
 
         return wrapped_fn
 

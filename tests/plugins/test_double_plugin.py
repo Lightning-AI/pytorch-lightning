@@ -11,12 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pickle
+from unittest.mock import MagicMock
+
 import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.plugins import DoublePrecisionPlugin
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 class RandomFloatIntDataset(Dataset):
@@ -121,7 +126,6 @@ class DoublePrecisionBoringModelNoForward(BoringModel):
 @pytest.mark.parametrize('boring_model', (DoublePrecisionBoringModel, DoublePrecisionBoringModelNoForward))
 def test_double_precision(tmpdir, boring_model):
     model = boring_model()
-    original_training_step = model.training_step
 
     trainer = Trainer(
         max_epochs=2,
@@ -134,4 +138,25 @@ def test_double_precision(tmpdir, boring_model):
     trainer.test(model)
     trainer.predict(model)
 
-    assert model.training_step == original_training_step
+
+@RunIf(min_gpus=2)
+def test_double_precision_ddp(tmpdir):
+    model = DoublePrecisionBoringModel()
+
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+        accelerator='ddp_spawn',
+        gpus=2,
+        fast_dev_run=2,
+        precision=64,
+        log_every_n_steps=1,
+    )
+    trainer.fit(model)
+
+
+def test_double_precision_pickle(tmpdir):
+    model = BoringModel()
+    plugin = DoublePrecisionPlugin()
+    model, _, __ = plugin.connect(model, MagicMock(), MagicMock())
+    pickle.dumps(model)

@@ -19,7 +19,7 @@ from torch.optim import Optimizer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -53,7 +53,7 @@ class DDPSpawnShardedPlugin(DDPSpawnPlugin):
         trainer.optimizers = optimizers
 
     def _wrap_optimizers(self):
-        if self.model.trainer.state != TrainerState.FITTING:
+        if self.model.trainer.state.fn != TrainerFn.FITTING:
             return
         self._reinit_optimizers_with_oss()
 

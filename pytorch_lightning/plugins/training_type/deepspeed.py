@@ -22,8 +22,8 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -51,7 +51,7 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
-    def __init__(self, pl_module: LightningModule, precision: int):
+    def __init__(self, pl_module: 'pl.LightningModule', precision: int) -> None:
         super().__init__(pl_module)
         self.precision = precision
 
@@ -102,9 +102,10 @@ class DeepSpeedPlugin(DDPPlugin):
         allgather_bucket_size: int = 2e8,
         reduce_bucket_size: int = 2e8,
         zero_allow_untested_optimizer: bool = True,
+        logging_batch_size_per_gpu: Union[str, int] = "auto",
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
-        num_nodes: int = 1,
+        num_nodes: Optional[int] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,
@@ -210,6 +211,13 @@ class DeepSpeedPlugin(DDPPlugin):
             zero_allow_untested_optimizer: Allow untested optimizers to be used with ZeRO. Currently only Adam is a
                 DeepSpeed supported optimizer when using ZeRO.
 
+            logging_batch_size_per_gpu: Config used in DeepSpeed to calculate verbose timing for logging
+                on a per sample per second basis (only displayed if logging=logging.INFO).
+                If set to "auto", the plugin tries to infer this from
+                the train DataLoader's BatchSampler, else defaults to 1.
+                To obtain accurate logs when using datasets that do not support batch samplers,
+                set this to the actual per gpu batch size (trainer.batch_size).
+
             config: Pass in a deepspeed formatted config dict,
                 or path to a deepspeed config: https://www.deepspeed.ai/docs/config-json.
                 All defaults will be ignored if a config is passed in.
@@ -270,6 +278,7 @@ class DeepSpeedPlugin(DDPPlugin):
             self.config = self._create_default_config(
                 zero_optimization,
                 zero_allow_untested_optimizer,
+                logging_batch_size_per_gpu,
                 offload_optimizer=offload_optimizer,
                 offload_parameters=offload_parameters,
                 nvme_path=nvme_path,
@@ -464,7 +473,7 @@ class DeepSpeedPlugin(DDPPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
-    def init_optimizers(self, trainer, model: LightningModule) -> Tuple[List, List, List]:
+    def init_optimizers(self, trainer: 'pl.Trainer', model: 'pl.LightningModule') -> Tuple[List, List, List]:
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
@@ -505,13 +514,21 @@ class DeepSpeedPlugin(DDPPlugin):
                 " as this will be set via accumulate_grad_batches=x argument passed via the Lightning Trainer."
             )
         if "train_micro_batch_size_per_gpu" not in self.config:
-            # train_micro_batch_size_per_gpu is used for throughput logging purposes
-            # by default we use the batch size of the loader which may be incorrect if a batch sampler is passed
-            batch_size = self.lightning_module.train_dataloader().batch_sampler.batch_size
+            batch_size = self._auto_select_batch_size()
             self.config["train_micro_batch_size_per_gpu"] = batch_size
         self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val
+
+    def _auto_select_batch_size(self):
+        # train_micro_batch_size_per_gpu is used for throughput logging purposes
+        # by default we try to use the batch size of the loader
+        batch_size = 1
+        if hasattr(self.lightning_module, 'train_dataloader'):
+            train_dataloader = self.lightning_module.train_dataloader()
+            if hasattr(train_dataloader, 'batch_sampler'):
+                batch_size = train_dataloader.batch_sampler.batch_size
+        return batch_size
 
     def _format_precision_config(self):
         amp_type = self.lightning_module.trainer.accelerator_connector.amp_type
@@ -542,6 +559,7 @@ class DeepSpeedPlugin(DDPPlugin):
         self,
         zero_optimization: bool,
         zero_allow_untested_optimizer: bool,
+        logging_batch_size_per_gpu: Union[str, int],
         partition_activations: bool,
         cpu_checkpointing: bool,
         contiguous_memory_optimization: bool,
@@ -602,6 +620,8 @@ class DeepSpeedPlugin(DDPPlugin):
                 "zero_optimization": zero_config,
                 **cfg
             }
+        if logging_batch_size_per_gpu != 'auto':
+            cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
         return cfg
 
     def _filepath_to_dir(self, filepath: str) -> str:
@@ -646,8 +666,8 @@ class DeepSpeedPlugin(DDPPlugin):
     ) -> Tuple[Dict, bool]:
         if not self.save_full_weights and self.world_size > 1:
             # Rely on deepspeed to load the checkpoint and necessary information
-            from pytorch_lightning.trainer.states import TrainerState
-            stage_is_fit = self.lightning_module.trainer.state == TrainerState.FITTING
+            from pytorch_lightning.trainer.states import TrainerFn
+            is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             save_dir = self._filepath_to_dir(ckpt_path)
 
             if self.zero_stage_3:
@@ -655,7 +675,7 @@ class DeepSpeedPlugin(DDPPlugin):
                 self.deepspeed_engine.optimizer._partition_all_parameters()
 
             _, client_state = self.deepspeed_engine.load_checkpoint(
-                save_dir, load_optimizer_states=stage_is_fit, load_lr_scheduler_states=stage_is_fit
+                save_dir, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
             )
 
             # restore datamodule states

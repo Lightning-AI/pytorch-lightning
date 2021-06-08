@@ -51,10 +51,14 @@ jobs:
 
     - bash: |
         export GIT_TERMINAL_PROMPT=1
-        pip install --requirement requirements.txt
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
+
+        python ./requirements/adjust_versions.py requirements/extra.txt
+        python ./requirements/adjust_versions.py requirements/examples.txt
+
         pip install --requirement ./requirements/devel.txt --upgrade-strategy only-if-needed
+
         pip list
       displayName: 'Install dependencies'
 
@@ -82,4 +86,14 @@ jobs:
         source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
 
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+      env:
+        MKL_THREADING_LAYER: "GNU"
       displayName: 'Testing: standard'
+
+    - bash: |
+        source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
+        source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
+        bash tests/special_tests.sh
+      env:
+        MKL_THREADING_LAYER: "GNU"
+      displayName: 'Testing: special'

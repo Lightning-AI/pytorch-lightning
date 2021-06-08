@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -31,14 +31,15 @@ class ConfigValidator:
             model: The model to check the configuration.
 
         """
-        if self.trainer.state in (TrainerState.FITTING, TrainerState.TUNING):
+        if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
             self.__verify_train_loop_configuration(model)
             self.__verify_eval_loop_configuration(model, 'val')
-        elif self.trainer.state == TrainerState.VALIDATING:
+            self.__verify_manual_optimization_support(model)
+        elif self.trainer.state.fn == TrainerFn.VALIDATING:
             self.__verify_eval_loop_configuration(model, 'val')
-        elif self.trainer.state == TrainerState.TESTING:
+        elif self.trainer.state.fn == TrainerFn.TESTING:
             self.__verify_eval_loop_configuration(model, 'test')
-        elif self.trainer.state == TrainerState.PREDICTING:
+        elif self.trainer.state.fn == TrainerFn.PREDICTING:
             self.__verify_predict_loop_configuration(model)
         self.__verify_dp_batch_transfer_support(model)
 
@@ -112,3 +113,19 @@ class ConfigValidator:
         for hook in batch_transfer_hooks:
             if self.trainer.accelerator_connector.use_dp and is_overridden(hook, model):
                 raise MisconfigurationException(f'Overriding `{hook}` is not supported in DP mode.')
+
+    def __verify_manual_optimization_support(self, model: 'pl.LightningModule') -> None:
+        if model.automatic_optimization:
+            return
+        if self.trainer.gradient_clip_val > 0:
+            raise MisconfigurationException(
+                f"Automatic gradient clipping is not supported for manual optimization."
+                f" Remove `Trainer(gradient_clip_val={self.trainer.gradient_clip_val})`"
+                f" or switch to automatic optimization."
+            )
+        if self.trainer.accumulate_grad_batches != 1:
+            raise MisconfigurationException(
+                f"Automatic gradient accumulation is not supported for manual optimization."
+                f" Remove `Trainer(accumulate_grad_batches={self.trainer.accumulate_grad_batches})`"
+                f" or switch to automatic optimization."
+            )

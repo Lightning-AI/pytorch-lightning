@@ -20,7 +20,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.utilities import move_data_to_device, rank_zero_warn
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class ModelHooks:
@@ -235,9 +235,14 @@ class ModelHooks:
         Called in the training loop at the very beginning of the epoch.
         """
 
-    def on_train_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def on_train_epoch_end(self, unused: Optional = None) -> None:
         """
         Called in the training loop at the very end of the epoch.
+
+        To access all batch outputs at the end of the epoch, either:
+
+        1. Implement `training_epoch_end` in the LightningModule OR
+        2. Cache data across steps on the attribute(s) of the `LightningModule` and access them in this hook
         """
 
     def on_validation_epoch_start(self) -> None:
@@ -245,7 +250,7 @@ class ModelHooks:
         Called in the validation loop at the very beginning of the epoch.
         """
 
-    def on_validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def on_validation_epoch_end(self) -> None:
         """
         Called in the validation loop at the very end of the epoch.
         """
@@ -255,7 +260,7 @@ class ModelHooks:
         Called in the test loop at the very beginning of the epoch.
         """
 
-    def on_test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def on_test_epoch_end(self) -> None:
         """
         Called in the test loop at the very end of the epoch.
         """
@@ -389,7 +394,7 @@ class DataHooks:
 
     def setup(self, stage: Optional[str] = None) -> None:
         """
-        Called at the beginning of fit (train + validate), validate, test, predict, or tune.
+        Called at the beginning of fit (train + validate), validate, test, and predict.
         This is a good hook when you need to build models dynamically or adjust something about them.
         This hook is called on every process when using DDP.
 
@@ -646,7 +651,7 @@ class DataHooks:
     def on_predict_dataloader(self) -> None:
         """Called before requesting the predict dataloader."""
 
-    def transfer_batch_to_device(self, batch: Any, device: Optional[torch.device] = None) -> Any:
+    def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.
@@ -664,6 +669,9 @@ class DataHooks:
         Note:
             This hook should only transfer the data and not modify it, nor should it move the data to
             any other device than the one passed in as argument (unless you know what you are doing).
+            To check the current state of execution of this hook you can use
+            ``self.trainer.training/testing/validating/predicting`` so that you can
+            add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -672,6 +680,7 @@ class DataHooks:
         Args:
             batch: A batch of data that needs to be transferred to a new device.
             device: The target device as defined in PyTorch.
+            dataloader_idx: The index of the dataloader to which the batch belongs.
 
         Returns:
             A reference to the data on the new device.
@@ -695,14 +704,16 @@ class DataHooks:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
         """
-        device = device or self.device
         return move_data_to_device(batch, device)
 
     def on_before_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
         """
         Override to alter or apply batch augmentations to your batch before it is transferred to the device.
 
-        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true index in the future.
+        Note:
+            To check the current state of execution of this hook you can use
+            ``self.trainer.training/testing/validating/predicting`` so that you can
+            add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -710,7 +721,7 @@ class DataHooks:
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
-            dataloader_idx: DataLoader idx for batch
+            dataloader_idx: The index of the dataloader to which the batch belongs.
 
         Returns:
             A batch of data
@@ -735,7 +746,10 @@ class DataHooks:
         """
         Override to alter or apply batch augmentations to your batch after it is transferred to the device.
 
-        .. warning:: ``dataloader_idx`` always returns 0, and will be updated to support the true ``idx`` in the future.
+        Note:
+            To check the current state of execution of this hook you can use
+            ``self.trainer.training/testing/validating/predicting`` so that you can
+            add different logic as per your requirement.
 
         Note:
             This hook only runs on single GPU training and DDP (no data-parallel).
@@ -743,7 +757,7 @@ class DataHooks:
 
         Args:
             batch: A batch of data that needs to be altered or augmented.
-            dataloader_idx: DataLoader idx for batch (Default: 0)
+            dataloader_idx: The index of the dataloader to which the batch belongs.
 
         Returns:
             A batch of data
@@ -793,7 +807,8 @@ class CheckpointHooks:
         else you might want to save.
 
         Args:
-            checkpoint: Checkpoint to be saved
+            checkpoint: The full checkpoint dictionary before it gets dumped to a file.
+                Implementations of this hook can insert additional data into this dictionary.
 
         Example::
 

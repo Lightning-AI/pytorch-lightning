@@ -15,7 +15,6 @@ import torch
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.metrics.functional import accuracy
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import DistributedType
 from tests.helpers import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
@@ -31,7 +30,7 @@ def run_model_test_without_loggers(
     trainer.fit(model, datamodule=data)
 
     # correct result and ok accuracy
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     model2 = load_model_from_checkpoint(trainer.logger, trainer.checkpoint_callback.best_model_path, type(model))
 
@@ -65,7 +64,7 @@ def run_model_test(
     trainer.fit(model, datamodule=data)
     post_train_values = torch.tensor([torch.sum(torch.abs(x)) for x in model.parameters()])
 
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
     # Check that the model is actually changed post-training
     change_ratio = torch.norm(initial_values - post_train_values)
     assert change_ratio > 0.1, f"the model is changed of {change_ratio}"

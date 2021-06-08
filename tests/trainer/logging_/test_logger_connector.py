@@ -14,7 +14,6 @@
 """
 Tests to ensure that the training loop works with a dict (1.0)
 """
-import os
 from copy import deepcopy
 from typing import Any, Callable
 from unittest import mock
@@ -26,10 +25,11 @@ from torchmetrics import Accuracy, AveragePrecision
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.connectors.logger_connector.callback_hook_validator import CallbackHookNameValidator
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result_new import MetricSource, ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -109,8 +109,8 @@ def test__logger_connector__epoch_result_store__train(tmpdir):
     assert train_results.has_reduced is True
 
     generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, reduced=True)['train_loss_epoch'].item()
-    excepted = torch.stack(model.train_losses).mean().item()
-    assert generated == excepted
+    expected = torch.stack(model.train_losses).mean().item()
+    assert generated == expected
 
 
 def test__logger_connector__epoch_result_store__train__tbptt(tmpdir):
@@ -271,8 +271,7 @@ def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, n
         torch.testing.assert_allclose(generated, expected)
 
 
-def test_call_back_validator(tmpdir):
-
+def test_fx_validator(tmpdir):
     funcs_name = sorted([f for f in dir(Callback) if not f.startswith('_')])
 
     callbacks_func = [
@@ -352,16 +351,17 @@ def test_call_back_validator(tmpdir):
 
     assert funcs_name == sorted(callbacks_func), (
         "Detected new callback function. Need to add its logging"
-        " permission to CallbackHookNameValidator and update this test"
+        " permission to FxValidator and update this test"
     )
 
-    validator = CallbackHookNameValidator()
+    validator = FxValidator()
 
     for func_name in funcs_name:
         # This summarizes where and what is currently possible to log using `self.log`
         is_stage = "train" in func_name or "test" in func_name or "validation" in func_name
         is_start = "start" in func_name or "batch" in func_name
-        on_step = is_stage and is_start
+        is_epoch = "epoch" in func_name
+        on_step = is_stage and not is_start and not is_epoch
         on_epoch = True
         # creating allowed condition
         allowed = (
@@ -372,19 +372,17 @@ def test_call_back_validator(tmpdir):
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
-            validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+            validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
-                with pytest.raises(MisconfigurationException, match="function supports only"):
-                    validator.check_logging_in_callbacks(
-                        current_hook_fx_name=func_name, on_step=True, on_epoch=on_epoch
-                    )
+                with pytest.raises(MisconfigurationException, match="You can't"):
+                    validator.check_logging(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="function doesn't support"):
-                validator.check_logging_in_callbacks(current_hook_fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+                validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
 
-        # should not fail
-        validator.check_logging_in_callbacks(current_hook_fx_name=None, on_step=None, on_epoch=None)
+    with pytest.raises(RuntimeError, match="`foo` but it is not implemented"):
+        validator.check_logging("foo", False, False)
 
 
 @RunIf(min_gpus=2)
@@ -456,7 +454,7 @@ def test_metrics_holder(to_float, tmpdir):
     def is_float(value: Any) -> bool:
         return isinstance(value, float)
 
-    excepted_function = is_float if to_float else torch.is_tensor
+    expected_function = is_float if to_float else torch.is_tensor
     targets = torch.tensor([1], device=device)
     acc = Accuracy().to(device)
     metric_holder = MetricsHolder(to_float=to_float)
@@ -467,9 +465,9 @@ def test_metrics_holder(to_float, tmpdir):
     })
     metric_holder.convert(device)
     metrics = metric_holder.metrics
-    assert excepted_function(metrics["x"])
-    assert excepted_function(metrics["y"])
-    assert excepted_function(metrics["z"])
+    assert expected_function(metrics["x"])
+    assert expected_function(metrics["y"])
+    assert expected_function(metrics["z"])
 
 
 def test_metric_holder_raises(tmpdir):
@@ -490,7 +488,7 @@ def test_metric_holder_raises(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
 
-    match = "The metric `test` does not contain a single element"
+    match = "The metric `.*` does not contain a single element"
     with pytest.raises(MisconfigurationException, match=match):
         trainer.validate(model)
     with pytest.raises(MisconfigurationException, match=match):
@@ -565,7 +563,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     model = TestModel()
     model.validation_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
     logged = trainer.logged_metrics
 
@@ -576,33 +574,6 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     else:
         assert 'val_loss_custom_naming_0' in logged
         assert 'val_loss_custom_naming_1' in logged
-
-
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_logged_metrics_steps(tmpdir):
-
-    class TestModel(BoringModel):
-
-        def validation_step(self, batch, batch_idx):
-            loss_val = torch.randn(1)
-            self.log('val_loss', loss_val)
-            return loss_val
-
-    model = TestModel()
-    model.validation_epoch_end = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
-        log_every_n_steps=1,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert trainer.dev_debugger.logged_metrics[0]['global_step'] == 1
-    assert trainer.dev_debugger.logged_metrics[1]['global_step'] == 3
 
 
 def test_metrics_reset(tmpdir):
@@ -678,13 +649,13 @@ def test_metrics_reset(tmpdir):
             acc.reset.asset_not_called()
             ap.reset.assert_not_called()
 
-        def on_train_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             self._assert_epoch_end('train')
 
-        def on_validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             self._assert_epoch_end('val')
 
-        def on_test_epoch_end(self, outputs):
+        def on_test_epoch_end(self):
             self._assert_epoch_end('test')
 
     def _assert_called(model, stage):
@@ -716,3 +687,97 @@ def test_metrics_reset(tmpdir):
 
     trainer.test(model)
     _assert_called(model, 'test')
+
+
+def test_result_collection_on_tensor_with_mean_reduction():
+    result_collection = ResultCollection(True, torch.device("cpu"))
+    product = [(True, True), (False, True), (True, False), (False, False)]
+    values = torch.arange(1, 10).float()  # need to convert to float() due to precision issues using torch 1.4
+    batches = values * values
+
+    for i, v in enumerate(values):
+        for prog_bar in [False, True]:
+            for logger in [False, True]:
+                for on_step, on_epoch in product:
+                    name = "loss"
+                    if on_step:
+                        name += "_on_step"
+                    if on_epoch:
+                        name += "_on_epoch"
+                    if prog_bar:
+                        name += "_prog_bar"
+                    if logger:
+                        name += "_logger"
+                    result_collection.log(
+                        "training_step",
+                        name,
+                        v,
+                        on_step=on_step,
+                        on_epoch=on_epoch,
+                        batch_size=batches[i],
+                        prog_bar=prog_bar,
+                        logger=logger,
+                    )
+
+    total_value = sum(values * batches)
+    total_batches = sum(batches)
+    assert result_collection["training_step.loss_on_step_on_epoch"].value == total_value
+    assert result_collection["training_step.loss_on_step_on_epoch"].cumulated_batch_size == total_batches
+
+    batch_metrics = result_collection.metrics(True)
+    max_ = max(values)
+    assert batch_metrics[MetricSource.PBAR] == {
+        'loss_on_step_on_epoch_prog_bar_step': max_,
+        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
+        'loss_on_step_prog_bar': max_,
+        'loss_on_step_prog_bar_logger': max_,
+    }
+    assert batch_metrics[MetricSource.LOG] == {
+        'loss_on_step_on_epoch_logger_step': max_,
+        'loss_on_step_logger': max_,
+        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
+        'loss_on_step_prog_bar_logger': max_,
+    }
+    assert batch_metrics[MetricSource.CALLBACK] == {
+        'loss_on_step': max_,
+        'loss_on_step_logger': max_,
+        'loss_on_step_on_epoch': max_,
+        'loss_on_step_on_epoch_logger': max_,
+        'loss_on_step_on_epoch_logger_step': max_,
+        'loss_on_step_on_epoch_prog_bar': max_,
+        'loss_on_step_on_epoch_prog_bar_logger': max_,
+        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
+        'loss_on_step_on_epoch_prog_bar_step': max_,
+        'loss_on_step_on_epoch_step': max_,
+        'loss_on_step_prog_bar': max_,
+        'loss_on_step_prog_bar_logger': max_,
+    }
+
+    epoch_metrics = result_collection.metrics(False)
+    mean = total_value / total_batches
+    assert epoch_metrics[MetricSource.PBAR] == {
+        'loss_on_epoch_prog_bar': mean,
+        'loss_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch_prog_bar_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean,
+    }
+    assert epoch_metrics[MetricSource.LOG] == {
+        'loss_on_epoch_logger': mean,
+        'loss_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch_logger_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
+    }
+    assert epoch_metrics[MetricSource.CALLBACK] == {
+        'loss_on_epoch': mean,
+        'loss_on_epoch_logger': mean,
+        'loss_on_epoch_prog_bar': mean,
+        'loss_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch': mean,
+        'loss_on_step_on_epoch_epoch': mean,
+        'loss_on_step_on_epoch_logger': mean,
+        'loss_on_step_on_epoch_logger_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar': mean,
+        'loss_on_step_on_epoch_prog_bar_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
+    }

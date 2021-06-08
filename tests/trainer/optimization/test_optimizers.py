@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel
@@ -35,7 +36,7 @@ def test_optimizer_with_scheduling(tmpdir):
         val_check_interval=0.5,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     init_lr = 0.1
     adjusted_lr = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
@@ -70,7 +71,7 @@ def test_multi_optimizer_with_scheduling(tmpdir):
         limit_train_batches=0.2,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups]
@@ -132,6 +133,7 @@ def test_reducelronplateau_scheduling(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     lr_scheduler = trainer.lr_schedulers[0]
     assert lr_scheduler == dict(
@@ -243,7 +245,7 @@ def test_none_optimizer(tmpdir):
     )
     with pytest.warns(UserWarning, match='will run with no optimizer'):
         trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_configure_optimizer_from_dict(tmpdir):
@@ -261,7 +263,7 @@ def test_configure_optimizer_from_dict(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(
@@ -339,6 +341,7 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
 
     trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=max_epochs)
     trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert trainer.lr_schedulers[0]['opt_idx'] == 0
     assert trainer.lr_schedulers[1]['opt_idx'] == 1
@@ -576,21 +579,21 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
         trainer.fit(model)
 
 
-class TestModel(BoringModel):
-
-    def configure_optimizers(self):
-        # Adagrad creates state tensors immediately, model is not yet on GPU.
-        return optim.Adagrad(self.parameters())
-
-    def on_train_start(self, *args, **kwargs):
-        opt = self.optimizers()
-        _, state = next(iter(opt.state.items()))
-        assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
-
-
 @RunIf(min_gpus=2, special=True)
 def test_optimizer_state_on_device(tmpdir):
     """ Test that optimizers that create state initially at instantiation still end up with the state on the GPU. """
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            # Adagrad creates state tensors immediately, model is not yet on GPU.
+            return optim.Adagrad(self.parameters())
+
+        def on_train_start(self, *args, **kwargs):
+            opt = self.optimizers()
+            _, state = next(iter(opt.state.items()))
+            assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
+
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -599,3 +602,21 @@ def test_optimizer_state_on_device(tmpdir):
         fast_dev_run=True,
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize("check_val_every_n_epoch", [1, 2])
+@mock.patch("torch.optim.lr_scheduler.StepLR.step")
+def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch, tmpdir):
+    epochs = 4
+    expected_steps = epochs + 1  # every LRScheduler gets called once at init
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        check_val_every_n_epoch=check_val_every_n_epoch,
+        max_epochs=epochs,
+    )
+    trainer.fit(model)
+    assert mocked_sched.call_count == expected_steps

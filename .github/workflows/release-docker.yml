@@ -5,11 +5,13 @@ on:
   push:
     branches: [master, "release/*"]
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   cuda-PL:
     runs-on: ubuntu-20.04
+    # only on releases
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
     strategy:
       fail-fast: false
       matrix:
@@ -20,14 +22,11 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Get release version
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
         id: get_version
         run: echo "::set-output name=RELEASE_VERSION::$(echo ${GITHUB_REF##*/})"
 
       - name: Publish Releases to Docker
-        # only on releases
         uses: docker/build-push-action@v1.1.0
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
         with:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -37,21 +36,32 @@ jobs:
           tags: "${{ steps.get_version.outputs.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
         timeout-minutes: 55
 
+      - name: Publish Latest to Docker
+        uses: docker/build-push-action@v1.1.0
+        # only on releases AND latest PT and py
+        if: matrix.python_version == 3.8 && matrix.pytorch_version == 1.8
+        with:
+          repository: pytorchlightning/pytorch_lightning
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          dockerfile: dockers/release/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ steps.get_version.outputs.RELEASE_VERSION }}
+          tags: "latest"
+        timeout-minutes: 55
+
 #  nvidia-PL:
 #    runs-on: ubuntu-20.04
+#    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
 #    steps:
 #      - name: Checkout
 #        uses: actions/checkout@v2
 #
 #      - name: Get release version
-#        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
 #        id: get_version
 #        run: echo "::set-output name=RELEASE_VERSION::$(echo ${GITHUB_REF##*/})"
 #
 #      - name: Publish Releases to Docker
-#        # only on releases
 #        uses: docker/build-push-action@v1.1.0
-#        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
 #        with:
 #          repository: nvcr.io/pytorchlightning/pytorch_lightning
 #          username: ${{ secrets.DOCKER_USERNAME }}

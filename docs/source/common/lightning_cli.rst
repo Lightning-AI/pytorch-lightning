@@ -64,7 +64,7 @@ LightningCLI
 ^^^^^^^^^^^^
 
 The implementation of training command line tools is done via the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
-class. The minimal installation of pytorch-lightning does not include this support. To enable it either install
+class. The minimal installation of pytorch-lightning does not include this support. To enable it, either install
 lightning with the :code:`all` extras require or install the package :code:`jsonargparse[signatures]`.
 
 The case in which the user's :class:`~pytorch_lightning.core.lightning.LightningModule` class implements all required
@@ -91,8 +91,8 @@ practice to create a configuration file and provide this to the tool. A way to d
 
 The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class takes care of parsing command line
 and config file options, instantiating the classes, setting up a callback to save the config in the log directory and
-finally running :func:`trainer.fit`. The resulting object :code:`cli` can be used for instance to get the result of fit,
-i.e., :code:`cli.fit_result`.
+finally running the trainer. The resulting object :code:`cli` can be used for example to get the instance of the
+model, (:code:`cli.model`).
 
 After multiple trainings with different configurations, each run will have in its respective log directory a
 :code:`config.yaml` file. This file can be used for reference to know in detail all the settings that were used for each

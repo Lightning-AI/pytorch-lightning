@@ -19,7 +19,7 @@ from torch.optim import Optimizer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import is_lightning_optimizer
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -54,7 +54,8 @@ class DDPShardedPlugin(DDPPlugin):
                 optim_class = type(optimizer)
                 zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
                 if _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE:
-                    is_fp16 = self.lightning_module.trainer.precision == 16
+                    precision = self.lightning_module.trainer.precision
+                    is_fp16 = precision in ("mixed", 16)
                     # For multi-node training, compressing the model shards in fp16 before broadcasting
                     # improves performance. When using PyTorch AMP, it will not degrade
                     # the model performance.
@@ -66,7 +67,7 @@ class DDPShardedPlugin(DDPPlugin):
         trainer.convert_to_lightning_optimizers()
 
     def _wrap_optimizers(self):
-        if self.model.trainer.state != TrainerState.FITTING:
+        if self.model.trainer.state.fn != TrainerFn.FITTING:
             return
         self._reinit_optimizers_with_oss()
 

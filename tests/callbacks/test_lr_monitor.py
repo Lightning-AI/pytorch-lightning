@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import torch
 from torch import optim
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -39,7 +41,7 @@ def test_lr_monitor_single_lr(tmpdir):
         callbacks=[lr_monitor],
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), \
@@ -81,7 +83,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
         callbacks=[lr_monitor],
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), \
         'Expected momentum to be logged'
@@ -115,7 +117,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), \
         'Expected momentum to be logged'
@@ -147,7 +149,7 @@ def test_lr_monitor_no_lr_scheduler(tmpdir):
 
     with pytest.warns(RuntimeWarning, match='have no learning rate schedulers'):
         trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_lr_monitor_no_logger(tmpdir):
@@ -200,7 +202,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
         callbacks=[lr_monitor],
     )
     trainer.fit(model)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert len(lr_monitor.lrs) == len(trainer.lr_schedulers), \
@@ -248,7 +250,7 @@ def test_lr_monitor_param_groups(tmpdir):
         callbacks=[lr_monitor],
     )
     trainer.fit(model, datamodule=dm)
-    assert trainer.state == TrainerState.FINISHED, f"Training failed with {trainer.state}"
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     assert lr_monitor.lrs, 'No learning rates logged'
     assert len(lr_monitor.lrs) == 2 * len(trainer.lr_schedulers), \
@@ -279,3 +281,102 @@ def test_lr_monitor_custom_name(tmpdir):
     )
     trainer.fit(TestModel())
     assert lr_monitor.lr_sch_names == list(lr_monitor.lrs.keys()) == ['my_logging_name']
+
+
+def test_multiple_optimizers_basefinetuning(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def __init__(self):
+            super().__init__()
+            self.backbone = torch.nn.Sequential(
+                torch.nn.Linear(32, 32),
+                torch.nn.Linear(32, 32),
+                torch.nn.Linear(32, 32),
+                torch.nn.ReLU(True),
+            )
+            self.layer = torch.nn.Linear(32, 2)
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            return super().training_step(batch, batch_idx)
+
+        def forward(self, x):
+            return self.layer(self.backbone(x))
+
+        def configure_optimizers(self):
+            parameters = list(filter(lambda p: p.requires_grad, self.parameters()))
+            opt = optim.Adam(parameters, lr=0.1)
+            opt_2 = optim.Adam(parameters, lr=0.1)
+            opt_3 = optim.Adam(parameters, lr=0.1)
+            optimizers = [opt, opt_2, opt_3]
+            schedulers = [
+                optim.lr_scheduler.StepLR(opt, step_size=1, gamma=0.5),
+                optim.lr_scheduler.StepLR(opt_2, step_size=1, gamma=0.5),
+            ]
+            return optimizers, schedulers
+
+    class Check(Callback):
+
+        def on_train_epoch_start(self, trainer, pl_module) -> None:
+            num_param_groups = sum([len(opt.param_groups) for opt in trainer.optimizers])
+            assert lr_monitor.lr_sch_names == ['lr-Adam', 'lr-Adam-1']
+            if trainer.current_epoch == 0:
+                assert num_param_groups == 3
+            elif trainer.current_epoch == 1:
+                assert num_param_groups == 4
+                assert list(lr_monitor.lrs) == ['lr-Adam-1', 'lr-Adam/pg1', 'lr-Adam/pg2']
+            elif trainer.current_epoch == 2:
+                assert num_param_groups == 5
+                assert list(lr_monitor.lrs) == ['lr-Adam/pg1', 'lr-Adam/pg2', 'lr-Adam-1/pg1', 'lr-Adam-1/pg2']
+            else:
+                expected = ['lr-Adam/pg1', 'lr-Adam/pg2', 'lr-Adam-1/pg1', 'lr-Adam-1/pg2', 'lr-Adam-1/pg3']
+                assert list(lr_monitor.lrs) == expected
+
+    class TestFinetuning(BackboneFinetuning):
+
+        def freeze_before_training(self, pl_module):
+            self.freeze(pl_module.backbone[0])
+            self.freeze(pl_module.backbone[1])
+            self.freeze(pl_module.layer)
+
+        def finetune_function(self, pl_module, epoch: int, optimizer, opt_idx: int):
+            """Called when the epoch begins."""
+            if epoch == 1 and opt_idx == 0:
+                self.unfreeze_and_add_param_group(pl_module.backbone[0], optimizer, lr=0.1)
+            if epoch == 2 and opt_idx == 1:
+                self.unfreeze_and_add_param_group(pl_module.layer, optimizer, lr=0.1)
+
+            if epoch == 3 and opt_idx == 1:
+                assert len(optimizer.param_groups) == 2
+                self.unfreeze_and_add_param_group(pl_module.backbone[1], optimizer, lr=0.1)
+                assert len(optimizer.param_groups) == 3
+
+    lr_monitor = LearningRateMonitor()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=5,
+        limit_val_batches=0,
+        limit_train_batches=2,
+        callbacks=[TestFinetuning(), lr_monitor, Check()],
+        progress_bar_refresh_rate=0,
+        weights_summary=None,
+        checkpoint_callback=False
+    )
+    model = TestModel()
+    model.training_epoch_end = None
+    trainer.fit(model)
+
+    expected = [0.1, 0.05, 0.025, 0.0125, 0.00625]
+    assert lr_monitor.lrs['lr-Adam/pg1'] == expected
+
+    expected = [0.1, 0.05, 0.025, 0.0125]
+    assert lr_monitor.lrs['lr-Adam/pg2'] == expected
+
+    expected = [0.1, 0.05, 0.025, 0.0125, 0.00625]
+    assert lr_monitor.lrs['lr-Adam-1/pg1'] == expected
+
+    expected = [0.1, 0.05, 0.025]
+    assert lr_monitor.lrs['lr-Adam-1/pg2'] == expected
+
+    expected = [0.1, 0.05]
+    assert lr_monitor.lrs['lr-Adam-1/pg3'] == expected

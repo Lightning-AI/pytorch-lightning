@@ -23,7 +23,12 @@ import pt_lightning_sphinx_theme
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..')
+PATH_RAW_NB = os.path.join(PATH_ROOT, 'notebooks')
+PATH_IPYNB = os.path.join(PATH_HERE, 'notebooks')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
+sys.path.append(os.path.join(PATH_RAW_NB, '.actions'))
+
+from helpers import HelperCLI  # noqa: E401 E402
 
 FOLDER_GENERATED = 'generated'
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get('SPHINX_MOCK_REQUIREMENTS', True))
@@ -37,21 +42,7 @@ spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 
-# # export the documentation
-# with open('intro.rst', 'w') as fp:
-#     intro = pytorch_lightning.__doc__.replace(os.linesep + ' ', '')
-#     fp.write(m2r.convert(intro))
-#     # fp.write(pytorch_lightning.__doc__)
-
-# # export the READme
-# with open(os.path.join(PATH_ROOT, 'README.md'), 'r') as fp:
-#     readme = fp.read()
-# # replace all paths to relative
-# for ndir in (os.path.basename(p) for p in glob.glob(os.path.join(PATH_ROOT, '*'))
-#              if os.path.isdir(p)):
-#     readme = readme.replace('](%s/' % ndir, '](%s/%s/' % (PATH_ROOT, ndir))
-# with open('readme.md', 'w') as fp:
-#     fp.write(readme)
+HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_IPYNB)
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
@@ -94,7 +85,7 @@ release = about.__version__
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = '3.4'
+needs_sphinx = '4.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -111,10 +102,9 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.imgmath',
-    'recommonmark',
     'sphinx.ext.autosectionlabel',
-    # 'm2r',
-    # 'nbsphinx',  # it seems some sphinx issue
+    'myst_parser',
+    'nbsphinx',
     'sphinx_autodoc_typehints',
     'sphinx_copybutton',
     'sphinx_paramlinks',
@@ -135,9 +125,7 @@ nbsphinx_requirejs_path = ''
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-# source_suffix = ['.rst', '.md', '.ipynb']
-source_suffix = {
+source_parsers = {
     '.rst': 'restructuredtext',
     '.txt': 'markdown',
     '.md': 'markdown',
@@ -364,7 +352,8 @@ autodoc_default_options = {
 # This value determines the text for the permalink; it defaults to "¶". Set it to None or the empty
 #  string to disable permalinks.
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_add_permalinks
-html_add_permalinks = "¶"
+html_permalinks = True
+html_permalinks_icon = "¶"
 
 # True to prefix each section label with the name of the document it is in, followed by a colon.
 #  For example, index:Introduction for a section called Introduction that appears in document index.rst.
