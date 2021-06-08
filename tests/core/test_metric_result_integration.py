@@ -160,10 +160,7 @@ def test_result_collection_simple_loop():
         lightning_log('d0', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
         lightning_log('d1', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
 
-        for k in (
-            'a0.a',
-            'a1.a',
-        ):
+        for k in ('a0.a', 'a1.a'):
             assert result[k].value == torch.tensor(0.), k
             assert result[k].cumulated_batch_size == torch.tensor(1.), k
 
