@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """nn.Module with additional great features."""
-
+import collections
 import logging
 import numbers
 import os
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -37,11 +37,8 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.distributed import sync_ddp_if_available, tpu_distributed
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
-
-if TYPE_CHECKING:
-    from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -79,31 +76,6 @@ class LightningModule(
         # torch/nn/modules/module.py#L227)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
-        self.loaded_optimizer_states_dict = {}
-
-        #: Pointer to the trainer object
-        self.trainer = None
-
-        self._distrib_type = None
-        self._device_type = None
-
-        #: True if using amp
-        self.use_amp: bool = False
-
-        #: The precision used
-        self.precision: int = 32
-
-        # optionally can be set by user
-        self._example_input_array = None
-        self._datamodule = None
-        self._results: Optional['Result'] = None
-        self._current_fx_name: Optional[str] = None
-        self._running_manual_backward: bool = False
-        self._current_dataloader_idx: Optional[int] = None
-        self._automatic_optimization: bool = True
-        self._truncated_bptt_steps: int = 0
-        self._param_requires_grad_state = dict()
-
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
             opts = list(self.trainer.lightning_optimizers.values())
@@ -129,63 +101,6 @@ class LightningModule(
 
         # multiple schedulers
         return lr_schedulers
-
-    def log_dict(
-        self,
-        dictionary: Mapping[str, _METRIC_COLLECTION],
-        prog_bar: bool = False,
-        logger: bool = True,
-        on_step: Optional[bool] = None,
-        on_epoch: Optional[bool] = None,
-        reduce_fx: Callable = torch.mean,
-        tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
-        tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
-        enable_graph: bool = False,
-        sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
-        sync_dist_group: Optional[Any] = None,
-        add_dataloader_idx: bool = True,
-    ) -> None:
-        """
-        Log a dictionary of values at once
-
-        Example::
-
-            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
-            self.log_dict(values)
-
-        Args:
-            dictionary: key value pairs (str, tensors)
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
-            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across GPUs/TPUs
-            sync_dist_group: the ddp group sync across
-            add_dataloader_idx: if True, appends the index of the current dataloader to
-                the name (when using multiple). If False, user needs to give unique names for
-                each dataloader to not mix values
-        """
-        for k, v in dictionary.items():
-            self.log(
-                name=k,
-                value=v,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                sync_dist=sync_dist,
-                sync_dist_group=sync_dist_group,
-                sync_dist_op=sync_dist_op,
-                tbptt_pad_token=tbptt_pad_token,
-                tbptt_reduce_fx=tbptt_reduce_fx,
-                add_dataloader_idx=add_dataloader_idx
-            )
 
     @staticmethod
     def _sync(
@@ -1193,6 +1108,69 @@ class LightningModule(
         See :meth:`torch.optim.Optimizer.zero_grad` for the explanation of the above example.
         """
         optimizer.zero_grad()
+
+    def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
+        r"""
+        When using truncated backpropagation through time, each batch must be split along the
+        time dimension. Lightning handles this by default, but for custom behavior override
+        this function.
+
+        Args:
+            batch: Current batch
+            split_size: The size of the split
+
+        Return:
+            List of batch splits. Each split will be passed to :meth:`training_step` to enable truncated
+            back propagation through time. The default implementation splits root level Tensors and
+            Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
+
+        Examples::
+
+            def tbptt_split_batch(self, batch, split_size):
+              splits = []
+              for t in range(0, time_dims[0], split_size):
+                  batch_split = []
+                  for i, x in enumerate(batch):
+                      if isinstance(x, torch.Tensor):
+                          split_x = x[:, t:t + split_size]
+                      elif isinstance(x, collections.Sequence):
+                          split_x = [None] * len(x)
+                          for batch_idx in range(len(x)):
+                              split_x[batch_idx] = x[batch_idx][t:t + split_size]
+
+                      batch_split.append(split_x)
+
+                  splits.append(batch_split)
+
+              return splits
+
+        Note:
+            Called in the training loop after
+            :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
+            if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
+            Each returned batch split is passed separately to :meth:`training_step`.
+
+        """
+        time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
+        assert len(time_dims) >= 1, "Unable to determine batch time dimension"
+        assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
+
+        splits = []
+        for t in range(0, time_dims[0], split_size):
+            batch_split = []
+            for i, x in enumerate(batch):
+                if isinstance(x, torch.Tensor):
+                    split_x = x[:, t:t + split_size]
+                elif isinstance(x, collections.Sequence):
+                    split_x = [None] * len(x)
+                    for batch_idx in range(len(x)):
+                        split_x[batch_idx] = x[batch_idx][t:t + split_size]
+
+                batch_split.append(split_x)
+
+            splits.append(batch_split)
+
+        return splits
 
     def summarize(self, mode: Optional[str] = ModelSummary.MODE_DEFAULT) -> Optional[ModelSummary]:
         model_summary = None
