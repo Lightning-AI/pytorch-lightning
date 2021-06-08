@@ -487,7 +487,7 @@ def test_metric_holder_raises(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
 
-    match = "The metric `test` does not contain a single element"
+    match = "The metric `.*` does not contain a single element"
     with pytest.raises(MisconfigurationException, match=match):
         trainer.validate(model)
     with pytest.raises(MisconfigurationException, match=match):
