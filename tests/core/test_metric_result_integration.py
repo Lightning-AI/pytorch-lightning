@@ -18,7 +18,7 @@ import torch.multiprocessing as mp
 from torchmetrics import Metric
 
 import tests.helpers.utils as tutils
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from tests.helpers.runif import RunIf
 
 
@@ -93,7 +93,6 @@ def _ddp_test_fn(rank, worldsize):
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP"""
-    tutils.reset_seed()
     tutils.set_random_master_port()
 
     worldsize = 2

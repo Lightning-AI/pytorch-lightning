@@ -222,8 +222,7 @@ def cli_main():
         return
 
     cli = LightningCLI(LitClassifier, MyDataModule, seed_everything_default=1234)
-    result = cli.trainer.test(cli.model, datamodule=cli.datamodule)
-    print(result)
+    cli.trainer.test(cli.model, datamodule=cli.datamodule)
 
 
 if __name__ == "__main__":

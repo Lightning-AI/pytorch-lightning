@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ Test deprecated functionality which will be removed in v1.6.0 """
-
 import pytest
 
 from pytorch_lightning import Trainer
@@ -29,6 +28,18 @@ def test_v1_6_0_trainer_model_hook_mixin(tmpdir):
 
     with pytest.deprecated_call(match="is deprecated in v1.4 and will be removed in v1.6"):
         trainer.has_arg("training_step", "batch")
+
+
+def test_old_transfer_batch_to_device_hook(tmpdir):
+
+    class OldModel(BoringModel):
+
+        def transfer_batch_to_device(self, batch, device):
+            return super().transfer_batch_to_device(batch, device, None)
+
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
+    with pytest.deprecated_call(match='old signature will be removed in v1.6'):
+        trainer.fit(OldModel())
 
 
 def test_v1_6_0_ddp_num_nodes():
@@ -49,3 +60,29 @@ def test_v1_6_0_ddp_spawn_num_nodes():
 def test_v1_6_0_ddp_spawn_sync_batchnorm():
     with pytest.deprecated_call(match="Argument `sync_batchnorm` in `DDPPlugin` is deprecated in v1.4"):
         DDPSpawnPlugin(sync_batchnorm=False)
+
+
+def test_v1_6_0_tbptt_reduce_fx(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            self.log("foo", 1, tbptt_reduce_fx=lambda x: x)
+            return super().training_step(*args)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.deprecated_call(match=r"tbptt_reduce_fx=...\)` is no longer supported"):
+        trainer.fit(TestModel())
+
+
+def test_v1_6_0_tbptt_pad_token(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            self.log("foo", 1, tbptt_pad_token=0)
+            return super().training_step(*args)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.deprecated_call(match=r"tbptt_pad_token=...\)` is no longer supported"):
+        trainer.fit(TestModel())

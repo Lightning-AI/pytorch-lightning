@@ -18,13 +18,13 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
-from pytorch_lightning.core.lightning import LightningModule
+import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
 
-    def __init__(self, pl_module: LightningModule):
+    def __init__(self, pl_module: 'pl.LightningModule') -> None:
         """
         Wraps the user's LightningModule and redirects the forward call to the appropriate
         method, either ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
@@ -131,6 +131,9 @@ class IndexBatchSamplerWrapper:
         for batch in self._sampler:
             self.batch_indices = batch
             yield batch
+
+    def __len__(self) -> int:
+        return len(self._sampler)
 
     @property
     def drop_last(self) -> bool:

@@ -28,3 +28,4 @@ PyTorch Ecosystem Examples
 ==========================
 
 - `PyTorch Geometric: Deep learning on graphs and other irregular structures <https://github.com/rusty1s/pytorch_geometric/tree/master/examples/pytorch_lightning>`_.
+- `TorchIO, MONAI and Lightning for 3D medical image segmentation <https://colab.research.google.com/github/fepegar/torchio-notebooks/blob/main/notebooks/TorchIO_MONAI_PyTorch_Lightning.ipynb>`_.

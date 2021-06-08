@@ -75,39 +75,10 @@ register the tensor as a buffer in your modules's ``__init__`` method with :meth
 
 Remove samplers
 ^^^^^^^^^^^^^^^
-In PyTorch, you must use :class:`~torch.utils.data.distributed.DistributedSampler`
-for multi-node or TPU training. The sampler makes sure each GPU sees the appropriate part of your data.
 
-.. testcode::
+:class:`~torch.utils.data.distributed.DistributedSampler` is automatically handled by Lightning.
 
-    # without lightning
-    def train_dataloader(self):
-        dataset = MNIST(...)
-        sampler = None
-
-        if self.on_tpu:
-            sampler = DistributedSampler(dataset)
-
-        return DataLoader(dataset, sampler=sampler)
-
-Lightning adds the correct samplers when needed, so no need to explicitly add samplers.
-
-.. testcode::
-
-    # with lightning
-    def train_dataloader(self):
-        dataset = MNIST(...)
-        return DataLoader(dataset)
-
-.. note::
-    By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
-    ``drop_last`` in :class:`~torch.utils.data.distributed.DistributedSampler` will be set to its default value in PyTorch.
-    If you called :func:`~pytorch_lightning.utilities.seed.seed_everyting`, Lightning will set the same seed for the
-    sampler.
-
-.. note:: You can disable this behavior with ``Trainer(replace_sampler_ddp=False)``
-
-.. note:: For iterable datasets, we don't do this automatically.
+See :ref:`replace-sampler-ddp` for more information.
 
 
 Synchronize validation and test logging

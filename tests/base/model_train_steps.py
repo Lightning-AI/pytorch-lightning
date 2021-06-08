@@ -49,10 +49,13 @@ class TrainingStepVariations(ABC):
 
         assert isinstance(batch, dict)
         assert len(batch) == 2
-        assert 'a' in batch and 'b' in batch
+
+        assert 'a_b' in batch and 'c_d_e' in batch, batch.keys()
+        assert isinstance(batch['a_b'], list) and len(batch['a_b']) == 2
+        assert isinstance(batch['c_d_e'], list) and len(batch['c_d_e']) == 3
 
         # forward pass
-        x, y = batch['a']
+        x, y = batch['a_b'][0]
         x = x.view(x.size(0), -1)
         y_hat = self(x)
 

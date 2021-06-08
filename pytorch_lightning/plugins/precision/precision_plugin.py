@@ -19,12 +19,13 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.plugins.base_plugin import Plugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
-class PrecisionPlugin(Plugin):
+class PrecisionPlugin(Plugin, CheckpointHooks):
     """
     Base class for all plugins handling the precision-specific parts of the training.
     The class attribute precision must be overwritten in child classes.

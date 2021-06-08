@@ -154,7 +154,3 @@ cifar-10-batches-py
 *.pt
 # ctags
 tags
-data
-MNIST
-runs
-*trace*

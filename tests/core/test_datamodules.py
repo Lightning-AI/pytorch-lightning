@@ -383,19 +383,22 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
         on_after_batch_transfer_hook_rank = None
 
         def on_before_batch_transfer(self, batch, dataloader_idx):
+            assert dataloader_idx is None
             self.on_before_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.samples += 1
             return batch
 
         def on_after_batch_transfer(self, batch, dataloader_idx):
+            assert dataloader_idx is None
             assert batch.samples.device == batch.targets.device == expected_device
             self.on_after_batch_transfer_hook_rank = self.rank
             self.rank += 1
             batch.targets *= 2
             return batch
 
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, batch, device, dataloader_idx):
+            assert dataloader_idx is None
             self.transfer_batch_to_device_hook_rank = self.rank
             self.rank += 1
             batch.samples = batch.samples.to(device)
@@ -521,3 +524,46 @@ def test_dm_init_from_datasets_dataloaders(iterable):
             call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
             call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True)
         ])
+
+
+def test_datamodule_hooks_calls(tmpdir):
+    """Test that repeated calls to DataHooks' hooks have no effect"""
+
+    class TestDataModule(BoringDataModule):
+        setup_calls = []
+        teardown_calls = []
+        prepare_data_calls = 0
+
+        def setup(self, stage=None):
+            super().setup(stage=stage)
+            self.setup_calls.append(stage)
+
+        def teardown(self, stage=None):
+            super().teardown(stage=stage)
+            self.teardown_calls.append(stage)
+
+        def prepare_data(self):
+            super().prepare_data()
+            self.prepare_data_calls += 1
+
+    dm = TestDataModule()
+    dm.prepare_data()
+    dm.prepare_data()
+    dm.setup('fit')
+    dm.setup('fit')
+    dm.setup()
+    dm.setup()
+    dm.teardown('validate')
+    dm.teardown('validate')
+
+    assert dm.prepare_data_calls == 1
+    assert dm.setup_calls == ['fit', None]
+    assert dm.teardown_calls == ['validate']
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer.test(BoringModel(), datamodule=dm)
+
+    # same number of calls
+    assert dm.prepare_data_calls == 1
+    assert dm.setup_calls == ['fit', None]
+    assert dm.teardown_calls == ['validate', 'test']
