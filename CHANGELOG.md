@@ -56,6 +56,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `should_rank_save_checkpoint` property to Training Plugins ([#7684](https://github.com/PyTorchLightning/pytorch-lightning/pull/7684))
 
 
+- Added `log_grad_norm` hook to `LightningModule` to customize the logging of gradient norms ([#7873](https://github.com/PyTorchLightning/pytorch-lightning/pull/7873))
+
+
 - Added `save_config_filename` init argument to `LightningCLI` to ease resolving name conflicts ([#7741](https://github.com/PyTorchLightning/pytorch-lightning/pull/7741))
 
 
