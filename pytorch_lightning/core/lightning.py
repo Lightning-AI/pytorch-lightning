@@ -297,7 +297,7 @@ class LightningModule(
 
         Args:
             name: key to log
-            value: value to log
+            value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if True logs to the progress bar
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
@@ -426,7 +426,8 @@ class LightningModule(
             self.log_dict(values)
 
         Args:
-            dictionary: key value pairs (str, tensors)
+            dictionary: key value pairs.
+                The values can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if True logs to the progress base
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
@@ -470,6 +471,21 @@ class LightningModule(
 
     def __to_float(self, value: numbers.Number) -> torch.Tensor:
         return torch.tensor(value, device=self.device, dtype=torch.float)
+
+    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
+        """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        Args:
+            grad_norm_dict: Dictionary containing current grad norm metrics
+
+        Examples::
+
+            # DEFAULT
+            def log_grad_norm(self, grad_norm_dict):
+                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+
+        """
+        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def write_prediction(
         self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'
@@ -1529,21 +1545,6 @@ class LightningModule(
         See :meth:`torch.optim.Optimizer.zero_grad` for the explanation of the above example.
         """
         optimizer.zero_grad()
-
-    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
-        """Override this method to change the default behaviour of ``log_grad_norm``.
-
-        Args:
-            grad_norm_dict: Dictionary containing current grad norm metrics
-
-        Examples::
-
-            # DEFAULT
-            def log_grad_norm(self, grad_norm_dict):
-                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-
-        """
-        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
         r"""
