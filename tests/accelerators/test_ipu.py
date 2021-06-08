@@ -23,6 +23,7 @@ from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
@@ -243,7 +244,7 @@ def test_device_iterations_ipu_plugin(tmpdir):
             assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
             assert trainer.accelerator.training_type_plugin.device_iterations == 2
             # assert device iterations has been set correctly within the poptorch options
-            poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models['train']
+            poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models[RunningStage.TRAINING]
             assert poptorch_model._options.toDict()['device_iterations'] == 2
             raise SystemExit
 
@@ -263,7 +264,7 @@ def test_accumulated_batches(tmpdir):
             # since ipu handle accumulation
             assert trainer.accumulation_scheduler.scheduling == {0: 1}
             # assert poptorch option have been set correctly
-            poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models['train']
+            poptorch_model = trainer.accelerator.training_type_plugin.poptorch_models[RunningStage.TRAINING]
             assert poptorch_model._options.Training.toDict()['gradient_accumulation'] == 2
             raise SystemExit
 

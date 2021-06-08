@@ -12,6 +12,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -110,12 +111,12 @@ class IPUPlugin(ParallelPlugin):
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
 
-        if self.lightning_module.trainer.training:
+        if self.lightning_module.trainer.state.stage is RunningStage.TRAINING:
             # Create model for training which will run training.
             optimizer = self.lightning_module.trainer.optimizers[0]
             model = poptorch.trainingModel(model=model, options=self._create_opts(training=True), optimizer=optimizer)
-            self.poptorch_models['train'] = model
-        for x in ('val', 'test', 'predict'):
+            self.poptorch_models[RunningStage.TRAINING] = model
+        for x in (RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING):
             model = poptorch.inferenceModel(
                 model=model,
                 options=self._create_opts(training=False),
@@ -234,19 +235,19 @@ class IPUPlugin(ParallelPlugin):
 
     def training_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        return self.poptorch_models['train'](*args, **kwargs)
+        return self.poptorch_models[RunningStage.TRAINING](*args, **kwargs)
 
     def validation_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        return self.poptorch_models['val'](*args, **kwargs)
+        return self.poptorch_models[RunningStage.VALIDATING](*args, **kwargs)
 
     def test_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        return self.poptorch_models['test'](*args, **kwargs)
+        return self.poptorch_models[RunningStage.TESTING](*args, **kwargs)
 
     def predict_step(self, *args, **kwargs):
         args = self._prepare_input(args)
-        return self.poptorch_models['predict'](*args, **kwargs)
+        return self.poptorch_models[RunningStage.PREDICTING](*args, **kwargs)
 
     def teardown(self) -> None:
         for model in self.poptorch_models.values():
@@ -276,16 +277,16 @@ class IPUPlugin(ParallelPlugin):
             model.attachToDevice()
 
     def on_train_start(self):
-        self._load_model('train')
+        self._load_model(RunningStage.TRAINING)
 
     def on_validation_start(self):
-        self._load_model('val')
+        self._load_model(RunningStage.VALIDATING)
 
     def on_test_start(self):
-        self._load_model('test')
+        self._load_model(RunningStage.TESTING)
 
     def on_predict_start(self):
-        self._load_model('predict')
+        self._load_model(RunningStage.PREDICTING)
 
     def on_train_end(self):
         self._detach_models()
@@ -302,7 +303,7 @@ class IPUPlugin(ParallelPlugin):
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         # Updates optimizer stats if LR scheduler modified the optimizer state
         optimizer = self.lightning_module.trainer.optimizers[0]
-        self.poptorch_models['train'].setOptimizer(optimizer)
+        self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
 
     @property
     def on_gpu(self) -> bool:
