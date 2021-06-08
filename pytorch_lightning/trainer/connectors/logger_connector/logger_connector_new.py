@@ -66,7 +66,7 @@ class LoggerConnectorNew:
         should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
         return should_log_every_n_steps or self.trainer.should_stop
 
-    def configure_logger(self, logger: LightningLoggerBase) -> None:
+    def configure_logger(self, logger: Union[bool, Iterable, LightningLoggerBase]) -> None:
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
 
