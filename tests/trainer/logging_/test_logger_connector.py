@@ -755,8 +755,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
 
     epoch_metrics = result_collection.metrics(False)
     mean = total_value / total_batches
-    pbar_metrics = epoch_metrics[MetricSource.PBAR]
-    assert pbar_metrics == {
+    assert epoch_metrics[MetricSource.PBAR] == {
         'loss_on_epoch_prog_bar': mean,
         'loss_on_epoch_prog_bar_logger': mean,
         'loss_on_step_on_epoch_prog_bar_epoch': mean,
