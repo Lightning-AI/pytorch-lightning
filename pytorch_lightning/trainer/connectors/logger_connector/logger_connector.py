@@ -230,6 +230,12 @@ class LoggerConnector:
         # reset result collection for next epoch
         self.trainer.result_collection.reset(metrics=True)
 
+    def teardown(self):
+        self.trainer.train_loop.train_results.cpu()
+        self.trainer.evaluation_loop.validation_results.cpu()
+        self.trainer.evaluation_loop.test_results.cpu()
+        import pdb; pdb.set_trace()
+
     """
     Utilities and properties
     """

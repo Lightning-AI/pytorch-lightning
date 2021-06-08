@@ -806,6 +806,7 @@ class Trainer(
     def _post_dispatch(self):
         self.accelerator.post_dispatch(self)
         self.accelerator.teardown()
+        self.logger_connector.teardown()
 
     def _dispatch(self):
         if self.evaluating:

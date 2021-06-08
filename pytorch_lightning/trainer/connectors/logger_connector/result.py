@@ -479,6 +479,11 @@ class ResultCollection(dict):
         for k, v in self.items():
             if isinstance(v, (torch.Tensor, Metric)):
                 self[k] = v.to(*args, **kwargs)
+        state = self.__getstate__()
+        for k, v in state.items():
+            if isinstance(v, (torch.Tensor, Metric)):
+                state[k] = v.to(*args, **kwargs)
+        self.__dict__.update(state)
         return self
 
     def cpu(self) -> 'ResultCollection':

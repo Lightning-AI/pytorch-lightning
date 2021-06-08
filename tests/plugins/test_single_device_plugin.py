@@ -39,6 +39,7 @@ class BoringModelGPU(BoringModel):
 @RunIf(skip_windows=True, min_gpus=1)
 def test_single_gpu():
     """Tests if device is set correctly when training and after teardown for single GPU plugin."""
+    torch.cuda.empty_cache()
     trainer = Trainer(gpus=1, fast_dev_run=True)
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.training_type_plugin, SingleDevicePlugin)
@@ -51,6 +52,7 @@ def test_single_gpu():
     trainer.fit(model)
 
     # assert after training, model is moved to CPU and memory is deallocated
+    import pdb; pdb.set_trace()
     assert model.device == torch.device("cpu")
     cuda_memory = torch.cuda.memory_allocated()
     assert cuda_memory < model.start_cuda_memory
