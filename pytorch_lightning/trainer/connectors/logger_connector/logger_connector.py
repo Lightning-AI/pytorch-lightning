@@ -44,8 +44,11 @@ class LoggerConnector:
         self._split_idx: Optional[int] = None
 
     def on_trainer_init(
-        self, logger: LightningLoggerBase, flush_logs_every_n_steps: int, log_every_n_steps: int,
-        move_metrics_to_cpu: bool
+        self,
+        logger: LightningLoggerBase,
+        flush_logs_every_n_steps: int,
+        log_every_n_steps: int,
+        move_metrics_to_cpu: bool,
     ) -> None:
         self.configure_logger(logger)
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
@@ -185,7 +188,7 @@ class LoggerConnector:
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
 
         # track batch_size
-        self.trainer.result_collection.extract_batch_size(batch)
+        self.trainer.results.extract_batch_size(batch)
         self._batch_idx = batch_idx
 
     def update_evaluation_step_metrics(self) -> None:
@@ -206,7 +209,7 @@ class LoggerConnector:
     """
 
     def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
-        self.trainer.result_collection.extract_batch_size(split_batch)
+        self.trainer.results.extract_batch_size(split_batch)
         self._batch_idx = batch_idx
         self._split_idx = split_idx
 
@@ -228,12 +231,7 @@ class LoggerConnector:
             self.log_metrics(metrics)
 
         # reset result collection for next epoch
-        self.trainer.result_collection.reset(metrics=True)
-
-    def teardown(self):
-        self.trainer.train_loop.train_results.cpu()
-        self.trainer.evaluation_loop.validation_results.cpu()
-        self.trainer.evaluation_loop.test_results.cpu()
+        self.trainer.results.reset(metrics=True)
 
     """
     Utilities and properties
@@ -274,7 +272,7 @@ class LoggerConnector:
         return is_different_fx and is_first_batch
 
     def reset(self, metrics: Optional[bool] = None) -> None:
-        self.trainer.result_collection.reset(metrics=metrics)
+        self.trainer.results.reset(metrics=metrics)
         self._batch_idx = None
         self._split_idx = None
         self._current_fx = None
@@ -283,25 +281,30 @@ class LoggerConnector:
     def metrics(self) -> Dict[MetricSource, Dict[str, _METRIC]]:
         """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
         on_step = not self._epoch_end_reached
-        return self.trainer.result_collection.metrics(on_step)
+        return self.trainer.results.metrics(on_step)
 
     @property
     def callback_metrics(self) -> Dict[str, _METRIC]:
-        if self.trainer.result_collection:
+        if self.trainer.results:
             metrics = self.metrics[MetricSource.CALLBACK]
             self._callback_metrics.update(metrics)
         return self._callback_metrics
 
     @property
     def logged_metrics(self) -> Dict[str, _METRIC]:
-        if self.trainer.result_collection:
+        if self.trainer.results:
             metrics = self.metrics[MetricSource.LOG]
             self._logged_metrics.update(metrics)
         return self._logged_metrics
 
     @property
     def progress_bar_metrics(self) -> Dict[str, float]:
-        if self.trainer.result_collection:
+        if self.trainer.results:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
+
+    def teardown(self):
+        self.trainer.train_loop.results.cpu()
+        self.trainer.evaluation_loop._val_results.cpu()
+        self.trainer.evaluation_loop._test_results.cpu()

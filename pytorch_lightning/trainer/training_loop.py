@@ -82,7 +82,7 @@ class TrainLoop:
         else:
             self.trainer.num_sanity_val_steps = num_sanity_val_steps
 
-        self.train_results = ResultCollection(True)
+        self.results = ResultCollection(True)
 
     @property
     def num_active_optimizers(self) -> int:
@@ -100,7 +100,8 @@ class TrainLoop:
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
-        self.trainer.result_collection.device = self.trainer.lightning_module.device
+        self.trainer.results.to(device=self.trainer.lightning_module.device)
+
         self.trainer.call_hook("on_train_start")
 
     def on_train_end(self):
@@ -307,11 +308,11 @@ class TrainLoop:
         if training_step_output is None:
             return None
 
-        result = self.trainer.result_collection
+        results = self.trainer.results
 
         loss = None
         hiddens = None
-        result.extra = {}
+        results.extra = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
@@ -319,20 +320,20 @@ class TrainLoop:
             hiddens = training_step_output.pop("hiddens", None)
             if hiddens is not None:
                 hiddens = hiddens.detach()
-            result.extra = training_step_output
+            results.extra = training_step_output
 
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
             loss = training_step_output
 
         # map to results under the hood
-        result.minimize = loss
+        results.minimize = loss
         self._hiddens = hiddens
 
         if self.trainer.move_metrics_to_cpu:
-            result = result.cpu()
+            results = results.cpu()
 
-        return result
+        return results
 
     @staticmethod
     def _prepare_outputs(
