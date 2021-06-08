@@ -20,15 +20,14 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
-from pytorch_lightning.trainer.connectors.logger_connector.result_new import _METRIC, MetricSource
+from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 
-# TODO(@carmocca): Remove `New` suffix
-class LoggerConnectorNew:
+class LoggerConnector:
 
     def __init__(self, trainer: 'pl.Trainer', log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
@@ -120,44 +119,7 @@ class LoggerConnectorNew:
     Evaluation metric updates
     """
 
-    @property
-    def _eval_log_step(self) -> Optional[int]:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            return self._val_log_step
-        elif self.trainer.state.stage is RunningStage.TESTING:
-            return self._test_log_step
-        else:
-            return None
-
-    def _increment_eval_log_step(self) -> None:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            self._val_log_step += 1
-        elif self.trainer.state.stage is RunningStage.TESTING:
-            self._test_log_step += 1
-
-    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
-        model = self.trainer.lightning_module
-        # set dataloader_idx only if multiple ones
-        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
-
-        # track batch_size
-        self.trainer.result_collection.extract_batch_size(batch)
-        self._batch_idx = batch_idx
-
-    def update_eval_step_metrics(self) -> None:
-        if self.trainer.sanity_checking:
-            return
-
-        # logs user requested information to logger
-        assert not self._epoch_end_reached
-        metrics = self.metrics[MetricSource.LOG]
-        if metrics:
-            self.log_metrics(metrics, step=self._eval_log_step)
-
-        # increment the step even if nothing was logged
-        self._increment_eval_log_step()
-
-    def _prepare_eval_loop_results(self, metrics: Mapping[str, _METRIC]) -> None:
+    def prepare_eval_loop_results(self, metrics: Mapping[str, _METRIC]) -> None:
         if self.trainer.sanity_checking:
             return
 
@@ -174,7 +136,7 @@ class LoggerConnectorNew:
             else:
                 self.eval_loop_results.append(callback_metrics)
 
-    def update_eval_epoch_metrics(self) -> _EVALUATE_OUTPUT:
+    def get_evaluate_epoch_results(self) -> _EVALUATE_OUTPUT:
         assert self._epoch_end_reached
         metrics = self.metrics
 
@@ -184,7 +146,7 @@ class LoggerConnectorNew:
             if log_metrics:
                 self.log_metrics(log_metrics)
 
-        self._prepare_eval_loop_results(metrics[MetricSource.CALLBACK])
+        self.prepare_eval_loop_results(metrics[MetricSource.CALLBACK])
 
         # log results of evaluation
         if (
@@ -205,12 +167,49 @@ class LoggerConnectorNew:
         self.eval_loop_results = []
         return results
 
+    @property
+    def evaluation_log_step(self) -> Optional[int]:
+        if self.trainer.state.stage is RunningStage.VALIDATING:
+            return self._val_log_step
+        elif self.trainer.state.stage is RunningStage.TESTING:
+            return self._test_log_step
+        else:
+            return None
+
+    def increment_evaluation_log_step(self) -> None:
+        if self.trainer.state.stage is RunningStage.VALIDATING:
+            self._val_log_step += 1
+        elif self.trainer.state.stage is RunningStage.TESTING:
+            self._test_log_step += 1
+
+    def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int, num_dataloaders: int) -> None:
+        model = self.trainer.lightning_module
+        # set dataloader_idx only if multiple ones
+        model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
+
+        # track batch_size
+        self.trainer.results.extract_batch_size(batch)
+        self._batch_idx = batch_idx
+
+    def update_evaluation_step_metrics(self) -> None:
+        if self.trainer.sanity_checking:
+            return
+
+        # logs user requested information to logger
+        assert not self._epoch_end_reached
+        metrics = self.metrics[MetricSource.LOG]
+        if metrics:
+            self.log_metrics(metrics, step=self.evaluation_log_step)
+
+        # increment the step even if nothing was logged
+        self.increment_evaluation_log_step()
+
     """
     Train metric updates
     """
 
     def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
-        self.trainer.result_collection.extract_batch_size(split_batch)
+        self.trainer.results.extract_batch_size(split_batch)
         self._batch_idx = batch_idx
         self._split_idx = split_idx
 
@@ -232,12 +231,7 @@ class LoggerConnectorNew:
             self.log_metrics(metrics)
 
         # reset result collection for next epoch
-        self.trainer.result_collection.reset(metrics=True)
-
-    def teardown(self):
-        self.trainer.train_loop.train_results.cpu()
-        self.trainer.evaluation_loop.validation_results.cpu()
-        self.trainer.evaluation_loop.test_results.cpu()
+        self.trainer.results.reset(metrics=True)
 
     """
     Utilities and properties
@@ -278,7 +272,7 @@ class LoggerConnectorNew:
         return is_different_fx and is_first_batch
 
     def reset(self, metrics: Optional[bool] = None) -> None:
-        self.trainer.result_collection.reset(metrics=metrics)
+        self.trainer.results.reset(metrics=metrics)
         self._batch_idx = None
         self._split_idx = None
         self._current_fx = None
@@ -287,25 +281,30 @@ class LoggerConnectorNew:
     def metrics(self) -> Dict[MetricSource, Dict[str, _METRIC]]:
         """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
         on_step = not self._epoch_end_reached
-        return self.trainer.result_collection.metrics(on_step)
+        return self.trainer.results.metrics(on_step)
 
     @property
     def callback_metrics(self) -> Dict[str, _METRIC]:
-        if self.trainer.result_collection:
+        if self.trainer.results:
             metrics = self.metrics[MetricSource.CALLBACK]
             self._callback_metrics.update(metrics)
         return self._callback_metrics
 
     @property
     def logged_metrics(self) -> Dict[str, _METRIC]:
-        if self.trainer.result_collection:
+        if self.trainer.results:
             metrics = self.metrics[MetricSource.LOG]
             self._logged_metrics.update(metrics)
         return self._logged_metrics
 
     @property
     def progress_bar_metrics(self) -> Dict[str, float]:
-        if self.trainer.result_collection:
+        if self.trainer.results:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
+
+    def teardown(self):
+        self.trainer.train_loop.results.cpu()
+        self.trainer.evaluation_loop._val_results.cpu()
+        self.trainer.evaluation_loop._test_results.cpu()
