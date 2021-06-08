@@ -18,6 +18,7 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.helpers.boring_model import BoringModel
@@ -620,3 +621,37 @@ def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch
     )
     trainer.fit(model)
     assert mocked_sched.call_count == expected_steps
+
+
+def test_scheduler_lr_step_interval_updated_before_saving(tmpdir):
+    batches = 2
+    lr, gamma = 1, 10
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        logger=False,
+        max_epochs=1,
+        limit_train_batches=batches,
+        limit_val_batches=1,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)]
+    )
+
+    class TestModel(BoringModel):
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=lr)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=gamma)
+            lr_dict = {'scheduler': lr_scheduler, 'interval': 'step'}
+            return [optimizer], [lr_dict]
+
+        def on_save_checkpoint(self, checkpoint):
+            lr_dict = checkpoint['lr_schedulers'][0]
+            # 2 batches ran. since the lr_dict interval is `step`, the step count should be 2
+            assert self.trainer.global_step + 1 == batches  # the global step hasn't been increased yet
+            assert lr_dict['_step_count'] - 1 == batches  # step count starts at 1
+            assert lr_dict['_last_lr'] == [lr * gamma ** batches]
+            self.on_save_checkpoint_called = True
+
+    model = TestModel()
+    trainer.fit(model)
+    assert model.on_save_checkpoint_called
