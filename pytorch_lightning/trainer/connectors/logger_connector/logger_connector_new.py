@@ -27,7 +27,8 @@ from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 
-class LoggerConnector:
+# TODO(@carmocca): Remove `New` suffix
+class LoggerConnectorNew:
 
     def __init__(self, trainer: 'pl.Trainer', log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
