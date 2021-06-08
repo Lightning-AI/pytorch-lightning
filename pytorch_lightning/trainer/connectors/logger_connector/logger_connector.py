@@ -234,7 +234,8 @@ class LoggerConnector:
         self.trainer.train_loop.train_results.cpu()
         self.trainer.evaluation_loop.validation_results.cpu()
         self.trainer.evaluation_loop.test_results.cpu()
-        import pdb; pdb.set_trace()
+        import pdb
+        pdb.set_trace()
 
     """
     Utilities and properties
