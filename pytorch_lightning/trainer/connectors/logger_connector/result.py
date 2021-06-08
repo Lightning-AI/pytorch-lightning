@@ -82,16 +82,20 @@ class _Metadata:
         return self.reduce_fx == torch.mean
 
     @property
+    def is_sum_reduction(self) -> bool:
+        return self.reduce_fx in (torch.sum, sum, "sum")
+
+    @property
     def is_max_reduction(self) -> bool:
-        return self.reduce_fx in (torch.max, max)
+        return self.reduce_fx in (torch.max, max, 'max')
 
     @property
     def is_min_reduction(self) -> bool:
-        return self.reduce_fx in (torch.min, min)
+        return self.reduce_fx in (torch.min, min, 'min')
 
     @property
     def is_custom_reduction(self) -> bool:
-        return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction)
+        return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction or self.is_sum_reduction)
 
 
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
@@ -121,6 +125,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 self.cumulated_batch_size += batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
+            elif self.meta.is_sum_reduction:
+                self.value += value.mean() * batch_size
         else:
             self.value = value  # noqa: attribute-defined-outside-init
             self._forward_cache = value._forward_cache
@@ -131,6 +137,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
+            elif self.meta.is_sum_reduction:
+                return value
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 return value
             raise MisconfigurationException(
@@ -323,7 +331,7 @@ class ResultCollection(dict):
         if key not in self:
             if meta.is_custom_reduction:
                 raise MisconfigurationException(
-                    'Only `self.log(..., reduce_fx={min,max,mean})` are currently supported.'
+                    'Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported.'
                     ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`'
                 )
             self.register_key(key, meta, value)

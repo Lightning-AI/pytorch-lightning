@@ -376,6 +376,12 @@ class LightningModule(
             # when restarting an new epoch, reset the tensors
             results.reset(metrics=False, fx=self._current_fx_name)
 
+        if isinstance(sync_dist_op, str):
+            sync_dist_op = sync_dist_op.lower()
+            if sync_dist_op == "avg":
+                sync_dist_op = 'mean'
+            reduce_fx = self.__check_sync_dist_op(sync_dist_op, reduce_fx)
+
         results.log(
             self._current_fx_name,
             name,
@@ -468,6 +474,13 @@ class LightningModule(
 
     def __to_float(self, value: numbers.Number) -> torch.Tensor:
         return torch.tensor(value, device=self.device, dtype=torch.float)
+
+    @staticmethod
+    def __check_sync_dist_op(sync_dist_op: str, fx: Callable) -> Callable:
+        torch_fx = getattr(torch, sync_dist_op)
+        if getattr(torch, sync_dist_op) != fx:
+            return torch_fx
+        return fx
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
