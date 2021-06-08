@@ -93,6 +93,14 @@ class IPUClassificationModel(ClassificationModel):
         self.log('test_acc', torch.stack(outputs).mean())
 
 
+def test_fail_if_no_ipus(tmpdir):
+    with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
+        Trainer(ipus=1)
+
+    with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
+        Trainer(ipus=1, accelerator='ipu')
+
+
 @RunIf(ipu=True)
 def test_accelerator_selected(tmpdir):
     trainer = Trainer(ipus=1)

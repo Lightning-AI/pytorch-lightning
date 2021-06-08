@@ -71,7 +71,7 @@ class IPUPlugin(ParallelPlugin):
             convert_model_to_half: Converts the model to half precision, which can be used for pure FP16 training.
         """
         super().__init__(parallel_devices, cluster_environment)
-        if not poptorch.ipuHardwareIsAvailable():
+        if not _POPTORCH_AVAILABLE or not poptorch.ipuHardwareIsAvailable():
             raise MisconfigurationException(
                 "The IPU Accelerator requires IPU devices to run. "
                 "Learn more or get started with IPUs at https://www.graphcore.ai/getstarted"
