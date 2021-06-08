@@ -42,7 +42,6 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
         self._current_dataloader_idx: Optional[int] = None
         self._automatic_optimization: bool = True
         self._param_requires_grad_state = dict()
-        self._hparams = None
 
     @abstractclassmethod
     def optimizers(self, use_pl_optimizer: bool = True) -> Any:

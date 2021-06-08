@@ -31,6 +31,7 @@ import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from torchmetrics import Metric
 
 from pytorch_lightning.core.base_lightning import RootLightningModule
 from pytorch_lightning.core.grads import GradInformation
@@ -56,10 +57,10 @@ log = logging.getLogger(__name__)
 
 
 class LightningModule(
+    RootLightningModule,
     DeviceDtypeModuleMixin,
     GradInformation,
     ModelIO,
-    RootLightningModule,
     Module,
 ):
     # Below is for property support of JIT in PyTorch 1.7
@@ -81,9 +82,10 @@ class LightningModule(
     ] + DeviceDtypeModuleMixin.__jit_unused_properties__
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
         # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
         # torch/nn/modules/module.py#L227)
-        super().__init__(*args, **kwargs)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         self.loaded_optimizer_states_dict = {}
@@ -197,6 +199,18 @@ class LightningModule(
         self._automatic_optimization = automatic_optimization
 
     @property
+    def truncated_bptt_steps(self) -> int:
+        """
+        truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much a longer sequence.
+        If this is > 0, the training step is passed ``hiddens``.
+        """
+        return self._truncated_bptt_steps
+
+    @truncated_bptt_steps.setter
+    def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
+        self._truncated_bptt_steps = truncated_bptt_steps
+
+    @property
     def logger(self):
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
@@ -279,13 +293,13 @@ class LightningModule(
            "validation_epoch_end*", "F", "T", "F", "T"
 
         Args:
-            name: key name
-            value: value name
+            name: key to log
+            value: value to log
             prog_bar: if True logs to the progress bar
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs at the training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs at the val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -307,8 +321,11 @@ class LightningModule(
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
 
-        # check for none values
-        apply_to_collection(value, type(None), partial(self.__check_none, name, value))
+        # check for invalid values
+        apply_to_collection(value, dict, self.__check_not_nested, name)
+        apply_to_collection(
+            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+        )
 
         # set the default depending on the fx_name
         on_step = self.__auto_choose_log_on_step(on_step)
@@ -319,7 +336,10 @@ class LightningModule(
 
         # make sure user doesn't introduce logic for multi-dataloaders
         if "/dataloader_idx_" in name:
-            raise MisconfigurationException(f"Logged key: {name} should not contain information about dataloader_idx.")
+            raise MisconfigurationException(
+                f"You called `self.log` with the key `{name}`"
+                " but it should not contain information about `dataloader_idx`"
+            )
 
         sync_fn = partial(
             self.__sync,
@@ -374,7 +394,7 @@ class LightningModule(
             logger: if True logs to the logger
             on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
             on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
-            reduce_fx: reduction function over step values for end of epoch. Torch.mean by default
+            reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
             sync_dist_op: the op to sync across GPUs/TPUs
@@ -420,8 +440,15 @@ class LightningModule(
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
     @staticmethod
-    def __check_none(name: str, value: Any, _) -> Any:
-        raise ValueError(f'`self.log({name}, {value})` was called, but `None` values cannot be logged')
+    def __check_not_nested(value: dict, name: str) -> None:
+        # self-imposed restriction. for simplicity
+        if any(isinstance(v, dict) for v in value.values()):
+            raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
+        return value
+
+    @staticmethod
+    def __check_allowed(v: Any, name: str, value: Any) -> None:
+        raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
@@ -531,8 +558,7 @@ class LightningModule(
         group = group if group is not None else torch.distributed.group.WORLD
         all_gather = self.trainer.accelerator.all_gather
         data = convert_to_tensors(data, device=self.device)
-        all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
-        return apply_to_collection(data, torch.Tensor, all_gather)
+        return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
 
     def forward(self, *args, **kwargs) -> Any:
         r"""
