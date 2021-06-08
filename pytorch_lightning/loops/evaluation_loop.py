@@ -18,12 +18,12 @@ class EvaluationLoop(Loop):
         self.num_dataloaders: Optional[int] = None
         self.outputs = []
 
-    def connect(self, trainer, *args, **kwargs):
-        super().connect(trainer, *args, **kwargs)
-
     @property
     def done(self) -> bool:
         return self.iteration_count >= self.dl_max_batches
+
+    def connect(self, trainer, *args, **kwargs):
+        super().connect(trainer, *args, **kwargs)
 
     def reset(self) -> None:
         self.iteration_count = 0

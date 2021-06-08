@@ -43,15 +43,15 @@ class TrainingLoop(Loop):
     def batch_idx(self) -> int:
         return self.iteration_count
 
-    def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
-        self.trainer = trainer
-        self.batch_loop = BatchLoop()
-        self.batch_loop.connect(trainer)
-
     @property
     def done(self):
         max_steps_reached = self.max_steps is not None and self.global_step >= self.max_steps
         return max_steps_reached or self.trainer.should_stop or self._num_training_batches_reached(self.is_last_batch)
+
+    def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
+        self.trainer = trainer
+        self.batch_loop = BatchLoop()
+        self.batch_loop.connect(trainer)
 
     def run(self, *args, **kwargs):
         self.reset()

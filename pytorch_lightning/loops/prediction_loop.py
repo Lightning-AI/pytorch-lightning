@@ -19,13 +19,13 @@ class PredictionLoop(Loop):
         self.all_batch_indices: [List[int]] = []
 
     @property
+    def done(self) -> bool:
+        return self.iteration_count >= self.dl_max_batches
+
+    @property
     def should_store_predictions(self) -> bool:
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
-
-    @property
-    def done(self) -> bool:
-        return self.iteration_count >= self.dl_max_batches
 
     def reset(self) -> None:
         self.iteration_count = 0
