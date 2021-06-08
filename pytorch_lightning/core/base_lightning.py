@@ -49,12 +49,6 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        super().__init__(*args, **kwargs)
-
-        # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
-        # torch/nn/modules/module.py#L227)
-        torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
-
         self.loaded_optimizer_states_dict = {}
 
         #: Pointer to the trainer object
@@ -271,7 +265,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
         # check for invalid values
         apply_to_collection(value, dict, self.__check_not_nested, name)
         apply_to_collection(
-            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+            value, object, self._check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
         )
 
         # set the default depending on the fx_name
@@ -376,7 +370,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
         return value
 
     @staticmethod
-    def __check_allowed(v: Any, name: str, value: Any) -> None:
+    def _check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
 
     @staticmethod

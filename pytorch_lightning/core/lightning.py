@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """nn.Module with additional great features."""
+
 import collections
 import logging
 import numbers
@@ -119,6 +120,88 @@ class LightningModule(
         if not sync_dist or not dist_available:
             return value
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
+
+    @staticmethod
+    def __check_not_nested(value: dict, name: str) -> None:
+        # self-imposed restriction. for simplicity
+        if any(isinstance(v, dict) for v in value.values()):
+            raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
+        return value
+
+    @staticmethod
+    def _check_allowed(v: Any, name: str, value: Any) -> None:
+        raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
+
+    def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
+        """Override this method to change the default behaviour of ``log_grad_norm``.
+
+        Args:
+            grad_norm_dict: Dictionary containing current grad norm metrics
+
+        Example::
+
+            # DEFAULT
+            def log_grad_norm(self, grad_norm_dict):
+                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        """
+        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+    def write_prediction(
+        self, name: str, value: Union[torch.Tensor, List[torch.Tensor]], filename: str = 'predictions.pt'
+    ):
+        """
+        Write predictions to disk using ``torch.save``
+
+        Example::
+
+            self.write_prediction('pred', torch.tensor(...), filename='my_predictions.pt')
+
+        Args:
+            name: a string indicating the name to save the predictions under
+            value: the predictions, either a single :class:`~torch.Tensor` or a list of them
+            filename: name of the file to save the predictions to
+
+        Note:
+            when running in distributed mode, calling ``write_prediction`` will create a file for
+            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
+
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
+        """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction` was deprecated in v1.3'
+            ' and will be removed in v1.5.'
+        )
+
+        self.trainer.evaluation_loop.predictions._add_prediction(name, value, filename)
+
+    def write_prediction_dict(self, predictions_dict: Dict[str, Any], filename: str = 'predictions.pt'):
+        """
+        Write a dictonary of predictions to disk at once using ``torch.save``
+
+        Example::
+
+            pred_dict = {'pred1': torch.tensor(...), 'pred2': torch.tensor(...)}
+            self.write_prediction_dict(pred_dict)
+
+        Args:
+            predictions_dict: dict containing predictions, where each prediction should
+                either be single :class:`~torch.Tensor` or a list of them
+
+        Note:
+            when running in distributed mode, calling ``write_prediction_dict`` will create a file for
+            each device with respective names: ``filename_rank_0.pt``, ``filename_rank_1.pt``, ...
+
+        .. deprecated::v1.3
+            Will be removed in v1.5.0.
+        """
+        rank_zero_deprecation(
+            'LightningModule method `write_prediction_dict` was deprecated in v1.3 and'
+            ' will be removed in v1.5.'
+        )
+
+        for k, v in predictions_dict.items():
+            self.write_prediction(k, v, filename)
 
     def all_gather(
         self,
@@ -1212,13 +1295,6 @@ class LightningModule(
             param.requires_grad = True
 
         self.train()
-
-    def _verify_is_manual_optimization(self, fn_name):
-        if self.automatic_optimization:
-            raise MisconfigurationException(
-                f'to use {fn_name}, please disable automatic optimization:'
-                ' set model property `automatic_optimization` as False'
-            )
 
     @torch.no_grad()
     def to_onnx(
