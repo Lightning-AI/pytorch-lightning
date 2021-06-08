@@ -474,7 +474,7 @@ def test_multiple_optimizers_step(tmpdir):
             opt_b.step()
             opt_b.zero_grad()
 
-            return {'loss1': loss_1, 'loss2': loss_2}
+            return {'loss1': loss_1.detach(), 'loss2': loss_2.detach()}
 
         def training_epoch_end(self, outputs) -> None:
             # outputs should be an array with an entry per optimizer

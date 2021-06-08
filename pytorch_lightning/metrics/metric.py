@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from torchmetrics import Metric as _Metric
 from torchmetrics.collections import MetricCollection as _MetricCollection
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class Metric(_Metric):
@@ -33,6 +33,7 @@ class Metric(_Metric):
         .. deprecated::
             Use :class:`torchmetrics.Metric`. Will be removed in v1.5.0.
         """
+        void(compute_on_step, dist_sync_on_step, process_group, dist_sync_fn)
 
 
 class MetricCollection(_MetricCollection):
@@ -43,3 +44,4 @@ class MetricCollection(_MetricCollection):
         .. deprecated::
             Use :class:`torchmetrics.MetricCollection`. Will be removed in v1.5.0.
         """
+        void(metrics)
