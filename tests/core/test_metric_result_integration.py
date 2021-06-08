@@ -17,7 +17,7 @@ import torch.multiprocessing as mp
 from torchmetrics import Metric
 
 import tests.helpers.utils as tutils
-from pytorch_lightning.trainer.connectors.logger_connector.result_new import MetricSource, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
 from tests.helpers.runif import RunIf
 
 

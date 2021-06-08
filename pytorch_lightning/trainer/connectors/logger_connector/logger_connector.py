@@ -20,7 +20,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
-from pytorch_lightning.trainer.connectors.logger_connector.result_new import _METRIC, MetricSource
+from pytorch_lightning.trainer.connectors.logger_connector.result import _METRIC, MetricSource
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import DeviceType
 from pytorch_lightning.utilities.metrics import metrics_to_scalars

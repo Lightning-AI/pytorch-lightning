@@ -18,11 +18,11 @@ import torch
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision
 
-from pytorch_lightning import LightningModule, seed_everything
+from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result_new import MetricSource, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -201,31 +201,6 @@ def test_epoch_results_cache_dp(tmpdir):
     )
     trainer.fit(model)
     trainer.test(model, ckpt_path=None)
-
-
-def test_metric_holder_raises(tmpdir):
-    """Check that an error is raised when trying to convert non-scalar tensors"""
-
-    class TestModel(BoringModel):
-
-        def validation_step(self, batch, *args, **kwargs):
-            output = self(batch)
-            self.log('test', output)
-
-        def test_step(self, *args, **kwargs):
-            return self.validation_step(*args, **kwargs)
-
-    model = TestModel()
-    model.validation_epoch_end = None
-    model.test_epoch_end = None
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-
-    match = "The metric `.*` does not contain a single element"
-    with pytest.raises(MisconfigurationException, match=match):
-        trainer.validate(model)
-    with pytest.raises(MisconfigurationException, match=match):
-        trainer.test(model)
 
 
 def test_can_return_tensor_with_more_than_one_element(tmpdir):
