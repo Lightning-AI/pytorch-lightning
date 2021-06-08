@@ -337,10 +337,10 @@ class LightningModule(
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-        result_collection: 'ResultCollection' = self.trainer.result_collection  # noqa F821
-        assert result_collection is not None
+        results = self.trainer.results
+        assert results is not None
         assert self._current_fx_name is not None
-        result_collection.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+        results.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
         if "/dataloader_idx_" in name:
@@ -374,9 +374,9 @@ class LightningModule(
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
             # when restarting an new epoch, reset the tensors
-            result_collection.reset(metrics=False, fx=self._current_fx_name)
+            results.reset(metrics=False, fx=self._current_fx_name)
 
-        result_collection.log(
+        results.log(
             self._current_fx_name,
             name,
             value,

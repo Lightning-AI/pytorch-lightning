@@ -484,6 +484,13 @@ class TrainerProperties(ABC):
     """
 
     @property
+    def active_loop(self) -> Optional[Union[TrainLoop, EvaluationLoop]]:
+        if self.training:
+            return self.train_loop
+        elif self.sanity_checking or self.evaluating:
+            return self.evaluation_loop
+
+    @property
     def global_step(self) -> int:
         return self.train_loop.global_step
 
@@ -524,13 +531,10 @@ class TrainerProperties(ABC):
         return self.logger_connector.progress_bar_metrics
 
     @property
-    def result_collection(self) -> Optional[ResultCollection]:
-        if self.training:
-            return self.train_loop.train_results
-        elif self.validating or self.sanity_checking:
-            return self.evaluation_loop.validation_results
-        elif self.testing:
-            return self.evaluation_loop.test_results
+    def results(self) -> Optional[ResultCollection]:
+        active_loop = self.active_loop
+        if active_loop is not None:
+            return active_loop.results
 
     """
     Other

@@ -34,8 +34,15 @@ class EvaluationLoop(object):
         self.max_batches: Optional[List[Union[int, float]]] = None
         self.warning_cache = WarningCache()
         self.num_dataloaders: Optional[int] = None
-        self.validation_results = ResultCollection(False)
-        self.test_results = ResultCollection(False)
+        self._val_results = ResultCollection(False)
+        self._test_results = ResultCollection(False)
+
+    @property
+    def results(self) -> Optional[ResultCollection]:
+        if self.trainer.validating or self.trainer.sanity_checking:
+            return self._val_results
+        elif self.trainer.testing:
+            return self._test_results
 
     def on_trainer_init(self) -> None:
         self.trainer.num_sanity_val_batches = []
@@ -80,8 +87,8 @@ class EvaluationLoop(object):
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
 
-        assert self.trainer.result_collection is not None
-        self.trainer.result_collection.device = self.trainer.lightning_module.device
+        assert self.trainer.results is not None
+        self.trainer.results.device = self.trainer.lightning_module.device
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
