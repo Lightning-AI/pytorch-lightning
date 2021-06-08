@@ -292,9 +292,9 @@ class TrainLoop:
 
             self.trainer.logger_connector.cache_logged_metrics()
 
-            self._check_training_step_output(training_step_output)
-
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+
+            self._check_training_step_output(training_step_output)
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
                 training_step_output, split_batch
