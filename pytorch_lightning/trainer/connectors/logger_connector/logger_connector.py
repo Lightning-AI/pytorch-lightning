@@ -140,7 +140,7 @@ class LoggerConnector:
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
 
         # track batch_size
-        self.trainer.result_collection.extract_batch_size(batch)
+        self.trainer.results.extract_batch_size(batch)
         self._batch_idx = batch_idx
 
     def update_eval_step_metrics(self) -> None:
