@@ -16,7 +16,7 @@ from typing import Optional, Sequence
 import torch
 from torchmetrics.functional import auroc as _auroc
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_auroc)
@@ -33,3 +33,4 @@ def auroc(
     .. deprecated::
         Use :func:`torchmetrics.functional.auroc`. Will be removed in v1.5.0.
     """
+    return void(preds, target, num_classes, pos_label, average, max_fpr, sample_weights)

@@ -16,7 +16,7 @@ from typing import Any, Optional
 from torchmetrics import F1 as _F1
 from torchmetrics import FBeta as _FBeta
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 class FBeta(_FBeta):
@@ -61,4 +61,4 @@ class F1(_F1):
         .. deprecated::
             Use :class:`~torchmetrics.F1`. Will be removed in v1.5.0.
         """
-        _ = num_classes, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group
+        void(num_classes, threshold, average, multilabel, compute_on_step, dist_sync_on_step, process_group)
