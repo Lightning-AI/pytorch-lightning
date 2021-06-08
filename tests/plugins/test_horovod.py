@@ -29,7 +29,7 @@ class BoringModelGPU(BoringModel):
 
 @RunIf(skip_windows=True, min_gpus=2, special=True)
 def test_horovod_with_2_gpus():
-    """Tests if device is set correctely when training and after teardown for HorovodPlugin."""
+    """Tests if device is set correctly when training and after teardown for HorovodPlugin."""
     trainer = Trainer(gpus=2, accelerator="horovod", fast_dev_run=True)
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.training_type_plugin, HorovodPlugin)
