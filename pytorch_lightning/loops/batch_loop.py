@@ -70,10 +70,7 @@ class BatchLoop(Loop):
 
         super().run(batch, batch_idx, dataloader_idx)
 
-        return AttributeDict(
-            signal=0,
-            training_step_output=self.batch_outputs,
-        )
+        return AttributeDict(signal=0, training_step_output=self.batch_outputs)
 
     def reset(self) -> None:
         # self.iteration_count = 0
@@ -233,9 +230,9 @@ class BatchLoop(Loop):
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
-            self._check_training_step_output(training_step_output)
-
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+
+            self._check_training_step_output(training_step_output)
 
             training_step_output = self._process_training_step_output(training_step_output)
             if training_step_output is None:
@@ -317,20 +314,14 @@ class BatchLoop(Loop):
 
     def track_and_norm_grad(self, optimizer) -> dict:
         # track gradient norms
-        grad_norm_dict = self._track_gradient_norm()
+        grad_norm_dict = {}
+        if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0 and float(self.trainer.track_grad_norm) > 0:
+            grad_norm_dict = grad_norm(self.trainer.lightning_module, self.trainer.track_grad_norm)
 
         # clip gradients
         self.trainer.accelerator.clip_gradients(
             optimizer, self.trainer.gradient_clip_val, gradient_clip_algorithm=self.trainer.gradient_clip_algorithm
         )
-        return grad_norm_dict
-
-    def _track_gradient_norm(self):
-        grad_norm_dict = {}
-        if (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0:
-            if float(self.trainer.track_grad_norm) > 0:
-                model = self.trainer.lightning_module
-                grad_norm_dict = grad_norm(model, self.trainer.track_grad_norm)
         return grad_norm_dict
 
     def _accumulated_batches_reached(self):

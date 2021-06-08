@@ -108,7 +108,7 @@ class TrainingLoop(Loop):
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
         # -----------------------------------------
-        self.trainer.logger_connector.update_train_step_metrics(batch_output)
+        self.trainer.logger_connector.update_train_step_metrics()
 
     def on_advance_end(self):
         # -----------------------------------------
@@ -184,7 +184,7 @@ class TrainingLoop(Loop):
 
         # This implementation is copied from Trainer.call_hook
         hook_name = "on_train_epoch_end"
-
+        prev_fx_name = self.trainer.lightning_module._current_fx_name
         self.trainer.lightning_module._current_fx_name = hook_name
 
         # always profile hooks
@@ -214,7 +214,8 @@ class TrainingLoop(Loop):
                 accelerator_hook = getattr(self.trainer.accelerator, hook_name)
                 accelerator_hook()
 
-        self.trainer.lightning_module._current_fx_name = None
+        # restore current_fx when nested context
+        self.trainer.lightning_module._current_fx_name = prev_fx_name
 
     def _num_training_batches_reached(self, is_last_batch=False):
         return self.batches_seen == self.trainer.num_training_batches or is_last_batch
