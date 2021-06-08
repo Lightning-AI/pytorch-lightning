@@ -399,22 +399,17 @@ def test_log_works_in_train_callback(tmpdir):
 
         def on_train_start(self, trainer, pl_module):
             self.make_logging(
-                pl_module, 'on_train_start', 1, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+                pl_module, 'on_train_start', 1, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_epoch_start(self, trainer, pl_module):
             self.make_logging(
-                pl_module, 'on_epoch_start', 2, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
+                pl_module, 'on_epoch_start', 2, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_train_epoch_start(self, trainer, pl_module):
             self.make_logging(
-                pl_module,
-                'on_train_epoch_start',
-                3,
-                on_steps=self.choices,
-                on_epochs=self.choices,
-                prob_bars=self.choices
+                pl_module, 'on_train_epoch_start', 3, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_batch_end(self, trainer, pl_module):
@@ -438,13 +433,11 @@ def test_log_works_in_train_callback(tmpdir):
 
         def on_train_epoch_end(self, trainer, pl_module):
             self.make_logging(
-                pl_module, 'on_train_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
+                pl_module, 'on_train_epoch_end', 8, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_epoch_end(self, trainer, pl_module):
-            self.make_logging(
-                pl_module, 'on_epoch_end', 9, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
-            )
+            self.make_logging(pl_module, 'on_epoch_end', 9, on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
     class TestModel(BoringModel):
 
