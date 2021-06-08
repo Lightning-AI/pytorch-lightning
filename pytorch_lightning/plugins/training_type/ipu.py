@@ -249,7 +249,7 @@ class IPUPlugin(ParallelPlugin):
         return self.poptorch_models['predict'](*args, **kwargs)
 
     def teardown(self) -> None:
-        for k, model in self.poptorch_models.items():
+        for model in self.poptorch_models.values():
             model.destroy()
 
     def _compiled(self, model: Any):
