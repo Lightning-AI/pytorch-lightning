@@ -18,8 +18,9 @@ from typing import Dict, Iterable, List, Optional, Union
 
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.epoch_result_store import EpochResultStore
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
@@ -32,7 +33,7 @@ from pytorch_lightning.utilities.types import _EVALUATE_OUTPUT
 
 class LoggerConnector:
 
-    def __init__(self, trainer, log_gpu_memory: Optional[str] = None):
+    def __init__(self, trainer: 'pl.Trainer', log_gpu_memory: Optional[str] = None) -> None:
         self.trainer = trainer
         self.log_gpu_memory = log_gpu_memory
         self._callback_metrics = MetricsHolder()
@@ -118,24 +119,29 @@ class LoggerConnector:
     def cache_logged_metrics(self):
         self._cached_results[self.trainer.state.stage].cache_result()
 
-    def on_trainer_init(self, logger, flush_logs_every_n_steps: int, log_every_n_steps: int, move_metrics_to_cpu: bool):
-        # logging
+    def on_trainer_init(
+        self,
+        logger: LightningLoggerBase,
+        flush_logs_every_n_steps: int,
+        log_every_n_steps: int,
+        move_metrics_to_cpu: bool,
+    ) -> None:
         self.configure_logger(logger)
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
 
     @property
-    def should_flush_logs(self):
+    def should_flush_logs(self) -> bool:
         should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
         return should_flush or self.trainer.should_stop
 
     @property
-    def should_update_logs(self):
+    def should_update_logs(self) -> bool:
         should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
         return should_log_every_n_steps or self.trainer.should_stop
 
-    def configure_logger(self, logger):
+    def configure_logger(self, logger: LightningLoggerBase) -> None:
         if logger is True:
             version = os.environ.get('PL_EXP_VERSION', self.trainer.slurm_job_id)
 
@@ -285,7 +291,6 @@ class LoggerConnector:
                 print('-' * 80)
 
         results = self.eval_loop_results
-
         # clear mem
         self.eval_loop_results = []
         return results

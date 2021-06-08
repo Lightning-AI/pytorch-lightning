@@ -33,6 +33,9 @@
 /pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
 /pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
 
+# Specifics
+/pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
+
 # Metrics
 /pytorch_lightning/metrics/             @SkafteNicki @ananyahjha93 @justusschock
 /tests/metrics/                         @SkafteNicki @ananyahjha93 @justusschock
