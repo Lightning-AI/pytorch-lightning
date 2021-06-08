@@ -336,3 +336,11 @@ def test_accumulate_grad_batches_dict_fails(tmpdir):
         MisconfigurationException, match="IPUs currently only support accumulate_grad_batches being an integer value."
     ):
         trainer.fit(model)
+
+
+@RunIf(ipu=True)
+def test_clip_gradients_fails(tmpdir):
+    model = IPUModel()
+    trainer = Trainer(ipus=1, gradient_clip_val=10)
+    with pytest.raises(MisconfigurationException, match="IPUs currently do not support clipping gradients."):
+        trainer.fit(model)
