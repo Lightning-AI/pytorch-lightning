@@ -23,7 +23,7 @@ import torch
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision
 
-from pytorch_lightning import LightningModule
+from pytorch_lightning import LightningModule, seed_everything
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
@@ -690,6 +690,7 @@ def test_metrics_reset(tmpdir):
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
+    seed_everything(42)
     result_collection = ResultCollection(True, torch.device("cpu"))
     product = [(True, True), (False, True), (True, False), (False, False)]
 
