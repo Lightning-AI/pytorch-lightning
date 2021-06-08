@@ -233,11 +233,6 @@ class LoggerConnector:
         # reset result collection for next epoch
         self.trainer.results.reset(metrics=True)
 
-    def teardown(self):
-        self.trainer.train_loop.results.cpu()
-        self.trainer.evaluation_loop._val_results.cpu()
-        self.trainer.evaluation_loop._test_results.cpu()
-
     """
     Utilities and properties
     """
@@ -308,3 +303,8 @@ class LoggerConnector:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
+
+    def teardown(self):
+        self.trainer.train_loop.results.cpu()
+        self.trainer.evaluation_loop._val_results.cpu()
+        self.trainer.evaluation_loop._test_results.cpu()

@@ -100,7 +100,8 @@ class TrainLoop:
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
-        self.trainer.results.device = self.trainer.lightning_module.device
+        self.trainer.results.to(device=self.trainer.lightning_module.device)
+
         self.trainer.call_hook("on_train_start")
 
     def on_train_end(self):
