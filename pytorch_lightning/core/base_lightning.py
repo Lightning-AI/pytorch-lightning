@@ -1,17 +1,16 @@
 import collections
 import copy
 import inspect
-import os
 import types
-import uuid
 from abc import ABC, abstractclassmethod, abstractmethod
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
+from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES
 from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, save_hyperparameters
 
 
 class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
@@ -1497,7 +1496,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             frame: a frame object. Default is None
 
         Example::
-            >>> class ManuallyArgsModel(LightningModule):
+            >>> class ManuallyArgsModel(RootLightningModule):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
             ...         # manually assign arguments
@@ -1509,7 +1508,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             "arg1": 1
             "arg3": 3.14
 
-            >>> class AutomaticArgsModel(LightningModule):
+            >>> class AutomaticArgsModel(RootLightningModule):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
             ...         # equivalent automatic
@@ -1522,7 +1521,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             "arg2": abc
             "arg3": 3.14
 
-            >>> class SingleArgModel(LightningModule):
+            >>> class SingleArgModel(RootLightningModule):
             ...     def __init__(self, params):
             ...         super().__init__()
             ...         # manually assign single argument
@@ -1535,7 +1534,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             "p2": abc
             "p3": 3.14
 
-            >>> class ManuallyArgsModel(LightningModule):
+            >>> class ManuallyArgsModel(RootLightningModule):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
             ...         # pass argument(s) to ignore as a string or in a list
