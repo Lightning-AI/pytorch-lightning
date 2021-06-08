@@ -20,10 +20,11 @@ from unittest import mock
 
 import pytest
 import torch
+from numpy.core import allclose
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision
 
-from pytorch_lightning import LightningModule, seed_everything
+from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
@@ -690,86 +691,94 @@ def test_metrics_reset(tmpdir):
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
-    seed_everything(42)
     result_collection = ResultCollection(True, torch.device("cpu"))
     product = [(True, True), (False, True), (True, False), (False, False)]
+    values = torch.arange(1, 10)
+    batches = values * values
 
-    for i in range(1, 10):
-        value = torch.tensor(i, dtype=torch.float)
+    for i, v in enumerate(values):
         for prog_bar in [False, True]:
             for logger in [False, True]:
-                for j, (on_step, on_epoch) in enumerate(product, 1):
+                for on_step, on_epoch in product:
+                    name = "loss"
+                    if on_step:
+                        name += "_on_step"
+                    if on_epoch:
+                        name += "_on_epoch"
+                    if prog_bar:
+                        name += "_prog_bar"
+                    if logger:
+                        name += "_logger"
                     result_collection.log(
                         "training_step",
-                        f"loss_{j}_{int(prog_bar)}_{int(logger)}",
-                        value,
+                        name,
+                        v,
                         on_step=on_step,
                         on_epoch=on_epoch,
-                        batch_size=i**2,
+                        batch_size=batches[i],
                         prog_bar=prog_bar,
-                        logger=logger
+                        logger=logger,
                     )
 
-    expected_values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    expected_batches = [1, 4, 9, 16, 25, 36, 49, 64, 81]
-    total_value = sum(torch.tensor(expected_values) * torch.tensor(expected_batches))
-    total_batches = sum(expected_batches)
-    assert result_collection["training_step.loss_1_0_0"].value == total_value
-    assert result_collection["training_step.loss_1_0_0"].cumulated_batch_size == total_batches
+    total_value = sum(values * batches)
+    total_batches = sum(batches)
+    assert result_collection["training_step.loss_on_step_on_epoch"].value == total_value
+    assert result_collection["training_step.loss_on_step_on_epoch"].cumulated_batch_size == total_batches
 
     batch_metrics = result_collection.metrics(True)
+    max_ = max(values)
     assert batch_metrics[MetricSource.PBAR] == {
-        'loss_1_1_0_step': 9,
-        'loss_3_1_0': 9,
-        'loss_1_1_1_step': 9,
-        'loss_3_1_1': 9
+        'loss_on_step_on_epoch_prog_bar_step': max_,
+        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
+        'loss_on_step_prog_bar': max_,
+        'loss_on_step_prog_bar_logger': max_,
     }
     assert batch_metrics[MetricSource.LOG] == {
-        'loss_1_0_1_step': 9,
-        'loss_3_0_1': 9,
-        'loss_1_1_1_step': 9,
-        'loss_3_1_1': 9,
+        'loss_on_step_on_epoch_logger_step': max_,
+        'loss_on_step_logger': max_,
+        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
+        'loss_on_step_prog_bar_logger': max_,
     }
     assert batch_metrics[MetricSource.CALLBACK] == {
-        'loss_1_0_0': 9,
-        'loss_1_0_0_step': 9,
-        'loss_3_0_0': 9,
-        'loss_1_0_1': 9,
-        'loss_1_0_1_step': 9,
-        'loss_3_0_1': 9,
-        'loss_1_1_0': 9,
-        'loss_1_1_0_step': 9,
-        'loss_3_1_0': 9,
-        'loss_1_1_1': 9,
-        'loss_1_1_1_step': 9,
-        'loss_3_1_1': 9,
+        'loss_on_step': max_,
+        'loss_on_step_logger': max_,
+        'loss_on_step_on_epoch': max_,
+        'loss_on_step_on_epoch_logger': max_,
+        'loss_on_step_on_epoch_logger_step': max_,
+        'loss_on_step_on_epoch_prog_bar': max_,
+        'loss_on_step_on_epoch_prog_bar_logger': max_,
+        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
+        'loss_on_step_on_epoch_prog_bar_step': max_,
+        'loss_on_step_on_epoch_step': max_,
+        'loss_on_step_prog_bar': max_,
+        'loss_on_step_prog_bar_logger': max_,
     }
 
     epoch_metrics = result_collection.metrics(False)
     mean = total_value / total_batches
-    assert epoch_metrics[MetricSource.PBAR] == {
-        'loss_1_1_0_epoch': mean,
-        'loss_2_1_0': mean,
-        'loss_1_1_1_epoch': mean,
-        'loss_2_1_1': mean
+    pbar_metrics = epoch_metrics[MetricSource.PBAR]
+    assert set(pbar_metrics) == {
+        'loss_on_epoch_prog_bar', 'loss_on_epoch_prog_bar_logger', 'loss_on_step_on_epoch_prog_bar_epoch',
+        'loss_on_step_on_epoch_prog_bar_logger_epoch'
     }
+    assert all(allclose(m, mean) for m in pbar_metrics.values())
     assert epoch_metrics[MetricSource.LOG] == {
-        'loss_1_0_1_epoch': mean,
-        'loss_2_0_1': mean,
-        'loss_1_1_1_epoch': mean,
-        'loss_2_1_1': mean
+        'loss_on_epoch_logger': mean,
+        'loss_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch_logger_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
     }
     assert epoch_metrics[MetricSource.CALLBACK] == {
-        'loss_1_0_0': mean,
-        'loss_1_0_0_epoch': mean,
-        'loss_2_0_0': mean,
-        'loss_1_0_1': mean,
-        'loss_1_0_1_epoch': mean,
-        'loss_2_0_1': mean,
-        'loss_1_1_0': mean,
-        'loss_1_1_0_epoch': mean,
-        'loss_2_1_0': mean,
-        'loss_1_1_1': mean,
-        'loss_1_1_1_epoch': mean,
-        'loss_2_1_1': mean,
+        'loss_on_epoch': mean,
+        'loss_on_epoch_logger': mean,
+        'loss_on_epoch_prog_bar': mean,
+        'loss_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch': mean,
+        'loss_on_step_on_epoch_epoch': mean,
+        'loss_on_step_on_epoch_logger': mean,
+        'loss_on_step_on_epoch_logger_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar': mean,
+        'loss_on_step_on_epoch_prog_bar_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
     }
