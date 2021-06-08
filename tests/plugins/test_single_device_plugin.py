@@ -52,7 +52,6 @@ def test_single_gpu():
     trainer.fit(model)
 
     # assert after training, model is moved to CPU and memory is deallocated
-    import pdb; pdb.set_trace()
     assert model.device == torch.device("cpu")
     cuda_memory = torch.cuda.memory_allocated()
     assert cuda_memory < model.start_cuda_memory
