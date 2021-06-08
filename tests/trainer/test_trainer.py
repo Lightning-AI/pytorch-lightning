@@ -318,6 +318,7 @@ def test_loading_yaml(tmpdir):
 )
 def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files):
     """Test ModelCheckpoint options."""
+    tmpdir = str(tmpdir)
 
     def mock_save_function(filepath, *args):
         open(filepath, "a").close()
@@ -1836,6 +1837,7 @@ class TestDummyModelForCheckpoint(BoringModel):
 @RunIf(skip_windows=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller. """
+    tmpdir = str(tmpdir)
     tutils.set_random_master_port()
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor='x', mode='min', save_top_k=1)

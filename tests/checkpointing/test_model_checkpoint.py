@@ -325,6 +325,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
 def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
+    tmpdir = str(tmpdir)
     tutils.reset_seed()
     model = LogInTwoMethods()
 
@@ -480,7 +481,7 @@ def test_model_checkpoint_file_extension(tmpdir):
     """
     Test ModelCheckpoint with different file extension.
     """
-
+    tmpdir = str(tmpdir)
     model = LogInTwoMethods()
     model_checkpoint = ModelCheckpointExtensionTest(
         monitor='early_stop_on',
@@ -535,6 +536,7 @@ def test_invalid_top_k(tmpdir):
 
 def test_none_monitor_top_k(tmpdir):
     """ Test that a warning appears for positive top_k with monitor=None. """
+    tmpdir = str(tmpdir)
     with pytest.raises(
         MisconfigurationException, match=r'ModelCheckpoint\(save_top_k=3, monitor=None\) is not a valid*'
     ):
@@ -657,6 +659,7 @@ def test_model_checkpoint_period(tmpdir, period: int):
 
 @pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
 def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
+    tmpdir = str(tmpdir)
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
@@ -681,6 +684,7 @@ def test_model_checkpoint_every_n_val_epochs(tmpdir, every_n_val_epochs):
 @pytest.mark.parametrize("every_n_val_epochs", list(range(4)))
 def test_model_checkpoint_every_n_val_epochs_and_period(tmpdir, every_n_val_epochs):
     """ Tests that if period is set, it takes precedence over every_n_val_epochs for backwards compatibility. """
+    tmpdir = str(tmpdir)
     model = LogInTwoMethods()
     epochs = 5
     checkpoint_callback = ModelCheckpoint(
@@ -896,6 +900,7 @@ def test_model_checkpoint_save_last_warning(
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     """ Tests that the save_last checkpoint contains the latest information. """
+    tmpdir = str(tmpdir)
     seed_everything(100)
     model = LogInTwoMethods()
     num_epochs = 3
@@ -931,6 +936,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 @mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
 @pytest.mark.parametrize('mode', ['min', 'max'])
 def test_checkpointing_with_nan_as_first(tmpdir, mode: int):
+    tmpdir = str(tmpdir)
     monitor = [float('nan')]
     monitor += [5, 7, 8] if mode == 'max' else [8, 7, 5]
 
@@ -1150,6 +1156,7 @@ def test_val_check_interval_checkpoint_files(tmpdir):
 
 def test_current_score(tmpdir):
     """ Check that the current_score value is correct and was saved """
+    tmpdir = str(tmpdir)
 
     class TestModel(BoringModel):
 
@@ -1183,6 +1190,7 @@ def test_current_score(tmpdir):
 @pytest.mark.parametrize("mode", ["min", "max"])
 def test_current_score_when_nan(tmpdir, mode: str):
     """ Check that ModelCheckpoint handles NaN values correctly """
+    tmpdir = str(tmpdir)
 
     class TestModel(BoringModel):
 
@@ -1213,6 +1221,7 @@ def test_current_score_when_nan(tmpdir, mode: str):
 
 @pytest.mark.parametrize("hparams_type", [dict, Container])
 def test_hparams_type(tmpdir, hparams_type):
+    tmpdir = str(tmpdir)
 
     class TestModel(BoringModel):
 

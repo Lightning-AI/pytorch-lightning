@@ -91,6 +91,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
             self.last_coeff *= 0.999
             return loss
 
+    tmpdir = str(tmpdir)
     model = TestModel()
     trainer = Trainer(
         callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor='my_loss', save_top_k=k)],

@@ -56,6 +56,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1464
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
+    tmpdir = str(tmpdir)
     seed_everything(42)
     model = ClassificationModel()
     dm = ClassifDataModule()

@@ -94,6 +94,7 @@ def test_cpu_slurm_save_load(tmpdir):
 
 
 def test_early_stopping_cpu_model(tmpdir):
+    tmpdir = str(tmpdir)
 
     class ModelTrainVal(BoringModel):
 
@@ -128,6 +129,7 @@ def test_early_stopping_cpu_model(tmpdir):
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     tutils.set_random_master_port()
+    tmpdir = str(tmpdir)
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -295,6 +297,7 @@ def test_simple_cpu(tmpdir):
 
 def test_cpu_model(tmpdir):
     """Make sure model trains on CPU."""
+    tmpdir = str(tmpdir)
     trainer_options = dict(
         default_root_dir=tmpdir, progress_bar_refresh_rate=0, max_epochs=1, limit_train_batches=4, limit_val_batches=4
     )
@@ -305,6 +308,7 @@ def test_cpu_model(tmpdir):
 
 def test_all_features_cpu_model(tmpdir):
     """Test each of the trainer options."""
+    tmpdir = str(tmpdir)
     trainer_options = dict(
         default_root_dir=tmpdir,
         gradient_clip_val=1.0,
