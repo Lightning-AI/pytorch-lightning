@@ -13,6 +13,7 @@
 # limitations under the License.
 """Helper functions to operate on metric values. """
 import numbers
+from typing import Any
 
 import torch
 
@@ -20,8 +21,8 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-def metrics_to_scalars(metrics: dict) -> dict:
-    """ Recursively walk through a dictionary of metrics and convert single-item tensors to scalar values. """
+def metrics_to_scalars(metrics: Any) -> Any:
+    """Recursively walk through a collection and convert single-item tensors to scalar values"""
 
     def to_item(value: torch.Tensor) -> numbers.Number:
         if value.numel() != 1:

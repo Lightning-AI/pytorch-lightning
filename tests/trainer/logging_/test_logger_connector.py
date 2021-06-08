@@ -22,7 +22,7 @@ from pytorch_lightning import LightningModule, seed_everything
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result_new import MetricSource, ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
@@ -201,6 +201,31 @@ def test_epoch_results_cache_dp(tmpdir):
     )
     trainer.fit(model)
     trainer.test(model, ckpt_path=None)
+
+
+def test_metric_holder_raises(tmpdir):
+    """Check that an error is raised when trying to convert non-scalar tensors"""
+
+    class TestModel(BoringModel):
+
+        def validation_step(self, batch, *args, **kwargs):
+            output = self(batch)
+            self.log('test', output)
+
+        def test_step(self, *args, **kwargs):
+            return self.validation_step(*args, **kwargs)
+
+    model = TestModel()
+    model.validation_epoch_end = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+
+    match = "The metric `.*` does not contain a single element"
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.validate(model)
+    with pytest.raises(MisconfigurationException, match=match):
+        trainer.test(model)
 
 
 def test_can_return_tensor_with_more_than_one_element(tmpdir):
@@ -401,133 +426,94 @@ def test_metrics_reset(tmpdir):
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
-    seed_everything(42)
-
     result_collection = ResultCollection(True, torch.device("cpu"))
+    product = [(True, True), (False, True), (True, False), (False, False)]
+    values = torch.arange(1, 10).float()  # need to convert to float() due to precision issues using torch 1.4
+    batches = values * values
 
-    for i in range(1, 10):
-
-        result_collection.batch_idx = i
-
-        for prob_bar in [False, True]:
-
+    for i, v in enumerate(values):
+        for prog_bar in [False, True]:
             for logger in [False, True]:
+                for on_step, on_epoch in product:
+                    name = "loss"
+                    if on_step:
+                        name += "_on_step"
+                    if on_epoch:
+                        name += "_on_epoch"
+                    if prog_bar:
+                        name += "_prog_bar"
+                    if logger:
+                        name += "_logger"
+                    result_collection.log(
+                        "training_step",
+                        name,
+                        v,
+                        on_step=on_step,
+                        on_epoch=on_epoch,
+                        batch_size=batches[i],
+                        prog_bar=prog_bar,
+                        logger=logger,
+                    )
 
-                i = float(i)
-
-                result_collection.log(
-                    "training_step",
-                    f"loss_1_{int(prob_bar)}_{int(logger)}",
-                    torch.tensor(i),
-                    on_step=True,
-                    on_epoch=True,
-                    batch_size=i**2,
-                    prog_bar=prob_bar,
-                    logger=logger
-                )
-                result_collection.log(
-                    "training_step",
-                    f"loss_2_{int(prob_bar)}_{int(logger)}",
-                    torch.tensor(i),
-                    on_step=False,
-                    on_epoch=True,
-                    batch_size=i**2,
-                    prog_bar=prob_bar,
-                    logger=logger
-                )
-                result_collection.log(
-                    "training_step",
-                    f"loss_3_{int(prob_bar)}_{int(logger)}",
-                    torch.tensor(i),
-                    on_step=True,
-                    on_epoch=False,
-                    batch_size=i**2,
-                    prog_bar=prob_bar,
-                    logger=logger
-                )
-                result_collection.log(
-                    "training_step",
-                    f"loss_4_{int(prob_bar)}_{int(logger)}",
-                    torch.tensor(i),
-                    on_step=False,
-                    on_epoch=False,
-                    batch_size=i**2,
-                    prog_bar=prob_bar,
-                    logger=logger
-                )
-
-    excepted_values = [
-        torch.tensor(1.),
-        torch.tensor(2.),
-        torch.tensor(3.),
-        torch.tensor(4.),
-        torch.tensor(5.),
-        torch.tensor(6.),
-        torch.tensor(7.),
-        torch.tensor(8.),
-        torch.tensor(9.)
-    ]
-    excepted_batches = [1, 4, 9, 16, 25, 36, 49, 64, 81]
-    total_value = torch.tensor(excepted_values) * torch.tensor(excepted_batches)
-    assert result_collection["training_step.loss_1_0_0"].value == sum(total_value)
-    assert result_collection["training_step.loss_1_0_0"].cumulated_batch_size == sum(excepted_batches)
+    total_value = sum(values * batches)
+    total_batches = sum(batches)
+    assert result_collection["training_step.loss_on_step_on_epoch"].value == total_value
+    assert result_collection["training_step.loss_on_step_on_epoch"].cumulated_batch_size == total_batches
 
     batch_metrics = result_collection.metrics(True)
-
-    expected = {
-        'loss_1_1_0_step': torch.tensor([9.]),
-        'loss_3_1_0': torch.tensor([9.]),
-        'loss_1_1_1_step': torch.tensor([9.]),
-        'loss_3_1_1': torch.tensor([9.])
+    max_ = max(values)
+    assert batch_metrics[MetricSource.PBAR] == {
+        'loss_on_step_on_epoch_prog_bar_step': max_,
+        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
+        'loss_on_step_prog_bar': max_,
+        'loss_on_step_prog_bar_logger': max_,
     }
-    assert batch_metrics[MetricSource.PBAR] == expected
-
-    excepted = {
-        'loss_1_0_1_step': torch.tensor([9.]),
-        'loss_3_0_1': torch.tensor([9.]),
-        'loss_1_1_1_step': torch.tensor([9.]),
-        'loss_3_1_1': torch.tensor([9.])
+    assert batch_metrics[MetricSource.LOG] == {
+        'loss_on_step_on_epoch_logger_step': max_,
+        'loss_on_step_logger': max_,
+        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
+        'loss_on_step_prog_bar_logger': max_,
     }
-    assert batch_metrics[MetricSource.LOG] == excepted
-
-    excepted = {
-        'loss_1_0_0': torch.tensor(9.),
-        'loss_1_0_0_step': torch.tensor(9.),
-        'loss_3_0_0': torch.tensor(9.),
-        'loss_1_0_1': torch.tensor(9.),
-        'loss_1_0_1_step': torch.tensor(9.),
-        'loss_3_0_1': torch.tensor(9.),
-        'loss_1_1_0': torch.tensor(9.),
-        'loss_1_1_0_step': torch.tensor(9.),
-        'loss_3_1_0': torch.tensor(9.),
-        'loss_1_1_1': torch.tensor(9.),
-        'loss_1_1_1_step': torch.tensor(9.),
-        'loss_3_1_1': torch.tensor(9.)
+    assert batch_metrics[MetricSource.CALLBACK] == {
+        'loss_on_step': max_,
+        'loss_on_step_logger': max_,
+        'loss_on_step_on_epoch': max_,
+        'loss_on_step_on_epoch_logger': max_,
+        'loss_on_step_on_epoch_logger_step': max_,
+        'loss_on_step_on_epoch_prog_bar': max_,
+        'loss_on_step_on_epoch_prog_bar_logger': max_,
+        'loss_on_step_on_epoch_prog_bar_logger_step': max_,
+        'loss_on_step_on_epoch_prog_bar_step': max_,
+        'loss_on_step_on_epoch_step': max_,
+        'loss_on_step_prog_bar': max_,
+        'loss_on_step_prog_bar_logger': max_,
     }
-    assert batch_metrics[MetricSource.CALLBACK] == excepted
 
     epoch_metrics = result_collection.metrics(False)
-
-    mean = (torch.tensor(excepted_values) * torch.tensor(excepted_batches)).sum() / sum(excepted_batches)
-
-    expected = {'loss_1_1_0_epoch': mean, 'loss_2_1_0': mean, 'loss_1_1_1_epoch': mean, 'loss_2_1_1': mean}
-    assert epoch_metrics[MetricSource.PBAR] == expected
-
-    excepted = {'loss_1_0_1_epoch': mean, 'loss_2_0_1': mean, 'loss_1_1_1_epoch': mean, 'loss_2_1_1': mean}
-    assert epoch_metrics[MetricSource.LOG] == excepted
-
-    excepted = {
-        'loss_1_0_0': mean,
-        'loss_1_0_0_epoch': mean,
-        'loss_2_0_0': mean,
-        'loss_1_0_1': mean,
-        'loss_1_0_1_epoch': mean,
-        'loss_2_0_1': mean,
-        'loss_1_1_0': mean,
-        'loss_1_1_0_epoch': mean,
-        'loss_2_1_0': mean,
-        'loss_1_1_1': mean,
-        'loss_1_1_1_epoch': mean,
-        'loss_2_1_1': mean,
+    mean = total_value / total_batches
+    assert epoch_metrics[MetricSource.PBAR] == {
+        'loss_on_epoch_prog_bar': mean,
+        'loss_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch_prog_bar_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean,
     }
-    assert epoch_metrics[MetricSource.CALLBACK] == excepted
+    assert epoch_metrics[MetricSource.LOG] == {
+        'loss_on_epoch_logger': mean,
+        'loss_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch_logger_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
+    }
+    assert epoch_metrics[MetricSource.CALLBACK] == {
+        'loss_on_epoch': mean,
+        'loss_on_epoch_logger': mean,
+        'loss_on_epoch_prog_bar': mean,
+        'loss_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch': mean,
+        'loss_on_step_on_epoch_epoch': mean,
+        'loss_on_step_on_epoch_logger': mean,
+        'loss_on_step_on_epoch_logger_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar': mean,
+        'loss_on_step_on_epoch_prog_bar_epoch': mean,
+        'loss_on_step_on_epoch_prog_bar_logger': mean,
+        'loss_on_step_on_epoch_prog_bar_logger_epoch': mean
+    }
