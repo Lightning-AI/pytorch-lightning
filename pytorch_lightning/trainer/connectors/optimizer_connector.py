@@ -29,7 +29,9 @@ class OptimizerConnector:
         self.trainer.optimizers = []
         self.trainer.optimizer_frequencies = []
 
-    def update_learning_rates(self, interval: str, opt_indices: Optional[List[int]] = None, skip_plateau_scheduler: bool = False) -> None:
+    def update_learning_rates(
+        self, interval: str, opt_indices: Optional[List[int]] = None, skip_plateau_scheduler: bool = False
+    ) -> None:
         """Update learning rates.
 
         Args:
@@ -49,12 +51,8 @@ class OptimizerConnector:
             if isinstance(lr_scheduler['opt_idx'], int) and lr_scheduler['opt_idx'] not in opt_indices:
                 continue
 
-            if interval == "step" and (
-                (skip_plateau_scheduler and lr_scheduler["reduce_on_plateau"])
-                or (
-                    not skip_plateau_scheduler and not lr_scheduler["reduce_on_plateau"]
-                )
-            ):
+            if interval == "step" and ((skip_plateau_scheduler and lr_scheduler["reduce_on_plateau"]) or
+                                       (not skip_plateau_scheduler and not lr_scheduler["reduce_on_plateau"])):
                 continue
 
             current_idx = self.trainer.train_loop.batch_idx if interval == 'step' else self.trainer.current_epoch
