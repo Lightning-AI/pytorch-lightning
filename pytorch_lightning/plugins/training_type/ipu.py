@@ -199,8 +199,12 @@ class IPUPlugin(ParallelPlugin):
         Therefore, ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation.
         """
         self._original_accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+        if not isinstance(self._original_accumulate_grad_batches, int):
+            raise MisconfigurationException(
+                f"IPUs currently only support accumulate_grad_batches being an integer value. "
+                f"Received {self._original_accumulate_grad_batches}"
+            )
         if self._original_accumulate_grad_batches > 1:
-            # todo (tchaton) Add support for accumulate_grad_batches being a dictionary.
             self.lightning_module.trainer.accumulation_scheduler = GradientAccumulationScheduler({0: 1})
 
     def update_global_step(self, total_batch_idx: int, current_global_step: int) -> int:

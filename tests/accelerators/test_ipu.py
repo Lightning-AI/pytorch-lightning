@@ -23,6 +23,7 @@ from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPlugin, IPUPrecisionPlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.datasets import SklearnDataset
@@ -316,3 +317,13 @@ def test_stages_correct(tmpdir):
     trainer.test(model)
     trainer.validate(model)
     trainer.predict(model, model.test_dataloader())
+
+
+@RunIf(ipu=True)
+def test_accumulate_grad_batches_dict_fails(tmpdir):
+    model = IPUModel()
+    trainer = Trainer(ipus=1, accumulate_grad_batches={0: 1})
+    with pytest.raises(
+        MisconfigurationException, match="IPUs currently only support accumulate_grad_batches being an integer value."
+    ):
+        trainer.fit(model)
