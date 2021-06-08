@@ -25,7 +25,7 @@ from abc import ABC
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -347,7 +347,7 @@ class LightningModule(
 
     def log_dict(
         self,
-        dictionary: dict,
+        dictionary: Mapping[str, Any],
         prog_bar: bool = False,
         logger: bool = True,
         on_step: Optional[bool] = None,

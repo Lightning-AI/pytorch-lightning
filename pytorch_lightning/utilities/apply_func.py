@@ -13,6 +13,7 @@
 # limitations under the License.
 import operator
 from abc import ABC
+from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
@@ -85,10 +86,12 @@ def apply_to_collection(
 
     # Recursively apply to collection items
     if isinstance(data, Mapping):
-        return elem_type({
-            k: apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            for k, v in data.items()
-        })
+        return elem_type(
+            OrderedDict({
+                k: apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+                for k, v in data.items()
+            })
+        )
 
     if isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
         return elem_type(
