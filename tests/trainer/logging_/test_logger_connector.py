@@ -18,9 +18,9 @@ from copy import deepcopy
 from typing import Any, Callable
 from unittest import mock
 
+import numpy as np
 import pytest
 import torch
-from numpy.core import allclose
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision
 
@@ -763,7 +763,8 @@ def test_result_collection_on_tensor_with_mean_reduction():
         'loss_on_step_on_epoch_prog_bar_epoch',
         'loss_on_step_on_epoch_prog_bar_logger_epoch',
     }
-    assert all(allclose(m, mean) for m in pbar_metrics.values())
+    # pbar metrics are converted to float, need to check with `allclose`
+    assert all(np.allclose(m, mean) for m in pbar_metrics.values())
     assert epoch_metrics[MetricSource.LOG] == {
         'loss_on_epoch_logger': mean,
         'loss_on_epoch_prog_bar_logger': mean,
