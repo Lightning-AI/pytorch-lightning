@@ -35,6 +35,9 @@ class OptimizerConnector:
         Args:
             interval: either 'epoch' or 'step'.
             opt_indices: indices of the optimizers to update.
+            skip_plateau_scheduler: boolean to control whether ReduceLROnPlateau scheduler is being updated.
+                This is required during 'step' interval updates to make sure correct scheduler state
+                is saved during checkpoint.
         """
         if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization:
             return
