@@ -218,6 +218,7 @@ class EvaluationLoop(object):
 
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         # set dataloader_idx to model and track batch_size
+        assert self.num_dataloaders is not None
         self.trainer.logger_connector.on_evaluation_batch_start(batch, dataloader_idx, self.num_dataloaders)
 
         if self.trainer.testing:

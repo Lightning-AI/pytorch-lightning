@@ -26,6 +26,7 @@ import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from torchmetrics import Metric
 
 from pytorch_lightning.core.base_lightning import RootLightningModule
 from pytorch_lightning.core.grads import GradInformation
