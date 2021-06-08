@@ -455,6 +455,7 @@ class LightningModule(
                 add_dataloader_idx=add_dataloader_idx
             )
 
+    @staticmethod
     def __check_not_nested(value: dict, name: str) -> None:
         # self-imposed restriction. for simplicity
         if any(isinstance(v, dict) for v in value.values()):
