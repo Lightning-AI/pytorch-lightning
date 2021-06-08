@@ -22,7 +22,6 @@ import os
 import tempfile
 import types
 import uuid
-from abc import ABC, abstractclassmethod
 from argparse import Namespace
 from functools import partial
 from pathlib import Path
@@ -35,7 +34,6 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.core.base_lightning import RootLightningModule
 from pytorch_lightning.core.grads import GradInformation
-from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, ModelIO, PRIMITIVE_TYPES
@@ -85,6 +83,7 @@ class LightningModule(
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
         # torch/nn/modules/module.py#L227)
+        super().__init__()
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         self.loaded_optimizer_states_dict = {}
