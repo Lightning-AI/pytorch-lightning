@@ -46,6 +46,100 @@ log = logging.getLogger(__name__)
 
 class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
 
+    # Lightning base hooks and properties
+
+    @property
+    def model_size(self) -> float:
+        raise NotImplementedError
+
+    def optimizers(self, use_pl_optimizer: bool = True) -> Any:
+        raise NotImplementedError
+
+    def lr_schedulers(self) -> Optional[Any]:
+        raise NotImplementedError
+
+    def all_gather(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def forward(self, *args, **kwargs) -> Any:
+        raise NotImplementedError
+
+    def training_step(self, *args, **kwargs) -> Any:
+        raise NotImplementedError
+
+    def training_step_end(self, *args, **kwargs) -> STEP_OUTPUT:
+        raise NotImplementedError
+
+    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+        raise NotImplementedError
+
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        raise NotImplementedError
+
+    def validation_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        raise NotImplementedError
+
+    def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+        raise NotImplementedError
+
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        raise NotImplementedError
+
+    def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        raise NotImplementedError
+
+    def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+        raise NotImplementedError
+
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
+        raise NotImplementedError
+
+    def configure_callbacks(self) -> List:
+        raise NotImplementedError
+
+    def configure_optimizers(self):
+        raise NotImplementedError
+
+    def manual_backward(self, loss: Tensor, optimizer: Optional[Optimizer] = None, *args, **kwargs) -> None:
+        raise NotImplementedError
+
+    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
+        raise NotImplementedError
+
+    def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
+        raise NotImplementedError
+
+    def untoggle_optimizer(self, optimizer_idx: int):
+        raise NotImplementedError
+
+    def optimizer_step(
+        self,
+        epoch: int = None,
+        batch_idx: int = None,
+        optimizer: Optimizer = None,
+        optimizer_idx: int = None,
+        optimizer_closure: Optional[Callable] = None,
+        on_tpu: bool = None,
+        using_native_amp: bool = None,
+        using_lbfgs: bool = None,
+    ) -> None:
+        raise NotImplementedError
+
+    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
+        raise NotImplementedError
+
+    def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
+        raise NotImplementedError
+
+    def summarize(self, mode: Optional[str]) -> Optional[Any]:
+        raise NotImplementedError
+
+    def freeze(self) -> None:
+        raise NotImplementedError
+
+    def unfreeze(self) -> None:
+        raise NotImplementedError
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -74,11 +168,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
 
-    def optimizers(self, use_pl_optimizer: bool = True) -> Any:
-        raise NotImplementedError
-
-    def lr_schedulers(self) -> Optional[Any]:
-        raise NotImplementedError
+    # Lightning properties
 
     @property
     def example_input_array(self) -> Any:
@@ -156,45 +246,89 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
         """ Reference to the logger object in the Trainer. """
         return self.trainer.logger if self.trainer else None
 
-    def _apply_batch_transfer_handler(
-        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
-    ) -> Any:
-        device = device or self.device
-        batch = self.on_before_batch_transfer(batch, dataloader_idx)
+    @property
+    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
+        if not hasattr(self, "_hparams"):
+            self._hparams = AttributeDict()
+        return self._hparams
 
-        if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
-            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
-        else:
-            warning_cache.warn(
-                "`transfer_batch_to_device` hook signature has changed in v1.4."
-                " `dataloader_idx` parameter has been added to it. Support for"
-                " the old signature will be removed in v1.6", DeprecationWarning
-            )
-            batch = self.transfer_batch_to_device(batch, device)
+    @property
+    def hparams_initial(self) -> AttributeDict:
+        if not hasattr(self, "_hparams_initial"):
+            return AttributeDict()
+        # prevent any change
+        return copy.deepcopy(self._hparams_initial)
 
-        batch = self.on_after_batch_transfer(batch, dataloader_idx)
-        return batch
-
-    def print(self, *args, **kwargs) -> None:
-        r"""
-        Prints only from process 0. Use this in any distributed mode to log only once.
+    def save_hyperparameters(
+        self,
+        *args,
+        ignore: Optional[Union[Sequence[str], str]] = None,
+        frame: Optional[types.FrameType] = None
+    ) -> None:
+        """Save model arguments to ``hparams`` attribute.
 
         Args:
-            *args: The thing to print. The same as for Python's built-in print function.
-            **kwargs: The same as for Python's built-in print function.
+            args: single object of `dict`, `NameSpace` or `OmegaConf`
+                or string names or arguments from class ``__init__``
+            ignore: an argument name or a list of argument names from
+                class ``__init__`` to be ignored
+            frame: a frame object. Default is None
 
         Example::
+            >>> class ManuallyArgsModel(RootLightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # manually assign arguments
+            ...         self.save_hyperparameters('arg1', 'arg3')
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg3": 3.14
 
-            def forward(self, x):
-                self.print(x, 'in forward')
+            >>> class AutomaticArgsModel(RootLightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # equivalent automatic
+            ...         self.save_hyperparameters()
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = AutomaticArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg2": abc
+            "arg3": 3.14
 
+            >>> class SingleArgModel(RootLightningModule):
+            ...     def __init__(self, params):
+            ...         super().__init__()
+            ...         # manually assign single argument
+            ...         self.save_hyperparameters(params)
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
+            >>> model.hparams
+            "p1": 1
+            "p2": abc
+            "p3": 3.14
+
+            >>> class ManuallyArgsModel(RootLightningModule):
+            ...     def __init__(self, arg1, arg2, arg3):
+            ...         super().__init__()
+            ...         # pass argument(s) to ignore as a string or in a list
+            ...         self.save_hyperparameters(ignore='arg2')
+            ...     def forward(self, *args, **kwargs):
+            ...         ...
+            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+            >>> model.hparams
+            "arg1": 1
+            "arg3": 3.14
         """
-        if self.trainer.is_global_zero:
-            progress_bar = self.trainer.progress_bar_callback
-            if progress_bar is not None and progress_bar.is_enabled:
-                progress_bar.print(*args, **kwargs)
-            else:
-                print(*args, **kwargs)
+        # the frame needs to be created in this file.
+        if not frame:
+            frame = inspect.currentframe().f_back
+        save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
     def log(
         self,
@@ -362,6 +496,48 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
                 add_dataloader_idx=add_dataloader_idx
             )
 
+    def print(self, *args, **kwargs) -> None:
+        r"""
+        Prints only from process 0. Use this in any distributed mode to log only once.
+
+        Args:
+            *args: The thing to print. The same as for Python's built-in print function.
+            **kwargs: The same as for Python's built-in print function.
+
+        Example::
+
+            def forward(self, x):
+                self.print(x, 'in forward')
+
+        """
+        if self.trainer.is_global_zero:
+            progress_bar = self.trainer.progress_bar_callback
+            if progress_bar is not None and progress_bar.is_enabled:
+                progress_bar.print(*args, **kwargs)
+            else:
+                print(*args, **kwargs)
+
+    # Utilities
+
+    def _apply_batch_transfer_handler(
+        self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: Optional[int] = None
+    ) -> Any:
+        device = device or self.device
+        batch = self.on_before_batch_transfer(batch, dataloader_idx)
+
+        if is_param_in_hook_signature(self.transfer_batch_to_device, 'dataloader_idx'):
+            batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
+        else:
+            warning_cache.warn(
+                "`transfer_batch_to_device` hook signature has changed in v1.4."
+                " `dataloader_idx` parameter has been added to it. Support for"
+                " the old signature will be removed in v1.6", DeprecationWarning
+            )
+            batch = self.transfer_batch_to_device(batch, device)
+
+        batch = self.on_after_batch_transfer(batch, dataloader_idx)
+        return batch
+
     @staticmethod
     def __check_not_nested(value: dict, name: str) -> None:
         # self-imposed restriction. for simplicity
@@ -388,98 +564,6 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             on_epoch = True
             on_epoch &= self._current_fx_name not in ('training_step', 'training_step_end')
         return on_epoch
-
-    def all_gather(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def forward(self, *args, **kwargs) -> Any:
-        r"""
-        Same as :meth:`torch.nn.Module.forward()`.
-
-        Args:
-            *args: Whatever you decide to pass into the forward method.
-            **kwargs: Keyword arguments are also possible.
-
-        Return:
-            Your model's output
-        """
-        return super().forward(*args, **kwargs)
-
-    def training_step(self, *args, **kwargs) -> Any:
-        raise NotImplementedError
-
-    def training_step_end(self, *args, **kwargs) -> STEP_OUTPUT:
-        raise NotImplementedError
-
-    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        raise NotImplementedError
-
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        raise NotImplementedError
-
-    def validation_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        raise NotImplementedError
-
-    def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        raise NotImplementedError
-
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        raise NotImplementedError
-
-    def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        raise NotImplementedError
-
-    def test_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        raise NotImplementedError
-
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int] = None) -> Any:
-        raise NotImplementedError
-
-    def configure_callbacks(self) -> List:
-        raise NotImplementedError
-
-    def configure_optimizers(self):
-        raise NotImplementedError
-
-    def manual_backward(self, loss: Tensor, optimizer: Optional[Optimizer] = None, *args, **kwargs) -> None:
-        raise NotImplementedError
-
-    def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
-        raise NotImplementedError
-
-    def toggle_optimizer(self, optimizer: Optimizer, optimizer_idx: int):
-        raise NotImplementedError
-
-    def untoggle_optimizer(self, optimizer_idx: int):
-        raise NotImplementedError
-
-    def optimizer_step(
-        self,
-        epoch: int = None,
-        batch_idx: int = None,
-        optimizer: Optimizer = None,
-        optimizer_idx: int = None,
-        optimizer_closure: Optional[Callable] = None,
-        on_tpu: bool = None,
-        using_native_amp: bool = None,
-        using_lbfgs: bool = None,
-    ) -> None:
-        raise NotImplementedError
-
-    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
-        raise NotImplementedError
-
-    def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
-        raise NotImplementedError
-
-    def summarize(self, mode: Optional[str]) -> Optional[Any]:
-        raise NotImplementedError
-
-    def freeze(self) -> None:
-        raise NotImplementedError
-
-    def unfreeze(self) -> None:
-        raise NotImplementedError
 
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
@@ -565,77 +649,6 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             parents_arguments.update(args)
         return self_arguments, parents_arguments
 
-    def save_hyperparameters(
-        self,
-        *args,
-        ignore: Optional[Union[Sequence[str], str]] = None,
-        frame: Optional[types.FrameType] = None
-    ) -> None:
-        """Save model arguments to ``hparams`` attribute.
-
-        Args:
-            args: single object of `dict`, `NameSpace` or `OmegaConf`
-                or string names or arguments from class ``__init__``
-            ignore: an argument name or a list of argument names from
-                class ``__init__`` to be ignored
-            frame: a frame object. Default is None
-
-        Example::
-            >>> class ManuallyArgsModel(RootLightningModule):
-            ...     def __init__(self, arg1, arg2, arg3):
-            ...         super().__init__()
-            ...         # manually assign arguments
-            ...         self.save_hyperparameters('arg1', 'arg3')
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-            >>> model.hparams
-            "arg1": 1
-            "arg3": 3.14
-
-            >>> class AutomaticArgsModel(RootLightningModule):
-            ...     def __init__(self, arg1, arg2, arg3):
-            ...         super().__init__()
-            ...         # equivalent automatic
-            ...         self.save_hyperparameters()
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = AutomaticArgsModel(1, 'abc', 3.14)
-            >>> model.hparams
-            "arg1": 1
-            "arg2": abc
-            "arg3": 3.14
-
-            >>> class SingleArgModel(RootLightningModule):
-            ...     def __init__(self, params):
-            ...         super().__init__()
-            ...         # manually assign single argument
-            ...         self.save_hyperparameters(params)
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
-            >>> model.hparams
-            "p1": 1
-            "p2": abc
-            "p3": 3.14
-
-            >>> class ManuallyArgsModel(RootLightningModule):
-            ...     def __init__(self, arg1, arg2, arg3):
-            ...         super().__init__()
-            ...         # pass argument(s) to ignore as a string or in a list
-            ...         self.save_hyperparameters(ignore='arg2')
-            ...     def forward(self, *args, **kwargs):
-            ...         ...
-            >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-            >>> model.hparams
-            "arg1": 1
-            "arg3": 3.14
-        """
-        # the frame needs to be created in this file.
-        if not frame:
-            frame = inspect.currentframe().f_back
-        save_hyperparameters(self, *args, ignore=ignore, frame=frame)
-
     def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         if isinstance(hp, Namespace):
             hp = vars(hp)
@@ -650,20 +663,3 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             self.hparams.update(hp)
         else:
             self._hparams = hp
-
-    @property
-    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
-        if not hasattr(self, "_hparams"):
-            self._hparams = AttributeDict()
-        return self._hparams
-
-    @property
-    def hparams_initial(self) -> AttributeDict:
-        if not hasattr(self, "_hparams_initial"):
-            return AttributeDict()
-        # prevent any change
-        return copy.deepcopy(self._hparams_initial)
-
-    @property
-    def model_size(self) -> float:
-        raise NotImplementedError
