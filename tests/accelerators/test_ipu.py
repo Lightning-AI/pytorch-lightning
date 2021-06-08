@@ -270,3 +270,49 @@ def test_accumulated_batches(tmpdir):
     trainer = Trainer(fast_dev_run=True, ipus=1, accumulate_grad_batches=2, callbacks=TestCallback())
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+@RunIf(ipu=True)
+def test_stages_correct(tmpdir):
+    """Ensure all stages correctly are traced correctly by asserting the output for each stage"""
+
+    class StageModel(IPUModel):
+
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            # tracing requires a loss value that depends on the model.
+            # force it to be a value but ensure we use the loss.
+            return (loss - loss) + torch.tensor(1)
+
+        def validation_step(self, batch, batch_idx):
+            loss = super().validation_step(batch, batch_idx)
+            return (loss - loss) + torch.tensor(2)
+
+        def test_step(self, batch, batch_idx):
+            loss = super().validation_step(batch, batch_idx)
+            return (loss - loss) + torch.tensor(3)
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            output = super().predict_step(batch, batch_idx)
+            return (output - output) + torch.tensor(4)
+
+    class TestCallback(Callback):
+
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+            assert outputs['loss'].item() == 1
+
+        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+            assert outputs.item() == 2
+
+        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+            assert outputs.item() == 3
+
+        def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
+            assert torch.all(outputs == 4).item()
+
+    model = StageModel()
+    trainer = Trainer(fast_dev_run=True, ipus=1, callbacks=TestCallback())
+    trainer.fit(model)
+    trainer.test(model)
+    trainer.validate(model)
+    trainer.predict(model, model.test_dataloader())

@@ -71,7 +71,10 @@ class IPUPlugin(ParallelPlugin):
         """
         super().__init__(parallel_devices, cluster_environment)
         if not poptorch.ipuHardwareIsAvailable():
-            raise MisconfigurationException("IPU Accelerator requires IPUs to run.")
+            raise MisconfigurationException(
+                "The IPU Accelerator requires IPU devices to run. "
+                "Learn more or get started with IPUs at https://www.graphcore.ai/getstarted"
+            )
 
         self.convert_model_to_half = convert_model_to_half
         self.device_iterations = device_iterations
