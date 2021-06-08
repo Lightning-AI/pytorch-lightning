@@ -78,7 +78,6 @@ class BatchLoop(Loop):
         self._hiddens = None
         # TODO: let loops track individual outputs
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
-        self.grad_norm_dicts = []
 
     def on_run_start(self, batch, batch_idx, dataloader_idx):
         self._remaining_splits = list(enumerate(self.tbptt_split_batch(batch)))
@@ -104,9 +103,6 @@ class BatchLoop(Loop):
             result = self._run_optimization(batch_idx, split_batch)
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
-
-        # TODO: needed?
-        self.grad_norm_dicts.append(grad_norm_dict)
 
 
 # ------------------------------------------------------------------------------------------------------------
