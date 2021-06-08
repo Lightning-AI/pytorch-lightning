@@ -16,6 +16,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _POPTORCH_AVAILABLE:
@@ -88,8 +89,10 @@ class IPUPlugin(ParallelPlugin):
         if self.autoreport:
             options = {"autoReport.all": self.autoreport}
             if self.autoreport_dir:
-                if not os.path.exists(self.autoreport_dir):
-                    os.makedirs(self.autoreport_dir)
+                self._fs = get_filesystem(str(self.autoreport_dir))
+
+                if not self._fs.exists(self.autoreport_dir):
+                    self._fs.makedirs(self.autoreport_dir)
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 

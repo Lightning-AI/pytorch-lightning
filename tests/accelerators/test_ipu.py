@@ -344,3 +344,14 @@ def test_clip_gradients_fails(tmpdir):
     trainer = Trainer(ipus=1, gradient_clip_val=10)
     with pytest.raises(MisconfigurationException, match="IPUs currently do not support clipping gradients."):
         trainer.fit(model)
+
+
+@RunIf(ipu=True)
+def test_autoreport(tmpdir):
+    """Ensure autoreport dumps to a file."""
+    model = IPUModel()
+    autoreport_path = os.path.join(tmpdir, 'report/')
+    trainer = Trainer(ipus=1, fast_dev_run=True, plugins=IPUPlugin(autoreport=True, autoreport_dir=autoreport_path))
+    trainer.fit(model)
+    assert os.path.exists(autoreport_path)
+    assert os.path.isfile(autoreport_path + 'profile.pop')
