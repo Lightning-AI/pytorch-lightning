@@ -37,7 +37,7 @@ def _setup_ddp(rank, worldsize):
 def _ddp_test_fn(rank, worldsize):
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.0])
-    actual = LightningModule._LightningModule__sync(tensor, sync_dist=True, sync_dist_op=torch.distributed.ReduceOp.SUM)
+    actual = LightningModule._sync(tensor, sync_dist=True, sync_dist_op=torch.distributed.ReduceOp.SUM)
     assert actual.item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
 
