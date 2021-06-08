@@ -1106,7 +1106,7 @@ class Trainer(
                 self.evaluation_loop.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
                 # log batch metrics
-                self.logger_connector.update_evaluation_step_metrics()
+                self.logger_connector.update_eval_step_metrics()
 
                 # track epoch level outputs
                 dl_outputs = self._track_output_for_epoch_end(dl_outputs, output)
@@ -1131,7 +1131,7 @@ class Trainer(
         self.evaluation_loop.on_evaluation_epoch_end()
 
         # log epoch metrics
-        eval_loop_results = self.logger_connector.get_evaluate_epoch_results()
+        eval_loop_results = self.logger_connector.update_eval_epoch_metrics()
 
         # hook
         self.evaluation_loop.on_evaluation_end()

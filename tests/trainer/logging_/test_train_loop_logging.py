@@ -193,7 +193,8 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {'a', 'b'}) - {'epoch'}
 
 
-@pytest.mark.parametrize(['batches', 'fx', 'result'], [(3, min, 0), (3, max, 2), (11, max, 10)])
+@pytest.mark.parametrize(['batches', 'fx', 'result'], [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, 'avg', 2),
+                                                       (5, 'SUM', 10)])
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     """
     Tests that log works correctly with different tensor types
@@ -779,5 +780,5 @@ def test_logging_raises(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match=r'reduce_fx={min,max,mean}\)` are currently supported'):
+    with pytest.raises(MisconfigurationException, match=r'reduce_fx={min,max,mean,sum}\)` are currently supported'):
         trainer.fit(model)
