@@ -83,7 +83,7 @@ class LightningModule(
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # see (https://github.com/pytorch/pytorch/blob/3e6bb5233f9ca2c5aa55d9cda22a7ee85439aa6e/
         # torch/nn/modules/module.py#L227)
-        super().__init__()
+        super().__init__(*args, **kwargs)
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         self.loaded_optimizer_states_dict = {}
