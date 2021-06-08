@@ -704,7 +704,8 @@ def test_log_none_raises(tmpdir, value):
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
-    with pytest.raises(ValueError, match=rf"self.log\(foo, {escape(str(value))}\)` was called"):
+    match = escape(f"self.log(foo, {value})` was called")
+    with pytest.raises(ValueError, match=match):
         trainer.fit(model)
 
 

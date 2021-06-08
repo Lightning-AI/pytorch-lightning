@@ -44,8 +44,11 @@ class LoggerConnector:
         self._split_idx: Optional[int] = None
 
     def on_trainer_init(
-        self, logger: LightningLoggerBase, flush_logs_every_n_steps: int, log_every_n_steps: int,
-        move_metrics_to_cpu: bool
+        self,
+        logger: LightningLoggerBase,
+        flush_logs_every_n_steps: int,
+        log_every_n_steps: int,
+        move_metrics_to_cpu: bool,
     ) -> None:
         self.configure_logger(logger)
         self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
