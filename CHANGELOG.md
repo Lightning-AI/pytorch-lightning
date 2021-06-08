@@ -104,15 +104,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Refactored logging
     * Renamed and moved `core/step_result.py` to `trainer/connectors/logger_connector/result.py` ([#7736](https://github.com/PyTorchLightning/pytorch-lightning/pull/7736))
+     * Dramatically simplify the `LoggerConnector` ([#7882](https://github.com/PyTorchLightning/pytorch-lightning/pull/7882))
+    * `trainer.{logged,progress_bar,callback}_metrics` are now updated on-demand ([#7882](https://github.com/PyTorchLightning/pytorch-lightning/pull/7882))
+    * Completely overhaul the `Result` object in favor of `ResultMetric` ([#7882](https://github.com/PyTorchLightning/pytorch-lightning/pull/7882))
+    * Improve epoch-level reduction time and overall memory usage ([#7882](https://github.com/PyTorchLightning/pytorch-lightning/pull/7882))
     * Allow passing `self.log(batch_size=...)` ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
     * Allow passing `self.log(metric_attribute='your_metric')` to properly serialize the state of any `torchmetrics.Metric`s in your model ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
     * Remove `EpochResultStore` and `HookResultStore` in favor of `ResultCollection` ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
-    * Dramatically simplify the `LoggerConnector` ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
-    * `trainer.{logged,progress_bar,callback}_metrics` are now updated on-demand ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
     * Remove `MetricsHolder` ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
-    * Completely overhaul the `Result` object in favor of `ResultMetric` ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
     * Each of the training loops now keeps its own metrics ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
-    * Improve epoch-level reduction time and overall memory usage ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
 
 - Moved `ignore_scalar_return_in_dp` warning suppression to the DataParallelPlugin class ([#7421](https://github.com/PyTorchLightning/pytorch-lightning/pull/7421/))
 

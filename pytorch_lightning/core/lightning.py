@@ -478,12 +478,11 @@ class LightningModule(
         Args:
             grad_norm_dict: Dictionary containing current grad norm metrics
 
-        Examples::
+        Example::
 
             # DEFAULT
             def log_grad_norm(self, grad_norm_dict):
                 self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-
         """
         self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
