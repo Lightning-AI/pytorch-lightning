@@ -286,9 +286,9 @@ class TrainLoop:
                 training_step_output = self.trainer.accelerator.training_step(step_kwargs)
                 self.trainer.accelerator.post_training_step()
 
-            self._check_training_step_output(training_step_output)
-
             training_step_output = self.trainer.call_hook("training_step_end", training_step_output)
+
+            self._check_training_step_output(training_step_output)
 
             training_step_output = self._process_training_step_output(training_step_output)
             if training_step_output is None:
