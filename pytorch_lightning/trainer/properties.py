@@ -33,6 +33,8 @@ from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingT
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.result_new import ResultCollection
+from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.utilities import DeviceType, DistributedType, rank_zero_warn
@@ -61,6 +63,7 @@ class TrainerProperties(ABC):
     logger_connector: LoggerConnector
     state: TrainerState
     train_loop: TrainLoop
+    evaluation_loop: EvaluationLoop
     """
     Accelerator properties
     """
@@ -481,6 +484,13 @@ class TrainerProperties(ABC):
     """
 
     @property
+    def active_loop(self) -> Optional[Union[TrainLoop, EvaluationLoop]]:
+        if self.training:
+            return self.train_loop
+        elif self.sanity_checking or self.evaluating:
+            return self.evaluation_loop
+
+    @property
     def global_step(self) -> int:
         return self.train_loop.global_step
 
@@ -512,25 +522,19 @@ class TrainerProperties(ABC):
     def callback_metrics(self) -> dict:
         return self.logger_connector.callback_metrics
 
-    @callback_metrics.setter
-    def callback_metrics(self, x: dict) -> None:
-        self.logger_connector.callback_metrics = x
-
     @property
     def logged_metrics(self) -> dict:
         return self.logger_connector.logged_metrics
-
-    @logged_metrics.setter
-    def logged_metrics(self, x: dict) -> None:
-        self.logger_connector.logged_metrics = x
 
     @property
     def progress_bar_metrics(self) -> dict:
         return self.logger_connector.progress_bar_metrics
 
-    @progress_bar_metrics.setter
-    def progress_bar_metrics(self, x: dict) -> None:
-        self.logger_connector.progress_bar_metrics = x
+    @property
+    def results(self) -> Optional[ResultCollection]:
+        active_loop = self.active_loop
+        if active_loop is not None:
+            return active_loop.results
 
     """
     Other

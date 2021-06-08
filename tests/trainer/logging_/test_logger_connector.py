@@ -11,11 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Tests to ensure that the training loop works with a dict (1.0)
-"""
-from copy import deepcopy
-from typing import Any, Callable
 from unittest import mock
 
 import pytest
@@ -27,248 +22,11 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.metrics_holder import MetricsHolder
-from pytorch_lightning.trainer.connectors.logger_connector.result import Result
 from pytorch_lightning.trainer.connectors.logger_connector.result_new import MetricSource, ResultCollection
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
-
-
-def decorator_with_arguments(fx_name: str = '', hook_fx_name: str = None) -> Callable:
-
-    def decorator(func: Callable) -> Callable:
-
-        def wrapper(self, *args, **kwargs) -> Any:
-            # Set information
-            self._current_fx_name = fx_name
-            self._current_hook_fx_name = hook_fx_name
-            self._results = Result()
-
-            result = func(self, *args, **kwargs)
-
-            # cache metrics
-            self.trainer.logger_connector.cache_logged_metrics()
-            return result
-
-        return wrapper
-
-    return decorator
-
-
-def test__logger_connector__epoch_result_store__train(tmpdir):
-    """
-    Tests that LoggerConnector will properly capture logged information
-    and reduce them
-    """
-
-    class TestModel(BoringModel):
-
-        train_losses = []
-
-        @decorator_with_arguments(fx_name="training_step")
-        def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-
-            self.train_losses.append(loss)
-
-            self.log("train_loss", loss, on_step=True, on_epoch=True)
-
-            return {"loss": loss}
-
-        def training_step_end(self, *_):
-            self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
-
-    model = TestModel()
-    model.training_epoch_end = None
-    model.val_dataloader = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=4,
-        max_epochs=1,
-        log_every_n_steps=1,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    train_results = model.train_results
-
-    assert len(train_results(fx_name="training_step", dl_idx=0, opt_idx=0)) == 2
-    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, batch_idx=0, split_idx=0)["train_loss"]
-    assert generated == model.train_losses[0]
-    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, batch_idx=1, split_idx=0)["train_loss"]
-    assert generated == model.train_losses[1]
-
-    assert train_results.has_reduced is not True
-
-    train_results.has_batch_loop_finished = True
-
-    assert train_results.has_reduced is True
-
-    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, reduced=True)['train_loss_epoch'].item()
-    expected = torch.stack(model.train_losses).mean().item()
-    assert generated == expected
-
-
-def test__logger_connector__epoch_result_store__train__tbptt(tmpdir):
-    """
-    Tests that LoggerConnector will properly capture logged information with ttbt
-    and reduce them
-    """
-    truncated_bptt_steps = 2
-    sequence_size = 30
-    batch_size = 30
-
-    x_seq = torch.rand(batch_size, sequence_size, 1)
-    y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
-
-    class MockSeq2SeqDataset(torch.utils.data.Dataset):
-
-        def __getitem__(self, i):
-            return x_seq, y_seq_list
-
-        def __len__(self):
-            return 1
-
-    class TestModel(BoringModel):
-
-        train_losses = []
-
-        def __init__(self):
-            super().__init__()
-            self.test_hidden = None
-            self.layer = torch.nn.Linear(2, 2)
-
-        @decorator_with_arguments(fx_name="training_step")
-        def training_step(self, batch, batch_idx, hiddens):
-            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
-            self.test_hidden = torch.rand(1)
-
-            x_tensor, y_list = batch
-            assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
-
-            y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
-            assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
-
-            pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
-
-            self.train_losses.append(loss)
-
-            self.log('a', loss, on_epoch=True)
-
-            return {'loss': loss, 'hiddens': self.test_hidden}
-
-        def on_train_epoch_start(self) -> None:
-            self.test_hidden = None
-
-        def train_dataloader(self):
-            return torch.utils.data.DataLoader(
-                dataset=MockSeq2SeqDataset(),
-                batch_size=batch_size,
-                shuffle=False,
-                sampler=None,
-            )
-
-        def training_step_end(self, training_step_output):
-            self.train_results = deepcopy(self.trainer.logger_connector.cached_results)
-            # must return
-            return training_step_output
-
-    model = TestModel()
-    model.training_epoch_end = None
-    model.example_input_array = torch.randn(5, truncated_bptt_steps)
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=10,
-        limit_val_batches=0,
-        truncated_bptt_steps=truncated_bptt_steps,
-        max_epochs=1,
-        log_every_n_steps=1,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    train_results = model.train_results
-
-    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, batch_idx=0)
-    assert len(generated) == len(model.train_losses)
-
-    # assert reduction didn't happen yet
-    assert train_results.has_reduced is False
-
-    # Launch reduction
-    train_results.has_batch_loop_finished = True
-
-    # assert reduction did happen
-    assert train_results.has_reduced is True
-
-    generated = train_results(fx_name="training_step", dl_idx=0, opt_idx=0, reduced=True)['a_epoch'].item()
-    assert generated == torch.stack(model.train_losses).mean().item()
-
-
-@pytest.mark.parametrize('num_dataloaders', [1, 2])
-def test__logger_connector__epoch_result_store__test_multi_dataloaders(tmpdir, num_dataloaders):
-    """
-    Tests that LoggerConnector will properly capture logged information in multi dataloaders scenario
-    """
-
-    class TestModel(BoringModel):
-        test_losses = {dl_idx: [] for dl_idx in range(num_dataloaders)}
-
-        @decorator_with_arguments(fx_name="test_step")
-        def test_step(self, batch, batch_idx, dl_idx=0):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.test_losses[dl_idx].append(loss)
-            self.log("test_loss", loss, on_step=True, on_epoch=True)
-            return {"test_loss": loss}
-
-        def on_test_batch_end(self, *args, **kwargs):
-            # save objects as it will be reset at the end of epoch.
-            self.batch_results = deepcopy(self.trainer.logger_connector.cached_results)
-
-        def on_test_epoch_end(self):
-            # save objects as it will be reset at the end of epoch.
-            self.reduce_results = deepcopy(self.trainer.logger_connector.cached_results)
-
-        def test_dataloader(self):
-            return [super().test_dataloader()] * num_dataloaders
-
-    model = TestModel()
-    model.test_epoch_end = None
-    limit_test_batches = 4
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=0,
-        limit_val_batches=0,
-        limit_test_batches=limit_test_batches,
-        max_epochs=1,
-        log_every_n_steps=1,
-        weights_summary=None,
-    )
-    trainer.test(model)
-
-    test_results = model.batch_results
-
-    generated = test_results(fx_name="test_step")
-    assert len(generated) == num_dataloaders
-
-    for dl_idx in range(num_dataloaders):
-        generated = test_results(fx_name="test_step", dl_idx=dl_idx)
-        assert len(generated) == limit_test_batches
-
-    test_results = model.reduce_results
-
-    for dl_idx in range(num_dataloaders):
-        expected = torch.stack(model.test_losses[dl_idx]).mean()
-        generated = test_results(fx_name="test_step", dl_idx=dl_idx, reduced=True)["test_loss_epoch"]
-        torch.testing.assert_allclose(generated, expected)
 
 
 def test_fx_validator(tmpdir):
@@ -445,56 +203,6 @@ def test_epoch_results_cache_dp(tmpdir):
     trainer.test(model, ckpt_path=None)
 
 
-@pytest.mark.parametrize('to_float', [False, True])
-def test_metrics_holder(to_float, tmpdir):
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    preds = torch.tensor([[0.9, 0.1]], device=device)
-
-    def is_float(value: Any) -> bool:
-        return isinstance(value, float)
-
-    expected_function = is_float if to_float else torch.is_tensor
-    targets = torch.tensor([1], device=device)
-    acc = Accuracy().to(device)
-    metric_holder = MetricsHolder(to_float=to_float)
-    metric_holder.update({
-        "x": 1,
-        "y": torch.tensor(2),
-        "z": acc(preds, targets),
-    })
-    metric_holder.convert(device)
-    metrics = metric_holder.metrics
-    assert expected_function(metrics["x"])
-    assert expected_function(metrics["y"])
-    assert expected_function(metrics["z"])
-
-
-def test_metric_holder_raises(tmpdir):
-    """Check that an error is raised when trying to convert non-scalar tensors"""
-
-    class TestModel(BoringModel):
-
-        def validation_step(self, batch, *args, **kwargs):
-            output = self(batch)
-            self.log('test', output)
-
-        def test_step(self, *args, **kwargs):
-            return self.validation_step(*args, **kwargs)
-
-    model = TestModel()
-    model.validation_epoch_end = None
-    model.test_epoch_end = None
-
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-
-    match = "The metric `.*` does not contain a single element"
-    with pytest.raises(MisconfigurationException, match=match):
-        trainer.validate(model)
-    with pytest.raises(MisconfigurationException, match=match):
-        trainer.test(model)
-
-
 def test_can_return_tensor_with_more_than_one_element(tmpdir):
     """Ensure {validation,test}_step return values are not included as callback metrics. #6623"""
 
@@ -614,8 +322,8 @@ def test_metrics_reset(tmpdir):
             acc.reset.reset_mock()
             ap.reset.reset_mock()
 
-            self.log(f"{stage}/accuracy", acc)
-            self.log(f"{stage}/ap", ap)
+            self.log(f"{stage}/accuracy", acc, metric_attribute=f"acc_{stage}")
+            self.log(f"{stage}/ap", ap, metric_attribute=f"ap_{stage}")
 
             return loss
 
@@ -646,26 +354,28 @@ def test_metrics_reset(tmpdir):
             acc = self._modules[f"acc_{stage}"]
             ap = self._modules[f"ap_{stage}"]
 
-            acc.reset.asset_not_called()
-            ap.reset.assert_not_called()
+            acc.reset.assert_called_once()
+            ap.reset.assert_called_once()
 
-        def on_train_epoch_end(self):
-            self._assert_epoch_end('train')
+        def teardown(self, stage):
+            if stage == TrainerFn.FITTING:
+                self._assert_epoch_end('train')
+                self._assert_epoch_end('val')
 
-        def on_validation_epoch_end(self):
-            self._assert_epoch_end('val')
+            elif stage == TrainerFn.VALIDATING:
+                self._assert_epoch_end('val')
 
-        def on_test_epoch_end(self):
-            self._assert_epoch_end('test')
+            elif stage == TrainerFn.TESTING:
+                self._assert_epoch_end('test')
 
     def _assert_called(model, stage):
         acc = model._modules[f"acc_{stage}"]
         ap = model._modules[f"ap_{stage}"]
 
-        acc.reset.assert_called_once()
+        assert acc.reset.call_count == 1
         acc.reset.reset_mock()
 
-        ap.reset.assert_called_once()
+        assert ap.reset.call_count == 1
         ap.reset.reset_mock()
 
     model = TestModel()
@@ -676,6 +386,7 @@ def test_metrics_reset(tmpdir):
         limit_test_batches=2,
         max_epochs=1,
         progress_bar_refresh_rate=0,
+        num_sanity_val_steps=2,
     )
 
     trainer.fit(model)
