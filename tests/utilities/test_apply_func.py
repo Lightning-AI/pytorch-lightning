@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numbers
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 import numpy as np
 import torch
@@ -76,3 +76,19 @@ def test_recursive_application_to_collection():
 
     assert isinstance(reduced['g'], numbers.Number), 'Reduction of a number should result in a tensor'
     assert reduced['g'] == expected_result['g'], 'Reduction of a number did not yield the desired result'
+
+    # mapping support
+    reduced = apply_to_collection({'a': 1, 'b': 2}, int, lambda x: str(x))
+    assert reduced == {'a': '1', 'b': '2'}
+    reduced = apply_to_collection(OrderedDict([('b', 2), ('a', 1)]), int, lambda x: str(x))
+    assert reduced == OrderedDict([('b', '2'), ('a', '1')])
+
+    # custom mappings
+    class _CustomCollection(dict):
+
+        def __init__(self, initial_dict):
+            super().__init__(initial_dict)
+
+    to_reduce = _CustomCollection({'a': 1, 'b': 2, 'c': 3})
+    reduced = apply_to_collection(to_reduce, int, lambda x: str(x))
+    assert reduced == _CustomCollection({'a': '1', 'b': '2', 'c': '3'})
