@@ -27,7 +27,7 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.core.base_lightning import RootLightningModule
+from pytorch_lightning.core.base_lightning import BaseLightningModule
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -46,7 +46,7 @@ log = logging.getLogger(__name__)
 
 
 class LightningModule(
-    RootLightningModule,
+    BaseLightningModule,
     DeviceDtypeModuleMixin,
     GradInformation,
     ModelIO,
@@ -120,17 +120,6 @@ class LightningModule(
         if not sync_dist or not dist_available:
             return value
         return sync_fn(value, group=sync_dist_group, reduce_op=sync_dist_op)
-
-    @staticmethod
-    def __check_not_nested(value: dict, name: str) -> None:
-        # self-imposed restriction. for simplicity
-        if any(isinstance(v, dict) for v in value.values()):
-            raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
-        return value
-
-    @staticmethod
-    def _check_allowed(v: Any, name: str, value: Any) -> None:
-        raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.

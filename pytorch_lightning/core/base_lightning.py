@@ -44,7 +44,7 @@ warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 
-class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
+class BaseLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
 
     # Lightning base hooks and properties
 
@@ -275,7 +275,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             frame: a frame object. Default is None
 
         Example::
-            >>> class ManuallyArgsModel(RootLightningModule):
+            >>> class ManuallyArgsModel(BaseLightningModule):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
             ...         # manually assign arguments
@@ -287,7 +287,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             "arg1": 1
             "arg3": 3.14
 
-            >>> class AutomaticArgsModel(RootLightningModule):
+            >>> class AutomaticArgsModel(BaseLightningModule):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
             ...         # equivalent automatic
@@ -300,7 +300,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             "arg2": abc
             "arg3": 3.14
 
-            >>> class SingleArgModel(RootLightningModule):
+            >>> class SingleArgModel(BaseLightningModule):
             ...     def __init__(self, params):
             ...         super().__init__()
             ...         # manually assign single argument
@@ -313,7 +313,7 @@ class RootLightningModule(ABC, ModelHooks, DataHooks, CheckpointHooks):
             "p2": abc
             "p3": 3.14
 
-            >>> class ManuallyArgsModel(RootLightningModule):
+            >>> class ManuallyArgsModel(BaseLightningModule):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
             ...         # pass argument(s) to ignore as a string or in a list
