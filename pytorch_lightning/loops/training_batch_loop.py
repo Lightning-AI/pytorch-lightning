@@ -39,12 +39,14 @@ class TrainingBatchLoop(Loop):
     def __init__(self):
         super().__init__()
         self.accumulated_loss = None
+        self.batch_outputs = None
         self.running_loss = TensorRunningAccum(window_length=20)
         self.split_idx = None
         self.warning_cache = WarningCache()
 
         self._hiddens = None
         self._optimizer_freq_cumsum = None
+        self._remaining_splits = None
         self._skip_backward = False
 
     @property
@@ -60,6 +62,12 @@ class TrainingBatchLoop(Loop):
     def skip_backward(self, value: bool):
         """ Determines whether the loop will skip backward during automatic optimization. """
         self._skip_backward = value
+
+    @property
+    def optimizer_freq_cumsum(self):
+        if self._optimizer_freq_cumsum is None:
+            self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
+        return self._optimizer_freq_cumsum
 
     def connect(self, trainer, *args, **kwargs):
         self.trainer = trainer
@@ -85,10 +93,8 @@ class TrainingBatchLoop(Loop):
         return AttributeDict(signal=0, training_step_output=self.batch_outputs)
 
     def reset(self) -> None:
-        # self.iteration_count = 0
-
         self._hiddens = None
-        # TODO: let loops track individual outputs
+        # TODO(@awaelchli): let loops track individual outputs
         self.batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
 
     def on_run_start(self, batch, batch_idx, dataloader_idx):
@@ -101,10 +107,6 @@ class TrainingBatchLoop(Loop):
         # let logger connector extract current batch size
         self.trainer.logger_connector.on_train_split_start(batch_idx, split_idx, split_batch)
 
-        # TODO: this list needs to go outside this loop
-        # batch_outputs = [[] for _ in range(len(self.trainer.optimizers))]
-        grad_norm_dict = {}
-
         if self.trainer.lightning_module.automatic_optimization:
             for opt_idx, optimizer in self.get_active_optimizers(batch_idx):
                 result = self._run_optimization(batch_idx, split_batch, opt_idx, optimizer)
@@ -116,22 +118,11 @@ class TrainingBatchLoop(Loop):
             if result:
                 self.batch_outputs[0].append(result.training_step_output)
 
-
-# ------------------------------------------------------------------------------------------------------------
-# HELPER --- TO BE CLEANED UP
-# ------------------------------------------------------------------------------------------------------------
-
     def num_active_optimizers(self, batch_idx: Optional[int] = None) -> int:
         return len(self.get_active_optimizers(batch_idx))
 
-    @property
-    def optimizer_freq_cumsum(self):
-        if self._optimizer_freq_cumsum is None:
-            self._optimizer_freq_cumsum = np.cumsum(self.trainer.optimizer_frequencies)
-        return self._optimizer_freq_cumsum
-
     def _run_optimization(self, batch_idx, split_batch, opt_idx=0, optimizer=None):
-        # TODO: In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
+        # TODO(@awaelchli): In v1.5, when optimizer_idx gets removed from training_step in manual_optimization, change
         #   opt_idx=0 to opt_idx=None in the signature here
 
         # toggle model params
@@ -334,12 +325,13 @@ class TrainingBatchLoop(Loop):
         return grad_norm_dict
 
     def _accumulated_batches_reached(self):
-        # TODO: use progress tracking of batches instead of iteration count, because iteration count may reset
-        #   iteration count is required to be global here, not reset
+        # TODO(@awaelchli): use progress tracking of batches instead of iteration count, because iteration count may
+        #  reset iteration count is required to be global here, not reset
         return self.iteration_count % self.trainer.accumulate_grad_batches == 0
 
     def _num_training_batches_reached(self, is_last_batch=False):
-        # TODO: use progress tracking of batches instead of iteration count, because iteration count may reset
+        # TODO(@awaelchli): use progress tracking of batches instead of iteration count, because iteration
+        #  count may reset
         return (self.iteration_count + 1) == self.trainer.num_training_batches or is_last_batch
 
     def should_accumulate(self):

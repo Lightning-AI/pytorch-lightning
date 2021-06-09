@@ -29,8 +29,6 @@ class TrainingEpochLoop(Loop):
 
     def __init__(self, min_steps, max_steps):
         super().__init__()
-        # cache of all outputs in a single training run / epoch
-        # self.epoch_output = [[]]
         self.min_steps = min_steps
         self.max_steps = max_steps
 
@@ -49,6 +47,7 @@ class TrainingEpochLoop(Loop):
         self.is_last_batch = None
         self.batches_seen = 0
         self.warning_cache = WarningCache()
+        self.epoch_output = None
 
         self.batch_loop = None
 
@@ -70,7 +69,7 @@ class TrainingEpochLoop(Loop):
         self.reset()
         self.on_run_start()
 
-        # TODO: while condition is different from super.run(),
+        # TODO(@awaelchli): while condition is different from super.run(),
         #   redesign the done conditions and use the base class run() implementation
         while True:
             try:
@@ -94,7 +93,6 @@ class TrainingEpochLoop(Loop):
         self.epoch_output = [[] for _ in range(self.batch_loop.num_active_optimizers(self.total_batch_idx))]
 
     def advance(self, dataloader_iter: Iterator, **kwargs):
-        # TODO: profiling is gone
         _, (batch, is_last) = next(dataloader_iter)
         self.is_last_batch = is_last
 
@@ -150,7 +148,6 @@ class TrainingEpochLoop(Loop):
         if self.done:
             raise StopIteration
 
-    # this is the old on train_epoch_end?
     def on_run_end(self):
         if self.batches_seen == 0:
             # dataloader/iterator did not produce a batch
@@ -184,11 +181,6 @@ class TrainingEpochLoop(Loop):
         self.trainer.call_hook('on_epoch_end')
         self.trainer.logger_connector.on_epoch_end()
         return self.epoch_output
-
-
-# ------------------------------------------------------------------------------------------------------------
-# HELPER --- TO BE CLEANED UP
-# ------------------------------------------------------------------------------------------------------------
 
     def _on_train_epoch_end_hook(self, processed_epoch_output) -> None:
         # We cannot rely on Trainer.call_hook because the signatures might be different across
@@ -233,15 +225,10 @@ class TrainingEpochLoop(Loop):
     def _num_training_batches_reached(self, is_last_batch=False):
         return self.batches_seen == self.trainer.num_training_batches or is_last_batch
 
-    # TODO move to on_advance_end() ??
+    # TODO(@awaelchli): merge with on_advance_end()
     def on_train_batch_end(self, epoch_output, batch_end_outputs, batch, batch_idx, dataloader_idx):
-
-        # epoch output : [[] ... ]
-        # batch_end_outputs[0][0] = Result obj
-
         batch_end_outputs = [opt_idx_out for opt_idx_out in batch_end_outputs if len(opt_idx_out)]
-
-        processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)  # dict with loss
+        processed_batch_end_outputs = self._prepare_outputs(batch_end_outputs, batch_mode=True)
 
         # hook
         self.trainer.call_hook('on_train_batch_end', processed_batch_end_outputs, batch, batch_idx, dataloader_idx)
@@ -377,7 +364,7 @@ class TrainingEpochLoop(Loop):
         if self.trainer.should_stop:
             return True
 
-        # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
+        # TODO(awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
