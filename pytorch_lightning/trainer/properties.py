@@ -60,7 +60,7 @@ class TrainerProperties(ABC):
     checkpoint_connector: CheckpointConnector
     limit_val_batches: int
     logger: LightningLoggerBase
-    logger_connector: LoggerConnectorNew
+    logger_connector: LoggerConnector
     state: TrainerState
     train_loop: TrainLoop
     evaluation_loop: EvaluationLoop
