@@ -493,14 +493,14 @@ def test_logging_sync_dist_true_ddp(tmpdir):
 
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
-            self.log('foo', 1, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='SUM')
+            self.log('foo', 1, on_step=False, on_epoch=True, sync_dist=True, reduce_fx='SUM')
             self.log('cho', acc, on_step=False, on_epoch=True)
             return acc
 
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='AVG')
+            self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx='AVG')
             return {"x": loss}
 
     model = TestLoggingSyncDistModel()
