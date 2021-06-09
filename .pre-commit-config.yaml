@@ -25,6 +25,9 @@ repos:
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-toml
+      - id: check-case-conflict
+      - id: check-added-large-files
+      - id: detect-private-key
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.8.0
