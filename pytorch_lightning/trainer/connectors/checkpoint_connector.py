@@ -40,6 +40,7 @@ class CheckpointConnector:
         self.has_trained = False
 
         self._loaded_checkpoint = dict()
+        # FIXME: remove in https://github.com/PyTorchLightning/pytorch-lightning/pull/7652
         self._load_optimizer_states = True
 
     @property
