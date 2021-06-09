@@ -508,6 +508,7 @@ class BoringModelRequiredClasses(BoringModel):
         self.num_classes = num_classes
         self.batch_size = batch_size
 
+
 class BoringDataModuleBatchSizeAndClasses(BoringDataModule):
 
     def __init__(
@@ -522,6 +523,7 @@ class BoringDataModuleBatchSizeAndClasses(BoringDataModule):
 def test_lightning_cli_link_arguments(tmpdir):
 
     class MyLightningCLI(LightningCLI):
+
         def add_arguments_to_parser(self, parser):
             parser.link_arguments('data.batch_size', 'model.batch_size')
             parser.link_arguments('data.num_classes', 'model.num_classes', apply_on='instantiate')
@@ -539,6 +541,7 @@ def test_lightning_cli_link_arguments(tmpdir):
     assert cli.model.num_classes == 5
 
     class MyLightningCLI(LightningCLI):
+
         def add_arguments_to_parser(self, parser):
             parser.link_arguments('data.batch_size', 'model.init_args.batch_size')
             parser.link_arguments('data.num_classes', 'model.init_args.num_classes', apply_on='instantiate')
