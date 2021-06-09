@@ -42,7 +42,7 @@ class MetricSource(LightningEnum):
 class _Sync:
     fn: Callable
     should: bool = False
-    op: Optional[str] = field(init=False, default=None)
+    op: Optional[str] = None
     group: Optional[Any] = None
 
     @property
