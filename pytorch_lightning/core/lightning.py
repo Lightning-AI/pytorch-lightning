@@ -378,7 +378,7 @@ class LightningModule(
                     f" of {list(self._metric_attributes.values())}"
                 )
 
-        value = apply_to_collection(value, numbers.Number, self.__to_float)
+        value = apply_to_collection(value, numbers.Number, self.__to_float_tensor)
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
             # when restarting an new epoch, reset the tensors
@@ -472,7 +472,7 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
 
-    def __to_float(self, value: numbers.Number) -> torch.Tensor:
+    def __to_float_tensor(self, value: numbers.Number) -> torch.Tensor:
         return torch.tensor(value, device=self.device, dtype=torch.float)
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, torch.Tensor]) -> None:
