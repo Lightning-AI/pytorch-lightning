@@ -992,7 +992,6 @@ class Trainer(
                 del batch
                 import gc
                 gc.collect()
-                torch.cuda.empty_cache()
 
                 # log batch metrics
                 self.logger_connector.update_eval_step_metrics()
@@ -1103,7 +1102,6 @@ class Trainer(
                 del batch
                 import gc
                 gc.collect()
-                torch.cuda.empty_cache()
 
         # call hook
         results = self.predict_loop.on_predict_epoch_end()
