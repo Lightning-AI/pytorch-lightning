@@ -30,7 +30,13 @@ log = logging.getLogger(__name__)
 
 class FitLoop(Loop):
 
-    def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None, min_steps: Optional[int] = None, max_steps: Optional[int] = None):
+    def __init__(
+        self,
+        min_epochs: Optional[int] = None,
+        max_epochs: Optional[int] = None,
+        min_steps: Optional[int] = None,
+        max_steps: Optional[int] = None
+    ):
         super().__init__()
         self._teardown_already_run = False
 
