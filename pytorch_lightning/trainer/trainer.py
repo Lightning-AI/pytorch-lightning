@@ -80,7 +80,7 @@ warnings.filterwarnings(
     'please use torch.distributed.ReduceOp instead'
 )
 
-NEW_LOOP = True
+_NEW_LOOP = True
 
 if NEW_LOOP:
     from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
@@ -343,7 +343,7 @@ class Trainer(
         self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
 
-        if NEW_LOOP:
+        if _NEW_LOOP:
             self.train_loop = FitLoop(min_epochs, max_epochs, min_steps, max_steps)
             self.evaluation_loop = EvaluationDataLoaderLoop()
             self.predict_loop = PredictionDataLoaderLoop()
@@ -928,7 +928,7 @@ class Trainer(
             self.reset_val_dataloader(model)
 
     def _run_train(self) -> None:
-        if NEW_LOOP:
+        if _NEW_LOOP:
             self._run_train_new_loop()
         else:
             self._run_train_old_loop()
