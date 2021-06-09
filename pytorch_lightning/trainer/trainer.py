@@ -326,7 +326,7 @@ class Trainer(
             num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus, num_nodes, sync_batchnorm, benchmark,
             replace_sampler_ddp, deterministic, precision, amp_backend, amp_level, plugins
         )
-        self.logger_connector = LoggerConnector(self, log_gpu_memory)
+        self.logger_connector = LoggerConnectorNew(self, log_gpu_memory)
         self.model_connector = ModelConnector(self)
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
@@ -847,7 +847,7 @@ class Trainer(
             ref_model.summarize(mode=self.weights_summary)
 
         # restore training and model before hpc is called
-        self.checkpoint_connector.restore_weights()
+        self.checkpoint_connector.restore()
 
         # on pretrain routine end
         self.on_pretrain_routine_end()
@@ -1120,6 +1120,7 @@ class Trainer(
             # prevents sanity check to affect random sampling in training
             reset_seed()
 
+            # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 
     def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:

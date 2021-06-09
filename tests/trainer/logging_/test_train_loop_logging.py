@@ -26,7 +26,6 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.metrics import Accuracy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDictDataset
 from tests.helpers.runif import RunIf
@@ -193,8 +192,13 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {'a', 'b'}) - {'epoch'}
 
 
-@pytest.mark.parametrize(['batches', 'fx', 'result'], [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, 'avg', 2),
-                                                       (5, 'SUM', 10)])
+@pytest.mark.parametrize(['batches', 'fx', 'result'], [
+    (3, min, 0),
+    (3, torch.max, 2),
+    (11, max, 10),
+    (5, 'avg', 2),
+    (5, 'SUM', 10),
+])
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     """
     Tests that log works correctly with different tensor types
@@ -449,7 +453,7 @@ def test_log_works_in_train_callback(tmpdir):
 
 
 @pytest.mark.parametrize('gpus', [None, pytest.param(1, marks=RunIf(min_gpus=1))])
-def test_logging_sync_dist_true_cpu(tmpdir, gpus):
+def test_logging_sync_dist_true(tmpdir, gpus):
     """
     Tests to ensure that the sync_dist flag works (should just return the original value)
     """
@@ -684,33 +688,6 @@ def test_logging_raises(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match='`self.log` with the key `foo/dataloader_idx_0`'):
-        trainer.fit(model)
-
-    class TestModel(BoringModel):
-
-        def training_step(self, batch, batch_idx):
-            self.log('foo', Accuracy())
-
-    trainer = Trainer(default_root_dir=tmpdir)
-    model = TestModel()
-    with pytest.raises(MisconfigurationException, match='fix this by setting an attribute for the metric in your'):
-        trainer.fit(model)
-
-    class TestModel(BoringModel):
-
-        def __init__(self):
-            super().__init__()
-            self.bar = Accuracy()
-
-        def training_step(self, batch, batch_idx):
-            self.log('foo', Accuracy())
-
-    trainer = Trainer(default_root_dir=tmpdir)
-    model = TestModel()
-    with pytest.raises(
-        MisconfigurationException,
-        match=r"`self.log\(foo, ..., metric_attribute=name\)` where `name` is one of \['bar'\]"
-    ):
         trainer.fit(model)
 
     class TestModel(BoringModel):
