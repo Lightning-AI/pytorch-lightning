@@ -57,7 +57,7 @@ warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
 
-class BaseLightningModule(
+class _BaseLightningModule(
     ABC,
     DeviceDtypeModuleMixin,
     GradInformation,
@@ -1953,5 +1953,5 @@ class BaseLightningModule(
         return size_mb
 
 
-class LightningModule(BaseLightningModule, Module):
+class LightningModule(_BaseLightningModule, Module):
     pass
