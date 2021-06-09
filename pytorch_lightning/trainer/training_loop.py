@@ -485,6 +485,7 @@ class TrainLoop:
             del batch
             import gc
             gc.collect()
+            torch.cuda.empty_cache()
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
