@@ -377,11 +377,6 @@ class CombinedLoader(object):
         """Return a collections of samplers extracting from loaders."""
         return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, 'sampler', None)
 
-    @property
-    def batch_size(self) -> Union[Iterable, Sequence, Mapping]:
-        """Return a collection of batch sizes extracted from loaders."""
-        return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, 'batch_size', None)
-
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """
         Wraps all loaders to make sure they are cycled until the longest loader is exhausted
