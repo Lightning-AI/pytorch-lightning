@@ -534,7 +534,7 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
                 prog_bar=True,
                 on_epoch=True,
                 sync_dist=True,
-                sync_dist_op='sum'
+                reduce_fx='sum'
             )
             self.on_train_epoch_end_called = True
 
