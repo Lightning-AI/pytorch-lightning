@@ -113,7 +113,7 @@ class LazyModel(LightningModule):
         return self.layer2(self.layer1(inp))
 
 
-@RunIf(min_torch="1.8") 
+@RunIf(min_torch="1.8")
 def test_lazy_model_summary():
     """ Test that the model summary can work with lazy layers. """
 
