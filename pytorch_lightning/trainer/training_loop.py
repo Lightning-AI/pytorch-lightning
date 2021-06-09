@@ -510,6 +510,8 @@ class TrainLoop:
 
             # release memory before running any other hooks
             del batch
+            import gc
+            gc.collect()
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS

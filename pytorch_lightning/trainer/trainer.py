@@ -990,6 +990,8 @@ class Trainer(
 
                 # release memory before running any other hooks
                 del batch
+                import gc
+                gc.collect()
 
                 # log batch metrics
                 self.logger_connector.log_evaluation_step_metrics()
@@ -1101,6 +1103,8 @@ class Trainer(
 
                 # release memory before running any other hooks
                 del batch
+                import gc
+                gc.collect()
 
         # call hook
         results = self.predict_loop.on_predict_epoch_end()
