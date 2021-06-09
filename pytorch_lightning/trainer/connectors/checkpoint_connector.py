@@ -45,7 +45,7 @@ class CheckpointConnector:
     @property
     def hpc_resume_path(self) -> Optional[str]:
         dir_path_hpc = str(self.trainer.weights_save_path)
-        max_suffix = self.max_ckpt_in_folder(dir_path_hpc, "hpc_ckpt_")
+        max_suffix = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_suffix is not None:
             return f"{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt"
 
@@ -218,7 +218,7 @@ class CheckpointConnector:
         # save logger to make sure we get all the metrics
         logger.save()
 
-        max_suffix = self.max_ckpt_in_folder(folderpath)
+        max_suffix = self.max_ckpt_version_in_folder(folderpath)
         ckpt_number = (max_suffix if max_suffix is not None else 0) + 1
 
         fs.makedirs(folderpath, exist_ok=True)
@@ -350,7 +350,7 @@ class CheckpointConnector:
         # call hpc specific hook
         model.on_hpc_load(checkpoint)
 
-    def max_ckpt_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
+    def max_ckpt_version_in_folder(self, dir_path: Union[str, Path], name_key: str = 'ckpt_') -> Optional[int]:
         """List up files in `dir_path` with `name_key`, then yield maximum suffix number.
         Args:
             dir_path: path of directory which may contain files whose name include `name_key`
@@ -382,7 +382,7 @@ class CheckpointConnector:
     def get_max_ckpt_path_from_folder(self, folder_path: Union[str, Path]) -> str:
         """Get path of maximum-epoch checkpoint in the folder."""
 
-        max_suffix = self.max_ckpt_in_folder(folder_path)
+        max_suffix = self.max_ckpt_version_in_folder(folder_path)
         ckpt_number = max_suffix if max_suffix is not None else 0
         return f'{folder_path}/hpc_ckpt_{ckpt_number}.ckpt'
 
