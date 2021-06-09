@@ -17,6 +17,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -30,7 +31,11 @@ class IPUPrecisionPlugin(PrecisionPlugin):
 
     def backward(
         self,
+        model: 'pl.LightningModule',
         closure_loss: Tensor,
+        optimizer: Optimizer,
+        opt_idx: int,
+        should_accumulate: bool,
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:

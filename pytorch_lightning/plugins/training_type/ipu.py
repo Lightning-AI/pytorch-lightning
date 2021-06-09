@@ -29,7 +29,7 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         super().__init__(pl_module)
         self.precision = precision
 
-    def forward(self, *inputs, **kwargs):
+    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
         if self.precision in ("mixed", 16):
             inputs = self._move_float_tensors_to_half(inputs)
 
