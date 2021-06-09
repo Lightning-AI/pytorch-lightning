@@ -82,7 +82,7 @@ warnings.filterwarnings(
 
 _NEW_LOOP = True
 
-if NEW_LOOP:
+if _NEW_LOOP:
     from pytorch_lightning.loops.dataloader.evaluation_dataloader_loop import EvaluationDataLoaderLoop
     from pytorch_lightning.loops.dataloader.prediction_dataloader_loop import PredictionDataLoaderLoop
 else:
@@ -1145,7 +1145,7 @@ class Trainer(
             )
             self.validating = True
 
-        if NEW_LOOP:
+        if _NEW_LOOP:
             # # TODO: move this check inside new loop
             # # prepare dataloaders
 
@@ -1250,7 +1250,7 @@ class Trainer(
         return results
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
-        if NEW_LOOP:
+        if _NEW_LOOP:
             return self.predict_loop.run()
         else:
             return self._run_predict_old_loop()
