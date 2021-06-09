@@ -40,14 +40,14 @@ Early stopping
 
 |
 
-Early stopping is an optimization technique used to avoid overfitting without compromising the model's accuracy. When training a large network, there will be a point during training when the model will stop generalizing and start learning the statistical noise in the training dataset. To avoid overfitting and reduce training time, unable early stopping to stop training at the point when performance on a validation dataset starts to degrade (you can pick the metric to monitor).
+Early stopping is an optimization technique used to avoid overfitting without compromising the model's accuracy. When training a large network, there will be a point during training when the model will stop generalizing and start learning the statistical noise in the training dataset. To avoid overfitting and reduce training time, enable early stopping to stop training at the point when performance on a validation dataset starts to degrade (you can pick the metric to monitor).
 
 
 Stop training when metric is degrading
 ======================================
 The
 :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
-callback can be used to monitor a validation metric and stop the training when no improvement is observed.
+callback can be used to monitor a metric (validation by default) and stop the training when no improvement is observed.
 
 .. testcode::
 
@@ -121,8 +121,8 @@ Lightning supports a variety of plugins to further speed up distributed GPU trai
     # run on 1 gpu
     trainer = Trainer(gpus=1)
 
-    # train on 8 gpus
-    trainer = Trainer(gpus=8)
+    # train on 8 gpus, using DDP plugin
+    trainer = Trainer(gpus=8, accelerator="ddp")
 
     # train on multiple GPUs across nodes (uses 8 gpus in total)
     trainer = Trainer(gpus=2, num_nodes=4)

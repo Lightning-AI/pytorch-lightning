@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 
 class EarlyStopping(Callback):
     r"""
-    Monitor a metric and stop training when a certain validation metric stops improving.
+    Monitor a metric and stop training when it stops improving.
 
     .. code-block:: python
 
