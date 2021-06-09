@@ -284,6 +284,8 @@ class Trainer(
 
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
+            ipus: How many IPUs to train on.
+
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
             truncated_bptt_steps: Deprecated in v1.3 to be removed in 1.5.
