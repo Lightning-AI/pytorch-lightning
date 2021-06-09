@@ -30,18 +30,16 @@ log = logging.getLogger(__name__)
 
 class FitLoop(Loop):
 
-    def __init__(self, min_epochs, max_epochs, min_steps, max_steps):
+    def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None, min_steps: Optional[int] = None, max_steps: Optional[int] = None):
         super().__init__()
         self._teardown_already_run = False
 
-        # TODO: Move this to trainer (it's a trainer default, loops shouldn't have to care about this
         # If neither max_epochs or max_steps is set, then use existing default of max_epochs = 1000
         self.max_epochs = 1000 if (max_epochs is None and max_steps is None) else max_epochs
         # If neither min_epochs or min_steps is set, then use existing default of min_epochs = 1
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
 
         self.training_loop = TrainingEpochLoop(min_steps, max_steps)
-
         self.results = ResultCollection(True)
 
     @property
@@ -82,7 +80,7 @@ class FitLoop(Loop):
 
     @max_steps.setter
     def max_steps(self, value):
-        # TODO: This setter is required by debugging connector (fast dev run)
+        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
         self.training_loop.max_steps = value
 
     @property
@@ -101,7 +99,7 @@ class FitLoop(Loop):
 
     @property
     def done(self) -> bool:
-        # TODO: Move track steps inside training loop and move part of these condition inside training loop
+        # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = self.max_steps is not None and self.global_step >= self.max_steps
         stop_epochs = self.max_epochs is not None and self.current_epoch >= self.max_epochs
 
@@ -111,8 +109,6 @@ class FitLoop(Loop):
             met_min_epochs = self.current_epoch >= self.min_epochs if self.min_epochs else True
             met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
-                # TODO: THIS is now in on_run_end, always run?
-                # self.training_epoch_loop.on_train_end()
                 should_stop = True
             else:
                 log.info(
@@ -139,14 +135,14 @@ class FitLoop(Loop):
         self.trainer.results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
-    def on_advance_start(self):  # equal to old on_train_epoch_start
+    def on_advance_start(self):
         model = self.trainer.lightning_module
 
         # reset train dataloader
         if self.current_epoch != 0 and self.trainer.reload_dataloaders_every_epoch:
             self.trainer.reset_train_dataloader(model)
 
-        # todo: specify the possible exception
+        # TODO: specify the possible exception
         with suppress(Exception):
             # set seed for distributed sampler (enables shuffling for each epoch)
             self.trainer.train_dataloader.sampler.set_epoch(self.current_epoch)
@@ -186,9 +182,6 @@ class FitLoop(Loop):
             self.global_step += 1
 
     def on_advance_end(self):
-        # # handle epoch_output on epoch end
-        # self.on_train_epoch_end(outputs)  # Handled in on_run_end of training_epoch_loop now
-
         if self.training_loop.batches_seen == 0:
             return
 
@@ -202,7 +195,6 @@ class FitLoop(Loop):
             self.check_checkpoint_callback(True)
             self.global_step += 1
 
-    # why is this not the same as the old on_train_epoch_end?
     def on_run_end(self):
         if self._teardown_already_run:
             return
@@ -248,7 +240,7 @@ class FitLoop(Loop):
         return self.training_loop.batch_loop.get_active_optimizers(batch_idx)
 
     def check_checkpoint_callback(self, should_update, is_last=False):
-        # TODO bake this logic into the ModelCheckpoint callback
+        # TODO: bake this logic into the ModelCheckpoint callback
         if should_update and self.trainer.checkpoint_connector.has_trained:
             callbacks = self.trainer.checkpoint_callbacks
 
