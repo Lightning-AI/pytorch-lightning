@@ -19,9 +19,13 @@
         ):
             pass
 
+    class MyClassModel(LightningModule):
+        def __init__(self, num_classes: int):
+            pass
+
     class MyDataModule(LightningDataModule):
         def __init__(self, batch_size: int = 8):
-            pass
+            self.num_classes = 5
 
     def send_email(address, message):
         pass
@@ -401,6 +405,23 @@ The linking of arguments is observed in the help of the tool, which for this exa
       Linked arguments:
         model.batch_size <-- data.batch_size
                               Number of samples in a batch (type: int)
+
+Sometimes a parameter value is only available after class instantiation. An example could be a data module for a
+classification task which counts the number of classes. And the number of classes is required to instantiate the model.
+The code below illustrates this.
+
+.. testcode::
+
+    from pytorch_lightning.utilities.cli import LightningCLI
+
+    class MyLightningCLI(LightningCLI):
+
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments('data.num_classes', 'model.num_classes', apply_on='instantiate')
+
+    cli = MyLightningCLI(MyClassModel, MyDataModule)
+
+Instantiation links are used to automatically determine the order of instantiation, in this case data first.
 
 .. tip::
 
