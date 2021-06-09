@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 from argparse import Namespace
 from unittest import mock
@@ -320,3 +321,15 @@ def test_tensorboard_with_symlink(log, tmpdir):
     _ = logger.version
 
     log.warning.assert_not_called()
+
+
+def test_tensorboard_missing_folder_warning(tmpdir, caplog):
+    """Verify that the logger throws a warning for invalid directory"""
+
+    name = "fake_dir"
+    logger = TensorBoardLogger(save_dir=tmpdir, name=name)
+
+    with caplog.at_level(logging.WARNING):
+        assert logger.version == 0
+
+    assert 'Missing logger folder:' in caplog.text
