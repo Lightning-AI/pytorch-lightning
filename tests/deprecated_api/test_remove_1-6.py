@@ -86,3 +86,16 @@ def test_v1_6_0_tbptt_pad_token(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.deprecated_call(match=r"tbptt_pad_token=...\)` is no longer supported"):
         trainer.fit(TestModel())
+
+
+def test_v1_6_0_sync_dist_op(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            self.log("foo", 1, sync_dist_op='sum')
+            return super().training_step(*args)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.deprecated_call(match=r"`self.log\(sync_dist_op='sum'\)` is deprecated"):
+        trainer.fit(TestModel())

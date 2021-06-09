@@ -263,12 +263,12 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = 'mean',
+        reduce_fx: Union[str, Callable] = 'default',  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
         tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
         tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_op: Optional = None,  # noqa: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
@@ -304,7 +304,6 @@ class LightningModule(
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group to sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for
@@ -326,6 +325,15 @@ class LightningModule(
                 ' Please, open a discussion explaining your use-case in'
                 ' `https://github.com/PyTorchLightning/pytorch-lightning/discussions`'
             )
+        if sync_dist_op is not None:
+            rank_zero_deprecation(
+                f"`self.log(sync_dist_op='{sync_dist_op}')` is deprecated and will be removed in v.1.6."
+                f" Use `self.log(reduce_fx={sync_dist_op})` instead."
+            )
+            if reduce_fx == 'default':
+                reduce_fx = sync_dist_op
+        elif reduce_fx == 'default':
+            reduce_fx = 'mean'
 
         # check for invalid values
         apply_to_collection(value, dict, self.__check_not_nested, name)
@@ -391,7 +399,6 @@ class LightningModule(
             metric_attribute=metric_attribute,
             sync_dist=sync_dist,
             sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
-            sync_dist_op=sync_dist_op,
             sync_dist_group=sync_dist_group,
         )
 
@@ -404,12 +411,12 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Union[str, Callable] = 'mean',
+        reduce_fx: Union[str, Callable] = 'default',  # TODO: change to 'mean' when `sync_dist_op` is removed in 1.6
         tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
         tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_op: Optional = None,  # noqa: Remove in 1.6
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
     ) -> None:
@@ -431,7 +438,6 @@ class LightningModule(
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if True, will not auto detach the graph
             sync_dist: if True, reduces the metric across GPUs/TPUs
-            sync_dist_op: the op to sync across GPUs/TPUs
             sync_dist_group: the ddp group sync across
             add_dataloader_idx: if True, appends the index of the current dataloader to
                 the name (when using multiple). If False, user needs to give unique names for

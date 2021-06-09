@@ -43,6 +43,7 @@ class EvaluationLoop(object):
             return self._val_results
         elif self.trainer.testing:
             return self._test_results
+        return None
 
     def on_trainer_init(self) -> None:
         pass
