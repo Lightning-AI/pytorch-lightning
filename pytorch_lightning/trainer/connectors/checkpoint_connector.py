@@ -36,9 +36,10 @@ class CheckpointConnector:
     def __init__(self, trainer, resume_from_checkpoint: Optional[Union[str, Path]] = None):
         self.trainer = trainer
         self.resume_checkpoint_path = resume_from_checkpoint
-        self.loaded_checkpoint = dict()
         # used to validate checkpointing logic
         self.has_trained = False
+
+        self._loaded_checkpoint = dict()
         self._load_optimizer_states = True
 
     @property
@@ -74,14 +75,14 @@ class CheckpointConnector:
         checkpoint, load_optimizer_states = self.trainer.training_type_plugin.restore_model_state_from_ckpt_path(
             checkpoint_path, map_location=lambda storage, loc: storage
         )
-        self.loaded_checkpoint = checkpoint
+        self._loaded_checkpoint = checkpoint
         self._load_optimizer_states = load_optimizer_states
 
     def resume_end(self) -> None:
         """ Signal the connector that all states have resumed and memory for the checkpoint object can be released. """
         rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
         self.resume_checkpoint_path = None
-        self.loaded_checkpoint = dict()
+        self._loaded_checkpoint = dict()
 
         # clear cache after restore
         if self.trainer._device_type == DeviceType.GPU:
@@ -112,8 +113,8 @@ class CheckpointConnector:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
-        if self.loaded_checkpoint:
-            self.restore_training_state(self.loaded_checkpoint, self._load_optimizer_states)
+        if self._loaded_checkpoint:
+            self.restore_training_state(self._loaded_checkpoint, self._load_optimizer_states)
 
         self.resume_end()
         return True
