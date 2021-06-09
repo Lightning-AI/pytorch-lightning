@@ -24,7 +24,6 @@ import types
 import uuid
 from abc import ABC
 from argparse import Namespace
-from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -32,7 +31,7 @@ import torch
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from torchmetrics.metric import Metric
+from torchmetrics import Metric
 
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -264,7 +263,7 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Callable = torch.mean,
+        reduce_fx: Union[str, Callable] = 'mean',
         tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
         tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
@@ -329,22 +328,19 @@ class LightningModule(
             )
 
         # check for invalid values
-        apply_to_collection(value, dict, partial(self.__check_not_nested, name))
+        apply_to_collection(value, dict, self.__check_not_nested, name)
         apply_to_collection(
-            value,
-            object,
-            partial(self.__check_allowed, name, value),
-            wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
         )
 
         # set the default depending on the fx_name
         on_step = self.__auto_choose_log_on_step(on_step)
         on_epoch = self.__auto_choose_log_on_epoch(on_epoch)
 
-        result_collection: 'ResultCollection' = self.trainer.result_collection  # noqa F821
-        assert result_collection is not None
+        results = self.trainer.results
+        assert results is not None
         assert self._current_fx_name is not None
-        result_collection.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
+        results.fx_validator.check_logging(self._current_fx_name, on_step=on_step, on_epoch=on_epoch)
 
         # make sure user doesn't introduce logic for multi-dataloaders
         if "/dataloader_idx_" in name:
@@ -378,9 +374,9 @@ class LightningModule(
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
             # when restarting an new epoch, reset the tensors
-            result_collection.reset(metrics=False, fx=self._current_fx_name)
+            results.reset(metrics=False, fx=self._current_fx_name)
 
-        result_collection.log(
+        results.log(
             self._current_fx_name,
             name,
             value,
@@ -408,7 +404,7 @@ class LightningModule(
         logger: bool = True,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
-        reduce_fx: Callable = torch.mean,
+        reduce_fx: Union[str, Callable] = 'mean',
         tbptt_reduce_fx: Optional = None,  # noqa: Remove in 1.6
         tbptt_pad_token: Optional = None,  # noqa: Remove in 1.6
         enable_graph: bool = False,
@@ -460,13 +456,14 @@ class LightningModule(
             )
 
     @staticmethod
-    def __check_not_nested(name: str, value: dict) -> None:
+    def __check_not_nested(value: dict, name: str) -> dict:
+        # self-imposed restriction. for simplicity
         if any(isinstance(v, dict) for v in value.values()):
             raise ValueError(f'`self.log({name}, {value})` was called, but nested dictionaries cannot be logged')
         return value
 
     @staticmethod
-    def __check_allowed(name: str, value: Any, v: Any) -> None:
+    def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f'`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged')
 
     def __to_float(self, value: numbers.Number) -> torch.Tensor:
@@ -478,12 +475,11 @@ class LightningModule(
         Args:
             grad_norm_dict: Dictionary containing current grad norm metrics
 
-        Examples::
+        Example::
 
             # DEFAULT
             def log_grad_norm(self, grad_norm_dict):
                 self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-
         """
         self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
@@ -581,8 +577,7 @@ class LightningModule(
         group = group if group is not None else torch.distributed.group.WORLD
         all_gather = self.trainer.accelerator.all_gather
         data = convert_to_tensors(data, device=self.device)
-        all_gather = partial(all_gather, group=group, sync_grads=sync_grads)
-        return apply_to_collection(data, torch.Tensor, all_gather)
+        return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
 
     def forward(self, *args, **kwargs) -> Any:
         r"""

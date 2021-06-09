@@ -25,6 +25,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.metrics import metrics_to_scalars
 
 # re-define the ones from pytorch_lightning.utilities.types without the `Number` type
 _METRIC = Union[Metric, torch.Tensor]
@@ -44,6 +45,13 @@ class _Sync:
     op: Union[Any, str] = 'mean'
     group: Optional[Any] = None
 
+    def __post_init__(self) -> None:
+        if isinstance(self.op, str):
+            op = self.op.lower()
+            if op == 'avg':
+                op = 'mean'
+            self.op = op
+
     @property
     def __call__(self) -> Any:
         return partial(self.fn, reduce_op=self.op, group=self.group) if self.should else self.no_op
@@ -61,11 +69,27 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    reduce_fx: Callable = torch.mean
+    reduce_fx: Union[str, Callable] = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
     sync: _Sync = field(default_factory=_Sync)
+
+    def __post_init__(self) -> None:
+        error = (
+            'Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported.'
+            ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`.'
+            f' Found: {self.reduce_fx}'
+        )
+        if isinstance(self.reduce_fx, str):
+            reduce_fx = self.reduce_fx.lower()
+            if reduce_fx == 'avg':
+                reduce_fx = 'mean'
+            if reduce_fx not in ('min', 'max', 'mean', 'sum'):
+                raise MisconfigurationException(error)
+            self.reduce_fx = getattr(torch, reduce_fx)
+        elif self.is_custom_reduction:
+            raise MisconfigurationException(error)
 
     @property
     def forked(self) -> bool:
@@ -78,7 +102,11 @@ class _Metadata:
 
     @property
     def is_mean_reduction(self) -> bool:
-        return self.reduce_fx == torch.mean
+        return self.reduce_fx is torch.mean
+
+    @property
+    def is_sum_reduction(self) -> bool:
+        return self.reduce_fx in (torch.sum, sum)
 
     @property
     def is_max_reduction(self) -> bool:
@@ -90,7 +118,7 @@ class _Metadata:
 
     @property
     def is_custom_reduction(self) -> bool:
-        return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction)
+        return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction or self.is_sum_reduction)
 
 
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
@@ -120,6 +148,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 self.cumulated_batch_size += batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
+            elif self.meta.is_sum_reduction:
+                self.value += value.mean() * batch_size
         else:
             self.value = value  # noqa: attribute-defined-outside-init
             self._forward_cache = value._forward_cache
@@ -130,11 +160,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
-            elif self.meta.is_max_reduction or self.meta.is_min_reduction:
+            elif self.meta.is_max_reduction or self.meta.is_min_reduction or self.meta.is_sum_reduction:
                 return value
-            raise MisconfigurationException(
-                f"Only [min, max, mean] reductions are supported. Found {self.meta.reduce_fx}"
-            )
         return self.value.compute()
 
     def reset(self) -> None:
@@ -319,12 +346,8 @@ class ResultCollection(dict):
                 group=sync_dist_group,
             )
         )
+
         if key not in self:
-            if meta.is_custom_reduction:
-                raise MisconfigurationException(
-                    'Only `self.log(..., reduce_fx={min,max,mean})` are currently supported.'
-                    ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`'
-                )
             self.register_key(key, meta, value)
         elif meta != self[key].meta:
             raise MisconfigurationException(
@@ -369,10 +392,6 @@ class ResultCollection(dict):
         if cache is not None and not result_metric.meta.enable_graph:
             return cache.detach()
         return cache
-
-    @staticmethod
-    def __to_item(t: torch.Tensor) -> float:
-        return t.item()
 
     def valid_items(self) -> Generator:
         """This function is used to iterate over current valid metrics."""
@@ -421,8 +440,7 @@ class ResultCollection(dict):
 
             # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:
-                value = apply_to_collection(value, torch.Tensor, self.__to_item, include_none=False)
-                metrics[MetricSource.PBAR][forked_name] = value
+                metrics[MetricSource.PBAR][forked_name] = metrics_to_scalars(value)
 
         return metrics
 

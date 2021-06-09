@@ -160,24 +160,18 @@ def test_result_collection_simple_loop():
         lightning_log('d0', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
         lightning_log('d1', 'a', torch.tensor(3.) + epoch, on_step=False, on_epoch=True)
 
-        assert result['a0.a'].value == torch.tensor(0.)
-        assert result['a0.a'].cumulated_batch_size == torch.tensor(1.)
-        assert result['a1.a'].value == torch.tensor(0.)
-        assert result['a1.a'].cumulated_batch_size == torch.tensor(1.)
+        for k in ('a0.a', 'a1.a'):
+            assert result[k].value == torch.tensor(0.), k
+            assert result[k].cumulated_batch_size == torch.tensor(1.), k
 
-        assert result['b0.a'].value == torch.tensor(1.) + epoch
-        assert result['b0.a'].cumulated_batch_size == torch.tensor(1.)
-        assert result['b1.a'].value == torch.tensor(1.) + epoch
-        assert result['b1.a'].cumulated_batch_size == torch.tensor(1.)
+        for k in ('b0.a', 'b1.a'):
+            assert result[k].value == torch.tensor(1.) + epoch, k
+            assert result[k].cumulated_batch_size == torch.tensor(1.), k
 
-        assert result['c0.a'].value == torch.tensor(4.) + epoch * 2
-        assert result['c0.a'].cumulated_batch_size == torch.tensor(2.)
-        assert result['c1.a'].value == torch.tensor(4.) + epoch * 2
-        assert result['c1.a'].cumulated_batch_size == torch.tensor(2.)
-        assert result['c2.a'].value == torch.tensor(4.) + epoch * 2
-        assert result['c2.a'].cumulated_batch_size == torch.tensor(2.)
+        for k in ('c0.a', 'c1.a', 'c2.a'):
+            assert result[k].value == torch.tensor(4.) + epoch * 2, k
+            assert result[k].cumulated_batch_size == torch.tensor(2.), k
 
-        assert result['d0.a'].value == torch.tensor(3.) + epoch
-        assert result['d0.a'].cumulated_batch_size == torch.tensor(1.)
-        assert result['d1.a'].value == torch.tensor(3.) + epoch
-        assert result['d1.a'].cumulated_batch_size == torch.tensor(1.)
+        for k in ('d0.a', 'd1.a'):
+            assert result[k].value == torch.tensor(3.) + epoch, k
+            assert result[k].cumulated_batch_size == torch.tensor(1.), k

@@ -138,7 +138,6 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     assert not model.validation_epoch_end_called
 
     trainer.state.stage = RunningStage.TRAINING
-
     # make sure training outputs what is expected
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
     out = trainer.batch_loop.run(batch, batch_idx, 0)
