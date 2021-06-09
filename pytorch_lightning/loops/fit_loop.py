@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 
 # TODO: typing
-class EpochsLoop(Loop):
+class FitLoop(Loop):
 
     def __init__(self, min_epochs, max_epochs, min_steps, max_steps):
         super().__init__()
@@ -106,7 +106,7 @@ class EpochsLoop(Loop):
             met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 # TODO: THIS is now in on_run_end, always run?
-                # self.training_loop.on_train_end()
+                # self.training_epoch_loop.on_train_end()
                 should_stop = True
             else:
                 log.info(
@@ -181,7 +181,7 @@ class EpochsLoop(Loop):
 
     def on_advance_end(self):
         # # handle epoch_output on epoch end
-        # self.on_train_epoch_end(outputs)  # Handled in on_run_end of training_loop now
+        # self.on_train_epoch_end(outputs)  # Handled in on_run_end of training_epoch_loop now
 
         if self.training_loop.batches_seen == 0:
             return
