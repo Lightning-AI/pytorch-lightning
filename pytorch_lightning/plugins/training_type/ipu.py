@@ -168,23 +168,22 @@ class IPUPlugin(ParallelPlugin):
                     f"Setting to {self.replication_factor} in the poptorch.Options.", UserWarning
                 )
                 opts.set(replication_factor=self.replication_factor)
-            if not training:
-                if opts.Training.gradient_accumulation != 1:
-                    rank_zero_warn(
-                        "Inference poptorch.Options should set gradientAccumulation to 1. "
-                        "Setting gradientAccumulation to 1 for inference options.", UserWarning
-                    )
-                    opts.Training.set(gradient_accumulation=1)
-            else:
+            if training:
                 accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
-                if opts.Training.gradient_accumulation != self.lightning_module.trainer.accumulate_grad_batches:
+                if opts.Training.gradient_accumulation != accumulate_grad_batches:
                     rank_zero_warn(
                         f"Training poptorch.Options set gradientAccumulation to {opts.Training.gradient_accumulation}. "
                         f"This is different to accumulate_grad_batches which was set to {accumulate_grad_batches}. "
                         f"To change gradientAccumulation, please set accumulate_grad_batches in the Trainer. "
                         f"Setting poptorch.Options gradientAccumulation to {accumulate_grad_batches}", UserWarning
                     )
-                    opts.Training.set(gradient_accumulation=self.lightning_module.trainer.accumulate_grad_batches)
+                    opts.Training.set(gradient_accumulation=accumulate_grad_batches)
+            elif opts.Training.gradient_accumulation != 1:
+                rank_zero_warn(
+                    "Inference poptorch.Options should set gradientAccumulation to 1. "
+                    "Setting gradientAccumulation to 1 for inference options.", UserWarning
+                )
+                opts.Training.set(gradient_accumulation=1)
 
     @property
     def lightning_module(self) -> Optional[LightningModule]:

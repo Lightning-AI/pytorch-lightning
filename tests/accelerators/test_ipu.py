@@ -339,23 +339,16 @@ def test_manual_poptorch_opts(tmpdir):
     """Ensure if the user passes manual poptorch Options, we run with the correct object."""
     model = IPUModel()
     inference_opts = poptorch.Options()
-    inference_opts.deviceIterations(20)
-    inference_opts.replicationFactor(1)
-    inference_opts.Training.gradientAccumulation(1)
-
     training_opts = poptorch.Options()
-    training_opts.deviceIterations(20)
-    training_opts.replicationFactor(1)
-    training_opts.Training.gradientAccumulation(1)
 
     trainer = Trainer(
         ipus=1, fast_dev_run=True, plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
     )
+    trainer.fit(model)
 
     assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
     assert trainer.accelerator.training_type_plugin.training_opts == training_opts
     assert trainer.accelerator.training_type_plugin.inference_opts == inference_opts
-    trainer.fit(model)
 
 
 @RunIf(ipu=True)
