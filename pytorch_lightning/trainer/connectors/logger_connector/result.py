@@ -42,15 +42,8 @@ class MetricSource(LightningEnum):
 class _Sync:
     fn: Callable
     should: bool = False
-    op: Union[Any, str] = 'mean'
+    op: Optional[str] = None
     group: Optional[Any] = None
-
-    def __post_init__(self) -> None:
-        if isinstance(self.op, str):
-            op = self.op.lower()
-            if op == 'avg':
-                op = 'mean'
-            self.op = op
 
     @property
     def __call__(self) -> Any:
@@ -90,6 +83,7 @@ class _Metadata:
             self.reduce_fx = getattr(torch, reduce_fx)
         elif self.is_custom_reduction:
             raise MisconfigurationException(error)
+        self.sync.op = self.reduce_fx.__name__
 
     @property
     def forked(self) -> bool:
@@ -306,7 +300,6 @@ class ResultCollection(dict):
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
-        sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
@@ -342,7 +335,6 @@ class ResultCollection(dict):
             sync=_Sync(
                 should=sync_dist,
                 fn=sync_dist_fn,
-                op=sync_dist_op,
                 group=sync_dist_group,
             )
         )

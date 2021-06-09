@@ -448,25 +448,23 @@ def test_log_works_in_train_callback(tmpdir):
         assert is_included if should_include else not is_included
 
 
-def test_logging_sync_dist_true_cpu(tmpdir):
+@pytest.mark.parametrize('gpus', [None, pytest.param(1, marks=RunIf(min_gpus=1))])
+def test_logging_sync_dist_true_cpu(tmpdir, gpus):
     """
-    Tests to ensure that the sync_dist flag works with CPU (should just return the original value)
+    Tests to ensure that the sync_dist flag works (should just return the original value)
     """
     fake_result = 1
 
     class TestModel(BoringModel):
 
         def training_step(self, batch, batch_idx):
-            acc = self.step(batch[0])
-            self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
-            self.log('foo_2', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
-            return acc
+            self.log('foo', fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx='sum')
+            self.log('foo_2', 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx='sum')
+            return super().training_step(batch, batch_idx)
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log('bar', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
-            return {"x": loss}
+            self.log('bar', fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx='sum')
+            return super().validation_step(batch, batch_idx)
 
     model = TestModel()
     trainer = Trainer(
@@ -475,6 +473,7 @@ def test_logging_sync_dist_true_cpu(tmpdir):
         limit_val_batches=1,
         max_epochs=2,
         weights_summary=None,
+        gpus=gpus,
     )
     trainer.fit(model)
 
@@ -493,14 +492,14 @@ def test_logging_sync_dist_true_ddp(tmpdir):
 
         def training_step(self, batch, batch_idx):
             acc = self.step(batch[0])
-            self.log('foo', 1, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='SUM')
+            self.log('foo', 1, on_step=False, on_epoch=True, sync_dist=True, reduce_fx='SUM')
             self.log('cho', acc, on_step=False, on_epoch=True)
             return acc
 
         def validation_step(self, batch, batch_idx):
             output = self.layer(batch)
             loss = self.loss(batch, output)
-            self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='AVG')
+            self.log('bar', 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx='AVG')
             return {"x": loss}
 
     model = TestLoggingSyncDistModel()
@@ -520,41 +519,6 @@ def test_logging_sync_dist_true_ddp(tmpdir):
     assert trainer.logged_metrics['bar'] == 2
 
 
-@RunIf(min_gpus=1)
-def test_logging_sync_dist_true_gpu(tmpdir):
-    """
-    Tests to ensure that the sync_dist flag works with GPU (should just return the original value)
-    """
-    fake_result = 1
-
-    class TestModel(BoringModel):
-
-        def training_step(self, batch, batch_idx):
-            acc = self.step(batch[0])
-            self.log('foo', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
-            return acc
-
-        def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            self.log('bar', torch.tensor(fake_result), on_step=False, on_epoch=True, sync_dist=True, sync_dist_op='sum')
-            return {"x": loss}
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        max_epochs=2,
-        gpus=1,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-    assert trainer.logged_metrics['foo'] == fake_result
-    assert trainer.logged_metrics['bar'] == fake_result
-
-
 def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
 
     class TestModel(BoringModel):
@@ -570,7 +534,7 @@ def test_progress_bar_dict_contains_values_on_train_epoch_end(tmpdir):
                 prog_bar=True,
                 on_epoch=True,
                 sync_dist=True,
-                sync_dist_op='sum'
+                reduce_fx='sum'
             )
             self.on_train_epoch_end_called = True
 
