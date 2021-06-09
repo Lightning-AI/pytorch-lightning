@@ -29,8 +29,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
 from pytorch_lightning.loops.epochs_loop import EpochsLoop
+from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
 from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
