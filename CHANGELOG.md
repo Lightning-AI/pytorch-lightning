@@ -112,7 +112,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Completely overhaul the `Result` object in favor of `ResultMetric` ([#7882](https://github.com/PyTorchLightning/pytorch-lightning/pull/7882))
     * Improve epoch-level reduction time and overall memory usage ([#7882](https://github.com/PyTorchLightning/pytorch-lightning/pull/7882))
     * Allow passing `self.log(batch_size=...)` ([#7891](https://github.com/PyTorchLightning/pytorch-lightning/pull/7891))
-    * Allow passing `self.log(metric_attribute='your_metric')` to properly serialize the state of any `torchmetrics.Metric`s in your model ([#7891](https://github.com/PyTorchLightning/pytorch-lightning/pull/7891))
     * Each of the training loops now keeps its own metrics ([#7891](https://github.com/PyTorchLightning/pytorch-lightning/pull/7891))
 
 

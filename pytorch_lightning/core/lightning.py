@@ -111,7 +111,6 @@ class LightningModule(
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = dict()
-        self._metric_attributes: Optional[Dict[int, str]] = None
 
     def optimizers(self, use_pl_optimizer: bool = True) -> Union[Optimizer, List[Optimizer], List[LightningOptimizer]]:
         if use_pl_optimizer:
@@ -272,7 +271,6 @@ class LightningModule(
         sync_dist_group: Optional[Any] = None,
         add_dataloader_idx: bool = True,
         batch_size: Optional[int] = None,
-        metric_attribute: Optional[str] = None,
     ) -> None:
         """
         Log a key, value
@@ -310,8 +308,6 @@ class LightningModule(
                 each dataloader to not mix values
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
-            metric_attribute: The attribute name for the metric in the LightningModule.
-                Necessary to save/restore its state.
         """
         if tbptt_reduce_fx is not None:
             rank_zero_deprecation(
@@ -357,27 +353,6 @@ class LightningModule(
                 " but it should not contain information about `dataloader_idx`"
             )
 
-        if metric_attribute is None and isinstance(value, Metric):
-            if self._metric_attributes is None:
-                # compute once
-                self._metric_attributes = {
-                    id(module): name
-                    for name, module in self.named_children() if isinstance(module, Metric)
-                }
-                if not self._metric_attributes:
-                    raise MisconfigurationException(
-                        "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
-                        " You can fix this by setting an attribute for the metric in your `LightningModule`."
-                    )
-            # try to find the passed metric in the LightningModule
-            metric_attribute = self._metric_attributes.get(id(value))
-            if metric_attribute is None:
-                raise MisconfigurationException(
-                    "Could not find the `LightningModule` attribute for the `torchmetrics.Metric` logged."
-                    f" You can fix this by calling `self.log({name}, ..., metric_attribute=name)` where `name` is one"
-                    f" of {list(self._metric_attributes.values())}"
-                )
-
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
 
         if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
@@ -397,7 +372,6 @@ class LightningModule(
             enable_graph=enable_graph,
             dataloader_idx=(self._current_dataloader_idx if add_dataloader_idx else None),
             batch_size=batch_size,
-            metric_attribute=metric_attribute,
             sync_dist=sync_dist,
             sync_dist_fn=self.trainer.training_type_plugin.reduce or sync_ddp_if_available,
             sync_dist_group=sync_dist_group,
