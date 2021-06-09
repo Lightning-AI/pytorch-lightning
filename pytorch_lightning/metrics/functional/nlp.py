@@ -21,7 +21,7 @@ from typing import Sequence
 import torch
 from torchmetrics.functional import bleu_score as _bleu_score
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_bleu_score)
@@ -35,3 +35,4 @@ def bleu_score(
     .. deprecated::
         Use :func:`torchmetrics.functional.bleu_score`. Will be removed in v1.5.0.
     """
+    return void(translate_corpus, reference_corpus, n_gram, smooth)

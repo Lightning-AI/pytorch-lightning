@@ -16,7 +16,7 @@ from typing import Optional
 import torch
 from torchmetrics.functional import confusion_matrix as _confusion_matrix
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_confusion_matrix)
@@ -31,3 +31,4 @@ def confusion_matrix(
     .. deprecated::
         Use :func:`torchmetrics.functional.confusion_matrix`. Will be removed in v1.5.0.
     """
+    return void(preds, target, num_classes, normalize, threshold)

@@ -13,6 +13,7 @@
 # limitations under the License.
 import operator
 from abc import ABC
+from collections import OrderedDict
 from collections.abc import Mapping, Sequence
 from copy import copy
 from functools import partial
@@ -92,12 +93,12 @@ def apply_to_collection(
 
     # Recursively apply to collection items
     if isinstance(data, Mapping):
-        out = []  # can't use dict, need to preserve order if `OrderedDict`
+        out = []
         for k, v in data.items():
             v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             if include_none or v is not None:
                 out.append((k, v))
-        return elem_type(out)
+        return elem_type(OrderedDict(out))
 
     is_namedtuple = _is_namedtuple(data)
     is_sequence = isinstance(data, Sequence) and not isinstance(data, str)
@@ -232,15 +233,15 @@ def move_data_to_device(batch: Any, device: torch.device):
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
-def convert_to_tensors(data, device: torch.device = None):
+def convert_to_tensors(data: Any, device: torch.device) -> Any:
     if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
+        raise MisconfigurationException("`torch.device` should be provided.")
 
     for src_dtype, conversion_func in CONVERSION_DTYPES:
-        data = apply_to_collection(data, src_dtype, partial(conversion_func, device=device))
+        data = apply_to_collection(data, src_dtype, conversion_func, device=device)
 
-    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device):
+    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device) -> torch.Tensor:
         return t.to(device).contiguous()
 
-    data = apply_to_collection(data, torch.Tensor, partial(_move_to_device_and_make_contiguous, device=device))
+    data = apply_to_collection(data, torch.Tensor, _move_to_device_and_make_contiguous, device=device)
     return data
