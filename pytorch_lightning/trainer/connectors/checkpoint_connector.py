@@ -106,7 +106,7 @@ class CheckpointConnector:
 
         All restored states are listed in return value description of `dump_checkpoint`.
         """
-        self.resume_checkpoint_path = checkpoint_path
+        self.resume_checkpoint_path = checkpoint_path or self.resume_checkpoint_path
         self.resume_start()
         model = self.trainer.lightning_module
 
