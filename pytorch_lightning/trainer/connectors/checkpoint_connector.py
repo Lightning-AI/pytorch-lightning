@@ -45,9 +45,9 @@ class CheckpointConnector:
     @property
     def hpc_resume_path(self) -> Optional[str]:
         dir_path_hpc = str(self.trainer.weights_save_path)
-        max_suffix = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
-        if max_suffix is not None:
-            return f"{dir_path_hpc}/hpc_ckpt_{max_suffix}.ckpt"
+        max_version = self.max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
+        if max_version is not None:
+            return f"{dir_path_hpc}/hpc_ckpt_{max_version}.ckpt"
 
     def resume_start(self) -> None:
         """
