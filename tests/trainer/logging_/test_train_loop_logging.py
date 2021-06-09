@@ -454,7 +454,7 @@ def test_log_works_in_train_callback(tmpdir):
 
 
 @pytest.mark.parametrize('gpus', [None, pytest.param(1, marks=RunIf(min_gpus=1))])
-def test_logging_sync_dist_true_cpu(tmpdir, gpus):
+def test_logging_sync_dist_true(tmpdir, gpus):
     """
     Tests to ensure that the sync_dist flag works (should just return the original value)
     """
