@@ -100,7 +100,7 @@ class TrainLoop:
         return should_by_max_steps or should_by_epoch or self.trainer.num_training_batches == 0
 
     def on_train_start(self):
-        self.trainer.results.to(device=self.trainer.lightning_module.device)
+        self.results.to(device=self.trainer.lightning_module.device)
 
         self.trainer.call_hook("on_train_start")
 
@@ -308,8 +308,7 @@ class TrainLoop:
         if training_step_output is None:
             return None
 
-        results = self.trainer.results
-
+        results = self.results
         loss = None
         hiddens = None
         results.extra = {}
@@ -331,8 +330,7 @@ class TrainLoop:
         self._hiddens = hiddens
 
         if self.trainer.move_metrics_to_cpu:
-            results = results.cpu()
-
+            results.cpu()
         return results
 
     @staticmethod
