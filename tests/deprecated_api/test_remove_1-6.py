@@ -88,6 +88,19 @@ def test_v1_6_0_tbptt_pad_token(tmpdir):
         trainer.fit(TestModel())
 
 
+def test_v1_6_0_sync_dist_op(tmpdir):
+
+    class TestModel(BoringModel):
+
+        def training_step(self, *args):
+            self.log("foo", 1, sync_dist_op='sum')
+            return super().training_step(*args)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    with pytest.deprecated_call(match=r"`self.log\(sync_dist_op='sum'\)` is deprecated"):
+        trainer.fit(TestModel())
+
+
 def test_v1_6_0_datamodule_lifecycle_properties(tmpdir):
     dm = BoringDataModule()
     with pytest.deprecated_call(match=r"DataModule property `has_prepared_data` was deprecated in v1.4"):

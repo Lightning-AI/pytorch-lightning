@@ -65,7 +65,6 @@ class _Metadata:
     reduce_fx: Union[str, Callable] = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
-    metric_attribute: Optional[str] = None
     sync: _Sync = field(default_factory=_Sync)
 
     def __post_init__(self) -> None:
@@ -225,7 +224,7 @@ class ResultCollection(dict):
     Example:
 
         # `device` needs to be provided before logging
-        result = ResultCollection(True, torch.device("cpu"))
+        result = ResultCollection(training=True, torch.device("cpu"))
 
         # you can log to a specific collection.
         # arguments: fx, key, value, metadata
@@ -303,7 +302,6 @@ class ResultCollection(dict):
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
-        metric_attribute: Optional[str] = None,
     ) -> None:
         """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
         # no metrics should be logged with graphs
@@ -331,7 +329,6 @@ class ResultCollection(dict):
             reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             dataloader_idx=dataloader_idx,
-            metric_attribute=metric_attribute,
             sync=_Sync(
                 should=sync_dist,
                 fn=sync_dist_fn,
