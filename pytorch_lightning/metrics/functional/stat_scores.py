@@ -16,7 +16,7 @@ from typing import Optional
 import torch
 from torchmetrics.functional import stat_scores as _stat_scores
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_stat_scores)
@@ -35,3 +35,4 @@ def stat_scores(
     .. deprecated::
         Use :func:`torchmetrics.functional.stat_scores`. Will be removed in v1.5.0.
     """
+    return void(preds, target, reduce, mdmc_reduce, num_classes, top_k, threshold, is_multiclass, ignore_index)
