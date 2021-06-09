@@ -19,8 +19,8 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         self.outputs = []
         self.evaluation_loop = EvaluationLoop()
 
-        self._val_results = ResultCollection(False)
-        self._test_results = ResultCollection(False)
+        self._val_results = ResultCollection(training=False)
+        self._test_results = ResultCollection(training=False)
 
     @property
     def num_dataloaders(self) -> int:
@@ -159,8 +159,8 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
     def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
 
-        assert self.trainer.results is not None
-        self.trainer.results.to(device=self.trainer.lightning_module.device)
+        assert self.results is not None
+        self.results.to(device=self.trainer.lightning_module.device)
 
         if self.trainer.testing:
             self.trainer.call_hook('on_test_start', *args, **kwargs)
@@ -191,6 +191,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             # summarize profile results
             self.trainer.profiler.describe()
 
+        # reset any `torchmetrics.Metric` and the logger connector state
         self.trainer.logger_connector.reset(metrics=True)
 
     def reload_evaluation_dataloaders(self) -> None:
