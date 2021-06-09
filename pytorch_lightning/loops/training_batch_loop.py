@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 
 # TODO: typing
-class BatchLoop(Loop):
+class TrainingBatchLoop(Loop):
     """ Runs over a single batch of data. """
 
     def __init__(self):

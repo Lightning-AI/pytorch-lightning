@@ -2,7 +2,7 @@ from typing import Dict, Iterator, List, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.batch_loop import BatchLoop
+from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -11,7 +11,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 
 # TODO: typing
-class TrainingLoop(Loop):
+class TrainingEpochLoop(Loop):
     """ Runs over all batches in a dataloader (one epoch). """
 
     def __init__(self, min_steps, max_steps):
@@ -50,7 +50,7 @@ class TrainingLoop(Loop):
 
     def connect(self, trainer: 'pl.Trainer', *args, **kwargs):
         self.trainer = trainer
-        self.batch_loop = BatchLoop()
+        self.batch_loop = TrainingBatchLoop()
         self.batch_loop.connect(trainer)
 
     def run(self, *args, **kwargs):
