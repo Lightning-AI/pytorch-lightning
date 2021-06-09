@@ -36,6 +36,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
             return self._val_results
         elif self.trainer.testing:
             return self._test_results
+        return None
 
     @property
     def predictions(self):
