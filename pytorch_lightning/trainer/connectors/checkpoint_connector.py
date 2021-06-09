@@ -50,7 +50,16 @@ class CheckpointConnector:
             return f"{dir_path_hpc}/hpc_ckpt_{max_version}.ckpt"
 
     def resume_start(self) -> None:
+        """
+        Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
 
+        1. from HPC weights if found
+        2. from `resume_from_checkpoint` file if provided
+        3. don't restore
+
+        Raises:
+            FileNotFoundError: If the path to the checkpoint file is provided but the file does not exist.
+        """
         self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
