@@ -50,13 +50,7 @@ class CheckpointConnector:
             return f"{dir_path_hpc}/hpc_ckpt_{max_version}.ckpt"
 
     def resume_start(self) -> None:
-        """
-        Attempt to restore a checkpoint in this priority:
 
-        1. from HPC weights if found
-        2. from `resume_from_checkpoint` file if provided
-        3. don't restore
-        """
         self.resume_checkpoint_path = self.hpc_resume_path or self.resume_checkpoint_path
         checkpoint_path = self.resume_checkpoint_path
         if not checkpoint_path:
@@ -91,18 +85,15 @@ class CheckpointConnector:
         # wait for all to catch up
         self.trainer.training_type_plugin.barrier("CheckpointConnector.resume_end")
 
-    def restore_weights(self) -> None:
+    def restore(self, checkpoint_path: Optional[Union[Path, str]] = None) -> bool:
         """
-        Attempt to restore a checkpoint (e.g. weights) in this priority:
-        1. from HPC weights
-        2. from `resume_from_checkpoint` file
-        3. don't restore
-        """
-        self.restore(self.resume_checkpoint_path)
+        Attempt to restore model/training states from a 'PyTorch-Lightning checkpoint' file
+        through file-read and state-restore, in this priority:
 
-    def restore(self, checkpoint_path: str) -> bool:
-        """
-        Load model/training states from a 'PyTorch-Lightning checkpoint' file through file-read and state-restore.
+        1. from HPC weights if found
+        2. from `resume_from_checkpoint` file if provided
+        3. don't restore
+
         All restored states are listed in return value description of `dump_checkpoint`.
         """
         self.resume_checkpoint_path = checkpoint_path
