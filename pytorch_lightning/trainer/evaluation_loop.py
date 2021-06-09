@@ -227,8 +227,6 @@ class EvaluationLoop(object):
 
     def on_evaluation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         self.trainer.logger_connector.on_batch_start()
-        # FIXME(@carmocca): missing hook?
-        # self.trainer.call_hook('on_batch_start')
 
         # set dataloader_idx to model and track batch_size
         assert self.num_dataloaders is not None
@@ -251,8 +249,6 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_batch_end', output, batch, batch_idx, dataloader_idx)
 
-        # FIXME(@carmocca): missing hook?
-        # self.trainer.call_hook('on_batch_end')
         self.trainer.logger_connector.on_batch_end()
 
         # store predicitons if do_write_predictions and track eval loss history
