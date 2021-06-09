@@ -250,7 +250,7 @@ class TrainingBatchLoop(Loop):
         if training_step_output is None:
             return None
 
-        results = self.trainer.results
+        results = self.trainer._results
 
         loss = None
         hiddens = None
@@ -273,8 +273,7 @@ class TrainingBatchLoop(Loop):
         self._hiddens = hiddens
 
         if self.trainer.move_metrics_to_cpu:
-            results = results.cpu()
-
+            results.cpu()
         return results
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):

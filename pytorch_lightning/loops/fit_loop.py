@@ -46,7 +46,7 @@ class FitLoop(Loop):
         self.min_epochs = 1 if (min_epochs is None and min_steps is None) else min_epochs
 
         self.training_loop = TrainingEpochLoop(min_steps, max_steps)
-        self.results = ResultCollection(True)
+        self.results = ResultCollection(training=True)
 
     @property
     def current_epoch(self) -> int:
@@ -138,7 +138,7 @@ class FitLoop(Loop):
             return super().run()
 
     def on_run_start(self):
-        self.trainer.results.to(device=self.trainer.lightning_module.device)
+        self.results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
     def on_advance_start(self):
