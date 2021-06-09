@@ -120,6 +120,7 @@ class EvaluationLoop(object):
             # summarize profile results
             self.trainer.profiler.describe()
 
+        # reset any `torchmetrics.Metric` and the logger connector state
         self.trainer.logger_connector.reset(metrics=True)
 
     def reload_evaluation_dataloaders(self) -> None:
