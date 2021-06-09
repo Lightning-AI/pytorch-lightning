@@ -96,7 +96,7 @@ class EvaluationDataLoaderLoop(DataLoaderLoop):
         self.on_evaluation_epoch_end()
 
         # log epoch metrics
-        eval_loop_results = self.trainer.logger_connector.get_evaluate_epoch_results()
+        eval_loop_results = self.trainer.logger_connector.update_eval_epoch_metrics()
 
         # hook
         self.on_evaluation_end()

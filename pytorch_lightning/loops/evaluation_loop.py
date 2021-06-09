@@ -56,7 +56,7 @@ class EvaluationLoop(Loop):
         self.on_evaluation_batch_end(output, batch, batch_idx, dataloader_idx)
 
         # log batch metrics
-        self.trainer.logger_connector.update_evaluation_step_metrics()
+        self.trainer.logger_connector.update_eval_step_metrics()
 
         # track epoch level outputs
         self.outputs = self.trainer._track_output_for_epoch_end(self.outputs, output)
