@@ -26,7 +26,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn, rank_zero_deprecation
+from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
@@ -119,12 +119,11 @@ class EarlyStopping(Callback):
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
         torch_inf = torch.tensor(np.Inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
-
+        
         if self.monitor is None:
             rank_zero_deprecation(
-                "The `monitor` argument has been depreceated. It will be removed in a further release."
+                "The `monitor` argument has been changed."
             )
-
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
 
@@ -185,8 +184,8 @@ class EarlyStopping(Callback):
         logs = trainer.callback_metrics
 
         if (
-            trainer.fast_dev_run or  # disable early_stopping with fast_dev_run
-            not self._validate_condition_metric(logs)  # short circuit if metric not present
+            trainer.fast_dev_run  # disable early_stopping with fast_dev_run
+            or not self._validate_condition_metric(logs)  # short circuit if metric not present
         ):
             return
 
