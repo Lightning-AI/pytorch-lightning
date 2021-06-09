@@ -141,7 +141,7 @@ class LoggerConnectorNew:
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
 
         # track batch_size
-        self.trainer.results.extract_batch_size(batch)
+        self.trainer._results.extract_batch_size(batch)
         self._batch_idx = batch_idx
 
     def update_eval_step_metrics(self) -> None:
@@ -210,7 +210,7 @@ class LoggerConnectorNew:
     """
 
     def on_train_split_start(self, batch_idx: int, split_idx: int, split_batch: Any) -> None:
-        self.trainer.results.extract_batch_size(split_batch)
+        self.trainer._results.extract_batch_size(split_batch)
         self._batch_idx = batch_idx
         self._split_idx = split_idx
 
@@ -232,7 +232,7 @@ class LoggerConnectorNew:
             self.log_metrics(metrics)
 
         # reset result collection for next epoch
-        self.trainer.results.reset(metrics=True)
+        self.trainer._results.reset(metrics=True)
 
     """
     Utilities and properties
@@ -273,7 +273,7 @@ class LoggerConnectorNew:
         return is_different_fx and is_first_batch
 
     def reset(self, metrics: Optional[bool] = None) -> None:
-        self.trainer.results.reset(metrics=metrics)
+        self.trainer._results.reset(metrics=metrics)
         self._batch_idx = None
         self._split_idx = None
         self._current_fx = None
@@ -282,25 +282,25 @@ class LoggerConnectorNew:
     def metrics(self) -> Dict[MetricSource, Dict[str, _METRIC]]:
         """This function returns either batch or epoch metrics depending on ``_epoch_end_reached``."""
         on_step = not self._epoch_end_reached
-        return self.trainer.results.metrics(on_step)
+        return self.trainer._results.metrics(on_step)
 
     @property
     def callback_metrics(self) -> Dict[str, _METRIC]:
-        if self.trainer.results:
+        if self.trainer._results:
             metrics = self.metrics[MetricSource.CALLBACK]
             self._callback_metrics.update(metrics)
         return self._callback_metrics
 
     @property
     def logged_metrics(self) -> Dict[str, _METRIC]:
-        if self.trainer.results:
+        if self.trainer._results:
             metrics = self.metrics[MetricSource.LOG]
             self._logged_metrics.update(metrics)
         return self._logged_metrics
 
     @property
     def progress_bar_metrics(self) -> Dict[str, float]:
-        if self.trainer.results:
+        if self.trainer._results:
             metrics = self.metrics[MetricSource.PBAR]
             self._progress_bar_metrics.update(metrics)
         return self._progress_bar_metrics
