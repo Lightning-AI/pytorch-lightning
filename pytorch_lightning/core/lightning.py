@@ -309,7 +309,7 @@ class LightningModule(
                 the name (when using multiple). If False, user needs to give unique names for
                 each dataloader to not mix values
             batch_size: Current batch_size. This will be directly inferred from the loaded batch,
-                but some some data structures might need to explicitly provide it.
+                but some data structures might need to explicitly provide it.
             metric_attribute: The attribute name for the metric in the LightningModule.
                 Necessary to save/restore its state.
         """
