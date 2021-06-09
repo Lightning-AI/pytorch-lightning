@@ -30,7 +30,7 @@ There are multiple ways you can speed up your model's time to convergence:
 Early stopping
 **************
 
-**Use when:**
+**Use when:**  it's hard to predict when your model starts overfitting, or when you are confident that low validation error implies low test error; then you want to stop after you found the a local minimum in the validation error.
 
 .. raw:: html
 
@@ -116,7 +116,7 @@ Lightning supports a variety of plugins to further speed up distributed GPU trai
 * :class:`~pytorch_lightning.plugins.training_type.DDPShardedPlugin`
 * :class:`~pytorch_lightning.plugins.training_type.DeepSpeedPlugin`
 
-.. testcode::
+.. code-block:: python
 
     # run on 1 gpu
     trainer = Trainer(gpus=1)
@@ -163,6 +163,10 @@ Mixed precision (16-bit) training
 *********************************
 
 **Use when:**
+* You want to optimize for memory usage on a GPU.
+* You have a GPU that supports 16 bit precision.
+* Your optimization algorithm (training_step) is numerically stable.
+* You want to be the cool guy in the lab :p
 
 .. raw:: html
 
@@ -192,9 +196,10 @@ Lightning offers mixed precision or 16-bit training for CPUs, GPUs, and TPUs.
 Control Training Epochs
 ***********************
 
-**Use when:**
+**Use when:** when you run a hyperparameter search to find good initial parameters and want to save cost (money) or power (environment).
+It can allow you to be more cost efficient and also run more experiments at the same time.
 
-It can be useful to force training for a minimum number of epochs or limit to a max number of epochs. Use the `min_epochs` and `max_epochs` Trainer flags to set the number of epochs to run.
+You can use Trainer flags to force training for a minimum number of epochs or limit to a max number of epochs. Use the `min_epochs` and `max_epochs` Trainer flags to set the number of epochs to run.
 
 .. testcode::
 
@@ -202,7 +207,7 @@ It can be useful to force training for a minimum number of epochs or limit to a 
     trainer = Trainer(min_epochs=1, max_epochs=1000)
 
 
-You can also control the number of steos with the `min_steps` and  `max_steps` flags:
+If running iteration based training, i.e. infitine / iterable dataloader, you can also control the number of steps with the `min_steps` and  `max_steps` flags:
 
 .. testcode::
 
