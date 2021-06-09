@@ -487,13 +487,6 @@ class TrainerProperties(ABC):
     """
 
     @property
-    def active_loop(self) -> Optional[Union[TrainLoop, EvaluationLoop]]:
-        if self.training:
-            return self.train_loop
-        elif self.sanity_checking or self.evaluating:
-            return self.evaluation_loop
-
-    @property
     def fit_loop(self) -> FitLoop:
         # TODO: the current train_loop should be renamed to fit_loop
         return self.train_loop
@@ -530,6 +523,13 @@ class TrainerProperties(ABC):
     def min_steps(self) -> Optional[int]:
         return self.train_loop.min_steps
 
+    @property
+    def _active_loop(self) -> Optional[Union[TrainLoop, EvaluationLoop]]:
+        if self.training:
+            return self.train_loop
+        elif self.sanity_checking or self.evaluating:
+            return self.evaluation_loop
+
     """
     Logging properties
     """
@@ -547,8 +547,8 @@ class TrainerProperties(ABC):
         return self.logger_connector.progress_bar_metrics
 
     @property
-    def results(self) -> Optional[ResultCollection]:
-        active_loop = self.active_loop
+    def _results(self) -> Optional[ResultCollection]:
+        active_loop = self._active_loop
         if active_loop is not None:
             return active_loop.results
 

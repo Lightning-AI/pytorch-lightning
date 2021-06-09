@@ -66,9 +66,9 @@ def _ddp_test_fn(rank, worldsize):
 
             cumulative_sum += i
 
-            result.log('h', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
-            result.log('h', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
-            result.log('h', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
+            result.log('h', 'a', metric_a, on_step=True, on_epoch=True)
+            result.log('h', 'b', metric_b, on_step=False, on_epoch=True)
+            result.log('h', 'c', metric_c, on_step=True, on_epoch=False)
 
             batch_log = result.metrics(True)[MetricSource.LOG]
             assert batch_log == {"a_step": i, "c": i}
@@ -109,9 +109,9 @@ def test_result_metric_integration():
 
             cumulative_sum += i
 
-            result.log('h', 'a', metric_a, on_step=True, on_epoch=True, metric_attribute="metric_a")
-            result.log('h', 'b', metric_b, on_step=False, on_epoch=True, metric_attribute="metric_b")
-            result.log('h', 'c', metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
+            result.log('h', 'a', metric_a, on_step=True, on_epoch=True)
+            result.log('h', 'b', metric_b, on_step=False, on_epoch=True)
+            result.log('h', 'c', metric_c, on_step=True, on_epoch=False)
 
             batch_log = result.metrics(True)[MetricSource.LOG]
             assert batch_log == {"a_step": i, "c": i}
