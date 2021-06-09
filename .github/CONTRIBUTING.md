@@ -14,18 +14,18 @@ This helps users avoid all sorts of subtle errors.
 
 We encourage all sorts of contributions you're interested in adding! When coding for lightning, please follow these principles.
 
-#### No PyTorch Interference
+### No PyTorch Interference
 
 We don't want to add any abstractions on top of pure PyTorch.
 This gives researchers all the control they need without having to learn yet another framework.
 
-#### Simple Internal Code
+### Simple Internal Code
 
 It's useful for users to look at the code and understand very quickly what's happening.
 Many users won't be engineers. Thus we need to value clear, simple code over condensed ninja moves.
 While that's super cool, this isn't the project for that :)
 
-#### Force User Decisions To Best Practices
+### Force User Decisions To Best Practices
 
 There are 1,000 ways to do something. However, eventually one popular solution becomes standard practice, and everyone follows.
 We try to find the best way to solve a particular problem, and then force our users to use it for readability and simplicity.
@@ -35,22 +35,22 @@ A bad forced decision would be to make users use a specific library to do someth
 
 When something becomes a best practice, we add it to the framework. This is usually something like bits of code in utils or in the model file that everyone keeps adding over and over again across projects. When this happens, bring that code inside the trainer and add a flag for it.
 
-#### Simple External API
+### Simple External API
 
 What makes sense to you may not make sense to others. When creating an issue with an API change suggestion, please validate that it makes sense for others.
 Treat code changes the way you treat a startup: validate that it's a needed feature, then add if it makes sense for many people.
 
-#### Backward-compatible API
+### Backward-compatible API
 
 We all hate updating our deep learning packages because we don't want to refactor a bunch of stuff. In Lightning, we make sure every change we make which could break an API is backward compatible with good deprecation warnings.
 
 **You shouldn't be afraid to upgrade Lightning :)**
 
-#### Gain User Trust
+### Gain User Trust
 
 As a researcher, you can't have any part of your code going wrong. So, make thorough tests to ensure that every implementation of a new trick or subtle change is correct.
 
-#### Interoperability
+### Interoperability
 
 Have a favorite feature from other libraries like fast.ai or transformers? Those should just work with lightning as well. Grab your favorite model or learning rate scheduler from your favorite library and run it in Lightning.
 

@@ -16,7 +16,7 @@ from typing import Sequence, Union
 import torch
 from torchmetrics.functional import explained_variance as _explained_variance
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_explained_variance)
@@ -29,3 +29,4 @@ def explained_variance(
     .. deprecated::
         Use :func:`torchmetrics.functional.explained_variance`. Will be removed in v1.5.0.
     """
+    return void(preds, target, multioutput)
