@@ -651,7 +651,7 @@ class DataHooks:
     def on_predict_dataloader(self) -> None:
         """Called before requesting the predict dataloader."""
 
-    def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int = None) -> Any:
+    def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: Optional[int] = None) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.
