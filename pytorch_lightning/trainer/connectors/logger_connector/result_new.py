@@ -225,7 +225,7 @@ class ResultCollection(dict):
     Example:
 
         # `device` needs to be provided before logging
-        result = ResultCollection(True, torch.device("cpu"))
+        result = ResultCollection(training=True, torch.device("cpu"))
 
         # you can log to a specific collection.
         # arguments: fx, key, value, metadata

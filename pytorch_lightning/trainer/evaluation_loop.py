@@ -34,8 +34,8 @@ class EvaluationLoop(object):
         self.max_batches: Optional[List[Union[int, float]]] = None
         self.warning_cache = WarningCache()
         self.num_dataloaders: Optional[int] = None
-        self._val_results = ResultCollection(False)
-        self._test_results = ResultCollection(False)
+        self._val_results = ResultCollection(training=False)
+        self._test_results = ResultCollection(training=False)
 
     @property
     def results(self) -> Optional[ResultCollection]:
