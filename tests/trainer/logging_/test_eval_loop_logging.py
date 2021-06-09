@@ -60,7 +60,6 @@ def test__validation_step__log(tmpdir):
     )
     trainer.fit(model)
 
-    # make sure all the metrics are available for callbacks
     assert set(trainer.logged_metrics) == {
         'a2',
         'a_step',
@@ -224,7 +223,9 @@ def test_eval_logging_auto_reduce(tmpdir):
 
     # make sure values are correct
     assert trainer.logged_metrics['val_loss_epoch'] == model.manual_epoch_end_mean
-    assert trainer.callback_metrics['val_loss'] == trainer.logged_metrics['val_loss_step']
+    assert trainer.callback_metrics['val_loss_epoch'] == model.manual_epoch_end_mean
+    assert trainer.callback_metrics['val_loss'] == model.manual_epoch_end_mean
+    assert trainer.logged_metrics["val_loss_step"] == model.val_losses[-1]
 
 
 @pytest.mark.parametrize(['batches', 'log_interval', 'max_epochs'], [(1, 1, 1), (64, 32, 2)])
@@ -299,176 +300,103 @@ def test_log_works_in_val_callback(tmpdir):
 
     class TestCallback(callbacks.Callback):
 
-        # helpers
-        count = 1
+        count = 0
         choices = [False, True]
+
         # used to compute expected values
-        callback_funcs_called = collections.defaultdict(list)
-        funcs_called_count = collections.defaultdict(int)
-        funcs_attr = {}
+        logged_values = collections.defaultdict(list)
+        call_counter = collections.Counter()
+        logged_arguments = {}
 
-        def make_logging(self, pl_module, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
-            self.funcs_called_count[func_name] += 1
-            product = [on_steps, on_epochs, prob_bars]
-            for idx, (on_step, on_epoch, prog_bar) in enumerate(list(itertools.product(*product))):
-                # run logging
-                custom_func_name = f"{func_idx}_{idx}_{func_name}"
-                pl_module.log(
-                    custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar
-                )
-                # catch information for verification
-                self.callback_funcs_called[func_name].append([self.count * func_idx])
-                self.funcs_attr[custom_func_name] = {
-                    "on_step": on_step,
-                    "on_epoch": on_epoch,
-                    "prog_bar": prog_bar,
-                    "forked": on_step and on_epoch,
-                    "func_name": func_name
-                }
+        def make_logging(self, pl_module, func_name, on_steps, on_epochs, prob_bars):
+            self.call_counter.update([func_name])
 
-                if on_step and on_epoch:
-                    self.funcs_attr[f"{custom_func_name}_step"] = {
-                        "on_step": True,
-                        "on_epoch": False,
-                        "prog_bar": prog_bar,
-                        "forked": False,
-                        "func_name": func_name
-                    }
+            for idx, (on_step, on_epoch, prog_bar) in enumerate(itertools.product(on_steps, on_epochs, prob_bars)):
+                fx = f"{func_name}_{idx}"
+                pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
+                self.logged_values[fx].append(self.count)
+                self.logged_arguments[fx] = {"on_step": on_step, "on_epoch": on_epoch, "prog_bar": prog_bar}
+                self.count += 1
 
-                    self.funcs_attr[f"{custom_func_name}_epoch"] = {
-                        "on_step": False,
-                        "on_epoch": True,
-                        "prog_bar": prog_bar,
-                        "forked": False,
-                        "func_name": func_name
-                    }
-
-        def on_validation_start(self, trainer, pl_module):
+        def on_validation_start(self, _, pl_module):
             self.make_logging(
-                pl_module, 'on_validation_start', 1, on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                pl_module, 'on_validation_start', on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_epoch_start(self, trainer, pl_module):
             if trainer.validating:
                 self.make_logging(
-                    pl_module, 'on_epoch_start', 2, on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                    pl_module, 'on_epoch_start', on_steps=[False], on_epochs=[True], prob_bars=self.choices
                 )
 
-        def on_validation_epoch_start(self, trainer, pl_module):
+        def on_validation_epoch_start(self, _, pl_module):
             self.make_logging(
-                pl_module, 'on_validation_epoch_start', 3, on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                pl_module, 'on_validation_epoch_start', on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_batch_end(self, trainer, pl_module):
-            self.make_logging(
-                pl_module, 'on_batch_end', 6, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
-
-        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_validation_batch_end(self, _, pl_module, *__):
             self.make_logging(
                 pl_module,
                 'on_validation_batch_end',
-                7,
                 on_steps=self.choices,
                 on_epochs=self.choices,
                 prob_bars=self.choices
             )
-            # used to make sure aggregation works fine.
-            # we should obtain func[value * c for c in range(1, max_epochs * limit_validation_batches)])
-            # with func = np.mean if on_epoch else func = np.max
-            self.count += 1
 
         def on_epoch_end(self, trainer, pl_module):
             if trainer.validating:
-                self.make_logging(
-                    pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=[True], prob_bars=self.choices
-                )
+                self.make_logging(pl_module, 'on_epoch_end', on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
-        def on_validation_epoch_end(self, trainer, pl_module):
+        def on_validation_epoch_end(self, _, pl_module):
             self.make_logging(
-                pl_module, 'on_validation_epoch_end', 9, on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                pl_module, 'on_validation_epoch_end', on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
     class TestModel(BoringModel):
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = super().validation_step(batch, batch_idx)['x']
             self.log('val_loss', loss)
 
-    max_epochs = 1
     model = TestModel()
     model.validation_epoch_end = None
-    test_callback = TestCallback()
-
+    cb = TestCallback()
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=4,
-        limit_test_batches=0,
-        val_check_interval=0.,
         num_sanity_val_steps=0,
-        max_epochs=max_epochs,
-        callbacks=[test_callback],
+        max_epochs=1,
+        callbacks=[cb],
     )
     trainer.fit(model)
 
-    assert test_callback.funcs_called_count["on_epoch_start"] == 1
-    # assert test_callback.funcs_called_count["on_batch_start"] == 1
-    assert test_callback.funcs_called_count["on_batch_end"] == 1
-    assert test_callback.funcs_called_count["on_validation_start"] == 1
-    assert test_callback.funcs_called_count["on_validation_epoch_start"] == 1
-    # assert test_callback.funcs_called_count["on_validation_batch_start"] == 4
-    assert test_callback.funcs_called_count["on_epoch_end"] == 1
-    assert test_callback.funcs_called_count["on_validation_batch_end"] == 4
-    assert test_callback.funcs_called_count["on_validation_epoch_end"] == 1
+    assert cb.call_counter == {
+        'on_validation_batch_end': 4,
+        'on_validation_start': 1,
+        'on_epoch_start': 1,
+        'on_validation_epoch_start': 1,
+        'on_validation_epoch_end': 1,
+        'on_epoch_end': 1
+    }
 
-    # Make sure the func_name exists within callback_metrics. If not, we missed some
-    callback_metrics_keys = [*trainer.callback_metrics.keys()]
-    for func_name in test_callback.callback_funcs_called.keys():
-        is_in = False
-        for callback_metrics_key in callback_metrics_keys:
-            if func_name in callback_metrics_key:
-                is_in = True
-        assert is_in, (func_name, callback_metrics_keys)
+    def get_expected(on_epoch, values):
+        reduction = np.mean if on_epoch else np.max
+        return reduction(values)
 
-    # function used to describe expected return logic
-    def get_expected_output(func_attr, original_values):
-
-        if func_attr["on_epoch"] and not func_attr["on_step"]:
-            # Apply mean on values
-            expected_output = np.mean(original_values)
-        else:
-            # Keep the latest value
-            expected_output = np.max(original_values)
-        return expected_output
-
-    # Make sure the func_name output equals the average from all logged values when on_epoch true
-    # pop extra keys
-    trainer.callback_metrics.pop("val_loss")
-    for func_name, output_value in trainer.callback_metrics.items():
-        # not sure how to handle this now
-        if "epoch_0" in func_name:
-            func_name = '/'.join(func_name.split('/')[:-1])
+    for fx, value in trainer.callback_metrics.items():
+        actual = value.item()
+        if fx not in cb.logged_arguments:
             continue
+        on_epoch = cb.logged_arguments[fx]['on_epoch']
+        values = cb.logged_values[fx]
+        expected = get_expected(on_epoch, values)
+        assert actual == expected
 
-        if torch.is_tensor(output_value):
-            output_value = output_value.item()
-        # get creation attr
-        func_attr = test_callback.funcs_attr[func_name]
-
-        # retrived orginal logged values
-        original_values = test_callback.callback_funcs_called[func_attr["func_name"]]
-
-        # compute expected output and compare to actual one
-        expected_output = get_expected_output(func_attr, original_values)
-        assert float(output_value) == float(expected_output)
-
-    for func_name, func_attr in test_callback.funcs_attr.items():
-        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
-            assert func_name in trainer.logger_connector.progress_bar_metrics
-        else:
-            assert func_name not in trainer.logger_connector.progress_bar_metrics
+    for fx, attrs in cb.logged_arguments.items():
+        should_include = attrs["prog_bar"] and attrs["on_step"] ^ attrs["on_epoch"]
+        is_included = fx in trainer.logger_connector.progress_bar_metrics
+        assert is_included if should_include else not is_included
 
 
 def test_log_works_in_test_callback(tmpdir):
@@ -479,7 +407,7 @@ def test_log_works_in_test_callback(tmpdir):
     class TestCallback(callbacks.Callback):
 
         # helpers
-        count = 1
+        count = 0
         choices = [False, True]
 
         # used to compute expected values
@@ -487,19 +415,15 @@ def test_log_works_in_test_callback(tmpdir):
         funcs_called_count = collections.defaultdict(int)
         funcs_attr = {}
 
-        def make_logging(self, pl_module, func_name, func_idx, on_steps=[], on_epochs=[], prob_bars=[]):
+        def make_logging(self, pl_module, func_name, on_steps, on_epochs, prob_bars):
             original_func_name = func_name[:]
             self.funcs_called_count[original_func_name] += 1
-            product = [on_steps, on_epochs, prob_bars]
-            for idx, t in enumerate(list(itertools.product(*product))):
-                # run logging
-                func_name = original_func_name[:]
-                on_step, on_epoch, prog_bar = t
-                custom_func_name = f"{func_idx}_{idx}_{func_name}"
 
-                pl_module.log(
-                    custom_func_name, self.count * func_idx, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar
-                )
+            for idx, (on_step, on_epoch, prog_bar) in enumerate(itertools.product(on_steps, on_epochs, prob_bars)):
+                func_name = original_func_name[:]
+                custom_func_name = f"{idx}_{func_name}"
+
+                pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
                 num_dl_ext = ''
                 if pl_module._current_dataloader_idx is not None:
@@ -508,12 +432,11 @@ def test_log_works_in_test_callback(tmpdir):
                     func_name += num_dl_ext
 
                 # catch information for verification
-                self.callback_funcs_called[func_name].append([self.count * func_idx])
+                self.callback_funcs_called[func_name].append([self.count])
                 self.funcs_attr[custom_func_name + num_dl_ext] = {
                     "on_step": on_step,
                     "on_epoch": on_epoch,
                     "prog_bar": prog_bar,
-                    "forked": on_step and on_epoch,
                     "func_name": func_name
                 }
                 if on_step and on_epoch:
@@ -521,7 +444,6 @@ def test_log_works_in_test_callback(tmpdir):
                         "on_step": True,
                         "on_epoch": False,
                         "prog_bar": prog_bar,
-                        "forked": False,
                         "func_name": func_name
                     }
 
@@ -529,125 +451,86 @@ def test_log_works_in_test_callback(tmpdir):
                         "on_step": False,
                         "on_epoch": True,
                         "prog_bar": prog_bar,
-                        "forked": False,
                         "func_name": func_name
                     }
 
-        def on_test_start(self, trainer, pl_module):
-            self.make_logging(pl_module, 'on_test_start', 1, on_steps=[False], on_epochs=[True], prob_bars=self.choices)
+        def on_test_start(self, _, pl_module):
+            self.make_logging(pl_module, 'on_test_start', on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
-        def on_test_epoch_start(self, trainer, pl_module):
+        def on_test_epoch_start(self, _, pl_module):
             self.make_logging(
-                pl_module, 'on_test_epoch_start', 3, on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                pl_module, 'on_test_epoch_start', on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        def on_test_batch_end(self, _, pl_module, *__):
             self.make_logging(
-                pl_module,
-                'on_test_batch_end',
-                5,
-                on_steps=self.choices,
-                on_epochs=self.choices,
-                prob_bars=self.choices
+                pl_module, 'on_test_batch_end', on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
             )
 
-            # used to make sure aggregation works fine.
-            # we should obtain func[value * c for c in range(1, max_epochs * limit_test_batches)])
-            # with func = np.mean if on_epoch else func = np.max
-            self.count += 1
-
-        def on_test_epoch_end(self, trainer, pl_module):
+        def on_test_epoch_end(self, _, pl_module):
             self.make_logging(
-                pl_module, 'on_test_epoch_end', 7, on_steps=[False], on_epochs=[True], prob_bars=self.choices
+                pl_module, 'on_test_epoch_end', on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
-    max_epochs = 2
     num_dataloaders = 2
 
     class TestModel(BoringModel):
-
-        manual_mean = collections.defaultdict(list)
+        seen_losses = {i: [] for i in range(num_dataloaders)}
 
         def test_step(self, batch, batch_idx, dataloader_idx=None):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = super().test_step(batch, batch_idx)['y']
             self.log('test_loss', loss)
-            self.manual_mean[str(dataloader_idx)].append(loss)
+            self.seen_losses[dataloader_idx].append(loss)
 
         def test_dataloader(self):
             return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
 
     model = TestModel()
     model.test_epoch_end = None
-    test_callback = TestCallback()
-
+    cb = TestCallback()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=0,
         limit_test_batches=2,
-        val_check_interval=0.,
         num_sanity_val_steps=0,
-        max_epochs=max_epochs,
-        callbacks=[test_callback],
+        max_epochs=2,
+        callbacks=[cb],
     )
     trainer.test(model)
 
-    assert test_callback.funcs_called_count["on_test_start"] == 1
-    assert test_callback.funcs_called_count["on_test_epoch_start"] == 1
-    assert test_callback.funcs_called_count["on_test_batch_end"] == 4
-    assert test_callback.funcs_called_count["on_test_epoch_end"] == 1
+    assert cb.funcs_called_count["on_test_start"] == 1
+    assert cb.funcs_called_count["on_test_epoch_start"] == 1
+    assert cb.funcs_called_count["on_test_batch_end"] == 4
+    assert cb.funcs_called_count["on_test_epoch_end"] == 1
 
-    # Make sure the func_name exists within callback_metrics. If not, we missed some
-    callback_metrics_keys = [*trainer.callback_metrics.keys()]
-
-    for func_name in test_callback.callback_funcs_called.keys():
+    callback_metrics_keys = list(trainer.callback_metrics)
+    for func_name in cb.callback_funcs_called.keys():
         is_in = False
         for callback_metrics_key in callback_metrics_keys:
             if func_name in callback_metrics_key:
                 is_in = True
         assert is_in, (func_name, callback_metrics_keys)
 
-    # function used to describe expected return logic
-    def get_expected_output(func_attr, original_values):
-        # Apply mean on values
-        if func_attr["on_epoch"] and not func_attr["on_step"]:
-            expected_output = np.mean(original_values)
-        else:
-            expected_output = np.max(original_values)
-        return expected_output
+    def get_expected(on_epoch, values):
+        reduction = np.mean if on_epoch else np.max
+        return reduction(values)
 
     # Make sure the func_name output equals the average from all logged values when on_epoch true
     for dl_idx in range(num_dataloaders):
         key = f"test_loss/dataloader_idx_{dl_idx}"
         assert key in trainer.callback_metrics
-        assert torch.stack(model.manual_mean[str(dl_idx)]).mean() == trainer.callback_metrics[key]
-        trainer.callback_metrics.pop(key)
+        assert torch.stack(model.seen_losses[dl_idx]).mean() == trainer.callback_metrics.pop(key)
 
     for func_name, output_value in trainer.callback_metrics.items():
-        # not sure how to handle this now
-        if "epoch_1" in func_name:
-            func_name = '/'.join(func_name.split('/')[:-1])
-            continue
+        output_value = output_value.item()
+        func_attr = cb.funcs_attr[func_name]
+        original_values = cb.callback_funcs_called[func_attr["func_name"]]
+        expected_output = get_expected(func_attr['on_epoch'], original_values)
+        assert output_value == expected_output
 
-        if torch.is_tensor(output_value):
-            output_value = output_value.item()
-
-        # get func attr
-        func_attr = test_callback.funcs_attr[func_name]
-
-        # retrived orginal logged values
-        original_values = test_callback.callback_funcs_called[func_attr["func_name"]]
-
-        # compute expected output and compare to actual one
-        expected_output = get_expected_output(func_attr, original_values)
-        assert float(output_value) == float(expected_output)
-
-    for func_name, func_attr in test_callback.funcs_attr.items():
-        if func_attr["prog_bar"] and (func_attr["on_step"] or func_attr["on_epoch"]) and not func_attr["forked"]:
-            assert func_name in trainer.logger_connector.progress_bar_metrics
-        else:
-            assert func_name not in trainer.logger_connector.progress_bar_metrics
+    for fx, attrs in cb.funcs_attr.items():
+        should_include = attrs["prog_bar"] and attrs["on_step"] ^ attrs["on_epoch"]
+        is_included = fx in trainer.logger_connector.progress_bar_metrics
+        assert is_included if should_include else not is_included
 
 
 @mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
