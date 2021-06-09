@@ -259,13 +259,13 @@ class ModelPruning(Callback):
     def _wrap_pruning_fn(pruning_fn: Callable, **kwargs: Any) -> Callable:
         return partial(pruning_fn, **kwargs)
 
-    def make_pruning_permanent(self, pl_module: LightningModule) -> None:
+    def make_pruning_permanent(self, module: nn.Module) -> None:
         """
         Removes pruning buffers from any pruned modules
 
         Adapted from https://github.com/pytorch/pytorch/blob/1.7.1/torch/nn/utils/prune.py#L1176-L1180
         """
-        for _, module in pl_module.named_modules():
+        for _, module in module.named_modules():
             for k in list(module._forward_pre_hooks):
                 hook = module._forward_pre_hooks[k]
                 if isinstance(hook, pytorch_prune.BasePruningMethod):

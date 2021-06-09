@@ -16,7 +16,7 @@ from typing import Optional, Sequence
 import torch
 from torchmetrics.functional import ssim as _ssim
 
-from pytorch_lightning.metrics.utils import deprecated_metrics
+from pytorch_lightning.metrics.utils import deprecated_metrics, void
 
 
 @deprecated_metrics(target=_ssim)
@@ -34,3 +34,4 @@ def ssim(
     .. deprecated::
         Use :func:`torchmetrics.functional.ssim`. Will be removed in v1.5.0.
     """
+    return void(preds, target, kernel_size, sigma, reduction, data_range, k1, k2)
