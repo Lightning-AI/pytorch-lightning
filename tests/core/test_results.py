@@ -20,7 +20,9 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 import tests.helpers.utils as tutils
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.connectors.logger_connector.result_new import _Sync
+from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
@@ -37,9 +39,8 @@ def _setup_ddp(rank, worldsize):
 def _ddp_test_fn(rank, worldsize):
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.0])
-    actual = LightningModule._BaseLightningModule__sync(
-        tensor, sync_dist=True, sync_dist_op=torch.distributed.ReduceOp.SUM
-    )
+    sync = _Sync(sync_ddp_if_available, should=True, op=torch.distributed.ReduceOp.SUM)
+    actual = sync(tensor)
     assert actual.item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
 
