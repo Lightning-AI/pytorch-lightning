@@ -247,11 +247,11 @@ class BatchLoop(Loop):
         if training_step_output is None:
             return None
 
-        result = self.trainer.result_collection
+        results = self.trainer.results
 
         loss = None
         hiddens = None
-        result.extra = {}
+        results.extra = {}
 
         # handle dict return
         if isinstance(training_step_output, dict):
@@ -259,20 +259,20 @@ class BatchLoop(Loop):
             hiddens = training_step_output.pop("hiddens", None)
             if hiddens is not None:
                 hiddens = hiddens.detach()
-            result.extra = training_step_output
+            results.extra = training_step_output
 
         # handle scalar return
         elif isinstance(training_step_output, torch.Tensor):
             loss = training_step_output
 
         # map to results under the hood
-        result.minimize = loss
+        results.minimize = loss
         self._hiddens = hiddens
 
         if self.trainer.move_metrics_to_cpu:
-            result = result.cpu()
+            results = results.cpu()
 
-        return result
+        return results
 
     def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         model_ref = self.trainer.lightning_module

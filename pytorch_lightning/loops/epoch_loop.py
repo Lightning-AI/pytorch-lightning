@@ -36,7 +36,7 @@ class EpochLoop(Loop):
 
         self.training_loop = TrainingLoop(min_steps, max_steps)
 
-        self.train_results = ResultCollection(True)
+        self.results = ResultCollection(True)
 
     @property
     def current_epoch(self) -> int:
@@ -130,7 +130,7 @@ class EpochLoop(Loop):
             return super().run()
 
     def on_run_start(self):
-        self.trainer.result_collection.device = self.trainer.lightning_module.device
+        self.trainer.results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
     def on_advance_start(self):  # equal to old on_train_epoch_start
