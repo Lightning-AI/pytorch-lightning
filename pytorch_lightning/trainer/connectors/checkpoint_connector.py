@@ -115,7 +115,7 @@ class CheckpointConnector:
 
         # restore training state
         if self._loaded_checkpoint:
-            self.restore_training_state(self._loaded_checkpoint, self._load_optimizer_states)
+            self.restore_training_state()
 
         self.resume_end()
         return True
@@ -135,36 +135,48 @@ class CheckpointConnector:
         # restore model state_dict
         model.load_state_dict(checkpoint['state_dict'])
 
-    def restore_training_state(self, checkpoint, load_optimizer_states: bool = True):
+    def restore_training_state(self) -> None:
         """
-        Restore trainer state.
-        Model will get its change to update
-        :param checkpoint:
-        :return:
+        Restore the trainer state from the pre-loaded checkpoint. This includes the precision settings, loop progress,
+        optimizer states and learning rate scheduler states.
         """
+        if not self._loaded_checkpoint:
+            return
 
-        # validation
-        if load_optimizer_states and ('optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint):
-            raise KeyError(
-                'Trying to restore training state but checkpoint contains only the model.'
-                ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
-            )
+        # restore precision plugin (scaler etc.)
+        self.trainer.precision_plugin.on_load_checkpoint(self._loaded_checkpoint)
 
-        if any([key in checkpoint for key in DEPRECATED_CHECKPOINT_KEYS]):
+        self.restore_callbacks()
+
+        # restore progress (loops etc.)
+        self.restore_progress()
+
+        self.restore_optimizers_and_schedulers()
+
+    def restore_callbacks(self) -> None:
+        """ Restores all callbacks from the pre-loaded checkpoint. """
+        if not self._loaded_checkpoint:
+            return
+
+        if any([key in self._loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS]):
             raise ValueError(
                 "The checkpoint you're attempting to load follows an"
                 " outdated schema. You can upgrade to the current schema by running"
                 " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
                 " where `model.ckpt` is your checkpoint file."
             )
+        self.trainer.on_load_checkpoint(self._loaded_checkpoint)
 
-        self.trainer.precision_plugin.on_load_checkpoint(checkpoint)
+    def restore_progress(self) -> None:
+        """
+        Restores the training progress from the pre-loaded checkpoint. This currently includes only the global step
+        and current epoch.
+        """
+        if not self._loaded_checkpoint:
+            return
 
-        # restore callback states
-        self.trainer.on_load_checkpoint(checkpoint)
-
-        self.trainer.train_loop.global_step = checkpoint['global_step']
-        self.trainer.train_loop.current_epoch = checkpoint['epoch']
+        self.trainer.train_loop.global_step = self._loaded_checkpoint['global_step']
+        self.trainer.train_loop.current_epoch = self._loaded_checkpoint['epoch']
 
         # crash if max_epochs is lower then the current epoch from the checkpoint
         if self.trainer.max_epochs is not None and self.trainer.current_epoch > self.trainer.max_epochs:
@@ -186,11 +198,27 @@ class CheckpointConnector:
                 " consider using an end of epoch checkpoint."
             )
 
-        if not load_optimizer_states:
+    def restore_optimizers_and_schedulers(self) -> None:
+        """ Restores the optimizers and learning rate scheduler states from the pre-loaded checkpoint. """
+        if not self._load_optimizer_states or not self._loaded_checkpoint:
+            return
+
+        # validation
+        if "optimizer_states" not in self._loaded_checkpoint or "lr_schedulers" not in self._loaded_checkpoint:
+            raise KeyError(
+                "Trying to restore training state but checkpoint contains only the model."
+                " This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`."
+            )
+        self.restore_optimizers()
+        self.restore_lr_schedulers()
+
+    def restore_optimizers(self) -> None:
+        """ Restores the optimizer states from the pre-loaded checkpoint. """
+        if not self._load_optimizer_states or not self._loaded_checkpoint:
             return
 
         # restore the optimizers
-        optimizer_states = checkpoint['optimizer_states']
+        optimizer_states = self._loaded_checkpoint['optimizer_states']
         for optimizer, opt_state in zip(self.trainer.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
@@ -202,8 +230,13 @@ class CheckpointConnector:
                         if isinstance(v, torch.Tensor):
                             state[k] = v.cuda(self.trainer.root_gpu)
 
+    def restore_lr_schedulers(self) -> None:
+        """ Restores the learning rate scheduler states from the pre-loaded checkpoint. """
+        if not self._load_optimizer_states or not self._loaded_checkpoint:
+            return
+
         # restore the lr schedulers
-        lr_schedulers = checkpoint['lr_schedulers']
+        lr_schedulers = self._loaded_checkpoint['lr_schedulers']
         for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
             scheduler['scheduler'].load_state_dict(lrs_state)
 
