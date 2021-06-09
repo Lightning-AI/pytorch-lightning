@@ -42,7 +42,7 @@ class MetricSource(LightningEnum):
 class _Sync:
     fn: Callable
     should: bool = False
-    op: Union[Any, str] = 'mean'
+    op: Optional[str] = None
     group: Optional[Any] = None
 
     @property
@@ -62,11 +62,28 @@ class _Metadata:
     logger: bool = True
     on_step: bool = False
     on_epoch: bool = True
-    reduce_fx: Callable = torch.mean
+    reduce_fx: Union[str, Callable] = torch.mean
     enable_graph: bool = False
     dataloader_idx: Optional[int] = None
     metric_attribute: Optional[str] = None
     sync: _Sync = field(default_factory=_Sync)
+
+    def __post_init__(self) -> None:
+        error = (
+            'Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported.'
+            ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`.'
+            f' Found: {self.reduce_fx}'
+        )
+        if isinstance(self.reduce_fx, str):
+            reduce_fx = self.reduce_fx.lower()
+            if reduce_fx == 'avg':
+                reduce_fx = 'mean'
+            if reduce_fx not in ('min', 'max', 'mean', 'sum'):
+                raise MisconfigurationException(error)
+            self.reduce_fx = getattr(torch, reduce_fx)
+        elif self.is_custom_reduction:
+            raise MisconfigurationException(error)
+        self.sync.op = self.reduce_fx.__name__
 
     @property
     def forked(self) -> bool:
@@ -79,7 +96,11 @@ class _Metadata:
 
     @property
     def is_mean_reduction(self) -> bool:
-        return self.reduce_fx == torch.mean
+        return self.reduce_fx is torch.mean
+
+    @property
+    def is_sum_reduction(self) -> bool:
+        return self.reduce_fx in (torch.sum, sum)
 
     @property
     def is_max_reduction(self) -> bool:
@@ -91,7 +112,7 @@ class _Metadata:
 
     @property
     def is_custom_reduction(self) -> bool:
-        return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction)
+        return not (self.is_mean_reduction or self.is_max_reduction or self.is_min_reduction or self.is_sum_reduction)
 
 
 class ResultMetric(Metric, DeviceDtypeModuleMixin):
@@ -121,6 +142,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
                 self.cumulated_batch_size += batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
+            elif self.meta.is_sum_reduction:
+                self.value += value.mean() * batch_size
         else:
             self.value = value  # noqa: attribute-defined-outside-init
             self._forward_cache = value._forward_cache
@@ -131,11 +154,8 @@ class ResultMetric(Metric, DeviceDtypeModuleMixin):
             if self.meta.is_mean_reduction:
                 cumulated_batch_size = self.meta.sync(self.cumulated_batch_size)
                 return value / cumulated_batch_size
-            elif self.meta.is_max_reduction or self.meta.is_min_reduction:
+            elif self.meta.is_max_reduction or self.meta.is_min_reduction or self.meta.is_sum_reduction:
                 return value
-            raise MisconfigurationException(
-                f"Only [min, max, mean] reductions are supported. Found {self.meta.reduce_fx}"
-            )
         return self.value.compute()
 
     def reset(self) -> None:
@@ -280,7 +300,6 @@ class ResultCollection(dict):
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
-        sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
         dataloader_idx: Optional[int] = None,
         batch_size: Optional[int] = None,
@@ -316,16 +335,10 @@ class ResultCollection(dict):
             sync=_Sync(
                 should=sync_dist,
                 fn=sync_dist_fn,
-                op=sync_dist_op,
                 group=sync_dist_group,
             )
         )
         if key not in self:
-            if meta.is_custom_reduction:
-                raise MisconfigurationException(
-                    'Only `self.log(..., reduce_fx={min,max,mean})` are currently supported.'
-                    ' Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`'
-                )
             self.register_key(key, meta, value)
         elif meta != self[key].meta:
             raise MisconfigurationException(

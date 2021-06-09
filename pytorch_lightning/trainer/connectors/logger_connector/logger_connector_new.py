@@ -141,7 +141,7 @@ class LoggerConnectorNew:
         model._current_dataloader_idx = dataloader_idx if num_dataloaders > 1 else None
 
         # track batch_size
-        self.trainer.result_collection.extract_batch_size(batch)
+        self.trainer.results.extract_batch_size(batch)
         self._batch_idx = batch_idx
 
     def update_eval_step_metrics(self) -> None:
@@ -306,6 +306,7 @@ class LoggerConnectorNew:
         return self._progress_bar_metrics
 
     def teardown(self):
+        # TODO(@awaelchli): This should be handled by the loops themselves
         self.trainer.train_loop.results.cpu()
         self.trainer.evaluation_loop._val_results.cpu()
         self.trainer.evaluation_loop._test_results.cpu()
