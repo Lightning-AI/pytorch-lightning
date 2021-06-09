@@ -52,7 +52,6 @@ class IPUPlugin(ParallelPlugin):
     def __init__(
         self,
         device_iterations: int = 1,
-        autoround_num_ipus: bool = True,
         autoreport: bool = True,
         autoreport_dir: Optional[str] = None,
         convert_model_to_half: bool = False,
@@ -67,7 +66,6 @@ class IPUPlugin(ParallelPlugin):
             device_iterations: Number of iterations to run on device at once before returning to host.
                 This can be used as an optimization to speed up training.
                 https://docs.graphcore.ai/projects/poptorch-user-guide/en/0.1.67/batching.html
-            autoround_num_ipus: When selecting multiple IPUs, auto-rounds to powers of 2 as required for IPUs.
             autoreport: Enable auto-reporting for IPUs using PopVision
                 https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html
             autoreport_dir: Optional directory to store autoReport output.
@@ -85,7 +83,6 @@ class IPUPlugin(ParallelPlugin):
 
         self.convert_model_to_half = convert_model_to_half
         self.device_iterations = device_iterations
-        self.autoround_num_ipus = autoround_num_ipus
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
         self.poptorch_models = {}
@@ -139,7 +136,6 @@ class IPUPlugin(ParallelPlugin):
         opts.replicationFactor(self.replication_factor)
         gradient_accumulation = self.lightning_module.trainer.accumulate_grad_batches if training else 1
         opts.Training.gradientAccumulation(gradient_accumulation)
-        opts.autoRoundNumIPUs(self.autoround_num_ipus)
 
         if os.environ.get("PL_GLOBAL_SEED"):
             opts.randomSeed(int(os.environ["PL_GLOBAL_SEED"]))
