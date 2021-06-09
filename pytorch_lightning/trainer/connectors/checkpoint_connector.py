@@ -379,7 +379,9 @@ class CheckpointConnector:
             model.cuda(self.trainer.root_gpu)
 
         # restore training state
-        self.restore_training_state(checkpoint)
+        self._loaded_checkpoint = checkpoint
+        self.restore_training_state()
+        self._loaded_checkpoint = dict()
 
         # call hpc specific hook
         model.on_hpc_load(checkpoint)
