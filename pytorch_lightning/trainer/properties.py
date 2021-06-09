@@ -32,7 +32,7 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.logger_connector_new import LoggerConnectorNew
 from pytorch_lightning.trainer.connectors.logger_connector.result_new import ResultCollection
 from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage, TrainerState, TrainerStatus
@@ -60,7 +60,7 @@ class TrainerProperties(ABC):
     checkpoint_connector: CheckpointConnector
     limit_val_batches: int
     logger: LightningLoggerBase
-    logger_connector: LoggerConnector
+    logger_connector: LoggerConnectorNew
     state: TrainerState
     train_loop: TrainLoop
     evaluation_loop: EvaluationLoop
