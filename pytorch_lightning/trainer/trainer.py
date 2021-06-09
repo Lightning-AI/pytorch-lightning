@@ -1120,6 +1120,7 @@ class Trainer(
             # prevents sanity check to affect random sampling in training
             reset_seed()
 
+            # restore the previous stage when the sanity check if finished
             self.state.stage = stage
 
     def __load_ckpt_weights(self, ckpt_path: Optional[str]) -> Optional[str]:
