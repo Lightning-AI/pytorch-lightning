@@ -30,6 +30,9 @@ from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
+if _IPU_AVAILABLE:
+    import poptorch
+
 
 class IPUModel(BoringModel):
 
@@ -141,7 +144,6 @@ def test_optimization(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        deterministic=True,
         ipus=2,
     )
 
@@ -167,7 +169,7 @@ def test_optimization(tmpdir):
 
     model = IPUClassificationModel.load_from_checkpoint(model_path)
 
-    trainer = Trainer(default_root_dir=tmpdir, deterministic=True)
+    trainer = Trainer(default_root_dir=tmpdir, ipus=2)
 
     result = trainer.test(model, datamodule=dm)
     saved_result = result[0]['test_acc']
@@ -330,3 +332,139 @@ def test_autoreport(tmpdir):
     trainer.fit(model)
     assert os.path.exists(autoreport_path)
     assert os.path.isfile(autoreport_path + 'profile.pop')
+
+
+@RunIf(ipu=True)
+def test_manual_poptorch_opts(tmpdir):
+    """Ensure if the user passes manual poptorch Options, we run with the correct object."""
+    model = IPUModel()
+    inference_opts = poptorch.Options()
+    inference_opts.deviceIterations(20)
+    inference_opts.replicationFactor(1)
+    inference_opts.Training.gradientAccumulation(1)
+
+    training_opts = poptorch.Options()
+    training_opts.deviceIterations(20)
+    training_opts.replicationFactor(1)
+    training_opts.Training.gradientAccumulation(1)
+
+    trainer = Trainer(
+        ipus=1, fast_dev_run=True, plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+    )
+
+    assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+    assert trainer.accelerator.training_type_plugin.training_opts == training_opts
+    assert trainer.accelerator.training_type_plugin.inference_opts == inference_opts
+    trainer.fit(model)
+
+
+@RunIf(ipu=True)
+def test_manual_poptorch_opts_ipu_count(tmpdir):
+    """
+    Ensure if the user passes manual poptorch Options
+    and the number of ipus do not match, we warn and we set it for the user.
+    """
+
+    manual_ipus = 1
+    expected_ipus = 2
+    model = IPUModel()
+    inference_opts = poptorch.Options()
+    inference_opts.replicationFactor(manual_ipus)
+
+    training_opts = poptorch.Options()
+    training_opts.replicationFactor(manual_ipus)
+
+    trainer = Trainer(
+        ipus=expected_ipus,
+        fast_dev_run=True,
+        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+    )
+    with pytest.warns(
+        UserWarning,
+        match=f"Manual poptorch.Options set replicationFactor to {manual_ipus} "
+        f"which differs to the ipus={expected_ipus} flag passed to the Trainer. "
+        f"Setting to {expected_ipus} in the poptorch.Options."
+    ):
+        trainer.fit(model)
+        assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+        assert trainer.accelerator.training_type_plugin.training_opts.replication_factor == 2
+        assert trainer.accelerator.training_type_plugin.inference_opts.replication_factor == 2
+
+
+@RunIf(ipu=True)
+def test_manual_poptorch_opts_inference_grad_accum(tmpdir):
+    """
+    Ensure if the user passes manual poptorch Options
+    and grad accumulation is set greater than 1 for inference, we warn and set to 1.
+    """
+
+    model = IPUModel()
+    inference_opts = poptorch.Options()
+    inference_opts.Training.gradientAccumulation(4)
+
+    training_opts = poptorch.Options()
+    training_opts.Training.gradientAccumulation(1)
+
+    trainer = Trainer(
+        ipus=1, fast_dev_run=True, plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+    )
+    with pytest.warns(
+        UserWarning,
+        match="Inference poptorch.Options should set gradientAccumulation to 1. "
+        "Setting gradientAccumulation to 1 for inference options.",
+    ):
+        trainer.fit(model)
+        assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+        assert trainer.accelerator.training_type_plugin.inference_opts.Training.gradient_accumulation == 1
+
+
+@RunIf(ipu=True)
+def test_manual_poptorch_opts_train_grad_accum(tmpdir):
+    """
+    Ensure if the user passes manual poptorch Options
+    and grad accumulation differs to accumulate_grad_batches, we
+    """
+
+    model = IPUModel()
+    inference_opts = poptorch.Options()
+    inference_opts.Training.gradientAccumulation(1)
+
+    training_opts = poptorch.Options()
+    training_opts.Training.gradientAccumulation(2)
+
+    trainer = Trainer(
+        ipus=1,
+        fast_dev_run=True,
+        accumulate_grad_batches=1,
+        plugins=IPUPlugin(inference_opts=inference_opts, training_opts=training_opts)
+    )
+    with pytest.warns(
+        UserWarning,
+        match=f"Training poptorch.Options set gradientAccumulation to {2}. "
+        f"This is different to accumulate_grad_batches which was set to {1}. "
+        f"To change gradientAccumulation, please set accumulate_grad_batches in the Trainer. "
+        f"Setting poptorch.Options gradientAccumulation to {1}",
+    ):
+        trainer.fit(model)
+        assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+        assert trainer.accelerator.training_type_plugin.inference_opts.Training.gradient_accumulation == 1
+
+
+@RunIf(ipu=True)
+def test_default_opts(tmpdir):
+    """
+    Ensure default opts are set correctly in the IPUPlugin.
+    """
+
+    model = IPUModel()
+
+    trainer = Trainer(ipus=1, fast_dev_run=True)
+    trainer.fit(model)
+    assert isinstance(trainer.accelerator.training_type_plugin, IPUPlugin)
+    inference_opts = trainer.accelerator.training_type_plugin.inference_opts
+    training_opts = trainer.accelerator.training_type_plugin.training_opts
+    for opts in (inference_opts, training_opts):
+        assert isinstance(opts, poptorch.Options)
+        assert opts.Training.gradient_accumulation == 1
+        assert opts.device_iterations == 1
+        assert opts.replication_factor == 1

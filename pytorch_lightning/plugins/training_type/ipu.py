@@ -14,7 +14,7 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.training_type.parallel import ParallelPlugin
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import _POPTORCH_AVAILABLE
+from pytorch_lightning.utilities import _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -58,6 +58,8 @@ class IPUPlugin(ParallelPlugin):
         convert_model_to_half: bool = False,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
+        training_opts: Optional['poptorch.Options'] = None,
+        inference_opts: Optional['poptorch.Options'] = None
     ) -> None:
         """
         Arguments:
@@ -70,6 +72,9 @@ class IPUPlugin(ParallelPlugin):
                 https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html
             autoreport_dir: Optional directory to store autoReport output.
             convert_model_to_half: Converts the model to half precision, which can be used for pure FP16 training.
+            training_opts: Optional ``poptorch.Options`` to override the default created options for training.
+            inference_opts: Optional ``poptorch.Options`` to override the default
+                created options for validation/testing and predicting.
         """
         super().__init__(parallel_devices, cluster_environment)
         if not _POPTORCH_AVAILABLE or not poptorch.ipuHardwareIsAvailable():
@@ -85,6 +90,8 @@ class IPUPlugin(ParallelPlugin):
         self.autoreport_dir = autoreport_dir
         self.poptorch_models = {}
         self._original_accumulate_grad_batches = None
+        self._training_opts = training_opts
+        self._inference_opts = inference_opts
 
         if self.autoreport:
             options = {"autoReport.all": self.autoreport}
@@ -95,10 +102,6 @@ class IPUPlugin(ParallelPlugin):
                     self._fs.makedirs(self.autoreport_dir)
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
-
-    @property
-    def lightning_module(self) -> Optional[LightningModule]:
-        return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def pre_dispatch(self) -> None:
         self._handle_gradient_accumulation_steps()
@@ -117,12 +120,12 @@ class IPUPlugin(ParallelPlugin):
         if self.lightning_module.trainer.state.stage is RunningStage.TRAINING:
             # Create model for training which will run training.
             optimizer = self.lightning_module.trainer.optimizers[0]
-            model = poptorch.trainingModel(model=model, options=self._create_opts(training=True), optimizer=optimizer)
+            model = poptorch.trainingModel(model=model, options=self.training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
         for x in (RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING):
             model = poptorch.inferenceModel(
                 model=model,
-                options=self._create_opts(training=False),
+                options=self.inference_opts,
             )
             self.poptorch_models[x] = model
 
@@ -138,10 +141,54 @@ class IPUPlugin(ParallelPlugin):
         opts.Training.gradientAccumulation(gradient_accumulation)
         opts.autoRoundNumIPUs(self.autoround_num_ipus)
 
-        # todo (sean): unsure if this is necessary but to be safe.
         if os.environ.get("PL_GLOBAL_SEED"):
             opts.randomSeed(int(os.environ["PL_GLOBAL_SEED"]))
         return opts
+
+    @property
+    def training_opts(self) -> 'poptorch.Options':
+        if self._training_opts is None:
+            self._training_opts = self._create_opts(training=True)
+        self._validate_opts(self._training_opts, training=True)
+        return self._training_opts
+
+    @property
+    def inference_opts(self) -> 'poptorch.Options':
+        if self._inference_opts is None:
+            self._inference_opts = self._create_opts(training=False)
+        self._validate_opts(self._inference_opts, training=False)
+        return self._inference_opts
+
+    def _validate_opts(self, opts: 'poptorch.Options', training: bool) -> None:
+        if opts is not None:
+            if opts.replication_factor != self.replication_factor:
+                rank_zero_warn(
+                    f"Manual poptorch.Options set replicationFactor to {opts.replication_factor} "
+                    f"which differs to the ipus={self.replication_factor} flag passed to the Trainer. "
+                    f"Setting to {self.replication_factor} in the poptorch.Options.", UserWarning
+                )
+                opts.set(replication_factor=self.replication_factor)
+            if not training:
+                if opts.Training.gradient_accumulation != 1:
+                    rank_zero_warn(
+                        "Inference poptorch.Options should set gradientAccumulation to 1. "
+                        "Setting gradientAccumulation to 1 for inference options.", UserWarning
+                    )
+                    opts.Training.set(gradient_accumulation=1)
+            else:
+                accumulate_grad_batches = self.lightning_module.trainer.accumulate_grad_batches
+                if opts.Training.gradient_accumulation != self.lightning_module.trainer.accumulate_grad_batches:
+                    rank_zero_warn(
+                        f"Training poptorch.Options set gradientAccumulation to {opts.Training.gradient_accumulation}. "
+                        f"This is different to accumulate_grad_batches which was set to {accumulate_grad_batches}. "
+                        f"To change gradientAccumulation, please set accumulate_grad_batches in the Trainer. "
+                        f"Setting poptorch.Options gradientAccumulation to {accumulate_grad_batches}", UserWarning
+                    )
+                    opts.Training.set(gradient_accumulation=self.lightning_module.trainer.accumulate_grad_batches)
+
+    @property
+    def lightning_module(self) -> Optional[LightningModule]:
+        return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
 
     def on_reset_train_dataloader(self, dataloader: Union[Iterable, DataLoader]) -> Union[Iterable, DataLoader]:
         return self.process_dataloader(dataloader)
@@ -191,7 +238,6 @@ class IPUPlugin(ParallelPlugin):
         dl_args['multiprocessing_context'] = multiprocessing_context
         if not contains_dataset:
             dl_args.pop('dataset')
-
         # Override to drop last uneven batch, as IPUs does not support uneven inputs.
         dl_args['drop_last'] = True
 
