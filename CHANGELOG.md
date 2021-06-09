@@ -165,7 +165,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `num_nodes` and `sync_batchnorm` arguments in `DDPPlugin` and `DDPSpawnPlugin` ([#7026](https://github.com/PyTorchLightning/pytorch-lightning/pull/7026))
 
 
-- Deprecated `self.log(sync_dist_op)` in favor of `self.log(reduce_fx)`. ([#7631](https://github.com/PyTorchLightning/pytorch-lightning/pull/7631))
+- Deprecated `self.log(sync_dist_op)` in favor of `self.log(reduce_fx)`. ([#TODO](https://github.com/PyTorchLightning/pytorch-lightning/pull/TODO))
 
 
 ### Removed
