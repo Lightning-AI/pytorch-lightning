@@ -407,7 +407,7 @@ The linking of arguments is observed in the help of the tool, which for this exa
                               Number of samples in a batch (type: int)
 
 Sometimes a parameter value is only available after class instantiation. An example could be that your model requires the number of classes to instantiate its fully connected layer (for a classification task) but the value is not available until the data module has been instantiated.
-The code below illustrates this.
+The code below illustrates how to address this.
 
 .. testcode::
 
