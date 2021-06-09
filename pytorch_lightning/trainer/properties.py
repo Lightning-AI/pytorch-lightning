@@ -29,7 +29,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops.epochs_loop import EpochsLoop
+from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.training_batch_loop import TrainingBatchLoop
 from pytorch_lightning.loops.training_epoch_loop import TrainingEpochLoop
 from pytorch_lightning.plugins import ParallelPlugin, PrecisionPlugin, TrainingTypePlugin
@@ -494,17 +494,17 @@ class TrainerProperties(ABC):
             return self.evaluation_loop
 
     @property
-    def epoch_loop(self) -> EpochsLoop:
-        # TODO: the current train_loop should be renamed to epoch_loop
+    def fit_loop(self) -> FitLoop:
+        # TODO: the current train_loop should be renamed to fit_loop
         return self.train_loop
 
     @property
-    def training_loop(self) -> TrainingEpochLoop:
-        return self.epoch_loop.training_loop
+    def training_epoch_loop(self) -> TrainingEpochLoop:
+        return self.fit_loop.training_loop
 
     @property
-    def batch_loop(self) -> TrainingBatchLoop:
-        return self.epoch_loop.training_loop.batch_loop
+    def training_batch_loop(self) -> TrainingBatchLoop:
+        return self.fit_loop.training_loop.batch_loop
 
     @property
     def global_step(self) -> int:
