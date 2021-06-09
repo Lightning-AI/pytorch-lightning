@@ -113,15 +113,15 @@ class LazyModel(LightningModule):
         return self.layer2(self.layer1(inp))
 
 
+@RunIf(min_torch="1.8") 
 def test_lazy_model_summary():
     """ Test that the model summary can work with lazy layers. """
 
     lazy_model = LazyModel()
+    summary = ModelSummary(lazy_model)
 
-    try:
-        lazy_model.summarize()
-    except RuntimeError:
-        pytest.fail("Unexpected Runtime Error due to Unitialized layers")
+    assert summary.total_parameters == 7
+    assert summary.trainable_parameters == 7
 
 
 def test_invalid_weights_summmary():
