@@ -61,7 +61,7 @@ def test__validation_step__log(tmpdir):
     trainer.fit(model)
 
     # make sure all the metrics are available for callbacks
-    expected_logged_metrics = {
+    assert set(trainer.logged_metrics) == {
         'a2',
         'a_step',
         'a_epoch',
@@ -69,14 +69,10 @@ def test__validation_step__log(tmpdir):
         'b_epoch',
         'epoch',
     }
-    logged_metrics = set(trainer.logged_metrics.keys())
-    assert expected_logged_metrics == logged_metrics
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
-    callback_metrics = set(trainer.callback_metrics.keys())
-    expected_cb_metrics = {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
-    assert expected_cb_metrics == callback_metrics
+    assert set(trainer.callback_metrics) == {'a', 'a2', 'b', 'a_epoch', 'b_epoch', 'a_step'}
 
 
 def test__validation_step__epoch_end__log(tmpdir):
@@ -349,33 +345,18 @@ def test_log_works_in_val_callback(tmpdir):
 
         def on_validation_start(self, trainer, pl_module):
             self.make_logging(
-                pl_module,
-                'on_validation_start',
-                1,
-                on_steps=self.choices,
-                on_epochs=self.choices,
-                prob_bars=self.choices
+                pl_module, 'on_validation_start', 1, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_epoch_start(self, trainer, pl_module):
             if trainer.validating:
                 self.make_logging(
-                    pl_module,
-                    'on_epoch_start',
-                    2,
-                    on_steps=self.choices,
-                    on_epochs=self.choices,
-                    prob_bars=self.choices
+                    pl_module, 'on_epoch_start', 2, on_steps=[False], on_epochs=[True], prob_bars=self.choices
                 )
 
         def on_validation_epoch_start(self, trainer, pl_module):
             self.make_logging(
-                pl_module,
-                'on_validation_epoch_start',
-                3,
-                on_steps=self.choices,
-                on_epochs=self.choices,
-                prob_bars=self.choices
+                pl_module, 'on_validation_epoch_start', 3, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_batch_end(self, trainer, pl_module):
@@ -400,17 +381,12 @@ def test_log_works_in_val_callback(tmpdir):
         def on_epoch_end(self, trainer, pl_module):
             if trainer.validating:
                 self.make_logging(
-                    pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
+                    pl_module, 'on_epoch_end', 8, on_steps=[False], on_epochs=[True], prob_bars=self.choices
                 )
 
         def on_validation_epoch_end(self, trainer, pl_module):
             self.make_logging(
-                pl_module,
-                'on_validation_epoch_end',
-                9,
-                on_steps=[False],
-                on_epochs=self.choices,
-                prob_bars=self.choices
+                pl_module, 'on_validation_epoch_end', 9, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
     class TestModel(BoringModel):
@@ -558,18 +534,11 @@ def test_log_works_in_test_callback(tmpdir):
                     }
 
         def on_test_start(self, trainer, pl_module):
-            self.make_logging(
-                pl_module, 'on_test_start', 1, on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
+            self.make_logging(pl_module, 'on_test_start', 1, on_steps=[False], on_epochs=[True], prob_bars=self.choices)
 
         def on_test_epoch_start(self, trainer, pl_module):
             self.make_logging(
-                pl_module,
-                'on_test_epoch_start',
-                3,
-                on_steps=self.choices,
-                on_epochs=self.choices,
-                prob_bars=self.choices
+                pl_module, 'on_test_epoch_start', 3, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
         def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
@@ -589,7 +558,7 @@ def test_log_works_in_test_callback(tmpdir):
 
         def on_test_epoch_end(self, trainer, pl_module):
             self.make_logging(
-                pl_module, 'on_test_epoch_end', 7, on_steps=[False], on_epochs=self.choices, prob_bars=self.choices
+                pl_module, 'on_test_epoch_end', 7, on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
     max_epochs = 2
